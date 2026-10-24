@@ -1,0 +1,19 @@
+{
+  "name": "gyro-caserne",
+  "private": true,
+  "description": "Gyro Caserne : l'appli de la vie d'un centre d'incendie et de secours (astreintes, remplacements, prise de garde, anomalies, salons).",
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "2.11.10"
+  }
+}
