@@ -22,12 +22,13 @@ packages/centre    la description d'un centre et sa validation
 centres/laille     la description du CIS de Laillé
 ```
 
-## Technique
+## Documentation
 
-- [SvelteKit](https://svelte.dev) 3 avec l'adaptateur Cloudflare, en TypeScript.
-- **Cloudflare Workers** pour l'hébergement. Viendront ensuite **D1** pour la base de données et **R2** pour les photos.
-- Monorepo **pnpm** + **Turborepo**.
-- **Vitest** pour les tests, **GitHub Actions** pour vérifier chaque push.
+- [Technique](docs/technique/README.md) : architecture, technos, versions.
+- [Fonctionnelle](docs/fonctionnel/README.md) : ce que fait chaque fonction.
+- [Aide aux agents](docs/utilisation/README.md) : comment utiliser l'appli.
+- [Décisions](docs/decisions/) : les choix faits, et pourquoi.
+- [Règles de travail](CLAUDE.md).
 
 ## Développement
 
@@ -50,3 +51,7 @@ Pour l'essayer dans le moteur Cloudflare local, après `pnpm build` : `pnpm --fi
 1. Copier `centres/laille` en `centres/<id>`, et changer le `name` de son `package.json`.
 2. Remplir `centre.ts`. Une description incorrecte (date de référence qui ne tombe pas le jour de prise, couleur invalide…) est refusée dès la compilation, avec la liste des erreurs.
 3. `CENTRE=<id> pnpm build`.
+
+## Licence
+
+[MIT](LICENSE) : chaque centre peut reprendre le code librement.
