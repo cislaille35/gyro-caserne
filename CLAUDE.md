@@ -69,6 +69,15 @@ Mise à jour dans la même PR que le code.
 
 Les règles de travail sont dans ce fichier.
 
+## Tâches longues
+
+Une tâche longue dure plus de 5 min. Le porteur sait où elle en est, et un blocage est toujours signalé.
+
+1. **Au lancement** : ce qu'elle fait, durée estimée, heure limite.
+2. **Journal** : une ligne horodatée par étape, dans un fichier de suivi hors du dépôt. Si le porteur demande où ça en est, Claude répond avec l'étape en cours.
+3. **Garde-fou** : une surveillance automatique alerte Claude si rien n'avance depuis 10 min ou si l'heure limite est passée. Claude prévient alors le porteur : diagnostic et proposition (attendre, relancer, arrêter).
+4. **Notification** sur le téléphone du porteur (notifications Claude Code) quand une tâche longue finit ou se bloque.
+
 ## Compte rendu
 
 Court, sans jargon :
