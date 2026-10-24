@@ -2,6 +2,7 @@
   "name": "gyro-caserne",
   "private": true,
   "description": "Gyro Caserne : l'appli de la vie d'un centre d'incendie et de secours (astreintes, remplacements, prise de garde, anomalies, salons).",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.15.0",
   "engines": {
