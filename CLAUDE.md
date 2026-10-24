@@ -4,6 +4,7 @@
 
 Simple et clair, partout : dans nos échanges, le code, la doc et l'appli.
 Rien d'inutile, pas de pavé. L'essentiel d'abord.
+Soin du détail, sans excès. La critique est notre force : elle va dans les deux sens.
 
 Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un **sous-agent** est un assistant IA lancé par Claude.
 
