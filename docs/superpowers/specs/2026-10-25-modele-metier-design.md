@@ -97,7 +97,7 @@ L'historique est conservé.
 - **Au démarrage**, le chef de centre (ou le super administrateur) nomme les premiers membres de chaque comité. Le chef d'équipe est attribué par le comité du centre.
 - **Responsabilités système** : chef de centre et chef d'équipe ont un socle de droits verrouillé. Le centre peut en ajouter, pas en retirer.
 - **Appartenance à une équipe** : c'est une affectation datée, avec son historique, distincte des responsabilités.
-- **Compte rendu signé** : il peut être joint à une attribution. Quand il devient obligatoire, et pour quelles responsabilités, reste **à établir**.
+- **Compte rendu** : c'est un complément d'explication facultatif, jamais une condition. Seul le rapporteur ou le référent désigné du comité (celui qui a `ATTRIBUER_RESPONSABILITE` dans ce comité) enregistre l'attribution.
 - **Accès fermé** : seules les adresses ajoutées une par une peuvent se connecter, avec un lien magique par e-mail. Il n'y a ni inscription libre, ni lien public.
 - **Statut opérationnel de l'agent** :
 
