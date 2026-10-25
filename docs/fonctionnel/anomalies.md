@@ -2,28 +2,28 @@
 
 ## À quoi ça sert
 
-Signaler un problème (sur un engin, un lot, un local ou du matériel), le faire réparer et savoir à tout moment ce qui est en cours et ce qui empêche d'utiliser un engin.
+Signaler un problème (sur un engin, un contenant comme un sac, un local ou du matériel), le faire réparer et savoir à tout moment ce qui est en cours et ce qui empêche d'utiliser un engin.
 
 ## Les notions
 
-- **Objet concerné** : un engin, un lot (un sac, par exemple), un local ou du matériel.
+- **Objet concerné** : un engin, un contenant (un sac, par exemple), un local ou du matériel.
 - **Catégorie** (liste ouverte) : engin, pharmacie, bâtiment, amicale… Elle **décide qui est prévenu**, par exemple le référent pharmacie pour une anomalie de la catégorie pharmacie.
-- **Effet sur l'engin**, seulement pour un engin ou un lot :
+- **Effet sur l'engin**, seulement pour un engin ou un contenant :
   - **bloquant** : l'engin est indisponible jusqu'à sa remise en service ;
   - **avertissement** : l'engin reste utilisable, mais un bandeau prévient tous ceux qui l'ouvrent (« Treuil HS, ne pas utiliser ») ;
   - **aucun**.
 - **Priorité de traitement** : faible, normale ou haute. Elle est indépendante de l'effet sur l'engin. L'appli propose « haute » quand c'est bloquant, mais on peut la changer.
 
-## Le déroulé par défaut
+## Le déroulé
 
-Chaque centre peut le modifier.
+Les étapes sont fixes. Le centre active ou non les étapes « en attente » et « vérifiée », et peut renommer les libellés.
 
 1. **Signalée** : depuis une prise de garde ou directement, avec une photo et une note.
-2. **Prise en charge** : un agent compétent se l'attribue. Par défaut, tout agent peut le faire ; le centre peut réserver cette étape à une responsabilité (par exemple, référent engins).
+2. **Prise en charge** : un agent compétent se l'attribue (droit `PRENDRE_EN_CHARGE_ANOMALIE`). Par défaut, tout agent peut le faire ; le centre peut réserver ce droit à une responsabilité, par exemple référent engins.
 3. **En attente**, avec un motif visible dans la liste : pièce commandée, au garage, prestataire. La date de départ et la date de retour sont notées.
 4. **Réparée** : sur place ou au retour du garage, avec ce qui a été fait.
 5. **Vérifiée** par une autre personne, seulement si le centre active cette étape.
-6. **Close**. Pour un engin indisponible, l'appli demande : **« Remettre l'engin en service ? »** La réponse est une décision à part, car une autre anomalie peut rester bloquante.
+6. **Close** (droit `TRAITER_ANOMALIE`, ou la personne qui a réparé). Pour un engin indisponible, l'appli demande : **« Remettre l'engin en service ? »** La réponse est une décision à part, car une autre anomalie peut rester bloquante.
 
 On peut **rouvrir** une anomalie close. L'auteur et la personne qui l'a prise en charge sont prévenus à chaque changement d'étape.
 
@@ -37,7 +37,7 @@ On peut **rouvrir** une anomalie close. L'auteur et la personne qui l'a prise en
 ## Ce que la fonction ne fait pas
 
 - Pas de gestion du garage ni des devis : l'anomalie note seulement le départ et le retour.
-- Pas de commande de pièces : c'est le rôle de la fonction Stocks, à venir.
+- Pas de commande de pièces.
 
 ## Exemple
 

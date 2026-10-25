@@ -12,7 +12,7 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 - **Ajouter ou retirer une adresse** demande le droit `GERER_ACCES`, sur un périmètre :
   - sur le **centre** (le chef de centre, par défaut) : n'importe quelle adresse et n'importe quel profil ;
   - sur une **équipe**, si le centre donne ce droit au chef d'équipe : uniquement des agents de son équipe.
-- **Départ d'un agent** : son statut opérationnel passe à « parti ». Ses accès sont coupés et ses sessions fermées, mais son historique est gardé.
+- **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés et les sessions fermées, mais l'historique est gardé.
 
 ## Attribuer une responsabilité
 

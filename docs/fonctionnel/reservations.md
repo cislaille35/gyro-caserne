@@ -20,12 +20,12 @@ Réserver la VL du centre ou le matériel de l'amicale, sans double réservation
 2. Selon la règle de la ressource :
    - en **directe**, un créneau libre est validé tout de suite, et un créneau déjà pris passe **en attente** ;
    - **sur demande**, la réservation attend toujours.
-3. Le gestionnaire valide ou refuse les réservations en attente. Le demandeur est prévenu.
+3. Le gestionnaire (droit `GERER_RESERVATIONS` sur la ressource) valide ou refuse les réservations en attente. Le demandeur est prévenu.
 
 ## La VL et la réserve citoyenne
 
 - Règle **directe**, gérée par le responsable de la VL.
-- La réserve citoyenne a son propre **profil** (personne extérieure). Son seul droit est `RESERVER_VL` : elle ne voit que le calendrier de la VL et rien d'autre du centre.
+- La réserve citoyenne a son propre **profil** (personne extérieure). Son seul droit est `RESERVER` sur la VL : elle ne voit que le calendrier de la VL et rien d'autre du centre.
 - Son adresse fait partie de la liste fermée. Le coordinateur peut utiliser une **adresse commune** : on demande alors **le nom de la personne** à chaque réservation.
 - En cas de conflit, y compris face à une demande d'un agent, **le responsable de la VL tranche**.
 

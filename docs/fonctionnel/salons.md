@@ -6,7 +6,7 @@ Diffuser l'information du centre (annonces, manœuvres, amicale, vie d'équipe) 
 
 ## Les notions
 
-- **Salon** (liste ouverte) : le centre crée les siens (annonces, manœuvres, amicale, mur, un fil par équipe…). Pour chacun, il choisit **qui peut lire, publier et modérer**, par profil ou par responsabilité.
+- **Salon** (liste ouverte) : le centre crée les siens (annonces, manœuvres, amicale, mur, un fil par équipe…). Pour chacun, il choisit **qui peut lire, publier, modérer et épingler** (droits `LIRE_SALON`, `PUBLIER_SALON`, `MODERER_SALON` et `EPINGLER_SALON` sur ce salon), par profil ou par responsabilité.
 - **Publication** : un texte, des photos, et en option :
   - un **événement** (date, lieu, équipes convoquées), avec une réponse présent / absent / incertain, des invités si le salon le permet, et un rappel la veille ;
   - un **sondage** ;

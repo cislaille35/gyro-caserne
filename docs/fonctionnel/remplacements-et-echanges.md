@@ -8,7 +8,7 @@ Permettre à un agent de se faire remplacer ou d'échanger, simplement entre col
 
 - **Remplacement** : un agent d'astreinte cède tout ou partie de son créneau (une semaine entière ou des tranches) à un collègue.
 - **Échange**, deux cas seulement :
-  - **un week-end d'astreinte** : deux agents de deux équipes différentes échangent un week-end complet ;
+  - **un week-end d'astreinte** : deux agents de deux équipes différentes échangent un week-end complet, tel que le centre le définit (voir Astreinte et rotation) ;
   - **une manœuvre** : deux agents échangent leur participation à une manœuvre.
 
 ## Le déroulé
@@ -23,7 +23,7 @@ Permettre à un agent de se faire remplacer ou d'échanger, simplement entre col
 - **Désistement** : si le remplaçant se désiste, la demande redevient ouverte et le **titulaire redevient responsable**. Le titulaire et le chef d'équipe sont prévenus.
 - **Annulation** : le demandeur peut annuler tant que personne n'a accepté. Après, il faut l'accord du remplaçant.
 - Un remplacement qui casse la composition reste possible : l'appli **prévient**, mais ne bloque pas.
-- Un centre peut exiger une validation par le chef d'équipe. Ce réglage est désactivé par défaut, et désactivé à Laillé.
+- Un centre peut exiger une validation par le chef d'équipe (droit `VALIDER_REMPLACEMENT` sur l'équipe). Ce réglage est désactivé par défaut, et désactivé à Laillé.
 
 ## Ce que la fonction ne fait pas
 

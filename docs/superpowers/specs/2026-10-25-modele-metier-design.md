@@ -51,10 +51,10 @@ Un nouveau centre reçoit un **jeu de départ** de toutes les listes ouvertes, q
 
 | Brique | Rôle | Exemples |
 |---|---|---|
-| **Droit** | Une action de l'appli | `VALIDER_REMPLACEMENT`, `TRAITER_ANOMALIE`, `GERER_STOCK`, `ATTRIBUER_RESPONSABILITE`, `GERER_COMITES`, `RESERVER_VL` |
-| **Type de périmètre** | Sur quoi s'exerce une attribution | centre, équipe, comité |
+| **Droit** | Une action de l'appli | Voir l'inventaire des droits plus bas |
+| **Type de périmètre** | Sur quoi s'exerce un droit | centre, équipe, comité, salon, ressource réservable |
 | **Type de personne** | Ce que l'appli sait d'une personne | agent, extérieur |
-| **Statuts** | Les étapes d'un déroulé | anomalie : ouverte → en cours → résolue ; remplacement : ouvert → pourvu / annulé ; réservation : demandée → validée / refusée / annulée ; engin : disponible / indisponible ; statut opérationnel de l'agent (voir plus bas) |
+| **Statuts** | Les étapes d'un déroulé | anomalie : signalée → prise en charge → en attente → réparée → vérifiée → close (« en attente » et « vérifiée » sont des étapes que le centre active ou non, et les libellés sont modifiables) ; remplacement : ouvert → pourvu / annulé ; réservation : demandée → validée / refusée / annulée ; engin : disponible / indisponible ; statut opérationnel de l'agent (voir plus bas) |
 | **Responsabilités système** | Celles dont l'appli dépend | chef de centre (périmètre : centre), chef d'équipe (périmètre : une équipe) |
 
 ### Ouvertes (gérées par le centre)
@@ -83,6 +83,31 @@ Une **attribution** relie :
 
 L'historique est conservé.
 
+## Inventaire des droits (liste fermée)
+
+Le préfixe `VOIR_` est la lecture. « Par défaut » indique qui reçoit le droit dans le jeu de départ ; le centre peut ensuite le donner à d'autres responsabilités ou profils.
+
+| Droit | Périmètre | Par défaut |
+|---|---|---|
+| `VOIR_PLANNING`, `VOIR_ANNUAIRE`, `VOIR_ENGINS`, `VOIR_ANOMALIES` | centre | profil agent |
+| `SIGNALER_ANOMALIE`, `SIGNALER_BESOIN_STOCK`, `DEMANDER_REMPLACEMENT`, `DECLARER_DISPONIBILITE`, `UTILISER_MESSAGERIE` | centre | profil agent |
+| `FAIRE_PRISE_DE_GARDE` | équipe d'astreinte, ou centre selon le réglage | profil agent |
+| `PRENDRE_EN_CHARGE_ANOMALIE` | centre | profil agent (le centre peut le restreindre) |
+| `TRAITER_ANOMALIE` (clore, rouvrir, remettre en service) | centre | chef de centre, référent engins |
+| `GERER_FICHES` | centre | chef de centre, référent engins |
+| `GERER_STOCK` | centre | chef de centre, référent pharmacie |
+| `GERER_PLANNING` (cycle, exceptions, plafonds) | centre | chef de centre |
+| `VALIDER_REMPLACEMENT` (si le centre l'exige) | équipe | chef d'équipe |
+| `VOIR_MOTIFS_ABSENCE` | équipe | chef d'équipe |
+| `LIRE_SALON`, `PUBLIER_SALON`, `MODERER_SALON`, `EPINGLER_SALON` | salon | selon le salon |
+| `RESERVER` | ressource réservable | profil agent (VL), profil réserve citoyenne (VL seulement) |
+| `GERER_RESERVATIONS` (valider, refuser) | ressource réservable | responsable VL, rapporteur de l'amicale |
+| `MODERER_MESSAGERIE` (messages signalés seulement) | centre | chef de centre |
+| `GERER_LISTES`, `GERER_ACCES`, `GERER_COMITES` | centre (`GERER_ACCES` aussi sur une équipe) | chef de centre |
+| `ATTRIBUER_RESPONSABILITE` | comité | rapporteur ou référent du comité |
+
+`RESERVER_VL`, cité plus haut, est le droit `RESERVER` sur la ressource VL.
+
 ## Les règles de droit
 
 - **Vérification unique** : *la personne a-t-elle, par son profil ou par une attribution en cours, ce droit sur ce périmètre ?* Un droit sur le centre vaut sur toutes ses équipes et tous ses comités.
@@ -109,16 +134,16 @@ L'historique est conservé.
   | suspendu | non | non |
   | parti | non | non |
 
-  Dans tous les cas, l'historique est gardé.
+  Dans tous les cas, l'historique est gardé. Un agent **actif** a un statut qui donne accès : opérationnel, stagiaire ou inapte temporaire.
 
 ## Les fonctionnalités, vues comme des combinaisons
 
 | Fonction | Briques utilisées |
 |---|---|
-| **Astreinte et rotation** | Équipes (ordre de rotation), règle d'astreinte du centre (jours et heures dans `centre.ts`), exceptions |
+| **Astreinte et rotation** | Créneaux (astreinte ou garde postée), rotation d'équipes réglée en base (jeu de départ dans `centre.ts`), exceptions, plafonds |
 | **Composition d'une garde** | Règles du centre écrites avec les aptitudes (« au moins 1 CA2, 1 CE, 4 agents »), vérifiées avec les aptitudes **valides à la date de la garde** |
 | **Disponibilité déclarée** | Elle est distincte de l'astreinte : un agent se dit disponible ou indisponible sur une période. Les absences en sont un cas. |
-| **Remplacement** | La semaine entière, comme dans le MVP. Statuts, droit `VALIDER_REMPLACEMENT` sur l'équipe |
+| **Remplacement** | La semaine entière ou des tranches. Valable sur l'accord des deux agents, et le chef d'équipe est informé. Le centre peut exiger une validation (`VALIDER_REMPLACEMENT` sur l'équipe), ce qui est désactivé par défaut. |
 | **Échange** | Deux cas seulement : un **week-end d'astreinte** entre deux agents, ou une **manœuvre**. Chacun accepte, puis le chef d'équipe valide si nécessaire et la composition est revérifiée. |
 | **Prise de garde** | Fiche versionnée **par type d'engin**, saisie zone par zone, situation et statut de l'engin. Une anomalie bloquante rend l'engin **indisponible**. Détail dans `docs/fonctionnel/prise-de-garde.md`. |
 | **Anomalies** | Statuts, catégories, `TRAITER_ANOMALIE` |
@@ -126,7 +151,7 @@ L'historique est conservé.
 | **Réservations** | Une ressource indique qui la gère (une responsabilité ou un comité), si on la réserve directement ou sur demande, et quel profil peut la réserver. |
 | **VL et réserve citoyenne** | Calendrier de la VL. Profil « réserve citoyenne » (type extérieur) dont le seul droit est `RESERVER_VL`. Le nom du demandeur est demandé à chaque réservation. Règle par défaut : un créneau libre est accepté, un créneau pris passe **en attente** et le responsable de la VL tranche, y compris face à une demande d'un agent. |
 | **Matériel de l'amicale** | Ressources réservables sur demande, validées par le rapporteur de l'amicale. |
-| **Salons** | Information officielle. Lire, publier et modérer sont des droits, donc donnés par des responsabilités. |
+| **Salons** | Liste ouverte. Lire, publier, modérer et épingler sont des droits sur le périmètre d'un salon, donnés par un profil ou une responsabilité. |
 | **Messagerie** | Annuaire du centre, conversations à deux et groupes créés par n'importe quel agent, qui en devient l'animateur. Une conversation n'est qu'une liste de membres, sans attribution ni comité. **Seuls ses membres la lisent.** Chacun peut couper un groupe. Les extérieurs n'y ont pas accès. |
 | **Notifications** | Par type, avec des préférences par personne |
 
@@ -158,5 +183,5 @@ L'historique est conservé.
   - spécialités : INC, SAP, DIV, FDF1, FDF2.
 - **Engins** : VSAV, FPT, VTU, avec leurs fiches. Zones de fiche : cabine, cellule sanitaire, sacs, ARI, hydraulique, coffres, épuisement.
 - **Urgence d'une anomalie** : faible, normale, haute.
-- **Salons** : mur, annonces, manœuvres, amicale, une équipe chacune.
-- **Types de notification** : astreinte, personnel, remplacements, manœuvres, salons, mur, commentaires, anomalies, composition, sécurité.
+- **Salons** : mur, annonces, manœuvres, amicale, un fil par équipe.
+- **Types de notification** : la liste de référence est dans `docs/fonctionnel/notifications.md`.

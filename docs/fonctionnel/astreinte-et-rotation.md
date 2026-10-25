@@ -12,6 +12,7 @@ Savoir à tout moment qui est d'astreinte ou de garde, pour la semaine en cours 
 - **Deux façons de créer les créneaux** :
   1. **Rotation d'équipes** : le centre règle le cycle (jours et heures de prise et de fin, ordre des équipes, une date de référence) et ses **exceptions** (« le vendredi 25 décembre, c'est l'équipe 3 »). C'est le fonctionnement de Laillé : du vendredi 17h30 au vendredi 6h.
   2. **Planning nominatif** : le responsable remplit les créneaux de garde postée à partir des disponibilités déclarées. Il est prévu dans le modèle, mais il sera livré quand un centre en aura besoin.
+- **Week-end** : une partie du créneau d'astreinte que le centre définit (par défaut, du vendredi 17h30 au lundi 6h). Il sert aux échanges de week-end.
 - **Plafonds** (réglages du centre) : semaines d'astreinte par an, nuits consécutives, heures de garde par an… L'appli **prévient** quand un plafond est dépassé, mais ne bloque pas.
 
 ## Ce que voit l'agent

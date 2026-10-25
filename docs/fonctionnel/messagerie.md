@@ -6,14 +6,14 @@
 
 ## Les notions
 
-- **Annuaire du centre** : tous les agents actifs, avec leur équipe et leurs responsabilités. Le téléphone n'apparaît que si l'agent l'a choisi.
+- **Annuaire du centre** : tous les agents actifs (statut opérationnel, stagiaire ou inapte temporaire), avec leur équipe et leurs responsabilités. Le téléphone n'apparaît que si l'agent l'a choisi.
 - **Conversation** : à deux, ou en **groupe** créé par n'importe quel agent. Ce n'est qu'une liste de membres.
 - **Animateur** : celui qui crée le groupe. Il ajoute ou retire des membres, renomme le groupe, et peut transmettre son rôle.
 
 ## Les règles
 
 - **Seuls les membres lisent une conversation**, y compris le chef de centre et le super administrateur. Pas d'exception.
-- Un agent qui passe au statut « parti » quitte automatiquement toutes ses conversations.
+- Un agent suspendu disparaît de l'annuaire et ne peut plus rien lire. Un agent qui passe au statut « parti » quitte automatiquement toutes ses conversations.
 - **Couper les notifications**, par conversation : tout, ou seulement quand on me mentionne.
 - **Signaler un message** : le signalement part vers ceux qui ont le droit `MODERER_MESSAGERIE`, avec **uniquement** le message signalé, pas le reste de la conversation.
 - **Conservation** : les messages sont effacés après une durée réglable par le centre, 12 mois par défaut.

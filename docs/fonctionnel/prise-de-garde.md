@@ -39,7 +39,7 @@ Il y a une seule prise en cours par engin, et le brouillon est gardé sur le ser
 ## Ce que la fonction ne fait pas
 
 - Pas de QR code dans l'appli.
-- Pas encore de contrôles périodiques (mensuels, annuels), de suivi des EPI ni de suivi des péremptions de stock : voir les fonctions Stocks et Contrôles, à venir.
+- Pas de suivi des péremptions : voir [Stocks](stocks.md). Pas encore de contrôles périodiques (mensuels, annuels) ni de suivi des EPI : fonctions à venir.
 
 ## Exemple
 
