@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { personne } from '@gyro-caserne/socle';
+import { personne, verification } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
 
@@ -17,7 +17,9 @@ async function jeu() {
 		await auth.api.signInMagicLink({ body: { email, callbackURL: '/' }, headers: entetes });
 		await Promise.all(taches.splice(0));
 	};
-	return { base, auth, envoyer, taches, demander };
+	// Jeton du dernier lien envoyé.
+	const dernierJeton = () => new URL(envoyer.mock.calls.at(-1)![1].texte.split('\n')[1]!).searchParams.get('token')!;
+	return { base, auth, envoyer, taches, demander, dernierJeton };
 }
 
 describe('lien de connexion', () => {
@@ -39,5 +41,18 @@ describe('lien de connexion', () => {
 		const { envoyer, demander } = await jeu();
 		await demander('inconnu@exemple.fr');
 		expect(envoyer).not.toHaveBeenCalled();
+	});
+});
+
+describe('jeton du lien', () => {
+	it('est gardé haché en base, et le lien connecte', async () => {
+		const { base, auth, demander, dernierJeton } = await jeu();
+		await demander('agent@exemple.fr');
+		const jeton = dernierJeton();
+		const lignes = await base.select().from(verification);
+		expect(lignes).toHaveLength(1);
+		expect(lignes[0]!.identifier).not.toContain(jeton);
+		const reponse = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: entetes });
+		expect(reponse.user.email).toBe('agent@exemple.fr');
 	});
 });

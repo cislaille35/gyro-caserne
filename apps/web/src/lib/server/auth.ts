@@ -30,6 +30,8 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 		plugins: [
 			magicLink({
 				disableSignUp: false,
+				// En base, seule l'empreinte du jeton : une fuite de la table ne donne aucun lien valable.
+				storeToken: 'hashed',
 				// Tout se fait après la réponse : son contenu et sa durée ne révèlent pas si l'adresse est connue.
 				sendMagicLink: ({ email, url }, ctx) => {
 					ctx!.context.runInBackground(envoyerLien(email, url).catch((erreur) => console.error('Lien de connexion non envoyé', erreur)));
