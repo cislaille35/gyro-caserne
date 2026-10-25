@@ -1,0 +1,11 @@
+// Config Cloudflare du centre. Centre fictif : préprod et démonstration, données fictives uniquement.
+// Les chemins partent de ce dossier vers l'appli compilée.
+{
+	"$schema": "../../apps/web/node_modules/wrangler/config-schema.json",
+	"name": "gyro-caserne-exemple",
+	"main": "../../apps/web/.svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-10-01",
+	"compatibility_flags": ["nodejs_als"],
+	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" }
+	// La base D1 et le stockage R2 des photos s'ajouteront ici avec les premières fonctions.
+}

@@ -9,7 +9,7 @@ Le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille) sert de référ
 ## Un centre, une installation
 
 - Le code est commun à tous les centres. Rien de propre à un centre n'y est écrit.
-- Ce qui distingue un centre (nom, commune, équipes, rotation d'astreinte…) est décrit dans `centres/<id>/centre.ts`.
+- Ce qui distingue un centre est dans `centres/<id>/` : sa description (`centre.ts` : nom, équipes, rotation d'astreinte…) et sa config Cloudflare (`wrangler.jsonc`).
 - Chaque centre déploie sa propre copie, sur son propre compte Cloudflare (offre gratuite) avec sa propre base : les données d'un centre ne sont jamais mélangées à celles d'un autre.
 
 Laillé est le premier centre décrit : `centres/laille/centre.ts`. `centres/exemple` est un centre fictif : il sert de modèle et de centre par défaut en développement.
@@ -45,13 +45,13 @@ pnpm build        # compilation
 
 Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un vrai centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.
 
-Pour l'essayer dans le moteur Cloudflare local, après `pnpm build` : `pnpm --filter @gyro-caserne/web exec wrangler dev`.
+Pour l'essayer dans le moteur Cloudflare local : `pnpm --filter @gyro-caserne/web preview` (avec `CENTRE=<id>` pour un autre centre).
 
 ## Ajouter un centre
 
-1. Copier `centres/exemple` en `centres/<id>`, et changer le `name` de son `package.json`.
-2. Remplir `centre.ts`, avec `id: '<id>'`. Une description incorrecte (date de référence qui ne tombe pas le jour de prise, couleur invalide…) est refusée par `pnpm check`, `pnpm test` et la compilation, avec la liste des erreurs.
-3. `CENTRE=<id> pnpm build`.
+Voir [Installer l'appli pour un nouveau centre](docs/technique/installer-un-centre.md) : une copie du dépôt (fork) par centre, où seul `centres/<id>/` change.
+
+Une description incorrecte (date de référence qui ne tombe pas le jour de prise, couleur invalide…) est refusée par `pnpm check`, `pnpm test` et la compilation, avec la liste des erreurs.
 
 ## Licence
 
