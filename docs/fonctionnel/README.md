@@ -5,6 +5,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Fonction | Page |
 |---|---|
 | Accès et attributions | [acces-et-attributions.md](acces-et-attributions.md) |
+| Fiche agent | [fiche-agent.md](fiche-agent.md) |
 | Astreinte et rotation | [astreinte-et-rotation.md](astreinte-et-rotation.md) |
 | Composition des gardes | [composition-des-gardes.md](composition-des-gardes.md) |
 | Disponibilités et absences | [disponibilites-et-absences.md](disponibilites-et-absences.md) |
