@@ -1,7 +1,6 @@
 packages:
   - apps/*
   - packages/*
-  - centres/*
 
 # Paquets autorisés à lancer un script d'installation (binaires de compilation et du moteur Cloudflare)
 allowBuilds:

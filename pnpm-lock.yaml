@@ -210,18 +210,6 @@ importers:
         specifier: 4.152.0
         version: 4.152.0(@cloudflare/workers-types@5.20261023.1)(@types/node@24.19.2)
 
-  centres/exemple:
-    dependencies:
-      '@gyro-caserne/centre':
-        specifier: workspace:*
-        version: link:../../packages/centre
-
-  centres/laille:
-    dependencies:
-      '@gyro-caserne/centre':
-        specifier: workspace:*
-        version: link:../../packages/centre
-
   packages/centre:
     devDependencies:
       typescript:
