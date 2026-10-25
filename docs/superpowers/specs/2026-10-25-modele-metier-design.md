@@ -120,7 +120,7 @@ L'historique est conservé.
 | **Disponibilité déclarée** | Elle est distincte de l'astreinte : un agent se dit disponible ou indisponible sur une période. Les absences en sont un cas. |
 | **Remplacement** | La semaine entière, comme dans le MVP. Statuts, droit `VALIDER_REMPLACEMENT` sur l'équipe |
 | **Échange** | Deux cas seulement : un **week-end d'astreinte** entre deux agents, ou une **manœuvre**. Chacun accepte, puis le chef d'équipe valide si nécessaire et la composition est revérifiée. |
-| **Prise de garde** | Engins, fiches, statut de l'engin. Une anomalie bloquante rend l'engin **indisponible**. |
+| **Prise de garde** | Fiche versionnée **par type d'engin**, saisie zone par zone, situation et statut de l'engin. Une anomalie bloquante rend l'engin **indisponible**. Détail dans `docs/fonctionnel/prise-de-garde.md`. |
 | **Anomalies** | Statuts, catégories, `TRAITER_ANOMALIE` |
 | **Stocks** | Articles, lieux, lots, péremption, seuil minimum, mouvements, `GERER_STOCK` (par exemple pour le référent pharmacie) |
 | **Réservations** | Une ressource indique qui la gère (une responsabilité ou un comité), si on la réserve directement ou sur demande, et quel profil peut la réserver. |
