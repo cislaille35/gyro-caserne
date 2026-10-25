@@ -3,13 +3,16 @@
   "globalEnv": ["CENTRE"],
   "tasks": {
     "build": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/centres/**"],
       "dependsOn": ["^build"],
       "outputs": [".svelte-kit/**", "dist/**"]
     },
     "check": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/centres/**"],
       "dependsOn": ["^build"]
     },
     "test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/centres/**"],
       "dependsOn": ["^build"]
     },
     "dev": {

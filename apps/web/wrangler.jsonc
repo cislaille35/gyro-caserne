@@ -1,6 +1,6 @@
 // Configuration Cloudflare Workers. Chaque centre déploie sa propre copie, sur son propre compte Cloudflare.
 {
-	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "gyro-caserne",
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2026-10-01",

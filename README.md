@@ -12,7 +12,7 @@ Le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille) sert de référ
 - Ce qui distingue un centre (nom, commune, équipes, rotation d'astreinte…) est décrit dans `centres/<id>/centre.ts`.
 - Chaque centre déploie sa propre copie, sur son propre compte Cloudflare (offre gratuite) avec sa propre base : les données d'un centre ne sont jamais mélangées à celles d'un autre.
 
-Laillé est le premier centre décrit : `centres/laille/centre.ts`.
+Laillé est le premier centre décrit : `centres/laille/centre.ts`. `centres/exemple` est un centre fictif : il sert de modèle et de centre par défaut en développement.
 
 ## Organisation du dépôt
 
@@ -20,6 +20,7 @@ Laillé est le premier centre décrit : `centres/laille/centre.ts`.
 apps/web           l'appli (SvelteKit sur Cloudflare Workers)
 packages/centre    la description d'un centre et sa validation
 centres/laille     la description du CIS de Laillé
+centres/exemple    un centre fictif, modèle pour en décrire un nouveau
 ```
 
 ## Documentation
@@ -42,14 +43,14 @@ pnpm test         # tests
 pnpm build        # compilation
 ```
 
-Pour construire l'appli d'un autre centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.
+Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un vrai centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.
 
 Pour l'essayer dans le moteur Cloudflare local, après `pnpm build` : `pnpm --filter @gyro-caserne/web exec wrangler dev`.
 
 ## Ajouter un centre
 
-1. Copier `centres/laille` en `centres/<id>`, et changer le `name` de son `package.json`.
-2. Remplir `centre.ts`. Une description incorrecte (date de référence qui ne tombe pas le jour de prise, couleur invalide…) est refusée dès la compilation, avec la liste des erreurs.
+1. Copier `centres/exemple` en `centres/<id>`, et changer le `name` de son `package.json`.
+2. Remplir `centre.ts`, avec `id: '<id>'`. Une description incorrecte (date de référence qui ne tombe pas le jour de prise, couleur invalide…) est refusée par `pnpm check`, `pnpm test` et la compilation, avec la liste des erreurs.
 3. `CENTRE=<id> pnpm build`.
 
 ## Licence

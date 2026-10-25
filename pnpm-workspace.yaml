@@ -8,3 +8,6 @@ allowBuilds:
   esbuild: true
   workerd: true
   sharp: false
+
+# Versions exactes à chaque ajout de dépendance
+saveExact: true

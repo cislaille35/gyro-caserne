@@ -5,12 +5,14 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-// Centre pour lequel l'appli est construite : CENTRE=<id> lit centres/<id>/centre.ts (Laillé par défaut)
-const centre = process.env.CENTRE || 'laille';
+// Centre pour lequel l'appli est construite : CENTRE=<id> lit centres/<id>/centre.ts (centre fictif par défaut)
+const centre = process.env.CENTRE || 'exemple';
 const fichierCentre = fileURLToPath(new URL(`../../centres/${centre}/centre.ts`, import.meta.url));
 if (!existsSync(fichierCentre)) {
 	throw new Error(`Centre « ${centre} » introuvable : créez centres/${centre}/centre.ts`);
 }
+// Lire le centre ici arrête la compilation s'il est mal décrit, au lieu de planter l'appli chez l'agent
+await import(fichierCentre);
 
 export default defineConfig({
 	plugins: [

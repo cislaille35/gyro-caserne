@@ -1,0 +1,13 @@
+{
+  "name": "@gyro-caserne/centre-exemple",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Centre fictif : modèle pour décrire un centre, et centre par défaut en développement.",
+  "type": "module",
+  "exports": {
+    ".": "./centre.ts"
+  },
+  "dependencies": {
+    "@gyro-caserne/centre": "workspace:*"
+  }
+}
