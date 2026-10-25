@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { acteurDe, changerStatut, personne, user, verification } from '@gyro-caserne/socle';
+import { acteurDe, changerStatut, envoiLien, personne, user, verification } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
 
@@ -45,6 +45,12 @@ describe('lien de connexion', () => {
 	});
 });
 
+// Fait comme si le dernier lien envoyé était parti plus tôt.
+async function reculer(base: Awaited<ReturnType<typeof jeu>>['base'], ms: number) {
+	const [envoi] = await base.select().from(envoiLien);
+	await base.update(envoiLien).set({ envoyeLe: new Date(envoi!.envoyeLe.getTime() - ms) });
+}
+
 describe('un lien par minute et par adresse', () => {
 	it('ne renvoie rien moins de 60 s après, et le premier lien reste valable', async () => {
 		const { base, auth, envoyer, demander, dernierJeton } = await jeu();
@@ -68,7 +74,39 @@ describe('un lien par minute et par adresse', () => {
 	it('renvoie un lien après 60 s', async () => {
 		const { base, envoyer, demander } = await jeu();
 		await demander('agent@exemple.fr');
-		await base.update(verification).set({ createdAt: new Date(Date.now() - 61_000) });
+		await reculer(base, 61_000);
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(2);
+	});
+
+	it('un lien en attente, non encore envoyé, ne bloque pas', async () => {
+		const { base, envoyer, demander } = await jeu();
+		await base.insert(verification).values({ id: 'attente', identifier: 'magic-link:attente', value: JSON.stringify({ type: 'magic-link', email: 'agent@exemple.fr' }), expiresAt: new Date(Date.now() + 300_000) });
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(1);
+	});
+
+	it('sous un flot de demandes, un lien repart 60 s après le dernier envoyé', async () => {
+		const { base, envoyer, demander } = await jeu();
+		await demander('agent@exemple.fr');
+		for (let i = 0; i < 3; i++) {
+			await reculer(base, 15_000);
+			await demander('agent@exemple.fr');
+		}
+		expect(envoyer).toHaveBeenCalledTimes(1);
+		// Les demandes refusées sont effacées : seul le lien envoyé reste.
+		expect(await base.select().from(verification)).toHaveLength(1);
+		await reculer(base, 16_000);
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(2);
+	});
+
+	it('deux demandes de part et d’autre des 60 s : la seconde part', async () => {
+		const { base, envoyer, demander } = await jeu();
+		await demander('agent@exemple.fr');
+		await reculer(base, 59_900);
+		await demander('agent@exemple.fr');
+		await reculer(base, 200);
 		await demander('agent@exemple.fr');
 		expect(envoyer).toHaveBeenCalledTimes(2);
 	});

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1894e087-511e-47e2-86b0-dd8431e0959a",
+  "id": "9303dc42-3a9d-4bf3-9a35-2929c466c72e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "affectation_equipe": {
@@ -236,6 +236,30 @@
         "theme": {
           "name": "theme",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "envoi_lien": {
+      "name": "envoi_lien",
+      "columns": {
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "envoye_le": {
+          "name": "envoye_le",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

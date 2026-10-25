@@ -1,8 +1,8 @@
-import { and, eq, gt, sql } from 'drizzle-orm';
+import { eq, lte, sql } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
-import { personne, verification } from './schema.ts';
+import { envoiLien, personne, verification } from './schema.ts';
 
 export function normaliserAdresse(adresse: string): string {
 	return adresse.trim().toLowerCase();
@@ -37,20 +37,21 @@ export function effacerLiensVers(base: Base, adresse: string) {
 	return base.delete(verification).where(liensVers(adresse));
 }
 
-// Un autre lien de connexion vers cette adresse, créé il y a moins de 60 s et avant celui-ci (identifiant).
-export async function lienRecent(base: Base, adresse: string, identifiant: string): Promise<boolean> {
-	const [autre] = await base
-		.select({ id: verification.id })
-		.from(verification)
-		.where(
-			and(
-				liensVers(adresse),
-				gt(verification.createdAt, new Date(Date.now() - 60_000)),
-				sql`${verification}.rowid < (select v.rowid from verification v where v.identifier = ${identifiant})`
-			)
-		)
-		.limit(1);
-	return autre !== undefined;
+// Réserve l'envoi d'un lien vers cette adresse ; faux si un lien y est parti il y a moins de 60 s.
+// Une seule requête : deux demandes simultanées ne peuvent pas réserver toutes les deux.
+export async function reserverEnvoi(base: Base, adresse: string): Promise<boolean> {
+	const maintenant = new Date();
+	const reserve = await base
+		.insert(envoiLien)
+		.values({ adresse: normaliserAdresse(adresse), envoyeLe: maintenant })
+		.onConflictDoUpdate({ target: envoiLien.adresse, set: { envoyeLe: maintenant }, setWhere: lte(envoiLien.envoyeLe, new Date(maintenant.getTime() - 60_000)) })
+		.returning({ adresse: envoiLien.adresse });
+	return reserve.length > 0;
+}
+
+// L'envoi a échoué : un nouvel essai est permis tout de suite.
+export async function annulerEnvoi(base: Base, adresse: string): Promise<void> {
+	await base.delete(envoiLien).where(eq(envoiLien.adresse, normaliserAdresse(adresse)));
 }
 
 export async function effacerLien(base: Base, identifiant: string): Promise<void> {

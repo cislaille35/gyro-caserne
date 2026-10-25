@@ -27,6 +27,7 @@ erDiagram
 | `grade`, `champ_centre`, `valeur_champ` | Grades, et champs de fiche propres au centre |
 | `journal` | Chaque action sensible : auteur, date, cible, détails |
 | `user`, `session`, `account`, `verification` | Connexion (Better Auth, noms imposés) |
+| `envoi_lien` | Dernier lien de connexion envoyé à chaque adresse (un par minute) |
 
 Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est en cours si `debut <= date <= fin` (fin vide : sans fin).
 

@@ -185,5 +185,11 @@ export const journal = sqliteTable('journal', {
 	details: text('details').notNull().default('{}')
 });
 
+// Dernier lien de connexion envoyé à chaque adresse : un lien par minute au plus.
+export const envoiLien = sqliteTable('envoi_lien', {
+	adresse: text('adresse').primaryKey(),
+	envoyeLe: integer('envoye_le', { mode: 'timestamp_ms' }).notNull()
+});
+
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';

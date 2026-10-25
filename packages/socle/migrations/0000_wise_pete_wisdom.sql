@@ -36,6 +36,11 @@ CREATE TABLE `comite` (
 	`theme` text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `envoi_lien` (
+	`adresse` text PRIMARY KEY NOT NULL,
+	`envoye_le` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `equipe` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`nom` text NOT NULL,

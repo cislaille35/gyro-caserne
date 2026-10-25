@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
-import { account, adresseAutorisee, effacerLien, lienRecent, session, user, verification, type Base } from '@gyro-caserne/socle';
+import { account, adresseAutorisee, effacerLien, reserverEnvoi, session, user, verification, type Base } from '@gyro-caserne/socle';
 import { envoyerCourriel, type EnvCourriel } from './courriel.ts';
 
 export type EnvAuth = EnvCourriel & { BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string; SUPER_ADMINS?: string };
@@ -26,7 +26,7 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 	const autorisee = (adresse: string) => adresseAutorisee(base, adresse, superAdmins(env));
 	const envoyerLien = async (email: string, url: string, jeton: string) => {
 		const identifiant = await identifiantDuLien(jeton);
-		if (!(await autorisee(email)) || (await lienRecent(base, email, identifiant))) {
+		if (!(await autorisee(email)) || !(await reserverEnvoi(base, email))) {
 			// Ce lien ne part pas : on l'efface.
 			await effacerLien(base, identifiant);
 			return;
