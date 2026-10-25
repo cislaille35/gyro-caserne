@@ -19,19 +19,18 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.
 6. Se connecter à Cloudflare : `pnpm --filter @gyro-caserne/web exec wrangler login`.
 7. Créer la base : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, puis reporter le `database_id` affiché dans `centres/<id>/wrangler.jsonc` (et `database_name` : `gyro-caserne-<id>`).
-8. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`.
+8. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne, `CENTRE` est obligatoire.
 9. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
-10. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`.
+10. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
+11. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.
 
     | Secret | Valeur |
     |---|---|
     | `BETTER_AUTH_SECRET` | une longue chaîne aléatoire : `openssl rand -base64 32` |
-    | `BETTER_AUTH_URL` | l'adresse de l'appli, par exemple `https://gyro-caserne-<id>.<compte>.workers.dev` |
+    | `BETTER_AUTH_URL` | l'adresse de l'appli, affichée à l'étape 10 |
     | `SUPER_ADMINS` | l'adresse du super administrateur (plusieurs : séparées par des virgules) |
     | `RESEND_CLE` | la clé d'API Resend du centre |
     | `COURRIEL_EXPEDITEUR` | l'expéditeur des liens, par exemple `Gyro Caserne <gyro@domaine-du-centre.fr>` |
-
-11. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). Si elle diffère de `BETTER_AUTH_URL`, corriger ce secret.
 
 ## Mettre à jour
 
