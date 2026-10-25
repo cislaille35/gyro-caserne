@@ -1,0 +1,10 @@
+# Secrets de développement, à copier dans centres/<id>/.dev.vars (lu par Wrangler à côté de wrangler.jsonc, jamais versionné).
+# Secret de signature des sessions : une longue chaîne aléatoire, par exemple `openssl rand -base64 32`.
+BETTER_AUTH_SECRET=a-remplacer
+# Adresse de l'appli : les liens de connexion pointent vers elle.
+BETTER_AUTH_URL=http://localhost:5173
+# Super administrateurs : adresses séparées par des virgules.
+SUPER_ADMINS=admin@exemple.fr
+# Sans clé Resend, les courriels sont écrits dans la console au lieu de partir.
+# RESEND_CLE=
+# COURRIEL_EXPEDITEUR=Gyro Caserne <gyro@exemple.fr>

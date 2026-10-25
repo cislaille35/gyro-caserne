@@ -5,7 +5,7 @@
 ```mermaid
 flowchart LR
   tel[Téléphone de l'agent<br>appli installée] --> worker[Cloudflare Worker<br>SvelteKit]
-  worker -. à venir .-> d1[(D1<br>base)]
+  worker --> d1[(D1<br>base)]
   worker -. à venir .-> r2[(R2<br>photos)]
   centre[centres/id/centre.ts] -- compilation --> worker
 ```
@@ -14,7 +14,10 @@ flowchart LR
 - Le centre est choisi à la compilation : `CENTRE=<id>` (par défaut `exemple`, un centre fictif). Une description incorrecte arrête la compilation.
 - Les tests vérifient tous les centres de `centres/`, et `pnpm check` les vérifie aussi côté types.
 - La config Cloudflare (nom de l'appli, et plus tard base et stockage) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
+- Connexion par lien magique (Better Auth), réservée aux adresses autorisées : une personne du centre avec un statut qui donne accès, ou un super administrateur (`SUPER_ADMINS`). Une adresse inconnue reçoit le même message, sans lien.
+- Les tables de connexion gardent les noms de Better Auth (`user`, `session`, `account`, `verification`) : il les attend tels quels.
 - Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
+- Passer la main au super administrateur suivant : [passation.md](passation.md).
 
 ## Dépôt
 
@@ -22,6 +25,7 @@ flowchart LR
 |---|---|
 | `apps/web` | L'appli |
 | `packages/centre` | Description d'un centre et sa validation |
+| `packages/socle` | Personnes, profils, droits et attributions : schéma de la base, migrations et actions protégées |
 | `centres/<id>` | Description d'un centre (`centres/exemple` : centre fictif, modèle) |
 
 ## CI
@@ -50,6 +54,8 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Types Node | 24 | Types de Node, pour la config de compilation |
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
+| Better Auth | 1.7 | Connexion par lien magique et sessions |
+| Resend | 6 | Envoi des courriels (liens de connexion) |
 | Vitest | 5 | Tests |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
 

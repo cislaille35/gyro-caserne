@@ -184,3 +184,6 @@ export const journal = sqliteTable('journal', {
 	cibleId: integer('cible_id'),
 	details: text('details').notNull().default('{}')
 });
+
+// Tables de connexion (Better Auth), dans la même base.
+export * from './schema-auth.ts';

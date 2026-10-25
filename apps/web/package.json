@@ -4,16 +4,25 @@
   "private": true,
   "description": "L'appli Gyro Caserne (PWA) : SvelteKit sur Cloudflare Workers.",
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib",
+    "#lib/*": "./src/lib/*"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite build && wrangler dev --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc",
     "deployer": "vite build && wrangler deploy --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc",
+    "jeu-de-depart": "node --experimental-transform-types --no-warnings scripts/jeu-de-depart.ts",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@gyro-caserne/centre": "workspace:*"
+    "@gyro-caserne/centre": "workspace:*",
+    "@gyro-caserne/socle": "workspace:*",
+    "better-auth": "1.7.12",
+    "drizzle-orm": "0.45.4",
+    "resend": "6.34.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261023.1",

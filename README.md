@@ -19,6 +19,7 @@ Laillé est le premier centre décrit : `centres/laille/centre.ts`. `centres/exe
 ```
 apps/web           l'appli (SvelteKit sur Cloudflare Workers)
 packages/centre    la description d'un centre et sa validation
+packages/socle     personnes, profils, droits : base et actions protégées
 centres/laille     la description du CIS de Laillé
 centres/exemple    un centre fictif, modèle pour en décrire un nouveau
 ```
@@ -37,6 +38,9 @@ Il faut Node 24 (voir `.nvmrc`) et pnpm, activé par `corepack enable pnpm`.
 
 ```bash
 pnpm install
+cp apps/web/.dev.vars.exemple centres/exemple/.dev.vars   # secrets de développement, à compléter
+pnpm --filter @gyro-caserne/web exec wrangler d1 migrations apply BASE --local --config ../../centres/exemple/wrangler.jsonc
+pnpm --filter @gyro-caserne/web jeu-de-depart              # jeu de départ fictif dans la base locale
 pnpm dev          # appli en développement, http://localhost:5173
 pnpm check        # types
 pnpm test         # tests

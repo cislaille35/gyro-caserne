@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { affecterEquipe, ajouterPersonne, changerStatut } from '../src/actions/personnes.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
-import { affectationEquipe, attribution, equipe, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { affectationEquipe, attribution, equipe, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit, session, user } from '../src/schema.ts';
 import type { Acteur } from '../src/droits.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -142,6 +142,27 @@ describe('changerStatut', () => {
 	it('refuse une personne inconnue', async () => {
 		const { base } = await jeu();
 		await expect(changerStatut(base, superAdmin, 99, 'parti', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('suspendre un agent ferme ses sessions', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const maintenant = new Date();
+		const demain = new Date(maintenant.getTime() + 86_400_000);
+		await base.insert(user).values([
+			{ id: 'u1', name: '', email: 'a@exemple.fr', emailVerified: true, createdAt: maintenant, updatedAt: maintenant },
+			{ id: 'u2', name: '', email: 'chef@exemple.fr', emailVerified: true, createdAt: maintenant, updatedAt: maintenant }
+		]);
+		await base.insert(session).values([
+			{ id: 's1', token: 't1', userId: 'u1', expiresAt: demain, createdAt: maintenant, updatedAt: maintenant },
+			{ id: 's2', token: 't2', userId: 'u2', expiresAt: demain, createdAt: maintenant, updatedAt: maintenant }
+		]);
+
+		await changerStatut(base, superAdmin, id, 'stagiaire', aujourdhui);
+		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s1', 's2']);
+
+		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
+		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s2']);
 	});
 });
 

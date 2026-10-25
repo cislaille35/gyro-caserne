@@ -1,12 +1,12 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { normaliserAdresse } from '../connexion.ts';
 import { enCours, exigerDate } from '../dates.ts';
 import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
-import { STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
-import { affectationEquipe, attribution, equipe, personne, profil, profilDroit } from '../schema.ts';
+import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
+import { affectationEquipe, attribution, equipe, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
 
@@ -78,7 +78,7 @@ export async function ajouterPersonne(
 export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
-	const [fiche] = await base.select({ id: personne.id, profilId: personne.profilId }).from(personne).where(eq(personne.id, personneId));
+	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 
 	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, personneId));
@@ -93,10 +93,17 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 		await exiger(base, acteur, vise, aujourdhui);
 	}
 
-	await base.batch([
+	const ecritures = [
 		base.update(personne).set({ statut }).where(eq(personne.id, personneId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui)
-	]);
+	] as const;
+	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
+		await base.batch(ecritures);
+		return;
+	}
+	// Sans accès, la personne est déconnectée tout de suite.
+	const sesComptes = base.select({ id: user.id }).from(user).where(eq(user.email, fiche.email));
+	await base.batch([...ecritures, base.delete(session).where(inArray(session.userId, sesComptes))]);
 }
 
 export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {
