@@ -51,6 +51,42 @@ async function reculer(base: Awaited<ReturnType<typeof jeu>>['base'], ms: number
 	await base.update(envoiLien).set({ envoyeLe: new Date(envoi!.envoyeLe.getTime() - ms) });
 }
 
+describe('même réponse, adresse connue ou non', () => {
+	it('par l’API', async () => {
+		const { auth } = await jeu();
+		const demande = (email: string) => auth.api.signInMagicLink({ body: { email, callbackURL: '/' }, headers: entetes });
+		expect(await demande('inconnu@exemple.fr')).toEqual(await demande('agent@exemple.fr'));
+	});
+
+	it('par la route HTTP', async () => {
+		const { auth, envoyer, taches } = await jeu();
+		const demande = async (email: string) => {
+			const reponse = await auth.handler(
+				new Request('http://localhost/api/auth/sign-in/magic-link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, callbackURL: '/' }) })
+			);
+			return { statut: reponse.status, corps: await reponse.text() };
+		};
+		const inconnue = await demande('inconnu@exemple.fr');
+		const connue = await demande('agent@exemple.fr');
+		await Promise.all(taches);
+		expect(connue.statut).toBe(200);
+		expect(inconnue).toEqual(connue);
+		expect(envoyer).toHaveBeenCalledTimes(1);
+	});
+
+	it('même si l’envoi du courriel échoue', async () => {
+		const { auth, envoyer, taches } = await jeu();
+		const demande = (email: string) => auth.api.signInMagicLink({ body: { email, callbackURL: '/' }, headers: entetes });
+		const attendue = await demande('inconnu@exemple.fr');
+		envoyer.mockRejectedValueOnce(new Error('panne'));
+		const erreurs = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await demande('agent@exemple.fr')).toEqual(attendue);
+		await Promise.all(taches);
+		expect(erreurs).toHaveBeenCalled();
+		erreurs.mockRestore();
+	});
+});
+
 describe('un lien par minute et par adresse', () => {
 	it('ne renvoie rien moins de 60 s après, et le premier lien reste valable', async () => {
 		const { base, auth, envoyer, demander, dernierJeton } = await jeu();
