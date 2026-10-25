@@ -194,6 +194,15 @@ describe('changerStatut', () => {
 		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
 		expect((await base.select().from(verification)).map((v) => v.identifier)).toEqual(['magic-link:2']);
 	});
+
+	it('retirer l’accès ne casse pas sur une ligne de vérification qui n’est pas du JSON', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await base.insert(verification).values({ id: 'brut', identifier: 'autre', value: 'texte brut', expiresAt: new Date(Date.now() + 300_000) });
+
+		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
+		expect(await base.select().from(verification)).toHaveLength(1);
+	});
 });
 
 describe('affecterEquipe', () => {

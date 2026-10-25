@@ -27,9 +27,9 @@ export async function adresseAutorisee(base: Base, adresse: string, superAdmins:
 	return (await acteurDe(base, adresse, superAdmins)) !== null;
 }
 
-// Liens de connexion vers cette adresse (Better Auth range l'adresse dans la valeur, en JSON).
+// Liens de connexion vers cette adresse (Better Auth range l'adresse dans la valeur, en JSON ; les autres lignes sont ignorées).
 function liensVers(adresse: string) {
-	return sql`lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`;
+	return sql`json_valid(${verification.value}) and lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`;
 }
 
 // Requête à passer dans un batch.
