@@ -22,27 +22,63 @@ describe('chargerJeuDeDepart', () => {
 		]);
 	});
 
-	it('crée les profils, comités, responsabilités et grades', async () => {
+	it('crée les profils et leurs droits', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		expect((await base.select().from(profil)).map((p) => [p.nom, p.typePersonne])).toEqual([
+		const profils = await base.select().from(profil).orderBy(profil.id);
+		expect(profils.map((p) => [p.nom, p.typePersonne])).toEqual([
 			['Agent', 'agent'],
 			['Réserve citoyenne', 'exterieur']
 		]);
-		expect(await base.select().from(profilDroit)).toHaveLength(10);
-		expect((await base.select().from(comite)).map((c) => [c.nom, c.theme])).toEqual([
+		const droits = await base.select().from(profilDroit);
+		expect(droits.every((d) => d.profilId === profils[0]!.id && d.perimetreType === 'centre' && d.perimetreId === null)).toBe(true);
+		expect(droits.map((d) => d.droit).sort()).toEqual(
+			['VOIR_PLANNING', 'VOIR_ANNUAIRE', 'VOIR_ENGINS', 'VOIR_ANOMALIES', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'DEMANDER_REMPLACEMENT', 'DECLARER_DISPONIBILITE', 'UTILISER_MESSAGERIE', 'PRENDRE_EN_CHARGE_ANOMALIE'].sort()
+		);
+	});
+
+	it('crée les comités et les grades', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		expect((await base.select().from(comite).orderBy(comite.id)).map((c) => [c.nom, c.theme])).toEqual([
 			['Comité du centre', 'centre'],
 			['Amicale', 'amicale']
 		]);
-		expect((await base.select().from(grade).orderBy(grade.ordre)).map((g) => g.code)).toEqual(['JSP', 'Sap', 'Cap', 'Cch', 'Sgt', 'Sch', 'Adj', 'Adc', 'Ltn', 'Cne', 'Cdt']);
-		const [chef] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre'));
-		const droitsChef = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, chef!.id));
-		expect(droitsChef).toHaveLength(9);
-		expect(droitsChef.every((d) => d.verrouille === 1)).toBe(true);
+		expect((await base.select().from(grade).orderBy(grade.ordre)).map((g) => [g.code, g.libelle])).toEqual([
+			['JSP', 'Jeune sapeur-pompier'],
+			['Sap', 'Sapeur'],
+			['Cap', 'Caporal'],
+			['Cch', 'Caporal-chef'],
+			['Sgt', 'Sergent'],
+			['Sch', 'Sergent-chef'],
+			['Adj', 'Adjudant'],
+			['Adc', 'Adjudant-chef'],
+			['Ltn', 'Lieutenant'],
+			['Cne', 'Capitaine'],
+			['Cdt', 'Commandant']
+		]);
+	});
+
+	it('crée les responsabilités avec leur nature, leur périmètre et leurs droits', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
 		const [comiteCentre] = await base.select().from(comite).where(eq(comite.nom, 'Comité du centre'));
-		const [chefEquipe] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_equipe'));
-		expect(chefEquipe).toMatchObject({ typePerimetre: 'equipe', comiteAttributeurId: comiteCentre!.id });
-		expect(await base.select().from(responsabilite)).toHaveLength(6);
+		const idCentre = comiteCentre!.id;
+		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
+			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['MODERER_MESSAGERIE', 1]]],
+			['Chef d’équipe', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
+			['Membre de comité', 'mission', null, 'comite', null, []],
+			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
+			['Référent engins', 'mission', null, 'centre', idCentre, [['TRAITER_ANOMALIE', 0], ['GERER_FICHES', 0]]],
+			['Référent pharmacie', 'mission', null, 'centre', idCentre, [['GERER_STOCK', 0]]]
+		];
+		const responsabilites = await base.select().from(responsabilite).orderBy(responsabilite.id);
+		expect(responsabilites.map((r) => [r.nom, r.nature, r.systeme, r.typePerimetre, r.comiteAttributeurId])).toEqual(attendu.map(([nom, nature, systeme, perimetre, attributeur]) => [nom, nature, systeme, perimetre, attributeur]));
+		for (const r of responsabilites) {
+			const lignes = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, r.id));
+			const voulu = attendu.find((a) => a[0] === r.nom)![5];
+			expect(lignes.map((l) => [l.droit, l.verrouille]).sort()).toEqual([...voulu].sort());
+		}
 	});
 
 	it('ne crée rien en double au second chargement', async () => {

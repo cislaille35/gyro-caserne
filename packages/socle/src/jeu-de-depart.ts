@@ -17,31 +17,45 @@ const DROITS_AGENT: Droit[] = [
 	'PRENDRE_EN_CHARGE_ANOMALIE'
 ];
 
-const GRADES = ['JSP', 'Sap', 'Cap', 'Cch', 'Sgt', 'Sch', 'Adj', 'Adc', 'Ltn', 'Cne', 'Cdt'];
+const GRADES = [
+	['JSP', 'Jeune sapeur-pompier'],
+	['Sap', 'Sapeur'],
+	['Cap', 'Caporal'],
+	['Cch', 'Caporal-chef'],
+	['Sgt', 'Sergent'],
+	['Sch', 'Sergent-chef'],
+	['Adj', 'Adjudant'],
+	['Adc', 'Adjudant-chef'],
+	['Ltn', 'Lieutenant'],
+	['Cne', 'Capitaine'],
+	['Cdt', 'Commandant']
+] as const;
 
 const NOM_COMITE_CENTRE = 'Comité du centre';
 
-type Droits = { droits: Droit[]; verrouilles: boolean };
-
 const RESPONSABILITES: {
 	nom: string;
+	nature: 'fonction' | 'mission';
 	systeme?: 'chef_centre' | 'chef_equipe';
 	typePerimetre: 'centre' | 'equipe' | 'comite';
-	attribueeParComiteCentre: boolean;
-	droits: Droits;
+	parComiteCentre: boolean;
+	verrouilles: boolean;
+	droits: Droit[];
 }[] = [
 	{
 		nom: 'Chef de centre',
+		nature: 'fonction',
 		systeme: 'chef_centre',
 		typePerimetre: 'centre',
-		attribueeParComiteCentre: false,
-		droits: { verrouilles: true, droits: ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE'] }
+		parComiteCentre: false,
+		verrouilles: true,
+		droits: ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE']
 	},
-	{ nom: 'Chef d’équipe', systeme: 'chef_equipe', typePerimetre: 'equipe', attribueeParComiteCentre: true, droits: { verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] } },
-	{ nom: 'Membre de comité', typePerimetre: 'comite', attribueeParComiteCentre: false, droits: { verrouilles: false, droits: [] } },
-	{ nom: 'Rapporteur de comité', typePerimetre: 'comite', attribueeParComiteCentre: false, droits: { verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] } },
-	{ nom: 'Référent engins', typePerimetre: 'centre', attribueeParComiteCentre: true, droits: { verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] } },
-	{ nom: 'Référent pharmacie', typePerimetre: 'centre', attribueeParComiteCentre: true, droits: { verrouilles: false, droits: ['GERER_STOCK'] } }
+	{ nom: 'Chef d’équipe', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
+	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
+	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },
+	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
+	{ nom: 'Référent pharmacie', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_STOCK'] }
 ];
 
 // Ne fait rien si un profil existe déjà ; sinon écrit tout d'un bloc.
@@ -67,16 +81,16 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 		base.insert(responsabilite).values(
 			RESPONSABILITES.map((r) => ({
 				nom: r.nom,
-				nature: 'fonction' as const,
+				nature: r.nature,
 				typePerimetre: r.typePerimetre,
 				systeme: r.systeme ?? null,
-				comiteAttributeurId: r.attribueeParComiteCentre ? idComiteCentre : null
+				comiteAttributeurId: r.parComiteCentre ? idComiteCentre : null
 			}))
 		),
 		base.insert(responsabiliteDroit).values(
-			RESPONSABILITES.flatMap((r) => r.droits.droits.map((droit) => ({ responsabiliteId: idResponsabilite(r.nom), droit, verrouille: r.droits.verrouilles ? 1 : 0 })))
+			RESPONSABILITES.flatMap((r) => r.droits.map((droit) => ({ responsabiliteId: idResponsabilite(r.nom), droit, verrouille: r.verrouilles ? 1 : 0 })))
 		),
 		...(centre.equipes.length > 0 ? [base.insert(equipe).values(centre.equipes.map((e) => ({ nom: e.nom, couleur: e.couleur, ordreRotation: e.numero })))] : []),
-		base.insert(grade).values(GRADES.map((code, i) => ({ code, libelle: code, ordre: i + 1 })))
+		base.insert(grade).values(GRADES.map(([code, libelle], i) => ({ code, libelle, ordre: i + 1 })))
 	]);
 }
