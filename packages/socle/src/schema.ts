@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { checkDans, DROITS, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE } from './listes.ts';
+import { checkDans, DROITS, NATURES_RESPONSABILITE, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -109,3 +109,78 @@ export const valeurChamp = sqliteTable(
 	},
 	(t) => [primaryKey({ columns: [t.personneId, t.champId] })]
 );
+
+export const comite = sqliteTable('comite', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	nom: text('nom').notNull(),
+	theme: text('theme').notNull()
+});
+
+export const responsabilite = sqliteTable(
+	'responsabilite',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		nom: text('nom').notNull(),
+		nature: text('nature', { enum: NATURES_RESPONSABILITE }).notNull(),
+		typePerimetre: text('type_perimetre', { enum: TYPES_PERIMETRE }).notNull(),
+		// Nul : pour un périmètre « comité », le comité visé attribue lui-même.
+		comiteAttributeurId: integer('comite_attributeur_id').references(() => comite.id),
+		systeme: text('systeme', { enum: RESPONSABILITES_SYSTEME }).unique()
+	},
+	() => [
+		check('responsabilite_nature', checkDans('nature', NATURES_RESPONSABILITE)),
+		check('responsabilite_type_perimetre', checkDans('type_perimetre', TYPES_PERIMETRE)),
+		check('responsabilite_systeme', sql`${sql.identifier('systeme')} IS NULL OR ${checkDans('systeme', RESPONSABILITES_SYSTEME)}`)
+	]
+);
+
+export const responsabiliteDroit = sqliteTable(
+	'responsabilite_droit',
+	{
+		responsabiliteId: integer('responsabilite_id')
+			.notNull()
+			.references(() => responsabilite.id),
+		droit: text('droit', { enum: DROITS }).notNull(),
+		verrouille: integer('verrouille').notNull().default(0)
+	},
+	(t) => [
+		primaryKey({ columns: [t.responsabiliteId, t.droit] }),
+		check('responsabilite_droit_droit', checkDans('droit', DROITS)),
+		check('responsabilite_droit_verrouille', sql`${sql.identifier('verrouille')} IN (0, 1)`)
+	]
+);
+
+export const attribution = sqliteTable(
+	'attribution',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: integer('personne_id')
+			.notNull()
+			.references(() => personne.id),
+		responsabiliteId: integer('responsabilite_id')
+			.notNull()
+			.references(() => responsabilite.id),
+		perimetreType: text('perimetre_type', { enum: TYPES_PERIMETRE }).notNull(),
+		perimetreId: integer('perimetre_id'),
+		debut: text('debut').notNull(),
+		fin: text('fin'),
+		// Format du journal : personne:<id> ou super:<email>.
+		saisiePar: text('saisie_par').notNull(),
+		saisieLe: text('saisie_le').notNull(),
+		compteRendu: text('compte_rendu')
+	},
+	() => [
+		check('attribution_perimetre_type', checkDans('perimetre_type', TYPES_PERIMETRE)),
+		check('attribution_perimetre_id', sql`(${sql.identifier('perimetre_type')} = 'centre') = (${sql.identifier('perimetre_id')} IS NULL)`)
+	]
+);
+
+export const journal = sqliteTable('journal', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	quand: text('quand').notNull(),
+	acteur: text('acteur').notNull(),
+	action: text('action').notNull(),
+	cibleType: text('cible_type').notNull(),
+	cibleId: integer('cible_id'),
+	details: text('details').notNull().default('{}')
+});
