@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defineCentre, erreursCentre, type Centre } from './index.ts';
+import { defineCentre, erreursCentre, type Centre, type JourSemaine } from './index.ts';
 
 const exemple: Centre = {
 	id: 'exemple',
@@ -23,9 +23,70 @@ describe('erreursCentre', () => {
 		expect(erreursCentre(exemple)).toEqual([]);
 	});
 
+	it('repère un id mal formé', () => {
+		expect(erreursCentre({ ...exemple, id: 'Mauvais Id' })).toEqual([
+			'id « Mauvais Id » : minuscules, chiffres et tirets seulement'
+		]);
+	});
+
+	it('repère un nom vide', () => {
+		expect(erreursCentre({ ...exemple, nom: '  ' })).toEqual(['nom vide']);
+	});
+
+	it('repère un fuseau horaire inconnu', () => {
+		expect(erreursCentre({ ...exemple, fuseauHoraire: 'Europe/Laillé' })).toEqual([
+			'fuseau horaire « Europe/Laillé » inconnu'
+		]);
+	});
+
+	it('repère une position hors des limites', () => {
+		expect(erreursCentre({ ...exemple, position: { latitude: 91, longitude: 0 } })).toEqual([
+			'position hors des limites'
+		]);
+		expect(erreursCentre({ ...exemple, position: { latitude: 0, longitude: -181 } })).toEqual([
+			'position hors des limites'
+		]);
+	});
+
+	it('repère une rotation à une seule équipe', () => {
+		const centre = { ...exemple, equipes: [exemple.equipes[0]] };
+		expect(erreursCentre(centre)).toEqual(['il faut au moins deux équipes pour une rotation']);
+	});
+
+	it('repère un jour inconnu', () => {
+		const centre = {
+			...exemple,
+			astreinte: { ...exemple.astreinte, fin: { jour: 'vendredy' as JourSemaine, heure: '06:00' } }
+		};
+		expect(erreursCentre(centre)).toEqual(['astreinte, fin : jour « vendredy » inconnu']);
+	});
+
+	it('repère une heure mal formée', () => {
+		const centre = { ...exemple, astreinte: { ...exemple.astreinte, debut: { jour: 'vendredi' as const, heure: '24:00' } } };
+		expect(erreursCentre(centre)).toEqual(['astreinte, début : heure « 24:00 » au format HH:MM attendue']);
+	});
+
+	it('repère une date de référence mal écrite', () => {
+		const centre = { ...exemple, astreinte: { ...exemple.astreinte, reference: { date: '16/01/2026', equipe: 1 } } };
+		expect(erreursCentre(centre)).toEqual(['astreinte, référence : date « 16/01/2026 » invalide']);
+	});
+
+	it('repère une date de référence qui n’existe pas', () => {
+		// Le 31 avril n'existe pas (JavaScript le lirait comme le vendredi 1er mai)
+		const centre = { ...exemple, astreinte: { ...exemple.astreinte, reference: { date: '2026-04-31', equipe: 1 } } };
+		expect(erreursCentre(centre)).toEqual(['astreinte, référence : date « 2026-04-31 » invalide']);
+		const mois13 = { ...exemple, astreinte: { ...exemple.astreinte, reference: { date: '2026-13-01', equipe: 1 } } };
+		expect(erreursCentre(mois13)).toEqual(['astreinte, référence : date « 2026-13-01 » invalide']);
+	});
+
 	it('repère une date de référence qui ne tombe pas le jour de prise', () => {
 		const centre = { ...exemple, astreinte: { ...exemple.astreinte, reference: { date: '2026-01-15', equipe: 1 } } };
 		expect(erreursCentre(centre)).toEqual(["astreinte, référence : le 2026-01-15 n'est pas un vendredi"]);
+	});
+
+	it('repère une équipe de référence inconnue', () => {
+		const centre = { ...exemple, astreinte: { ...exemple.astreinte, reference: { date: '2026-01-16', equipe: 5 } } };
+		expect(erreursCentre(centre)).toEqual(['astreinte, référence : équipe 5 inconnue']);
 	});
 
 	it('repère des équipes mal numérotées et une couleur invalide', () => {

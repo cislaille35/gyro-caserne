@@ -15,11 +15,11 @@
     "@gyro-caserne/centre": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261018.1",
+    "@cloudflare/workers-types": "5.20261023.1",
     "@sveltejs/adapter-cloudflare": "8.0.1",
     "@sveltejs/kit": "3.1.0",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
-    "@types/node": "^24.19.2",
+    "@types/node": "24.19.2",
     "svelte": "5.57.2",
     "svelte-check": "4.7.7",
     "typescript": "6.0.3",

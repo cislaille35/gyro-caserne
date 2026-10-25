@@ -34,6 +34,15 @@ export interface Centre {
 
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
+function fuseauConnu(fuseau: string): boolean {
+	try {
+		new Intl.DateTimeFormat('fr', { timeZone: fuseau });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /** Liste les erreurs d'une description de centre (vide si elle est correcte). */
 export function erreursCentre(centre: Centre): string[] {
 	const erreurs: string[] = [];
@@ -41,6 +50,7 @@ export function erreursCentre(centre: Centre): string[] {
 
 	if (!/^[a-z0-9-]+$/.test(centre.id)) erreurs.push(`id « ${centre.id} » : minuscules, chiffres et tirets seulement`);
 	if (!centre.nom.trim()) erreurs.push('nom vide');
+	if (!fuseauConnu(centre.fuseauHoraire)) erreurs.push(`fuseau horaire « ${centre.fuseauHoraire} » inconnu`);
 	const { latitude, longitude } = centre.position;
 	if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) erreurs.push('position hors des limites');
 
@@ -56,7 +66,12 @@ export function erreursCentre(centre: Centre): string[] {
 		if (!heure.test(moment.heure)) erreurs.push(`astreinte, ${nom} : heure « ${moment.heure} » au format HH:MM attendue`);
 	}
 	const date = new Date(`${reference.date}T12:00:00Z`);
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(reference.date) || Number.isNaN(date.getTime())) {
+	// Une date impossible (31 avril) serait reportée au jour suivant : on vérifie qu'elle se relit à l'identique
+	if (
+		!/^\d{4}-\d{2}-\d{2}$/.test(reference.date) ||
+		Number.isNaN(date.getTime()) ||
+		date.toISOString().slice(0, 10) !== reference.date
+	) {
 		erreurs.push(`astreinte, référence : date « ${reference.date} » invalide`);
 	} else if (JOURS[(date.getUTCDay() + 6) % 7] !== debut.jour) {
 		erreurs.push(`astreinte, référence : le ${reference.date} n'est pas un ${debut.jour}`);
@@ -67,7 +82,7 @@ export function erreursCentre(centre: Centre): string[] {
 	return erreurs;
 }
 
-/** Déclare un centre : refuse une description incorrecte dès le démarrage de l'appli. */
+/** Déclare un centre : refuse une description incorrecte dès la compilation de l'appli. */
 export function defineCentre(centre: Centre): Centre {
 	const erreurs = erreursCentre(centre);
 	if (erreurs.length) throw new Error(`Centre « ${centre.id} » mal décrit :\n- ${erreurs.join('\n- ')}`);
