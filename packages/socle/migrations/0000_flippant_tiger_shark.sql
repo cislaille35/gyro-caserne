@@ -1,5 +1,5 @@
 CREATE TABLE `personne` (
-	`id` text PRIMARY KEY NOT NULL,
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`email` text NOT NULL,
 	`prenom` text NOT NULL,
 	`nom` text NOT NULL

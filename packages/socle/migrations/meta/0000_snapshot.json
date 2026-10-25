@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b318a06a-84dc-4a0a-8f27-4032d943ee32",
+  "id": "7e5bc46e-3843-444d-9148-34f3e7189e24",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "personne": {
@@ -9,10 +9,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "email": {
           "name": "email",
