@@ -5,7 +5,8 @@
   "description": "Socle de données : base, personnes, rôles, droits et journal.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./base-de-test": "./test/base-de-test.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",

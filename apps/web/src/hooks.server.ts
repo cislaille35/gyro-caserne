@@ -1,5 +1,5 @@
 import { building } from '$app/env';
-import { env } from 'cloudflare:workers';
+import { env, waitUntil } from 'cloudflare:workers';
 import { acteurDe, creerBaseD1 } from '@gyro-caserne/socle';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit/hooks';
@@ -8,7 +8,7 @@ import { creerAuth, superAdmins } from '#lib/server/auth.ts';
 export const handle: Handle = async ({ event, resolve }) => {
 	if (building) return resolve(event);
 	const base = creerBaseD1(env.BASE);
-	const auth = creerAuth(env, base);
+	const auth = creerAuth(env, base, waitUntil);
 	event.locals.base = base;
 	event.locals.auth = auth;
 
