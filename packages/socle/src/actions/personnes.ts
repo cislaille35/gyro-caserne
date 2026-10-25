@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { normaliserAdresse } from '../connexion.ts';
+import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
 import { enCours, exigerDate } from '../dates.ts';
 import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
@@ -101,9 +101,9 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 		await base.batch(ecritures);
 		return;
 	}
-	// Sans accès, la personne est déconnectée tout de suite.
+	// Sans accès, la personne est déconnectée tout de suite, et ses liens en attente ne valent plus rien.
 	const sesComptes = base.select({ id: user.id }).from(user).where(eq(user.email, fiche.email));
-	await base.batch([...ecritures, base.delete(session).where(inArray(session.userId, sesComptes))]);
+	await base.batch([...ecritures, base.delete(session).where(inArray(session.userId, sesComptes)), effacerLiensVers(base, fiche.email)]);
 }
 
 export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {

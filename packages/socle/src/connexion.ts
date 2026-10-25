@@ -27,6 +27,16 @@ export async function adresseAutorisee(base: Base, adresse: string, superAdmins:
 	return (await acteurDe(base, adresse, superAdmins)) !== null;
 }
 
+// Liens de connexion vers cette adresse (Better Auth range l'adresse dans la valeur, en JSON).
+function liensVers(adresse: string) {
+	return sql`lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`;
+}
+
+// Requête à passer dans un batch.
+export function effacerLiensVers(base: Base, adresse: string) {
+	return base.delete(verification).where(liensVers(adresse));
+}
+
 // Un autre lien de connexion vers cette adresse, créé il y a moins de 60 s et avant celui-ci (identifiant).
 export async function lienRecent(base: Base, adresse: string, identifiant: string): Promise<boolean> {
 	const [autre] = await base
@@ -34,7 +44,7 @@ export async function lienRecent(base: Base, adresse: string, identifiant: strin
 		.from(verification)
 		.where(
 			and(
-				sql`lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`,
+				liensVers(adresse),
 				gt(verification.createdAt, new Date(Date.now() - 60_000)),
 				sql`${verification}.rowid < (select v.rowid from verification v where v.identifier = ${identifiant})`
 			)

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { affecterEquipe, ajouterPersonne, changerStatut } from '../src/actions/personnes.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
-import { affectationEquipe, attribution, equipe, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit, session, user } from '../src/schema.ts';
+import { affectationEquipe, attribution, equipe, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit, session, user, verification } from '../src/schema.ts';
 import type { Acteur } from '../src/droits.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -163,6 +163,20 @@ describe('changerStatut', () => {
 
 		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
 		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s2']);
+	});
+
+	it('suspendre un agent efface ses liens de connexion en attente', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const dans5min = new Date(Date.now() + 300_000);
+		const lien = (identifier: string, email: string) => ({ id: identifier, identifier, value: JSON.stringify({ type: 'magic-link', email }), expiresAt: dans5min });
+		await base.insert(verification).values([lien('magic-link:1', 'a@exemple.fr'), lien('magic-link:2', 'chef@exemple.fr')]);
+
+		await changerStatut(base, superAdmin, id, 'stagiaire', aujourdhui);
+		expect(await base.select().from(verification)).toHaveLength(2);
+
+		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
+		expect((await base.select().from(verification)).map((v) => v.identifier)).toEqual(['magic-link:2']);
 	});
 });
 
