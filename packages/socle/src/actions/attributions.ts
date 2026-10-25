@@ -1,5 +1,6 @@
 import { and, eq, notInArray, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
+import { exigerDate } from '../dates.ts';
 import { aLeDroit, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -34,6 +35,9 @@ export async function attribuer(
 	a: { personneId: number; responsabiliteId: number; perimetre: Perimetre; debut: string; fin?: string; compteRendu?: string },
 	aujourdhui: string
 ): Promise<number> {
+	exigerDate(aujourdhui);
+	exigerDate(a.debut);
+	if (a.fin !== undefined) exigerDate(a.fin);
 	const laResponsabilite = await responsabiliteConnue(base, a.responsabiliteId);
 	if (a.perimetre.type !== laResponsabilite.typePerimetre) throw new DonneeInvalide('Périmètre différent de celui de la responsabilité');
 	if (a.fin !== undefined && a.fin < a.debut) throw new DonneeInvalide('Fin avant le début');
@@ -58,7 +62,7 @@ export async function attribuer(
 				personneId: a.personneId,
 				responsabiliteId: a.responsabiliteId,
 				perimetreType: a.perimetre.type,
-				perimetreId: 'id' in a.perimetre ? a.perimetre.id : null,
+				perimetreId: a.perimetre.type === 'centre' ? null : a.perimetre.id,
 				debut: a.debut,
 				fin: a.fin ?? null,
 				saisiePar: qui,
@@ -66,15 +70,19 @@ export async function attribuer(
 				compteRendu: a.compteRendu ?? null
 			})
 			.returning({ id: attribution.id }),
+		// L'ordre compte : le journal suit l'insertion, last_insert_rowid() est l'id de l'attribution.
 		ligneJournal(base, { acteur: qui, action: 'attribuer', cibleType: 'attribution', cibleId: sql`last_insert_rowid()`, details: { personneId: a.personneId, responsabiliteId: a.responsabiliteId, perimetre: a.perimetre, debut: a.debut, fin: a.fin ?? null } }, aujourdhui)
 	]);
 	return lignes[0]!.id;
 }
 
 export async function finirAttribution(base: Base, acteur: Acteur, attributionId: number, fin: string, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
+	exigerDate(fin);
 	const [ligne] = await base.select().from(attribution).where(eq(attribution.id, attributionId));
 	if (!ligne) throw new DonneeInvalide('Attribution inconnue');
 	if (fin < ligne.debut) throw new DonneeInvalide('Fin avant le début');
+	if (ligne.fin !== null && fin > ligne.fin) throw new DonneeInvalide('Une attribution ne peut qu’être raccourcie');
 	const laResponsabilite = await responsabiliteConnue(base, ligne.responsabiliteId);
 	const perimetre: Perimetre = ligne.perimetreType === 'centre' || ligne.perimetreId === null ? { type: 'centre' } : { type: ligne.perimetreType, id: ligne.perimetreId };
 	await exigerAttribution(base, acteur, laResponsabilite, perimetre, aujourdhui);
@@ -86,6 +94,7 @@ export async function finirAttribution(base: Base, acteur: Acteur, attributionId
 }
 
 export async function modifierDroitsResponsabilite(base: Base, acteur: Acteur, responsabiliteId: number, droits: Droit[], aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
 	if (!(await aLeDroit(base, acteur, 'GERER_LISTES', { type: 'centre' }, aujourdhui))) throw new RefusDroit('GERER_LISTES', { type: 'centre' });
 	await responsabiliteConnue(base, responsabiliteId);
 	if (droits.some((droit) => !(DROITS as readonly string[]).includes(droit))) throw new DonneeInvalide('Droit inconnu');

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { affecterEquipe, ajouterPersonne, changerStatut } from '../src/actions/personnes.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
-import { affectationEquipe, attribution, equipe, journal, personne, profil, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { affectationEquipe, attribution, equipe, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import type { Acteur } from '../src/droits.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -57,6 +57,26 @@ describe('ajouterPersonne', () => {
 		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: ext.id, equipeId: 1 }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
+	it('refuse un profil plus large que les droits du chef d’équipe', async () => {
+		const { base, chef } = await jeu();
+		const [large] = await base.insert(profil).values({ nom: 'Large', typePersonne: 'agent' }).returning();
+		await base.insert(profilDroit).values({ profilId: large!.id, droit: 'GERER_ACCES', perimetreType: 'centre' });
+		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: large!.id, equipeId: 1 }, aujourdhui)).rejects.toMatchObject({ droit: 'GERER_ACCES', perimetre: { type: 'centre' } });
+		const [etroit] = await base.insert(profil).values({ nom: 'Étroit', typePersonne: 'agent' }).returning();
+		await base.insert(profilDroit).values({ profilId: etroit!.id, droit: 'GERER_ACCES', perimetreType: 'equipe', perimetreId: 1 });
+		await expect(ajouterPersonne(base, chef, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: etroit!.id, equipeId: 1 }, aujourdhui)).resolves.toBeTypeOf('number');
+	});
+
+	it('ne révèle pas une adresse existante à un acteur sans droit', async () => {
+		const { base, agent, chef } = await jeu();
+		await expect(ajouterPersonne(base, chef, { email: 'chef@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('refuse une date invalide', async () => {
+		const { base, agent } = await jeu();
+		await expect(ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, '2026-13-45')).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
 	it('refuse un profil, une équipe ou une adresse invalides', async () => {
 		const { base, agent } = await jeu();
 		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
@@ -79,6 +99,16 @@ describe('changerStatut', () => {
 		await expect(changerStatut(base, chef, hors, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
+	it('le chef d’équipe ne peut pas suspendre le chef de centre affecté à son équipe', async () => {
+		const { base, agent, chef } = await jeu();
+		const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre' }).returning();
+		const haut = await ajouterPersonne(base, superAdmin, { email: 'haut@exemple.fr', prenom: 'H', nom: 'C', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await base.insert(attribution).values({ personneId: haut, responsabiliteId: chefCentre!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		await expect(changerStatut(base, chef, haut, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		const simple = await ajouterPersonne(base, superAdmin, { email: 'simple@exemple.fr', prenom: 'S', nom: 'A', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await expect(changerStatut(base, chef, simple, 'suspendu', aujourdhui)).resolves.toBeUndefined();
+	});
+
 	it('refuse une personne inconnue', async () => {
 		const { base } = await jeu();
 		await expect(changerStatut(base, superAdmin, 99, 'parti', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
@@ -89,7 +119,7 @@ describe('affecterEquipe', () => {
 	it('clôt l’affectation en cours la veille du début', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
-		await affecterEquipe(base, superAdmin, id, 2, '2026-03-01');
+		await affecterEquipe(base, superAdmin, id, 2, '2026-03-01', aujourdhui);
 		const lignes = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
 		expect(lignes).toHaveLength(2);
 		expect(lignes.find((l) => l.equipeId === 1)!.fin).toBe('2026-02-28');
@@ -99,13 +129,23 @@ describe('affecterEquipe', () => {
 	it('refuse le chef d’équipe : il faut le droit sur le centre', async () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
-		await expect(affecterEquipe(base, chef, id, 2, '2026-03-01')).rejects.toBeInstanceOf(RefusDroit);
+		await expect(affecterEquipe(base, chef, id, 2, '2026-03-01', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('un droit expiré hier ne permet pas d’affecter avec un début passé', async () => {
+		const { base, agent } = await jeu();
+		const [centreResp] = await base.insert(responsabilite).values({ nom: 'Gestionnaire', nature: 'mission', typePerimetre: 'centre' }).returning();
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: centreResp!.id, droit: 'GERER_ACCES' });
+		const [gest] = await base.insert(personne).values({ email: 'g@exemple.fr', prenom: 'G', nom: 'G', profilId: agent.id }).returning();
+		await base.insert(attribution).values({ personneId: gest!.id, responsabiliteId: centreResp!.id, perimetreType: 'centre', debut: '2026-01-01', fin: '2026-10-24', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await expect(affecterEquipe(base, { type: 'personne', id: gest!.id }, id, 2, '2026-10-20', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('refuse un début qui n’est pas après le début de l’affectation en cours', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-03-01');
-		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-03-01')).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-03-01', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 });
 
@@ -114,7 +154,7 @@ describe('journal', () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
 		await changerStatut(base, superAdmin, id, 'stagiaire', aujourdhui);
-		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01');
+		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
 		const lignes = await base.select().from(journal);
 		expect(lignes.map((l) => l.action)).toEqual(['ajouter_personne', 'changer_statut', 'affecter_equipe']);
 		expect(lignes.every((l) => l.acteur === 'super:admin@exemple.fr' && l.cibleType === 'personne' && l.cibleId === id)).toBe(true);

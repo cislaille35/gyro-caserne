@@ -58,13 +58,35 @@ describe('attribuer', () => {
 		await expect(attribuer(base, { type: 'personne', id: rappBureau }, demande, aujourdhui)).resolves.toBeTypeOf('number');
 	});
 
-	it('refuse un chef d’équipe nommé par le rapporteur d’un comité sans pouvoir sur lui', async () => {
+	it('refuse un acteur sans responsabilité, en visant le comité attributeur', async () => {
 		const { base, chefEquipe, nouvelle } = await jeu();
 		const simple = await nouvelle('simple@exemple.fr');
 		const cible = await nouvelle('cible@exemple.fr');
 		await expect(
 			attribuer(base, { type: 'personne', id: simple }, { personneId: cible, responsabiliteId: chefEquipe.id, perimetre: { type: 'equipe', id: 1 }, debut: aujourdhui }, aujourdhui)
 		).rejects.toMatchObject({ droit: 'ATTRIBUER_RESPONSABILITE', perimetre: { type: 'comite' } });
+	});
+
+	it('sans comité attributeur : le centre pour une équipe, le comité visé pour un comité', async () => {
+		const { base, rapporteur, amicale, nouvelle } = await jeu();
+		const [libre] = await base.insert(responsabilite).values({ nom: 'Libre', nature: 'mission', typePerimetre: 'equipe' }).returning();
+		const cible = await nouvelle('cible@exemple.fr');
+		const rapp = await nouvelle('rapp@exemple.fr');
+		const autre = await nouvelle('autre@exemple.fr');
+		await attribuer(base, superAdmin, { personneId: rapp, responsabiliteId: rapporteur.id, perimetre: { type: 'comite', id: amicale.id }, debut: '2026-01-01' }, aujourdhui);
+		await expect(attribuer(base, { type: 'personne', id: rapp }, { personneId: cible, responsabiliteId: libre!.id, perimetre: { type: 'equipe', id: 1 }, debut: aujourdhui }, aujourdhui)).rejects.toMatchObject({ perimetre: { type: 'centre' } });
+		await expect(attribuer(base, { type: 'personne', id: rapp }, { personneId: cible, responsabiliteId: rapporteur.id, perimetre: { type: 'comite', id: amicale.id }, debut: aujourdhui }, aujourdhui)).resolves.toBeTypeOf('number');
+		const [autreComite] = await base.insert(comite).values({ nom: 'Autre', theme: 'x' }).returning();
+		await expect(attribuer(base, { type: 'personne', id: autre }, { personneId: cible, responsabiliteId: rapporteur.id, perimetre: { type: 'comite', id: autreComite!.id }, debut: aujourdhui }, aujourdhui)).rejects.toMatchObject({ perimetre: { type: 'comite', id: autreComite!.id } });
+	});
+
+	it('enregistre un périmètre centre sans identifiant et refuse une date invalide', async () => {
+		const { base, chefCentre, nouvelle } = await jeu();
+		const cible = await nouvelle('cible@exemple.fr');
+		const id = await attribuer(base, superAdmin, { personneId: cible, responsabiliteId: chefCentre.id, perimetre: { type: 'centre', id: 7 } as never, debut: aujourdhui }, aujourdhui);
+		const [ligne] = await base.select().from(attribution).where(eq(attribution.id, id));
+		expect(ligne!.perimetreId).toBeNull();
+		await expect(attribuer(base, superAdmin, { personneId: cible, responsabiliteId: chefCentre.id, perimetre: { type: 'centre' }, debut: aujourdhui, fin: '9' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
 	it('refuse un périmètre qui ne correspond pas à la responsabilité', async () => {
@@ -100,6 +122,26 @@ describe('finirAttribution', () => {
 	});
 });
 
+describe('finirAttribution (suite)', () => {
+	it('ne peut que raccourcir', async () => {
+		const { base, chefEquipe, nouvelle } = await jeu();
+		const cible = await nouvelle('cible@exemple.fr');
+		const id = await attribuer(base, superAdmin, { personneId: cible, responsabiliteId: chefEquipe.id, perimetre: { type: 'equipe', id: 1 }, debut: '2026-01-01', fin: '2026-12-31' }, aujourdhui);
+		await expect(finirAttribution(base, superAdmin, id, '2027-01-31', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(finirAttribution(base, superAdmin, id, '2026-11-30', aujourdhui)).resolves.toBeUndefined();
+	});
+
+	it('seul le super administrateur clôt un chef de centre', async () => {
+		const { base, chefCentre, rapporteur, amicale, nouvelle } = await jeu();
+		const cible = await nouvelle('cible@exemple.fr');
+		const rapp = await nouvelle('rapp@exemple.fr');
+		await attribuer(base, superAdmin, { personneId: rapp, responsabiliteId: rapporteur.id, perimetre: { type: 'comite', id: amicale.id }, debut: '2026-01-01' }, aujourdhui);
+		const id = await attribuer(base, superAdmin, { personneId: cible, responsabiliteId: chefCentre.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
+		await expect(finirAttribution(base, { type: 'personne', id: rapp }, id, '2026-11-30', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(finirAttribution(base, superAdmin, id, '2026-11-30', aujourdhui)).resolves.toBeUndefined();
+	});
+});
+
 describe('modifierDroitsResponsabilite', () => {
 	it('remplace les droits non verrouillés', async () => {
 		const { base, chefEquipe } = await jeu();
@@ -113,6 +155,11 @@ describe('modifierDroitsResponsabilite', () => {
 		await expect(modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['GERER_PLANNING'], aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 		const lignes = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, chefEquipe.id));
 		expect(lignes).toHaveLength(2);
+	});
+
+	it('refuse un droit inconnu', async () => {
+		const { base, chefEquipe } = await jeu();
+		await expect(modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['VALIDER_REMPLACEMENT', 'N_IMPORTE_QUOI' as never], aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
 	it('exige GERER_LISTES sur le centre et une responsabilité connue', async () => {

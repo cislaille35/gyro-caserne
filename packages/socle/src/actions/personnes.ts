@@ -1,12 +1,12 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { normaliserAdresse } from '../connexion.ts';
-import { enCours } from '../dates.ts';
-import { aLeDroit, type Acteur, type Perimetre } from '../droits.ts';
+import { enCours, exigerDate } from '../dates.ts';
+import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
-import { affectationEquipe, equipe, personne, profil } from '../schema.ts';
+import { affectationEquipe, attribution, equipe, personne, profil, profilDroit } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
 
@@ -30,10 +30,26 @@ export async function ajouterPersonne(
 	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number },
 	aujourdhui: string
 ): Promise<number> {
+	exigerDate(aujourdhui);
 	const email = normaliserAdresse(donnees.email);
 	if (!email) throw new DonneeInvalide('Adresse vide');
 	const [leProfil] = await base.select().from(profil).where(eq(profil.id, donnees.profilId));
 	if (!leProfil) throw new DonneeInvalide('Profil inconnu');
+
+	// Le chef d'équipe n'agit que sur un agent de son équipe.
+	const vise: Perimetre = leProfil.typePersonne === 'agent' && donnees.equipeId !== undefined ? { type: 'equipe', id: donnees.equipeId } : centre;
+	await exiger(base, acteur, vise, aujourdhui);
+
+	// Sans GERER_ACCES sur le centre, on ne donne pas plus de droits que ceux qu'on détient.
+	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui))) {
+		const detenus = await droitsDe(base, acteur, aujourdhui);
+		const duProfil = await base.select().from(profilDroit).where(eq(profilDroit.profilId, donnees.profilId));
+		for (const ligne of duProfil) {
+			const cible = perimetreDe(ligne.perimetreType, ligne.perimetreId);
+			if (!cible || !detenus.some((d) => d.droit === ligne.droit && couvre(d.perimetre, cible))) throw new RefusDroit(ligne.droit, cible ?? centre);
+		}
+	}
+
 	if (donnees.equipeId !== undefined) {
 		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
@@ -41,19 +57,15 @@ export async function ajouterPersonne(
 	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
 	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
 
-	// Le chef d'équipe n'agit que sur un agent de son équipe.
-	const vise: Perimetre = leProfil.typePersonne === 'agent' && donnees.equipeId !== undefined ? { type: 'equipe', id: donnees.equipeId } : centre;
-	await exiger(base, acteur, vise, aujourdhui);
-
 	const nouvelle = base.insert(personne).values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId }).returning({ id: personne.id });
-	// Juste après l'insertion de la personne : last_insert_rowid() est son identifiant.
+	// L'ordre compte : juste après l'insertion de la personne, last_insert_rowid() est son identifiant.
 	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'ajouter_personne', cibleType: 'personne', cibleId: sql`last_insert_rowid()`, details: { email, profilId: donnees.profilId, equipeId: donnees.equipeId ?? null } }, aujourdhui);
 	const ecritures = [nouvelle, journalise] as const;
 	if (donnees.equipeId === undefined) {
 		const [lignes] = await base.batch(ecritures);
 		return lignes[0]!.id;
 	}
-	const affectation = base.insert(affectationEquipe).values({ personneId: sql`(select id from personne where email = ${email})` as unknown as number, equipeId: donnees.equipeId, debut: aujourdhui });
+	const affectation = base.insert(affectationEquipe).values({ personneId: sql`(select id from personne where email = ${email})`, equipeId: donnees.equipeId, debut: aujourdhui });
 	const [lignes] = await base.batch([...ecritures, affectation]);
 	return lignes[0]!.id;
 }
@@ -67,6 +79,9 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
 	const parCentre = await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui);
 	if (!parCentre) {
+		// Sans le centre, on n'agit pas sur quelqu'un qui détient une responsabilité.
+		const responsabilites = await base.select().from(attribution).where(eq(attribution.personneId, personneId));
+		if (responsabilites.some((r) => enCours(r.debut, r.fin, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre);
 		const vise: Perimetre = courante ? { type: 'equipe', id: courante.equipeId } : centre;
 		await exiger(base, acteur, vise, aujourdhui);
 	}
@@ -77,8 +92,10 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	]);
 }
 
-export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string): Promise<void> {
-	await exiger(base, acteur, centre, debut);
+export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
+	exigerDate(debut);
+	await exiger(base, acteur, centre, aujourdhui);
 	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 	const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, equipeId));
@@ -96,6 +113,6 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 			.set({ fin: veille(debut) })
 			.where(and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin))),
 		base.insert(affectationEquipe).values({ personneId, equipeId, debut }),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, debut)
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, aujourdhui)
 	]);
 }
