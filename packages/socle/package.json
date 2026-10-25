@@ -13,6 +13,7 @@
     "migrations": "drizzle-kit generate"
   },
   "dependencies": {
+    "@gyro-caserne/centre": "workspace:*",
     "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
