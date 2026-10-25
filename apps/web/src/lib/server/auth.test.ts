@@ -37,10 +37,40 @@ describe('lien de connexion', () => {
 		expect(envoyer.mock.calls[0]![1].a).toBe('agent@exemple.fr');
 	});
 
-	it('ne part pas pour une adresse inconnue', async () => {
-		const { envoyer, demander } = await jeu();
+	it('ne part pas pour une adresse inconnue, et n’en garde aucune trace', async () => {
+		const { base, envoyer, demander } = await jeu();
 		await demander('inconnu@exemple.fr');
 		expect(envoyer).not.toHaveBeenCalled();
+		expect(await base.select().from(verification)).toHaveLength(0);
+	});
+});
+
+describe('un lien par minute et par adresse', () => {
+	it('ne renvoie rien moins de 60 s après, et le premier lien reste valable', async () => {
+		const { base, auth, envoyer, demander, dernierJeton } = await jeu();
+		await demander('agent@exemple.fr');
+		const jeton = dernierJeton();
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(1);
+		expect(await base.select().from(verification)).toHaveLength(1);
+		const reponse = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: entetes });
+		expect(reponse.user.email).toBe('agent@exemple.fr');
+	});
+
+	it('n’envoie qu’un lien pour un double clic', async () => {
+		const { auth, envoyer, taches } = await jeu();
+		const demande = () => auth.api.signInMagicLink({ body: { email: 'agent@exemple.fr', callbackURL: '/' }, headers: entetes });
+		await Promise.all([demande(), demande()]);
+		await Promise.all(taches);
+		expect(envoyer).toHaveBeenCalledTimes(1);
+	});
+
+	it('renvoie un lien après 60 s', async () => {
+		const { base, envoyer, demander } = await jeu();
+		await demander('agent@exemple.fr');
+		await base.update(verification).set({ createdAt: new Date(Date.now() - 61_000) });
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(2);
 	});
 });
 

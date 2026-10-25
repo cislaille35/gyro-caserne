@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, sql } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
-import { personne } from './schema.ts';
+import { personne, verification } from './schema.ts';
 
 export function normaliserAdresse(adresse: string): string {
 	return adresse.trim().toLowerCase();
@@ -25,4 +25,24 @@ export async function acteurDe(base: Base, adresse: string, superAdmins: string[
 
 export async function adresseAutorisee(base: Base, adresse: string, superAdmins: string[]): Promise<boolean> {
 	return (await acteurDe(base, adresse, superAdmins)) !== null;
+}
+
+// Un autre lien de connexion vers cette adresse, créé il y a moins de 60 s et avant celui-ci (identifiant).
+export async function lienRecent(base: Base, adresse: string, identifiant: string): Promise<boolean> {
+	const [autre] = await base
+		.select({ id: verification.id })
+		.from(verification)
+		.where(
+			and(
+				sql`lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`,
+				gt(verification.createdAt, new Date(Date.now() - 60_000)),
+				sql`${verification}.rowid < (select v.rowid from verification v where v.identifier = ${identifiant})`
+			)
+		)
+		.limit(1);
+	return autre !== undefined;
+}
+
+export async function effacerLien(base: Base, identifiant: string): Promise<void> {
+	await base.delete(verification).where(eq(verification.identifier, identifiant));
 }
