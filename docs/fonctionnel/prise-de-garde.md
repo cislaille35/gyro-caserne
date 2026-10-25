@@ -45,7 +45,14 @@ Il y a une seule prise en cours par engin, et le brouillon est gardé sur le ser
 
 Le VSAV 1 part en réparation. Le centre reçoit en prêt le VSAV 23 d'un autre CIS : « emprunté à CIS Bruz, du 3 au 17 novembre ». À la prise de garde, l'agent choisit le VSAV 23 et l'appli ouvre la fiche VSAV. Il manque un masque FFP2 dans la cellule : il coche « Incomplet », puis l'élément, et une anomalie est créée sur le VSAV 23. Au retour du VSAV 1, le VSAV 23 est marqué « rendu », avec la date.
 
-## Points à préciser
+## Rythme
 
-- Le rythme : à chaque prise d'astreinte, chaque jour, ou au choix du centre.
-- Qui peut faire la prise : tout agent, ou seulement l'équipe d'astreinte.
+**Chaque centre choisit son rythme** : à chaque prise d'astreinte, chaque jour, ou selon une autre périodicité, avec la possibilité de le régler par type d'engin. L'appli signale un engin dont la prise est en retard.
+
+## Qui fait la prise
+
+C'est **un réglage du centre** :
+- **l'équipe d'astreinte**, c'est-à-dire ses agents et ses remplaçants de la semaine. C'est le choix de Laillé et le réglage par défaut ;
+- **ou tout agent** du centre.
+
+La prise enregistre l'agent qui l'a faite et l'équipe d'astreinte du moment.
