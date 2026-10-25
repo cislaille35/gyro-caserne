@@ -1,7 +1,8 @@
+import type { SQL } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { journal } from './schema.ts';
 
-type EntreeJournal = { acteur: string; action: string; cibleType: string; cibleId: number | null; details?: object };
+type EntreeJournal = { acteur: string; action: string; cibleType: string; cibleId: number | SQL | null; details?: object };
 
 // Renvoie la requête sans l'exécuter : à placer dans un batch avec l'action journalisée.
 export function ligneJournal(base: Base, entree: EntreeJournal, quand: string) {

@@ -1,0 +1,101 @@
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import type { Base } from '../base.ts';
+import { normaliserAdresse } from '../connexion.ts';
+import { enCours } from '../dates.ts';
+import { aLeDroit, type Acteur, type Perimetre } from '../droits.ts';
+import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
+import { ligneJournal } from '../journal.ts';
+import { STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
+import { affectationEquipe, equipe, personne, profil } from '../schema.ts';
+
+const centre: Perimetre = { type: 'centre' };
+
+export function nomActeur(acteur: Acteur): string {
+	return acteur.type === 'super' ? `super:${acteur.email}` : `personne:${acteur.id}`;
+}
+
+async function exiger(base: Base, acteur: Acteur, vise: Perimetre, aujourdhui: string) {
+	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', vise, aujourdhui))) throw new RefusDroit('GERER_ACCES', vise);
+}
+
+function veille(date: string): string {
+	const jour = new Date(`${date}T00:00:00Z`);
+	jour.setUTCDate(jour.getUTCDate() - 1);
+	return jour.toISOString().slice(0, 10);
+}
+
+export async function ajouterPersonne(
+	base: Base,
+	acteur: Acteur,
+	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number },
+	aujourdhui: string
+): Promise<number> {
+	const email = normaliserAdresse(donnees.email);
+	if (!email) throw new DonneeInvalide('Adresse vide');
+	const [leProfil] = await base.select().from(profil).where(eq(profil.id, donnees.profilId));
+	if (!leProfil) throw new DonneeInvalide('Profil inconnu');
+	if (donnees.equipeId !== undefined) {
+		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
+		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
+	}
+	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
+	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
+
+	// Le chef d'équipe n'agit que sur un agent de son équipe.
+	const vise: Perimetre = leProfil.typePersonne === 'agent' && donnees.equipeId !== undefined ? { type: 'equipe', id: donnees.equipeId } : centre;
+	await exiger(base, acteur, vise, aujourdhui);
+
+	const nouvelle = base.insert(personne).values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId }).returning({ id: personne.id });
+	// Juste après l'insertion de la personne : last_insert_rowid() est son identifiant.
+	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'ajouter_personne', cibleType: 'personne', cibleId: sql`last_insert_rowid()`, details: { email, profilId: donnees.profilId, equipeId: donnees.equipeId ?? null } }, aujourdhui);
+	const ecritures = [nouvelle, journalise] as const;
+	if (donnees.equipeId === undefined) {
+		const [lignes] = await base.batch(ecritures);
+		return lignes[0]!.id;
+	}
+	const affectation = base.insert(affectationEquipe).values({ personneId: sql`(select id from personne where email = ${email})` as unknown as number, equipeId: donnees.equipeId, debut: aujourdhui });
+	const [lignes] = await base.batch([...ecritures, affectation]);
+	return lignes[0]!.id;
+}
+
+export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, aujourdhui: string): Promise<void> {
+	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
+	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
+	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+
+	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, personneId));
+	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
+	const parCentre = await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui);
+	if (!parCentre) {
+		const vise: Perimetre = courante ? { type: 'equipe', id: courante.equipeId } : centre;
+		await exiger(base, acteur, vise, aujourdhui);
+	}
+
+	await base.batch([
+		base.update(personne).set({ statut }).where(eq(personne.id, personneId)),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui)
+	]);
+}
+
+export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string): Promise<void> {
+	await exiger(base, acteur, centre, debut);
+	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
+	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, equipeId));
+	if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
+
+	const [ouverte] = await base
+		.select()
+		.from(affectationEquipe)
+		.where(and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin)));
+	if (ouverte && ouverte.debut >= debut) throw new DonneeInvalide('Début antérieur à l’affectation en cours');
+
+	await base.batch([
+		base
+			.update(affectationEquipe)
+			.set({ fin: veille(debut) })
+			.where(and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin))),
+		base.insert(affectationEquipe).values({ personneId, equipeId, debut }),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, debut)
+	]);
+}
