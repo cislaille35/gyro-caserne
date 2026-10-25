@@ -13,9 +13,12 @@ flowchart LR
 - Une installation par centre, sur son propre compte Cloudflare.
 - Le centre est choisi à la compilation : `CENTRE=<id>` (par défaut `exemple`, un centre fictif). Une description incorrecte arrête la compilation.
 - Les tests vérifient tous les centres de `centres/`, et `pnpm check` les vérifie aussi côté types.
-- La config Cloudflare (nom de l'appli, et plus tard base et stockage) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
+- La config Cloudflare (nom de l'appli, base) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
 - Connexion par lien magique (Better Auth), réservée aux adresses autorisées : une personne du centre avec un statut qui donne accès, ou un super administrateur (`SUPER_ADMINS`). Une adresse inconnue reçoit le même message, sans lien.
+- Option Cloudflare `nodejs_compat` : Better Auth utilise des modules de Node (`node:async_hooks` notamment).
+- Le lien de connexion part en arrière-plan (`waitUntil`), au plus un par minute et par adresse ; en base, seule l'empreinte du jeton est gardée.
 - Les tables de connexion gardent les noms de Better Auth (`user`, `session`, `account`, `verification`) : il les attend tels quels.
+- Tables et modèle des droits : [socle.md](socle.md).
 - Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
 - Passer la main au super administrateur suivant : [passation.md](passation.md).
 
