@@ -13,6 +13,8 @@ flowchart LR
 - Une installation par centre, sur son propre compte Cloudflare.
 - Le centre est choisi à la compilation : `CENTRE=<id>` (par défaut `exemple`, un centre fictif). Une description incorrecte arrête la compilation.
 - Les tests vérifient tous les centres de `centres/`, et `pnpm check` les vérifie aussi côté types.
+- La config Cloudflare (nom de l'appli, et plus tard base et stockage) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
+- Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
 
 ## Dépôt
 

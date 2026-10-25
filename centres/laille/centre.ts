@@ -1,4 +1,4 @@
-import { defineCentre } from '@gyro-caserne/centre';
+import { defineCentre } from '../../packages/centre/src/index.ts';
 
 export default defineCentre({
 	id: 'laille',

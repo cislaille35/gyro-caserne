@@ -12,7 +12,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "check": "turbo run check",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "deployer": "pnpm --filter @gyro-caserne/web deployer"
   },
   "devDependencies": {
     "turbo": "2.11.10"

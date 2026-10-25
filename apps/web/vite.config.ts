@@ -18,7 +18,8 @@ export default defineConfig({
 	plugins: [
 		sveltekit({
 			preprocess: vitePreprocess(),
-			adapter: adapter(),
+			// La config Cloudflare (nom de l'appli, base, stockage) est celle du centre
+			adapter: adapter({ config: fileURLToPath(new URL(`../../centres/${centre}/wrangler.jsonc`, import.meta.url)) }),
 			// En-tête Content-Security-Policy : seuls les scripts de l'appli peuvent s'exécuter
 			csp: {
 				mode: 'auto',
