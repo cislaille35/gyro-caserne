@@ -37,6 +37,8 @@ describe('erreursCentre', () => {
 		expect(erreursCentre({ ...exemple, fuseauHoraire: 'Europe/Laillé' })).toEqual([
 			'fuseau horaire « Europe/Laillé » inconnu'
 		]);
+		// Un décalage fixe ignore le passage à l'heure d'été
+		expect(erreursCentre({ ...exemple, fuseauHoraire: '+01:00' })).toEqual(['fuseau horaire « +01:00 » inconnu']);
 	});
 
 	it('repère une position hors des limites', () => {

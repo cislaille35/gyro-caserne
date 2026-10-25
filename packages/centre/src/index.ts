@@ -34,14 +34,7 @@ export interface Centre {
 
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
-function fuseauConnu(fuseau: string): boolean {
-	try {
-		new Intl.DateTimeFormat('fr', { timeZone: fuseau });
-		return true;
-	} catch {
-		return false;
-	}
-}
+const FUSEAUX = new Set(Intl.supportedValuesOf('timeZone'));
 
 /** Liste les erreurs d'une description de centre (vide si elle est correcte). */
 export function erreursCentre(centre: Centre): string[] {
@@ -50,7 +43,7 @@ export function erreursCentre(centre: Centre): string[] {
 
 	if (!/^[a-z0-9-]+$/.test(centre.id)) erreurs.push(`id « ${centre.id} » : minuscules, chiffres et tirets seulement`);
 	if (!centre.nom.trim()) erreurs.push('nom vide');
-	if (!fuseauConnu(centre.fuseauHoraire)) erreurs.push(`fuseau horaire « ${centre.fuseauHoraire} » inconnu`);
+	if (!FUSEAUX.has(centre.fuseauHoraire)) erreurs.push(`fuseau horaire « ${centre.fuseauHoraire} » inconnu`);
 	const { latitude, longitude } = centre.position;
 	if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) erreurs.push('position hors des limites');
 
