@@ -7,7 +7,11 @@ import { getPlatformProxy } from 'wrangler';
 const centre = process.env.CENTRE || 'exemple';
 const dossier = new URL(`../../../centres/${centre}/`, import.meta.url);
 const { default: description } = await import(new URL('centre.ts', dossier).href);
-const { env, dispose } = await getPlatformProxy<{ BASE: D1Database }>({ configPath: new URL('wrangler.jsonc', dossier).pathname, remoteBindings: false });
+const { env, dispose } = await getPlatformProxy<{ BASE: D1Database }>({
+	configPath: new URL('wrangler.jsonc', dossier).pathname,
+	persist: { path: new URL('.wrangler/state/v3', dossier).pathname },
+	remoteBindings: false
+});
 
 try {
 	const base = creerBaseD1(env.BASE);

@@ -39,7 +39,7 @@ Il faut Node 24 (voir `.nvmrc`) et pnpm, activé par `corepack enable pnpm`.
 ```bash
 pnpm install
 cp apps/web/.dev.vars.exemple centres/exemple/.dev.vars   # secrets de développement, à compléter
-pnpm --filter @gyro-caserne/web exec wrangler d1 migrations apply BASE --local --config ../../centres/exemple/wrangler.jsonc
+pnpm --filter @gyro-caserne/web base-locale               # crée la base locale (migrations)
 pnpm --filter @gyro-caserne/web jeu-de-depart              # jeu de départ fictif dans la base locale
 pnpm dev          # appli en développement, http://localhost:5173
 pnpm check        # types

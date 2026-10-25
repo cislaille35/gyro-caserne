@@ -9,10 +9,11 @@ declare global {
 			// Null : personne n'est connecté, ou l'adresse n'a plus accès.
 			acteur: Acteur | null;
 		}
-		interface Platform {
-			env: EnvAuth & { BASE: D1Database };
-			ctx: ExecutionContext;
-			caches: CacheStorage & { default: Cache };
+	}
+	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`
+	namespace Cloudflare {
+		interface Env extends EnvAuth {
+			BASE: D1Database;
 		}
 	}
 }
