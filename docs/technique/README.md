@@ -48,6 +48,8 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | TypeScript | 6 | Typage |
 | Types Cloudflare Workers | 5 | Types de l'environnement Cloudflare |
 | Types Node | 24 | Types de Node, pour la config de compilation |
+| Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
+| drizzle-kit | 0.31 | Génère les migrations de la base |
 | Vitest | 5 | Tests |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
 
