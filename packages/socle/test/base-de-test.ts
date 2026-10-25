@@ -28,7 +28,18 @@ export async function baseDeTest(): Promise<Base> {
 
 	return drizzle(
 		async (requete, params, methode) => executer(requete, params, methode),
-		async (requetes) => requetes.map((r) => executer(r.sql, r.params, r.method)),
+		// Tout ou rien, comme le batch de D1.
+		async (requetes) => {
+			sqlite.exec('BEGIN');
+			try {
+				const resultats = requetes.map((r) => executer(r.sql, r.params, r.method));
+				sqlite.exec('COMMIT');
+				return resultats;
+			} catch (erreur) {
+				sqlite.exec('ROLLBACK');
+				throw erreur;
+			}
+		},
 		{ schema }
 	);
 }

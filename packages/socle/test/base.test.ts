@@ -17,4 +17,11 @@ describe('base de test', () => {
 		await base.insert(personne).values(valeurs);
 		await expect(base.insert(personne).values(valeurs)).rejects.toThrow();
 	});
+
+	it('n’écrit rien d’un batch dont la dernière requête échoue, comme D1', async () => {
+		const base = await baseDeTest();
+		const valeurs = { email: 'a@exemple.fr', prenom: 'Anne', nom: 'Durand' };
+		await expect(base.batch([base.insert(personne).values(valeurs), base.insert(personne).values(valeurs)])).rejects.toThrow();
+		expect(await base.select().from(personne)).toHaveLength(0);
+	});
 });
