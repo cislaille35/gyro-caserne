@@ -78,6 +78,12 @@ Une tâche longue dure plus de 5 min. Le porteur sait où elle en est, et un blo
 3. **Garde-fou** : une surveillance automatique alerte Claude si rien n'avance depuis 10 min ou si l'heure limite est passée. Claude prévient alors le porteur : diagnostic et proposition (attendre, relancer, arrêter).
 4. **Notification** sur le téléphone du porteur (notifications Claude Code) quand une tâche longue finit ou se bloque.
 
+La machine de développement est petite (2 Go de mémoire) et peut redémarrer. Donc :
+
+- **commit et push à chaque étape verte** : un redémarrage ne coûte que l'étape en cours ;
+- **commande lourde** (types, compilation, installation) : toujours en cage mémoire et avec une limite de temps, pour qu'elle échoue seule au lieu de tout bloquer ;
+- **PR ouverte en brouillon dès le premier push** : la CI fait les vérifications lourdes ; en local, on garde les tests rapides.
+
 ## Compte rendu
 
 Court, sans jargon :
