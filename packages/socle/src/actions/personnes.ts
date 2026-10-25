@@ -24,6 +24,16 @@ function veille(date: string): string {
 	return jour.toISOString().slice(0, 10);
 }
 
+// Chaque droit du profil doit être détenu par l'acteur sur un périmètre qui le couvre.
+async function exigerProfilCouvert(base: Base, acteur: Acteur, profilId: number, aujourdhui: string) {
+	const detenus = await droitsDe(base, acteur, aujourdhui);
+	const duProfil = await base.select().from(profilDroit).where(eq(profilDroit.profilId, profilId));
+	for (const ligne of duProfil) {
+		const cible = perimetreDe(ligne.perimetreType, ligne.perimetreId);
+		if (!cible || !detenus.some((d) => d.droit === ligne.droit && couvre(d.perimetre, cible))) throw new RefusDroit(ligne.droit, cible ?? centre);
+	}
+}
+
 export async function ajouterPersonne(
 	base: Base,
 	acteur: Acteur,
@@ -42,12 +52,7 @@ export async function ajouterPersonne(
 
 	// Sans GERER_ACCES sur le centre, on ne donne pas plus de droits que ceux qu'on détient.
 	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui))) {
-		const detenus = await droitsDe(base, acteur, aujourdhui);
-		const duProfil = await base.select().from(profilDroit).where(eq(profilDroit.profilId, donnees.profilId));
-		for (const ligne of duProfil) {
-			const cible = perimetreDe(ligne.perimetreType, ligne.perimetreId);
-			if (!cible || !detenus.some((d) => d.droit === ligne.droit && couvre(d.perimetre, cible))) throw new RefusDroit(ligne.droit, cible ?? centre);
-		}
+		await exigerProfilCouvert(base, acteur, donnees.profilId, aujourdhui);
 	}
 
 	if (donnees.equipeId !== undefined) {
@@ -71,17 +76,19 @@ export async function ajouterPersonne(
 }
 
 export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
-	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
+	const [fiche] = await base.select({ id: personne.id, profilId: personne.profilId }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 
 	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, personneId));
 	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
 	const parCentre = await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui);
 	if (!parCentre) {
-		// Sans le centre, on n'agit pas sur quelqu'un qui détient une responsabilité.
+		// Sans le centre : ni sur une responsabilité en cours ou à venir, ni sur un profil plus large que ses droits.
 		const responsabilites = await base.select().from(attribution).where(eq(attribution.personneId, personneId));
-		if (responsabilites.some((r) => enCours(r.debut, r.fin, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre);
+		if (responsabilites.some((r) => r.fin === null || r.fin >= aujourdhui)) throw new RefusDroit('GERER_ACCES', centre);
+		if (fiche.profilId !== null) await exigerProfilCouvert(base, acteur, fiche.profilId, aujourdhui);
 		const vise: Perimetre = courante ? { type: 'equipe', id: courante.equipeId } : centre;
 		await exiger(base, acteur, vise, aujourdhui);
 	}
