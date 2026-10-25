@@ -1,13 +1,17 @@
 // Remplit la base du centre (CENTRE, « exemple » par défaut) avec le jeu de départ.
 // Par défaut, la base locale de développement, avec en plus une personne fictive, test@exemple.fr.
-// Avec --en-ligne, la base en ligne du centre, une seule fois à l'installation, sans personne fictive.
+// Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { chargerJeuDeDepart, creerBaseD1, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 
-const centre = process.env.CENTRE || 'exemple';
 const enLigne = process.argv.includes('--en-ligne');
+if (enLigne && !process.env.CENTRE) {
+	console.error('CENTRE à préciser pour la base en ligne, par exemple : CENTRE=laille pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne');
+	process.exit(1);
+}
+const centre = process.env.CENTRE || 'exemple';
 const dossier = new URL(`../../../centres/${centre}/`, import.meta.url);
 const { default: description } = await import(new URL('centre.ts', dossier).href);
 

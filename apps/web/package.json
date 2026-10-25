@@ -14,7 +14,7 @@
     "preview": "vite build && wrangler dev --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc",
     "deployer": "vite build && wrangler deploy --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc",
     "base-locale": "wrangler d1 migrations apply BASE --local --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc --persist-to ../../centres/${CENTRE:-exemple}/.wrangler/state",
-    "base-en-ligne": "wrangler d1 migrations apply BASE --remote --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc",
+    "base-en-ligne": "wrangler d1 migrations apply BASE --remote --config ../../centres/${CENTRE:?à préciser, par exemple CENTRE=laille}/wrangler.jsonc",
     "jeu-de-depart": "node --experimental-transform-types --no-warnings scripts/jeu-de-depart.ts",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run --passWithNoTests"
