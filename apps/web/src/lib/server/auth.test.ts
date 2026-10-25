@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { personne, verification } from '@gyro-caserne/socle';
+import { acteurDe, changerStatut, personne, user, verification } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
 
@@ -84,5 +84,29 @@ describe('jeton du lien', () => {
 		expect(lignes[0]!.identifier).not.toContain(jeton);
 		const reponse = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: entetes });
 		expect(reponse.user.email).toBe('agent@exemple.fr');
+	});
+});
+
+describe('connexion par le lien', () => {
+	it('ne crée pas de compte pour une adresse non autorisée', async () => {
+		const { base, auth, demander, dernierJeton } = await jeu();
+		await demander('agent@exemple.fr');
+		// Le jeton en base désigne désormais une adresse inconnue.
+		await base.update(verification).set({ value: JSON.stringify({ type: 'magic-link', email: 'inconnu@exemple.fr' }) });
+		await expect(auth.api.magicLinkVerify({ query: { token: dernierJeton() }, headers: entetes })).rejects.toThrow();
+		expect(await base.select().from(user)).toHaveLength(0);
+	});
+
+	it('un agent suspendu après sa connexion n’a plus accès', async () => {
+		const { base, auth, demander, dernierJeton } = await jeu();
+		await demander('agent@exemple.fr');
+		const { headers } = await auth.api.magicLinkVerify({ query: { token: dernierJeton() }, headers: entetes, returnHeaders: true });
+		const cookie = new Headers({ cookie: headers.get('set-cookie')!.split(';')[0]! });
+		expect(await auth.api.getSession({ headers: cookie })).not.toBeNull();
+
+		const [agent] = await base.select().from(personne);
+		await changerStatut(base, { type: 'super', email: 'admin@exemple.fr' }, agent!.id, 'suspendu', '2026-10-25');
+		expect(await auth.api.getSession({ headers: cookie })).toBeNull();
+		expect(await acteurDe(base, 'agent@exemple.fr', [])).toBeNull();
 	});
 });
