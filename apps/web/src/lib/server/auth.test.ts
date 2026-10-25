@@ -112,6 +112,20 @@ describe('un lien par minute et par adresse', () => {
 	});
 });
 
+describe('envoi qui échoue', () => {
+	it('efface le lien et permet un nouvel essai tout de suite', async () => {
+		const { base, envoyer, demander } = await jeu();
+		envoyer.mockRejectedValueOnce(new Error('panne'));
+		const erreurs = vi.spyOn(console, 'error').mockImplementation(() => {});
+		await demander('agent@exemple.fr');
+		erreurs.mockRestore();
+		expect(await base.select().from(verification)).toHaveLength(0);
+		await demander('agent@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(2);
+		expect(await base.select().from(verification)).toHaveLength(1);
+	});
+});
+
 describe('jeton du lien', () => {
 	it('est gardé haché en base, et le lien connecte', async () => {
 		const { base, auth, demander, dernierJeton } = await jeu();

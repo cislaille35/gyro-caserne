@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink } from 'better-auth/plugins';
-import { account, adresseAutorisee, effacerLien, reserverEnvoi, session, user, verification, type Base } from '@gyro-caserne/socle';
+import { account, adresseAutorisee, annulerEnvoi, effacerLien, reserverEnvoi, session, user, verification, type Base } from '@gyro-caserne/socle';
 import { envoyerCourriel, type EnvCourriel } from './courriel.ts';
 
 export type EnvAuth = EnvCourriel & { BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string; SUPER_ADMINS?: string };
@@ -31,7 +31,14 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 			await effacerLien(base, identifiant);
 			return;
 		}
-		await envoyer(env, { a: email, sujet: 'Connexion à Gyro Caserne', texte: `Pour vous connecter, ouvrez ce lien (valable 5 minutes) :\n${url}` });
+		try {
+			await envoyer(env, { a: email, sujet: 'Connexion à Gyro Caserne', texte: `Pour vous connecter, ouvrez ce lien (valable 5 minutes) :\n${url}` });
+		} catch (erreur) {
+			// Lien non reçu : on l'efface, et un nouvel essai est permis tout de suite.
+			await effacerLien(base, identifiant);
+			await annulerEnvoi(base, email);
+			throw erreur;
+		}
 	};
 	return betterAuth({
 		database: drizzleAdapter(base, { provider: 'sqlite', schema: { user, session, account, verification } }),
