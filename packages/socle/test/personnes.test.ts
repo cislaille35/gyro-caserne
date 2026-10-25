@@ -95,6 +95,11 @@ describe('équipes et champs libres', () => {
 		expect((await base.select().from(equipe))[0]?.active).toBe(1);
 	});
 
+	it('refuse une équipe active autrement que 0 ou 1', async () => {
+		const base = await baseDeTest();
+		await expect(base.insert(equipe).values({ nom: 'A', couleur: '#ff0000', ordreRotation: 1, active: 5 })).rejects.toThrow();
+	});
+
 	it('refuse une affectation à une équipe inconnue', async () => {
 		const base = await baseDeTest();
 		const [pers] = await base.insert(personne).values(agent).returning();

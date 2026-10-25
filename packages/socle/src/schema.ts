@@ -37,13 +37,17 @@ export const grade = sqliteTable('grade', {
 	ordre: integer('ordre').notNull()
 });
 
-export const equipe = sqliteTable('equipe', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
-	nom: text('nom').notNull(),
-	couleur: text('couleur').notNull(),
-	ordreRotation: integer('ordre_rotation').notNull(),
-	active: integer('active').notNull().default(1)
-});
+export const equipe = sqliteTable(
+	'equipe',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		nom: text('nom').notNull(),
+		couleur: text('couleur').notNull(),
+		ordreRotation: integer('ordre_rotation').notNull(),
+		active: integer('active').notNull().default(1)
+	},
+	() => [check('equipe_active', sql`${sql.identifier('active')} IN (0, 1)`)]
+);
 
 export const personne = sqliteTable(
 	'personne',

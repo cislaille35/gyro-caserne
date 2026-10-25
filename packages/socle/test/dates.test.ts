@@ -14,6 +14,10 @@ describe('enCours', () => {
 		expect(enCours('2026-01-01', null, '2030-01-01')).toBe(true);
 	});
 
+	it('inclut le premier jour', () => {
+		expect(enCours('2026-01-01', null, '2026-01-01')).toBe(true);
+	});
+
 	it('exclut une période terminée', () => {
 		expect(enCours('2026-01-01', '2026-01-31', '2026-02-01')).toBe(false);
 	});
