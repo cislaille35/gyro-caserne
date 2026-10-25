@@ -78,8 +78,10 @@ export async function ajouterPersonne(
 export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
-	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId }).from(personne).where(eq(personne.id, personneId));
+	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	// Seuls le chef de centre ou son adjoint lèvent une suspension.
+	if (fiche.statut === 'suspendu' && statut !== 'suspendu') await exiger(base, acteur, centre, aujourdhui);
 
 	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, personneId));
 	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));

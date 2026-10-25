@@ -33,6 +33,8 @@ const GRADES = [
 
 const NOM_COMITE_CENTRE = 'Comité du centre';
 
+const DROITS_CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE'];
+
 const RESPONSABILITES: {
 	nom: string;
 	nature: 'fonction' | 'mission';
@@ -49,8 +51,10 @@ const RESPONSABILITES: {
 		typePerimetre: 'centre',
 		parComiteCentre: false,
 		verrouilles: true,
-		droits: ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE']
+		droits: DROITS_CHEF_CENTRE
 	},
+	// Nommé par le chef de centre ; mêmes droits.
+	{ nom: 'Chef de centre adjoint', nature: 'fonction', typePerimetre: 'centre', parComiteCentre: false, verrouilles: true, droits: DROITS_CHEF_CENTRE },
 	{ nom: 'Chef d’équipe', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
 	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },

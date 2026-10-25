@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { attribuer } from '../src/actions/attributions.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { comite, equipe, grade, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
@@ -64,8 +65,10 @@ describe('chargerJeuDeDepart', () => {
 		await chargerJeuDeDepart(base, centreExemple);
 		const [comiteCentre] = await base.select().from(comite).where(eq(comite.nom, 'Comité du centre'));
 		const idCentre = comiteCentre!.id;
+		const droitsChefCentre: [string, number][] = [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['MODERER_MESSAGERIE', 1]];
 		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
-			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['MODERER_MESSAGERIE', 1]]],
+			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, droitsChefCentre],
+			['Chef de centre adjoint', 'fonction', null, 'centre', null, droitsChefCentre],
 			['Chef d’équipe', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
 			['Membre de comité', 'mission', null, 'comite', null, []],
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
@@ -88,7 +91,7 @@ describe('chargerJeuDeDepart', () => {
 		expect(await base.select().from(equipe)).toHaveLength(3);
 		expect(await base.select().from(profil)).toHaveLength(2);
 		expect(await base.select().from(comite)).toHaveLength(2);
-		expect(await base.select().from(responsabilite)).toHaveLength(6);
+		expect(await base.select().from(responsabilite)).toHaveLength(7);
 		expect(await base.select().from(grade)).toHaveLength(11);
 	});
 
@@ -108,5 +111,24 @@ describe('chargerJeuDeDepart', () => {
 		const perimetre = { type: 'comite' as const, id: amicale!.id };
 		await attribuer(base, acteur, { personneId: rapporteur, responsabiliteId: respRapporteur!.id, perimetre, debut: aujourdhui }, aujourdhui);
 		expect(await aLeDroit(base, { type: 'personne', id: rapporteur }, 'ATTRIBUER_RESPONSABILITE', perimetre, aujourdhui)).toBe(true);
+	});
+
+	it('le chef de centre nomme son adjoint, qui peut lever une suspension', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
+		const nouvelle = async (email: string) => (await base.insert(personne).values({ email, prenom: 'P', nom: 'N', profilId: agent!.id }).returning())[0]!.id;
+		const chef = await nouvelle('chef@exemple.fr');
+		const adjoint = await nouvelle('adjoint@exemple.fr');
+		const suspendu = await nouvelle('suspendu@exemple.fr');
+		const [respChef] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre'));
+		const [respAdjoint] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Chef de centre adjoint'));
+		await attribuer(base, superAdmin, { personneId: chef, responsabiliteId: respChef!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
+		await attribuer(base, { type: 'personne', id: chef }, { personneId: adjoint, responsabiliteId: respAdjoint!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
+
+		await changerStatut(base, superAdmin, suspendu, 'suspendu', aujourdhui);
+		await changerStatut(base, { type: 'personne', id: adjoint }, suspendu, 'operationnel', aujourdhui);
+		const [fiche] = await base.select().from(personne).where(eq(personne.id, suspendu));
+		expect(fiche!.statut).toBe('operationnel');
 	});
 });

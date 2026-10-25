@@ -38,5 +38,6 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
   - son **profil** ;
   - ses **attributions en cours**, chacune sur le type de périmètre de sa responsabilité.
 - Une personne sans accès (suspendue, partie) n'a aucun droit. Le **super administrateur** (`SUPER_ADMINS`) a tous les droits sur le centre.
+- Lever une suspension exige `GERER_ACCES` sur le centre : chef de centre ou chef de centre adjoint (mêmes droits, nommé par le chef de centre).
 - `droitsDe(base, acteur, date)` liste les droits tenus ; `aLeDroit(base, acteur, droit, perimetre, date)` répond oui ou non. Toute action du socle commence par là et refuse avec `RefusDroit`.
 - Une action qui écrit plusieurs lignes (dont le journal) passe en un seul `batch` : tout ou rien.

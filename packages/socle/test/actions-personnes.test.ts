@@ -165,6 +165,22 @@ describe('changerStatut', () => {
 		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s2']);
 	});
 
+	it('lever une suspension exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre', async () => {
+		const { base, agent, chef } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await changerStatut(base, chef, id, 'suspendu', aujourdhui);
+		await expect(changerStatut(base, chef, id, 'operationnel', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(changerStatut(base, chef, id, 'parti', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+
+		const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre' }).returning();
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: chefCentre!.id, droit: 'GERER_ACCES' });
+		const [cdc] = await base.insert(personne).values({ email: 'cdc@exemple.fr', prenom: 'C', nom: 'C', profilId: agent.id }).returning();
+		await base.insert(attribution).values({ personneId: cdc!.id, responsabiliteId: chefCentre!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		await changerStatut(base, { type: 'personne', id: cdc!.id }, id, 'operationnel', aujourdhui);
+		const [p] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(p!.statut).toBe('operationnel');
+	});
+
 	it('suspendre un agent efface ses liens de connexion en attente', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
