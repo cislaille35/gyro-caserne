@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { DROITS, STATUTS_AVEC_ACCES, type Droit, type TypePerimetre } from './listes.ts';
-import { attribution, personne, profilDroit, responsabiliteDroit } from './schema.ts';
+import { attribution, personne, profilDroit, responsabilite, responsabiliteDroit } from './schema.ts';
 
 export type Acteur = { type: 'super'; email: string } | { type: 'personne'; id: number };
 export type Perimetre = { type: 'centre' } | { type: Exclude<TypePerimetre, 'centre'>; id: number };
@@ -14,8 +14,17 @@ export function couvre(detenu: Perimetre, vise: Perimetre): boolean {
 	return vise.type === detenu.type && 'id' in vise && vise.id === detenu.id;
 }
 
-function perimetreDe(type: TypePerimetre, id: number | null): Perimetre {
-	return type === 'centre' || id === null ? { type: 'centre' } : { type, id };
+// Un périmètre sans identifiant, hors centre, est invalide : refusé, jamais élargi au centre.
+export function perimetreDe(type: TypePerimetre, id: number | null): Perimetre | null {
+	if (type === 'centre') return { type: 'centre' };
+	return id === null ? null : { type, id };
+}
+
+function accordes(lignes: Array<{ droit: Droit; type: TypePerimetre; id: number | null }>): DroitAccorde[] {
+	return lignes.flatMap(({ droit, type, id }) => {
+		const perimetre = perimetreDe(type, id);
+		return perimetre ? [{ droit, perimetre }] : [];
+	});
 }
 
 // Seule définition des droits d'un acteur : tout le reste (aLeDroit, affichage) s'y appuie.
@@ -38,21 +47,22 @@ export async function droitsDe(base: Base, acteur: Acteur, date: string): Promis
 			droit: responsabiliteDroit.droit,
 			type: attribution.perimetreType,
 			id: attribution.perimetreId,
+			typeResponsabilite: responsabilite.typePerimetre,
 			debut: attribution.debut,
 			fin: attribution.fin
 		})
 		.from(attribution)
 		.innerJoin(responsabiliteDroit, eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId))
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 		.where(eq(attribution.personneId, acteur.id));
 
-	return [
-		...duProfil.map((ligne) => ({ droit: ligne.droit, perimetre: perimetreDe(ligne.type, ligne.id) })),
-		...desAttributions.filter((ligne) => enCours(ligne.debut, ligne.fin, date)).map((ligne) => ({ droit: ligne.droit, perimetre: perimetreDe(ligne.type, ligne.id) }))
-	];
+	// Une attribution hors du type de périmètre de sa responsabilité ne donne rien.
+	const valides = desAttributions.filter((ligne) => ligne.type === ligne.typeResponsabilite && enCours(ligne.debut, ligne.fin, date));
+
+	return [...accordes(duProfil), ...accordes(valides)];
 }
 
 export async function aLeDroit(base: Base, acteur: Acteur, droit: Droit, vise: Perimetre, date: string): Promise<boolean> {
-	if (acteur.type === 'super') return true;
 	const droits = await droitsDe(base, acteur, date);
 	return droits.some((accorde) => accorde.droit === droit && couvre(accorde.perimetre, vise));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aLeDroit, couvre, droitsDe, type Acteur } from '../src/droits.ts';
+import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur } from '../src/droits.ts';
 import { attribution, equipe, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -59,6 +59,14 @@ describe('couvre', () => {
 	});
 });
 
+describe('perimetreDe', () => {
+	it('refuse un périmètre sans identifiant hors centre', () => {
+		expect(perimetreDe('equipe', null)).toBeNull();
+		expect(perimetreDe('centre', null)).toEqual({ type: 'centre' });
+		expect(perimetreDe('equipe', 3)).toEqual({ type: 'equipe', id: 3 });
+	});
+});
+
 describe('aLeDroit', () => {
 	it('le super administrateur a tous les droits', async () => {
 		const { base } = await jeuDeDonnees();
@@ -87,12 +95,31 @@ describe('aLeDroit', () => {
 	});
 
 	it('un droit sur un comité couvre ce comité seulement', async () => {
+		const { base, agent, nouvelle, attribuer } = await jeuDeDonnees();
+		const [chefComite] = await base.insert(responsabilite).values({ nom: 'Chef de comité', nature: 'fonction', typePerimetre: 'comite' }).returning();
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: chefComite!.id, droit: 'GERER_COMITES' });
+		const id = await nouvelle('a@x.fr', agent.id);
+		await attribuer(id, chefComite!.id, { type: 'comite', id: 1 }, '2026-01-01');
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_COMITES', { type: 'comite', id: 1 }, aujourdhui)).toBe(true);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_COMITES', { type: 'comite', id: 2 }, aujourdhui)).toBe(false);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_COMITES', equipe1, aujourdhui)).toBe(false);
+	});
+
+	it('ignore une attribution dont le périmètre ne correspond pas à la responsabilité', async () => {
 		const { base, agent, chefEquipe, nouvelle, attribuer } = await jeuDeDonnees();
 		const id = await nouvelle('a@x.fr', agent.id);
-		await attribuer(id, chefEquipe.id, { type: 'comite', id: 1 }, '2026-01-01');
-		expect(await aLeDroit(base, personneActeur(id), 'VALIDER_REMPLACEMENT', { type: 'comite', id: 1 }, aujourdhui)).toBe(true);
-		expect(await aLeDroit(base, personneActeur(id), 'VALIDER_REMPLACEMENT', { type: 'comite', id: 2 }, aujourdhui)).toBe(false);
+		await attribuer(id, chefEquipe.id, { type: 'centre' }, '2026-01-01');
 		expect(await aLeDroit(base, personneActeur(id), 'VALIDER_REMPLACEMENT', equipe1, aujourdhui)).toBe(false);
+		expect(await aLeDroit(base, personneActeur(id), 'VALIDER_REMPLACEMENT', centre, aujourdhui)).toBe(false);
+	});
+
+	it('un droit de profil sur une équipe couvre cette équipe seulement', async () => {
+		const { base, agent, nouvelle } = await jeuDeDonnees();
+		await base.insert(profilDroit).values({ profilId: agent.id, droit: 'GERER_PLANNING', perimetreType: 'equipe', perimetreId: 1 });
+		const id = await nouvelle('a@x.fr', agent.id);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_PLANNING', equipe1, aujourdhui)).toBe(true);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_PLANNING', equipe2, aujourdhui)).toBe(false);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_PLANNING', centre, aujourdhui)).toBe(false);
 	});
 
 	it('une attribution qui finit aujourd’hui vaut encore aujourd’hui', async () => {
@@ -118,6 +145,14 @@ describe('aLeDroit', () => {
 		expect(await aLeDroit(base, personneActeur(id), 'GERER_ACCES', centre, aujourdhui)).toBe(false);
 		expect(await aLeDroit(base, personneActeur(id), 'VOIR_PLANNING', centre, aujourdhui)).toBe(false);
 		expect(await droitsDe(base, personneActeur(id), aujourdhui)).toEqual([]);
+	});
+
+	it('un agent parti n’a plus aucun droit', async () => {
+		const { base, agent, chefCentre, nouvelle, attribuer } = await jeuDeDonnees();
+		const [p] = await base.insert(personne).values({ email: 'p@x.fr', prenom: 'P', nom: 'N', profilId: agent.id, statut: 'parti' }).returning();
+		await attribuer(p!.id, chefCentre.id, { type: 'centre' }, '2026-01-01');
+		expect(await droitsDe(base, personneActeur(p!.id), aujourdhui)).toEqual([]);
+		expect(await aLeDroit(base, personneActeur(p!.id), 'VOIR_PLANNING', centre, aujourdhui)).toBe(false);
 	});
 
 	it('une personne extérieure n’a que les droits de son profil', async () => {
