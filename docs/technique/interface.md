@@ -51,8 +51,11 @@ La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le
 - `/agents/<id>` : la fiche, trois formulaires (`?/fiche`, `?/equipe` avec `equipeId`, `?/statut` avec `confirmation=oui` pour « parti »). Réservée aux gestionnaires (403 sinon) ; fiche protégée : la raison remplace les formulaires.
 - `/agents/nouveau` : ajout, puis redirection vers la fiche.
 - `/profil` : ce que l'agent modifie lui-même ; pas de fiche pour le super administrateur.
+- `/reglages` : réglages du centre, pour qui a `GERER_COMITES` ou `GERER_LISTES` sur le centre (403 sinon ; entrée « Réglages » de la navigation pour eux et le super administrateur). Une `Carte` par liste gérée (« Comités » avec `GERER_COMITES`, « Responsabilités » avec `GERER_LISTES`) : un tableau en lecture seule, puis un bloc repliable par ligne (« Modifier ou dissoudre « … » », « Modifier ou archiver « … » ») hors du tableau pour tenir à 390 px, un bloc « Créer… » et une section repliée « Anciens ». Actions : `?/creerComite`, `?/modifierComite`, `?/dissoudreComite`, `?/creerResponsabilite`, `?/modifierResponsabilite`, `?/archiverResponsabilite` ; dissolution et archivage exigent `confirmation=oui` (« Je confirme »), après un avertissement sur le nombre de titulaires. Droits en deux `fieldset` (« Droits métier », « Droits de pouvoir ») ; sans « gère le pouvoir », les cases de pouvoir sont désactivées avec la raison, et une responsabilité qui porte un droit de pouvoir montre la raison au lieu des formulaires. Une case désactivée n'étant pas envoyée, l'action garde les droits verrouillés (et de pouvoir, sans « gère le pouvoir »). Chaque réponse porte une `cible` (`comite-nouveau`, `comite-<id>`, `resp-nouvelle`, `resp-<id>`) : le message s'affiche à côté du bon formulaire, qui reste ouvert en cas d'erreur.
 
-Les règles de lecture et d'écriture sont dans le socle (`effectif.ts`, `actions/personnes.ts`) ; la lecture des formulaires de la fiche et de l'ajout est commune (`lib/server/formulaire-agent.ts`).
+Les règles de lecture et d'écriture sont dans le socle (`effectif.ts`, `actions/personnes.ts`, `actions/comites.ts`, `actions/responsabilites.ts`) ; la lecture des formulaires de la fiche et de l'ajout est commune (`lib/server/formulaire-agent.ts`) ; `lib/server/formulaire-reglages.ts` traduit les erreurs du socle pour les réglages.
+
+`lib/droits.ts` : `LIBELLES_DROIT`, le libellé en français de chaque droit (« Gérer le stock »), pour les cases à cocher et le tableau. Un droit ajouté au socle doit y recevoir son libellé (le typage l'exige).
 
 ## Composants
 
@@ -74,7 +77,7 @@ Dans `src/lib/gyro/` :
 - `Gyro.svelte` : le dessin, ses 42 tenues et leurs animations ; `decoratif` le cache aux lecteurs d'écran, sinon il est décrit par le libellé de sa tenue.
 - `GyroDuMoment.svelte` : Gyro selon le niveau de vie, dans la tenue du moment.
 - `moment.ts` : tenue du moment, à l'heure de Paris. Priorité : fête du jour, nuit (23 h-6 h), p'tit-déj (6 h-10 h), calendriers (novembre et décembre), saison, normal.
-- `GyroAccueil.svelte` : sur l'accueil, Gyro est un bouton ; cinq appuis en 2 s (doigt, Entrée ou Espace) allument son gyrophare et affichent « pin-pon ! ».
+- `GyroAccueil.svelte` : sur l'accueil, Gyro est un bouton (le dessin ne contient donc aucun texte : un texte visible contredirait le nom du bouton, WCAG 2.5.3) ; cinq appuis en 2 s (doigt, Entrée ou Espace) allument son gyrophare et affichent « pin-pon ! ».
 
 ### Ajouter une tenue
 
@@ -94,10 +97,11 @@ Dans `src/lib/gyro/` :
 
 `pnpm --filter @gyro-caserne/web test:a11y` (Playwright et axe, dans Chromium) :
 
-- chaque page (`/connexion`, `/affichage` ; connecté comme agent `/`, `/affichage`, `/agents`, `/profil` ; connecté comme super administrateur `/agents`, `/agents/nouveau`, `/profil` et une fiche, avertissement de départ affiché), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
+- chaque page (`/connexion`, `/affichage` ; connecté comme agent `/`, `/affichage`, `/agents`, `/profil` ; connecté comme super administrateur `/agents`, `/agents/nouveau`, `/profil`, `/reglages` et une fiche, avertissement de départ affiché ; `/reglages` aussi avec tous ses blocs ouverts, sans débord horizontal), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
 - premier Tab sur « Aller au contenu », puis Entrée amène au contenu ;
 - thème sombre envoyé par le serveur ; aucune animation avec « réduire les animations » ; cinq appuis sur Gyro au clavier ;
 - agents : un agent ordinaire reçoit 403 sur une fiche ; le super administrateur ajoute un agent fictif, le retrouve dans la liste, le déclare parti avec confirmation, et il disparaît de la vue d'un agent.
+- réglages : un agent ordinaire reçoit 403 ; le super administrateur crée un comité, puis une responsabilité attribuée par ce comité avec « Gérer le stock », dissout le comité avec confirmation, et la responsabilité est alors attribuée par le chef de centre.
 
 Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` puis comme le super administrateur fictif `admin@exemple.fr` (il doit figurer dans `SUPER_ADMINS`, sinon les tests s'arrêtent), en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Une session gardée par compte : un seul lien par minute et par adresse. Aucune porte dérobée dans l'appli. Si `.dev.vars` contient une `BREVO_CLE=` non vide, les tests s'arrêtent avec une erreur : les tests locaux ne doivent jamais envoyer de vrais e-mails.
 

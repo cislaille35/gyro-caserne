@@ -48,6 +48,7 @@ for (const theme of ['auto', 'sombre']) {
 
 			test('/reglages, tous les formulaires ouverts : sans violation, sans débord', async ({ page }) => {
 				await page.goto('/reglages');
+				await page.waitForLoadState('networkidle');
 				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
 				await sansViolation(page);
 				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
@@ -56,8 +57,9 @@ for (const theme of ['auto', 'sombre']) {
 	});
 }
 
-// Le bloc repliable dont le titre est donné, ouvert (l'hydratation peut le refermer : on recommence).
+// Le bloc repliable dont le titre est donné, ouvert. L'hydratation le refermerait : on attend que la page soit prête.
 async function ouvrir(page: Page, titre: string) {
+	await page.waitForLoadState('networkidle');
 	const bloc = page.locator('details').filter({ has: page.locator('summary', { hasText: titre }) });
 	await expect(async () => {
 		if ((await bloc.getAttribute('open')) === null) await bloc.locator('summary').click();
@@ -139,16 +141,16 @@ test.describe('réglages', () => {
 		await page.goto('/reglages');
 
 		const creation = await ouvrir(page, 'Créer un comité');
-		await creation.getByLabel('Nom').fill(comite);
+		await creation.getByLabel('Nom', { exact: true }).fill(comite);
 		await creation.getByLabel('Thème').fill('sport');
 		await creation.getByRole('button', { name: 'Créer le comité' }).click();
 		await expect(page.getByText(`Le comité « ${comite} » est créé.`)).toBeVisible();
 
 		const nouvelle = await ouvrir(page, 'Créer une responsabilité');
-		await nouvelle.getByLabel('Nom').fill(responsabilite);
+		await nouvelle.getByLabel('Nom', { exact: true }).fill(responsabilite);
 		await nouvelle.getByLabel('Portée').selectOption({ label: 'Centre' });
 		await nouvelle.getByLabel('Qui attribue').selectOption({ label: `Le comité « ${comite} »` });
-		await nouvelle.getByLabel('Gérer le stock').check();
+		await nouvelle.getByLabel('Gérer le stock', { exact: true }).check();
 		await nouvelle.getByRole('button', { name: 'Créer la responsabilité' }).click();
 		await expect(page.getByText(`La responsabilité « ${responsabilite} » est créée.`)).toBeVisible();
 		// Colonnes : portée, qui attribue, droits, titulaires.
