@@ -13,8 +13,9 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
   - sur le **centre** (le chef de centre, par défaut) : n'importe quelle adresse et n'importe quel profil ;
   - sur une **équipe**, si le centre donne ce droit au chef d'équipe : uniquement des agents de son équipe.
 - **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés, les sessions fermées et les liens de connexion en attente annulés, mais l'historique est gardé.
-- **Lever une suspension** : seuls le chef de centre ou son adjoint le peuvent (`GERER_ACCES` sur le centre), même si un chef d'équipe a suspendu l'agent.
-- **Chef de centre adjoint** : nommé par le chef de centre, il a les mêmes droits que lui.
+- **Lever une suspension ou faire revenir un « parti »** : seuls le chef de centre ou son adjoint le peuvent (`GERER_ACCES` sur le centre), même si un chef d'équipe a changé le statut de l'agent.
+- **Statut du chef de centre** : seul le super administrateur le change. Exemple : l'adjoint ne peut pas suspendre le chef de centre.
+- **Chef de centre adjoint** : il a les mêmes droits que le chef de centre. Seuls le chef de centre en fonction ou le super administrateur le nomment ou mettent fin à sa fonction ; un adjoint ne nomme pas d'autre adjoint.
 
 ## Attribuer une responsabilité
 
