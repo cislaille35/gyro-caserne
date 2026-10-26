@@ -57,8 +57,8 @@
 <g stroke="#f4c400" stroke-width="3.5" stroke-linecap="round"><line x1="132" y1="8" x2="132" y2="12"></line><line x1="150" y1="30" x2="154" y2="30"></line><line x1="114" y1="30" x2="110" y2="30"></line><line x1="132" y1="48" x2="132" y2="52"></line></g></g>
 </g>{/if}
 {#if tenue === 'hiver'}<g class={cl.tombe} fill="#9fb3c4"><circle cx="22" cy="44" r="3"></circle><circle cx="140" cy="58" r="3"></circle><circle cx="30" cy="104" r="2.5"></circle><circle cx="134" cy="112" r="2.5"></circle></g>{/if}
-{#if tenue === 'nuit'}<g class={cl.zzz} fill="#9aa6b2" font-family="Barlow Condensed, sans-serif" font-weight="700">
-<text x="112" y="40" font-size="22">z</text><text x="126" y="24" font-size="16">z</text>
+{#if tenue === 'nuit'}<g class={cl.zzz} fill="none" stroke="#9aa6b2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M112 26 H123 L112 40 H123"></path><path d="M126 14 H134 L126 24 H134"></path>
 </g>{/if}
 {#if tenue === 'inquiet'}<g class={cl.glisse}><path d="M118 44 C118 44 110 56 110 61 a8 8 0 0 0 16 0 C126 56 118 44 118 44 Z" fill="#1d9bd8"></path></g>{/if}
 {#if tenue === 'victoire'}<g class={cl.scintille} fill="#f4c400">
