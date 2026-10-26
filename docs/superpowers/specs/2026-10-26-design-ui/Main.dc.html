@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Gyro : tenues et animations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f4}
+a{color:#b3121f}a:hover{color:#7d0c15}
+</style>
+</helmet>
+<div style="box-sizing: border-box; width: 100%; padding: 48px 24px 64px; background: #eef1f4; color: #1d2733; font-family: Barlow, system-ui, sans-serif;">
+<div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px;">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px;">
+<dc-import name="Gyro" tenue="bienvenue" taille="120" hint-size="120px,120px"></dc-import>
+<div style="flex: 1 1 420px; min-width: 0;">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 48px; line-height: 1.05;">Gyro, le gyrophare de la caserne</h1>
+<p style="margin: 8px 0 0; font-size: 18px; line-height: 1.5; color: #4a5562;">La mascotte de l'appli. Elle change de tenue selon le moment et réagit à ce que vous faites. Les tenues marquées « Nouvelle » complètent celles du MVP.</p>
+</div>
+</header>
+
+<section aria-labelledby="titre-tenues" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="titre-tenues" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 32px;">Les tenues ({{nbTenues}})</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+<sc-for list="{{tenues}}" as="t" hint-placeholder-count="12">
+<article style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+<dc-import name="Gyro" tenue="{{t.id}}" taille="112" hint-size="112px,112px"></dc-import>
+<h3 style="margin: 0; font-size: 18px; font-weight: 700;">{{t.nom}}</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.4; color: #4a5562;">{{t.quand}}</p>
+<span style="font-size: 13px; font-weight: 600; padding: 2px 10px; border-radius: 999px; {{t.badge}}">{{t.origine}}</span>
+</article>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="titre-anims" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="titre-anims" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 32px;">Les animations ({{nbAnims}})</h2>
+<div style="overflow-x: auto; background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px;">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 16px; line-height: 1.45;">
+<caption style="text-align: left; padding: 16px 20px 0; color: #4a5562;">Quand le téléphone demande de réduire les animations, la dernière colonne s'applique.</caption>
+<thead>
+<tr style="text-align: left; border-bottom: 2px solid #d5dbe1;">
+<th scope="col" style="padding: 12px 20px;">Animation</th>
+<th scope="col" style="padding: 12px 20px;">Ce que fait Gyro</th>
+<th scope="col" style="padding: 12px 20px;">Quand</th>
+<th scope="col" style="padding: 12px 20px;">Animations réduites</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{anims}}" as="a" hint-placeholder-count="10">
+<tr style="border-bottom: 1px solid #e6eaee; vertical-align: top;">
+<th scope="row" style="padding: 12px 20px; text-align: left; white-space: nowrap;">{{a.nom}} <span style="display: inline-block; margin-left: 6px; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; {{a.badge}}">{{a.origine}}</span></th>
+<td style="padding: 12px 20px;">{{a.quoi}}</td>
+<td style="padding: 12px 20px;">{{a.quand}}</td>
+<td style="padding: 12px 20px; color: #4a5562;">{{a.reduit}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<section aria-labelledby="titre-surprises" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="titre-surprises" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 32px;">Les surprises cachées</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+<sc-for list="{{surprises}}" as="r" hint-placeholder-count="3">
+<div style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 20px;">
+<h3 style="margin: 0 0 6px; font-size: 18px;">{{r.titre}}</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4a5562;">{{r.texte}}</p>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="titre-regles" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="titre-regles" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 32px;">Les règles de Gyro</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+<sc-for list="{{regles}}" as="r" hint-placeholder-count="6">
+<div style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 20px;">
+<h3 style="margin: 0 0 6px; font-size: 18px;">{{r.titre}}</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4a5562;">{{r.texte}}</p>
+</div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":5600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mvp = 'background: #eef1f4; color: #1d2733; border: 1px solid #c3cbd3;';
+    const neuf = 'background: #fdecec; color: #8a0e18; border: 1px solid #f2b8bd;';
+    const T = (id, nom, quand, nouvelle) => ({ id, nom, quand, origine: nouvelle ? 'Nouvelle' : 'MVP', badge: nouvelle ? neuf : mvp });
+    const tenues = [
+      T('normal', 'Normal', 'Par défaut, quand rien de particulier.'),
+      T('astreinte', 'Astreinte', 'La semaine d’astreinte de son équipe.'),
+      T('garde', 'Prise de garde', 'Check-list de prise de garde.'),
+      T('manoeuvre', 'Manœuvre', 'Jour de manœuvre.'),
+      T('remplacement', 'Remplacement', 'Un remplacement proposé ou accepté.'),
+      T('anomalie', 'Anomalie', 'Une anomalie matériel signalée.'),
+      T('inquiet', 'Inquiet', 'Un souci, une erreur.'),
+      T('amicale', 'Amicale', 'Fête ou sortie de l’amicale.'),
+      T('ptitdej', 'P’tit-déj', 'Le matin, avant 10 h.'),
+      T('ete', 'Été', 'Juin à août.'),
+      T('hiver', 'Hiver', 'Décembre à février.'),
+      T('nuit', 'Nuit', 'De 23 h à 6 h.'),
+      T('vacances', 'Vacances', 'L’agent est en congé.'),
+      T('pluie', 'Pluie', 'Météo : pluie.'),
+      T('vent', 'Vent', 'Météo : vent fort.'),
+      T('intervention', 'Intervention', 'Casque F1 : départ ou retour d’intervention.', true),
+      T('formation', 'Formation', 'Formation, recyclage, examen.', true),
+      T('saintebarbe', 'Sainte-Barbe', 'Le 4 décembre, fête des pompiers.', true),
+      T('anniversaire', 'Anniversaire', 'Anniversaire d’un agent.', true),
+      T('bienvenue', 'Bienvenue', 'Première connexion, nouvel agent.', true),
+      T('victoire', 'Victoire', 'Planning complet, objectif atteint.', true),
+      T('chargement', 'Gyrophare', 'Chargement, attente.', true),
+      T('horsligne', 'Hors ligne', 'Pas de réseau.', true),
+      T('sport', 'Sport', 'Séance de sport.', true),
+      T('vide', 'Rien à afficher', 'Liste vide, recherche sans résultat.', true),
+      T('calendriers', 'Calendriers', 'Tournée des calendriers, novembre et décembre.', true),
+      T('bal14', 'Bal du 14 juillet', 'Le bal des pompiers.', true),
+      T('journeenationale', 'Journée nationale', 'Journée nationale des sapeurs-pompiers, en juin.', true),
+      T('galons', 'Remise de galons', 'Le jour de l’avancement d’un agent.', true),
+      T('recrue', 'Nouvelle recrue', 'Arrivée d’une recrue ou d’un JSP.', true),
+      T('retraite', 'Départ en retraite', 'Le pot de départ.', true),
+      T('lavage', 'Lavage du camion', 'Journée d’entretien du matériel.', true),
+      T('cafe', 'Pause café', 'Une pause, un café.', true),
+      T('galette', 'Galette des rois', 'En janvier.', true),
+      T('chandeleur', 'Chandeleur', 'Le 2 février.', true),
+      T('poisson', '1er avril', 'Le poisson apparaît sans prévenir.', true),
+      T('halloween', 'Halloween', 'Le 31 octobre.', true),
+      T('noel', 'Noël', 'Fin décembre.', true),
+      T('nouvelan', 'Nouvel An', 'Le 1er janvier.', true),
+      T('orage', 'Orage', 'Météo : orage.', true),
+      T('brouillard', 'Brouillard', 'Météo : brouillard.', true),
+      T('canicule', 'Canicule', 'Météo : forte chaleur.', true)
+    ];
+    const A = (nom, quoi, quand, reduit, nouvelle) => ({ nom, quoi, quand, reduit, origine: nouvelle ? 'Nouvelle' : 'MVP', badge: nouvelle ? neuf : mvp });
+    const anims = [
+      A('Retrouvailles', 'Deux Gyro accourent et se serrent la main.', 'Remplacement accepté.', 'Les deux Gyro côte à côte, immobiles.'),
+      A('Saute', 'Gyro bondit de joie.', 'Action réussie, félicitations.', 'Gyro joyeux, immobile.'),
+      A('Tamponne', 'Gyro appose un tampon « Validé ».', 'Garde ou demande validée.', 'Le tampon est déjà posé.'),
+      A('Miettes', 'Des miettes de croissant tombent.', 'Le matin (P’tit-déj).', 'Miettes fixes.'),
+      A('Météo', 'Le soleil rayonne, la pluie tombe, le vent souffle.', 'Accueil, selon la météo.', 'Décor fixe.'),
+      A('Scène du camion', 'Le camion roule, le tuyau ondule, les étoiles scintillent.', 'Accueil.', 'Image fixe.'),
+      A('Zzz', 'Gyro dort, des « z » s’envolent.', 'Écran vide, rien à faire.', 'Les « z » restent en place.'),
+      A('Cloche', 'La cloche sonne.', 'Nouvelle notification.', 'Pastille sans mouvement.'),
+      A('Penche', 'Gyro penche sous le vent.', 'Météo : vent fort.', 'Gyro penché, immobile.'),
+      A('Tirer pour actualiser', 'Gyro descend avec la page.', 'Geste « tirer pour actualiser ».', 'Simple indicateur de chargement.'),
+      A('Respire', 'Gyro respire doucement.', 'Partout où il est affiché.', 'Immobile.', true),
+      A('Clin d’œil', 'Un clin d’œil, de temps en temps (rare).', 'Accueil.', 'Aucun.', true),
+      A('Coucou', 'Gyro salue de la main.', 'Première connexion, bienvenue.', 'Main levée, immobile.', true),
+      A('Gyrophare', 'Le faisceau tourne, comme un vrai gyrophare.', 'Chargement, attente.', 'Faisceau fixe et texte « Chargement… ».', true),
+      A('Hochement', 'Gyro hoche la tête.', 'Action enregistrée.', 'Une coche fixe.', true),
+      A('Sursaut', 'Petit sursaut.', 'Erreur bénigne (champ oublié).', 'Rien : le message suffit.', true),
+      A('Confettis', 'Des confettis tombent.', 'Anniversaire, Sainte-Barbe, planning complet.', 'Confettis fixes.', true),
+      A('Débranché', 'La prise se balance au bout de son fil.', 'Hors ligne.', 'Prise fixe et message.', true),
+      A('Regard', 'Gyro suit des yeux le champ en cours de saisie.', 'Formulaires (connexion).', 'Regard fixe.', true),
+      A('Souffle les bougies', 'Gyro souffle les bougies de son gâteau, des confettis tombent, le prénom s’affiche : « Joyeux anniversaire Chloé ! ».', 'Publication d’un anniversaire, le jour J, sur l’accueil.', 'Gâteau, bougies éteintes et message, sans mouvement.', true),
+      A('Secoue la tête', 'Gyro dit non de la tête.', 'Saisie incorrecte, avant l’envoi (adresse mal formée).', 'Rien : le message d’erreur suffit.', true),
+      A('Réfléchit', 'Une bulle « … » au-dessus de Gyro.', 'Envoi en cours.', 'Bulle fixe.', true),
+      A('Tape-m’en cinq', 'Gyro tend la main pour un « tape-m’en cinq ».', 'Check-list de garde complète.', 'Main tendue, immobile.', true),
+      A('Tend un café', 'Gyro tend une tasse fumante.', 'Merci, après un remplacement accepté.', 'Tasse fixe.', true),
+      A('Regarde autour', 'Gyro s’ennuie et regarde à gauche, à droite.', 'Écran ouvert sans rien faire depuis un moment.', 'Aucun.', true),
+      A('Bâille et s’étire', 'Gyro bâille puis s’étire.', 'Première ouverture du matin.', 'Aucun.', true),
+      A('Feu d’artifice', 'Un petit feu d’artifice derrière Gyro.', '14 juillet et Nouvel An.', 'Décor fixe.', true),
+      A('Flocons', 'Quelques flocons tombent sur l’écran.', 'En décembre.', 'Aucun.', true),
+      A('Crêpe qui saute', 'La crêpe saute dans la poêle.', 'Chandeleur.', 'Crêpe fixe.', true),
+      A('Ventilateur', 'Les pales du ventilateur tournent.', 'Canicule.', 'Pales fixes.', true)
+    ];
+    const surprises = [
+      { titre: 'Cinq touches sur Gyro', texte: 'Son gyrophare s’emballe et un « pin-pon ! » s’écrit à côté de lui. Jamais de son.' },
+      { titre: 'Le 4 décembre', texte: 'Gyro en tenue de Sainte-Barbe et un mot pour tout le centre.' },
+      { titre: 'Le 1er avril', texte: 'Un poisson apparaît dans le dos de Gyro, sans prévenir.' }
+    ];
+    const regles = [
+      { titre: 'Jamais dans l’urgence', texte: 'Ni animation ni blague sur les écrans qui servent à partir vite : alerte, disponibilité immédiate, départ.' },
+      { titre: 'Une chose à la fois', texte: 'Une seule animation à l’écran, courte (moins de 2 s), sauf le décor de l’accueil. Jamais de son.' },
+      { titre: 'Animations réduites respectées', texte: 'Si le téléphone le demande, tout ce qui bouge pour décorer s’arrête. L’humour reste dans les textes.' },
+      { titre: 'Réglable par chacun', texte: 'Dans l’appli : Sobre, Équilibré ou Vivant. Vivant par défaut (choix du porteur).' },
+      { titre: 'Jamais seul à informer', texte: 'Gyro accompagne un texte, il ne le remplace pas : chaque tenue a son libellé lisible par un lecteur d’écran.' },
+      { titre: 'Anniversaires consentis', texte: 'Un anniversaire n’est affiché que si l’agent l’a accepté : la date de naissance est une donnée personnelle.' },
+      { titre: 'Le ton', texte: 'Vouvoiement, complice, jamais moqueur. Exemple du MVP : « Rien à signaler. Même le gyro est à l’heure. »' }
+    ];
+    return { tenues, anims, regles, surprises, nbTenues: tenues.length, nbAnims: anims.length };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Connexion</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap">
+<style>
+body{margin:0}
+button:focus-visible,input:focus-visible{outline:3px solid #1d9bd8;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 72px 24px 32px; display: flex; flex-direction: column; align-items: stretch; gap: 24px; background: #eef1f4; color: #1d2733; font-family: Barlow, system-ui, sans-serif;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+<dc-import name="Gyro" tenue="{{tenue}}" taille="128" hint-size="128px,128px"></dc-import>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 36px; line-height: 1.1;">Gyro Caserne</h1>
+<p style="margin: 0; font-size: 17px; color: #4a5562;">CIS de démonstration</p>
+</div>
+
+<sc-if value="{{formulaire}}" hint-placeholder-val="{{ true }}">
+<div style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+<label for="email" style="font-size: 17px; font-weight: 600;">Votre adresse e-mail</label>
+<input id="email" name="email" type="email" autocomplete="email" placeholder="prenom.nom@exemple.fr" style="min-height: 52px; box-sizing: border-box; width: 100%; padding: 0 14px; border: 2px solid #8a96a3; border-radius: 10px; font: 400 18px Barlow, sans-serif; color: #1d2733; background: #ffffff;">
+<button type="button" onClick="{{envoyer}}" style="min-height: 52px; border: 0; border-radius: 12px; background: #b3121f; color: #ffffff; font: 700 18px Barlow, sans-serif; cursor: pointer;">Recevoir un lien de connexion</button>
+<p style="margin: 0; font-size: 15px; line-height: 1.4; color: #4a5562;">Pas de mot de passe : un lien arrive par e-mail, valable 5 minutes.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{envoye}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+<p style="margin: 0; font-size: 18px; line-height: 1.45; font-weight: 600;">Si cette adresse est autorisée, un lien vient de partir.</p>
+<p style="margin: 0; font-size: 17px; line-height: 1.45; color: #4a5562;">Pensez à regarder dans vos courriers indésirables : Gyro n’a pas encore son propre nom de domaine.</p>
+<button type="button" onClick="{{recommencer}}" style="min-height: 48px; border: 2px solid #d5dbe1; border-radius: 12px; background: transparent; color: #1d2733; font: 600 17px Barlow, sans-serif; cursor: pointer;">Utiliser une autre adresse</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { envoye: false };
+  }
+  renderVals() {
+    const envoye = this.state.envoye;
+    return {
+      envoye,
+      formulaire: !envoye,
+      tenue: envoye ? 'garde' : 'bienvenue',
+      envoyer: () => this.setState({ envoye: true }),
+      recommencer: () => this.setState({ envoye: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
