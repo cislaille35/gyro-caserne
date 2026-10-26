@@ -6,7 +6,7 @@ import { aLeDroit, couvre, droitsDe, estChefDeCentre, occupe, perimetreDe, type 
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
-import { affectationEquipe, attribution, equipe, personne, profil, profilDroit, session, user } from '../schema.ts';
+import { affectationEquipe, attribution, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
 
@@ -34,17 +34,44 @@ async function exigerProfilCouvert(base: Base, acteur: Acteur, profilId: number,
 	}
 }
 
+// Le chef de centre en fonction relève d'un super administrateur ; un adjoint en fonction, du chef de centre ou d'un super administrateur.
+async function exigerProtection(base: Base, acteur: Acteur, personneId: number, aujourdhui: string, refus: { chef: string; adjoint: string }) {
+	if (acteur.type === 'super') return;
+	if (await estChefDeCentre(base, personneId, aujourdhui)) throw new RefusDroit('GERER_ACCES', centre, refus.chef);
+	if ((await occupe(base, personneId, 'chef_centre_adjoint', aujourdhui)) && !(await estChefDeCentre(base, acteur.id, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre, refus.adjoint);
+}
+
+type Complements = { gradeId?: number | null; dateGrade?: string | null; telephone?: string | null; naissance?: string | null; entreeCentre?: string | null; engagementSpv?: string | null };
+
+async function exigerComplements(base: Base, c: Complements) {
+	for (const date of [c.dateGrade, c.naissance, c.entreeCentre, c.engagementSpv]) if (date != null) exigerDate(date);
+	if (c.gradeId != null) {
+		const [leGrade] = await base.select({ id: grade.id }).from(grade).where(eq(grade.id, c.gradeId));
+		if (!leGrade) throw new DonneeInvalide('Grade inconnu');
+	}
+}
+
+async function exigerProfil(base: Base, profilId: number) {
+	const [leProfil] = await base.select().from(profil).where(eq(profil.id, profilId));
+	if (!leProfil) throw new DonneeInvalide('Profil inconnu');
+	return leProfil;
+}
+
+async function exigerAdresseLibre(base: Base, email: string) {
+	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
+	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
+}
+
 export async function ajouterPersonne(
 	base: Base,
 	acteur: Acteur,
-	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number },
+	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number } & Complements,
 	aujourdhui: string
 ): Promise<number> {
 	exigerDate(aujourdhui);
 	const email = normaliserAdresse(donnees.email);
 	if (!email) throw new DonneeInvalide('Adresse vide');
-	const [leProfil] = await base.select().from(profil).where(eq(profil.id, donnees.profilId));
-	if (!leProfil) throw new DonneeInvalide('Profil inconnu');
+	const leProfil = await exigerProfil(base, donnees.profilId);
 
 	// Le chef d'équipe n'agit que sur un agent de son équipe.
 	const vise: Perimetre = leProfil.typePersonne === 'agent' && donnees.equipeId !== undefined ? { type: 'equipe', id: donnees.equipeId } : centre;
@@ -59,10 +86,14 @@ export async function ajouterPersonne(
 		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
 	}
-	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
-	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
+	await exigerComplements(base, donnees);
+	await exigerAdresseLibre(base, email);
 
-	const nouvelle = base.insert(personne).values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId }).returning({ id: personne.id });
+	const { gradeId, dateGrade, telephone, naissance, entreeCentre, engagementSpv } = donnees;
+	const nouvelle = base
+		.insert(personne)
+		.values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId, gradeId, dateGrade, telephone, naissance, entreeCentre, engagementSpv })
+		.returning({ id: personne.id });
 	// L'ordre compte : juste après l'insertion de la personne, last_insert_rowid() est son identifiant.
 	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'ajouter_personne', cibleType: 'personne', cibleId: sql`last_insert_rowid()`, details: { email, profilId: donnees.profilId, equipeId: donnees.equipeId ?? null } }, aujourdhui);
 	const ecritures = [nouvelle, journalise] as const;
@@ -80,12 +111,10 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
 	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
-	// Le statut du chef de centre ne relève que d'un super administrateur.
-	if (acteur.type !== 'super' && (await estChefDeCentre(base, personneId, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre, 'Seul un super administrateur change le statut du chef de centre');
-	// Celui d'un adjoint relève du chef de centre ou d'un super administrateur.
-	if (acteur.type !== 'super' && (await occupe(base, personneId, 'chef_centre_adjoint', aujourdhui)) && !(await estChefDeCentre(base, acteur.id, aujourdhui))) {
-		throw new RefusDroit('GERER_ACCES', centre, 'Seuls le chef de centre ou un super administrateur changent le statut d’un adjoint');
-	}
+	await exigerProtection(base, acteur, personneId, aujourdhui, {
+		chef: 'Seul un super administrateur change le statut du chef de centre',
+		adjoint: 'Seuls le chef de centre ou un super administrateur changent le statut d’un adjoint'
+	});
 	// Seuls le chef de centre ou son adjoint font revenir une personne suspendue ou partie.
 	if ((fiche.statut === 'suspendu' || fiche.statut === 'parti') && statut !== fiche.statut) await exiger(base, acteur, centre, aujourdhui);
 
@@ -103,7 +132,11 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	}
 
 	const ecritures = [
-		base.update(personne).set({ statut }).where(eq(personne.id, personneId)),
+		// Au départ, on n'en garde pas plus que nécessaire.
+		base
+			.update(personne)
+			.set(statut === 'parti' ? { statut, naissance: null, contactUrgence: null } : { statut })
+			.where(eq(personne.id, personneId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui)
 	] as const;
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
@@ -111,8 +144,64 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 		return;
 	}
 	// Sans accès, la personne est déconnectée tout de suite, et ses liens en attente ne valent plus rien.
-	const sesComptes = base.select({ id: user.id }).from(user).where(eq(user.email, fiche.email));
-	await base.batch([...ecritures, base.delete(session).where(inArray(session.userId, sesComptes)), effacerLiensVers(base, fiche.email)]);
+	await base.batch([...ecritures, ...deconnecter(base, fiche.email)]);
+}
+
+// Requêtes à passer dans un batch : sessions et liens en attente de cette adresse.
+function deconnecter(base: Base, email: string) {
+	const sesComptes = base.select({ id: user.id }).from(user).where(eq(user.email, email));
+	return [base.delete(session).where(inArray(session.userId, sesComptes)), effacerLiensVers(base, email)] as const;
+}
+
+export type ChampsFiche = { email: string; prenom: string; nom: string; profilId: number } & Required<Complements>;
+const CHAMPS_FICHE = ['email', 'prenom', 'nom', 'gradeId', 'dateGrade', 'profilId', 'telephone', 'naissance', 'entreeCentre', 'engagementSpv'] as const;
+
+export async function modifierFiche(base: Base, acteur: Acteur, id: number, champs: Partial<ChampsFiche>, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
+	await exiger(base, acteur, centre, aujourdhui);
+	const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
+	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	await exigerProtection(base, acteur, id, aujourdhui, {
+		chef: 'Seul un super administrateur modifie la fiche du chef de centre',
+		adjoint: 'Seuls le chef de centre ou un super administrateur modifient la fiche d’un adjoint'
+	});
+
+	// Seuls ces champs : le statut ou le contact d'urgence ont leurs propres règles.
+	const nouveaux = Object.fromEntries(CHAMPS_FICHE.filter((cle) => champs[cle] !== undefined).map((cle) => [cle, champs[cle]])) as Partial<ChampsFiche>;
+	if (champs.email !== undefined) {
+		nouveaux.email = normaliserAdresse(champs.email);
+		if (!nouveaux.email) throw new DonneeInvalide('Adresse vide');
+	}
+	for (const cle of ['prenom', 'nom'] as const) {
+		if (champs[cle] === undefined) continue;
+		nouveaux[cle] = champs[cle].trim();
+		if (!nouveaux[cle]) throw new DonneeInvalide(cle === 'nom' ? 'Nom vide' : 'Prénom vide');
+	}
+	await exigerComplements(base, nouveaux);
+	if (nouveaux.profilId !== undefined) await exigerProfil(base, nouveaux.profilId);
+
+	const changes = Object.fromEntries(Object.entries(nouveaux).filter(([cle, valeur]) => valeur !== fiche[cle as keyof ChampsFiche])) as Partial<ChampsFiche>;
+	if (Object.keys(changes).length === 0) return;
+	if (changes.email !== undefined) await exigerAdresseLibre(base, changes.email);
+
+	const ecritures = [
+		base.update(personne).set(changes).where(eq(personne.id, id)),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: changes }, aujourdhui)
+	] as const;
+	// L'adresse sert à la connexion : l'ancienne ne doit plus ouvrir de session.
+	await base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]);
+}
+
+export async function retirerEquipe(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
+	await exiger(base, acteur, centre, aujourdhui);
+	const ouverte = and(eq(affectationEquipe.personneId, id), isNull(affectationEquipe.fin));
+	const [enCoursOuverte] = await base.select().from(affectationEquipe).where(ouverte);
+	if (!enCoursOuverte) throw new DonneeInvalide('Aucune équipe en cours');
+	await base.batch([
+		base.update(affectationEquipe).set({ fin: veille(aujourdhui) }).where(ouverte),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: enCoursOuverte.equipeId } }, aujourdhui)
+	]);
 }
 
 export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {
