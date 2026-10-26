@@ -15,14 +15,14 @@ Une page « Réglages du centre », avec deux listes.
 
 - **Créer** : nom, thème (texte libre court, par exemple « formation », « sport »).
 - **Renommer** (et changer le thème).
-- **Dissoudre** : les attributions en cours sur ce comité (membres, rapporteur, toute responsabilité dont le périmètre est ce comité) s'arrêtent le jour même ; leurs droits disparaissent avec. L'historique reste. Le comité n'est plus proposé nulle part.
+- **Dissoudre** : les attributions en cours sur ce comité (membres, rapporteur, toute responsabilité dont le périmètre est ce comité) s'arrêtent le jour même ; leurs droits disparaissent avec ; celles pas encore commencées sont supprimées (choix de Claude). L'historique reste. Le comité n'est plus proposé nulle part.
 - Les responsabilités que ce comité attribuait sont désormais attribuées par le chef de centre (choix de Claude, validé).
 
 ### Responsabilités
 
-- **Créer** : nom ; nature (fonction ou mission) ; portée (tout le centre, une équipe, un comité) ; qui l'attribue (un comité, ou le chef de centre à défaut) ; droits, en deux groupes de cases à cocher : **droits métier** et **droits de pouvoir**.
-- **Modifier** : les mêmes éléments. Les droits verrouillés ne se retirent pas.
-- **Archiver** : ceux qui la tiennent la perdent le jour même, avec ses droits ; elle n'est plus proposée ; l'historique reste.
+- **Créer** : nom ; nature (fonction ou mission) ; portée (tout le centre, une équipe, un comité) ; qui l'attribue : le chef de centre, un comité désigné, ou — pour une portée « comité » — le comité lui-même (cas de « Membre » et « Rapporteur de comité ») (choix de Claude) ; droits, en deux groupes de cases à cocher : **droits métier** et **droits de pouvoir**.
+- **Modifier** : les mêmes éléments. Les droits verrouillés ne se retirent pas. La portée ne change pas tant que quelqu'un tient la responsabilité, en cours ou à venir (sinon ses titulaires perdraient leurs droits sans trace — choix de Claude).
+- **Archiver** : ceux qui la tiennent la perdent le jour même, avec ses droits ; les attributions pas encore commencées sont supprimées ; elle n'est plus proposée ; l'historique reste.
 
 ### Droits métier et droits de pouvoir
 
@@ -34,16 +34,23 @@ Une page « Réglages du centre », avec deux listes.
 ## Qui peut faire quoi (décision du porteur)
 
 - **Référent technique** : nouvelle responsabilité du jeu de départ (fonction, portée centre, attribuée par le chef de centre), avec `GERER_LISTES` et `GERER_COMITES` sur le centre. Il crée, modifie, dissout et archive comités et responsabilités, mais **ne distribue que des droits métier** : il ne peut ni ajouter ni retirer un droit de pouvoir dans une responsabilité.
+- **Responsabilités qui portent un droit de pouvoir** (décision du porteur) : le référent technique ne peut ni les archiver ni les modifier, la sienne comprise ; elles restent l'affaire du chef de centre, de l'adjoint et du super administrateur. Il peut en revanche dissoudre un comité (il applique une décision prise).
+- **Droits requis** (choix de Claude) : `GERER_COMITES` sur le centre pour la liste des comités, `GERER_LISTES` sur le centre pour celle des responsabilités ; chacun ne voit que la liste qu'il peut gérer.
 - **Chef de centre, adjoint, super administrateur** : tout, droits de pouvoir compris.
 - Les autres agents ne voient pas cette page.
 
 ## Les règles
 
 - **Rien n'est jamais supprimé** : on dissout un comité, on archive une responsabilité.
+- **Noms uniques** pour les comités et pour les responsabilités, vérifiés par les actions du socle (pas d'index ajouté sur des données existantes — choix de Claude).
 - **Les rôles système ne s'archivent pas et leurs droits verrouillés ne se retirent pas** : chef de centre, adjoint, chef d'équipe ; le comité du centre ne se dissout pas (choix de Claude, validé).
 - Toute écriture passe par une action du socle (droits, journal, `batch`), testée ; elle servira aussi au fichier du lot 4.
 - **La préprod a déjà des données** : les nouveaux éléments (colonnes pour la dissolution et l'archivage, responsabilité « Référent technique ») arrivent par une **nouvelle migration** qui n'efface ni ne transforme aucune donnée existante (jamais en réécrivant la migration `0000`).
 - Fondations de l'interface : composants communs, téléphone et ordinateur à égalité, RGAA AA, pas d'humour dans l'urgence (aucun écran d'urgence ici).
+
+## Documentation à tenir à jour (rappel du porteur)
+
+`docs/fonctionnel/acces-et-attributions.md`, `docs/technique/socle.md`, `docs/technique/interface.md`, et une page d'aide `docs/utilisation/` : « Comment créer un comité ou une responsabilité ? ».
 
 ## Hors périmètre
 
