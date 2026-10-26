@@ -1,9 +1,10 @@
-import { and, eq, gt, gte, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
-import { enCours, exigerDate } from '../dates.ts';
+import { enCours, exigerDate, veille } from '../dates.ts';
 import { aLeDroit, couvre, droitsDe, estChefDeCentre, occupe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
+import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { ligneJournal } from '../journal.ts';
 import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
 import { affectationEquipe, attribution, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
@@ -16,12 +17,6 @@ export function nomActeur(acteur: Acteur): string {
 
 async function exiger(base: Base, acteur: Acteur, vise: Perimetre, aujourdhui: string) {
 	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', vise, aujourdhui))) throw new RefusDroit('GERER_ACCES', vise);
-}
-
-function veille(date: string): string {
-	const jour = new Date(`${date}T00:00:00Z`);
-	jour.setUTCDate(jour.getUTCDate() - 1);
-	return jour.toISOString().slice(0, 10);
 }
 
 // Chaque droit du profil doit être détenu par l'acteur sur un périmètre qui le couvre.
@@ -235,19 +230,13 @@ const REFUS_EQUIPE = {
 
 type Affectation = typeof affectationEquipe.$inferSelect;
 
-// L'affectation en cours se termine la veille (supprimée si elle commence aujourd'hui) ; celles à venir sont supprimées. Rien à faire : liste vide.
+// Rien à faire : liste vide. Sinon la règle commune (voir fin-de-periode.ts), puis le journal.
 function retraitEquipe(base: Base, acteur: Acteur, id: number, affectations: Affectation[], aujourdhui: string) {
 	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
 	if (!courante && !affectations.some((a) => a.debut > aujourdhui)) return [] as const;
-	const aSupprimer = courante?.debut === aujourdhui ? gte(affectationEquipe.debut, aujourdhui) : gt(affectationEquipe.debut, aujourdhui);
-	const supprimer = base.delete(affectationEquipe).where(and(eq(affectationEquipe.personneId, id), aSupprimer));
+	const [supprimer, terminer] = finirOuSupprimer(base, affectationEquipe, eq(affectationEquipe.personneId, id), aujourdhui);
 	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: courante?.equipeId ?? null } }, aujourdhui);
-	if (!courante || courante.debut === aujourdhui) return [supprimer, journalise] as const;
-	const terminer = base
-		.update(affectationEquipe)
-		.set({ fin: veille(aujourdhui) })
-		.where(and(eq(affectationEquipe.personneId, id), eq(affectationEquipe.debut, courante.debut)));
-	return [terminer, supprimer, journalise] as const;
+	return [supprimer, terminer, journalise] as const;
 }
 
 export async function retirerEquipe(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<void> {

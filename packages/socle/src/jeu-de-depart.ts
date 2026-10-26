@@ -31,7 +31,7 @@ const GRADES = [
 	['Cdt', 'Commandant']
 ] as const;
 
-const NOM_COMITE_CENTRE = 'Comité du centre';
+export const NOM_COMITE_CENTRE = 'Comité du centre';
 
 const DROITS_CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE'];
 
