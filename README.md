@@ -47,6 +47,8 @@ pnpm test         # tests
 pnpm build        # compilation
 ```
 
+La préprod (centre fictif `exemple`, en ligne) reçoit les mêmes personnes fictives : `CENTRE=exemple pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne --avec-fictifs`. Cette option est refusée pour tout autre centre.
+
 Après une mise à jour qui refond les migrations (avant tout déploiement, elles peuvent être réécrites), repartir d'une base locale neuve : effacer `centres/<id>/.wrangler/state`, puis relancer `base-locale` et `jeu-de-depart`.
 
 Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un vrai centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.

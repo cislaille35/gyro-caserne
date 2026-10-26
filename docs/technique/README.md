@@ -33,9 +33,15 @@ flowchart LR
 
 ## CI
 
-GitHub Actions (`.github/workflows/verifier.yml`), à chaque push sur `main` et à chaque PR : types, tests, compilation.
-Droits en lecture seule, actions figées par leur empreinte de commit.
-Déploiement préprod et production : à mettre en place.
+GitHub Actions, actions figées par leur empreinte de commit, droits en lecture seule sauf mention.
+
+- `verifier.yml`, à chaque PR : types, tests, compilation.
+- `deployer.yml`, après la même vérification :
+  - à chaque fusion sur `main` : mise à jour de la base puis déploiement de la **préprod** (centre `CENTRE_PREPROD`) ;
+  - sur un tag `vX.Y.Z` : même chose pour la **production** (centre `CENTRE_PRODUCTION`), seulement si le tag pointe sur `main`. Si la base ne se met pas à jour, l'appli n'est pas déployée.
+- Réglages du dépôt GitHub : variables `CENTRE_PREPROD` et `CENTRE_PRODUCTION` (sans elles, rien n'est déployé), secrets `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID`. Pour Laillé : `exemple` et `laille`.
+- **Journal des mises en production** : chaque version déployée a sa fiche dans les « Releases » du dépôt (date, PR incluses, résumé en langage clair). Seul le job de production peut écrire ces fiches.
+- Dépôt privé sur l'offre gratuite : pas d'environnements GitHub ni de règles sur les tags. La garde est le tag sur `main`, vérifié avant de déployer.
 
 ## Technos
 
@@ -58,7 +64,7 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
 | Better Auth | 1.7 | Connexion par lien magique et sessions |
-| Resend | 6 | Envoi des courriels (liens de connexion) |
+| Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | Vitest | 5 | Tests |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
 

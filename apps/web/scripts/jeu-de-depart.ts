@@ -1,8 +1,9 @@
 // Remplit la base du centre (CENTRE, « exemple » par défaut) avec le jeu de départ.
 // Par défaut, la base locale de développement, avec en plus une personne fictive, test@exemple.fr.
 // Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
+// Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { chargerJeuDeDepart, creerBaseD1, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerJeuDeDepart, creerBaseD1, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 
@@ -12,6 +13,20 @@ if (enLigne && !process.env.CENTRE) {
 	process.exit(1);
 }
 const centre = process.env.CENTRE || 'exemple';
+const avecFictifs = !enLigne || process.argv.includes('--avec-fictifs');
+if (enLigne && avecFictifs && centre !== 'exemple') {
+	console.error('Agents fictifs réservés au centre exemple (préprod), jamais dans la base d’un vrai centre.');
+	process.exit(1);
+}
+
+// Personnes fictives : test@exemple.fr pour se connecter en local, et un agent par équipe.
+const FICTIFS = [
+	{ email: 'test@exemple.fr', prenom: 'Test', nom: 'Fictif', equipe: null },
+	{ email: 'alice.martin@exemple.fr', prenom: 'Alice', nom: 'Martin', equipe: 'Équipe 1' },
+	{ email: 'bruno.petit@exemple.fr', prenom: 'Bruno', nom: 'Petit', equipe: 'Équipe 2' },
+	{ email: 'chloe.durand@exemple.fr', prenom: 'Chloé', nom: 'Durand', equipe: 'Équipe 3' },
+	{ email: 'david.leroy@exemple.fr', prenom: 'David', nom: 'Leroy', equipe: 'Équipe 1' }
+];
 const dossier = new URL(`../../../centres/${centre}/`, import.meta.url);
 const { default: description } = await import(new URL('centre.ts', dossier).href);
 
@@ -34,13 +49,21 @@ try {
 	try {
 		const base = creerBaseD1(env.BASE);
 		await chargerJeuDeDepart(base, description);
-		if (enLigne) {
-			console.log(`Base en ligne de « ${centre} » prête.`);
-		} else {
+		if (avecFictifs) {
 			const [agent] = await base.select({ id: profil.id }).from(profil).where(eq(profil.nom, 'Agent'));
-			await base.insert(personne).values({ email: 'test@exemple.fr', prenom: 'Test', nom: 'Fictif', profilId: agent!.id }).onConflictDoNothing();
-			console.log(`Base locale de « ${centre} » prête, avec test@exemple.fr.`);
+			const equipes = await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe);
+			for (const f of FICTIFS) {
+				const [nouvelle] = await base
+					.insert(personne)
+					.values({ email: f.email, prenom: f.prenom, nom: f.nom, profilId: agent!.id })
+					.onConflictDoNothing()
+					.returning({ id: personne.id });
+				const sonEquipe = equipes.find((e) => e.nom === f.equipe);
+				if (nouvelle && sonEquipe) await base.insert(affectationEquipe).values({ personneId: nouvelle.id, equipeId: sonEquipe.id, debut: '2026-01-01' });
+			}
 		}
+		const lieu = enLigne ? 'en ligne' : 'locale';
+		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}.`);
 	} finally {
 		await dispose();
 	}

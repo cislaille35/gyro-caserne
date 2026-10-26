@@ -28,9 +28,9 @@ Au démarrage, le chef de centre ou le super administrateur nomme les premiers m
 
 ## Super administrateur
 
-- C'est le compte technique du centre : il possède les comptes Cloudflare, Resend et GitHub. Pour Laillé : `cislaille35@gmail.com`.
+- C'est le compte technique du centre : il possède les comptes Cloudflare, Brevo et GitHub. Pour Laillé : `cislaille35@gmail.com`.
 - Il nomme le chef de centre. À l'installation, il peut aussi reprendre l'organisation réelle du centre : comités, membres, responsabilités.
-- **Passation** : on change le mot de passe de la boîte du centre, on remplace les clés (Cloudflare, Resend, secrets de l'appli) et on ferme ses sessions. La procédure pas à pas sera dans `docs/technique/`.
+- **Passation** : on change le mot de passe de la boîte du centre, on remplace les clés (Cloudflare, Brevo, secrets de l'appli) et on ferme ses sessions. La procédure pas à pas sera dans `docs/technique/`.
 
 ## Ce qui est tracé
 

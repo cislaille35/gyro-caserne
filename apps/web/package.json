@@ -23,8 +23,7 @@
     "@gyro-caserne/centre": "workspace:*",
     "@gyro-caserne/socle": "workspace:*",
     "better-auth": "1.7.12",
-    "drizzle-orm": "0.45.4",
-    "resend": "6.34.1"
+    "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261023.1",

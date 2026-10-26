@@ -9,7 +9,7 @@
 <main>
 	<h1>Connexion</h1>
 	{#if form?.envoye}
-		<p role="status">Si cette adresse est autorisée, un lien vient de partir.</p>
+		<p role="status">Si cette adresse est autorisée, un lien vient de partir. Pensez à regarder dans vos courriers indésirables.</p>
 	{:else}
 		<form method="post">
 			<label for="email">Adresse e-mail</label>

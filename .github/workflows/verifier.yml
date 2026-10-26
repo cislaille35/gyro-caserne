@@ -1,10 +1,9 @@
 name: Vérifier
 
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch: # relance manuelle (onglet Actions → Run workflow)
+  workflow_call: # appelé par deployer.yml avant chaque déploiement
 
 # Lecture seule : la vérification ne modifie rien dans le dépôt
 permissions:
