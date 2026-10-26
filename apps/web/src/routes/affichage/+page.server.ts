@@ -4,7 +4,7 @@ import { niveauConnu, themeConnu } from '#lib/affichage.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, locals }) => {
 		const formulaire = await request.formData();
 		const niveau = formulaire.get('niveau');
 		const theme = formulaire.get('theme');
@@ -14,6 +14,8 @@ export const actions: Actions = {
 		const options = { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax', httpOnly: true, secure: !dev } as const;
 		cookies.set('niveau', niveau, options);
 		cookies.set('theme', theme, options);
+		// Le hook lit ceci au rendu : la même réponse s'affiche déjà avec le nouveau choix.
+		locals.affichage = { niveau, theme };
 		return { enregistre: true, niveau, theme };
 	}
 };

@@ -8,9 +8,8 @@ import { creerAuth, superAdmins } from '#lib/server/auth.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.affichage = lireAffichage(event.cookies);
-	const { affichage } = event.locals;
 	const resoudre: typeof resolve = (evenement, options) =>
-		resolve(evenement, { ...options, transformPageChunk: ({ html }) => appliquerAffichage(html, affichage) });
+		resolve(evenement, { ...options, transformPageChunk: ({ html }) => appliquerAffichage(html, event.locals.affichage) });
 
 	if (building) return resoudre(event);
 	const base = creerBaseD1(env.BASE);

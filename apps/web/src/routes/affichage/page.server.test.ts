@@ -11,23 +11,26 @@ function appeler(corps: string) {
 		body: new URLSearchParams(corps),
 		headers: { 'content-type': 'application/x-www-form-urlencoded' }
 	});
+	const locals = { affichage: { niveau: 'vivant', theme: 'auto' } };
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const resultat = (actions.default as any)({ request, cookies });
-	return { poses, resultat };
+	const resultat = (actions.default as any)({ request, cookies, locals });
+	return { poses, resultat, locals };
 }
 
 describe('action /affichage', () => {
 	it('pose les deux cookies', async () => {
-		const { poses, resultat } = appeler('niveau=equilibre&theme=sombre');
+		const { poses, resultat, locals } = appeler('niveau=equilibre&theme=sombre');
 		await resultat;
+		expect(locals.affichage).toEqual({ niveau: 'equilibre', theme: 'sombre' });
 		expect(poses).toEqual([
 			{ nom: 'niveau', valeur: 'equilibre', options: expect.objectContaining({ ...OPTIONS, secure: expect.any(Boolean) }) },
 			{ nom: 'theme', valeur: 'sombre', options: expect.objectContaining({ ...OPTIONS, secure: expect.any(Boolean) }) }
 		]);
 	});
 	it('refuse une valeur inconnue sans poser de cookie', async () => {
-		const { poses, resultat } = appeler('niveau=equilibre&theme=bleu');
+		const { poses, resultat, locals } = appeler('niveau=equilibre&theme=bleu');
 		expect(await resultat).toMatchObject({ status: 400 });
+		expect(locals.affichage).toEqual({ niveau: 'vivant', theme: 'auto' });
 		expect(poses).toEqual([]);
 	});
 });
