@@ -71,7 +71,7 @@
 **Files:**
 - Modify: `.github/workflows/verifier.yml` (ajouter `workflow_call` ; retirer `push: branches: [main]`, que `deployer.yml` couvre)
 - Create: `.github/workflows/deployer.yml`
-- Docs: `docs/technique/README.md` (section CI), `docs/technique/installer-un-centre.md` (déploiement automatique, variables et secrets GitHub, `centres/exemple` modèle et préprod : remplacer `database_id` en le copiant)
+- Docs: `docs/technique/README.md` (section CI, avec le journal des versions : Releases GitHub), `docs/technique/installer-un-centre.md` (déploiement automatique, variables et secrets GitHub, `centres/exemple` modèle et préprod : remplacer `database_id` en le copiant)
 
 **Interfaces:**
 - Consumes: `pnpm --filter @gyro-caserne/web base-en-ligne` et `pnpm deployer`, avec `CENTRE` (existants).
@@ -83,6 +83,7 @@
   - job `preprod` (`needs: verifier`) : seulement sur `refs/heads/main` et si `vars.CENTRE_PREPROD != ''` ;
   - job `production` (`needs: verifier`) : seulement sur `refs/tags/v*` et si `vars.CENTRE_PRODUCTION != ''` ; checkout avec `fetch-depth: 0`, puis première étape : `git fetch origin main` puis `git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, sinon échec avec le message « Le tag doit pointer sur un commit de main » ;
   - chaque job de déploiement : checkout, pnpm, node (mêmes actions et empreintes que `verifier.yml`), `pnpm install --frozen-lockfile`, puis `base-en-ligne` puis `deployer`, avec `CENTRE`, `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` en variables d'environnement ;
+  - job `production`, dernière étape, seulement si le déploiement a réussi : `gh release create "$GITHUB_REF_NAME" --generate-notes` (fiche de version avec les PR fusionnées depuis la précédente). Claude y ajoute ensuite le résumé en langage clair avec `gh release edit` ; ce job seul a `permissions: contents: write` ;
   - `concurrency` par environnement, **sans** annuler un déploiement en cours ; `permissions: contents: read`.
 - Si `base-en-ligne` échoue, `deployer` ne tourne pas (étapes successives) : on s'arrête et on demande au porteur avant de rejouer une migration.
 - [ ] **Step 2** : vérifier la syntaxe avec `actionlint` (binaire unique téléchargé dans le dossier scratchpad, hors dépôt) → aucune erreur. Si indisponible, le dire dans le rapport.
