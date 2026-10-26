@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const appli = fileURLToPath(new URL('..', import.meta.url));
@@ -13,9 +14,10 @@ describe('CENTRE obligatoire en ligne', () => {
 		expect(scripts[nom]).not.toContain('${CENTRE:-');
 	});
 
-	it('jeu-de-depart --en-ligne refuse sans CENTRE', () => {
-		const { CENTRE: _, ...env } = process.env;
-		const resultat = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', 'scripts/jeu-de-depart.ts', '--en-ligne'], { cwd: appli, env, encoding: 'utf8' });
+	// Environnement minimal : ni jeton Cloudflare ni connexion Wrangler, même si la vérification régressait.
+	it.each([{}, { CENTRE: '' }])('jeu-de-depart --en-ligne refuse sans CENTRE (%o)', (centre) => {
+		const env = { PATH: process.env.PATH, HOME: tmpdir(), ...centre };
+		const resultat = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', 'scripts/jeu-de-depart.ts', '--en-ligne'], { cwd: appli, env, encoding: 'utf8', timeout: 20_000 });
 		expect(resultat.status).toBe(1);
 		expect(resultat.stderr).toContain('CENTRE à préciser');
 	}, 30_000);

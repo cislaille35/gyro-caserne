@@ -121,7 +121,7 @@ describe('changerStatut', () => {
 		const [resp] = await base.insert(responsabilite).values({ nom: 'Mission', nature: 'mission', typePerimetre: 'equipe' }).returning();
 		const cible = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
 		await base.insert(attribution).values({ personneId: cible, responsabiliteId: resp!.id, perimetreType: 'equipe', perimetreId: 1, debut: '2026-10-26', saisiePar: 'super:a@b.fr', saisieLe: aujourdhui });
-		await expect(changerStatut(base, chef, cible, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(changerStatut(base, chef, cible, 'suspendu', aujourdhui)).rejects.toThrow('Le statut d’une personne qui a une responsabilité en cours ou à venir relève du centre');
 	});
 
 	it('refuse si le profil de la cible donne un droit que l’acteur n’a pas', async () => {

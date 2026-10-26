@@ -95,7 +95,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	if (!parCentre) {
 		// Sans le centre : ni sur une responsabilité en cours ou à venir, ni sur un profil plus large que ses droits.
 		const responsabilites = await base.select().from(attribution).where(eq(attribution.personneId, personneId));
-		if (responsabilites.some((r) => r.fin === null || r.fin >= aujourdhui)) throw new RefusDroit('GERER_ACCES', centre);
+		if (responsabilites.some((r) => r.fin === null || r.fin >= aujourdhui))
+			throw new RefusDroit('GERER_ACCES', centre, 'Le statut d’une personne qui a une responsabilité en cours ou à venir relève du centre');
 		if (fiche.profilId !== null) await exigerProfilCouvert(base, acteur, fiche.profilId, aujourdhui);
 		const vise: Perimetre = courante ? { type: 'equipe', id: courante.equipeId } : centre;
 		await exiger(base, acteur, vise, aujourdhui);

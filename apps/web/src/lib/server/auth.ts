@@ -36,6 +36,7 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 			await envoyer(env, { a: email, sujet: 'Connexion à Gyro Caserne', texte: `Pour vous connecter, ouvrez ce lien (valable 5 minutes) :\n${url}` });
 		} catch (erreur) {
 			// Lien non reçu : on l'efface, et un nouvel essai est permis tout de suite.
+			console.error('Lien de connexion non envoyé', erreur);
 			try {
 				await effacerLien(base, identifiant);
 			} finally {
