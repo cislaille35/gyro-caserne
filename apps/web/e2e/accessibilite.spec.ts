@@ -71,3 +71,33 @@ test.describe('réduire les animations', () => {
 		expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 	});
 });
+
+test.describe('mouvement limité (RGAA 13.8)', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('niveau vivant : Gyro bouge à l’arrivée, s’immobilise, un appui relance puis arrête', async ({ page, context }) => {
+		await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
+		await page.clock.install();
+		await page.goto('/');
+		const gyro = page.getByRole('button', { name: 'Faire réagir Gyro' });
+		const animations = () => page.evaluate(() => document.getAnimations().length);
+		// Tant que la page n'est pas prête, les appuis ne comptent pas : on attend l'hydratation.
+		await expect.poll(animations).toBeGreaterThan(0);
+
+		await page.clock.runFor(10_500);
+		expect(await animations()).toBe(0);
+
+		await expect(async () => {
+			await gyro.click();
+			expect(await animations()).toBeGreaterThan(0);
+		}).toPass({ timeout: 10_000 });
+
+		await gyro.click();
+		expect(await animations()).toBe(0);
+
+		await gyro.click();
+		expect(await animations()).toBeGreaterThan(0);
+		await page.clock.runFor(10_500);
+		expect(await animations()).toBe(0);
+	});
+});

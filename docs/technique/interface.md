@@ -37,7 +37,7 @@ Réglés sur l'appareil, à la page `/affichage`, même sans être connecté.
 
 `gyroSelonNiveau` (`src/lib/gyro/niveau.ts`) en décide. « Réduire les animations » du téléphone arrête tout mouvement décoratif (règle globale dans `app.css`) ; l'humour des textes reste.
 
-Au niveau Vivant, les animations décoratives de Gyro tournent en boucle. Pour les arrêter : la page « Affichage » (Sobre ou Équilibré), accessible depuis la navigation de chaque page, ou « réduire les animations » du téléphone (RGAA 13.8 / WCAG 2.2.2 ; mécanisme à confirmer par le porteur).
+Au niveau Vivant, Gyro bouge à l'arrivée sur une page puis s'immobilise (`mouvement.ts`, minuteur côté client, jamais relancé seul). Sur l'accueil (`GyroAccueil`), le mouvement dure 10 s ; un appui l'arrête, ou le relance 10 s s'il est immobile. Ailleurs (`GyroDuMoment`, `Vide`), 5 s au plus. Aussi arrêtable par la page « Affichage » (Sobre ou Équilibré) ou « réduire les animations » du téléphone (RGAA 13.8 / WCAG 2.2.2).
 
 La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le 14).
 

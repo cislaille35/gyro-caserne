@@ -34,7 +34,8 @@ Les premiers écrans de gestion (agents, comités, attributions) arrivent. Avant
 ## Les règles
 
 - **Jamais d'humour ni d'animation dans l'urgence** : alerte, disponibilité immédiate, départ.
-- **Une animation à la fois**, courte (moins de 2 s), sauf le décor de l'accueil. Jamais de son.
+- **Une animation à la fois**, courte (moins de 2 s), sauf Gyro. Jamais de son.
+- **Aucun mouvement sans fin** (RGAA 13.8 / WCAG 2.2.2) : à Vivant, Gyro bouge à l'arrivée sur une page puis s'immobilise, et ne repart jamais seul. Sur l'accueil, où on peut le toucher, il bouge 10 s ; un appui l'arrête s'il bouge, le relance 10 s s'il est immobile (la surprise des cinq touches s'arrête aussi après 10 s). Là où il n'est pas touchable (connexion, écrans vides), il bouge 5 s au plus.
 - **« Réduire les animations » du téléphone respecté** : tout ce qui bouge pour décorer s'arrête ; l'humour reste dans les textes.
 - **Gyro n'informe jamais seul** : il accompagne un texte, et chaque tenue a un libellé pour les lecteurs d'écran.
 - **Jamais une information portée par la seule couleur** : équipes et statuts ont toujours un texte.

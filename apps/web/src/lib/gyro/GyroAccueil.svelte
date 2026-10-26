@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import GyroDuMoment from './GyroDuMoment.svelte';
 	import { cinqTouches } from './cinqTouches.ts';
+	import { DUREE_ACCUEIL } from './mouvement.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from './niveau.ts';
 
 	let { taille = 160 }: { taille?: number } = $props();
@@ -9,6 +10,7 @@
 	const affichage = lireAffichageContexte();
 	let appuis: number[] = [];
 	let surprise = $state(false);
+	let enMouvement = $state(true);
 	let minuteur: ReturnType<typeof setTimeout> | undefined;
 
 	function appuyer() {
@@ -17,8 +19,11 @@
 		if (cinqTouches(appuis, maintenant)) {
 			appuis = [];
 			surprise = true;
+			enMouvement = true;
 			clearTimeout(minuteur);
 			minuteur = setTimeout(() => (surprise = false), 3000);
+		} else {
+			enMouvement = !enMouvement;
 		}
 	}
 
@@ -28,7 +33,7 @@
 {#if gyroSelonNiveau(affichage.niveau).visible}
 	<div class="accueil">
 		<button type="button" aria-label="Faire réagir Gyro" onclick={appuyer}>
-			<GyroDuMoment {taille} decoratif tenue={surprise ? 'chargement' : undefined} />
+			<GyroDuMoment {taille} decoratif duree={DUREE_ACCUEIL} bind:enMouvement tenue={surprise ? 'chargement' : undefined} />
 		</button>
 		<p class="pinpon" aria-live="polite">{surprise ? 'pin-pon !' : ''}</p>
 	</div>
