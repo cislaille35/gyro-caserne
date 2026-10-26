@@ -6,7 +6,7 @@
 	<title>Connexion · Gyro Caserne</title>
 </svelte:head>
 
-<main>
+<div class="page">
 	<h1>Connexion</h1>
 	{#if form?.envoye}
 		<p role="status">Si cette adresse est autorisée, un lien vient de partir. Pensez à regarder dans vos courriers indésirables.</p>
@@ -17,4 +17,4 @@
 			<button type="submit">Recevoir un lien de connexion</button>
 		</form>
 	{/if}
-</main>
+</div>

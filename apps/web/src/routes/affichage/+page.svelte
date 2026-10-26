@@ -20,7 +20,7 @@
 	<title>Affichage · Gyro Caserne</title>
 </svelte:head>
 
-<main>
+<div class="page">
 	<h1>Affichage</h1>
 	<form method="post">
 		<fieldset>
@@ -50,10 +50,10 @@
 			<p>{form.erreur}</p>
 		{/if}
 	</div>
-</main>
+</div>
 
 <style>
-	main {
+	.page {
 		max-width: 40rem;
 		margin: 0 auto;
 		padding: 1rem;
