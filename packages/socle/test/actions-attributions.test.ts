@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { attribuer, finirAttribution, modifierDroitsResponsabilite } from '../src/actions/attributions.ts';
+import { attribuer, finirAttribution } from '../src/actions/attributions.ts';
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { attribution, comite, equipe, journal, personne, profil, responsabilite, responsabiliteDroit } from '../src/schema.ts';
@@ -186,46 +186,16 @@ describe('chef de centre adjoint', () => {
 	});
 });
 
-describe('modifierDroitsResponsabilite', () => {
-	it('remplace les droits non verrouillés', async () => {
-		const { base, chefEquipe } = await jeu();
-		await modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['VALIDER_REMPLACEMENT', 'GERER_PLANNING'], aujourdhui);
-		const lignes = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, chefEquipe.id));
-		expect(lignes.map((l) => l.droit).sort()).toEqual(['GERER_PLANNING', 'VALIDER_REMPLACEMENT']);
-	});
-
-	it('refuse de retirer un droit verrouillé', async () => {
-		const { base, chefEquipe } = await jeu();
-		await expect(modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['GERER_PLANNING'], aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		const lignes = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, chefEquipe.id));
-		expect(lignes).toHaveLength(2);
-	});
-
-	it('refuse un droit inconnu', async () => {
-		const { base, chefEquipe } = await jeu();
-		await expect(modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['VALIDER_REMPLACEMENT', 'N_IMPORTE_QUOI' as never], aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-	});
-
-	it('exige GERER_LISTES sur le centre et une responsabilité connue', async () => {
-		const { base, chefEquipe, nouvelle } = await jeu();
-		const simple = await nouvelle('simple@exemple.fr');
-		await expect(modifierDroitsResponsabilite(base, { type: 'personne', id: simple }, chefEquipe.id, ['VALIDER_REMPLACEMENT'], aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
-		await expect(modifierDroitsResponsabilite(base, superAdmin, 99, [], aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-	});
-});
-
 describe('journal', () => {
 	it('chaque action écrit une ligne de journal', async () => {
 		const { base, chefEquipe, nouvelle } = await jeu();
 		const cible = await nouvelle('cible@exemple.fr');
 		const id = await attribuer(base, superAdmin, { personneId: cible, responsabiliteId: chefEquipe.id, perimetre: { type: 'equipe', id: 1 }, debut: aujourdhui }, aujourdhui);
 		await finirAttribution(base, superAdmin, id, '2026-12-31', aujourdhui);
-		await modifierDroitsResponsabilite(base, superAdmin, chefEquipe.id, ['VALIDER_REMPLACEMENT'], aujourdhui);
 		const lignes = await base.select().from(journal);
 		expect(lignes.map((l) => [l.action, l.cibleType, l.cibleId])).toEqual([
 			['attribuer', 'attribution', id],
-			['finir_attribution', 'attribution', id],
-			['modifier_droits_responsabilite', 'responsabilite', chefEquipe.id]
+			['finir_attribution', 'attribution', id]
 		]);
 	});
 });
