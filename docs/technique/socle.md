@@ -45,7 +45,9 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
   - `chef_equipe` : responsabilité repérée, sans règle à part.
 - `changerStatut` :
   - le statut du chef de centre en cours ne change que par un super administrateur ;
+  - celui d'un adjoint en cours, que par le chef de centre en cours ou un super administrateur ;
+  - « en cours » : un chef de centre nommé à l'avance n'est protégé qu'à partir de sa prise de fonction ;
   - quitter « suspendu » ou « parti » exige `GERER_ACCES` sur le centre ;
   - sans `GERER_ACCES` sur le centre, l'acteur ne touche qu'une personne sans attribution en cours ou à venir, dont il détient tous les droits du profil.
-- `droitsDe(base, acteur, date)` liste les droits tenus ; `aLeDroit(base, acteur, droit, perimetre, date)` répond oui ou non. Toute action du socle commence par là et refuse avec `RefusDroit`.
+- `droitsDe(base, acteur, date)` liste les droits tenus ; `aLeDroit(base, acteur, droit, perimetre, date)` répond oui ou non. Toute action du socle commence par là et refuse avec `RefusDroit`, dont le message dit pourquoi quand la règle est une exception ci-dessus.
 - Une action qui écrit plusieurs lignes (dont le journal) passe en un seul `batch` : tout ou rien.

@@ -47,6 +47,8 @@ pnpm test         # tests
 pnpm build        # compilation
 ```
 
+Après une mise à jour qui refond les migrations (avant tout déploiement, elles peuvent être réécrites), repartir d'une base locale neuve : effacer `centres/<id>/.wrangler/state`, puis relancer `base-locale` et `jeu-de-depart`.
+
 Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un vrai centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.
 
 Pour l'essayer dans le moteur Cloudflare local : `pnpm --filter @gyro-caserne/web preview` (avec `CENTRE=<id>` pour un autre centre).
