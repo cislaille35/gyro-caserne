@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { acteurDe, adresseAutorisee, normaliserAdresse } from '../src/connexion.ts';
-import { personne } from '../src/schema.ts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { acteurDe, adresseAutorisee, annulerEnvoi, normaliserAdresse, reserverEnvoi } from '../src/connexion.ts';
+import { envoiLien, personne } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 async function jeu() {
@@ -80,5 +80,45 @@ describe('acteurDe', () => {
 		const { base } = await jeu();
 		expect(await acteurDe(base, 'inconnu@exemple.fr', ['root@exemple.fr'])).toBeNull();
 		expect(await acteurDe(base, '', [''])).toBeNull();
+	});
+});
+
+describe('reserverEnvoi et annulerEnvoi', () => {
+	afterEach(() => vi.useRealTimers());
+	const a = (iso: string) => vi.setSystemTime(new Date(iso));
+
+	it('réserve, puis refuse moins de 60 s après, puis accepte après 60 s', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		const base = await baseDeTest();
+		a('2026-10-26T10:00:00Z');
+		expect(await reserverEnvoi(base, ' A@exemple.fr')).toEqual(new Date('2026-10-26T10:00:00Z'));
+		a('2026-10-26T10:00:59Z');
+		expect(await reserverEnvoi(base, 'a@exemple.fr')).toBeNull();
+		a('2026-10-26T10:01:00Z');
+		expect(await reserverEnvoi(base, 'a@exemple.fr')).toEqual(new Date('2026-10-26T10:01:00Z'));
+	});
+
+	it('annuler sa propre réservation permet de réserver aussitôt', async () => {
+		const base = await baseDeTest();
+		const reservee = await reserverEnvoi(base, 'a@exemple.fr');
+		await annulerEnvoi(base, 'A@exemple.fr', reservee!);
+		expect(await reserverEnvoi(base, 'a@exemple.fr')).not.toBeNull();
+	});
+
+	it('une annulation tardive n’efface pas une réservation plus récente', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		const base = await baseDeTest();
+		a('2026-10-26T10:00:00Z');
+		const ancienne = await reserverEnvoi(base, 'a@exemple.fr');
+		a('2026-10-26T10:01:30Z');
+		const recente = await reserverEnvoi(base, 'a@exemple.fr');
+		await annulerEnvoi(base, 'a@exemple.fr', ancienne!);
+		expect(await base.select().from(envoiLien)).toEqual([{ adresse: 'a@exemple.fr', envoyeLe: recente }]);
+	});
+
+	it('deux réservations simultanées : une seule réussit', async () => {
+		const base = await baseDeTest();
+		const resultats = await Promise.all([reserverEnvoi(base, 'a@exemple.fr'), reserverEnvoi(base, 'a@exemple.fr')]);
+		expect(resultats.filter((r) => r !== null)).toHaveLength(1);
 	});
 });

@@ -1,4 +1,4 @@
-import { eq, lte, sql } from 'drizzle-orm';
+import { and, eq, lte, sql } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
@@ -37,21 +37,22 @@ export function effacerLiensVers(base: Base, adresse: string) {
 	return base.delete(verification).where(liensVers(adresse));
 }
 
-// Réserve l'envoi d'un lien vers cette adresse ; faux si un lien y est parti il y a moins de 60 s.
+// Réserve l'envoi d'un lien vers cette adresse et renvoie la date réservée ; null si un lien y est parti il y a moins de 60 s.
 // Une seule requête : deux demandes simultanées ne peuvent pas réserver toutes les deux.
-export async function reserverEnvoi(base: Base, adresse: string): Promise<boolean> {
+export async function reserverEnvoi(base: Base, adresse: string): Promise<Date | null> {
 	const maintenant = new Date();
 	const reserve = await base
 		.insert(envoiLien)
 		.values({ adresse: normaliserAdresse(adresse), envoyeLe: maintenant })
 		.onConflictDoUpdate({ target: envoiLien.adresse, set: { envoyeLe: maintenant }, setWhere: lte(envoiLien.envoyeLe, new Date(maintenant.getTime() - 60_000)) })
 		.returning({ adresse: envoiLien.adresse });
-	return reserve.length > 0;
+	return reserve.length > 0 ? maintenant : null;
 }
 
 // L'envoi a échoué : un nouvel essai est permis tout de suite.
-export async function annulerEnvoi(base: Base, adresse: string): Promise<void> {
-	await base.delete(envoiLien).where(eq(envoiLien.adresse, normaliserAdresse(adresse)));
+// Seulement si la réservation est encore la sienne : une plus récente reste en place.
+export async function annulerEnvoi(base: Base, adresse: string, reservee: Date): Promise<void> {
+	await base.delete(envoiLien).where(and(eq(envoiLien.adresse, normaliserAdresse(adresse)), eq(envoiLien.envoyeLe, reservee)));
 }
 
 export async function effacerLien(base: Base, identifiant: string): Promise<void> {

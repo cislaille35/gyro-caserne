@@ -26,7 +26,8 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 	const autorisee = (adresse: string) => adresseAutorisee(base, adresse, superAdmins(env));
 	const envoyerLien = async (email: string, url: string, jeton: string) => {
 		const identifiant = await identifiantDuLien(jeton);
-		if (!(await autorisee(email)) || !(await reserverEnvoi(base, email))) {
+		const reservee = (await autorisee(email)) ? await reserverEnvoi(base, email) : null;
+		if (!reservee) {
 			// Ce lien ne part pas : on l'efface.
 			await effacerLien(base, identifiant);
 			return;
@@ -35,8 +36,11 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 			await envoyer(env, { a: email, sujet: 'Connexion à Gyro Caserne', texte: `Pour vous connecter, ouvrez ce lien (valable 5 minutes) :\n${url}` });
 		} catch (erreur) {
 			// Lien non reçu : on l'efface, et un nouvel essai est permis tout de suite.
-			await effacerLien(base, identifiant);
-			await annulerEnvoi(base, email);
+			try {
+				await effacerLien(base, identifiant);
+			} finally {
+				await annulerEnvoi(base, email, reservee);
+			}
 			throw erreur;
 		}
 	};
