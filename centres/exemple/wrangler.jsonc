@@ -7,12 +7,12 @@
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
-	// database_id : remplissage, le vrai identifiant sera posé avec le déploiement.
+	// Base de la préprod du CIS Laillé : un autre centre remplace ce database_id par celui de sa base.
 	"d1_databases": [
 		{
 			"binding": "BASE",
 			"database_name": "gyro-caserne-exemple",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "4023bc60-3007-494d-9c7a-68e0af29c927",
 			"migrations_dir": "../../packages/socle/migrations"
 		}
 	]
