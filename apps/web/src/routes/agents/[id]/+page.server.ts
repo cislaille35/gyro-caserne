@@ -55,47 +55,44 @@ export const actions: Actions = {
 	fiche: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
 		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData(), locals.superAdmins);
-		const carte = 'fiche';
-		if (Object.keys(erreurs).length > 0) return fail<Reponse>(400, { carte, erreurs, valeurs });
+		if (Object.keys(erreurs).length > 0) return fail<Reponse>(400, { erreurs, valeurs });
 		const { equipeId: _equipe, profilId, ...autres } = champs;
 		try {
 			await modifierFiche(locals.base, acteur, id, { ...autres, ...(profilId != null && { profilId }) }, aujourdhui);
 		} catch (erreur) {
-			return echec(erreur, { carte, valeurs });
+			return echec(erreur, { valeurs });
 		}
-		return { carte, message: 'Fiche enregistrée' };
+		return { succes: true, message: 'Fiche enregistrée' };
 	},
 
 	equipe: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id, fiche } = await lireFiche(locals, params.id);
 		const brut = String((await request.formData()).get('equipe') ?? '');
-		const carte = 'equipe';
-		if (brut !== 'aucune' && !/^\d+$/.test(brut)) return fail<Reponse>(400, { carte, erreurs: { equipe: 'Choix inconnu' } });
+		if (brut !== 'aucune' && !/^\d+$/.test(brut)) return fail<Reponse>(400, { erreurs: { equipe: 'Choix inconnu' } });
 		const equipeId = brut === 'aucune' ? null : Number(brut);
 		try {
 			if (equipeId === null && fiche.equipe !== null) await retirerEquipe(locals.base, acteur, id, aujourdhui);
 			if (equipeId !== null && equipeId !== fiche.equipe?.id) await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
 		} catch (erreur) {
-			return echec(erreur, { carte });
+			return echec(erreur);
 		}
-		return { carte, message: 'Équipe enregistrée' };
+		return { succes: true, message: 'Équipe enregistrée' };
 	},
 
 	statut: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
 		const formulaire = await request.formData();
 		const statut = STATUTS_OPERATIONNELS.find((s) => s === formulaire.get('statut'));
-		const carte = 'statut';
 		const valeurs = { statut: String(formulaire.get('statut') ?? '') };
-		if (!statut) return fail<Reponse>(400, { carte, erreurs: { statut: 'Choix inconnu' }, valeurs });
+		if (!statut) return fail<Reponse>(400, { erreurs: { statut: 'Choix inconnu' }, valeurs });
 		// Le départ efface des données : rien sans confirmation explicite.
 		if (statut === 'parti' && formulaire.get('confirmation') !== 'oui')
-			return fail<Reponse>(400, { carte, erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs });
+			return fail<Reponse>(400, { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs });
 		try {
 			await changerStatut(locals.base, acteur, id, statut, aujourdhui);
 		} catch (erreur) {
-			return echec(erreur, { carte, valeurs });
+			return echec(erreur, { valeurs });
 		}
-		return { carte, message: 'Statut enregistré' };
+		return { succes: true, message: 'Statut enregistré' };
 	}
 };

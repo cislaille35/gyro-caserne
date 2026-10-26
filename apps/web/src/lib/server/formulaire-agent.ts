@@ -79,8 +79,8 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Équipe inconnue': 'equipeId'
 };
 
-// Ce que reçoit la page après un envoi : carte concernée, message général, erreurs par champ, saisie à réafficher.
-export type Reponse = { carte?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
+// Ce que reçoit la page après un envoi : message général, erreurs par champ, saisie à réafficher.
+export type Reponse = { message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
 
 // Traduit un refus du socle en réponse du formulaire ; toute autre erreur remonte.
 export function echec(erreur: unknown, contexte: Reponse = {}) {

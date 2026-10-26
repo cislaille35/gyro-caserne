@@ -92,21 +92,21 @@ describe('/agents/[id] : ?/fiche', () => {
 		const { base, agent } = await preparer();
 		const [unGrade] = await base.select().from(grade).limit(1);
 		const resultat = await agir('fiche', locaux(base, super_), agent, { prenom: ' Alicia ', telephone: '', gradeId: String(unGrade!.id), dateGrade: '2026-03-01', entreeCentre: '' });
-		expect(resultat).toEqual({ carte: 'fiche', message: 'Fiche enregistrée' });
+		expect(resultat).toEqual({ succes: true, message: 'Fiche enregistrée' });
 		expect(await lirePersonne(base, agent)).toMatchObject({ prenom: 'Alicia', telephone: null, gradeId: unGrade!.id, dateGrade: '2026-03-01', entreeCentre: null, nom: 'Test' });
 	});
 
 	it('renvoie le refus du socle en 403, rien d\'écrit', async () => {
 		const { base, chef, adjoint } = await preparer();
 		const resultat = await agir('fiche', locaux(base, { type: 'personne', id: adjoint }), chef, { email: 'pirate@exemple.fr' });
-		expect(resultat).toMatchObject({ status: 403, data: { carte: 'fiche', message: 'Seul un super administrateur modifie la fiche du chef de centre' } });
+		expect(resultat).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur modifie la fiche du chef de centre' } });
 		expect((await lirePersonne(base, chef)).email).toBe('chef@exemple.fr');
 	});
 
 	it('met « Adresse déjà utilisée » sur le champ, même en majuscules et avec des espaces', async () => {
 		const { base, agent } = await preparer();
 		const resultat = await agir('fiche', locaux(base, super_), agent, { email: '  CHEF@Exemple.fr ' });
-		expect(resultat).toMatchObject({ status: 400, data: { carte: 'fiche', erreurs: { email: 'Adresse déjà utilisée' } } });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { email: 'Adresse déjà utilisée' } } });
 	});
 
 	it('refuse l\'adresse d\'un super administrateur', async () => {
@@ -121,7 +121,7 @@ describe('/agents/[id] : ?/fiche', () => {
 		const resultat = await agir('fiche', locaux(base, super_), agent, { prenom: ' ', naissance: '2026-02-30', gradeId: 'abc', profilId: '' });
 		expect(resultat).toMatchObject({
 			status: 400,
-			data: { carte: 'fiche', erreurs: { prenom: 'Indiquez le prénom.', naissance: 'Date invalide', gradeId: 'Choix inconnu', profilId: 'Choisissez un profil.' }, valeurs: { prenom: ' ' } }
+			data: { erreurs: { prenom: 'Indiquez le prénom.', naissance: 'Date invalide', gradeId: 'Choix inconnu', profilId: 'Choisissez un profil.' }, valeurs: { prenom: ' ' } }
 		});
 		expect((await lirePersonne(base, agent)).prenom).toBe('Alice');
 	});
@@ -131,23 +131,23 @@ describe('/agents/[id] : ?/equipe', () => {
 	it('affecte à une équipe à partir d\'aujourd\'hui, puis retire avec « aucune »', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		const locals = locaux(base, super_);
-		expect(await agir('equipe', locals, agent, { equipe: String(equipe1.id) })).toEqual({ carte: 'equipe', message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipe: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: aujourdhuiParis(), fin: null }]);
 
-		expect(await agir('equipe', locals, agent, { equipe: 'aucune' })).toEqual({ carte: 'equipe', message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipe: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 
 	it('ne réécrit rien si l\'équipe ne change pas', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01' });
-		expect(await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe1.id) })).toEqual({ carte: 'equipe', message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01', fin: null }]);
 	});
 
 	it('refuse une valeur inconnue', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('equipe', locaux(base, super_), agent, { equipe: 'abc' })).toMatchObject({ status: 400, data: { carte: 'equipe', erreurs: { equipe: 'Choix inconnu' } } });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipe: 'abc' })).toMatchObject({ status: 400, data: { erreurs: { equipe: 'Choix inconnu' } } });
 	});
 });
 
@@ -155,19 +155,19 @@ describe('/agents/[id] : ?/statut', () => {
 	it('vers « parti » sans confirmation : refusé, rien d\'écrit', async () => {
 		const { base, agent } = await preparer();
 		const resultat = await agir('statut', locaux(base, super_), agent, { statut: 'parti' });
-		expect(resultat).toMatchObject({ status: 400, data: { carte: 'statut', erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs: { statut: 'parti' } } });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs: { statut: 'parti' } } });
 		expect(await lirePersonne(base, agent)).toMatchObject({ statut: 'operationnel', naissance: '1990-05-01', contactUrgence: 'Maman 06 00 00 00 00' });
 	});
 
 	it('vers « parti » confirmé : statut changé, naissance et contact d\'urgence effacés', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('statut', locaux(base, super_), agent, { statut: 'parti', confirmation: 'oui' })).toEqual({ carte: 'statut', message: 'Statut enregistré' });
+		expect(await agir('statut', locaux(base, super_), agent, { statut: 'parti', confirmation: 'oui' })).toEqual({ succes: true, message: 'Statut enregistré' });
 		expect(await lirePersonne(base, agent)).toMatchObject({ statut: 'parti', naissance: null, contactUrgence: null });
 	});
 
 	it('change un autre statut sans confirmation', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('statut', locaux(base, super_), agent, { statut: 'suspendu' })).toEqual({ carte: 'statut', message: 'Statut enregistré' });
+		expect(await agir('statut', locaux(base, super_), agent, { statut: 'suspendu' })).toEqual({ succes: true, message: 'Statut enregistré' });
 		expect((await lirePersonne(base, agent)).statut).toBe('suspendu');
 	});
 
@@ -175,7 +175,7 @@ describe('/agents/[id] : ?/statut', () => {
 		const { base, chef, adjoint, agent } = await preparer();
 		expect(await agir('statut', locaux(base, super_), agent, { statut: 'zzz' })).toMatchObject({ status: 400, data: { erreurs: { statut: 'Choix inconnu' } } });
 		const refus = await agir('statut', locaux(base, { type: 'personne', id: adjoint }), chef, { statut: 'suspendu' });
-		expect(refus).toMatchObject({ status: 403, data: { carte: 'statut', message: 'Seul un super administrateur change le statut du chef de centre' } });
+		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change le statut du chef de centre' } });
 		expect((await lirePersonne(base, chef)).statut).toBe('operationnel');
 	});
 });

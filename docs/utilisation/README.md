@@ -7,3 +7,5 @@ Format d'une page :
 - réponse : étapes numérotées, sans jargon.
 
 - [Comment changer l'affichage ?](changer-l-affichage.md)
+- [Comment ajouter un agent ?](ajouter-un-agent.md)
+- [Comment déclarer le départ d'un agent ?](declarer-un-depart.md)
