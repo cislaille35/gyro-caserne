@@ -68,7 +68,7 @@ describe('chargerJeuDeDepart', () => {
 		const droitsChefCentre: [string, number][] = [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['MODERER_MESSAGERIE', 1]];
 		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
 			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, droitsChefCentre],
-			['Chef de centre adjoint', 'fonction', null, 'centre', null, droitsChefCentre],
+			['Chef de centre adjoint', 'fonction', 'chef_centre_adjoint', 'centre', null, droitsChefCentre],
 			['Chef d’équipe', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
 			['Membre de comité', 'mission', null, 'comite', null, []],
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],

@@ -45,7 +45,8 @@ export const STATUTS_AVEC_ACCES = ['operationnel', 'stagiaire', 'inapte_temporai
 
 export const NATURES_RESPONSABILITE = ['fonction', 'mission'] as const;
 
-export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_equipe'] as const;
+export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
+export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 
 // Condition à passer à check() de Drizzle ; valeurs écrites en dur car une migration n'accepte pas de paramètre.
 export function checkDans(colonne: string, liste: readonly string[]): SQL {

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { Centre } from '@gyro-caserne/centre';
 import type { Base } from './base.ts';
-import type { Droit } from './listes.ts';
+import type { Droit, ResponsabiliteSysteme } from './listes.ts';
 import { comite, equipe, grade, profil, profilDroit, responsabilite, responsabiliteDroit } from './schema.ts';
 
 const DROITS_AGENT: Droit[] = [
@@ -38,7 +38,7 @@ const DROITS_CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMIT
 const RESPONSABILITES: {
 	nom: string;
 	nature: 'fonction' | 'mission';
-	systeme?: 'chef_centre' | 'chef_equipe';
+	systeme?: ResponsabiliteSysteme;
 	typePerimetre: 'centre' | 'equipe' | 'comite';
 	parComiteCentre: boolean;
 	verrouilles: boolean;
@@ -54,7 +54,7 @@ const RESPONSABILITES: {
 		droits: DROITS_CHEF_CENTRE
 	},
 	// Nommé par le chef de centre ; mêmes droits.
-	{ nom: 'Chef de centre adjoint', nature: 'fonction', typePerimetre: 'centre', parComiteCentre: false, verrouilles: true, droits: DROITS_CHEF_CENTRE },
+	{ nom: 'Chef de centre adjoint', nature: 'fonction', systeme: 'chef_centre_adjoint', typePerimetre: 'centre', parComiteCentre: false, verrouilles: true, droits: DROITS_CHEF_CENTRE },
 	{ nom: 'Chef d’équipe', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
 	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },

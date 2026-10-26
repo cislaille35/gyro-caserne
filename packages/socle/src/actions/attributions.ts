@@ -1,6 +1,6 @@
 import { and, eq, notInArray, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDate } from '../dates.ts';
+import { enCours, exigerDate } from '../dates.ts';
 import { aLeDroit, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -10,10 +10,24 @@ import { nomActeur } from './personnes.ts';
 
 type Responsabilite = typeof responsabilite.$inferSelect;
 
+// Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.
+export async function estChefDeCentre(base: Base, personneId: number, aujourdhui: string): Promise<boolean> {
+	const lignes = await base
+		.select({ debut: attribution.debut, fin: attribution.fin })
+		.from(attribution)
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
+		.where(and(eq(attribution.personneId, personneId), eq(responsabilite.systeme, 'chef_centre')));
+	return lignes.some((l) => enCours(l.debut, l.fin, aujourdhui));
+}
+
 async function exigerAttribution(base: Base, acteur: Acteur, laResponsabilite: Responsabilite, perimetre: Perimetre, aujourdhui: string) {
-	// Seule exception aux droits : le chef de centre est nommé par un super administrateur.
+	// Exceptions aux droits : le chef de centre est nommé par un super administrateur, son adjoint par le chef de centre.
 	if (laResponsabilite.systeme === 'chef_centre') {
 		if (acteur.type !== 'super') throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' });
+		return;
+	}
+	if (laResponsabilite.systeme === 'chef_centre_adjoint') {
+		if (acteur.type !== 'super' && !(await estChefDeCentre(base, acteur.id, aujourdhui))) throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' });
 		return;
 	}
 	let vise: Perimetre;

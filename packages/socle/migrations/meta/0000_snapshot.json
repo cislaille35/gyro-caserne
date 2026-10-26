@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9303dc42-3a9d-4bf3-9a35-2929c466c72e",
+  "id": "607ce0f9-caa7-45b0-a87d-214f078aafe6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "affectation_equipe": {
@@ -804,7 +804,7 @@
         },
         "responsabilite_systeme": {
           "name": "responsabilite_systeme",
-          "value": "\"systeme\" IS NULL OR \"systeme\" IN ('chef_centre', 'chef_equipe')"
+          "value": "\"systeme\" IS NULL OR \"systeme\" IN ('chef_centre', 'chef_centre_adjoint', 'chef_equipe')"
         }
       }
     },

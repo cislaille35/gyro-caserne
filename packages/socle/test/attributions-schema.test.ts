@@ -25,6 +25,12 @@ describe('comités et responsabilités', () => {
 		await expect(base.insert(responsabilite).values({ ...resp, nom: 'Autre', systeme: 'chef_centre' })).rejects.toThrow();
 	});
 
+	it('accepte le code système du chef de centre adjoint', async () => {
+		const base = await baseDeTest();
+		await base.insert(responsabilite).values({ ...resp, systeme: 'chef_centre_adjoint' });
+		expect(await base.select().from(responsabilite)).toHaveLength(1);
+	});
+
 	it('accepte plusieurs responsabilités sans code système', async () => {
 		const base = await baseDeTest();
 		await base.insert(responsabilite).values(resp);

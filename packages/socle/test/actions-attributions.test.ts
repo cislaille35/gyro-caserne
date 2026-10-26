@@ -142,6 +142,50 @@ describe('finirAttribution (suite)', () => {
 	});
 });
 
+describe('chef de centre adjoint', () => {
+	async function avecAdjoint() {
+		const j = await jeu();
+		const [adjoint] = await j.base.insert(responsabilite).values({ nom: 'Chef de centre adjoint', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre_adjoint' }).returning();
+		await j.base.insert(responsabiliteDroit).values([
+			{ responsabiliteId: j.chefCentre.id, droit: 'ATTRIBUER_RESPONSABILITE' },
+			{ responsabiliteId: adjoint!.id, droit: 'ATTRIBUER_RESPONSABILITE' }
+		]);
+		const chef = await j.nouvelle('chef@exemple.fr');
+		await attribuer(j.base, superAdmin, { personneId: chef, responsabiliteId: j.chefCentre.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
+		const nommer = (personneId: number) => ({ personneId, responsabiliteId: adjoint!.id, perimetre: { type: 'centre' as const }, debut: aujourdhui });
+		return { ...j, adjoint: adjoint!, chef: { type: 'personne', id: chef } as Acteur, nommer };
+	}
+
+	it('le chef de centre nomme et retire un adjoint', async () => {
+		const { base, chef, nommer, nouvelle } = await avecAdjoint();
+		const id = await attribuer(base, chef, nommer(await nouvelle('adj@exemple.fr')), aujourdhui);
+		await expect(finirAttribution(base, chef, id, '2026-12-31', aujourdhui)).resolves.toBeUndefined();
+	});
+
+	it('un adjoint ne nomme ni ne retire un adjoint, malgré ATTRIBUER_RESPONSABILITE sur le centre', async () => {
+		const { base, chef, nommer, nouvelle } = await avecAdjoint();
+		const adj = await nouvelle('adj@exemple.fr');
+		const id = await attribuer(base, chef, nommer(adj), aujourdhui);
+		const acteur: Acteur = { type: 'personne', id: adj };
+		expect(await aLeDroit(base, acteur, 'ATTRIBUER_RESPONSABILITE', { type: 'centre' }, aujourdhui)).toBe(true);
+		await expect(attribuer(base, acteur, nommer(await nouvelle('autre@exemple.fr')), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(finirAttribution(base, acteur, id, '2026-12-31', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('un ancien chef de centre ne nomme plus d’adjoint', async () => {
+		const { base, chefCentre, nommer, nouvelle } = await avecAdjoint();
+		const ancien = await nouvelle('ancien@exemple.fr');
+		await attribuer(base, superAdmin, { personneId: ancien, responsabiliteId: chefCentre.id, perimetre: { type: 'centre' }, debut: '2025-01-01', fin: '2025-12-31' }, aujourdhui);
+		await expect(attribuer(base, { type: 'personne', id: ancien }, nommer(await nouvelle('adj@exemple.fr')), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('le super administrateur nomme et retire un adjoint', async () => {
+		const { base, nommer, nouvelle } = await avecAdjoint();
+		const id = await attribuer(base, superAdmin, nommer(await nouvelle('adj@exemple.fr')), aujourdhui);
+		await expect(finirAttribution(base, superAdmin, id, '2026-12-31', aujourdhui)).resolves.toBeUndefined();
+	});
+});
+
 describe('modifierDroitsResponsabilite', () => {
 	it('remplace les droits non verrouillés', async () => {
 		const { base, chefEquipe } = await jeu();

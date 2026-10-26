@@ -124,7 +124,7 @@ CREATE TABLE `responsabilite` (
 	FOREIGN KEY (`comite_attributeur_id`) REFERENCES `comite`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "responsabilite_nature" CHECK("nature" IN ('fonction', 'mission')),
 	CONSTRAINT "responsabilite_type_perimetre" CHECK("type_perimetre" IN ('centre', 'equipe', 'comite', 'salon', 'ressource')),
-	CONSTRAINT "responsabilite_systeme" CHECK("systeme" IS NULL OR "systeme" IN ('chef_centre', 'chef_equipe'))
+	CONSTRAINT "responsabilite_systeme" CHECK("systeme" IS NULL OR "systeme" IN ('chef_centre', 'chef_centre_adjoint', 'chef_equipe'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `responsabilite_systeme_unique` ON `responsabilite` (`systeme`);--> statement-breakpoint
