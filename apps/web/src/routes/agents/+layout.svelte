@@ -5,18 +5,12 @@
 	import Choix from '#lib/ui/Choix.svelte';
 	import PastilleEquipe from '#lib/ui/PastilleEquipe.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
+	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
 	import Tableau from '#lib/ui/Tableau.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, children } = $props();
 
-	const libellesStatut = {
-		operationnel: 'Opérationnel',
-		stagiaire: 'Stagiaire',
-		inapte_temporaire: 'Inapte temporaire',
-		suspendu: 'Suspendu',
-		parti: 'Parti'
-	};
 	const enfant = $derived(page.url.pathname !== '/agents');
 </script>
 
@@ -48,7 +42,7 @@
 					name="statut"
 					libelle="Statut"
 					valeur={data.filtres.statut}
-					options={[{ valeur: '', libelle: 'Tous' }, ...data.statuts.map((s) => ({ valeur: s, libelle: libellesStatut[s] }))]}
+					options={[{ valeur: '', libelle: 'Tous' }, ...data.statuts.map((s) => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))]}
 				/>
 				<Bouton type="submit">Filtrer</Bouton>
 			</form>
@@ -166,6 +160,12 @@
 		height: 1px;
 		overflow: hidden;
 		clip-path: inset(50%);
+	}
+	.retour,
+	td a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
 	}
 	.retour {
 		align-self: flex-start;
