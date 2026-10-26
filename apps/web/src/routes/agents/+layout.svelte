@@ -14,6 +14,11 @@
 	const enfant = $derived(page.url.pathname !== '/agents');
 </script>
 
+<!-- Pour la gestion, le titre vient de la page affichée dans le volet. -->
+<svelte:head>
+	{#if !data.gestion}<title>Agents · Gyro Caserne</title>{/if}
+</svelte:head>
+
 <div class="page">
 	<section class="liste" class:masquee={enfant} aria-labelledby="titre-agents">
 		<div class="entete">

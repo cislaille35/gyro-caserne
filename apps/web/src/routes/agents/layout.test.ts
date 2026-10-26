@@ -13,6 +13,9 @@ const filtres = { texte: '', equipe: '', statut: '' };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const tete = (composant: any, props: Record<string, unknown>) => render(composant, { props }).head;
+
 describe('/agents : mise en page', () => {
 	it('montre à un agent ordinaire la seule vue groupée, sans invite ni volet', () => {
 		const data = { gestion: false, groupes };
@@ -20,6 +23,7 @@ describe('/agents : mise en page', () => {
 		expect(mise).toContain('Alice Martin');
 		expect(mise).not.toContain('class="detail');
 		expect(mise).not.toContain('Contenu de la page');
+		expect(tete(Layout, { data, children: enfants })).toContain('<title>Agents · Gyro Caserne</title>');
 		expect(html(Page, { data })).not.toContain('Choisissez un agent');
 	});
 
@@ -29,6 +33,7 @@ describe('/agents : mise en page', () => {
 		expect(mise).toContain('Voir la fiche');
 		expect(mise).toContain('class="detail');
 		expect(mise).toContain('Contenu de la page');
+		expect(tete(Layout, { data, children: enfants })).not.toContain('<title>');
 		expect(html(Page, { data })).toContain('Choisissez un agent dans la liste.');
 	});
 });
