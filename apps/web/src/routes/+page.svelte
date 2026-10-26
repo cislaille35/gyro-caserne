@@ -6,7 +6,7 @@
 	<title>Gyro Caserne · {centre.nom}</title>
 </svelte:head>
 
-<main>
+<div class="page">
 	<h1>Gyro Caserne</h1>
 	<p>{centre.nom}, {centre.commune}</p>
 	<ul>
@@ -14,10 +14,10 @@
 			<li><span class="pastille" style:background={equipe.couleur}></span>{equipe.nom}</li>
 		{/each}
 	</ul>
-</main>
+</div>
 
 <style>
-	main {
+	.page {
 		font-family: system-ui, sans-serif;
 		max-width: 40rem;
 		margin: 0 auto;
