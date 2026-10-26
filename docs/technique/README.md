@@ -63,6 +63,7 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Types Node | 24 | Types de Node, pour la config de compilation |
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
+| @fontsource/barlow, barlow-condensed | 5.3.0 | Polices servies par l'appli (la CSP interdit Google Fonts) |
 | Better Auth | 1.7 | Connexion par lien magique et sessions |
 | Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | Vitest | 5 | Tests |

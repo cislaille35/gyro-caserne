@@ -1,0 +1,87 @@
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+
+:root {
+	--fond: #eef1f4;
+	--surface: #ffffff;
+	--encre: #1d2733;
+	--doux: #4a5562;
+	--trait: #d5dbe1;
+	--accent: #b3121f;
+	--rouge: #b3121f;
+	--sur-rouge: #ffffff;
+	--ok: #2e7a1f;
+	--focus: #1257c4;
+
+	--police: 'Barlow', system-ui, sans-serif;
+	--police-titre: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+	--rayon-petit: 6px;
+	--rayon-grand: 14px;
+	--cible: 44px;
+
+	color-scheme: light;
+}
+
+:root[data-theme='sombre'] {
+	--fond: #11171f;
+	--surface: #1a222c;
+	--encre: #e6ebf0;
+	--doux: #a7b2bd;
+	--trait: #2b3642;
+	--accent: #ff8a92;
+	--rouge: #b3121f;
+	--sur-rouge: #ffffff;
+	--ok: #7cc95a;
+	--focus: #7ab8ff;
+
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root[data-theme='auto'] {
+		--fond: #11171f;
+		--surface: #1a222c;
+		--encre: #e6ebf0;
+		--doux: #a7b2bd;
+		--trait: #2b3642;
+		--accent: #ff8a92;
+		--rouge: #b3121f;
+		--sur-rouge: #ffffff;
+		--ok: #7cc95a;
+		--focus: #7ab8ff;
+
+		color-scheme: dark;
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--fond);
+	color: var(--encre);
+	font-family: var(--police);
+	font-size: 1rem;
+	line-height: 1.5;
+}
+
+:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
