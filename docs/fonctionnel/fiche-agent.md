@@ -31,6 +31,25 @@ Ici, les **gestionnaires** sont ceux qui ont le droit `GERER_ACCES` sur le centr
 - L'agent modifie lui-même sa photo, son surnom, son téléphone et sa visibilité, ainsi que son contact d'urgence. Les gestionnaires modifient tout le reste.
 - **RGPD** : la date de naissance et le contact d'urgence sont limités au strict nécessaire et effacés au départ de l'agent. L'historique opérationnel (prises de garde, attributions) est gardé selon les durées de conservation du centre.
 
+## Ce qui existe aujourd'hui (lot 1)
+
+Menu « Agents », pour toute personne connectée :
+
+- **Un agent** voit l'effectif groupé par équipe (ordre de rotation), puis « Sans équipe », puis « Extérieurs » : prénom, nom, grade. Les partis n'y sont pas ; les suspendus y sont, sans indication.
+- **Le chef de centre, l'adjoint et le super administrateur** voient la liste complète, partis compris : recherche (nom, prénom, e-mail), filtres par équipe et par statut. Sur ordinateur, la fiche s'ouvre à côté de la liste ; sur téléphone, sur sa propre page.
+- **La fiche** a trois cartes, chacune avec son bouton « Enregistrer » : identité et contact, parcours, équipe et statut. Le surnom et le contact d'urgence s'y lisent sans s'y modifier.
+- **Ajouter un agent** : prénom, nom et e-mail obligatoires, profil « Agent » présélectionné.
+- **Équipe** : le changement prend effet le jour même ; « Aucune équipe » retire l'agent de son équipe.
+- **Départ** : choisir « Parti » affiche un avertissement (naissance et contact d'urgence effacés) et demande de cocher « Je confirme ».
+
+Un agent ordinaire qui ouvre une fiche reçoit un refus. Un adjoint ne modifie pas la fiche du chef de centre ni celle d'un autre adjoint : la raison s'affiche à la place des formulaires.
+
+Changer l'e-mail d'un agent ferme ses sessions et ses liens de connexion en attente : il se reconnecte avec la nouvelle adresse.
+
+Menu « Mon profil », pour chaque agent : surnom, téléphone et son affichage, contact d'urgence, affichage de l'anniversaire. Le super administrateur, sans fiche, n'a pas ce menu.
+
+Pas encore là : photo, aptitudes, champs du centre, rappels, responsabilités à l'écran.
+
 ## Ce que la fonction ne fait pas
 
 - Pas de dossier médical : seule la date de l'aptitude médicale est notée, jamais son contenu.

@@ -45,12 +45,22 @@ La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le
 
 `src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête, navigation en bas sur téléphone et menu latéral à partir de 1024 px, `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Les entrées sont dans `navigation.ts` : chaque fonction y ajoutera la sienne.
 
+## Pages
+
+- `/agents` (`routes/agents/+layout.svelte`) : pour un agent, l'effectif groupé par équipe ; pour un gestionnaire (`estGestionnaire` du socle), le tableau avec recherche et filtres (formulaire `GET`, paramètres `texte`, `equipe`, `statut`). Les pages filles (`/agents/<id>`, `/agents/nouveau`) s'affichent à côté de la liste à partir de 1024 px, seules en dessous.
+- `/agents/<id>` : la fiche, trois formulaires (`?/fiche`, `?/equipe` avec `equipeId`, `?/statut` avec `confirmation=oui` pour « parti »). Réservée aux gestionnaires (403 sinon) ; fiche protégée : la raison remplace les formulaires.
+- `/agents/nouveau` : ajout, puis redirection vers la fiche.
+- `/profil` : ce que l'agent modifie lui-même ; pas de fiche pour le super administrateur.
+
+Les règles de lecture et d'écriture sont dans le socle (`effectif.ts`, `actions/personnes.ts`) ; la lecture des formulaires de la fiche et de l'ajout est commune (`lib/server/formulaire-agent.ts`).
+
 ## Composants
 
 Dans `src/lib/ui/` :
 
 - `Bouton` : `principal` ou `secondaire`, 44 px de haut au moins.
 - `Champ` : libellé toujours visible, message d'erreur relié au champ.
+- `Choix` : liste déroulante (`<select>`), mêmes règles que `Champ` (libellé, aide, erreur reliés) ; `valeur` se lie avec `bind:`.
 - `Carte` : section titrée.
 - `PastilleEquipe` : couleur **et** nom de l'équipe.
 - `Statut` : badge avec texte (jamais la couleur seule).
@@ -84,10 +94,11 @@ Dans `src/lib/gyro/` :
 
 `pnpm --filter @gyro-caserne/web test:a11y` (Playwright et axe, dans Chromium) :
 
-- chaque page (`/connexion`, `/affichage`, et connecté `/`, `/affichage`), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
+- chaque page (`/connexion`, `/affichage` ; connecté comme agent `/`, `/affichage`, `/agents`, `/profil` ; connecté comme super administrateur `/agents`, `/agents/nouveau`, `/profil` et une fiche, avertissement de départ affiché), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
 - premier Tab sur « Aller au contenu », puis Entrée amène au contenu ;
-- thème sombre envoyé par le serveur ; aucune animation avec « réduire les animations » ; cinq appuis sur Gyro au clavier.
+- thème sombre envoyé par le serveur ; aucune animation avec « réduire les animations » ; cinq appuis sur Gyro au clavier ;
+- agents : un agent ordinaire reçoit 403 sur une fiche ; le super administrateur ajoute un agent fictif, le retrouve dans la liste, le déclare parti avec confirmation, et il disparaît de la vue d'un agent.
 
-Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Aucune porte dérobée dans l'appli. Si `.dev.vars` contient une `BREVO_CLE=` non vide, les tests s'arrêtent avec une erreur : les tests locaux ne doivent jamais envoyer de vrais e-mails.
+Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` puis comme le super administrateur fictif `admin@exemple.fr` (il doit figurer dans `SUPER_ADMINS`, sinon les tests s'arrêtent), en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Une session gardée par compte : un seul lien par minute et par adresse. Aucune porte dérobée dans l'appli. Si `.dev.vars` contient une `BREVO_CLE=` non vide, les tests s'arrêtent avec une erreur : les tests locaux ne doivent jamais envoyer de vrais e-mails.
 
 En local, si le Chromium de Playwright n'est pas installé : `CHROMIUM=/usr/bin/chromium pnpm --filter @gyro-caserne/web test:a11y`, sans autre serveur de développement lancé sur le même port.

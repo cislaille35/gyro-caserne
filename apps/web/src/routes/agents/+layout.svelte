@@ -25,9 +25,9 @@
 
 		{#if data.gestion}
 			<form method="GET" role="search" class="filtres">
-				<Champ id="texte" name="texte" type="search" libelle="Rechercher" aide="Nom, prénom ou e-mail" valeur={data.filtres.texte} />
+				<Champ id="filtre-texte" name="texte" type="search" libelle="Rechercher" aide="Nom, prénom ou e-mail" valeur={data.filtres.texte} />
 				<Choix
-					id="equipe"
+					id="filtre-equipe"
 					name="equipe"
 					libelle="Équipe"
 					valeur={data.filtres.equipe}
@@ -38,7 +38,7 @@
 					]}
 				/>
 				<Choix
-					id="statut"
+					id="filtre-statut"
 					name="statut"
 					libelle="Statut"
 					valeur={data.filtres.statut}
