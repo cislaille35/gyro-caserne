@@ -2,7 +2,7 @@ export { creerBaseD1, type Base } from './base.ts';
 export * from './schema.ts';
 export { enCours } from './dates.ts';
 export { ligneJournal } from './journal.ts';
-export { aLeDroit, couvre, droitsDe, type Acteur, type DroitAccorde, type Perimetre } from './droits.ts';
+export { aLeDroit, couvre, droitsDe, estChefDeCentre, type Acteur, type DroitAccorde, type Perimetre } from './droits.ts';
 export { DonneeInvalide, RefusDroit } from './erreurs.ts';
 export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdresse, reserverEnvoi } from './connexion.ts';
 export * from './listes.ts';

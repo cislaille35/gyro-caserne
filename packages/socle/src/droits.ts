@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { DROITS, STATUTS_AVEC_ACCES, type Droit, type TypePerimetre } from './listes.ts';
@@ -65,4 +65,14 @@ export async function droitsDe(base: Base, acteur: Acteur, date: string): Promis
 export async function aLeDroit(base: Base, acteur: Acteur, droit: Droit, vise: Perimetre, date: string): Promise<boolean> {
 	const droits = await droitsDe(base, acteur, date);
 	return droits.some((accorde) => accorde.droit === droit && couvre(accorde.perimetre, vise));
+}
+
+// Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.
+export async function estChefDeCentre(base: Base, personneId: number, aujourdhui: string): Promise<boolean> {
+	const lignes = await base
+		.select({ debut: attribution.debut, fin: attribution.fin })
+		.from(attribution)
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
+		.where(and(eq(attribution.personneId, personneId), eq(responsabilite.systeme, 'chef_centre')));
+	return lignes.some((l) => enCours(l.debut, l.fin, aujourdhui));
 }

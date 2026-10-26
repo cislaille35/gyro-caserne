@@ -1,7 +1,7 @@
 import { and, eq, notInArray, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { enCours, exigerDate } from '../dates.ts';
-import { aLeDroit, type Acteur, type Perimetre } from '../droits.ts';
+import { exigerDate } from '../dates.ts';
+import { aLeDroit, estChefDeCentre, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { DROITS, type Droit } from '../listes.ts';
@@ -9,16 +9,6 @@ import { attribution, comite, equipe, personne, responsabilite, responsabiliteDr
 import { nomActeur } from './personnes.ts';
 
 type Responsabilite = typeof responsabilite.$inferSelect;
-
-// Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.
-export async function estChefDeCentre(base: Base, personneId: number, aujourdhui: string): Promise<boolean> {
-	const lignes = await base
-		.select({ debut: attribution.debut, fin: attribution.fin })
-		.from(attribution)
-		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-		.where(and(eq(attribution.personneId, personneId), eq(responsabilite.systeme, 'chef_centre')));
-	return lignes.some((l) => enCours(l.debut, l.fin, aujourdhui));
-}
 
 async function exigerAttribution(base: Base, acteur: Acteur, laResponsabilite: Responsabilite, perimetre: Perimetre, aujourdhui: string) {
 	// Exceptions aux droits : le chef de centre est nommé par un super administrateur, son adjoint par le chef de centre.
