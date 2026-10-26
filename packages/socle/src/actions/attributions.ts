@@ -13,11 +13,13 @@ type Responsabilite = typeof responsabilite.$inferSelect;
 async function exigerAttribution(base: Base, acteur: Acteur, laResponsabilite: Responsabilite, perimetre: Perimetre, aujourdhui: string) {
 	// Exceptions aux droits : le chef de centre est nommé par un super administrateur, son adjoint par le chef de centre.
 	if (laResponsabilite.systeme === 'chef_centre') {
-		if (acteur.type !== 'super') throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' });
+		if (acteur.type !== 'super') throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' }, 'Seul un super administrateur nomme ou retire le chef de centre');
 		return;
 	}
 	if (laResponsabilite.systeme === 'chef_centre_adjoint') {
-		if (acteur.type !== 'super' && !(await estChefDeCentre(base, acteur.id, aujourdhui))) throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' });
+		if (acteur.type !== 'super' && !(await estChefDeCentre(base, acteur.id, aujourdhui))) {
+			throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' }, 'Seul le chef de centre nomme ou retire un adjoint');
+		}
 		return;
 	}
 	let vise: Perimetre;

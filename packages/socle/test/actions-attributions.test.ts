@@ -168,7 +168,7 @@ describe('chef de centre adjoint', () => {
 		const id = await attribuer(base, chef, nommer(adj), aujourdhui);
 		const acteur: Acteur = { type: 'personne', id: adj };
 		expect(await aLeDroit(base, acteur, 'ATTRIBUER_RESPONSABILITE', { type: 'centre' }, aujourdhui)).toBe(true);
-		await expect(attribuer(base, acteur, nommer(await nouvelle('autre@exemple.fr')), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(attribuer(base, acteur, nommer(await nouvelle('autre@exemple.fr')), aujourdhui)).rejects.toThrow('Seul le chef de centre nomme ou retire un adjoint');
 		await expect(finirAttribution(base, acteur, id, '2026-12-31', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 

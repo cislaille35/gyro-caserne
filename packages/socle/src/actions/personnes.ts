@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
 import { enCours, exigerDate } from '../dates.ts';
-import { aLeDroit, couvre, droitsDe, estChefDeCentre, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
+import { aLeDroit, couvre, droitsDe, estChefDeCentre, occupe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
@@ -81,7 +81,11 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 	// Le statut du chef de centre ne relève que d'un super administrateur.
-	if (acteur.type !== 'super' && (await estChefDeCentre(base, personneId, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre);
+	if (acteur.type !== 'super' && (await estChefDeCentre(base, personneId, aujourdhui))) throw new RefusDroit('GERER_ACCES', centre, 'Seul un super administrateur change le statut du chef de centre');
+	// Celui d'un adjoint relève du chef de centre ou d'un super administrateur.
+	if (acteur.type !== 'super' && (await occupe(base, personneId, 'chef_centre_adjoint', aujourdhui)) && !(await estChefDeCentre(base, acteur.id, aujourdhui))) {
+		throw new RefusDroit('GERER_ACCES', centre, 'Seuls le chef de centre ou un super administrateur changent le statut d’un adjoint');
+	}
 	// Seuls le chef de centre ou son adjoint font revenir une personne suspendue ou partie.
 	if ((fiche.statut === 'suspendu' || fiche.statut === 'parti') && statut !== fiche.statut) await exiger(base, acteur, centre, aujourdhui);
 

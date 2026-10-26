@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
-import { DROITS, STATUTS_AVEC_ACCES, type Droit, type TypePerimetre } from './listes.ts';
+import { DROITS, STATUTS_AVEC_ACCES, type Droit, type ResponsabiliteSysteme, type TypePerimetre } from './listes.ts';
 import { attribution, personne, profilDroit, responsabilite, responsabiliteDroit } from './schema.ts';
 
 export type Acteur = { type: 'super'; email: string } | { type: 'personne'; id: number };
@@ -69,10 +69,15 @@ export async function aLeDroit(base: Base, acteur: Acteur, droit: Droit, vise: P
 
 // Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.
 export async function estChefDeCentre(base: Base, personneId: number, aujourdhui: string): Promise<boolean> {
+	return occupe(base, personneId, 'chef_centre', aujourdhui);
+}
+
+// La personne a-t-elle, aujourd'hui, la responsabilité système donnée ?
+export async function occupe(base: Base, personneId: number, systeme: ResponsabiliteSysteme, aujourdhui: string): Promise<boolean> {
 	const lignes = await base
 		.select({ debut: attribution.debut, fin: attribution.fin })
 		.from(attribution)
 		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-		.where(and(eq(attribution.personneId, personneId), eq(responsabilite.systeme, 'chef_centre')));
+		.where(and(eq(attribution.personneId, personneId), eq(responsabilite.systeme, systeme)));
 	return lignes.some((l) => enCours(l.debut, l.fin, aujourdhui));
 }

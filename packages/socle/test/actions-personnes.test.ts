@@ -210,6 +210,28 @@ describe('changerStatut', () => {
 		expect(p!.statut).toBe('suspendu');
 	});
 
+	it('le refus sur le chef de centre dit pourquoi', async () => {
+		const { base, agent } = await jeu();
+		const { chefCentre, adjoint } = await direction(base, agent.id);
+		await expect(changerStatut(base, { type: 'personne', id: adjoint }, chefCentre, 'suspendu', aujourdhui)).rejects.toThrow('Seul un super administrateur change le statut du chef de centre');
+	});
+
+	it('seuls le chef de centre ou un super administrateur changent le statut d’un adjoint', async () => {
+		const { base, agent } = await jeu();
+		const { chefCentre, adjoint } = await direction(base, agent.id);
+		const [adj] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre_adjoint'));
+		const [p] = await base.insert(personne).values({ email: 'adj2@exemple.fr', prenom: 'P', nom: 'N', profilId: agent.id }).returning();
+		await base.insert(attribution).values({ personneId: p!.id, responsabiliteId: adj!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		const second = p!.id;
+		await expect(changerStatut(base, { type: 'personne', id: adjoint }, second, 'suspendu', aujourdhui)).rejects.toThrow('Seuls le chef de centre ou un super administrateur changent le statut d’un adjoint');
+		await expect(changerStatut(base, { type: 'personne', id: adjoint }, adjoint, 'inapte_temporaire', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await changerStatut(base, { type: 'personne', id: chefCentre }, second, 'suspendu', aujourdhui);
+		await changerStatut(base, superAdmin, adjoint, 'suspendu', aujourdhui);
+		const statuts = await base.select({ id: personne.id, statut: personne.statut }).from(personne);
+		expect(statuts.find((s) => s.id === second)!.statut).toBe('suspendu');
+		expect(statuts.find((s) => s.id === adjoint)!.statut).toBe('suspendu');
+	});
+
 	it('faire revenir un « parti » exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre et l’adjoint', async () => {
 		const { base, agent, chef } = await jeu();
 		const { chefCentre, adjoint } = await direction(base, agent.id);

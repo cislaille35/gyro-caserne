@@ -4,9 +4,10 @@ import type { Perimetre } from './droits.ts';
 export class RefusDroit extends Error {
 	constructor(
 		readonly droit: Droit,
-		readonly perimetre: Perimetre
+		readonly perimetre: Perimetre,
+		raison?: string
 	) {
-		super(`Droit ${droit} refusé sur ${perimetre.type}${'id' in perimetre ? `:${perimetre.id}` : ''}`);
+		super(raison ?? `Droit ${droit} refusé sur ${perimetre.type}${'id' in perimetre ? `:${perimetre.id}` : ''}`);
 		this.name = 'RefusDroit';
 	}
 }
