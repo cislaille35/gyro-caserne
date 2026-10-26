@@ -4,12 +4,12 @@
 	import { tenueDuMoment } from './moment.ts';
 	import type { Tenue } from './tenues.ts';
 
-	let { taille = 160, tenue, decoratif = false, anime }: { taille?: number; tenue?: Tenue; decoratif?: boolean; anime?: boolean } = $props();
+	let { taille = 160, tenue, decoratif = false }: { taille?: number; tenue?: Tenue; decoratif?: boolean } = $props();
 
 	const affichage = lireAffichageContexte();
 	const reglage = $derived(gyroSelonNiveau(affichage.niveau));
 </script>
 
 {#if reglage.visible}
-	<Gyro tenue={tenue ?? tenueDuMoment(new Date())} {taille} anime={anime ?? reglage.anime} {decoratif} />
+	<Gyro tenue={tenue ?? tenueDuMoment(new Date())} {taille} anime={reglage.anime} {decoratif} />
 {/if}

@@ -2,6 +2,7 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import type { Affichage } from '../affichage.ts';
 import Vide from '../ui/Vide.svelte';
+import GyroDuMoment from './GyroDuMoment.svelte';
 import GyroAccueil from './GyroAccueil.svelte';
 import { cinqTouches } from './cinqTouches.ts';
 import { gyroSelonNiveau } from './niveau.ts';
@@ -42,5 +43,19 @@ describe('GyroAccueil', () => {
 		expect(page).not.toContain('role="img"');
 		expect(page).toContain('aria-live="polite"');
 		expect(page).not.toContain('pin-pon');
+	});
+});
+
+describe('surprise (tenue chargement)', () => {
+	it('équilibré : immobile, aucune classe d’animation', () => {
+		expect(rendre(GyroDuMoment, 'equilibre', { tenue: 'chargement' })).not.toMatch(/class="a-/);
+	});
+	it('vivant : animé', () => {
+		expect(rendre(GyroDuMoment, 'vivant', { tenue: 'chargement' })).toMatch(/class="a-/);
+	});
+	it('sobre : GyroAccueil sans bouton ni zone aria-live', () => {
+		const page = rendre(GyroAccueil, 'sobre');
+		expect(page).not.toContain('<button');
+		expect(page).not.toContain('aria-live');
 	});
 });

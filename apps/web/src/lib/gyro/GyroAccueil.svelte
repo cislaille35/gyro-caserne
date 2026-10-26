@@ -28,7 +28,7 @@
 {#if gyroSelonNiveau(affichage.niveau).visible}
 	<div class="accueil">
 		<button type="button" aria-label="Faire réagir Gyro" onclick={appuyer}>
-			<GyroDuMoment {taille} decoratif tenue={surprise ? 'chargement' : undefined} anime={surprise ? true : undefined} />
+			<GyroDuMoment {taille} decoratif tenue={surprise ? 'chargement' : undefined} />
 		</button>
 		<p class="pinpon" aria-live="polite">{surprise ? 'pin-pon !' : ''}</p>
 	</div>
