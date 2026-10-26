@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -20,5 +20,13 @@ describe('CENTRE obligatoire en ligne', () => {
 		const resultat = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', 'scripts/jeu-de-depart.ts', '--en-ligne'], { cwd: appli, env, encoding: 'utf8', timeout: 20_000 });
 		expect(resultat.status).toBe(1);
 		expect(resultat.stderr).toContain('CENTRE à préciser');
+	}, 30_000);
+
+	it('jeu-de-depart --en-ligne --avec-fictifs refuse un autre centre qu’exemple', () => {
+		const env = { PATH: process.env.PATH, HOME: tmpdir(), CENTRE: 'laille' };
+		const resultat = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', 'scripts/jeu-de-depart.ts', '--en-ligne', '--avec-fictifs'], { cwd: appli, env, encoding: 'utf8', timeout: 20_000 });
+		expect(resultat.status).toBe(1);
+		expect(resultat.stderr).toContain('fictifs réservés au centre exemple');
+		expect(existsSync(`${appli}../../centres/laille/wrangler.en-ligne.jsonc`)).toBe(false);
 	}, 30_000);
 });
