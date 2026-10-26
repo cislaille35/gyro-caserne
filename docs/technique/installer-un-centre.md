@@ -32,6 +32,18 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
     | `BREVO_CLE` | la clé d'API Brevo du centre |
     | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
 
+## Déploiement automatique (facultatif)
+
+Pour que GitHub déploie tout seul :
+
+1. Dans Cloudflare, créer un jeton d'API (« Create Custom Token ») avec les droits Account › Workers Scripts : Edit, Account › D1 : Edit et Account › Account Settings : Read.
+2. Dans le fork, onglet Settings › Secrets and variables › Actions :
+   - secrets `CLOUDFLARE_API_TOKEN` (le jeton) et `CLOUDFLARE_ACCOUNT_ID` (affiché sur la page d'accueil du compte Cloudflare) ;
+   - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
+3. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
+
+`centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : son `database_id` est celui de Laillé. En le copiant (étape 3 de l'installation), remplacer ce `database_id` par celui de la nouvelle base (étape 7).
+
 ## Mettre à jour
 
 1. Sur GitHub, dans le fork : « Sync fork ». Seul `centres/<id>/` a été modifié, donc il n'y a pas de conflit.
