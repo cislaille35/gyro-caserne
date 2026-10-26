@@ -9,3 +9,4 @@ export * from './listes.ts';
 export { chargerJeuDeDepart } from './jeu-de-depart.ts';
 export { affecterEquipe, ajouterPersonne, changerStatut } from './actions/personnes.ts';
 export { attribuer, finirAttribution, modifierDroitsResponsabilite } from './actions/attributions.ts';
+export { estGestionnaire, ficheAgent, listeGestion, vueEffectif, type FicheAgent, type LigneGestion } from './effectif.ts';
