@@ -336,10 +336,44 @@ describe('affecterEquipe', () => {
 		await expect(affecterEquipe(base, { type: 'personne', id: gest!.id }, id, 2, '2026-10-20', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
-	it('refuse un début qui n’est pas après le début de l’affectation en cours', async () => {
+	it('refuse un début antérieur au début de l’affectation en cours', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-03-01');
-		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-03-01', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-02-01', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('le même jour, corrige l’équipe de l’affectation au lieu d’en ouvrir une autre', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await affecterEquipe(base, superAdmin, id, 2, aujourdhui, aujourdhui);
+		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([{ personneId: id, equipeId: 2, debut: aujourdhui, fin: null }]);
+		expect(await base.select().from(journal).where(eq(journal.action, 'affecter_equipe'))).toHaveLength(1);
+	});
+
+	it('n’écrit rien si l’équipe ne change pas', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await affecterEquipe(base, superAdmin, id, 1, aujourdhui, aujourdhui);
+		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: null }]);
+		expect(await base.select().from(journal).where(eq(journal.action, 'affecter_equipe'))).toHaveLength(0);
+	});
+
+	it('protège l’équipe du chef de centre et des adjoints', async () => {
+		const { base, agent } = await jeu();
+		const { chefCentre, adjoint } = await direction(base, agent.id);
+		const [autreAdjoint] = await base.insert(personne).values({ email: 'adj2@exemple.fr', prenom: 'P', nom: 'N', profilId: agent.id }).returning();
+		const [resp] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre_adjoint'));
+		await base.insert(attribution).values({ personneId: autreAdjoint!.id, responsabiliteId: resp!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		const parAdjoint: Acteur = { type: 'personne', id: adjoint };
+
+		await expect(affecterEquipe(base, parAdjoint, chefCentre, 1, aujourdhui, aujourdhui)).rejects.toThrow('Seul un super administrateur change l’équipe du chef de centre');
+		await expect(affecterEquipe(base, parAdjoint, autreAdjoint!.id, 1, aujourdhui, aujourdhui)).rejects.toThrow('Seuls le chef de centre ou un super administrateur changent l’équipe d’un adjoint');
+		await expect(affecterEquipe(base, { type: 'personne', id: chefCentre }, chefCentre, 1, aujourdhui, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		expect(await base.select().from(affectationEquipe)).toEqual([]);
+
+		await affecterEquipe(base, { type: 'personne', id: chefCentre }, adjoint, 1, aujourdhui, aujourdhui);
+		await affecterEquipe(base, superAdmin, chefCentre, 2, aujourdhui, aujourdhui);
+		expect(await base.select().from(affectationEquipe)).toHaveLength(2);
 	});
 });
 
@@ -537,6 +571,24 @@ describe('retirerEquipe', () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
 		await expect(retirerEquipe(base, chef, id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('protège l’équipe du chef de centre et des adjoints', async () => {
+		const { base, agent } = await jeu();
+		const { chefCentre, adjoint } = await direction(base, agent.id);
+		const [autreAdjoint] = await base.insert(personne).values({ email: 'adj2@exemple.fr', prenom: 'P', nom: 'N', profilId: agent.id }).returning();
+		const [resp] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre_adjoint'));
+		await base.insert(attribution).values({ personneId: autreAdjoint!.id, responsabiliteId: resp!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		for (const id of [chefCentre, adjoint, autreAdjoint!.id]) await base.insert(affectationEquipe).values({ personneId: id, equipeId: 1, debut: '2026-01-01' });
+		const parAdjoint: Acteur = { type: 'personne', id: adjoint };
+
+		await expect(retirerEquipe(base, parAdjoint, chefCentre, aujourdhui)).rejects.toThrow('Seul un super administrateur change l’équipe du chef de centre');
+		await expect(retirerEquipe(base, parAdjoint, autreAdjoint!.id, aujourdhui)).rejects.toThrow('Seuls le chef de centre ou un super administrateur changent l’équipe d’un adjoint');
+		expect((await base.select().from(affectationEquipe)).every((a) => a.fin === null)).toBe(true);
+
+		await retirerEquipe(base, { type: 'personne', id: chefCentre }, adjoint, aujourdhui);
+		await retirerEquipe(base, superAdmin, chefCentre, aujourdhui);
+		expect((await base.select().from(affectationEquipe)).filter((a) => a.fin !== null)).toHaveLength(2);
 	});
 });
 

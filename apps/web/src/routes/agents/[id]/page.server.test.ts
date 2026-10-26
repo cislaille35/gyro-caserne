@@ -145,6 +145,18 @@ describe('/agents/[id] : ?/equipe', () => {
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01', fin: null }]);
 	});
 
+	it('le même jour, corrige l\'équipe ; refuse à un adjoint l\'équipe du chef de centre', async () => {
+		const { base, chef, adjoint, agent, equipe1 } = await preparer();
+		const [equipe2] = await base.select().from(equipe).where(eq(equipe.ordreRotation, 2));
+		await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe1.id) });
+		await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe2!.id) });
+		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe2!.id, debut: aujourdhuiParis(), fin: null }]);
+
+		const refus = await agir('equipe', locaux(base, { type: 'personne', id: adjoint }), chef, { equipe: String(equipe1.id) });
+		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change l’équipe du chef de centre' } });
+		expect(await base.select().from(affectationEquipe)).toHaveLength(1);
+	});
+
 	it('refuse une valeur inconnue', async () => {
 		const { base, agent } = await preparer();
 		expect(await agir('equipe', locaux(base, super_), agent, { equipe: 'abc' })).toMatchObject({ status: 400, data: { erreurs: { equipe: 'Choix inconnu' } } });

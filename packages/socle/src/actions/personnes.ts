@@ -192,10 +192,16 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 	await base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]);
 }
 
+const REFUS_EQUIPE = {
+	chef: 'Seul un super administrateur change l’équipe du chef de centre',
+	adjoint: 'Seuls le chef de centre ou un super administrateur changent l’équipe d’un adjoint'
+};
+
 // L'affectation en cours se termine la veille (supprimée si elle commence aujourd'hui) ; celles à venir sont supprimées.
 export async function retirerEquipe(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	await exiger(base, acteur, centre, aujourdhui);
+	await exigerProtection(base, acteur, id, aujourdhui, REFUS_EQUIPE);
 	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
 	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
 	if (!courante && !affectations.some((a) => a.debut > aujourdhui)) throw new DonneeInvalide('Aucune équipe en cours');
@@ -222,22 +228,25 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 	await exiger(base, acteur, centre, aujourdhui);
 	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	await exigerProtection(base, acteur, personneId, aujourdhui, REFUS_EQUIPE);
 	const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, equipeId));
 	if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
 
-	const [ouverte] = await base
-		.select()
-		.from(affectationEquipe)
-		.where(and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin)));
-	if (ouverte && ouverte.debut >= debut) throw new DonneeInvalide('Début antérieur à l’affectation en cours');
+	const ouverteDeLaPersonne = and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin));
+	const [ouverte] = await base.select().from(affectationEquipe).where(ouverteDeLaPersonne);
+	if (ouverte?.equipeId === equipeId) return;
+	if (ouverte && ouverte.debut > debut) throw new DonneeInvalide('Début antérieur à l’affectation en cours');
 
+	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, aujourdhui);
+	// Même jour de début : c'est une correction de l'affectation, pas un changement d'équipe.
+	if (ouverte?.debut === debut) {
+		await base.batch([base.update(affectationEquipe).set({ equipeId }).where(ouverteDeLaPersonne), journalise]);
+		return;
+	}
 	await base.batch([
-		base
-			.update(affectationEquipe)
-			.set({ fin: veille(debut) })
-			.where(and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin))),
+		base.update(affectationEquipe).set({ fin: veille(debut) }).where(ouverteDeLaPersonne),
 		base.insert(affectationEquipe).values({ personneId, equipeId, debut }),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, aujourdhui)
+		journalise
 	]);
 }
 

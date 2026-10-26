@@ -72,7 +72,7 @@ export const actions: Actions = {
 		const equipeId = brut === 'aucune' ? null : Number(brut);
 		try {
 			if (equipeId === null && fiche.equipe !== null) await retirerEquipe(locals.base, acteur, id, aujourdhui);
-			if (equipeId !== null && equipeId !== fiche.equipe?.id) await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
+			if (equipeId !== null) await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
 		} catch (erreur) {
 			return echec(erreur);
 		}
