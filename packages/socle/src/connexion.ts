@@ -23,6 +23,13 @@ export async function acteurDe(base: Base, adresse: string, superAdmins: string[
 	return { type: 'personne', id: fiche.id };
 }
 
+// Le super administrateur n'a pas de fiche : pas de prénom.
+export async function prenomDe(base: Base, acteur: Acteur): Promise<string | null> {
+	if (acteur.type === 'super') return null;
+	const [fiche] = await base.select({ prenom: personne.prenom }).from(personne).where(eq(personne.id, acteur.id));
+	return fiche?.prenom ?? null;
+}
+
 export async function adresseAutorisee(base: Base, adresse: string, superAdmins: string[]): Promise<boolean> {
 	return (await acteurDe(base, adresse, superAdmins)) !== null;
 }

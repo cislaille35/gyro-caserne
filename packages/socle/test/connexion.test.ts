@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { acteurDe, adresseAutorisee, annulerEnvoi, normaliserAdresse, reserverEnvoi } from '../src/connexion.ts';
+import { acteurDe, adresseAutorisee, annulerEnvoi, normaliserAdresse, prenomDe, reserverEnvoi } from '../src/connexion.ts';
 import { envoiLien, personne } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -120,5 +120,18 @@ describe('reserverEnvoi et annulerEnvoi', () => {
 		const base = await baseDeTest();
 		const resultats = await Promise.all([reserverEnvoi(base, 'a@exemple.fr'), reserverEnvoi(base, 'a@exemple.fr')]);
 		expect(resultats.filter((r) => r !== null)).toHaveLength(1);
+	});
+});
+
+describe('prenomDe', () => {
+	it('donne le prénom d\'un agent', async () => {
+		const base = await baseDeTest();
+		const [fiche] = await base.insert(personne).values({ email: 'alice@exemple.fr', prenom: 'Alice', nom: 'N' }).returning();
+		expect(await prenomDe(base, { type: 'personne', id: fiche!.id })).toBe('Alice');
+	});
+
+	it('ne donne rien au super administrateur', async () => {
+		const base = await baseDeTest();
+		expect(await prenomDe(base, { type: 'super', email: 'admin@exemple.fr' })).toBeNull();
 	});
 });

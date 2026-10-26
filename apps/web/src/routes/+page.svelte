@@ -1,41 +1,44 @@
 <script lang="ts">
 	import centre from '$centre';
+	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
+	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
+
+	let { data } = $props();
+
+	const affichage = lireAffichageContexte();
+	const phrase = $derived(
+		affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : affichage.niveau === 'equilibre' ? 'Bienvenue sur Gyro Caserne.' : ''
+	);
 </script>
 
 <svelte:head>
-	<title>Gyro Caserne · {centre.nom}</title>
+	<title>Accueil · Gyro Caserne</title>
 </svelte:head>
 
 <div class="page">
-	<h1>Gyro Caserne</h1>
-	<p>{centre.nom}, {centre.commune}</p>
-	<ul>
-		{#each centre.equipes as equipe (equipe.numero)}
-			<li><span class="pastille" style:background={equipe.couleur}></span>{equipe.nom}</li>
-		{/each}
-	</ul>
+	<GyroAccueil taille={96} />
+	<div>
+		<h1>{data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'}</h1>
+		<p class="centre">{centre.nom}</p>
+		{#if phrase}<p class="phrase">{phrase}</p>{/if}
+	</div>
 </div>
 
 <style>
 	.page {
-		font-family: system-ui, sans-serif;
-		max-width: 40rem;
-		margin: 0 auto;
-		padding: 1.5rem 1rem;
-	}
-	ul {
-		list-style: none;
-		padding: 0;
-	}
-	li {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.25rem 0;
+		gap: 16px;
+		flex-wrap: wrap;
 	}
-	.pastille {
-		width: 1rem;
-		height: 1rem;
-		border-radius: 50%;
+	h1 {
+		margin: 0;
+	}
+	p {
+		margin: 4px 0 0;
+	}
+	.centre,
+	.phrase {
+		color: var(--doux);
 	}
 </style>
