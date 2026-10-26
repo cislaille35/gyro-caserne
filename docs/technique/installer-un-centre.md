@@ -19,7 +19,7 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.
 6. Se connecter à Cloudflare : `pnpm --filter @gyro-caserne/web exec wrangler login`.
 7. Créer la base : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, puis reporter le `database_id` affiché dans `centres/<id>/wrangler.jsonc` (et `database_name` : `gyro-caserne-<id>`).
-8. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne, `CENTRE` est obligatoire.
+8. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
 9. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
 10. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
 11. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.

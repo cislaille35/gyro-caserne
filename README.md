@@ -51,6 +51,8 @@ Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un v
 
 Pour l'essayer dans le moteur Cloudflare local : `pnpm --filter @gyro-caserne/web preview` (avec `CENTRE=<id>` pour un autre centre).
 
+En ligne, `CENTRE` est obligatoire, sans valeur par défaut : `CENTRE=<id> pnpm deployer` (sinon la commande s'arrête avant de compiler).
+
 ## Ajouter un centre
 
 Voir [Installer l'appli pour un nouveau centre](docs/technique/installer-un-centre.md) : une copie du dépôt (fork) par centre, où seul `centres/<id>/` change.
