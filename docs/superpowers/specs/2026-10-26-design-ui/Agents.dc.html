@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Agents</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f4}
+a{color:#b3121f}a:hover{color:#7d0c15}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #1d9bd8;outline-offset:2px}
+tbody tr:hover{background:#f6f8fa}
+</style>
+</helmet>
+<div style="box-sizing: border-box; width: 100%; min-height: 960px; display: flex; flex-wrap: wrap; background: #eef1f4; color: #1d2733; font-family: Barlow, system-ui, sans-serif;">
+
+<nav aria-label="Navigation principale" style="flex: 1 1 220px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; background: #ffffff; border-right: 1px solid #d5dbe1; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 8px 20px;">
+<dc-import name="Gyro" tenue="normal" taille="44" anime="{{ false }}" hint-size="44px,44px"></dc-import>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700; color: #b3121f;">Gyro Caserne</span>
+</div>
+<sc-for list="{{menu}}" as="m" hint-placeholder-count="6">
+<a href="#" aria-current="{{m.courant}}" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; text-decoration: none; font-size: 17px; {{m.style}}">{{m.nom}}</a>
+</sc-for>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;">
+<div style="flex: 1 1 280px;">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 40px; line-height: 1.1;">Agents</h1>
+<p style="margin: 4px 0 0; font-size: 17px; color: #4a5562;">5 agents · CIS de démonstration</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 2px solid #d5dbe1; border-radius: 10px; background: #ffffff; color: #1d2733; font: 600 16px Barlow, sans-serif; cursor: pointer;">Importer un fichier</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #b3121f; color: #ffffff; font: 700 16px Barlow, sans-serif; cursor: pointer;">Ajouter un agent</button>
+</div>
+</div>
+
+<div role="search" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px; padding: 16px;">
+<div style="flex: 2 1 260px; display: flex; flex-direction: column; gap: 6px;">
+<label for="cherche" style="font-size: 15px; font-weight: 600;">Rechercher</label>
+<input id="cherche" type="search" placeholder="Nom, prénom ou e-mail" style="min-height: 44px; box-sizing: border-box; width: 100%; padding: 0 12px; border: 2px solid #8a96a3; border-radius: 10px; font: 400 16px Barlow, sans-serif;">
+</div>
+<div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 6px;">
+<label for="equipe" style="font-size: 15px; font-weight: 600;">Équipe</label>
+<select id="equipe" style="min-height: 44px; padding: 0 12px; border: 2px solid #8a96a3; border-radius: 10px; font: 400 16px Barlow, sans-serif; background: #ffffff;"><option>Toutes</option><option>Équipe 1</option><option>Équipe 2</option><option>Équipe 3</option></select>
+</div>
+<div style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 6px;">
+<label for="statut" style="font-size: 15px; font-weight: 600;">Statut</label>
+<select id="statut" style="min-height: 44px; padding: 0 12px; border: 2px solid #8a96a3; border-radius: 10px; font: 400 16px Barlow, sans-serif; background: #ffffff;"><option>Tous</option><option>Opérationnel</option><option>Stagiaire</option><option>Suspendu</option></select>
+</div>
+</div>
+
+<div style="overflow-x: auto; background: #ffffff; border: 1px solid #d5dbe1; border-radius: 14px;">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 16px;">
+<caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Liste des agents du centre</caption>
+<thead>
+<tr style="text-align: left; border-bottom: 2px solid #d5dbe1;">
+<th scope="col" style="padding: 14px 16px;">Nom</th>
+<th scope="col" style="padding: 14px 16px;">Grade</th>
+<th scope="col" style="padding: 14px 16px;">Équipe</th>
+<th scope="col" style="padding: 14px 16px;">Statut</th>
+<th scope="col" style="padding: 14px 16px;">Responsabilités</th>
+<th scope="col" style="padding: 14px 16px;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Actions</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{agents}}" as="g" hint-placeholder-count="5">
+<tr style="border-bottom: 1px solid #e6eaee;">
+<th scope="row" style="padding: 12px 16px; text-align: left; font-weight: 600;">{{g.nom}}<div style="font-weight: 400; font-size: 14px; color: #4a5562;">{{g.email}}</div></th>
+<td style="padding: 12px 16px;">{{g.grade}}</td>
+<td style="padding: 12px 16px;"><span style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600;"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 6px; background: {{g.couleur}};"></span>{{g.equipe}}</span></td>
+<td style="padding: 12px 16px;"><span style="display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 14px; font-weight: 700; {{g.statutStyle}}">{{g.statut}}</span></td>
+<td style="padding: 12px 16px; color: #4a5562;">{{g.resp}}</td>
+<td style="padding: 12px 16px; text-align: right;"><button type="button" aria-label="{{g.action}}" style="min-height: 40px; padding: 0 14px; border: 2px solid #d5dbe1; border-radius: 10px; background: #ffffff; color: #1d2733; font: 600 15px Barlow, sans-serif; cursor: pointer;">Modifier</button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const actif = 'background: #fdecec; color: #8a0e18; font-weight: 700;';
+    const normal = 'color: #1d2733;';
+    const menu = ['Accueil', 'Planning', 'Remplacements', 'Agents', 'Comités', 'Réglages'].map((nom) => ({ nom, courant: nom === 'Agents' ? 'page' : 'false', style: nom === 'Agents' ? actif : normal }));
+    const ok = 'background: #e6f2e2; color: #1f5a14; border: 1px solid #a9cf9c;';
+    const stag = 'background: #e7f0fa; color: #0f4c8a; border: 1px solid #a9c6e6;';
+    const susp = 'background: #fdf1dc; color: #7a4a00; border: 1px solid #e8c88a;';
+    const E = { 1: ['Équipe 1', '#d4a017'], 2: ['Équipe 2', '#c2185b'], 3: ['Équipe 3', '#1565c0'] };
+    const A = (nom, email, grade, eq, statut, statutStyle, resp) => ({ nom, email, grade, equipe: E[eq][0], couleur: E[eq][1], statut, statutStyle, resp, action: 'Modifier la fiche de ' + nom });
+    const agents = [
+      A('Alice Martin', 'alice.martin@exemple.fr', 'Sergent', 1, 'Opérationnel', ok, 'Chef d’équipe'),
+      A('Bruno Petit', 'bruno.petit@exemple.fr', 'Caporal-chef', 2, 'Opérationnel', ok, 'Référent engins'),
+      A('Chloé Durand', 'chloe.durand@exemple.fr', 'Sapeur', 3, 'Stagiaire', stag, '—'),
+      A('David Leroy', 'david.leroy@exemple.fr', 'Caporal', 1, 'Suspendu', susp, '—'),
+      A('Test Fictif', 'test@exemple.fr', 'Sapeur', 2, 'Opérationnel', ok, '—')
+    ];
+    return { menu, agents };
+  }
+}
+</script>
+</body>
+</html>

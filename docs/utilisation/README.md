@@ -6,4 +6,4 @@ Format d'une page :
 - titre : la question telle qu'un agent la pose (« Comment me faire remplacer ? ») ;
 - réponse : étapes numérotées, sans jargon.
 
-Aucune page pour l'instant.
+- [Comment changer l'affichage ?](changer-l-affichage.md)

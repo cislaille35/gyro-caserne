@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#b3121f}a:hover{color:#7d0c15}
+button:focus-visible,a:focus-visible{outline:3px solid #1d9bd8;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: {{c.fond}}; color: {{c.encre}}; font-family: Barlow, system-ui, sans-serif; overflow: hidden;">
+
+<header style="display: flex; align-items: center; gap: 12px; padding: 16px 16px 8px;">
+<span style="flex: 1 1 auto; font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700; color: {{c.accent}};">Gyro Caserne</span>
+<button type="button" aria-label="Notifications : 2 nouvelles" style="position: relative; width: 44px; height: 44px; border: 0; border-radius: 22px; background: {{c.surface}}; color: {{c.encre}}; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<span style="position: absolute; top: 6px; right: 6px; min-width: 16px; height: 16px; border-radius: 8px; background: #b3121f; color: #ffffff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center;">2</span>
+</button>
+</header>
+
+<main style="flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px;">
+
+<section style="display: flex; align-items: center; gap: 12px;">
+<sc-if value="{{montreGyro}}" hint-placeholder-val="{{ true }}">
+<dc-import name="Gyro" tenue="astreinte" taille="{{tailleGyro}}" anime="{{animeGyro}}" hint-size="72px,72px"></dc-import>
+</sc-if>
+<div style="min-width: 0;">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 30px; line-height: 1.1;">Bonjour Alice</h1>
+<sc-if value="{{estVivant}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 4px 0 0; font-size: 16px; line-height: 1.4; color: {{c.doux}};">Gyro a fait le plein de café : bonne semaine d’astreinte !</p>
+</sc-if>
+<sc-if value="{{estEquilibre}}" hint-placeholder-val="{{ false }}">
+<p style="margin: 4px 0 0; font-size: 16px; line-height: 1.4; color: {{c.doux}};">Votre équipe est d’astreinte cette semaine.</p>
+</sc-if>
+</div>
+</section>
+
+<section aria-labelledby="titre-astreinte" style="background: {{c.surface}}; border: 1px solid {{c.trait}}; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+<h2 id="titre-astreinte" style="margin: 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: {{c.doux}};">Astreinte cette semaine</h2>
+<div style="display: flex; align-items: center; gap: 10px;">
+<span style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; border-radius: 999px; border: 2px solid #c2185b; font-weight: 700; font-size: 18px;"><span aria-hidden="true" style="width: 14px; height: 14px; border-radius: 7px; background: #c2185b;"></span>Équipe 2</span>
+<span style="font-size: 15px; color: {{c.doux}};">c’est la vôtre</span>
+</div>
+<p style="margin: 0; font-size: 16px; line-height: 1.4;">Du lundi 26 oct. 8 h au lundi 2 nov. 8 h</p>
+</section>
+
+<section aria-labelledby="titre-dispo" style="background: {{c.surface}}; border: 1px solid {{c.trait}}; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+<h2 id="titre-dispo" style="margin: 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: {{c.doux}};">Ma disponibilité ce soir</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+<button type="button" aria-pressed="true" style="min-height: 52px; border-radius: 12px; border: 2px solid #2e7a1f; background: #2e7a1f; color: #ffffff; font: 600 17px Barlow, sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Disponible</button>
+<button type="button" aria-pressed="false" style="min-height: 52px; border-radius: 12px; border: 2px solid {{c.trait}}; background: transparent; color: {{c.encre}}; font: 600 17px Barlow, sans-serif; cursor: pointer;">Indisponible</button>
+</div>
+</section>
+
+<section aria-labelledby="titre-afaire" style="background: {{c.surface}}; border: 1px solid {{c.trait}}; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px;">
+<h2 id="titre-afaire" style="margin: 0 0 4px; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: {{c.doux}};">À faire</h2>
+<a href="#" style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: {{c.encre}}; text-decoration: none; font-size: 17px; border-bottom: 1px solid {{c.trait}};">Bruno cherche un remplaçant samedi<span aria-hidden="true" style="color: {{c.accent}}; font-weight: 700;">›</span></a>
+<a href="#" style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: {{c.encre}}; text-decoration: none; font-size: 17px;">Check-list de prise de garde<span aria-hidden="true" style="color: {{c.accent}}; font-weight: 700;">›</span></a>
+</section>
+
+<section aria-labelledby="titre-anomalies" style="background: {{c.surface}}; border: 1px solid {{c.trait}}; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px;">
+<h2 id="titre-anomalies" style="margin: 0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: {{c.doux}};">Anomalies</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.4;">{{texteAnomalies}}</p>
+</section>
+</main>
+
+<nav aria-label="Navigation principale" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid {{c.trait}}; background: {{c.surface}}; padding: 6px 4px 18px;">
+<a href="#" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 700; color: {{c.accent}}; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21H3z"></path><path d="M9 21v-6h6v6"></path></svg>Accueil</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: {{c.doux}}; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>Planning</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: {{c.doux}}; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"></path></svg>Remplacer</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: {{c.doux}}; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"></circle><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-4-5.5"></path></svg>Agents</a>
+<a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; color: {{c.doux}}; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>Plus</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"niveau":{"editor":"enum","default":"equilibre","options":["sobre","equilibre","vivant"]},"sombre":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const niveau = this.props.niveau ?? 'equilibre';
+    const sombre = this.props.sombre ?? false;
+    const c = sombre
+      ? { fond: '#11171f', surface: '#1a222c', encre: '#e6ebf0', doux: '#a7b2bd', trait: '#2b3642', accent: '#ff8a92' }
+      : { fond: '#eef1f4', surface: '#ffffff', encre: '#1d2733', doux: '#4a5562', trait: '#d5dbe1', accent: '#b3121f' };
+    return {
+      c,
+      estVivant: niveau === 'vivant',
+      estEquilibre: niveau === 'equilibre',
+      montreGyro: niveau !== 'sobre',
+      tailleGyro: niveau === 'vivant' ? 88 : 56,
+      animeGyro: niveau === 'vivant',
+      texteAnomalies: niveau === 'vivant' ? 'Rien à signaler. Même le gyro est à l’heure.' : 'Aucune anomalie en cours.'
+    };
+  }
+}
+</script>
+</body>
+</html>

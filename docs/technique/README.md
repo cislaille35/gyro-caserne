@@ -21,6 +21,7 @@ flowchart LR
 - Tables et modèle des droits : [socle.md](socle.md).
 - Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
 - Passer la main au super administrateur suivant : [passation.md](passation.md).
+- Interface (jetons, coquille, composants, Gyro, tests d'accessibilité) : [interface.md](interface.md).
 
 ## Dépôt
 
@@ -35,7 +36,7 @@ flowchart LR
 
 GitHub Actions, actions figées par leur empreinte de commit, droits en lecture seule sauf mention.
 
-- `verifier.yml`, à chaque PR : types, tests, compilation.
+- `verifier.yml`, à chaque PR : types, tests, compilation, polices bien servies en fichiers `.woff2` (la CSP bloquerait une police glissée dans le CSS), puis tests d'accessibilité dans Chromium ([interface.md](interface.md)). En cas d'échec, leur rapport et la sortie du serveur sont joints au passage de la CI (« rapport-accessibilite »).
 - `deployer.yml`, après la même vérification :
   - à chaque fusion sur `main` : mise à jour de la base puis déploiement de la **préprod** (centre `CENTRE_PREPROD`) ;
   - sur un tag `vX.Y.Z` : même chose pour la **production** (centre `CENTRE_PRODUCTION`), seulement si le tag pointe sur `main`. Si la base ne se met pas à jour, l'appli n'est pas déployée.
@@ -63,9 +64,12 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Types Node | 24 | Types de Node, pour la config de compilation |
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
+| @fontsource/barlow, barlow-condensed | 5.3.0 | Polices servies par l'appli (la CSP interdit Google Fonts) |
 | Better Auth | 1.7 | Connexion par lien magique et sessions |
 | Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | Vitest | 5 | Tests |
+| Playwright (`@playwright/test`) | 1.64.1 | Tests dans un vrai navigateur (Chromium), aux tailles téléphone et ordinateur |
+| axe pour Playwright (`@axe-core/playwright`) | 4.14.0 | Contrôle automatique des règles WCAG A et AA, base des tests RGAA |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
 
 Les choix sont expliqués dans `docs/decisions/`.
