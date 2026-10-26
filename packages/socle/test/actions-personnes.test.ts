@@ -342,6 +342,18 @@ describe('affecterEquipe', () => {
 		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-02-01', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
+	it('refuse une équipe inactive, à l’affectation comme à l’ajout', async () => {
+		const { base, agent } = await jeu();
+		const [ancienne] = await base.insert(equipe).values({ nom: 'Ancienne', couleur: 'gris', ordreRotation: 3, active: 0 }).returning();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await expect(affecterEquipe(base, superAdmin, id, ancienne!.id, aujourdhui, aujourdhui)).rejects.toThrow(new DonneeInvalide('Équipe inactive'));
+		await expect(ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'B', nom: 'C', profilId: agent.id, equipeId: ancienne!.id }, aujourdhui)).rejects.toThrow(
+			new DonneeInvalide('Équipe inactive')
+		);
+		expect(await base.select().from(affectationEquipe)).toEqual([]);
+		expect(await base.select().from(personne).where(eq(personne.email, 'b@exemple.fr'))).toEqual([]);
+	});
+
 	it('le même jour, corrige l’équipe de l’affectation au lieu d’en ouvrir une autre', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);

@@ -49,7 +49,7 @@ describe('/agents/[id] : accès', () => {
 		const locals = locaux(base, { type: 'personne', id: autre });
 		await expect(lire(locals, agent)).rejects.toMatchObject({ status: 403 });
 		await expect(agir('fiche', locals, agent, { nom: 'Pirate' })).rejects.toMatchObject({ status: 403 });
-		await expect(agir('equipe', locals, agent, { equipe: String(equipe1.id) })).rejects.toMatchObject({ status: 403 });
+		await expect(agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('statut', locals, agent, { statut: 'suspendu' })).rejects.toMatchObject({ status: 403 });
 		const apres = await lirePersonne(base, agent);
 		expect(apres.nom).toBe('Test');
@@ -131,35 +131,41 @@ describe('/agents/[id] : ?/equipe', () => {
 	it('affecte à une équipe à partir d\'aujourd\'hui, puis retire avec « aucune »', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		const locals = locaux(base, super_);
-		expect(await agir('equipe', locals, agent, { equipe: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: aujourdhuiParis(), fin: null }]);
 
-		expect(await agir('equipe', locals, agent, { equipe: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 
 	it('ne réécrit rien si l\'équipe ne change pas', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01' });
-		expect(await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01', fin: null }]);
 	});
 
 	it('le même jour, corrige l\'équipe ; refuse à un adjoint l\'équipe du chef de centre', async () => {
 		const { base, chef, adjoint, agent, equipe1 } = await preparer();
 		const [equipe2] = await base.select().from(equipe).where(eq(equipe.ordreRotation, 2));
-		await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe1.id) });
-		await agir('equipe', locaux(base, super_), agent, { equipe: String(equipe2!.id) });
+		await agir('equipe', locaux(base, super_), agent, { equipeId: String(equipe1.id) });
+		await agir('equipe', locaux(base, super_), agent, { equipeId: String(equipe2!.id) });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe2!.id, debut: aujourdhuiParis(), fin: null }]);
 
-		const refus = await agir('equipe', locaux(base, { type: 'personne', id: adjoint }), chef, { equipe: String(equipe1.id) });
+		const refus = await agir('equipe', locaux(base, { type: 'personne', id: adjoint }), chef, { equipeId: String(equipe1.id) });
 		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change l’équipe du chef de centre' } });
 		expect(await base.select().from(affectationEquipe)).toHaveLength(1);
 	});
 
+	it('renvoie « Équipe inconnue » sur le champ affiché par la page', async () => {
+		const { base, agent } = await preparer();
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: '9999' })).toMatchObject({ status: 400, data: { erreurs: { equipeId: 'Équipe inconnue' } } });
+		expect(await base.select().from(affectationEquipe)).toEqual([]);
+	});
+
 	it('refuse une valeur inconnue', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('equipe', locaux(base, super_), agent, { equipe: 'abc' })).toMatchObject({ status: 400, data: { erreurs: { equipe: 'Choix inconnu' } } });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'abc' })).toMatchObject({ status: 400, data: { erreurs: { equipeId: 'Choix inconnu' } } });
 	});
 });
 

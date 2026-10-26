@@ -67,8 +67,8 @@ export const actions: Actions = {
 
 	equipe: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id, fiche } = await lireFiche(locals, params.id);
-		const brut = String((await request.formData()).get('equipe') ?? '');
-		if (brut !== 'aucune' && !/^\d+$/.test(brut)) return fail<Reponse>(400, { erreurs: { equipe: 'Choix inconnu' } });
+		const brut = String((await request.formData()).get('equipeId') ?? '');
+		if (brut !== 'aucune' && !/^\d+$/.test(brut)) return fail<Reponse>(400, { erreurs: { equipeId: 'Choix inconnu' } });
 		const equipeId = brut === 'aucune' ? null : Number(brut);
 		try {
 			if (equipeId === null && fiche.equipe !== null) await retirerEquipe(locals.base, acteur, id, aujourdhui);

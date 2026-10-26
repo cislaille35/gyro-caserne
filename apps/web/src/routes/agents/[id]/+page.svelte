@@ -33,7 +33,7 @@
 			{#if form?.succes}<p class="succes">{form.message}</p>{/if}
 		</div>
 		<div role="alert">
-			{#if form && !form.succes && form.message}<p class="echec">{form.message}</p>{/if}
+			{#if form && !form.succes && (form.message || form.erreurs)}<p class="echec">{form.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 		</div>
 
 		<Carte titre="Identité et contact">
@@ -109,11 +109,11 @@
 				<form method="POST" action="?/equipe">
 					<Choix
 						id="equipe"
-						name="equipe"
+						name="equipeId"
 						libelle="Équipe"
 						aide="Le changement prend effet aujourd'hui."
 						valeur={fiche.equipe ? String(fiche.equipe.id) : 'aucune'}
-						erreur={erreurs.equipe}
+						erreur={erreurs.equipeId}
 						options={[{ valeur: 'aucune', libelle: 'Aucune équipe' }, ...data.equipes.map((e) => ({ valeur: String(e.id), libelle: e.nom }))]}
 					/>
 					<Bouton type="submit">Enregistrer</Bouton>

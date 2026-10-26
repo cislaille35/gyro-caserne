@@ -76,7 +76,8 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Nom invalide': 'nom',
 	'Grade inconnu': 'gradeId',
 	'Profil inconnu': 'profilId',
-	'Équipe inconnue': 'equipeId'
+	'Équipe inconnue': 'equipeId',
+	'Équipe inactive': 'equipeId'
 };
 
 // Ce que reçoit la page après un envoi : message général, erreurs par champ, saisie à réafficher.

@@ -85,6 +85,7 @@ export async function ajouterPersonne(
 	if (donnees.equipeId !== undefined) {
 		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
+		if (uneEquipe.active === 0) throw new DonneeInvalide('Équipe inactive');
 	}
 	await exigerComplements(base, donnees);
 	await exigerAdresseLibre(base, email);
@@ -231,6 +232,7 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 	await exigerProtection(base, acteur, personneId, aujourdhui, REFUS_EQUIPE);
 	const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, equipeId));
 	if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
+	if (uneEquipe.active === 0) throw new DonneeInvalide('Équipe inactive');
 
 	const ouverteDeLaPersonne = and(eq(affectationEquipe.personneId, personneId), isNull(affectationEquipe.fin));
 	const [ouverte] = await base.select().from(affectationEquipe).where(ouverteDeLaPersonne);

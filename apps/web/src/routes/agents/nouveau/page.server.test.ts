@@ -86,8 +86,9 @@ describe('/agents/nouveau', () => {
 
 	it('ajoute sans équipe quand « Aucune équipe » est choisi', async () => {
 		const { base, profilAgent } = await preparer();
-		await ajouter(locaux(base, super_), { email: 'bob@exemple.fr', prenom: 'Bob', nom: 'Durand', profilId: String(profilAgent.id), equipeId: '' }).catch(() => {});
-		expect(await base.select().from(personne)).toHaveLength(2);
+		const redirection = await ajouter(locaux(base, super_), { email: 'bob@exemple.fr', prenom: 'Bob', nom: 'Durand', profilId: String(profilAgent.id), equipeId: '' }).catch((r: unknown) => r);
+		const [bob] = await base.select().from(personne).where(eq(personne.email, 'bob@exemple.fr'));
+		expect(redirection).toMatchObject({ status: 303, location: `/agents/${bob!.id}` });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 });

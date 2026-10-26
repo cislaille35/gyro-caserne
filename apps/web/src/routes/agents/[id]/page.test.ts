@@ -53,6 +53,18 @@ describe('page fiche agent', () => {
 		expect(page).not.toContain('<select');
 	});
 
+	it('signale dans l\'alerte un envoi qui n\'a que des erreurs de champ', () => {
+		const page = html({ data, form: { erreurs: { prenom: 'Indiquez le prénom.' }, valeurs: { prenom: '' } } });
+		expect(page).toMatch(/role="alert"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le formulaire contient des erreurs\.</);
+		expect(page).toContain('Indiquez le prénom.');
+	});
+
+	it('affiche l\'erreur d\'équipe sous le nom du champ envoyé', () => {
+		const page = html({ data, form: { erreurs: { equipeId: 'Équipe inconnue' } } });
+		expect(page).toMatch(/<select[^>]*name="equipeId"/);
+		expect(page).toContain('Équipe inconnue');
+	});
+
 	it('annonce le succès dans une zone de statut', () => {
 		expect(html({ data, form: { succes: true, message: 'Fiche enregistrée' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Fiche enregistrée</);
 	});

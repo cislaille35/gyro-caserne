@@ -17,7 +17,7 @@
 <div class="nouveau">
 	<h1>Ajouter un agent</h1>
 	<div role="alert">
-		{#if form?.message}<p class="echec">{form.message}</p>{/if}
+		{#if form?.message || form?.erreurs}<p class="echec">{form.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 	</div>
 
 	<form method="POST">
