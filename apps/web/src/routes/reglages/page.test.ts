@@ -87,6 +87,13 @@ describe('page Réglages', () => {
 		expect(page).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le comité « Sport » est créé\./);
 	});
 
+	it('garde les formulaires hors des tableaux, pour qu’ils tiennent sur un téléphone', () => {
+		const page = html({ data, form: null });
+		for (const tableau of page.match(/<table[\s\S]*?<\/table>/g) ?? []) expect(tableau).not.toMatch(/<form|<details/);
+		expect(page).toMatch(/<summary[^>]*>Modifier ou dissoudre « Amicale »/);
+		expect(page).toMatch(/<summary[^>]*>Modifier ou archiver « Référent engins »/);
+	});
+
 	it('borne les noms à 60 caractères', () => {
 		expect(html({ data, form: null })).toMatch(/id="comite-nouveau-nom"[^>]*maxlength="60"/);
 	});

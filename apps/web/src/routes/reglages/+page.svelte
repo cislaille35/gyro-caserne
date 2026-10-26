@@ -137,46 +137,48 @@
 			<div class="bloc">
 				<Tableau legende="Comités en cours">
 					<thead>
-						<tr><th scope="col">Nom</th><th scope="col">Thème</th><th scope="col">Membres en cours</th><th scope="col">Réglages</th></tr>
+						<tr><th scope="col">Nom</th><th scope="col">Thème</th><th scope="col">Membres en cours</th></tr>
 					</thead>
 					<tbody>
 						{#each comitesEnCours as c (c.id)}
-							{@const cible = `comite-${c.id}`}
 							<tr>
 								<th scope="row">{c.nom}</th>
 								<td>{c.theme}</td>
 								<td>{c.membresEnCours}</td>
-								<td>
-									<details open={ouvert(cible)}>
-										<summary>Modifier ou dissoudre <span class="cache">le comité {c.nom}</span></summary>
-										{@render retour(cible)}
-										<form method="POST" action="?/modifierComite" class="formulaire">
-											<input type="hidden" name="id" value={c.id} />
-											{#if c.estCentre}
-												<input type="hidden" name="nom" value={c.nom} />
-												<p class="aide">Le comité du centre ne se renomme pas.</p>
-											{:else}
-												<Champ id="{cible}-nom" name="nom" libelle="Nom" requis maxlength={60} valeur={saisie(cible, 'nom', c.nom)} erreur={erreurs(cible).nom} />
-											{/if}
-											<Champ id="{cible}-theme" name="theme" libelle="Thème" requis maxlength={60} valeur={saisie(cible, 'theme', c.theme)} erreur={erreurs(cible).theme} />
-											<Bouton type="submit">Enregistrer</Bouton>
-										</form>
-										{#if c.estCentre}
-											<p class="aide">Le comité du centre ne se dissout pas.</p>
-										{:else}
-											<form method="POST" action="?/dissoudreComite" class="formulaire danger">
-												<input type="hidden" name="id" value={c.id} />
-												<p class="avertissement">{avertissement(c.membresEnCours)}</p>
-												{@render confirmation(`${cible}-confirmation`)}
-												<Bouton type="submit" variante="secondaire">Dissoudre le comité</Bouton>
-											</form>
-										{/if}
-									</details>
-								</td>
 							</tr>
 						{/each}
 					</tbody>
 				</Tableau>
+				<div class="lignes">
+					{#each comitesEnCours as c (c.id)}
+						{@const cible = `comite-${c.id}`}
+						<details open={ouvert(cible)}>
+							<summary>Modifier ou dissoudre « {c.nom} »</summary>
+							{@render retour(cible)}
+							<form method="POST" action="?/modifierComite" class="formulaire">
+								<input type="hidden" name="id" value={c.id} />
+								{#if c.estCentre}
+									<input type="hidden" name="nom" value={c.nom} />
+									<p class="aide">Le comité du centre ne se renomme pas.</p>
+								{:else}
+									<Champ id="{cible}-nom" name="nom" libelle="Nom" requis maxlength={60} valeur={saisie(cible, 'nom', c.nom)} erreur={erreurs(cible).nom} />
+								{/if}
+								<Champ id="{cible}-theme" name="theme" libelle="Thème" requis maxlength={60} valeur={saisie(cible, 'theme', c.theme)} erreur={erreurs(cible).theme} />
+								<Bouton type="submit">Enregistrer</Bouton>
+							</form>
+							{#if c.estCentre}
+								<p class="aide">Le comité du centre ne se dissout pas.</p>
+							{:else}
+								<form method="POST" action="?/dissoudreComite" class="formulaire danger">
+									<input type="hidden" name="id" value={c.id} />
+									<p class="avertissement">{avertissement(c.membresEnCours)}</p>
+									{@render confirmation(`${cible}-confirmation`)}
+									<Bouton type="submit" variante="secondaire">Dissoudre le comité</Bouton>
+								</form>
+							{/if}
+						</details>
+					{/each}
+				</div>
 
 				<details class="nouveau" open={ouvert('comite-nouveau')}>
 					<summary>Créer un comité</summary>
@@ -206,47 +208,49 @@
 				<Tableau legende="Responsabilités en cours">
 					<thead>
 						<tr>
-							<th scope="col">Nom</th><th scope="col">Portée</th><th scope="col">Qui attribue</th><th scope="col">Droits</th><th scope="col">Titulaires en cours</th><th scope="col">Réglages</th>
+							<th scope="col">Nom</th><th scope="col">Portée</th><th scope="col">Qui attribue</th><th scope="col">Droits</th><th scope="col">Titulaires en cours</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each respEnCours as r (r.id)}
-							{@const cible = `resp-${r.id}`}
 							<tr>
 								<th scope="row">{r.nom}<span class="doux"> · {libelleDe(NATURES, r.nature)}</span></th>
 								<td>{libelleDe(PORTEES, r.portee)}</td>
 								<td>{qui(r)}</td>
 								<td>{r.droits.map((d) => LIBELLES_DROIT[d.droit as Droit]).join(', ') || 'Aucun'}</td>
 								<td>{r.titulaires}</td>
-								<td>
-									<details open={ouvert(cible)}>
-										<summary>Modifier ou archiver <span class="cache">la responsabilité {r.nom}</span></summary>
-										{@render retour(cible)}
-										{#if r.protegee}
-											<p class="aide">Cette responsabilité donne un droit de pouvoir : seuls le chef de centre, son adjoint et le super administrateur la modifient ou l’archivent.</p>
-										{:else}
-											<form method="POST" action="?/modifierResponsabilite" class="formulaire">
-												<input type="hidden" name="id" value={r.id} />
-												{@render champsResponsabilite(cible, cible, r)}
-												<Bouton type="submit">Enregistrer</Bouton>
-											</form>
-											{#if r.systeme !== null}
-												<p class="aide">Cette responsabilité fait partie du système : elle ne s’archive pas.</p>
-											{:else}
-												<form method="POST" action="?/archiverResponsabilite" class="formulaire danger">
-													<input type="hidden" name="id" value={r.id} />
-													<p class="avertissement">{avertissement(r.titulaires)}</p>
-													{@render confirmation(`${cible}-confirmation`)}
-													<Bouton type="submit" variante="secondaire">Archiver la responsabilité</Bouton>
-												</form>
-											{/if}
-										{/if}
-									</details>
-								</td>
 							</tr>
 						{/each}
 					</tbody>
 				</Tableau>
+				<div class="lignes">
+					{#each respEnCours as r (r.id)}
+						{@const cible = `resp-${r.id}`}
+						<details open={ouvert(cible)}>
+							<summary>Modifier ou archiver « {r.nom} »</summary>
+							{@render retour(cible)}
+							{#if r.protegee}
+								<p class="aide">Cette responsabilité donne un droit de pouvoir : seuls le chef de centre, son adjoint et le super administrateur la modifient ou l’archivent.</p>
+							{:else}
+								<form method="POST" action="?/modifierResponsabilite" class="formulaire">
+									<input type="hidden" name="id" value={r.id} />
+									{@render champsResponsabilite(cible, cible, r)}
+									<Bouton type="submit">Enregistrer</Bouton>
+								</form>
+								{#if r.systeme !== null}
+									<p class="aide">Cette responsabilité fait partie du système : elle ne s’archive pas.</p>
+								{:else}
+									<form method="POST" action="?/archiverResponsabilite" class="formulaire danger">
+										<input type="hidden" name="id" value={r.id} />
+										<p class="avertissement">{avertissement(r.titulaires)}</p>
+										{@render confirmation(`${cible}-confirmation`)}
+										<Bouton type="submit" variante="secondaire">Archiver la responsabilité</Bouton>
+									</form>
+								{/if}
+							{/if}
+						</details>
+					{/each}
+				</div>
 
 				<details class="nouveau" open={ouvert('resp-nouvelle')}>
 					<summary>Créer une responsabilité</summary>
@@ -289,12 +293,8 @@
 		align-items: center;
 		font-weight: 600;
 	}
-	.cache {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
+	.lignes > details {
+		border-bottom: 1px solid var(--trait);
 	}
 	.formulaire {
 		padding: 12px 0;
