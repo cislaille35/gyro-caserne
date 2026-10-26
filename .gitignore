@@ -11,3 +11,5 @@ dist
 .DS_Store
 *.log
 centres/*/wrangler.en-ligne.jsonc
+test-results
+playwright-report

@@ -29,3 +29,17 @@ jobs:
       - run: pnpm check
       - run: pnpm test
       - run: pnpm build
+      # Polices en fichiers .woff2 servis par l'appli : une police glissée dans le CSS (data:) serait bloquée par la CSP
+      - name: Polices servies en fichiers
+        run: |
+          ls apps/web/.svelte-kit/cloudflare/_app/immutable/assets/*.woff2
+          ! grep -l 'data:font' apps/web/.svelte-kit/cloudflare/_app/immutable/assets/*.css
+      - run: pnpm --filter @gyro-caserne/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @gyro-caserne/web test:a11y
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: rapport-accessibilite
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
