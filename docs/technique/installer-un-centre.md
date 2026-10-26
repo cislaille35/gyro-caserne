@@ -18,16 +18,17 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 4. Vérifier : `pnpm install && pnpm check && pnpm test`. Une erreur dans la description est signalée avec la liste des corrections à faire.
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.
 6. Se connecter à Cloudflare : `pnpm --filter @gyro-caserne/web exec wrangler login`.
-7. Créer la base : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, puis reporter le `database_id` affiché dans `centres/<id>/wrangler.jsonc` (et `database_name` : `gyro-caserne-<id>`).
-8. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
-9. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
-10. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
-11. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.
+7. Créer le sous-domaine `workers.dev` du compte, s'il n'existe pas : ouvrir une fois « Workers & Pages » dans le tableau de bord Cloudflare (ou le choisir dans Workers › « Change subdomain »). Il entre dans l'adresse de l'appli : `gyro-caserne-<id>.<sous-domaine>.workers.dev`. Pour Laillé : `cis-laille`. Compter quelques minutes avant de l'utiliser (le temps de son certificat).
+8. Créer la base : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, puis reporter le `database_id` affiché dans `centres/<id>/wrangler.jsonc` (et `database_name` : `gyro-caserne-<id>`).
+9. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
+10. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
+11. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
+12. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.
 
     | Secret | Valeur |
     |---|---|
     | `BETTER_AUTH_SECRET` | une longue chaîne aléatoire : `openssl rand -base64 32` |
-    | `BETTER_AUTH_URL` | l'adresse de l'appli, affichée à l'étape 10 |
+    | `BETTER_AUTH_URL` | l'adresse de l'appli, affichée à l'étape 11 |
     | `SUPER_ADMINS` | l'adresse du super administrateur (plusieurs : séparées par des virgules) |
     | `BREVO_CLE` | la clé d'API Brevo du centre |
     | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
@@ -42,7 +43,7 @@ Pour que GitHub déploie tout seul :
    - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
 3. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
 
-`centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : son `database_id` est celui de Laillé. En le copiant (étape 3 de l'installation), remplacer ce `database_id` par celui de la nouvelle base (étape 7).
+`centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : son `database_id` est celui de Laillé. En le copiant (étape 3 de l'installation), remplacer ce `database_id` par celui de la nouvelle base (étape 8).
 
 ## Mettre à jour
 
