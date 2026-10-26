@@ -84,7 +84,7 @@ test.describe('agents', () => {
 		await gestion.getByLabel('Nom', { exact: true }).fill(nom);
 		await gestion.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
 		// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
-		await gestion.locator('form[method="POST"]').getByLabel('Équipe').selectOption({ label: 'Équipe 1' });
+		await gestion.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 		await gestion.getByRole('button', { name: "Ajouter l'agent" }).click();
 		await expect(gestion).toHaveURL(/\/agents\/\d+$/);
 		await expect(gestion.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
