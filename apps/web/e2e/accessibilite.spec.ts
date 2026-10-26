@@ -84,8 +84,11 @@ test.describe('mouvement limité (RGAA 13.8)', () => {
 		// Tant que la page n'est pas prête, les appuis ne comptent pas : on attend l'hydratation.
 		await expect.poll(animations).toBeGreaterThan(0);
 
-		await page.clock.runFor(10_500);
-		expect(await animations()).toBe(0);
+		// Le minuteur n'existe qu'une fois la page hydratée : on avance l'horloge jusqu'à l'arrêt.
+		await expect(async () => {
+			await page.clock.runFor(10_500);
+			expect(await animations()).toBe(0);
+		}).toPass({ timeout: 15_000 });
 
 		await expect(async () => {
 			await gyro.click();
