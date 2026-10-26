@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, retirerEquipe } from '../src/actions/personnes.ts';
+import { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, modifierMonProfil, monProfil, retirerEquipe } from '../src/actions/personnes.ts';
 import { adresseAutorisee } from '../src/connexion.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { affectationEquipe, attribution, equipe, grade, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit, session, user, verification } from '../src/schema.ts';
@@ -552,3 +552,59 @@ describe('journal', () => {
 	});
 });
 
+
+describe('mon profil', () => {
+	async function avecAgent() {
+		const j = await jeu();
+		const id = await ajouterPersonne(j.base, superAdmin, { email: 'bruno@exemple.fr', prenom: 'Bruno', nom: 'Petit', profilId: j.agent.id }, aujourdhui);
+		return { ...j, id, moi: { type: 'personne', id } as Acteur };
+	}
+
+	it('lit et écrit ses propres champs', async () => {
+		const { base, id, moi } = await avecAgent();
+		expect(await monProfil(base, moi)).toEqual({ surnom: null, telephone: null, telephoneVisible: false, contactUrgence: null, anniversaireVisible: true });
+		await modifierMonProfil(base, moi, { surnom: 'Bru', telephone: '0600000000', telephoneVisible: true, contactUrgence: 'Alice 0611111111', anniversaireVisible: false }, aujourdhui);
+		expect(await monProfil(base, moi)).toEqual({ surnom: 'Bru', telephone: '0600000000', telephoneVisible: true, contactUrgence: 'Alice 0611111111', anniversaireVisible: false });
+		const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(fiche).toMatchObject({ telephoneVisible: 1, anniversaireVisible: 0 });
+	});
+
+	it('refuse un champ hors liste, sans rien écrire', async () => {
+		const { base, id, moi } = await avecAgent();
+		// @ts-expect-error `nom` n'est pas modifiable ici
+		await expect(modifierMonProfil(base, moi, { surnom: 'Bru', nom: 'Pirate' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(fiche).toMatchObject({ nom: 'Petit', surnom: null });
+	});
+
+	it('refuse un type invalide', async () => {
+		const { base, moi } = await avecAgent();
+		await expect(modifierMonProfil(base, moi, { surnom: 5 as unknown as string }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(modifierMonProfil(base, moi, { telephoneVisible: 'oui' as unknown as boolean }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('refuse le super administrateur', async () => {
+		const { base } = await avecAgent();
+		await expect(monProfil(base, superAdmin)).resolves.toBeNull();
+		await expect(modifierMonProfil(base, superAdmin, { surnom: 'X' }, aujourdhui)).rejects.toThrow('Pas de fiche pour le super administrateur');
+	});
+
+	it('enregistre les chaînes vides comme null', async () => {
+		const { base, moi } = await avecAgent();
+		await modifierMonProfil(base, moi, { surnom: 'Bru', telephone: '06', contactUrgence: 'Alice' }, aujourdhui);
+		await modifierMonProfil(base, moi, { surnom: '  ', telephone: '', contactUrgence: '' }, aujourdhui);
+		expect(await monProfil(base, moi)).toMatchObject({ surnom: null, telephone: null, contactUrgence: null });
+	});
+
+	it('journalise les noms des champs changés, jamais les valeurs', async () => {
+		const { base, id, moi } = await avecAgent();
+		await modifierMonProfil(base, moi, { surnom: 'Bru', telephone: '0600000000', anniversaireVisible: true }, aujourdhui);
+		const lignes = await base.select().from(journal).where(eq(journal.action, 'modifier_mon_profil'));
+		expect(lignes).toHaveLength(1);
+		expect(lignes[0]).toMatchObject({ acteur: `personne:${id}`, cibleType: 'personne', cibleId: id });
+		expect(JSON.parse(lignes[0]!.details!)).toEqual({ champs: ['surnom', 'telephone'] });
+		expect(JSON.stringify(lignes[0])).not.toContain('0600000000');
+		await modifierMonProfil(base, moi, { surnom: 'Bru' }, aujourdhui);
+		expect(await base.select().from(journal).where(eq(journal.action, 'modifier_mon_profil'))).toHaveLength(1);
+	});
+});

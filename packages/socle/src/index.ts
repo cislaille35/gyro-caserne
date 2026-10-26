@@ -7,6 +7,6 @@ export { DonneeInvalide, RefusDroit } from './erreurs.ts';
 export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';
 export * from './listes.ts';
 export { chargerJeuDeDepart } from './jeu-de-depart.ts';
-export { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, retirerEquipe, type ChampsFiche } from './actions/personnes.ts';
+export { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, modifierMonProfil, monProfil, retirerEquipe, type ChampsFiche, type MonProfil } from './actions/personnes.ts';
 export { attribuer, finirAttribution, modifierDroitsResponsabilite } from './actions/attributions.ts';
 export { estGestionnaire, ficheAgent, listeGestion, vueEffectif, type FicheAgent, type LigneGestion } from './effectif.ts';

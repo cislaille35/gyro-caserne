@@ -240,3 +240,52 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'affecter_equipe', cibleType: 'personne', cibleId: personneId, details: { equipeId, debut } }, aujourdhui)
 	]);
 }
+
+export type MonProfil = { surnom: string | null; telephone: string | null; telephoneVisible: boolean; contactUrgence: string | null; anniversaireVisible: boolean };
+const TEXTES_PROFIL = ['surnom', 'telephone', 'contactUrgence'] as const;
+const BOOLEENS_PROFIL = ['telephoneVisible', 'anniversaireVisible'] as const;
+
+function exigerPersonne(acteur: Acteur): number {
+	if (acteur.type === 'super') throw new DonneeInvalide('Pas de fiche pour le super administrateur');
+	return acteur.id;
+}
+
+export async function monProfil(base: Base, acteur: Acteur): Promise<MonProfil | null> {
+	if (acteur.type === 'super') return null;
+	const [fiche] = await base.select().from(personne).where(eq(personne.id, acteur.id));
+	if (!fiche) return null;
+	return { surnom: fiche.surnom, telephone: fiche.telephone, telephoneVisible: fiche.telephoneVisible === 1, contactUrgence: fiche.contactUrgence, anniversaireVisible: fiche.anniversaireVisible === 1 };
+}
+
+export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Partial<MonProfil>, aujourdhui: string): Promise<void> {
+	exigerDate(aujourdhui);
+	const id = exigerPersonne(acteur);
+	const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
+	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+
+	// Seuls ces champs : le reste de la fiche relève de la gestion.
+	const permis: readonly string[] = [...TEXTES_PROFIL, ...BOOLEENS_PROFIL];
+	if (Object.keys(champs).some((cle) => !permis.includes(cle))) throw new DonneeInvalide('Champ non modifiable');
+
+	const nouveaux: Partial<Record<(typeof TEXTES_PROFIL)[number], string | null>> & Partial<Record<(typeof BOOLEENS_PROFIL)[number], number>> = {};
+	for (const cle of TEXTES_PROFIL) {
+		const valeur: unknown = champs[cle];
+		if (valeur === undefined) continue;
+		if (valeur !== null && typeof valeur !== 'string') throw new DonneeInvalide(`Champ ${cle} invalide`);
+		nouveaux[cle] = valeur?.trim() || null;
+	}
+	for (const cle of BOOLEENS_PROFIL) {
+		const valeur: unknown = champs[cle];
+		if (valeur === undefined) continue;
+		if (typeof valeur !== 'boolean') throw new DonneeInvalide(`Champ ${cle} invalide`);
+		nouveaux[cle] = valeur ? 1 : 0;
+	}
+
+	const changes = Object.fromEntries(Object.entries(nouveaux).filter(([cle, valeur]) => valeur !== fiche[cle as keyof typeof fiche]));
+	if (Object.keys(changes).length === 0) return;
+	await base.batch([
+		base.update(personne).set(changes).where(eq(personne.id, id)),
+		// Les noms des champs seulement : aucune valeur personnelle dans le journal.
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_mon_profil', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes) } }, aujourdhui)
+	]);
+}
