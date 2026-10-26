@@ -1,4 +1,5 @@
 import type { Acteur, Base } from '@gyro-caserne/socle';
+import type { Affichage } from '#lib/affichage.ts';
 import type { Auth, EnvAuth } from '#lib/server/auth.ts';
 
 declare global {
@@ -8,6 +9,7 @@ declare global {
 			auth: Auth;
 			// Null : personne n'est connecté, ou l'adresse n'a plus accès.
 			acteur: Acteur | null;
+			affichage: Affichage;
 		}
 	}
 	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`
