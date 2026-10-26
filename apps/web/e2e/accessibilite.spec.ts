@@ -73,34 +73,52 @@ test.describe('réduire les animations', () => {
 });
 
 test.describe('mouvement limité (RGAA 13.8)', () => {
-	test.use({ storageState: ETAT_CONNECTE });
+	const animations = (page: Page) => page.evaluate(() => document.getAnimations().length);
 
-	test('niveau vivant : Gyro bouge à l’arrivée, s’immobilise, un appui relance puis arrête', async ({ page, context }) => {
+	test('connexion, niveau vivant : Gyro bouge 5 s puis s’immobilise', async ({ page, context }) => {
 		await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
 		await page.clock.install();
-		await page.goto('/');
-		const gyro = page.getByRole('button', { name: 'Faire réagir Gyro' });
-		const animations = () => page.evaluate(() => document.getAnimations().length);
-		// Tant que la page n'est pas prête, les appuis ne comptent pas : on attend l'hydratation.
-		await expect.poll(animations).toBeGreaterThan(0);
-
+		await page.goto('/connexion');
+		await expect.poll(() => animations(page)).toBeGreaterThan(0);
 		// Le minuteur n'existe qu'une fois la page hydratée : on avance l'horloge jusqu'à l'arrêt.
 		await expect(async () => {
-			await page.clock.runFor(10_500);
-			expect(await animations()).toBe(0);
+			await page.clock.runFor(5_500);
+			expect(await animations(page)).toBe(0);
 		}).toPass({ timeout: 15_000 });
+	});
 
-		await expect(async () => {
+	test.describe('accueil', () => {
+		test.use({ storageState: ETAT_CONNECTE });
+
+		test.beforeEach(async ({ page, context }) => {
+			await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
+			await page.clock.install();
+			await page.goto('/');
+			await expect(page.locator('.accueil[data-pret]')).toBeAttached();
+		});
+
+		test('10 s de mouvement, un appui relance, un appui arrête', async ({ page }) => {
+			const gyro = page.getByRole('button', { name: 'Faire réagir Gyro' });
+			expect(await animations(page)).toBeGreaterThan(0);
+			await page.clock.runFor(10_500);
+			expect(await animations(page)).toBe(0);
+
 			await gyro.click();
-			expect(await animations()).toBeGreaterThan(0);
-		}).toPass({ timeout: 10_000 });
+			expect(await animations(page)).toBeGreaterThan(0);
+			await gyro.click();
+			expect(await animations(page)).toBe(0);
 
-		await gyro.click();
-		expect(await animations()).toBe(0);
+			await gyro.click();
+			expect(await animations(page)).toBeGreaterThan(0);
+			await page.clock.runFor(10_500);
+			expect(await animations(page)).toBe(0);
+		});
 
-		await gyro.click();
-		expect(await animations()).toBeGreaterThan(0);
-		await page.clock.runFor(10_500);
-		expect(await animations()).toBe(0);
+		test('cinq appuis en 2 s : « pin-pon ! », animé', async ({ page }) => {
+			await page.getByRole('button', { name: 'Faire réagir Gyro' }).focus();
+			for (let i = 0; i < 5; i++) await page.keyboard.press('Enter');
+			await expect(page.getByText('pin-pon !')).toBeVisible();
+			expect(await animations(page)).toBeGreaterThan(0);
+		});
 	});
 });

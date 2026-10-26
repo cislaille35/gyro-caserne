@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import GyroDuMoment from './GyroDuMoment.svelte';
 	import { cinqTouches } from './cinqTouches.ts';
 	import { DUREE_ACCUEIL } from './mouvement.ts';
@@ -10,6 +10,7 @@
 	const affichage = lireAffichageContexte();
 	let appuis: number[] = [];
 	let surprise = $state(false);
+	let pret = $state(false);
 	let enMouvement = $state(true);
 	let minuteur: ReturnType<typeof setTimeout> | undefined;
 
@@ -27,11 +28,12 @@
 		}
 	}
 
+	onMount(() => (pret = true));
 	onDestroy(() => clearTimeout(minuteur));
 </script>
 
 {#if gyroSelonNiveau(affichage.niveau).visible}
-	<div class="accueil">
+	<div class="accueil" data-pret={pret || undefined}>
 		<button type="button" aria-label="Faire réagir Gyro" onclick={appuyer}>
 			<GyroDuMoment {taille} decoratif duree={DUREE_ACCUEIL} bind:enMouvement tenue={surprise ? 'chargement' : undefined} />
 		</button>

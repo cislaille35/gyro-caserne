@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DUREE_ACCUEIL, DUREE_DECOR, arreterApres } from './mouvement.ts';
+import { arreterApres } from './mouvement.ts';
 
 describe('arreterApres', () => {
 	beforeEach(() => vi.useFakeTimers());
@@ -19,10 +19,5 @@ describe('arreterApres', () => {
 		arreterApres(5000, arret)();
 		vi.advanceTimersByTime(20_000);
 		expect(arret).not.toHaveBeenCalled();
-	});
-
-	it('durées : 5 s sans commande, 10 s avec', () => {
-		expect(DUREE_DECOR).toBe(5000);
-		expect(DUREE_ACCUEIL).toBe(10_000);
 	});
 });
