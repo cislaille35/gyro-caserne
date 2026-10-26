@@ -28,5 +28,5 @@ export async function connecter(page: Page, email: string): Promise<void> {
 	}).toPass({ timeout: 30_000 });
 
 	await page.goto(lien!);
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Bonjour /);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Bonjour/);
 }

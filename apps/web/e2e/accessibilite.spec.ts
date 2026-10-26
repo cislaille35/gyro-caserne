@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { ADRESSE, ETAT_CONNECTE } from './serveur.ts';
+import { ADRESSE, ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
-async function sansViolation(page: Page, chemin: string) {
-	await page.goto(chemin);
+async function sansViolation(page: Page, chemin?: string) {
+	if (chemin) await page.goto(chemin);
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 }
@@ -24,14 +24,85 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/affichage']) {
+			for (const chemin of ['/', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
 		});
+
+		test.describe('super administrateur', () => {
+			test.use({ storageState: ETAT_SUPER });
+			for (const chemin of ['/agents', '/agents/nouveau', '/profil']) {
+				test(`${chemin} sans violation`, async ({ page }) => {
+					await sansViolation(page, chemin);
+				});
+			}
+
+			test('fiche d’un agent sans violation, avertissement de départ compris', async ({ page }) => {
+				await page.goto(await ficheDe(page, 'Alice Martin'));
+				await sansViolation(page);
+				await choisirParti(page);
+				await sansViolation(page);
+			});
+		});
 	});
 }
+
+// Adresse de la fiche, lue dans la liste de gestion.
+async function ficheDe(page: Page, nom: string): Promise<string> {
+	await page.goto(`/agents?texte=${encodeURIComponent(nom.split(' ')[1]!)}`);
+	return (await page.getByRole('link', { name: `Voir la fiche de ${nom}` }).getAttribute('href'))!;
+}
+
+// L'avertissement n'apparaît qu'une fois la page prête : on recommence le choix jusque-là.
+async function choisirParti(page: Page) {
+	const statut = page.locator('form[action="?/statut"]');
+	await expect(async () => {
+		await statut.getByLabel('Statut').selectOption('operationnel');
+		await statut.getByLabel('Statut').selectOption('parti');
+		await expect(statut.getByLabel('Je confirme')).toBeVisible({ timeout: 1000 });
+	}).toPass({ timeout: 20_000 });
+}
+
+test.describe('agents', () => {
+	test('un agent ordinaire n’ouvre pas une fiche : 403', async ({ browser }) => {
+		const contexte = await browser.newContext({ storageState: ETAT_CONNECTE });
+		const reponse = await (await contexte.newPage()).goto('/agents/1');
+		expect(reponse!.status()).toBe(403);
+		await contexte.close();
+	});
+
+	test('le super administrateur ajoute un agent, puis le déclare parti : il quitte la vue des agents', async ({ browser }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
+		const marque = Date.now().toString(36);
+		const nom = `Essai${marque}`;
+
+		await gestion.goto('/agents/nouveau');
+		await gestion.getByLabel('Prénom').fill('Zoé');
+		await gestion.getByLabel('Nom', { exact: true }).fill(nom);
+		await gestion.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
+		await gestion.getByRole('button', { name: "Ajouter l'agent" }).click();
+		await expect(gestion).toHaveURL(/\/agents\/\d+$/);
+		await expect(gestion.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
+
+		await gestion.goto(await ficheDe(gestion, `Zoé ${nom}`));
+		await agent.goto('/agents');
+		await expect(agent.getByText(`Zoé ${nom}`)).toBeVisible();
+
+		await choisirParti(gestion);
+		const statut = gestion.locator('form[action="?/statut"]');
+		await statut.getByLabel('Je confirme').check();
+		await statut.getByRole('button', { name: 'Enregistrer' }).click();
+		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
+		await expect(gestion.locator('.titre')).toContainText('Parti');
+
+		await agent.reload();
+		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
+		await expect(agent.getByText(`Zoé ${nom}`)).toHaveCount(0);
+	});
+});
 
 test('thème sombre choisi : la page arrive déjà en sombre', async ({ request }) => {
 	const reponse = await request.get('/connexion', { headers: { cookie: 'theme=sombre' } });
