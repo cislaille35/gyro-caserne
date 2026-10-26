@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import Bouton from './Bouton.svelte';
 import Carte from './Carte.svelte';
 import Champ from './Champ.svelte';
+import Choix from './Choix.svelte';
 import PastilleEquipe from './PastilleEquipe.svelte';
 import Statut from './Statut.svelte';
 import Tableau from './Tableau.svelte';
@@ -90,5 +91,35 @@ describe('Bouton', () => {
 	});
 	it('accepte le type submit', () => {
 		expect(html(Bouton, { type: 'submit', children: contenu })).toContain('type="submit"');
+	});
+});
+
+describe('Choix', () => {
+	const base = { id: 'equipe', libelle: 'Équipe', name: 'equipe', options: [{ valeur: '', libelle: 'Toutes' }, { valeur: '1', libelle: 'Rouge' }] };
+
+	it('relie le libellé au select et liste les options', () => {
+		const page = html(Choix, base);
+		expect(page).toContain('<label for="equipe"');
+		expect(page).toMatch(/<select[^>]*id="equipe"/);
+		expect(page).toMatch(/<select[^>]*name="equipe"/);
+		expect(page).toMatch(/<option[^>]*value="1"[^>]*>Rouge</);
+	});
+
+	it('sélectionne la valeur donnée', () => {
+		expect(html(Choix, { ...base, valeur: '1' })).toMatch(/<option[^>]*value="1"[^>]*selected/);
+	});
+
+	it("relie l'aide et l'erreur au select", () => {
+		const page = html(Choix, { ...base, aide: 'Une aide', erreur: 'Une erreur' });
+		expect(page).toContain('aria-invalid="true"');
+		const refs = page.match(/aria-describedby="([^"]+)"/)![1].split(' ');
+		expect(refs).toHaveLength(2);
+		expect(page).toMatch(new RegExp(`id="${refs[0]}"[^>]*>[^<]*Une aide`));
+		expect(page).toMatch(new RegExp(`id="${refs[1]}"[^>]*>[^<]*Une erreur`));
+	});
+
+	it('marque le champ obligatoire seulement si demandé', () => {
+		expect(html(Choix, { ...base, requis: true })).toMatch(/<select[^>]*required/);
+		expect(html(Choix, base)).not.toMatch(/<select[^>]*required/);
 	});
 });

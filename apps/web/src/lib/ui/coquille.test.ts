@@ -49,6 +49,6 @@ describe('entreesNavigation', () => {
 	});
 	it('connecté : pas de connexion', () => {
 		const hrefs = entreesNavigation(true).map((e) => e.href);
-		expect(hrefs).toEqual(['/', '/affichage']);
+		expect(hrefs).toEqual(['/', '/agents', '/affichage']);
 	});
 });
