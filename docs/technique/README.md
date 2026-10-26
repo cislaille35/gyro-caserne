@@ -58,7 +58,7 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
 | Better Auth | 1.7 | Connexion par lien magique et sessions |
-| Resend | 6 | Envoi des courriels (liens de connexion) |
+| Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | Vitest | 5 | Tests |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
 

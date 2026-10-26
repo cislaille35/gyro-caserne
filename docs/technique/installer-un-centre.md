@@ -29,8 +29,8 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
     | `BETTER_AUTH_SECRET` | une longue chaîne aléatoire : `openssl rand -base64 32` |
     | `BETTER_AUTH_URL` | l'adresse de l'appli, affichée à l'étape 10 |
     | `SUPER_ADMINS` | l'adresse du super administrateur (plusieurs : séparées par des virgules) |
-    | `RESEND_CLE` | la clé d'API Resend du centre |
-    | `COURRIEL_EXPEDITEUR` | l'expéditeur des liens, par exemple `Gyro Caserne <gyro@domaine-du-centre.fr>` |
+    | `BREVO_CLE` | la clé d'API Brevo du centre |
+    | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
 
 ## Mettre à jour
 
