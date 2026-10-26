@@ -16,8 +16,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const auth = creerAuth(env, base, waitUntil);
 	event.locals.base = base;
 	event.locals.auth = auth;
+	event.locals.superAdmins = superAdmins(env);
 
 	const connexion = await auth.api.getSession({ headers: event.request.headers });
-	event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, superAdmins(env)) : null;
+	event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, event.locals.superAdmins) : null;
 	return svelteKitHandler({ event, resolve: resoudre, auth, building });
 };

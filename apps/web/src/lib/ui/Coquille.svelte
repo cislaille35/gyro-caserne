@@ -5,15 +5,18 @@
 	let {
 		chemin,
 		connecte,
+		estPersonne = false,
 		nomCentre,
 		children
-	}: { chemin: string; connecte: boolean; nomCentre: string; children: Snippet } = $props();
+	}: { chemin: string; connecte: boolean; estPersonne?: boolean; nomCentre: string; children: Snippet } = $props();
 
-	const entrees = $derived(entreesNavigation(connecte));
+	const entrees = $derived(entreesNavigation(connecte, estPersonne));
 
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
 		connexion: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
+		agents: 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20 M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35 M15.5 4.15a3.5 3.5 0 0 1 0 6.7',
+		profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
 		affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5'
 	};
 </script>

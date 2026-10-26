@@ -8,7 +8,8 @@
 		erreur,
 		aide,
 		autocomplete,
-		requis = false
+		requis = false,
+		maxlength
 	}: {
 		id: string;
 		libelle: string;
@@ -19,6 +20,7 @@
 		aide?: string;
 		autocomplete?: AutoFill;
 		requis?: boolean;
+		maxlength?: number;
 	} = $props();
 
 	const idAide = $derived(`${id}-aide`);
@@ -35,6 +37,7 @@
 		{type}
 		{autocomplete}
 		required={requis}
+		{maxlength}
 		bind:value={valeur}
 		aria-invalid={erreur ? 'true' : undefined}
 		aria-describedby={decrit}

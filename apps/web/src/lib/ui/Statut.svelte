@@ -1,16 +1,16 @@
 <script lang="ts">
-	type Statut = 'operationnel' | 'stagiaire' | 'inapte_temporaire' | 'suspendu' | 'parti';
+	import { LIBELLES_STATUT, type StatutPersonne } from './statut.ts';
 
-	let { statut }: { statut: Statut } = $props();
+	let { statut }: { statut: StatutPersonne } = $props();
 
-	const aspects: Record<Statut, { texte: string; teinte: string }> = {
-		operationnel: { texte: 'Opérationnel', teinte: 'ok' },
-		stagiaire: { texte: 'Stagiaire', teinte: 'info' },
-		inapte_temporaire: { texte: 'Inapte temporaire', teinte: 'alerte' },
-		suspendu: { texte: 'Suspendu', teinte: 'alerte' },
-		parti: { texte: 'Parti', teinte: 'neutre' }
+	const teintes: Record<StatutPersonne, string> = {
+		operationnel: 'ok',
+		stagiaire: 'info',
+		inapte_temporaire: 'alerte',
+		suspendu: 'alerte',
+		parti: 'neutre'
 	};
-	const aspect = $derived(aspects[statut]);
+	const aspect = $derived({ texte: LIBELLES_STATUT[statut], teinte: teintes[statut] });
 </script>
 
 <span

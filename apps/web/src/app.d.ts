@@ -9,6 +9,8 @@ declare global {
 			auth: Auth;
 			// Null : personne n'est connecté, ou l'adresse n'a plus accès.
 			acteur: Acteur | null;
+			// Adresses des super administrateurs : aucune fiche ne peut les prendre.
+			superAdmins: string[];
 			affichage: Affichage;
 		}
 	}

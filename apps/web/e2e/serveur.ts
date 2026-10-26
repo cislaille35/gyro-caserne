@@ -1,5 +1,5 @@
 // Avant les tests : base locale neuve avec les personnes fictives, serveur de développement,
-// puis connexion de test@exemple.fr, gardée pour les tests « connecté ».
+// puis connexion de test@exemple.fr (agent) et du super administrateur fictif, gardées pour les tests « connecté ».
 import { chromium, type FullConfig } from '@playwright/test';
 import { execSync, spawn } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -21,6 +21,8 @@ function adresse(): string {
 
 export const ADRESSE = adresse();
 export const ETAT_CONNECTE = fileURLToPath(new URL('../test-results/connecte.json', import.meta.url));
+export const SUPER = 'admin@exemple.fr';
+export const ETAT_SUPER = fileURLToPath(new URL('../test-results/super.json', import.meta.url));
 
 // En CI, pas de secrets de développement : on en crée de faux, jamais de vrais.
 function secretsDeTest() {
@@ -48,15 +50,18 @@ async function attendre(url: string) {
 	throw new Error(`Serveur muet sur ${url}, voir ${JOURNAL}`);
 }
 
-function refuserVraiesCles() {
+function verifierSecrets() {
 	const fichier = `${centre}.dev.vars`;
-	if (/^BREVO_CLE=\S/m.test(readFileSync(fichier, 'utf8')))
+	const texte = readFileSync(fichier, 'utf8');
+	if (/^BREVO_CLE=\S/m.test(texte))
 		throw new Error(`BREVO_CLE est renseignée dans ${fichier} : les tests locaux enverraient de vrais e-mails. Videz cette ligne avant de lancer les tests.`);
+	if (!texte.match(/^SUPER_ADMINS=(.*)$/m)?.[1]!.split(',').map((a) => a.trim()).includes(SUPER))
+		throw new Error(`SUPER_ADMINS doit contenir ${SUPER} dans ${fichier} pour les tests de gestion.`);
 }
 
 export default async function preparer(config: FullConfig) {
 	secretsDeTest();
-	refuserVraiesCles();
+	verifierSecrets();
 	rmSync(`${centre}.wrangler`, { recursive: true, force: true });
 	execSync('pnpm base-locale && pnpm jeu-de-depart', { cwd: appli, stdio: 'inherit', env: { ...process.env, CI: '1' } });
 
@@ -73,8 +78,13 @@ export default async function preparer(config: FullConfig) {
 		const page = await navigateur.newPage({ baseURL: ADRESSE });
 		await connecter(page, 'test@exemple.fr');
 		// Premier passage sur chaque page : Vite prépare ses fichiers une fois pour toutes.
-		await page.goto('/affichage');
+		for (const chemin of ['/affichage', '/agents', '/profil']) await page.goto(chemin);
 		await page.context().storageState({ path: ETAT_CONNECTE });
+
+		const pageSuper = await navigateur.newPage({ baseURL: ADRESSE });
+		await connecter(pageSuper, SUPER);
+		await pageSuper.goto('/agents/nouveau');
+		await pageSuper.context().storageState({ path: ETAT_SUPER });
 		await navigateur.close();
 	} catch (erreur) {
 		arreter();
