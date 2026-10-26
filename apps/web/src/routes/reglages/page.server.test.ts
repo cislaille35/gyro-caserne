@@ -61,7 +61,7 @@ describe('load de /reglages', () => {
 		expect(data.comites.map((c: { nom: string }) => c.nom)).toContain('Amicale');
 		const rapporteur = data.responsabilites.find((r: { nom: string }) => r.nom === 'Rapporteur de comité');
 		expect(rapporteur.protegee).toBe(true);
-		expect(data.equipes.length).toBeGreaterThan(0);
+		expect(data).not.toHaveProperty('equipes');
 	});
 
 	it('donne le pouvoir au chef de centre et au super administrateur', async () => {
@@ -125,6 +125,15 @@ describe('comités', () => {
 		const c = await com('Comité du centre');
 		const r = await envoyer('dissoudreComite', locaux(base, referent), [['id', String(c.id)], ['confirmation', 'oui']]);
 		expect(r).toMatchObject({ status: 400, data: { cible: `comite-${c.id}`, message: expect.stringContaining('centre') } });
+	});
+
+	it('refuse de dissoudre un comité qui attribue une responsabilité de portée « comité », message sur le bon formulaire', async () => {
+		const { base, referent, com } = await preparer();
+		const amicale = await com('Amicale');
+		await base.insert(responsabilite).values({ nom: 'Délégué', nature: 'mission', typePerimetre: 'comite', comiteAttributeurId: amicale.id });
+		const r = await envoyer('dissoudreComite', locaux(base, referent), [['id', String(amicale.id)], ['confirmation', 'oui']]);
+		expect(r).toMatchObject({ status: 400, data: { cible: `comite-${amicale.id}`, message: 'Changez d’abord qui attribue « Délégué »' } });
+		expect((await com('Amicale')).dissousLe).toBeNull();
 	});
 
 	it('traduit le refus de droit en 403', async () => {

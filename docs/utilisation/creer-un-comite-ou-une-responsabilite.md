@@ -26,4 +26,4 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 2. Pour modifier : changez les champs, puis appuyez sur « Enregistrer ».
 3. Pour dissoudre ou archiver : lisez l'avertissement, cochez « Je confirme », puis appuyez sur « Dissoudre le comité » ou « Archiver la responsabilité ».
 
-Ceux qui tenaient le rôle le perdent dès aujourd'hui, avec ses droits. Rien n'est effacé : le comité ou la responsabilité reste dans « Anciens ». Les responsabilités qu'un comité dissous attribuait sont désormais attribuées par le chef de centre.
+Ceux qui tenaient le rôle le perdent dès aujourd'hui, avec ses droits. Rien n'est effacé : le comité ou la responsabilité reste dans « Anciens ». Les responsabilités de centre ou d'équipe qu'un comité dissous attribuait sont désormais attribuées par le chef de centre. Si le comité attribue encore une responsabilité de portée « comité », la dissolution est refusée : changez d'abord qui attribue cette responsabilité (message « Changez d'abord qui attribue « … » »).

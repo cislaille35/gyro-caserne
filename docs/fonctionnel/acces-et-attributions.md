@@ -58,10 +58,10 @@ Avant d'attribuer une responsabilité, elle doit exister. La page « Réglages �
 **Effets d'une dissolution ou d'un archivage**, le jour même, après une case « Je confirme » :
 
 - les attributions en cours (sur ce comité, ou de cette responsabilité) s'arrêtent la veille : leurs droits disparaissent dès aujourd'hui. Celles qui commencent aujourd'hui ou plus tard sont supprimées ;
-- un comité dissous n'attribue plus rien : les responsabilités qu'il attribuait passent au chef de centre ;
+- un comité dissous n'attribue plus rien : les responsabilités de centre ou d'équipe qu'il attribuait passent au chef de centre. Tant qu'il attribue une responsabilité de portée « comité » en cours, il ne se dissout pas : on change d'abord qui l'attribue (message « Changez d'abord qui attribue « … » ») ;
 - le journal note l'action et le nombre d'attributions closes.
 
-Exemple : le comité « Sport » attribue « Référent sport », avec le droit « Gérer le stock ». Le comité est dissous le 3 mars : son rapporteur perd ses droits dès le 3 mars, et « Référent sport » est désormais attribué par le chef de centre.
+Exemple : le comité « Sport » attribue « Référent sport », avec le droit « Gérer le stock ». Le comité est dissous le 3 mars : son rapporteur perd ses droits dès le 3 mars, et « Référent sport » est désormais attribué par le chef de centre. Si « Sport » attribuait une responsabilité de portée « comité », il faudrait d'abord confier cette attribution à un autre comité.
 
 ## Super administrateur
 

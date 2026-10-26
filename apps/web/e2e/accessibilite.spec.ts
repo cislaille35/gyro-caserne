@@ -57,14 +57,11 @@ for (const theme of ['auto', 'sombre']) {
 	});
 }
 
-// Le bloc repliable dont le titre est donné, ouvert. L'hydratation le refermerait : on attend que la page soit prête.
+// Le bloc repliable dont le titre est donné, ouvert. L'hydratation ne referme pas un bloc ouvert.
 async function ouvrir(page: Page, titre: string) {
-	await page.waitForLoadState('networkidle');
 	const bloc = page.locator('details').filter({ has: page.locator('summary', { hasText: titre }) });
-	await expect(async () => {
-		if ((await bloc.getAttribute('open')) === null) await bloc.locator('summary').click();
-		await expect(bloc.locator('form').first()).toBeVisible({ timeout: 1000 });
-	}).toPass({ timeout: 20_000 });
+	await bloc.locator('summary').click();
+	await expect(bloc.locator('form').first()).toBeVisible();
 	return bloc;
 }
 

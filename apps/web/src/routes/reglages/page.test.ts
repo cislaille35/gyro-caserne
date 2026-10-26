@@ -13,7 +13,7 @@ const responsabilites = [
 	{ id: 12, nom: 'Rapporteur de comité', nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: [{ droit: 'ATTRIBUER_RESPONSABILITE', verrouille: false }], systeme: null, archiveeLe: null, titulaires: 2, protegee: true },
 	{ id: 13, nom: 'Ancien rôle', nature: 'mission', portee: 'centre', attributeur: { type: 'comite', id: 2 }, droits: [], systeme: null, archiveeLe: '2026-04-02', titulaires: 0, protegee: false }
 ];
-const data = { comites, responsabilites, comitesChoix: [{ id: 1, nom: 'Comité du centre' }, { id: 2, nom: 'Amicale' }], equipes: [{ id: 1, nom: 'Équipe 1' }], peutPouvoir: false,
+const data = { comites, responsabilites, comitesChoix: [{ id: 1, nom: 'Comité du centre' }, { id: 2, nom: 'Amicale' }], peutPouvoir: false,
 	droitsMetier: ['VOIR_PLANNING', 'TRAITER_ANOMALIE', 'VALIDER_REMPLACEMENT'],
 	droitsPouvoir: ['GERER_ACCES', 'ATTRIBUER_RESPONSABILITE', 'GERER_LISTES', 'GERER_COMITES']
 };
@@ -55,8 +55,8 @@ describe('page Réglages', () => {
 
 	it('avertit avant dissolution et archivage, avec la case « Je confirme »', () => {
 		const page = html({ data, form: null });
-		expect(page).toContain('Les 3 personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.');
-		expect(page).toContain('Les 2 personnes');
+		expect(page).toContain('Les 3 personnes qui tiennent un rôle dans ce comité le perdent aujourd’hui, avec ses droits ; les nominations à venir sont annulées. Les responsabilités qu’il attribuait seront attribuées par le chef de centre.');
+		expect(page).toContain('Les 2 personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.');
 		expect(page).toContain('Je confirme');
 		expect(page).toMatch(/<input[^>]*name="confirmation"[^>]*value="oui"/);
 	});
@@ -80,6 +80,30 @@ describe('page Réglages', () => {
 		expect(page).toContain('Le formulaire contient des erreurs.');
 		expect(page.match(/Le formulaire contient des erreurs\./g)).toHaveLength(1);
 		expect(page).toMatch(/<details[^>]*open/);
+	});
+
+	it('lie le message des droits aux deux groupes de droits', () => {
+		const page = html({ data, form: { cible: 'resp-11', erreurs: { droits: 'Un droit verrouillé ne se retire pas.' }, valeurs: { nom: 'Référent engins' } } });
+		expect(page).toMatch(/<p[^>]*id="resp-11-droits-erreur"[^>]*>Un droit verrouillé/);
+		const groupes = page.match(/<fieldset[^>]*resp-11-droits-erreur[^>]*>/g) ?? [];
+		expect(groupes).toHaveLength(2);
+		expect(html({ data, form: null })).not.toContain('droits-erreur');
+	});
+
+	it('met dans le bandeau du haut le message d’un formulaire inconnu', () => {
+		for (const cible of ['comite-?', 'resp-?', 'comite-3']) {
+			const page = html({ data, form: { cible, message: 'Comité inconnu.' } });
+			expect(page).toMatch(/<h1[^>]*>[^<]*<\/h1> <div role="alert">(<!--[^>]*-->)*<p[^>]*class="echec[^"]*"[^>]*>Comité inconnu\./);
+			expect(page.match(/Comité inconnu\./g)).toHaveLength(1);
+		}
+		const connu = html({ data, form: { cible: 'comite-2', message: 'Comité inconnu.' } });
+		expect(connu.indexOf('Comité inconnu.')).toBeGreaterThan(connu.indexOf('Modifier ou dissoudre « Amicale »'));
+	});
+
+	it('n’impose pas d’attribut open à un bloc sans cible : l’hydratation ne le referme pas', () => {
+		const page = html({ data, form: null });
+		expect(page).not.toMatch(/<details[^>]*\sopen/);
+		expect(html({ data, form: { cible: 'comite-2', message: 'x' } }).match(/<details[^>]*\sopen/g)).toHaveLength(1);
 	});
 
 	it('annonce un succès dans une région de statut', () => {

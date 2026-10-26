@@ -1,5 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
-import { asc, eq } from 'drizzle-orm';
+import { asc } from 'drizzle-orm';
 import {
 	aLeDroit,
 	archiverResponsabilite,
@@ -10,7 +10,6 @@ import {
 	DROITS_POUVOIR,
 	estDroitPouvoir,
 	dissoudreComite,
-	equipe,
 	comite,
 	listerComites,
 	listerResponsabilites,
@@ -49,7 +48,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		responsabilites: listes ? await listerResponsabilites(base, acteur, aujourdhui) : null,
 		// Pour choisir le comité qui attribue, même sans le droit de gérer les comités.
 		comitesChoix: (await base.select({ id: comite.id, nom: comite.nom, dissousLe: comite.dissousLe }).from(comite).orderBy(asc(comite.nom))).filter((c) => c.dissousLe === null),
-		equipes: await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		// Les droits en deux groupes, pour les cases à cocher.
 		droitsMetier: DROITS.filter((d) => !estDroitPouvoir(d)),
 		droitsPouvoir: DROITS.filter(estDroitPouvoir),

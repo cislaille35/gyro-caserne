@@ -45,12 +45,26 @@
 	const avertissement = (n: number) =>
 		n === 0 ? 'Personne ne tient ce rôle aujourd’hui.' : n === 1 ? 'La personne qui tient ce rôle le perd aujourd’hui, avec ses droits.' : `Les ${n} personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.`;
 
+	const SUITE_COMITE = 'les nominations à venir sont annulées. Les responsabilités qu’il attribuait seront attribuées par le chef de centre.';
+	const avertissementComite = (n: number) =>
+		n === 0
+			? `Personne ne tient de rôle dans ce comité aujourd’hui ; ${SUITE_COMITE}`
+			: n === 1
+				? `La personne qui tient un rôle dans ce comité le perd aujourd’hui, avec ses droits ; ${SUITE_COMITE}`
+				: `Les ${n} personnes qui tiennent un rôle dans ce comité le perdent aujourd’hui, avec ses droits ; ${SUITE_COMITE}`;
+
 	// Ce qui revient du serveur pour un formulaire donné (erreurs, saisie à réafficher).
 	const concerne = (cible: string) => form?.cible === cible;
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
 	const saisie = (cible: string, champ: 'nom' | 'theme' | 'nature' | 'portee' | 'attributeur', defaut: string) => (concerne(cible) ? (form?.valeurs?.[champ] ?? defaut) : defaut);
 	const droitsCoches = (cible: string, actuels: string[]) => (concerne(cible) && form?.valeurs?.droits ? (form.valeurs.droits as string[]) : actuels);
-	const ouvert = (cible: string) => concerne(cible) && !form?.succes;
+	// Un bloc s'ouvre seulement s'il est visé ; sinon aucun attribut open n'est posé, et l'hydratation ne referme pas ce que l'agent a ouvert.
+	const ouvert = (cible: string) => (concerne(cible) && !form?.succes ? { open: true } : {});
+	// Le formulaire visé existe-t-il sur la page ? Sinon le message va dans le bandeau du haut.
+	const cibles = $derived(
+		new Set(['comite-nouveau', 'resp-nouvelle', ...comitesEnCours.map((c) => `comite-${c.id}`), ...respEnCours.map((r) => `resp-${r.id}`)])
+	);
+	const horsFormulaire = $derived(form?.cible !== undefined && !cibles.has(form.cible) && (form.message || form.erreurs));
 </script>
 
 <svelte:head>
@@ -70,7 +84,7 @@
 {#snippet droitsChamps(prefixe: string, cible: string, actuels: { droit: string; verrouille: boolean }[])}
 	{@const coches = droitsCoches(cible, actuels.map((d) => d.droit))}
 	{@const fermes = actuels.filter((d) => d.verrouille).map((d) => d.droit)}
-	<fieldset>
+	<fieldset aria-describedby={erreurs(cible).droits ? `${prefixe}-droits-erreur` : undefined}>
 		<legend>Droits métier</legend>
 		<div class="cases">
 			{#each data.droitsMetier as droit (droit)}
@@ -82,7 +96,7 @@
 			{/each}
 		</div>
 	</fieldset>
-	<fieldset aria-describedby={data.peutPouvoir ? undefined : `${prefixe}-pouvoir`}>
+	<fieldset aria-describedby={[data.peutPouvoir ? '' : `${prefixe}-pouvoir`, erreurs(cible).droits ? `${prefixe}-droits-erreur` : ''].filter(Boolean).join(' ') || undefined}>
 		<legend>Droits de pouvoir</legend>
 		{#if !data.peutPouvoir}
 			<p id="{prefixe}-pouvoir" class="aide">Seuls le chef de centre, son adjoint et le super administrateur ajoutent ou retirent un droit de pouvoir.</p>
@@ -104,7 +118,7 @@
 			{/each}
 		</div>
 	</fieldset>
-	{#if erreurs(cible).droits}<p class="erreur">{erreurs(cible).droits}</p>{/if}
+	{#if erreurs(cible).droits}<p class="erreur" id="{prefixe}-droits-erreur">{erreurs(cible).droits}</p>{/if}
 {/snippet}
 
 {#snippet champsResponsabilite(prefixe: string, cible: string, r: Resp | null)}
@@ -128,6 +142,9 @@
 
 <div class="reglages">
 	<h1>Réglages du centre</h1>
+	<div role="alert">
+		{#if horsFormulaire}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+	</div>
 	<div role="status">
 		{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
 	</div>
@@ -152,7 +169,7 @@
 				<div class="lignes">
 					{#each comitesEnCours as c (c.id)}
 						{@const cible = `comite-${c.id}`}
-						<details open={ouvert(cible)}>
+						<details {...ouvert(cible)}>
 							<summary>Modifier ou dissoudre « {c.nom} »</summary>
 							{@render retour(cible)}
 							<form method="POST" action="?/modifierComite" class="formulaire">
@@ -171,7 +188,7 @@
 							{:else}
 								<form method="POST" action="?/dissoudreComite" class="formulaire danger">
 									<input type="hidden" name="id" value={c.id} />
-									<p class="avertissement">{avertissement(c.membresEnCours)}</p>
+									<p class="avertissement">{avertissementComite(c.membresEnCours)}</p>
 									{@render confirmation(`${cible}-confirmation`)}
 									<Bouton type="submit" variante="secondaire">Dissoudre le comité</Bouton>
 								</form>
@@ -180,7 +197,7 @@
 					{/each}
 				</div>
 
-				<details class="nouveau" open={ouvert('comite-nouveau')}>
+				<details class="nouveau" {...ouvert('comite-nouveau')}>
 					<summary>Créer un comité</summary>
 					{@render retour('comite-nouveau')}
 					<form method="POST" action="?/creerComite" class="formulaire">
@@ -226,7 +243,7 @@
 				<div class="lignes">
 					{#each respEnCours as r (r.id)}
 						{@const cible = `resp-${r.id}`}
-						<details open={ouvert(cible)}>
+						<details {...ouvert(cible)}>
 							<summary>Modifier ou archiver « {r.nom} »</summary>
 							{@render retour(cible)}
 							{#if r.protegee}
@@ -252,7 +269,7 @@
 					{/each}
 				</div>
 
-				<details class="nouveau" open={ouvert('resp-nouvelle')}>
+				<details class="nouveau" {...ouvert('resp-nouvelle')}>
 					<summary>Créer une responsabilité</summary>
 					{@render retour('resp-nouvelle')}
 					<form method="POST" action="?/creerResponsabilite" class="formulaire">
