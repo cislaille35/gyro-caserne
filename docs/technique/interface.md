@@ -37,6 +37,10 @@ Réglés sur l'appareil, à la page `/affichage`, même sans être connecté.
 
 `gyroSelonNiveau` (`src/lib/gyro/niveau.ts`) en décide. « Réduire les animations » du téléphone arrête tout mouvement décoratif (règle globale dans `app.css`) ; l'humour des textes reste.
 
+Au niveau Vivant, les animations décoratives de Gyro tournent en boucle. Pour les arrêter : la page « Affichage » (Sobre ou Équilibré), accessible depuis la navigation de chaque page, ou « réduire les animations » du téléphone (RGAA 13.8 / WCAG 2.2.2 ; mécanisme à confirmer par le porteur).
+
+La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le 14).
+
 ## Coquille
 
 `src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête, navigation en bas sur téléphone et menu latéral à partir de 1024 px, `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Les entrées sont dans `navigation.ts` : chaque fonction y ajoutera la sienne.
@@ -84,6 +88,6 @@ Dans `src/lib/gyro/` :
 - premier Tab sur « Aller au contenu », puis Entrée amène au contenu ;
 - thème sombre envoyé par le serveur ; aucune animation avec « réduire les animations » ; cinq appuis sur Gyro au clavier.
 
-Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Aucune porte dérobée dans l'appli.
+Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Aucune porte dérobée dans l'appli. Si `.dev.vars` contient une `BREVO_CLE=` non vide, les tests s'arrêtent avec une erreur : les tests locaux ne doivent jamais envoyer de vrais e-mails.
 
 En local, si le Chromium de Playwright n'est pas installé : `CHROMIUM=/usr/bin/chromium pnpm --filter @gyro-caserne/web test:a11y`, sans autre serveur de développement lancé sur le même port.

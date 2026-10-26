@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Bouton from '#lib/ui/Bouton.svelte';
 	let { data, form } = $props();
 
 	const niveaux = [
@@ -41,7 +42,7 @@
 				</label>
 			{/each}
 		</fieldset>
-		<button type="submit">Enregistrer</button>
+		<Bouton type="submit">Enregistrer</Bouton>
 	</form>
 	<div role="status">
 		{#if form?.enregistre}
@@ -83,18 +84,7 @@
 		width: 1.5rem;
 		height: 1.5rem;
 		flex: none;
-		accent-color: var(--rouge);
-	}
-	button {
-		min-height: var(--cible);
-		padding: 0 1.5rem;
-		border: 0;
-		border-radius: var(--rayon-petit);
-		background: var(--rouge);
-		color: var(--sur-rouge);
-		font: inherit;
-		font-weight: 600;
-		cursor: pointer;
+		accent-color: var(--accent);
 	}
 	[role='status'] {
 		margin-top: 1rem;

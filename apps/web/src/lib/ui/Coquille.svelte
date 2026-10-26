@@ -104,6 +104,7 @@
 		inset: auto 0 0 0;
 		z-index: 10;
 		display: flex;
+		padding-bottom: env(safe-area-inset-bottom);
 		background: var(--surface);
 		border-top: 1px solid var(--trait);
 	}

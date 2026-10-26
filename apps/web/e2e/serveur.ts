@@ -48,8 +48,15 @@ async function attendre(url: string) {
 	throw new Error(`Serveur muet sur ${url}, voir ${JOURNAL}`);
 }
 
+function refuserVraiesCles() {
+	const fichier = `${centre}.dev.vars`;
+	if (/^BREVO_CLE=\S/m.test(readFileSync(fichier, 'utf8')))
+		throw new Error(`BREVO_CLE est renseignée dans ${fichier} : les tests locaux enverraient de vrais e-mails. Videz cette ligne avant de lancer les tests.`);
+}
+
 export default async function preparer(config: FullConfig) {
 	secretsDeTest();
+	refuserVraiesCles();
 	rmSync(`${centre}.wrangler`, { recursive: true, force: true });
 	execSync('pnpm base-locale && pnpm jeu-de-depart', { cwd: appli, stdio: 'inherit', env: { ...process.env, CI: '1' } });
 

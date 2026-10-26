@@ -26,6 +26,6 @@ export function tenueDuMoment(date: Date): Tenue {
 	if (heure < 10) return 'ptitdej';
 	if (mois === 11 || mois === 12) return 'calendriers';
 	if (mois >= 6 && mois <= 8) return 'ete';
-	if (mois === 12 || mois <= 2) return 'hiver';
+	if (mois <= 2) return 'hiver';
 	return 'normal';
 }
