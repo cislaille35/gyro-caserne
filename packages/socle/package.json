@@ -1,0 +1,27 @@
+{
+  "name": "@gyro-caserne/socle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Socle de données : base, personnes, rôles, droits et journal.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./base-de-test": "./test/base-de-test.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "NODE_OPTIONS=--no-warnings vitest run",
+    "migrations": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@gyro-caserne/centre": "workspace:*",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261023.1",
+    "@types/node": "24.19.2",
+    "drizzle-kit": "0.31.11",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}

@@ -40,6 +40,11 @@ describe('centres du dépôt', () => {
 			const { config: modele } = configCloudflare('../../../centres/exemple/centre.ts');
 			expect(config.compatibility_date, 'compatibility_date').toBe(modele.compatibility_date);
 			expect(config.compatibility_flags, 'compatibility_flags').toEqual(modele.compatibility_flags);
+			const base = config.d1_databases.find((d: { binding: string }) => d.binding === 'BASE');
+			const baseModele = modele.d1_databases.find((d: { binding: string }) => d.binding === 'BASE');
+			expect(base, 'base D1 « BASE »').toBeDefined();
+			expect(base?.migrations_dir, 'migrations_dir').toBe(baseModele?.migrations_dir);
+			expect(base?.database_name, 'database_name').toBe(`gyro-caserne-${dossier}`);
 		});
 	}
 });

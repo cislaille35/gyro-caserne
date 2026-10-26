@@ -19,7 +19,11 @@ export default defineConfig({
 		sveltekit({
 			preprocess: vitePreprocess(),
 			// La config Cloudflare (nom de l'appli, base, stockage) est celle du centre
-			adapter: adapter({ config: fileURLToPath(new URL(`../../centres/${centre}/wrangler.jsonc`, import.meta.url)) }),
+			// La base locale de développement est rangée avec le centre, comme pour `pnpm base-locale`
+			adapter: adapter({
+				config: fileURLToPath(new URL(`../../centres/${centre}/wrangler.jsonc`, import.meta.url)),
+				platformProxy: { persist: { path: fileURLToPath(new URL(`../../centres/${centre}/.wrangler/state/v3`, import.meta.url)) } }
+			}),
 			// En-tête Content-Security-Policy : seuls les scripts de l'appli peuvent s'exécuter
 			csp: {
 				mode: 'auto',

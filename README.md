@@ -19,6 +19,7 @@ Laillé est le premier centre décrit : `centres/laille/centre.ts`. `centres/exe
 ```
 apps/web           l'appli (SvelteKit sur Cloudflare Workers)
 packages/centre    la description d'un centre et sa validation
+packages/socle     personnes, profils, droits : base et actions protégées
 centres/laille     la description du CIS de Laillé
 centres/exemple    un centre fictif, modèle pour en décrire un nouveau
 ```
@@ -37,15 +38,22 @@ Il faut Node 24 (voir `.nvmrc`) et pnpm, activé par `corepack enable pnpm`.
 
 ```bash
 pnpm install
+cp apps/web/.dev.vars.exemple centres/exemple/.dev.vars   # secrets de développement, à compléter
+pnpm --filter @gyro-caserne/web base-locale               # crée la base locale (migrations)
+pnpm --filter @gyro-caserne/web jeu-de-depart              # jeu de départ fictif dans la base locale
 pnpm dev          # appli en développement, http://localhost:5173
 pnpm check        # types
 pnpm test         # tests
 pnpm build        # compilation
 ```
 
+Après une mise à jour qui refond les migrations (avant tout déploiement, elles peuvent être réécrites), repartir d'une base locale neuve : effacer `centres/<id>/.wrangler/state`, puis relancer `base-locale` et `jeu-de-depart`.
+
 Sans `CENTRE`, l'appli est construite pour le centre fictif `exemple`. Pour un vrai centre : `CENTRE=<id> pnpm build`, avec `centres/<id>/centre.ts`.
 
 Pour l'essayer dans le moteur Cloudflare local : `pnpm --filter @gyro-caserne/web preview` (avec `CENTRE=<id>` pour un autre centre).
+
+En ligne, `CENTRE` est obligatoire, sans valeur par défaut : `CENTRE=<id> pnpm deployer` (sinon la commande s'arrête avant de compiler).
 
 ## Ajouter un centre
 

@@ -5,7 +5,16 @@
 	"name": "gyro-caserne-exemple",
 	"main": "../../apps/web/.svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2026-10-01",
-	"compatibility_flags": ["nodejs_als"],
-	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" }
-	// La base D1 et le stockage R2 des photos s'ajouteront ici avec les premières fonctions.
+	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
+	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
+	// database_id : remplissage, le vrai identifiant sera posé avec le déploiement.
+	"d1_databases": [
+		{
+			"binding": "BASE",
+			"database_name": "gyro-caserne-exemple",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "../../packages/socle/migrations"
+		}
+	]
+	// Le stockage R2 des photos s'ajoutera ici avec les premières fonctions.
 }
