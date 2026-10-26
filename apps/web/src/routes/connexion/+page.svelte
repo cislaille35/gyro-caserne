@@ -19,7 +19,7 @@
 			<p role="status">Si cette adresse est autorisée, un lien vient de partir. Pensez à regarder dans vos courriers indésirables.</p>
 		{:else}
 			<form method="post">
-				<Champ id="email" name="email" type="email" libelle="Adresse e-mail" autocomplete="email" />
+				<Champ id="email" name="email" type="email" libelle="Adresse e-mail" autocomplete="email" requis />
 				<Bouton type="submit">Recevoir un lien de connexion</Bouton>
 			</form>
 		{/if}

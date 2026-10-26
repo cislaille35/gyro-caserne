@@ -7,7 +7,8 @@
 		valeur = $bindable(''),
 		erreur,
 		aide,
-		autocomplete
+		autocomplete,
+		requis = false
 	}: {
 		id: string;
 		libelle: string;
@@ -17,6 +18,7 @@
 		erreur?: string;
 		aide?: string;
 		autocomplete?: AutoFill;
+		requis?: boolean;
 	} = $props();
 
 	const idAide = $derived(`${id}-aide`);
@@ -32,6 +34,7 @@
 		{name}
 		{type}
 		{autocomplete}
+		required={requis}
 		bind:value={valeur}
 		aria-invalid={erreur ? 'true' : undefined}
 		aria-describedby={decrit}

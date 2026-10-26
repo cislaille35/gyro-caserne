@@ -23,6 +23,11 @@ describe('Champ', () => {
 		expect(page).not.toContain('aria-invalid');
 	});
 
+	it('marque le champ obligatoire seulement si demandé', () => {
+		expect(html(Champ, { ...base, requis: true })).toMatch(/<input[^>]*required/);
+		expect(html(Champ, base)).not.toMatch(/<input[^>]*required/);
+	});
+
 	it("signale l'erreur et la relie à l'input", () => {
 		const page = html(Champ, { ...base, erreur: 'Adresse invalide' });
 		expect(page).toContain('aria-invalid="true"');
