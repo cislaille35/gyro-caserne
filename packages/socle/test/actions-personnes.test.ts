@@ -408,7 +408,8 @@ describe('modifierFiche', () => {
 		const lignes = await base.select().from(journal).where(eq(journal.action, 'modifier_fiche'));
 		expect(lignes).toHaveLength(1);
 		expect(lignes[0]).toMatchObject({ acteur: 'super:admin@exemple.fr', cibleType: 'personne', cibleId: id });
-		expect(JSON.parse(lignes[0]!.details!)).toEqual({ nom: 'Grand', naissance: '1990-05-12' });
+		// Les noms des champs seulement : une valeur effacée au départ ne doit pas survivre au journal.
+		expect(JSON.parse(lignes[0]!.details!)).toEqual({ champs: ['nom', 'naissance'] });
 	});
 
 	it('n’écrit que les champs de la fiche', async () => {
@@ -468,6 +469,13 @@ describe('modifierFiche', () => {
 		expect(p!.naissance).toBeNull();
 	});
 
+	it('refuse une adresse, un prénom ou un nom absents ou qui ne sont pas du texte', async () => {
+		const { base, id } = await avecAgent();
+		await expect(modifierFiche(base, superAdmin, id, { email: null } as never, aujourdhui)).rejects.toThrow('Adresse invalide');
+		await expect(modifierFiche(base, superAdmin, id, { prenom: null } as never, aujourdhui)).rejects.toThrow('Prénom invalide');
+		await expect(modifierFiche(base, superAdmin, id, { nom: 42 } as never, aujourdhui)).rejects.toThrow('Nom invalide');
+	});
+
 	it('refuse un grade, un profil, une personne inconnus ou un nom vide', async () => {
 		const { base, id } = await avecAgent();
 		await expect(modifierFiche(base, superAdmin, id, { gradeId: 99 }, aujourdhui)).rejects.toThrow('Grade inconnu');
@@ -491,6 +499,37 @@ describe('retirerEquipe', () => {
 	it('refuse sans équipe en cours', async () => {
 		const { base, agent } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await expect(retirerEquipe(base, superAdmin, id, aujourdhui)).rejects.toThrow('Aucune équipe en cours');
+	});
+
+	it('efface aussi le changement d’équipe prévu', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
+		await retirerEquipe(base, superAdmin, id, aujourdhui);
+		const lignes = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
+		expect(lignes).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: '2026-10-24' }]);
+	});
+
+	it('une affectation commencée aujourd’hui est supprimée, sans fin avant le début', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await retirerEquipe(base, superAdmin, id, aujourdhui);
+		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([]);
+	});
+
+	it('sans équipe en cours, efface l’affectation à venir', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
+		await retirerEquipe(base, superAdmin, id, aujourdhui);
+		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([]);
+	});
+
+	it('refuse si l’affectation est terminée, sans rien d’autre à venir', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await retirerEquipe(base, superAdmin, id, '2026-06-01');
 		await expect(retirerEquipe(base, superAdmin, id, aujourdhui)).rejects.toThrow('Aucune équipe en cours');
 	});
 

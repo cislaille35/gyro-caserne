@@ -51,9 +51,9 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
   - sans `GERER_ACCES` sur le centre, l'acteur ne touche qu'une personne sans attribution en cours ou à venir, dont il détient tous les droits du profil ;
   - vers « parti » : naissance et contact d'urgence effacés dans le même `batch` ; ils restent vides au retour.
 - `modifierFiche` : `GERER_ACCES` sur le centre, et la même protection du chef de centre et des adjoints que `changerStatut` (messages propres à la fiche) :
-  - seuls les champs changés sont écrits et journalisés (`modifier_fiche`) ; rien de changé, rien d'écrit ;
+  - seuls les champs changés sont écrits ; le journal (`modifier_fiche`) n'en garde que les noms, jamais les valeurs (un effacement au départ ne doit pas y survivre) ; rien de changé, rien d'écrit ;
   - l'adresse est normalisée et unique (« Adresse déjà utilisée ») ; la changer ferme, dans le même `batch`, les sessions et les liens en attente de l'ancienne. La ligne `user` de Better Auth garde l'ancienne adresse, qui ne se connecte plus (aucune fiche) ; la nouvelle crée son compte à la première connexion.
-- `retirerEquipe` : `GERER_ACCES` sur le centre ; termine l'affectation ouverte la veille (effet le jour même), journal `retirer_equipe`.
+- `retirerEquipe` : `GERER_ACCES` sur le centre ; l'affectation en cours se termine la veille (effet le jour même), ou est supprimée si elle commence aujourd'hui ; les affectations à venir sont supprimées ; journal `retirer_equipe`.
 - `ajouterPersonne` accepte aussi grade, date de grade, téléphone, naissance, entrée au centre et engagement SPV, dates vérifiées.
 - `droitsDe(base, acteur, date)` liste les droits tenus ; `aLeDroit(base, acteur, droit, perimetre, date)` répond oui ou non. Toute action du socle commence par là et refuse avec `RefusDroit`, dont le message dit pourquoi quand le refus vient d'une des règles ci-dessus.
 - Une action qui écrit plusieurs lignes (dont le journal) passe en un seul `batch` : tout ou rien.

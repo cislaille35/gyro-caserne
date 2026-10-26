@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, gte, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
 import { enCours, exigerDate } from '../dates.ts';
@@ -168,14 +168,13 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 
 	// Seuls ces champs : le statut ou le contact d'urgence ont leurs propres règles.
 	const nouveaux = Object.fromEntries(CHAMPS_FICHE.filter((cle) => champs[cle] !== undefined).map((cle) => [cle, champs[cle]])) as Partial<ChampsFiche>;
-	if (champs.email !== undefined) {
-		nouveaux.email = normaliserAdresse(champs.email);
-		if (!nouveaux.email) throw new DonneeInvalide('Adresse vide');
-	}
-	for (const cle of ['prenom', 'nom'] as const) {
-		if (champs[cle] === undefined) continue;
-		nouveaux[cle] = champs[cle].trim();
-		if (!nouveaux[cle]) throw new DonneeInvalide(cle === 'nom' ? 'Nom vide' : 'Prénom vide');
+	const textes = { email: 'Adresse', prenom: 'Prénom', nom: 'Nom' } as const;
+	for (const cle of ['email', 'prenom', 'nom'] as const) {
+		const valeur: unknown = champs[cle];
+		if (valeur === undefined) continue;
+		if (typeof valeur !== 'string') throw new DonneeInvalide(`${textes[cle]} invalide`);
+		nouveaux[cle] = cle === 'email' ? normaliserAdresse(valeur) : valeur.trim();
+		if (!nouveaux[cle]) throw new DonneeInvalide(`${textes[cle]} vide`);
 	}
 	await exigerComplements(base, nouveaux);
 	if (nouveaux.profilId !== undefined) await exigerProfil(base, nouveaux.profilId);
@@ -186,22 +185,35 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 
 	const ecritures = [
 		base.update(personne).set(changes).where(eq(personne.id, id)),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: changes }, aujourdhui)
+		// Les noms des champs seulement : une valeur effacée au départ ne doit pas survivre au journal.
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes) } }, aujourdhui)
 	] as const;
 	// L'adresse sert à la connexion : l'ancienne ne doit plus ouvrir de session.
 	await base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]);
 }
 
+// L'affectation en cours se termine la veille (supprimée si elle commence aujourd'hui) ; celles à venir sont supprimées.
 export async function retirerEquipe(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	await exiger(base, acteur, centre, aujourdhui);
-	const ouverte = and(eq(affectationEquipe.personneId, id), isNull(affectationEquipe.fin));
-	const [enCoursOuverte] = await base.select().from(affectationEquipe).where(ouverte);
-	if (!enCoursOuverte) throw new DonneeInvalide('Aucune équipe en cours');
-	await base.batch([
-		base.update(affectationEquipe).set({ fin: veille(aujourdhui) }).where(ouverte),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: enCoursOuverte.equipeId } }, aujourdhui)
-	]);
+	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
+	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
+	if (!courante && !affectations.some((a) => a.debut > aujourdhui)) throw new DonneeInvalide('Aucune équipe en cours');
+
+	const aSupprimer = courante?.debut === aujourdhui ? gte(affectationEquipe.debut, aujourdhui) : gt(affectationEquipe.debut, aujourdhui);
+	const ecritures = [
+		base.delete(affectationEquipe).where(and(eq(affectationEquipe.personneId, id), aSupprimer)),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: courante?.equipeId ?? null } }, aujourdhui)
+	] as const;
+	if (!courante || courante.debut === aujourdhui) {
+		await base.batch(ecritures);
+		return;
+	}
+	const terminer = base
+		.update(affectationEquipe)
+		.set({ fin: veille(aujourdhui) })
+		.where(and(eq(affectationEquipe.personneId, id), eq(affectationEquipe.debut, courante.debut)));
+	await base.batch([terminer, ...ecritures]);
 }
 
 export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {
