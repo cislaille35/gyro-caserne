@@ -32,6 +32,13 @@ export const DROITS = [
 ] as const;
 export type Droit = (typeof DROITS)[number];
 
+// Droits qui donnent du pouvoir sur l'appli ; tous les autres sont des droits métier.
+export const DROITS_POUVOIR = ['GERER_ACCES', 'ATTRIBUER_RESPONSABILITE', 'GERER_LISTES', 'GERER_COMITES'] as const;
+
+export function estDroitPouvoir(d: Droit): boolean {
+	return (DROITS_POUVOIR as readonly Droit[]).includes(d);
+}
+
 export const TYPES_PERIMETRE = ['centre', 'equipe', 'comite', 'salon', 'ressource'] as const;
 export type TypePerimetre = (typeof TYPES_PERIMETRE)[number];
 

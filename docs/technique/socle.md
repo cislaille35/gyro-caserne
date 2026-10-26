@@ -21,9 +21,9 @@ erDiagram
 | `personne` | Une adresse autorisée : nom, grade, profil, statut opérationnel |
 | `profil`, `profil_droit` | Droits de base d'un type de personne (agent, réserve citoyenne…), chacun sur un périmètre |
 | `equipe`, `affectation_equipe` | Équipes du centre et qui y est, avec dates |
-| `responsabilite`, `responsabilite_droit` | Fonctions (chef de centre…) et missions (référent pharmacie…), avec leurs droits |
+| `responsabilite`, `responsabilite_droit` | Fonctions (chef de centre…) et missions (référent pharmacie…), avec leurs droits ; `archivee_le` : date d'archivage, vide tant qu'elle sert |
 | `attribution` | Qui occupe quelle responsabilité, sur quel périmètre, de quand à quand |
-| `comite` | Comités du centre ; un comité peut attribuer des responsabilités |
+| `comite` | Comités du centre ; un comité peut attribuer des responsabilités ; `dissous_le` : date de dissolution, vide tant qu'il existe |
 | `grade`, `champ_centre`, `valeur_champ` | Grades, et champs de fiche propres au centre |
 | `journal` | Chaque action sensible : auteur, date, cible, détails |
 | `user`, `session`, `account`, `verification` | Connexion (Better Auth, noms imposés) |
@@ -31,10 +31,17 @@ erDiagram
 
 Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est en cours si `debut <= date <= fin` (fin vide : sans fin).
 
+## Migrations
+
+- Générées par `pnpm migrations` (drizzle-kit) dans `packages/socle/migrations/`, appliquées dans l'ordre.
+- La préprod a des données : une migration publiée n'est jamais réécrite, une nouvelle n'efface ni ne transforme rien.
+- Une donnée de départ ajoutée après coup va dans le jeu de départ (bases vides) **et** dans la migration, en insertion gardée qui ne joue que sur une base déjà remplie (`EXISTS profil`) et sans doublon (`NOT EXISTS`). Exemple : `0001` ajoute le « Référent technique ».
+
 ## Droits
 
 - Un **droit** (`GERER_ACCES`, `VOIR_PLANNING`…) est toujours accordé sur un **périmètre** : le centre, une équipe, un comité…
   Le centre couvre tous les périmètres ; sinon, il faut le même périmètre.
+- **Droits de pouvoir** (`DROITS_POUVOIR`, `estDroitPouvoir`) : `GERER_ACCES`, `ATTRIBUER_RESPONSABILITE`, `GERER_LISTES`, `GERER_COMITES`. Tous les autres sont des droits métier.
 - Une personne tient ses droits de deux sources :
   - son **profil** ;
   - ses **attributions en cours**, chacune sur le type de périmètre de sa responsabilité.

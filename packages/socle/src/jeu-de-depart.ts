@@ -59,7 +59,9 @@ const RESPONSABILITES: {
 	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },
 	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
-	{ nom: 'Référent pharmacie', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_STOCK'] }
+	{ nom: 'Référent pharmacie', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_STOCK'] },
+	// Attribué par le chef de centre. La migration 0001 l'ajoute aux bases déjà remplies.
+	{ nom: 'Référent technique', nature: 'fonction', typePerimetre: 'centre', parComiteCentre: false, verrouilles: false, droits: ['GERER_LISTES', 'GERER_COMITES'] }
 ];
 
 // Ne fait rien si un profil existe déjà ; sinon écrit tout d'un bloc.
