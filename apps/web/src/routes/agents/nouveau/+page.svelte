@@ -3,6 +3,7 @@
 	import Carte from '#lib/ui/Carte.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import Choix from '#lib/ui/Choix.svelte';
+	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
 
 	let { data, form } = $props();
 
@@ -23,10 +24,10 @@
 	<form method="POST">
 		<Carte titre="Identité et contact">
 			<div class="champs">
-				<Champ id="prenom" name="prenom" libelle="Prénom" requis valeur={valeurs.prenom ?? ''} erreur={erreurs.prenom} />
-				<Champ id="nom" name="nom" libelle="Nom" requis valeur={valeurs.nom ?? ''} erreur={erreurs.nom} />
-				<Champ id="email" name="email" type="email" libelle="E-mail" aide="Sert à la connexion." requis valeur={valeurs.email ?? ''} erreur={erreurs.email} />
-				<Champ id="telephone" name="telephone" type="tel" libelle="Téléphone" valeur={valeurs.telephone ?? ''} erreur={erreurs.telephone} />
+				<Champ id="prenom" name="prenom" libelle="Prénom" requis maxlength={60} valeur={valeurs.prenom ?? ''} erreur={erreurs.prenom} />
+				<Champ id="nom" name="nom" libelle="Nom" requis maxlength={60} valeur={valeurs.nom ?? ''} erreur={erreurs.nom} />
+				<Champ id="email" name="email" type="email" libelle="E-mail" aide="Sert à la connexion." requis maxlength={254} valeur={valeurs.email ?? ''} erreur={erreurs.email} />
+				<Champ id="telephone" name="telephone" type="tel" libelle="Téléphone" maxlength={20} valeur={valeurs.telephone ?? ''} erreur={erreurs.telephone} />
 				<Champ id="naissance" name="naissance" type="date" libelle="Date de naissance" valeur={valeurs.naissance ?? ''} erreur={erreurs.naissance} />
 			</div>
 		</Carte>
@@ -50,6 +51,14 @@
 					valeur={valeurs.profilId ?? data.profilParDefaut}
 					erreur={erreurs.profilId}
 					options={data.profils.map((p) => ({ valeur: String(p.id), libelle: p.nom }))}
+				/>
+				<Choix
+					id="statut"
+					name="statut"
+					libelle="Statut"
+					valeur={valeurs.statut ?? 'operationnel'}
+					erreur={erreurs.statut}
+					options={data.statuts.map((s) => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))}
 				/>
 				<Champ id="entree-centre" name="entreeCentre" type="date" libelle="Entrée au centre" valeur={valeurs.entreeCentre ?? ''} erreur={erreurs.entreeCentre} />
 				<Champ id="engagement-spv" name="engagementSpv" type="date" libelle="Engagement SPV" valeur={valeurs.engagementSpv ?? ''} erreur={erreurs.engagementSpv} />

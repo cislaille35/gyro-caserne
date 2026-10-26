@@ -57,4 +57,11 @@ describe('/profil : envoi', () => {
 		expect(await envoyer({ base, acteur: super_ }, { surnom: 'X' })).toMatchObject({ status: 400, data: { message: 'Pas de fiche pour le super administrateur' } });
 		expect((await lire(base, id)).surnom).toBe('Ali');
 	});
+
+	it('signale sur le champ un texte trop long', async () => {
+		const { base, acteur } = await preparer();
+		expect(await envoyer({ base, acteur }, { surnom: 'x'.repeat(61) })).toMatchObject({ status: 400, data: { erreurs: { surnom: 'Surnom trop long' } } });
+		expect(await envoyer({ base, acteur }, { contactUrgence: 'x'.repeat(201) })).toMatchObject({ status: 400, data: { erreurs: { contactUrgence: 'Contact d’urgence trop long' } } });
+		expect((await lire(base, acteur.id)).surnom).toBe('Ali');
+	});
 });

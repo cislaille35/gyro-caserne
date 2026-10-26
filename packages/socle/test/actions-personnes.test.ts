@@ -672,3 +672,95 @@ describe('mon profil', () => {
 		expect(await base.select().from(journal).where(eq(journal.action, 'modifier_mon_profil'))).toHaveLength(1);
 	});
 });
+
+describe('statut à la création', () => {
+	it('enregistre le statut demandé, « opérationnel » par défaut', async () => {
+		const { base, agent } = await jeu();
+		const defaut = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const stagiaire = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, statut: 'stagiaire' }, aujourdhui);
+		const statut = async (id: number) => (await base.select().from(personne).where(eq(personne.id, id)))[0]!.statut;
+		expect(await statut(defaut)).toBe('operationnel');
+		expect(await statut(stagiaire)).toBe('stagiaire');
+	});
+
+	it('refuse « parti » et un statut inconnu', async () => {
+		const { base, agent } = await jeu();
+		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'parti' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Statut impossible à la création'));
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'inconnu' as any }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Statut inconnu'));
+		expect(await base.select().from(personne).where(eq(personne.email, 'a@exemple.fr'))).toHaveLength(0);
+	});
+});
+
+describe('adresse prise entre la vérification et l’écriture', () => {
+	// Une base dont le batch insère d'abord l'adresse : le contrôle préalable est déjà passé.
+	function concurrente(base: Awaited<ReturnType<typeof jeu>>['base'], email: string, profilId: number) {
+		return new Proxy(base, {
+			get(cible, cle, recepteur) {
+				if (cle !== 'batch') return Reflect.get(cible, cle, recepteur);
+				return async (requetes: never) => {
+					await cible.insert(personne).values({ email, prenom: 'Z', nom: 'Z', profilId });
+					return cible.batch(requetes);
+				};
+			}
+		});
+	}
+
+	it('est traduite à l’ajout', async () => {
+		const { base, agent } = await jeu();
+		await expect(ajouterPersonne(concurrente(base, 'a@exemple.fr', agent.id), superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui)).rejects.toThrow(
+			new DonneeInvalide('Adresse déjà utilisée')
+		);
+	});
+
+	it('est traduite à la modification de la fiche', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await expect(modifierFiche(concurrente(base, 'b@exemple.fr', agent.id), superAdmin, id, { email: 'b@exemple.fr' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Adresse déjà utilisée'));
+	});
+
+	it('laisse passer toute autre erreur', async () => {
+		const { base, agent } = await jeu();
+		const casse = new Proxy(base, { get: (cible, cle, r) => (cle === 'batch' ? async () => Promise.reject(new Error('disque plein')) : Reflect.get(cible, cle, r)) });
+		await expect(ajouterPersonne(casse, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui)).rejects.toThrow('disque plein');
+	});
+});
+
+describe('longueurs maximales', () => {
+	const trop = (n: number) => 'x'.repeat(n + 1);
+	const exact = (n: number) => 'x'.repeat(n);
+
+	it('refuse à l’ajout un champ trop long, accepte la limite', async () => {
+		const { base, agent } = await jeu();
+		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
+		const ajout = (plus: object) => ajouterPersonne(base, superAdmin, { ...donnees, ...plus }, aujourdhui);
+		await expect(ajout({ prenom: trop(60) })).rejects.toThrow(new DonneeInvalide('Prénom trop long'));
+		await expect(ajout({ nom: trop(60) })).rejects.toThrow(new DonneeInvalide('Nom trop long'));
+		await expect(ajout({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
+		await expect(ajout({ email: `${exact(250)}@e.fr` })).rejects.toThrow(new DonneeInvalide('Adresse trop longue'));
+		await expect(ajout({ prenom: exact(60), nom: exact(60), telephone: exact(20) })).resolves.toBeTypeOf('number');
+	});
+
+	it('refuse à la modification de la fiche', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const modif = (champs: object) => modifierFiche(base, superAdmin, id, champs, aujourdhui);
+		await expect(modif({ prenom: trop(60) })).rejects.toThrow(new DonneeInvalide('Prénom trop long'));
+		await expect(modif({ nom: trop(60) })).rejects.toThrow(new DonneeInvalide('Nom trop long'));
+		await expect(modif({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
+		await expect(modif({ email: `${exact(250)}@e.fr` })).rejects.toThrow(new DonneeInvalide('Adresse trop longue'));
+		await expect(modif({ prenom: exact(60) })).resolves.toBeUndefined();
+	});
+
+	it('refuse dans « Mon profil »', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const moi: Acteur = { type: 'personne', id };
+		const modif = (champs: object) => modifierMonProfil(base, moi, champs, aujourdhui);
+		await expect(modif({ surnom: trop(60) })).rejects.toThrow(new DonneeInvalide('Surnom trop long'));
+		await expect(modif({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
+		await expect(modif({ contactUrgence: trop(200) })).rejects.toThrow(new DonneeInvalide('Contact d’urgence trop long'));
+		await expect(modif({ surnom: exact(60), telephone: exact(20), contactUrgence: exact(200) })).resolves.toBeUndefined();
+	});
+});

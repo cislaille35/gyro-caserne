@@ -46,10 +46,10 @@
 				</dl>
 			{:else}
 				<form method="POST" action="?/fiche">
-					<Champ id="prenom" name="prenom" libelle="Prénom" requis valeur={texte('prenom', fiche.prenom)} erreur={erreurs.prenom} />
-					<Champ id="nom" name="nom" libelle="Nom" requis valeur={texte('nom', fiche.nom)} erreur={erreurs.nom} />
-					<Champ id="email" name="email" type="email" libelle="E-mail" aide="Sert à la connexion." requis valeur={texte('email', fiche.email)} erreur={erreurs.email} />
-					<Champ id="telephone" name="telephone" type="tel" libelle="Téléphone" valeur={texte('telephone', fiche.telephone)} erreur={erreurs.telephone} />
+					<Champ id="prenom" name="prenom" libelle="Prénom" requis maxlength={60} valeur={texte('prenom', fiche.prenom)} erreur={erreurs.prenom} />
+					<Champ id="nom" name="nom" libelle="Nom" requis maxlength={60} valeur={texte('nom', fiche.nom)} erreur={erreurs.nom} />
+					<Champ id="email" name="email" type="email" libelle="E-mail" aide="Sert à la connexion." requis maxlength={254} valeur={texte('email', fiche.email)} erreur={erreurs.email} />
+					<Champ id="telephone" name="telephone" type="tel" libelle="Téléphone" maxlength={20} valeur={texte('telephone', fiche.telephone)} erreur={erreurs.telephone} />
 					<Champ id="naissance" name="naissance" type="date" libelle="Date de naissance" valeur={texte('naissance', fiche.naissance)} erreur={erreurs.naissance} />
 					<Bouton type="submit">Enregistrer</Bouton>
 				</form>

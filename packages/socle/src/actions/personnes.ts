@@ -57,6 +57,33 @@ async function exigerProfil(base: Base, profilId: number) {
 	return leProfil;
 }
 
+// Longueurs maximales : nom du champ dans le message, limite en caractères.
+const LIMITES = {
+	email: ['Adresse trop longue', 254],
+	prenom: ['Prénom trop long', 60],
+	nom: ['Nom trop long', 60],
+	surnom: ['Surnom trop long', 60],
+	telephone: ['Téléphone trop long', 20],
+	contactUrgence: ['Contact d’urgence trop long', 200]
+} as const;
+
+function exigerLongueurs(valeurs: Partial<Record<keyof typeof LIMITES, unknown>>) {
+	for (const [cle, [message, max]] of Object.entries(LIMITES) as [keyof typeof LIMITES, (typeof LIMITES)[keyof typeof LIMITES]][]) {
+		const valeur = valeurs[cle];
+		if (typeof valeur === 'string' && valeur.length > max) throw new DonneeInvalide(message);
+	}
+}
+
+// Deux écritures simultanées peuvent passer le contrôle préalable : la contrainte d'unicité tranche.
+async function ecrireAdresse<T>(ecriture: () => Promise<T>): Promise<T> {
+	try {
+		return await ecriture();
+	} catch (erreur) {
+		for (let e: unknown = erreur; e instanceof Error; e = e.cause) if (/UNIQUE constraint failed: personne\.email/.test(e.message)) throw new DonneeInvalide('Adresse déjà utilisée');
+		throw erreur;
+	}
+}
+
 async function exigerAdresseLibre(base: Base, email: string) {
 	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
 	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
@@ -65,12 +92,17 @@ async function exigerAdresseLibre(base: Base, email: string) {
 export async function ajouterPersonne(
 	base: Base,
 	acteur: Acteur,
-	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number } & Complements,
+	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number; statut?: StatutOperationnel } & Complements,
 	aujourdhui: string
 ): Promise<number> {
 	exigerDate(aujourdhui);
 	const email = normaliserAdresse(donnees.email);
 	if (!email) throw new DonneeInvalide('Adresse vide');
+	exigerLongueurs({ email, prenom: donnees.prenom, nom: donnees.nom, telephone: donnees.telephone });
+	if (donnees.statut !== undefined) {
+		if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(donnees.statut)) throw new DonneeInvalide('Statut inconnu');
+		if (donnees.statut === 'parti') throw new DonneeInvalide('Statut impossible à la création');
+	}
 	const leProfil = await exigerProfil(base, donnees.profilId);
 
 	// Le chef d'équipe n'agit que sur un agent de son équipe.
@@ -93,17 +125,17 @@ export async function ajouterPersonne(
 	const { gradeId, dateGrade, telephone, naissance, entreeCentre, engagementSpv } = donnees;
 	const nouvelle = base
 		.insert(personne)
-		.values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId, gradeId, dateGrade, telephone, naissance, entreeCentre, engagementSpv })
+		.values({ email, prenom: donnees.prenom, nom: donnees.nom, profilId: donnees.profilId, statut: donnees.statut, gradeId, dateGrade, telephone, naissance, entreeCentre, engagementSpv })
 		.returning({ id: personne.id });
 	// L'ordre compte : juste après l'insertion de la personne, last_insert_rowid() est son identifiant.
 	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'ajouter_personne', cibleType: 'personne', cibleId: sql`last_insert_rowid()`, details: { email, profilId: donnees.profilId, equipeId: donnees.equipeId ?? null } }, aujourdhui);
 	const ecritures = [nouvelle, journalise] as const;
 	if (donnees.equipeId === undefined) {
-		const [lignes] = await base.batch(ecritures);
+		const [lignes] = await ecrireAdresse(() => base.batch(ecritures));
 		return lignes[0]!.id;
 	}
 	const affectation = base.insert(affectationEquipe).values({ personneId: sql`(select id from personne where email = ${email})`, equipeId: donnees.equipeId, debut: aujourdhui });
-	const [lignes] = await base.batch([...ecritures, affectation]);
+	const [lignes] = await ecrireAdresse(() => base.batch([...ecritures, affectation]));
 	return lignes[0]!.id;
 }
 
@@ -177,6 +209,7 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 		nouveaux[cle] = cle === 'email' ? normaliserAdresse(valeur) : valeur.trim();
 		if (!nouveaux[cle]) throw new DonneeInvalide(`${textes[cle]} vide`);
 	}
+	exigerLongueurs(nouveaux);
 	await exigerComplements(base, nouveaux);
 	if (nouveaux.profilId !== undefined) await exigerProfil(base, nouveaux.profilId);
 
@@ -190,7 +223,7 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes) } }, aujourdhui)
 	] as const;
 	// L'adresse sert à la connexion : l'ancienne ne doit plus ouvrir de session.
-	await base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]);
+	await ecrireAdresse(() => base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]));
 }
 
 const REFUS_EQUIPE = {
@@ -292,6 +325,7 @@ export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Part
 		nouveaux[cle] = valeur ? 1 : 0;
 	}
 
+	exigerLongueurs(nouveaux);
 	const changes = Object.fromEntries(Object.entries(nouveaux).filter(([cle, valeur]) => valeur !== fiche[cle as keyof typeof fiche]));
 	if (Object.keys(changes).length === 0) return;
 	await base.batch([

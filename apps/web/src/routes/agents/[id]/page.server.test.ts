@@ -138,6 +138,18 @@ describe('/agents/[id] : ?/equipe', () => {
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 
+	it('« aucune » retire aussi une affectation à venir que la fiche n\'affiche pas', async () => {
+		const { base, agent, equipe1 } = await preparer();
+		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2999-01-01' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await base.select().from(affectationEquipe)).toEqual([]);
+	});
+
+	it('« aucune » sans aucune équipe répond « Aucune équipe à retirer. »', async () => {
+		const { base, agent } = await preparer();
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Aucune équipe à retirer.' });
+	});
+
 	it('ne réécrit rien si l\'équipe ne change pas', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01' });

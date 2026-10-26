@@ -66,14 +66,15 @@ export const actions: Actions = {
 	},
 
 	equipe: async ({ locals, params, request }) => {
-		const { acteur, aujourdhui, id, fiche } = await lireFiche(locals, params.id);
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
 		const brut = String((await request.formData()).get('equipeId') ?? '');
 		if (brut !== 'aucune' && !/^\d+$/.test(brut)) return fail<Reponse>(400, { erreurs: { equipeId: 'Choix inconnu' } });
 		const equipeId = brut === 'aucune' ? null : Number(brut);
 		try {
-			if (equipeId === null && fiche.equipe !== null) await retirerEquipe(locals.base, acteur, id, aujourdhui);
-			if (equipeId !== null) await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
+			if (equipeId === null) await retirerEquipe(locals.base, acteur, id, aujourdhui);
+			else await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
 		} catch (erreur) {
+			if (erreur instanceof DonneeInvalide && erreur.message === 'Aucune équipe en cours') return { succes: true, message: 'Aucune équipe à retirer.' };
 			return echec(erreur);
 		}
 		return { succes: true, message: 'Équipe enregistrée' };

@@ -81,10 +81,12 @@
 		{/if}
 	</section>
 
-	<div class="detail" class:masque={!enfant}>
-		{#if enfant}<a class="retour" href="/agents">Retour à la liste</a>{/if}
-		{@render children()}
-	</div>
+	{#if data.gestion}
+		<div class="detail" class:masque={!enfant}>
+			{#if enfant}<a class="retour" href="/agents">Retour à la liste</a>{/if}
+			{@render children()}
+		</div>
+	{/if}
 </div>
 
 <style>

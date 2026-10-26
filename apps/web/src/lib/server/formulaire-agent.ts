@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { DonneeInvalide, estGestionnaire, normaliserAdresse, RefusDroit, type Acteur } from '@gyro-caserne/socle';
+import { DonneeInvalide, estGestionnaire, normaliserAdresse, RefusDroit, STATUTS_OPERATIONNELS, type Acteur, type StatutOperationnel } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 
 // Écrans de gestion : réservés au chef de centre, à l'adjoint et au super administrateur.
@@ -28,6 +28,7 @@ export type ChampsLus = {
 	gradeId?: number | null;
 	profilId?: number | null;
 	equipeId?: number | null;
+	statut?: StatutOperationnel;
 } & Partial<Record<(typeof DATES)[number], string | null>>;
 
 // Lit les seuls champs envoyés (à l'ajout, les obligatoires comptent même absents). Un champ facultatif vide devient null.
@@ -62,6 +63,11 @@ export function lireFormulaire(formulaire: FormData, superAdmins: string[], ajou
 		else if (/^\d+$/.test(valeurs[cle])) champs[cle] = Number(valeurs[cle]);
 		else erreurs[cle] = 'Choix inconnu';
 	}
+	if (ajout && valeurs.statut) {
+		const statut = STATUTS_OPERATIONNELS.find((s) => s === valeurs.statut);
+		if (statut) champs.statut = statut;
+		else erreurs.statut = 'Choix inconnu';
+	}
 	if (champs.profilId === null) erreurs.profilId = 'Choisissez un profil.';
 	return { champs, erreurs, valeurs };
 }
@@ -70,8 +76,15 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Adresse déjà utilisée': 'email',
 	'Adresse vide': 'email',
 	'Adresse invalide': 'email',
+	'Adresse trop longue': 'email',
 	'Prénom vide': 'prenom',
 	'Prénom invalide': 'prenom',
+	'Prénom trop long': 'prenom',
+	'Nom trop long': 'nom',
+	'Téléphone trop long': 'telephone',
+	'Surnom trop long': 'surnom',
+	'Contact d’urgence trop long': 'contactUrgence',
+	'Statut impossible à la création': 'statut',
 	'Nom vide': 'nom',
 	'Nom invalide': 'nom',
 	'Grade inconnu': 'gradeId',

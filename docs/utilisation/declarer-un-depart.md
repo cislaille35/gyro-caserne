@@ -9,4 +9,4 @@ Réservé au chef de centre, à son adjoint et au super administrateur.
 
 L'agent est déconnecté et ne peut plus se connecter. Il n'apparaît plus dans la vue de tous, mais reste dans la liste de gestion.
 
-S'il revient, choisissez à nouveau son statut (par exemple « Opérationnel ») et enregistrez. Il pourra se reconnecter. Sa date de naissance et son contact d'urgence sont à ressaisir.
+S'il revient, choisissez à nouveau son statut (par exemple « Opérationnel ») et enregistrez. Il pourra se reconnecter. Sa date de naissance est à ressaisir par la gestion ; son contact d'urgence, l'agent le saisit lui-même dans « Mon profil ».

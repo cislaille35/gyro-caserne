@@ -91,4 +91,27 @@ describe('/agents/nouveau', () => {
 		expect(redirection).toMatchObject({ status: 303, location: `/agents/${bob!.id}` });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
+	it('enregistre le statut choisi, « opérationnel » si rien n\'est envoyé', async () => {
+		const { base, profilAgent } = await preparer();
+		const corps = { prenom: 'Bob', nom: 'Durand', profilId: String(profilAgent.id) };
+		await ajouter(locaux(base, super_), { ...corps, email: 'bob@exemple.fr', statut: 'stagiaire' }).catch(() => {});
+		await ajouter(locaux(base, super_), { ...corps, email: 'cleo@exemple.fr' }).catch(() => {});
+		const statut = async (email: string) => (await base.select().from(personne).where(eq(personne.email, email)))[0]!.statut;
+		expect(await statut('bob@exemple.fr')).toBe('stagiaire');
+		expect(await statut('cleo@exemple.fr')).toBe('operationnel');
+	});
+
+	it('refuse « parti » et un statut inconnu, sur le champ', async () => {
+		const { base, profilAgent } = await preparer();
+		const corps = { email: 'bob@exemple.fr', prenom: 'Bob', nom: 'Durand', profilId: String(profilAgent.id) };
+		expect(await ajouter(locaux(base, super_), { ...corps, statut: 'parti' })).toMatchObject({ status: 400, data: { erreurs: { statut: 'Statut impossible à la création' } } });
+		expect(await ajouter(locaux(base, super_), { ...corps, statut: 'zombie' })).toMatchObject({ status: 400, data: { erreurs: { statut: 'Choix inconnu' } } });
+		expect(await base.select().from(personne)).toHaveLength(1);
+	});
+
+	it('signale un champ trop long sur le champ', async () => {
+		const { base, profilAgent } = await preparer();
+		const resultat = await ajouter(locaux(base, super_), { email: 'bob@exemple.fr', prenom: 'x'.repeat(61), nom: 'Durand', profilId: String(profilAgent.id) });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { prenom: 'Prénom trop long' } } });
+	});
 });

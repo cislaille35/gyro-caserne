@@ -30,8 +30,8 @@
 	{:else}
 		<Carte titre="Mes informations">
 			<form method="POST">
-				<Champ id="surnom" name="surnom" libelle="Surnom" valeur={texte('surnom', profil.surnom)} erreur={erreurs.surnom} />
-				<Champ id="telephone" name="telephone" type="tel" autocomplete="tel" libelle="Téléphone" valeur={texte('telephone', profil.telephone)} erreur={erreurs.telephone} />
+				<Champ id="surnom" name="surnom" libelle="Surnom" maxlength={60} valeur={texte('surnom', profil.surnom)} erreur={erreurs.surnom} />
+				<Champ id="telephone" name="telephone" type="tel" autocomplete="tel" libelle="Téléphone" maxlength={20} valeur={texte('telephone', profil.telephone)} erreur={erreurs.telephone} />
 				<label>
 					<input type="checkbox" name="telephoneVisible" checked={profil.telephoneVisible} />
 					Montrer mon téléphone au centre
@@ -40,6 +40,7 @@
 					id="contact-urgence"
 					name="contactUrgence"
 					libelle="Contact d'urgence"
+					maxlength={200}
 					aide="Nom et numéro de la personne à prévenir."
 					valeur={texte('contactUrgence', profil.contactUrgence)}
 					erreur={erreurs.contactUrgence}
