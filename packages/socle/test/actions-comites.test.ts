@@ -146,6 +146,21 @@ describe('dissoudreComite', () => {
 		expect(JSON.parse(ligne!.details)).toEqual({ attributionsClose: 3 });
 	});
 
+	it('refuse tant qu’une responsabilité de portée « comité » en cours est attribuée par ce comité, rien n’est écrit', async () => {
+		const { base, comite_, nouvelle } = await jeu();
+		const amicale = await comite_('Amicale');
+		await nouvelle('x@exemple.fr');
+		await base.insert(responsabilite).values({ nom: 'Archivée', nature: 'mission', typePerimetre: 'comite', comiteAttributeurId: amicale.id, archiveeLe: '2026-01-01' });
+		await base.insert(responsabilite).values({ nom: 'Délégué', nature: 'mission', typePerimetre: 'comite', comiteAttributeurId: amicale.id });
+		const avant = await base.select().from(journal);
+		await expect(dissoudreComite(base, superAdmin, amicale.id, aujourdhui)).rejects.toThrow(new DonneeInvalide('Changez d’abord qui attribue « Délégué »'));
+		expect((await comite_('Amicale')).dissousLe).toBeNull();
+		expect(await base.select().from(journal)).toHaveLength(avant.length);
+		// Une fois archivée, la dissolution passe.
+		await base.update(responsabilite).set({ archiveeLe: aujourdhui }).where(eq(responsabilite.nom, 'Délégué'));
+		await expect(dissoudreComite(base, superAdmin, amicale.id, aujourdhui)).resolves.toBeUndefined();
+	});
+
 	it('refuse le comité du centre, un comité inconnu et un comité déjà dissous', async () => {
 		const { base, comite_ } = await jeu();
 		const centre = await comite_(NOM_COMITE_CENTRE);

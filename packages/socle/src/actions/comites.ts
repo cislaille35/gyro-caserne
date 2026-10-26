@@ -88,6 +88,13 @@ export async function dissoudreComite(base: Base, acteur: Acteur, id: number, au
 	if (ligne.nom === NOM_COMITE_CENTRE) throw new DonneeInvalide('Le comité du centre ne se dissout pas');
 	if (ligne.dissousLe !== null) throw new DonneeInvalide('Comité déjà dissous');
 
+	const [bloquante] = await base
+		.select({ nom: responsabilite.nom })
+		.from(responsabilite)
+		.where(and(eq(responsabilite.comiteAttributeurId, id), eq(responsabilite.typePerimetre, 'comite'), isNull(responsabilite.archiveeLe)))
+		.orderBy(responsabilite.nom);
+	if (bloquante) throw new DonneeInvalide(`Changez d’abord qui attribue « ${bloquante.nom} »`);
+
 	const duComite = and(eq(attribution.perimetreType, 'comite'), eq(attribution.perimetreId, id));
 	const [{ n }] = await base
 		.select({ n: count() })

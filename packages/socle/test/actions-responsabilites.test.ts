@@ -90,6 +90,24 @@ describe('droits de pouvoir', () => {
 		expect(await aLeDroit(base, referent, 'GERER_LISTES', { type: 'centre' }, aujourdhui)).toBe(true);
 	});
 
+	it('le référent technique ne change ni la portée ni qui attribue d’une responsabilité qui donne un pouvoir, rien n’est écrit', async () => {
+		const { base, referent, resp, comite_ } = await jeu();
+		const rapporteur = await resp('Rapporteur de comité');
+		const amicale = await comite_('Amicale');
+		await expect(modifierResponsabilite(base, referent, rapporteur.id, { portee: 'centre', attributeur: { type: 'chef_centre' } }, aujourdhui)).rejects.toThrow(MODIFIER);
+		await expect(modifierResponsabilite(base, referent, rapporteur.id, { attributeur: { type: 'comite', id: amicale.id } }, aujourdhui)).rejects.toThrow(MODIFIER);
+		expect(await resp('Rapporteur de comité')).toEqual(rapporteur);
+		expect(await base.select().from(journal).where(eq(journal.action, 'modifier_responsabilite'))).toHaveLength(0);
+	});
+
+	it('le chef de centre adjoint (GERER_ACCES sur le centre) ajoute un droit de pouvoir', async () => {
+		const { base, donner, resp, droitsDe } = await jeu();
+		const adjoint = await donner('adjoint@exemple.fr', 'Chef de centre adjoint', { type: 'centre' });
+		const engins = await resp('Référent engins');
+		await modifierResponsabilite(base, adjoint, engins.id, { droits: ['TRAITER_ANOMALIE', 'GERER_ACCES'] }, aujourdhui);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_ACCES', 'TRAITER_ANOMALIE']);
+	});
+
 	it('le chef de centre et le super administrateur donnent, retirent et archivent', async () => {
 		const { base, chef, resp, droitsDe } = await jeu();
 		const id = await creerResponsabilite(base, chef, { ...nouvelleResp, droits: ['GERER_ACCES'] }, aujourdhui);
@@ -120,6 +138,13 @@ describe('listerResponsabilites', () => {
 });
 
 describe('creerResponsabilite', () => {
+	it('retrouve ses droits même si un nom proche existe déjà', async () => {
+		const { base, chef, droitsDe } = await jeu();
+		await creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'Sport', droits: ['GERER_STOCK'] }, aujourdhui);
+		const id = await creerResponsabilite(base, chef, { ...nouvelleResp, droits: ['GERER_PLANNING'] }, aujourdhui);
+		expect(await droitsDe(id)).toEqual(['GERER_PLANNING']);
+	});
+
 	it('crée, enregistre les droits et journalise', async () => {
 		const { base, referent, droitsDe } = await jeu();
 		const id = await creerResponsabilite(base, referent, { ...nouvelleResp, nom: '  Référent sport  ', droits: ['GERER_PLANNING', 'GERER_PLANNING'] }, aujourdhui);

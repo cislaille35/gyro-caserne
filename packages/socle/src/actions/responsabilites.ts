@@ -150,7 +150,7 @@ export async function creerResponsabilite(
 	await exigerNomLibre(base, nom);
 
 	// La nouvelle responsabilité, retrouvée par son nom (unique).
-	const idNouvelle = sql<number>`(SELECT ${responsabilite.id} FROM ${responsabilite} WHERE ${responsabilite.nom} = ${nom})`;
+	const idNouvelle = sql<number>`(SELECT ${responsabilite.id} FROM ${responsabilite} WHERE ${responsabilite.nom} = ${nom} ORDER BY ${responsabilite.id} DESC LIMIT 1)`;
 	const [lignes] = await base.batch([
 		base.insert(responsabilite).values({ nom, nature, typePerimetre: portee, comiteAttributeurId }).returning({ id: responsabilite.id }),
 		// L'ordre compte : le journal suit l'insertion, last_insert_rowid() est l'id de la responsabilité.
