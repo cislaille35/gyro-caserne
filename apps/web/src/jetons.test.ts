@@ -47,7 +47,8 @@ describe('jetons', () => {
 			['doux', 'fond'],
 			['doux', 'surface'],
 			['accent', 'surface'],
-			['sur-rouge', 'rouge']
+			['sur-rouge', 'rouge'],
+			...['ok', 'info', 'alerte', 'neutre'].map((k) => [`statut-${k}-texte`, `statut-${k}-fond`])
 		]) {
 			expect(contraste(t[a], t[b]), `${a}/${b}`).toBeGreaterThanOrEqual(4.5);
 		}
