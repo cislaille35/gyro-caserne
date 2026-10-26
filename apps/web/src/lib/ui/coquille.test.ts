@@ -51,4 +51,11 @@ describe('entreesNavigation', () => {
 		const hrefs = entreesNavigation(true).map((e) => e.href);
 		expect(hrefs).toEqual(['/', '/agents', '/affichage']);
 	});
+	it('une personne connectée a « Mon profil »', () => {
+		const hrefs = entreesNavigation(true, true).map((e) => e.href);
+		expect(hrefs).toEqual(['/', '/agents', '/profil', '/affichage']);
+	});
+	it('« Mon profil » n\'apparaît pas sans connexion', () => {
+		expect(entreesNavigation(false, true).map((e) => e.href)).not.toContain('/profil');
+	});
 });

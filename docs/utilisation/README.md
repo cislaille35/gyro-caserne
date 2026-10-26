@@ -9,3 +9,4 @@ Format d'une page :
 - [Comment changer l'affichage ?](changer-l-affichage.md)
 - [Comment ajouter un agent ?](ajouter-un-agent.md)
 - [Comment déclarer le départ d'un agent ?](declarer-un-depart.md)
+- [Comment modifier mon profil ?](modifier-mon-profil.md)
