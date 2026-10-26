@@ -5,6 +5,7 @@ import { adresseAutorisee } from '../src/connexion.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { affectationEquipe, attribution, equipe, grade, journal, personne, profil, profilDroit, responsabilite, responsabiliteDroit, session, user, verification } from '../src/schema.ts';
 import type { Acteur } from '../src/droits.ts';
+import { vueEffectif } from '../src/effectif.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -261,6 +262,9 @@ describe('changerStatut', () => {
 		await expect(changerStatut(base, chef, id, 'operationnel', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(changerStatut(base, chef, id, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await changerStatut(base, { type: 'personne', id: chefCentre }, id, 'operationnel', aujourdhui);
+		// Le départ a retiré l'agent de son équipe : le chef d'équipe n'a plus de prise tant qu'on ne l'a pas réaffecté.
+		await expect(changerStatut(base, chef, id, 'parti', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await affecterEquipe(base, superAdmin, id, 1, aujourdhui, aujourdhui);
 		await changerStatut(base, chef, id, 'parti', aujourdhui);
 		await changerStatut(base, { type: 'personne', id: adjoint }, id, 'stagiaire', aujourdhui);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
@@ -306,6 +310,46 @@ describe('changerStatut', () => {
 		await changerStatut(base, { type: 'personne', id: chefCentre }, id, 'operationnel', aujourdhui);
 		const [revenu] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(revenu).toMatchObject({ statut: 'operationnel', naissance: null, contactUrgence: null });
+	});
+});
+
+describe('changerStatut vers parti : équipe', () => {
+	const equipes = (base: Awaited<ReturnType<typeof jeu>>['base'], id: number) => base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
+
+	it('retire l’agent de son équipe dès aujourd’hui, la vue ne le liste plus', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'Aline', nom: 'Zed', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		expect(await equipes(base, id)).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: '2026-10-24' }]);
+		const groupes = await vueEffectif(base, aujourdhui);
+		expect(groupes.find((g) => g.titre === 'Équipe 1')?.personnes ?? []).toEqual([]);
+		expect(groupes.flatMap((g) => g.personnes.map((p) => p.nom))).not.toContain('Zed');
+		expect(await base.select().from(journal).where(eq(journal.action, 'retirer_equipe'))).toHaveLength(1);
+	});
+
+	it('supprime l’affectation commencée aujourd’hui et celles à venir', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
+		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		expect(await equipes(base, id)).toEqual([]);
+	});
+
+	it('sans équipe, le départ réussit sans ligne de retrait', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		const [p] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(p!.statut).toBe('parti');
+		expect(await base.select().from(journal).where(eq(journal.action, 'retirer_equipe'))).toHaveLength(0);
+	});
+
+	it('au retour, la personne reste sans équipe', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		await changerStatut(base, superAdmin, id, 'operationnel', aujourdhui);
+		expect((await equipes(base, id)).filter((a) => a.fin === null)).toEqual([]);
 	});
 });
 
@@ -456,6 +500,13 @@ describe('modifierFiche', () => {
 		expect(lignes[0]).toMatchObject({ acteur: 'super:admin@exemple.fr', cibleType: 'personne', cibleId: id });
 		// Les noms des champs seulement : une valeur effacée au départ ne doit pas survivre au journal.
 		expect(JSON.parse(lignes[0]!.details!)).toEqual({ champs: ['nom', 'naissance'] });
+	});
+
+	it('journalise l’ancienne et la nouvelle adresse, les autres champs par leur seul nom', async () => {
+		const { base, id } = await avecAgent();
+		await modifierFiche(base, superAdmin, id, { email: 'Nouveau@Exemple.fr', nom: 'Grand' }, aujourdhui);
+		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_fiche'));
+		expect(JSON.parse(ligne!.details!)).toEqual({ champs: ['email', 'nom'], email: { avant: 'bruno@exemple.fr', apres: 'nouveau@exemple.fr' } });
 	});
 
 	it('n’écrit que les champs de la fiche', async () => {

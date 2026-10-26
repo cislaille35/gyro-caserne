@@ -20,7 +20,7 @@
 </svelte:head>
 
 <div class="page">
-	<section class="liste" class:masquee={enfant} aria-labelledby="titre-agents">
+	<section class="liste" class:masquee={enfant && data.gestion} aria-labelledby="titre-agents">
 		<div class="entete">
 			<h1 id="titre-agents">Agents</h1>
 			{#if data.gestion}
@@ -86,7 +86,7 @@
 		{/if}
 	</section>
 
-	{#if data.gestion}
+	{#if data.gestion || page.error}
 		<div class="detail" class:masque={!enfant}>
 			{#if enfant}<a class="retour" href="/agents">Retour à la liste</a>{/if}
 			{@render children()}

@@ -164,13 +164,15 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 		await exiger(base, acteur, vise, aujourdhui);
 	}
 
+	const retrait = statut === 'parti' ? retraitEquipe(base, acteur, personneId, affectations, aujourdhui) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
 			.update(personne)
 			.set(statut === 'parti' ? { statut, naissance: null, contactUrgence: null } : { statut })
 			.where(eq(personne.id, personneId)),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui)
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui),
+		...retrait
 	] as const;
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
 		await base.batch(ecritures);
@@ -219,8 +221,8 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 
 	const ecritures = [
 		base.update(personne).set(changes).where(eq(personne.id, id)),
-		// Les noms des champs seulement : une valeur effacée au départ ne doit pas survivre au journal.
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes) } }, aujourdhui)
+		// Les noms des champs, sauf l'adresse (ancienne et nouvelle) : une autre valeur effacée au départ ne doit pas survivre au journal.
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_fiche', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes), ...(changes.email === undefined ? {} : { email: { avant: fiche.email, apres: changes.email } }) } }, aujourdhui)
 	] as const;
 	// L'adresse sert à la connexion : l'ancienne ne doit plus ouvrir de session.
 	await ecrireAdresse(() => base.batch(changes.email === undefined ? ecritures : [...ecritures, ...deconnecter(base, fiche.email)]));
@@ -231,29 +233,31 @@ const REFUS_EQUIPE = {
 	adjoint: 'Seuls le chef de centre ou un super administrateur changent l’équipe d’un adjoint'
 };
 
-// L'affectation en cours se termine la veille (supprimée si elle commence aujourd'hui) ; celles à venir sont supprimées.
+type Affectation = typeof affectationEquipe.$inferSelect;
+
+// L'affectation en cours se termine la veille (supprimée si elle commence aujourd'hui) ; celles à venir sont supprimées. Rien à faire : liste vide.
+function retraitEquipe(base: Base, acteur: Acteur, id: number, affectations: Affectation[], aujourdhui: string) {
+	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
+	if (!courante && !affectations.some((a) => a.debut > aujourdhui)) return [] as const;
+	const aSupprimer = courante?.debut === aujourdhui ? gte(affectationEquipe.debut, aujourdhui) : gt(affectationEquipe.debut, aujourdhui);
+	const supprimer = base.delete(affectationEquipe).where(and(eq(affectationEquipe.personneId, id), aSupprimer));
+	const journalise = ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: courante?.equipeId ?? null } }, aujourdhui);
+	if (!courante || courante.debut === aujourdhui) return [supprimer, journalise] as const;
+	const terminer = base
+		.update(affectationEquipe)
+		.set({ fin: veille(aujourdhui) })
+		.where(and(eq(affectationEquipe.personneId, id), eq(affectationEquipe.debut, courante.debut)));
+	return [terminer, supprimer, journalise] as const;
+}
+
 export async function retirerEquipe(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	await exiger(base, acteur, centre, aujourdhui);
 	await exigerProtection(base, acteur, id, aujourdhui, REFUS_EQUIPE);
 	const affectations = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
-	const courante = affectations.find((a) => enCours(a.debut, a.fin, aujourdhui));
-	if (!courante && !affectations.some((a) => a.debut > aujourdhui)) throw new DonneeInvalide('Aucune équipe en cours');
-
-	const aSupprimer = courante?.debut === aujourdhui ? gte(affectationEquipe.debut, aujourdhui) : gt(affectationEquipe.debut, aujourdhui);
-	const ecritures = [
-		base.delete(affectationEquipe).where(and(eq(affectationEquipe.personneId, id), aSupprimer)),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_equipe', cibleType: 'personne', cibleId: id, details: { equipeId: courante?.equipeId ?? null } }, aujourdhui)
-	] as const;
-	if (!courante || courante.debut === aujourdhui) {
-		await base.batch(ecritures);
-		return;
-	}
-	const terminer = base
-		.update(affectationEquipe)
-		.set({ fin: veille(aujourdhui) })
-		.where(and(eq(affectationEquipe.personneId, id), eq(affectationEquipe.debut, courante.debut)));
-	await base.batch([terminer, ...ecritures]);
+	const ecritures = retraitEquipe(base, acteur, id, affectations, aujourdhui);
+	if (ecritures[0] === undefined) throw new DonneeInvalide('Aucune équipe en cours');
+	await base.batch([ecritures[0], ...ecritures.slice(1)]);
 }
 
 export async function affecterEquipe(base: Base, acteur: Acteur, personneId: number, equipeId: number, debut: string, aujourdhui: string): Promise<void> {
