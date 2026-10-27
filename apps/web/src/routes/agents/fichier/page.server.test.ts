@@ -81,6 +81,23 @@ describe('/agents/fichier', () => {
 		expect(await reponse.json()).toEqual({ message: 'Fichier mal formé' });
 	});
 
+	it('refuse un repère mal formé (400)', async () => {
+		const { base } = await preparer();
+		const reperes = [
+			{ journal: 1, personne: 1, date: '27/10/2026' },
+			{ journal: 1, personne: 1, date: '' },
+			{ journal: -1, personne: 1, date: '2026-10-27' },
+			{ journal: 1, personne: -1, date: '2026-10-27' },
+			{ journal: 1e300, personne: 1, date: '2026-10-27' },
+			{ journal: 1, personne: 2 ** 60, date: '2026-10-27' }
+		];
+		for (const repere of reperes) {
+			const reponse = await envoyer(apercu, locaux(base, super_), JSON.stringify({ entetes: [...ENTETES], lignes: [], repere }));
+			expect(reponse.status, JSON.stringify(repere)).toBe(400);
+			expect(await reponse.json()).toEqual({ message: 'Fichier mal formé' });
+		}
+	});
+
 	it('refuse un fichier de plus de 2000 lignes (400)', async () => {
 		const { base } = await preparer();
 		const cellules = ['', 'x@exemple.fr', 'X', 'Y', '', '', '', '', 'Agent', '', '', '', ''];

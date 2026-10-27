@@ -6,7 +6,7 @@ import type { RequestHandler } from './$types';
 
 const LIGNES_MAX = 2000;
 const textes = (v: unknown): v is string[] => Array.isArray(v) && v.every((t) => typeof t === 'string');
-const entier = (v: unknown): v is number => Number.isInteger(v);
+const entier = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) >= 0;
 
 // Le fichier lu vient du navigateur : sa forme est vérifiée avant le calcul.
 function estFichierLu(v: unknown): v is FichierLu {
@@ -14,7 +14,7 @@ function estFichierLu(v: unknown): v is FichierLu {
 	const { entetes, lignes, repere } = v as Record<string, unknown>;
 	const lignesOk = Array.isArray(lignes) && lignes.every((l) => typeof l === 'object' && l !== null && entier(l.numero) && textes(l.cellules));
 	const r = repere as Record<string, unknown> | null;
-	const repereOk = r === null || (typeof r === 'object' && entier(r.journal) && entier(r.personne) && typeof r.date === 'string');
+	const repereOk = r === null || (typeof r === 'object' && entier(r.journal) && entier(r.personne) && typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
 	return textes(entetes) && lignesOk && repereOk;
 }
 
