@@ -85,5 +85,6 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
   - `attributionsDe` (gestionnaires seulement) : les rôles d'une personne, en cours, à venir et passés, avec le nom du périmètre (équipe, comité ; rien pour le centre), l'auteur (« Prénom Nom » ou « Super administrateur ») et `peutTerminer` ;
   - `ceQueJePeuxAttribuer` : les responsabilités non archivées que l'acteur peut attribuer, avec leurs périmètres possibles (« Centre », équipes actives, comités non dissous) ; vide pour un agent ordinaire ;
   - `titulairesDe` : titulaires en cours et à venir d'une responsabilité, limités aux périmètres que l'acteur peut attribuer.
+- `vueEffectif` (`effectif.ts`, vue de tous) : chaque personne porte `roles`, ses rôles en cours triés (« Chef d’équipe (Équipe 1) » ; nom seul pour le centre), en une requête ; ni dates ni auteur. Une responsabilité archivée ou un comité dissous n'y figure plus.
 - `droitsDe(base, acteur, date)` liste les droits tenus ; `aLeDroit(base, acteur, droit, perimetre, date)` répond oui ou non. Toute action du socle commence par là et refuse avec `RefusDroit`, dont le message dit pourquoi quand le refus vient d'une des règles ci-dessus.
 - Une action qui écrit plusieurs lignes (dont le journal) passe en un seul `batch` : tout ou rien.

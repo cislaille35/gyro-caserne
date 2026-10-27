@@ -26,6 +26,17 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 
 Au démarrage, le chef de centre ou le super administrateur nomme les premiers membres de chaque comité.
 
+**À l'écran**, deux chemins pour les mêmes règles :
+
+- **depuis la fiche de l'agent** (gestionnaires), carte « Responsabilités » : « Attribuer », puis « Terminer » sur un rôle ;
+- **depuis la page « Nominations »**, pour quiconque peut attribuer au moins une responsabilité (rapporteur d'un comité, chef de centre…) : une carte par rôle qu'il peut donner, avec ses titulaires et le formulaire « Nommer ». Les autres n'ont ni l'entrée de menu ni la page.
+
+Chacun ne voit et ne propose que les rôles et les périmètres qu'il a le droit d'attribuer. Exemple : le rapporteur de l'« Amicale » nomme les membres de l'Amicale, mais ni un « Référent engins » (attribué par le chef de centre), ni un membre d'un autre comité.
+
+- **Terminer** (case « Je confirme ») : le rôle s'arrête la veille, ses droits disparaissent dès aujourd'hui. Un rôle qui commence aujourd'hui ou plus tard est annulé.
+- **Doublon refusé** : même personne, même rôle, même périmètre, périodes qui se chevauchent → « Cette personne tient déjà ce rôle sur cette période ».
+- **Tout le centre voit** les rôles en cours de chacun dans la liste des agents (« Rôles : Chef d’équipe (Équipe 1) »), sans dates ni auteur.
+
 ## Comités et responsabilités (page « Réglages du centre »)
 
 Avant d'attribuer une responsabilité, elle doit exister. La page « Réglages » crée et fait vivre :
