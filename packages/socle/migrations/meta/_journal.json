@@ -8,6 +8,13 @@
       "when": 1792998916259,
       "tag": "0000_stale_steel_serpent",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793052278243,
+      "tag": "0001_sloppy_metal_master",
+      "breakpoints": true
     }
   ]
 }

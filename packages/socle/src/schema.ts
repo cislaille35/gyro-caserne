@@ -113,7 +113,9 @@ export const valeurChamp = sqliteTable(
 export const comite = sqliteTable('comite', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	nom: text('nom').notNull(),
-	theme: text('theme').notNull()
+	theme: text('theme').notNull(),
+	// Date ISO de dissolution ; nul tant que le comité existe.
+	dissousLe: text('dissous_le')
 });
 
 export const responsabilite = sqliteTable(
@@ -125,7 +127,9 @@ export const responsabilite = sqliteTable(
 		typePerimetre: text('type_perimetre', { enum: TYPES_PERIMETRE }).notNull(),
 		// Nul : pour un périmètre « comité », le comité visé attribue lui-même.
 		comiteAttributeurId: integer('comite_attributeur_id').references(() => comite.id),
-		systeme: text('systeme', { enum: RESPONSABILITES_SYSTEME }).unique()
+		systeme: text('systeme', { enum: RESPONSABILITES_SYSTEME }).unique(),
+		// Date ISO d'archivage ; nul tant que la responsabilité sert.
+		archiveeLe: text('archivee_le')
 	},
 	() => [
 		check('responsabilite_nature', checkDans('nature', NATURES_RESPONSABILITE)),

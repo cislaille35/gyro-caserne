@@ -55,6 +55,11 @@ describe('entreesNavigation', () => {
 		const hrefs = entreesNavigation(true, true).map((e) => e.href);
 		expect(hrefs).toEqual(['/', '/agents', '/profil', '/affichage']);
 	});
+	it('« Réglages » apparaît seulement pour qui peut régler le centre', () => {
+		expect(entreesNavigation(true, true, true).map((e) => e.href)).toEqual(['/', '/agents', '/profil', '/reglages', '/affichage']);
+		expect(entreesNavigation(true, true).map((e) => e.href)).not.toContain('/reglages');
+		expect(entreesNavigation(false, false, true).map((e) => e.href)).not.toContain('/reglages');
+	});
 	it('« Mon profil » n\'apparaît pas sans connexion', () => {
 		expect(entreesNavigation(false, true).map((e) => e.href)).not.toContain('/profil');
 	});

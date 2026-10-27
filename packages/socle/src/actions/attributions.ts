@@ -1,11 +1,10 @@
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDate } from '../dates.ts';
 import { aLeDroit, estChefDeCentre, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
-import { DROITS, type Droit } from '../listes.ts';
-import { attribution, comite, equipe, personne, responsabilite, responsabiliteDroit } from '../schema.ts';
+import { attribution, comite, equipe, personne, responsabilite } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 
 type Responsabilite = typeof responsabilite.$inferSelect;
@@ -45,6 +44,7 @@ export async function attribuer(
 	exigerDate(a.debut);
 	if (a.fin !== undefined) exigerDate(a.fin);
 	const laResponsabilite = await responsabiliteConnue(base, a.responsabiliteId);
+	if (laResponsabilite.archiveeLe !== null) throw new DonneeInvalide('Responsabilité archivée');
 	if (a.perimetre.type !== laResponsabilite.typePerimetre) throw new DonneeInvalide('Périmètre différent de celui de la responsabilité');
 	if (a.fin !== undefined && a.fin < a.debut) throw new DonneeInvalide('Fin avant le début');
 	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, a.personneId));
@@ -54,8 +54,9 @@ export async function attribuer(
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
 	}
 	if (a.perimetre.type === 'comite') {
-		const [unComite] = await base.select({ id: comite.id }).from(comite).where(eq(comite.id, a.perimetre.id));
+		const [unComite] = await base.select({ id: comite.id, dissousLe: comite.dissousLe }).from(comite).where(eq(comite.id, a.perimetre.id));
 		if (!unComite) throw new DonneeInvalide('Comité inconnu');
+		if (unComite.dissousLe !== null) throw new DonneeInvalide('Comité dissous');
 	}
 
 	await exigerAttribution(base, acteur, laResponsabilite, a.perimetre, aujourdhui);
@@ -96,25 +97,5 @@ export async function finirAttribution(base: Base, acteur: Acteur, attributionId
 	await base.batch([
 		base.update(attribution).set({ fin }).where(eq(attribution.id, attributionId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'finir_attribution', cibleType: 'attribution', cibleId: attributionId, details: { fin } }, aujourdhui)
-	]);
-}
-
-export async function modifierDroitsResponsabilite(base: Base, acteur: Acteur, responsabiliteId: number, droits: Droit[], aujourdhui: string): Promise<void> {
-	exigerDate(aujourdhui);
-	if (!(await aLeDroit(base, acteur, 'GERER_LISTES', { type: 'centre' }, aujourdhui))) throw new RefusDroit('GERER_LISTES', { type: 'centre' });
-	await responsabiliteConnue(base, responsabiliteId);
-	if (droits.some((droit) => !(DROITS as readonly string[]).includes(droit))) throw new DonneeInvalide('Droit inconnu');
-
-	const actuels = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, responsabiliteId));
-	if (actuels.some((ligne) => ligne.verrouille === 1 && !droits.includes(ligne.droit))) throw new DonneeInvalide('Droit verrouillé : impossible de le retirer');
-
-	const aGarder = [...new Set(droits)];
-	const aAjouter = aGarder.filter((droit) => !actuels.some((ligne) => ligne.droit === droit));
-	await base.batch([
-		aGarder.length === 0
-			? base.delete(responsabiliteDroit).where(and(eq(responsabiliteDroit.responsabiliteId, responsabiliteId), eq(responsabiliteDroit.verrouille, 0)))
-			: base.delete(responsabiliteDroit).where(and(eq(responsabiliteDroit.responsabiliteId, responsabiliteId), eq(responsabiliteDroit.verrouille, 0), notInArray(responsabiliteDroit.droit, aGarder))),
-		...(aAjouter.length > 0 ? [base.insert(responsabiliteDroit).values(aAjouter.map((droit) => ({ responsabiliteId, droit })))] : []),
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_droits_responsabilite', cibleType: 'responsabilite', cibleId: responsabiliteId, details: { droits: aGarder } }, aujourdhui)
 	]);
 }

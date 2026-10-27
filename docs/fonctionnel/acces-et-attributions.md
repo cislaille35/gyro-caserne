@@ -26,6 +26,43 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 
 Au démarrage, le chef de centre ou le super administrateur nomme les premiers membres de chaque comité.
 
+## Comités et responsabilités (page « Réglages du centre »)
+
+Avant d'attribuer une responsabilité, elle doit exister. La page « Réglages » crée et fait vivre :
+
+- **les comités** (nom, thème court : « sport », « formation ») : créer, renommer, dissoudre. Le comité du centre ne se renomme pas et ne se dissout pas ;
+- **les responsabilités** : nom, nature (fonction ou mission), portée (centre, équipe ou comité), qui l'attribue, droits. Créer, modifier, archiver.
+
+**Qui attribue** une responsabilité : le chef de centre, un comité désigné, ou, pour une portée « comité », le comité visé lui-même (cas du membre et du rapporteur).
+
+**Droits de pouvoir et droits métier** :
+
+| Groupe | Droits |
+|---|---|
+| Pouvoir | `GERER_ACCES`, `ATTRIBUER_RESPONSABILITE`, `GERER_LISTES`, `GERER_COMITES` |
+| Métier | tous les autres (planning, stock, anomalies, salons…) |
+
+**Qui peut quoi** :
+
+- `GERER_COMITES` sur le centre gère les comités ; `GERER_LISTES` sur le centre gère les responsabilités. Chacun ne voit que la liste qu'il gère ; les autres agents n'ont pas la page.
+- Le **référent technique** (responsabilité du jeu de départ, attribuée par le chef de centre, avec ces deux droits) met en place ce que le comité ou le chef a décidé. Il ne distribue que des droits métier : il ne coche ni ne décoche un droit de pouvoir, et ne modifie ni n'archive une responsabilité qui en porte un, la sienne comprise. Il peut dissoudre un comité.
+- Le **chef de centre**, son **adjoint** et le **super administrateur** font tout, droits de pouvoir compris.
+
+**Règles** :
+
+- Rien n'est supprimé : on dissout un comité, on archive une responsabilité ; ils restent dans « Anciens » et ne sont plus proposés. On ne les réactive pas.
+- Noms uniques (comités entre eux, responsabilités entre elles), sans tenir compte des majuscules : « amicale » est refusé si « Amicale » existe, même parmi les anciens. 60 caractères au plus.
+- Les responsabilités système (chef de centre, adjoint, chef d'équipe) ne s'archivent pas ; leurs droits verrouillés ne se retirent pas.
+- La portée ne change pas tant que quelqu'un tient la responsabilité, aujourd'hui ou plus tard.
+
+**Effets d'une dissolution ou d'un archivage**, le jour même, après une case « Je confirme » :
+
+- les attributions en cours (sur ce comité, ou de cette responsabilité) s'arrêtent la veille : leurs droits disparaissent dès aujourd'hui. Celles qui commencent aujourd'hui ou plus tard sont supprimées ;
+- un comité dissous n'attribue plus rien : les responsabilités de centre ou d'équipe qu'il attribuait passent au chef de centre. Tant qu'il attribue une responsabilité de portée « comité » en cours, il ne se dissout pas : on change d'abord qui l'attribue (message « Changez d'abord qui attribue « … » ») ;
+- le journal note l'action et le nombre d'attributions closes.
+
+Exemple : le comité « Sport » attribue « Référent sport », avec le droit « Gérer le stock ». Le comité est dissous le 3 mars : son rapporteur perd ses droits dès le 3 mars, et « Référent sport » est désormais attribué par le chef de centre. Si « Sport » attribuait une responsabilité de portée « comité », il faudrait d'abord confier cette attribution à un autre comité.
+
 ## Super administrateur
 
 - C'est le compte technique du centre : il possède les comptes Cloudflare, Brevo et GitHub. Pour Laillé : `cislaille35@gmail.com`.
@@ -34,7 +71,7 @@ Au démarrage, le chef de centre ou le super administrateur nomme les premiers m
 
 ## Ce qui est tracé
 
-Le journal garde chaque ajout ou retrait d'adresse, chaque changement de profil ou de statut opérationnel, et chaque attribution, avec son auteur et sa date.
+Le journal garde chaque ajout ou retrait d'adresse, chaque changement de profil ou de statut opérationnel, chaque attribution, et chaque création, modification, dissolution ou archivage d'un comité ou d'une responsabilité, avec son auteur et sa date.
 
 ## Ce que la fonction ne fait pas
 

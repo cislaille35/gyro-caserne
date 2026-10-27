@@ -18,6 +18,11 @@ describe('Gyro', () => {
 		expect(page).toContain('role="img"');
 	});
 
+	// Gyro est parfois dans un bouton nommé : un texte visible contredirait ce nom (WCAG 2.5.3).
+	it.each(noms)('tenue %s : aucun texte dans le dessin', (tenue) => {
+		expect(html({ tenue })).not.toContain('<text');
+	});
+
 	it('prend la tenue normale par défaut', () => {
 		expect(html({})).toContain('aria-label="Gyro, souriant"');
 	});

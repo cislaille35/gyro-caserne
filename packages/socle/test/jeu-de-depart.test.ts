@@ -73,7 +73,8 @@ describe('chargerJeuDeDepart', () => {
 			['Membre de comité', 'mission', null, 'comite', null, []],
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
 			['Référent engins', 'mission', null, 'centre', idCentre, [['TRAITER_ANOMALIE', 0], ['GERER_FICHES', 0]]],
-			['Référent pharmacie', 'mission', null, 'centre', idCentre, [['GERER_STOCK', 0]]]
+			['Référent pharmacie', 'mission', null, 'centre', idCentre, [['GERER_STOCK', 0]]],
+			['Référent technique', 'fonction', null, 'centre', null, [['GERER_LISTES', 0], ['GERER_COMITES', 0]]]
 		];
 		const responsabilites = await base.select().from(responsabilite).orderBy(responsabilite.id);
 		expect(responsabilites.map((r) => [r.nom, r.nature, r.systeme, r.typePerimetre, r.comiteAttributeurId])).toEqual(attendu.map(([nom, nature, systeme, perimetre, attributeur]) => [nom, nature, systeme, perimetre, attributeur]));
@@ -91,7 +92,7 @@ describe('chargerJeuDeDepart', () => {
 		expect(await base.select().from(equipe)).toHaveLength(3);
 		expect(await base.select().from(profil)).toHaveLength(2);
 		expect(await base.select().from(comite)).toHaveLength(2);
-		expect(await base.select().from(responsabilite)).toHaveLength(7);
+		expect(await base.select().from(responsabilite)).toHaveLength(8);
 		expect(await base.select().from(grade)).toHaveLength(11);
 	});
 

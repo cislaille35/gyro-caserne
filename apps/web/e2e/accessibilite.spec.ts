@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/agents', '/agents/nouveau', '/profil']) {
+			for (const chemin of ['/agents', '/agents/nouveau', '/profil', '/reglages']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -45,8 +45,24 @@ for (const theme of ['auto', 'sombre']) {
 				await choisirParti(page);
 				await sansViolation(page);
 			});
+
+			test('/reglages, tous les formulaires ouverts : sans violation, sans débord', async ({ page }) => {
+				await page.goto('/reglages');
+				await page.waitForLoadState('networkidle');
+				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
+				await sansViolation(page);
+				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+			});
 		});
 	});
+}
+
+// Le bloc repliable dont le titre est donné, ouvert. L'hydratation ne referme pas un bloc ouvert.
+async function ouvrir(page: Page, titre: string) {
+	const bloc = page.locator('details').filter({ has: page.locator('summary', { hasText: titre }) });
+	await bloc.locator('summary').click();
+	await expect(bloc.locator('form').first()).toBeVisible();
+	return bloc;
 }
 
 // Adresse de la fiche, lue dans la liste de gestion.
@@ -103,6 +119,48 @@ test.describe('agents', () => {
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
 		await expect(agent.getByText(`Zoé ${nom}`)).toHaveCount(0);
+	});
+});
+
+test.describe('réglages', () => {
+	test('un agent ordinaire n’ouvre pas les réglages : 403', async ({ browser }) => {
+		const contexte = await browser.newContext({ storageState: ETAT_CONNECTE });
+		const reponse = await (await contexte.newPage()).goto('/reglages');
+		expect(reponse!.status()).toBe(403);
+		await contexte.close();
+	});
+
+	test('le super administrateur crée un comité et une responsabilité qu’il attribue, puis le dissout : le chef de centre attribue', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const marque = Date.now().toString(36);
+		const comite = `Comité sport ${marque}`;
+		const responsabilite = `Référent sport ${marque}`;
+		await page.goto('/reglages');
+
+		const creation = await ouvrir(page, 'Créer un comité');
+		await creation.getByLabel('Nom', { exact: true }).fill(comite);
+		await creation.getByLabel('Thème').fill('sport');
+		await creation.getByRole('button', { name: 'Créer le comité' }).click();
+		await expect(page.getByText(`Le comité « ${comite} » est créé.`)).toBeVisible();
+
+		const nouvelle = await ouvrir(page, 'Créer une responsabilité');
+		await nouvelle.getByLabel('Nom', { exact: true }).fill(responsabilite);
+		await nouvelle.getByLabel('Portée').selectOption({ label: 'Centre' });
+		await nouvelle.getByLabel('Qui attribue').selectOption({ label: `Le comité « ${comite} »` });
+		await nouvelle.getByLabel('Gérer le stock', { exact: true }).check();
+		await nouvelle.getByRole('button', { name: 'Créer la responsabilité' }).click();
+		await expect(page.getByText(`La responsabilité « ${responsabilite} » est créée.`)).toBeVisible();
+		// Colonnes : portée, qui attribue, droits, titulaires.
+		const ligne = page.getByRole('row', { name: new RegExp(responsabilite) });
+		await expect(ligne.getByRole('cell').nth(1)).toHaveText(comite);
+		await expect(ligne.getByRole('cell').nth(2)).toHaveText('Gérer le stock');
+
+		const reglage = await ouvrir(page, `Modifier ou dissoudre « ${comite} »`);
+		await reglage.getByLabel('Je confirme').check();
+		await reglage.getByRole('button', { name: 'Dissoudre le comité' }).click();
+		await expect(page.getByText('Le comité est dissous.')).toBeVisible();
+		await expect(ligne.getByRole('cell').nth(1)).toHaveText('Le chef de centre');
+		await page.context().close();
 	});
 });
 

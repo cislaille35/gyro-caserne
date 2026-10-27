@@ -83,7 +83,7 @@ export default async function preparer(config: FullConfig) {
 
 		const pageSuper = await navigateur.newPage({ baseURL: ADRESSE });
 		await connecter(pageSuper, SUPER);
-		await pageSuper.goto('/agents/nouveau');
+		for (const chemin of ['/agents/nouveau', '/reglages']) await pageSuper.goto(chemin);
 		await pageSuper.context().storageState({ path: ETAT_SUPER });
 		await navigateur.close();
 	} catch (erreur) {
