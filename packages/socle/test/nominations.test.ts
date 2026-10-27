@@ -272,6 +272,8 @@ describe('terminerAttribution', () => {
 		expect(await base.select().from(attribution).where(eq(attribution.id, id))).toEqual([]);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'terminer_attribution'));
 		expect(ligne).toMatchObject({ acteur: 'super:admin@exemple.fr', cibleType: 'attribution', cibleId: id });
+		// La personne reste connue même si l'attribution a disparu.
+		expect(JSON.parse(ligne!.details)).toEqual({ annulee: true, personneId: simpleId });
 	});
 
 	it('une attribution commencée aujourd’hui est annulée', async () => {

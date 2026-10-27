@@ -6,7 +6,8 @@ import type { Base } from '../src/base.ts';
 
 const dossierMigrations = new URL('../migrations/', import.meta.url);
 
-export async function baseDeTest(): Promise<Base> {
+// `requetes` compte les appels à la base (un batch compte pour un).
+export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
 	for (const fichier of readdirSync(dossierMigrations).filter((f) => f.endsWith('.sql')).sort()) {
@@ -26,10 +27,14 @@ export async function baseDeTest(): Promise<Base> {
 		return { rows: instruction.all(...valeurs) as unknown as unknown[][] };
 	};
 
-	return drizzle(
-		async (requete, params, methode) => executer(requete, params, methode),
+	const base = drizzle(
+		async (requete, params, methode) => {
+			base.requetes++;
+			return executer(requete, params, methode);
+		},
 		// Tout ou rien, comme le batch de D1.
 		async (requetes) => {
+			base.requetes++;
 			sqlite.exec('BEGIN');
 			try {
 				const resultats = requetes.map((r) => executer(r.sql, r.params, r.method));
@@ -41,5 +46,7 @@ export async function baseDeTest(): Promise<Base> {
 			}
 		},
 		{ schema }
-	);
+	) as Base & { requetes: number };
+	base.requetes = 0;
+	return base;
 }

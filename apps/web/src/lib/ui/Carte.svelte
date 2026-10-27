@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	let { titre, children }: { titre: string; children: Snippet } = $props();
-	const idTitre = $props.id();
+	// `ancre` : le titre reçoit cet id et peut prendre le focus par programme.
+	let { titre, ancre, children }: { titre: string; ancre?: string; children: Snippet } = $props();
+	const idAuto = $props.id();
+	const idTitre = $derived(ancre ?? idAuto);
 </script>
 
 <section aria-labelledby={idTitre}>
-	<h2 id={idTitre}>{titre}</h2>
+	{#if ancre}<h2 id={idTitre} tabindex="-1">{titre}</h2>{:else}<h2 id={idTitre}>{titre}</h2>{/if}
 	{@render children()}
 </section>
 

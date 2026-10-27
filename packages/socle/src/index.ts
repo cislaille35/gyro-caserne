@@ -8,7 +8,10 @@ export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdress
 export * from './listes.ts';
 export { chargerJeuDeDepart, NOM_COMITE_CENTRE } from './jeu-de-depart.ts';
 export { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, modifierMonProfil, monProfil, retirerEquipe, type ChampsFiche, type MonProfil } from './actions/personnes.ts';
-export { attribuer, attributionsDe, ceQueJePeuxAttribuer, finirAttribution, peutAttribuerQuelqueChose, terminerAttribution, titulairesDe, titulairesDesMiens, type CeQueJePeuxAttribuer, type LigneAttribution, type PerimetreNomme, type Titulaire } from './actions/attributions.ts';
+export { attribuer, attributionsDe, ceQueJePeuxAttribuer, finirAttribution, peutAttribuerQuelqueChose, regleDAttribution, terminerAttribution, titulairesDe, titulairesDesMiens, type CeQueJePeuxAttribuer, type LigneAttribution, type PerimetreNomme, type Titulaire } from './actions/attributions.ts';
+export { apercuImport, type Apercu, type FichierLu, type Operation, type RefPersonne } from './apercu-import.ts';
+export { appliquerOperation } from './appliquer-import.ts';
+export { dateFichier, dateIso, donneesFichier, ENTETES, LIBELLES_STATUT, type DonneesFichier, type Repere } from './fichier-effectif.ts';
 export { estGestionnaire, ficheAgent, listeGestion, vueEffectif, type FicheAgent, type LigneGestion } from './effectif.ts';
 export { creerComite, dissoudreComite, listerComites, modifierComite } from './actions/comites.ts';
 export { archiverResponsabilite, creerResponsabilite, listerResponsabilites, modifierResponsabilite, type Attributeur } from './actions/responsabilites.ts';

@@ -67,9 +67,13 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | @fontsource/barlow, barlow-condensed | 5.3.0 | Polices servies par l'appli (la CSP interdit Google Fonts) |
 | Better Auth | 1.7 | Connexion par lien magique et sessions |
 | Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
+| write-excel-file | 4.1.1 | Écrit le fichier de l'effectif (`.xlsx`, listes déroulantes), dans le navigateur |
+| read-excel-file | 9.3.12 | Relit le fichier de l'effectif, dans le navigateur |
 | Vitest | 5 | Tests |
 | Playwright (`@playwright/test`) | 1.64.1 | Tests dans un vrai navigateur (Chromium), aux tailles téléphone et ordinateur |
 | axe pour Playwright (`@axe-core/playwright`) | 4.14.0 | Contrôle automatique des règles WCAG A et AA, base des tests RGAA |
 | Wrangler | 4 | Cloudflare (local et déploiement) |
+
+Fichier de l'effectif : write-excel-file et read-excel-file sont petits, maintenus et s'appuient sur fflate (zip) ; ExcelJS est écarté (21 Mo, plus maintenu, flux propres à Node). Le classeur est écrit et lu dans le navigateur, car l'offre gratuite de Workers limite le temps de calcul par requête. Le paquet du socle est déclaré sans effet de bord (`sideEffects: false`) : le navigateur n'en reçoit que ce qu'il importe (libellés des statuts), pas l'accès à la base.
 
 Les choix sont expliqués dans `docs/decisions/`.

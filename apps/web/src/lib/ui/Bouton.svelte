@@ -5,11 +5,12 @@
 		type = 'button',
 		variante = 'principal',
 		desactive = false,
+		onclick,
 		children
-	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire'; desactive?: boolean; children: Snippet } = $props();
+	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire'; desactive?: boolean; onclick?: () => void; children: Snippet } = $props();
 </script>
 
-<button {type} class={variante} disabled={desactive}>{@render children()}</button>
+<button {type} class={variante} disabled={desactive} {onclick}>{@render children()}</button>
 
 <style>
 	button {

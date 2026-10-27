@@ -53,7 +53,7 @@ async function exigerProfil(base: Base, profilId: number) {
 }
 
 // Longueurs maximales : nom du champ dans le message, limite en caractères.
-const LIMITES = {
+export const LIMITES = {
 	email: ['Adresse trop longue', 254],
 	prenom: ['Prénom trop long', 60],
 	nom: ['Nom trop long', 60],
@@ -79,6 +79,11 @@ async function ecrireAdresse<T>(ecriture: () => Promise<T>): Promise<T> {
 	}
 }
 
+// Une fiche à l'adresse d'un super administrateur ferait de lui un agent du centre.
+function exigerAdresseNonReservee(email: string, adressesReservees: string[]) {
+	if (adressesReservees.map(normaliserAdresse).includes(email)) throw new DonneeInvalide('Adresse réservée au super administrateur');
+}
+
 async function exigerAdresseLibre(base: Base, email: string) {
 	const [existante] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, email));
 	if (existante) throw new DonneeInvalide('Adresse déjà utilisée');
@@ -88,7 +93,8 @@ export async function ajouterPersonne(
 	base: Base,
 	acteur: Acteur,
 	donnees: { email: string; prenom: string; nom: string; profilId: number; equipeId?: number; statut?: StatutOperationnel } & Complements,
-	aujourdhui: string
+	aujourdhui: string,
+	adressesReservees: string[]
 ): Promise<number> {
 	exigerDate(aujourdhui);
 	const email = normaliserAdresse(donnees.email);
@@ -108,6 +114,8 @@ export async function ajouterPersonne(
 	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui))) {
 		await exigerProfilCouvert(base, acteur, donnees.profilId, aujourdhui);
 	}
+	// Après les droits : sans eux, on ne sonde pas les adresses réservées.
+	exigerAdresseNonReservee(email, adressesReservees);
 
 	if (donnees.equipeId !== undefined) {
 		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
@@ -189,7 +197,7 @@ function deconnecter(base: Base, email: string) {
 export type ChampsFiche = { email: string; prenom: string; nom: string; profilId: number } & Required<Complements>;
 const CHAMPS_FICHE = ['email', 'prenom', 'nom', 'gradeId', 'dateGrade', 'profilId', 'telephone', 'naissance', 'entreeCentre', 'engagementSpv'] as const;
 
-export async function modifierFiche(base: Base, acteur: Acteur, id: number, champs: Partial<ChampsFiche>, aujourdhui: string): Promise<void> {
+export async function modifierFiche(base: Base, acteur: Acteur, id: number, champs: Partial<ChampsFiche>, aujourdhui: string, adressesReservees: string[]): Promise<void> {
 	exigerDate(aujourdhui);
 	await exiger(base, acteur, centre, aujourdhui);
 	const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
@@ -209,6 +217,7 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 		nouveaux[cle] = cle === 'email' ? normaliserAdresse(valeur) : valeur.trim();
 		if (!nouveaux[cle]) throw new DonneeInvalide(`${textes[cle]} vide`);
 	}
+	if (nouveaux.email !== undefined) exigerAdresseNonReservee(nouveaux.email, adressesReservees);
 	exigerLongueurs(nouveaux);
 	await exigerComplements(base, nouveaux);
 	if (nouveaux.profilId !== undefined) await exigerProfil(base, nouveaux.profilId);

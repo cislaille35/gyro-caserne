@@ -27,6 +27,7 @@ describe('/agents : mise en page', () => {
 		expect(mise.match(/Rôles/g)).toHaveLength(1);
 		expect(mise).not.toContain('class="detail');
 		expect(mise).not.toContain('Contenu de la page');
+		expect(mise).not.toContain('/agents/fichier');
 		expect(tete(Layout, { data, children: enfants })).toContain('<title>Agents · Gyro Caserne</title>');
 		expect(html(Page, { data })).not.toContain('Choisissez un agent');
 	});
@@ -35,6 +36,7 @@ describe('/agents : mise en page', () => {
 		const data = { gestion: true, lignes, equipes: [], statuts: ['operationnel'], filtres };
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toContain('Voir la fiche');
+		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>Fichier de l'effectif<\/a>/);
 		expect(mise).toContain('class="detail');
 		expect(mise).toContain('Contenu de la page');
 		expect(tete(Layout, { data, children: enfants })).not.toContain('<title>');

@@ -20,13 +20,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	default: async ({ locals, request }) => {
 		const { acteur, aujourdhui } = await exigerGestion(locals);
-		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData(), locals.superAdmins, true);
+		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData(), true);
 		if (Object.keys(erreurs).length > 0) return fail<Reponse>(400, { erreurs, valeurs });
 
 		const { email, prenom, nom, profilId, equipeId, ...complements } = champs;
 		let id: number;
 		try {
-			id = await ajouterPersonne(locals.base, acteur, { email: email!, prenom: prenom!, nom: nom!, profilId: profilId!, ...(equipeId != null && { equipeId }), ...complements }, aujourdhui);
+			id = await ajouterPersonne(locals.base, acteur, { email: email!, prenom: prenom!, nom: nom!, profilId: profilId!, ...(equipeId != null && { equipeId }), ...complements }, aujourdhui, locals.superAdmins);
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}

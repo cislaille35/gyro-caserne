@@ -1,5 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
+import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
 import { ADRESSE, ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
 async function sansViolation(page: Page, chemin?: string) {
@@ -64,6 +67,16 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 			});
 
+			test('/agents/fichier sans violation, avant et après le dépôt d’un fichier', async ({ page }) => {
+				await ouvrirFichier(page);
+				await sansViolation(page);
+				const modele = (await (await page.request.get('/agents/fichier/donnees?modele=1')).json()) as DonneesFichier;
+				const marque = Date.now().toString(36);
+				await deposer(page, await classeur(modele.entetes, [arrivee(modele.entetes, marque, 'Yanis')], null));
+				await expect(page.getByRole('heading', { level: 3, name: '1 arrivée' })).toBeVisible();
+				await sansViolation(page);
+			});
+
 			test('/reglages, tous les formulaires ouverts : sans violation, sans débord', async ({ page }) => {
 				await page.goto('/reglages');
 				await page.waitForLoadState('networkidle');
@@ -117,6 +130,38 @@ async function nommer(page: Page, role: string, agent: string, dates: { debut?: 
 	if (dates.fin) await formulaire.getByLabel('Fin', { exact: true }).fill(dates.fin);
 	await formulaire.getByRole('button', { name: 'Nommer' }).click();
 	await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
+}
+
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+// La page du fichier, prête : avant l'hydratation, boutons et champ fichier ne font rien.
+async function ouvrirFichier(page: Page) {
+	await page.goto('/agents/fichier');
+	await page.waitForLoadState('networkidle');
+}
+
+// Cliquer sur le bouton, attendre le vrai téléchargement et relire le classeur reçu.
+async function telecharger(page: Page, bouton: string): Promise<{ nom: string; lu: FichierLu }> {
+	const [telechargement] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: bouton }).click()]);
+	const lu = await lireClasseur(new Blob([readFileSync((await telechargement.path())!)]));
+	return { nom: telechargement.suggestedFilename(), lu };
+}
+
+// Classeur fictif écrit comme l'appli l'écrit (listes déroulantes inutiles ici).
+async function classeur(entetes: string[], lignes: string[][], repere: FichierLu['repere']): Promise<Buffer> {
+	const listes = { grades: [], equipes: [], statuts: [], profils: [], rolesComite: [] };
+	return Buffer.from(await (await ecrireClasseur({ entetes, listes, colonnesListe: {}, lignes, repere })).arrayBuffer());
+}
+
+// Ligne d'arrivée (sans n°) d'un agent fictif de l'équipe 1, dans l'ordre des en-têtes.
+function arrivee(entetes: string[], marque: string, prenom: string): string[] {
+	const valeurs: Record<string, string> = { 'E-mail': `${prenom.toLowerCase()}.${marque}@exemple.fr`, Prénom: prenom, Nom: `Import${marque}`, Équipe: 'Équipe 1', Profil: 'Agent' };
+	return entetes.map((e) => valeurs[e] ?? '');
+}
+
+async function deposer(page: Page, contenu: Buffer) {
+	await page.getByLabel('Importer un fichier').setInputFiles({ name: 'effectif.xlsx', mimeType: XLSX, buffer: contenu });
+	await expect(page.getByRole('heading', { level: 2, name: "Aperçu de l'import" })).toBeVisible();
 }
 
 // Choisi même avant que la page soit prête, « Parti » affiche l'avertissement une fois la page prête.
@@ -239,6 +284,81 @@ test.describe('réglages', () => {
 		await reglage.getByRole('button', { name: 'Dissoudre le comité' }).click();
 		await expect(page.getByText('Le comité est dissous.')).toBeVisible();
 		await expect(ligne.getByRole('cell').nth(1)).toHaveText('Le chef de centre');
+		await page.context().close();
+	});
+});
+
+test.describe('fichier de l’effectif', () => {
+	test('un agent ordinaire n’ouvre pas le fichier de l’effectif : 403', async ({ browser }) => {
+		const contexte = await browser.newContext({ storageState: ETAT_CONNECTE });
+		const reponse = await (await contexte.newPage()).goto('/agents/fichier');
+		expect(reponse!.status()).toBe(403);
+		await contexte.close();
+	});
+
+	test('le super administrateur importe 2 arrivées depuis le modèle, puis un export amputé d’une ligne : « 1 départ » en tête', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		await ouvrirFichier(page);
+		const modele = await telecharger(page, 'Télécharger le modèle vierge');
+		expect(modele.nom).toBe('modele-effectif.xlsx');
+		expect(modele.lu.lignes).toEqual([]);
+		expect(modele.lu.repere).toBeNull();
+
+		const marque = Date.now().toString(36);
+		const entetes = modele.lu.entetes;
+		await deposer(page, await classeur(entetes, [arrivee(entetes, marque, 'Yanis'), arrivee(entetes, marque, 'Zoe')], null));
+		await expect(page.getByRole('heading', { level: 3, name: 'Aucun départ' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 3, name: '2 arrivées' })).toBeVisible();
+
+		// Les opérations attendent : on voit l'application en cours et on tente de quitter.
+		let ouvrir!: () => void;
+		const barriere = new Promise<void>((r) => (ouvrir = r));
+		await page.route('**/agents/fichier/operation', async (route) => {
+			await barriere;
+			await route.continue();
+		});
+		await page.getByRole('button', { name: "Valider l'import" }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Application en cours' })).toBeFocused();
+
+		let question = '';
+		page.once('dialog', async (dialogue) => {
+			question = dialogue.message();
+			await dialogue.dismiss();
+		});
+		await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Affichage' }).click();
+		await expect.poll(() => question).toBe("L'import est en cours : quitter l'arrêtera. Quitter quand même ?");
+		await expect(page).toHaveURL(/\/agents\/fichier$/);
+		await expect(page.getByRole('heading', { level: 2, name: 'Application en cours' })).toBeVisible();
+
+		ouvrir();
+		await expect(page.getByRole('heading', { level: 2, name: 'Compte rendu' })).toBeFocused();
+		const compteRendu = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: 'Compte rendu' }) });
+		await expect(compteRendu.getByRole('heading', { level: 3 })).toHaveCount(0);
+		await expect(compteRendu).toContainText('Réexportez avant le prochain import.');
+		await sansViolation(page);
+
+		await page.goto(`/agents?texte=Import${marque}`);
+		await expect(page.getByRole('link', { name: `Voir la fiche de Yanis Import${marque}` })).toBeVisible();
+		await expect(page.getByRole('link', { name: `Voir la fiche de Zoe Import${marque}` })).toBeVisible();
+
+		// Exporter, retirer Yanis, réimporter : son départ vient en tête de l'aperçu.
+		await ouvrirFichier(page);
+		const exporte = await telecharger(page, "Exporter l'effectif");
+		expect(exporte.nom).toMatch(/^effectif-\d{4}-\d{2}-\d{2}\.xlsx$/);
+		expect(exporte.lu.repere).not.toBeNull();
+		const email = exporte.lu.entetes.indexOf('E-mail');
+		const lignes = exporte.lu.lignes.map((l) => l.cellules);
+		expect(lignes.filter((l) => l[email]!.endsWith(`.${marque}@exemple.fr`))).toHaveLength(2);
+		const ampute = lignes.filter((l) => l[email] !== `yanis.${marque}@exemple.fr`);
+		await deposer(page, await classeur(exporte.lu.entetes, ampute, exporte.lu.repere));
+
+		const apercu = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: "Aperçu de l'import" }) });
+		await expect(apercu.getByRole('heading', { level: 3 }).first()).toHaveText('1 départ');
+		await expect(apercu.getByRole('listitem').first()).toHaveText(`Yanis Import${marque}`);
+		// Relu sans changement, le reste de l'export ne modifie personne.
+		await expect(apercu.getByRole('heading', { level: 3, name: /modification/ })).toHaveCount(0);
+		await page.getByRole('button', { name: "Abandonner l'import" }).click();
+		await expect(apercu).toHaveCount(0);
 		await page.context().close();
 	});
 });
