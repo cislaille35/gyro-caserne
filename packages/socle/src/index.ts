@@ -16,4 +16,4 @@ export { estGestionnaire, ficheAgent, listeGestion, vueEffectif, type FicheAgent
 export { creerComite, dissoudreComite, listerComites, modifierComite } from './actions/comites.ts';
 export { archiverResponsabilite, creerResponsabilite, listerResponsabilites, modifierResponsabilite, type Attributeur } from './actions/responsabilites.ts';
 export { NOMS_ICONES, type NomIcone } from './icones.ts';
-export { aDecider, casquettesDe, contenuCasquette, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
+export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';

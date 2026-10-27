@@ -4,48 +4,41 @@
 
 	// Une casquette par rôle tenu ; chacune est un lien (?casquette=…), la page se charge côté serveur.
 	let { casquettes, choisie }: { casquettes: Casquette[]; choisie: string } = $props();
-
-	// Flèches, Début et Fin passent d'une casquette à l'autre ; Entrée l'ouvre.
-	function clavier(e: KeyboardEvent) {
-		const onglets = [...(e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('[role="tab"]')];
-		const i = onglets.indexOf(document.activeElement as HTMLElement);
-		const cible = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: onglets.length - 1 }[e.key];
-		if (cible === undefined || i < 0) return;
-		e.preventDefault();
-		onglets[(cible + onglets.length) % onglets.length]!.focus();
-	}
 </script>
 
-<div class="rangee" role="tablist" aria-label="Casquettes" tabindex="-1" onkeydown={clavier}>
-	{#each casquettes as c (c.id)}
-		<a
-			role="tab"
-			href="?casquette={encodeURIComponent(c.id)}"
-			aria-selected={c.id === choisie}
-			aria-label={c.compte > 0 ? `${c.nom}, ${c.compte} en attente` : undefined}
-			aria-controls={c.id === choisie ? 'contenu-casquette' : undefined}
-			id="casquette-{c.id}"
-			tabindex={c.id === choisie ? 0 : -1}
-			data-sveltekit-noscroll
-			data-sveltekit-replacestate
-		>
-			<IconeRole icone={c.icone} taille={28} />
-			<span>{c.nom}</span>
-			{#if c.compte > 0}<span class="compte" aria-hidden="true">{c.compte}</span>{/if}
-		</a>
-	{/each}
-</div>
+<nav aria-label="Casquettes">
+	<ul>
+		{#each casquettes as c (c.id)}
+			<li>
+				<a
+					href="?casquette={encodeURIComponent(c.id)}"
+					aria-current={c.id === choisie ? 'page' : undefined}
+					aria-label={c.compte > 0 ? `${c.nom}, ${c.compte} en attente` : undefined}
+					data-sveltekit-noscroll
+					data-sveltekit-replacestate
+				>
+					<IconeRole icone={c.icone} taille={28} />
+					<span>{c.nom}</span>
+					{#if c.compte > 0}<span class="compte" aria-hidden="true">{c.compte}</span>{/if}
+				</a>
+			</li>
+		{/each}
+	</ul>
+</nav>
 
 <style>
-	.rangee {
+	ul {
 		display: flex;
 		gap: 8px;
 		overflow-x: auto;
+		list-style: none;
 		padding: 4px;
 		margin: -4px;
 	}
-	a {
+	li {
 		flex: none;
+	}
+	a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
@@ -59,7 +52,7 @@
 		text-decoration: none;
 	}
 	/* La choisie : contour épais et texte gras, pas seulement une couleur. */
-	a[aria-selected='true'] {
+	a[aria-current='page'] {
 		border: 2px solid var(--encre);
 		font-weight: 700;
 	}

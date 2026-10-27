@@ -1,6 +1,6 @@
-import { and, asc, eq, gte, isNull, lte, or } from 'drizzle-orm';
+import { and, asc, eq, gte, isNull, lte, ne, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
-import { occupe, type Acteur } from './droits.ts';
+import type { Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
 import type { NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
@@ -14,9 +14,12 @@ export type ContenuCasquette =
 	| { type: 'astreinte' }
 	| { type: 'equipe' }
 	| { type: 'role'; permet: string[] }
-	| { type: 'comite'; membres: { prenom: string; nom: string; role: string }[] };
+	| { type: 'comite'; membres: { personneId: number; prenom: string; nom: string; role: string }[] };
+export type Accueil = { casquettes: Casquette[]; choisie: string; contenu: ContenuCasquette };
 
 const enCoursLe = (aujourdhui: string) => and(lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui)));
+// Un agent parti ne tient plus rien.
+const present = ne(personne.statut, 'parti');
 
 // En attendant l'icône choisie par rôle : déduite du nom.
 function iconeDuRole(nom: string): NomIcone {
@@ -58,18 +61,29 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 	];
 }
 
+// Les casquettes et, pour « Le centre », ce qui est à décider : chaque lecture une seule fois.
+async function lire(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null }> {
+	const liste = await tenues(base, acteur, aujourdhui);
+	const aDecider = liste.some((c) => c.id === 'centre') ? await lireADecider(base, aujourdhui) : null;
+	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : 0 })), aDecider };
+}
+
 // Ordre : centre, chef d'équipe, astreinte, référents, comités. Seul « Le centre » a déjà de quoi compter.
 export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string): Promise<Casquette[]> {
-	const liste = await tenues(base, acteur, aujourdhui);
-	const compteCentre = liste.some((c) => c.id === 'centre') ? (await lireADecider(base, aujourdhui)).length : 0;
-	return liste.map((c) => ({ ...c, compte: c.id === 'centre' ? compteCentre : 0 }));
+	return (await lire(base, acteur, aujourdhui)).casquettes;
 }
 
 export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string): Promise<ADecider[]> {
-	const aLeCentre =
-		acteur.type === 'super' || (await occupe(base, acteur.id, 'chef_centre', aujourdhui)) || (await occupe(base, acteur.id, 'chef_centre_adjoint', aujourdhui));
-	if (!aLeCentre) throw new RefusDroit('GERER_ACCES', { type: 'centre' }, 'Réservé au chef de centre et à son adjoint');
-	return lireADecider(base, aujourdhui);
+	const lu = (await lire(base, acteur, aujourdhui)).aDecider;
+	if (lu === null) throw new RefusDroit('GERER_ACCES', { type: 'centre' }, 'Réservé au chef de centre et à son adjoint');
+	return lu;
+}
+
+// L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
+export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string): Promise<Accueil> {
+	const { casquettes, aDecider } = await lire(base, acteur, aujourdhui);
+	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
+	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, aujourdhui) };
 }
 
 async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]> {
@@ -80,8 +94,14 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 			.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
 			.from(attribution)
 			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-			.where(enCoursLe(aujourdhui)),
-		base.select({ id: responsabilite.id, nom: responsabilite.nom }).from(responsabilite).where(and(isNull(responsabilite.archiveeLe), isNull(responsabilite.systeme))).orderBy(asc(responsabilite.nom)),
+			.innerJoin(personne, eq(personne.id, attribution.personneId))
+			.where(and(enCoursLe(aujourdhui), present)),
+		// Hors système et hors comités (un rôle de comité vide par comité serait du bruit).
+		base
+			.select({ id: responsabilite.id, nom: responsabilite.nom })
+			.from(responsabilite)
+			.where(and(isNull(responsabilite.archiveeLe), isNull(responsabilite.systeme), ne(responsabilite.typePerimetre, 'comite')))
+			.orderBy(asc(responsabilite.nom)),
 		base
 			.select({ gradeId: personne.gradeId, entreeCentre: personne.entreeCentre, statut: personne.statut, typePersonne: profil.typePersonne })
 			.from(personne)
@@ -123,10 +143,9 @@ const DOMAINES: [Droit, string][][] = [
 	[['ATTRIBUER_RESPONSABILITE', 'Nommer aux responsabilités.']]
 ];
 
-// Le contenu d'une casquette tenue ; null si l'acteur ne la tient pas.
-export async function contenuCasquette(base: Base, acteur: Acteur, id: string, aujourdhui: string): Promise<ContenuCasquette | null> {
-	if (!(await tenues(base, acteur, aujourdhui)).some((c) => c.id === id)) return null;
-	if (id === 'centre') return { type: 'centre', aDecider: await lireADecider(base, aujourdhui) };
+// Le contenu d'une casquette déjà vérifiée comme tenue.
+async function contenu(base: Base, id: string, aDecider: ADecider[] | null, aujourdhui: string): Promise<ContenuCasquette> {
+	if (id === 'centre') return { type: 'centre', aDecider: aDecider! };
 	if (id === 'astreinte') return { type: 'astreinte' };
 	const [type, numero] = id.split(':') as ['equipe' | 'role' | 'comite', string];
 	if (type === 'equipe') return { type: 'equipe' };
@@ -142,13 +161,13 @@ export async function contenuCasquette(base: Base, acteur: Acteur, id: string, a
 		.from(attribution)
 		.innerJoin(personne, eq(personne.id, attribution.personneId))
 		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-		.where(and(eq(attribution.perimetreType, 'comite'), eq(attribution.perimetreId, Number(numero)), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui)))
+		.where(and(eq(attribution.perimetreType, 'comite'), eq(attribution.perimetreId, Number(numero)), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui), present))
 		.orderBy(asc(personne.nom), asc(personne.prenom), asc(responsabilite.nom));
 	// Une personne à la fois membre et rapporteur : une seule ligne.
-	const membres = new Map<number, { prenom: string; nom: string; role: string }>();
+	const membres = new Map<number, { personneId: number; prenom: string; nom: string; role: string }>();
 	for (const l of lignes) {
 		const deja = membres.get(l.personneId);
-		membres.set(l.personneId, deja ? { ...deja, role: `${deja.role} · ${l.role}` } : { prenom: l.prenom, nom: l.nom, role: l.role });
+		membres.set(l.personneId, deja ? { ...deja, role: `${deja.role} · ${l.role}` } : l);
 	}
 	return { type: 'comite', membres: [...membres.values()] };
 }

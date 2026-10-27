@@ -37,7 +37,7 @@
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
-	<div class="contenu" id="contenu-casquette" role={rangee ? 'tabpanel' : undefined} aria-labelledby={rangee ? `casquette-${data.choisie}` : undefined}>
+	<div class="contenu">
 		{#if data.contenu.type === 'centre'}
 			<Carte titre="À décider">
 				{#if data.contenu.aDecider.length > 0}
@@ -77,7 +77,7 @@
 			<Carte titre="Membres">
 				{#if data.contenu.membres.length > 0}
 					<ul class="liste">
-						{#each data.contenu.membres as membre (`${membre.prenom} ${membre.nom}`)}
+						{#each data.contenu.membres as membre (membre.personneId)}
 							<li class="membre">
 								<Initiales prenom={membre.prenom} nom={membre.nom} />
 								<span class="texte"><span>{membre.prenom} {membre.nom}</span><span class="doux">{membre.role}</span></span>

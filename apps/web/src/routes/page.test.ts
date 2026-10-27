@@ -12,21 +12,23 @@ describe('accueil', () => {
 	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; astreinte vide sans fausses données', () => {
 		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
 		expect(html).toContain('Bonjour Alice');
-		expect(html).not.toContain('role="tablist"');
+		expect(html).not.toContain('aria-label="Casquettes"');
 		expect(html).toContain('Votre astreinte s’affichera ici avec le planning.');
 	});
 
-	it('plusieurs casquettes : rangée d’onglets, la choisie marquée, le compteur dans le libellé', () => {
+	it('plusieurs casquettes : rangée de liens, la choisie marquée, le compteur dans le libellé', () => {
 		const html = page({
 			casquettes: [centre, astreinte],
 			choisie: 'astreinte',
 			contenu: { type: 'astreinte' }
 		});
-		expect(html).toMatch(/role="tablist"[^>]*aria-label="Casquettes"/);
-		expect(html).toMatch(/<a[^>]*role="tab"[^>]*href="\?casquette=centre"[^>]*aria-selected="false"[^>]*aria-label="Le centre, 2 en attente"/);
-		expect(html).toMatch(/<a[^>]*role="tab"[^>]*href="\?casquette=astreinte"[^>]*aria-selected="true"/);
-		expect(html).toMatch(/role="tabpanel"[^>]*aria-labelledby="casquette-astreinte"/);
-		expect(html.indexOf('Bonjour Alice')).toBeLessThan(html.indexOf('role="tablist"'));
+		expect(html).toMatch(/<nav[^>]*aria-label="Casquettes"/);
+		expect(html).not.toContain('role="tab');
+		const lienCentre = html.match(/<a[^>]*href="\?casquette=centre"[^>]*>/)![0];
+		expect(lienCentre).toContain('aria-label="Le centre, 2 en attente"');
+		expect(lienCentre).not.toContain('aria-current');
+		expect(html).toMatch(/<a[^>]*href="\?casquette=astreinte"[^>]*aria-current="page"/);
+		expect(html.indexOf('Bonjour Alice')).toBeLessThan(html.indexOf('aria-label="Casquettes"'));
 	});
 
 	it('« Le centre » : « À décider » et les raccourcis permis', () => {
@@ -65,9 +67,11 @@ describe('accueil', () => {
 		const html = page({
 			casquettes: [astreinte, { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 0 }],
 			choisie: 'comite:2',
-			contenu: { type: 'comite', membres: [{ prenom: 'Bruno', nom: 'Petit', role: 'Rapporteur de comité' }] }
+			contenu: { type: 'comite', membres: [{ personneId: 4, prenom: 'Bruno', nom: 'Petit', role: 'Rapporteur de comité' }, { personneId: 5, prenom: 'Bruno', nom: 'Petit', role: 'Membre de comité' }] }
 		});
 		expect(html).toContain('Bruno Petit');
 		expect(html).toContain('Rapporteur de comité');
+		// Deux homonymes : deux lignes (clé par personne).
+		expect(html.match(/Bruno Petit/g)).toHaveLength(2);
 	});
 });

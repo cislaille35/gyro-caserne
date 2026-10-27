@@ -62,4 +62,13 @@ describe('load de /', () => {
 		expect(await appeler({ acteur: alice, base }, `?casquette=role:${pharmacie}`)).toMatchObject({ choisie: `role:${pharmacie}`, contenu: { type: 'role', permet: ['Gérer le stock et la pharmacie.'] } });
 		expect(await appeler({ acteur: alice, base }, '?casquette=centre')).toMatchObject({ choisie: 'astreinte' });
 	});
+
+	it('chef de centre avec 150 agents : 50 requêtes au plus', async () => {
+		const { base, alice, nommer } = await jeu();
+		await nommer('Chef de centre', { type: 'centre' });
+		for (let i = 0; i < 150; i++) await base.insert(personne).values({ email: `agent${i}@exemple.fr`, prenom: `Agent${i}`, nom: 'N' });
+		const avant = base.requetes;
+		expect(await appeler({ acteur: alice, base })).toMatchObject({ choisie: 'centre' });
+		expect(base.requetes - avant).toBeLessThanOrEqual(50);
+	});
 });
