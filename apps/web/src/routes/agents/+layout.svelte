@@ -77,7 +77,10 @@
 				<h2>{groupe.titre}</h2>
 				<ul>
 					{#each groupe.personnes as p (p.id)}
-						<li>{p.prenom} {p.nom}{#if p.grade}<span class="grade"> · {p.grade}</span>{/if}</li>
+						<li>
+							{p.prenom} {p.nom}{#if p.grade}<span class="grade"> · {p.grade}</span>{/if}
+							{#if p.roles.length > 0}<small class="roles">Rôles : {p.roles.join(', ')}</small>{/if}
+						</li>
 					{/each}
 				</ul>
 			{:else}
@@ -152,7 +155,11 @@
 		margin: 0;
 		padding-left: 20px;
 	}
+	.roles {
+		display: block;
+	}
 	.grade,
+	.roles,
 	.email {
 		color: var(--doux);
 	}

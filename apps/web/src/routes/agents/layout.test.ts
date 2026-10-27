@@ -9,7 +9,7 @@ const etat = vi.hoisted(() => ({ page: { url: new URL('http://x/agents'), status
 vi.mock('$app/state', () => etat);
 
 const enfants = createRawSnippet(() => ({ render: () => '<p>Contenu de la page</p>' }));
-const groupes = [{ titre: 'Équipe 1', personnes: [{ id: 1, prenom: 'Alice', nom: 'Martin', grade: null }] }];
+const groupes = [{ titre: 'Équipe 1', personnes: [{ id: 1, prenom: 'Alice', nom: 'Martin', grade: null, roles: ['Référent engins', 'Rapporteur (Amicale)'] }, { id: 2, prenom: 'Paul', nom: 'Durand', grade: null, roles: [] }] }];
 const lignes = [{ id: 1, prenom: 'Alice', nom: 'Martin', email: 'alice@exemple.fr', grade: null, equipe: null, statut: 'operationnel' }];
 const filtres = { texte: '', equipe: '', statut: '' };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +23,8 @@ describe('/agents : mise en page', () => {
 		const data = { gestion: false, groupes };
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toContain('Alice Martin');
+		expect(mise).toMatch(/Rôles\s*:[\s\S]*Référent engins[\s\S]*Rapporteur \(Amicale\)/);
+		expect(mise.match(/Rôles/g)).toHaveLength(1);
 		expect(mise).not.toContain('class="detail');
 		expect(mise).not.toContain('Contenu de la page');
 		expect(tete(Layout, { data, children: enfants })).toContain('<title>Agents · Gyro Caserne</title>');

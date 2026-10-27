@@ -5,7 +5,7 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { estGestionnaire, ficheAgent, listeGestion, vueEffectif } from '../src/effectif.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, attribution, equipe, grade, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, attribution, comite, equipe, grade, personne, profil, responsabilite } from '../src/schema.ts';
 import type { StatutOperationnel } from '../src/listes.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -82,8 +82,56 @@ describe('vueEffectif', () => {
 		const { base, nouvelle } = await jeu();
 		await nouvelle('Léa', 'Durand', { equipeId: 1 });
 		const [p] = (await vueEffectif(base, aujourdhui))[0]!.personnes;
-		expect(Object.keys(p!).sort()).toEqual(['grade', 'id', 'nom', 'prenom']);
+		expect(Object.keys(p!).sort()).toEqual(['grade', 'id', 'nom', 'prenom', 'roles']);
 		expect(p!.grade).toBe('Jeune sapeur-pompier');
+	});
+
+	describe('rôles en cours', () => {
+		const attribuer = async (base: Awaited<ReturnType<typeof jeu>>['base'], personneId: number, responsabiliteId: number, perimetre: { type: 'centre' | 'equipe' | 'comite'; id?: number }, debut: string, fin: string | null = null) => {
+			await base.insert(attribution).values({ personneId, responsabiliteId, perimetreType: perimetre.type, perimetreId: perimetre.id ?? null, debut, fin, saisiePar: 'super:secret@b.fr', saisieLe: '2026-01-01' });
+		};
+		const nouvelleResp = async (base: Awaited<ReturnType<typeof jeu>>['base'], nom: string, typePerimetre: 'centre' | 'equipe' | 'comite') => {
+			const [r] = await base.insert(responsabilite).values({ nom, nature: 'fonction', typePerimetre }).returning();
+			return r!.id;
+		};
+		const rolesDe = async (base: Awaited<ReturnType<typeof jeu>>['base'], id: number) =>
+			(await vueEffectif(base, aujourdhui)).flatMap((g) => g.personnes).find((p) => p.id === id)!.roles;
+
+		it('liste les rôles en cours, libellés selon le périmètre, triés', async () => {
+			const { base, nouvelle } = await jeu();
+			const p = await nouvelle('Léa', 'Durand', { equipeId: 1 });
+			const [amicale] = await base.insert(comite).values({ nom: 'Amicale', theme: 'vie' }).returning();
+			await attribuer(base, p, await nouvelleResp(base, 'Rapporteur', 'comite'), { type: 'comite', id: amicale!.id }, '2026-01-01');
+			await attribuer(base, p, await nouvelleResp(base, 'Chef d’agrès', 'equipe'), { type: 'equipe', id: 2 }, '2026-01-01', '2026-10-25');
+			await attribuer(base, p, await nouvelleResp(base, 'Référent engins', 'centre'), { type: 'centre' }, '2026-01-01');
+			expect(await rolesDe(base, p)).toEqual(['Chef d’agrès (Équipe 2)', 'Rapporteur (Amicale)', 'Référent engins']);
+		});
+
+		it('omet le passé, l’à venir, le comité dissous et la responsabilité archivée', async () => {
+			const { base, nouvelle } = await jeu();
+			const p = await nouvelle('Léa', 'Durand', { equipeId: 1 });
+			const passe = await nouvelleResp(base, 'Passé', 'centre');
+			const avenir = await nouvelleResp(base, 'À venir', 'centre');
+			const archivee = await nouvelleResp(base, 'Archivée', 'centre');
+			const dansComite = await nouvelleResp(base, 'Dans comité', 'comite');
+			await base.update(responsabilite).set({ archiveeLe: '2026-06-01' }).where(eq(responsabilite.id, archivee));
+			const [dissous] = await base.insert(comite).values({ nom: 'Ancien', theme: 'vie', dissousLe: '2026-06-01' }).returning();
+			await attribuer(base, p, passe, { type: 'centre' }, '2026-01-01', '2026-10-24');
+			await attribuer(base, p, avenir, { type: 'centre' }, '2026-10-26');
+			await attribuer(base, p, archivee, { type: 'centre' }, '2026-01-01');
+			await attribuer(base, p, dansComite, { type: 'comite', id: dissous!.id }, '2026-01-01');
+			expect(await rolesDe(base, p)).toEqual([]);
+		});
+
+		it('n’expose ni date ni auteur', async () => {
+			const { base, nouvelle } = await jeu();
+			const p = await nouvelle('Léa', 'Durand', { equipeId: 1 });
+			await attribuer(base, p, await nouvelleResp(base, 'Référent engins', 'centre'), { type: 'centre' }, '2026-01-01');
+			const texte = JSON.stringify(await vueEffectif(base, aujourdhui));
+			expect(texte).not.toContain('2026-01-01');
+			expect(texte).not.toContain('secret@b.fr');
+			expect(texte).not.toContain('super:');
+		});
 	});
 
 	it('une équipe inactive n’a pas de groupe', async () => {
