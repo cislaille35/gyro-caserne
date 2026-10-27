@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { createRawSnippet, type Component } from 'svelte';
+import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Bouton from './Bouton.svelte';
@@ -86,6 +88,10 @@ describe('Carte', () => {
 });
 
 describe('Bouton', () => {
+	it('se désactive à la demande (envoi en cours)', () => {
+		expect(html(Bouton, { desactive: true, children: contenu })).toMatch(/<button[^>]*disabled/);
+		expect(html(Bouton, { children: contenu })).not.toContain('disabled');
+	});
 	it('est de type button par défaut', () => {
 		expect(html(Bouton, { children: contenu })).toContain('type="button"');
 	});
@@ -107,6 +113,14 @@ describe('Choix', () => {
 
 	it('sélectionne la valeur donnée', () => {
 		expect(html(Choix, { ...base, valeur: '1' })).toMatch(/<option[^>]*value="1"[^>]*selected/);
+		expect(html(Choix, { ...base, valeur: '1' })).not.toMatch(/<option[^>]*value=""[^>]*selected/);
+	});
+
+	it('n’impose pas sa valeur au navigateur quand la page devient prête', () => {
+		// Un choix fait avant que la page soit prête doit survivre : la liste ne remet jamais la sélection à sa valeur.
+		const code = compile(readFileSync(new URL('./Choix.svelte', import.meta.url), 'utf8'), { generate: 'client' }).js.code;
+		expect(code).not.toContain('bind_select_value');
+		expect(code).not.toContain('select_option');
 	});
 
 	it("relie l'aide et l'erreur au select", () => {

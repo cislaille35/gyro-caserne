@@ -37,7 +37,7 @@ const locaux = (base: unknown, acteur: unknown) => ({ base, acteur, superAdmins 
 const lire = (locals: unknown, id: number) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(load as any)({ locals, params: { id: String(id) } });
-const agir = (nom: 'fiche' | 'equipe' | 'statut', locals: unknown, id: number, corps: Record<string, string>) =>
+const agir = (nom: 'fiche' | 'equipe' | 'statut' | 'attribuer' | 'terminer' | 'finir', locals: unknown, id: number, corps: Record<string, string>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, params: { id: String(id) }, request: new Request('http://x', { method: 'POST', body: new URLSearchParams(corps) }) });
 const lirePersonne = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => (await base.select().from(personne).where(eq(personne.id, id)))[0]!;
@@ -51,6 +51,11 @@ describe('/agents/[id] : accès', () => {
 		await expect(agir('fiche', locals, agent, { nom: 'Pirate' })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('statut', locals, agent, { statut: 'suspendu' })).rejects.toMatchObject({ status: 403 });
+		const [role] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Référent engins'));
+		await expect(agir('attribuer', locals, agent, { responsabiliteId: String(role!.id), perimetre: 'centre', debut: '2026-02-01' })).rejects.toMatchObject({ status: 403 });
+		await expect(agir('terminer', locals, agent, { attributionId: '1', confirmation: 'oui' })).rejects.toMatchObject({ status: 403 });
+		await expect(agir('finir', locals, agent, { attributionId: '1', fin: '2026-12-31' })).rejects.toMatchObject({ status: 403 });
+		expect(await base.select().from(attribution).where(eq(attribution.personneId, agent))).toEqual([]);
 		const apres = await lirePersonne(base, agent);
 		expect(apres.nom).toBe('Test');
 		expect(apres.statut).toBe('operationnel');
@@ -207,5 +212,144 @@ describe('/agents/[id] : ?/statut', () => {
 		const refus = await agir('statut', locaux(base, { type: 'personne', id: adjoint }), chef, { statut: 'suspendu' });
 		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change le statut du chef de centre' } });
 		expect((await lirePersonne(base, chef)).statut).toBe('operationnel');
+	});
+});
+
+describe('/agents/[id] : responsabilités', () => {
+	const idDe = async (base: Awaited<ReturnType<typeof baseDeTest>>, nom: string) => (await base.select().from(responsabilite).where(eq(responsabilite.nom, nom)))[0]!.id;
+	const rolesDe = (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => base.select().from(attribution).where(eq(attribution.personneId, id));
+
+	it('charge les rôles de la personne et ce qu\'on peut lui attribuer, équipe de la personne en premier', async () => {
+		const { base, agent, equipe1 } = await preparer();
+		const [equipe2] = await base.select().from(equipe).where(eq(equipe.ordreRotation, 2));
+		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe2!.id, debut: '2026-01-01' });
+		const data = await lire(locaux(base, super_), agent);
+		expect(data.attributions).toEqual({ enCours: [], aVenir: [], passees: [] });
+		const chefEquipe = data.peutAttribuer.find((r: { nom: string }) => r.nom === 'Chef d’équipe');
+		expect(chefEquipe.perimetres.map((p: { id: number }) => p.id)[0]).toBe(equipe2!.id);
+		expect(chefEquipe.perimetres.map((p: { id: number }) => p.id)).toContain(equipe1.id);
+		expect(data.peutAttribuer.map((r: { nom: string }) => r.nom)).toContain('Référent engins');
+	});
+
+	it('attribue un rôle, puis refuse le doublon sur le champ « debut »', async () => {
+		const { base, agent } = await preparer();
+		const responsabiliteId = String(await idDe(base, 'Référent engins'));
+		const corps = { responsabiliteId, perimetre: 'centre', debut: '2026-02-01', fin: '' };
+		expect(await agir('attribuer', locaux(base, super_), agent, corps)).toMatchObject({ succes: true, cible: 'attribuer' });
+		expect(await rolesDe(base, agent)).toHaveLength(1);
+		const doublon = await agir('attribuer', locaux(base, super_), agent, corps);
+		expect(doublon).toMatchObject({ status: 400, data: { erreurs: { debut: 'Cette personne tient déjà ce rôle sur cette période' } } });
+		expect(await rolesDe(base, agent)).toHaveLength(1);
+	});
+
+	it('attribue un rôle d\'équipe avec son périmètre', async () => {
+		const { base, agent, equipe1 } = await preparer();
+		const responsabiliteId = String(await idDe(base, 'Chef d’équipe'));
+		await agir('attribuer', locaux(base, super_), agent, { responsabiliteId, perimetre: String(equipe1.id), debut: '2026-02-01', fin: '2026-03-01' });
+		expect(await rolesDe(base, agent)).toMatchObject([{ perimetreType: 'equipe', perimetreId: equipe1.id, debut: '2026-02-01', fin: '2026-03-01' }]);
+	});
+
+	it('refuse une fin avant le début, sur le champ « fin »', async () => {
+		const { base, agent } = await preparer();
+		const resultat = await agir('attribuer', locaux(base, super_), agent, { responsabiliteId: String(await idDe(base, 'Référent engins')), perimetre: 'centre', debut: '2026-03-01', fin: '2026-02-01' });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { fin: 'Fin avant le début' } } });
+		expect(await rolesDe(base, agent)).toEqual([]);
+	});
+
+	it('refuse une date de début absente ou un identifiant illisible, sans rien écrire', async () => {
+		const { base, agent } = await preparer();
+		const responsabiliteId = String(await idDe(base, 'Référent engins'));
+		expect(await agir('attribuer', locaux(base, super_), agent, { responsabiliteId, perimetre: 'centre', debut: '' })).toMatchObject({ status: 400, data: { erreurs: { debut: 'Indiquez la date de début.' } } });
+		expect(await agir('attribuer', locaux(base, super_), agent, { responsabiliteId: 'abc', perimetre: 'centre', debut: '2026-02-01' })).toMatchObject({ status: 400, data: { erreurs: { responsabiliteId: 'Choix inconnu' } } });
+		expect(await rolesDe(base, agent)).toEqual([]);
+	});
+
+	it('refuse en 403 avec message quand l\'adjoint nomme un chef de centre', async () => {
+		const { base, agent, adjoint } = await preparer();
+		const resultat = await agir('attribuer', locaux(base, { type: 'personne', id: adjoint }), agent, { responsabiliteId: String(await idDe(base, 'Chef de centre')), perimetre: 'centre', debut: '2026-02-01' });
+		expect(resultat).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur nomme ou retire le chef de centre' } });
+		expect(await rolesDe(base, agent)).toEqual([]);
+	});
+
+	it('termine un rôle en cours (fin la veille) avec confirmation, et annule un rôle à venir', async () => {
+		const { base, agent } = await preparer();
+		const responsabiliteId = await idDe(base, 'Référent engins');
+		const jour = aujourdhuiParis();
+		await base.insert(attribution).values([
+			{ personneId: agent, responsabiliteId, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' },
+			{ personneId: agent, responsabiliteId: await idDe(base, 'Référent pharmacie'), perimetreType: 'centre', perimetreId: null, debut: '2999-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' }
+		]);
+		const [enCours, aVenir] = await rolesDe(base, agent);
+		expect(await agir('terminer', locaux(base, super_), agent, { attributionId: String(enCours!.id), confirmation: 'oui' })).toMatchObject({ succes: true, cible: `terminer-${enCours!.id}` });
+		expect((await rolesDe(base, agent)).find((a) => a.id === enCours!.id)!.fin! < jour).toBe(true);
+		await agir('terminer', locaux(base, super_), agent, { attributionId: String(aVenir!.id), confirmation: 'oui' });
+		expect((await rolesDe(base, agent)).map((a) => a.id)).toEqual([enCours!.id]);
+	});
+
+	it('exige « confirmation=oui » pour terminer, et ne touche pas les rôles d\'une autre personne', async () => {
+		const { base, agent, chef } = await preparer();
+		const responsabiliteId = await idDe(base, 'Référent engins');
+		await base.insert(attribution).values({ personneId: chef, responsabiliteId, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		const [role] = (await rolesDe(base, chef)).filter((a) => a.responsabiliteId === responsabiliteId);
+		const sans = await agir('terminer', locaux(base, super_), chef, { attributionId: String(role!.id) });
+		expect(sans).toMatchObject({ status: 400, data: { cible: `terminer-${role!.id}`, erreurs: { confirmation: expect.any(String) } } });
+		expect((await rolesDe(base, chef)).find((a) => a.id === role!.id)!.fin).toBeNull();
+		const autrePersonne = await agir('terminer', locaux(base, super_), agent, { attributionId: String(role!.id), confirmation: 'oui' });
+		expect(autrePersonne).toMatchObject({ status: 400 });
+		expect((await rolesDe(base, chef)).find((a) => a.id === role!.id)!.fin).toBeNull();
+	});
+
+	it('refuse en 403 de terminer un rôle qu\'on n\'a pas le droit de retirer', async () => {
+		const { base, chef, adjoint } = await preparer();
+		const [role] = await rolesDe(base, chef);
+		const resultat = await agir('terminer', locaux(base, { type: 'personne', id: adjoint }), chef, { attributionId: String(role!.id), confirmation: 'oui' });
+		expect(resultat).toMatchObject({ status: 403 });
+		expect((await rolesDe(base, chef))[0]!.fin).toBeNull();
+	});
+
+	it('ne propose rien à attribuer sur la fiche d\'une personne partie, et refuse de la nommer', async () => {
+		const { base, agent } = await preparer();
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, agent));
+		expect((await lire(locaux(base, super_), agent)).peutAttribuer).toEqual([]);
+		const resultat = await agir('attribuer', locaux(base, super_), agent, { responsabiliteId: String(await idDe(base, 'Référent engins')), perimetre: 'centre', debut: '2026-02-01' });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { personneId: 'Cette personne est partie' } } });
+		expect(await rolesDe(base, agent)).toEqual([]);
+	});
+
+	describe('changer la date de fin', () => {
+		async function avecRole() {
+			const contexte = await preparer();
+			const responsabiliteId = await idDe(contexte.base, 'Référent engins');
+			await contexte.base.insert(attribution).values({ personneId: contexte.agent, responsabiliteId, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', fin: '2099-12-31', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+			const [role] = await rolesDe(contexte.base, contexte.agent);
+			return { ...contexte, role: role! };
+		}
+
+		it('raccourcit le rôle', async () => {
+			const { base, agent, role } = await avecRole();
+			const resultat = await agir('finir', locaux(base, super_), agent, { attributionId: String(role.id), fin: '2099-06-30' });
+			expect(resultat).toMatchObject({ succes: true, message: 'Date de fin enregistrée', cible: `finir-${role.id}` });
+			expect((await rolesDe(base, agent))[0]!.fin).toBe('2099-06-30');
+		});
+
+		it('refuse d\'allonger, une date vide ou invalide, sur le champ « fin »', async () => {
+			const { base, agent, role } = await avecRole();
+			const agirFin = (fin: string) => agir('finir', locaux(base, super_), agent, { attributionId: String(role.id), fin });
+			expect(await agirFin('2100-01-01')).toMatchObject({ status: 400, data: { cible: `finir-${role.id}`, erreurs: { fin: 'Une attribution ne peut qu’être raccourcie' } } });
+			expect(await agirFin('')).toMatchObject({ status: 400, data: { erreurs: { fin: 'Indiquez la date de fin.' } } });
+			expect(await agirFin('2099-02-31')).toMatchObject({ status: 400, data: { erreurs: { fin: 'Date invalide' } } });
+			expect(await agirFin('2025-01-01')).toMatchObject({ status: 400, data: { erreurs: { fin: 'Fin avant le début' } } });
+			expect((await rolesDe(base, agent))[0]!.fin).toBe('2099-12-31');
+		});
+
+		it('refuse en 403 sans le droit, et refuse le rôle d\'une autre personne', async () => {
+			const { base, chef, adjoint, agent } = await preparer();
+			const [roleChef] = await rolesDe(base, chef);
+			const refus = await agir('finir', locaux(base, { type: 'personne', id: adjoint }), chef, { attributionId: String(roleChef!.id), fin: '2099-01-01' });
+			expect(refus).toMatchObject({ status: 403 });
+			const ailleurs = await agir('finir', locaux(base, super_), agent, { attributionId: String(roleChef!.id), fin: '2099-01-01' });
+			expect(ailleurs).toMatchObject({ status: 400 });
+			expect((await rolesDe(base, chef))[0]!.fin).toBeNull();
+		});
 	});
 });

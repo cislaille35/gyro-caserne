@@ -60,6 +60,11 @@ describe('entreesNavigation', () => {
 		expect(entreesNavigation(true, true).map((e) => e.href)).not.toContain('/reglages');
 		expect(entreesNavigation(false, false, true).map((e) => e.href)).not.toContain('/reglages');
 	});
+	it('« Nominations » apparaît pour qui peut attribuer, avant « Réglages », jamais sans connexion', () => {
+		expect(entreesNavigation(true, true, true, true).map((e) => e.href)).toEqual(['/', '/agents', '/profil', '/nominations', '/reglages', '/affichage']);
+		expect(entreesNavigation(true, true).map((e) => e.href)).not.toContain('/nominations');
+		expect(entreesNavigation(false, false, false, true).map((e) => e.href)).not.toContain('/nominations');
+	});
 	it('« Mon profil » n\'apparaît pas sans connexion', () => {
 		expect(entreesNavigation(false, true).map((e) => e.href)).not.toContain('/profil');
 	});

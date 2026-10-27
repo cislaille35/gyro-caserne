@@ -4,11 +4,12 @@
 	let {
 		type = 'button',
 		variante = 'principal',
+		desactive = false,
 		children
-	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire'; children: Snippet } = $props();
+	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire'; desactive?: boolean; children: Snippet } = $props();
 </script>
 
-<button {type} class={variante}>{@render children()}</button>
+<button {type} class={variante} disabled={desactive}>{@render children()}</button>
 
 <style>
 	button {
@@ -23,6 +24,10 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		border: 2px solid var(--encre);
+	}
+	button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 	.secondaire {
 		background: transparent;

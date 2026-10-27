@@ -2,6 +2,8 @@ import { error, fail } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
 import {
 	affecterEquipe,
+	attributionsDe,
+	ceQueJePeuxAttribuer,
 	changerStatut,
 	DonneeInvalide,
 	equipe,
@@ -15,6 +17,7 @@ import {
 	type Acteur,
 	type FicheAgent
 } from '@gyro-caserne/socle';
+import { finir, nommer, terminer } from '#lib/server/actions-attribution.ts';
 import { echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -42,13 +45,29 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const { acteur, aujourdhui, fiche } = await lireFiche(locals, params.id);
 	const { base } = locals;
 	return {
+		aujourdhui,
 		fiche,
 		raison: await raisonDeProtection(locals, acteur, fiche, aujourdhui),
 		grades: await base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
 		profils: await base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
 		equipes: await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
-		statuts: [...STATUTS_OPERATIONNELS]
+		statuts: [...STATUTS_OPERATIONNELS],
+		attributions: await attributionsDe(base, acteur, fiche.id, aujourdhui),
+		// On ne nomme pas une personne partie. Les équipes : celle de la personne d'abord, c'est le choix le plus probable.
+		peutAttribuer:
+			fiche.statut === 'parti'
+				? []
+				: (await ceQueJePeuxAttribuer(base, acteur, aujourdhui)).map((r) => ({
+						...r,
+						perimetres: [...r.perimetres].sort((a, b) => Number(b.id === fiche.equipe?.id && b.type === 'equipe') - Number(a.id === fiche.equipe?.id && a.type === 'equipe'))
+					}))
 	};
+};
+
+// Seuls les rôles en cours ou à venir de cette fiche : un identifiant d'une autre personne est refusé.
+const rolesDeLaFiche = (base: App.Locals['base'], acteur: Acteur, id: number, aujourdhui: string) => async (attributionId: number) => {
+	const { enCours, aVenir } = await attributionsDe(base, acteur, id, aujourdhui);
+	return [...enCours, ...aVenir].some((a) => a.id === attributionId);
 };
 
 export const actions: Actions = {
@@ -95,5 +114,20 @@ export const actions: Actions = {
 			return echec(erreur, { valeurs });
 		}
 		return { succes: true, message: 'Statut enregistré' };
+	},
+
+	attribuer: async ({ locals, params, request }) => {
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		return nommer({ base: locals.base, acteur, aujourdhui, formulaire: await request.formData(), cible: 'attribuer' }, id);
+	},
+
+	terminer: async ({ locals, params, request }) => {
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		return terminer({ base: locals.base, acteur, aujourdhui, formulaire: await request.formData() }, rolesDeLaFiche(locals.base, acteur, id, aujourdhui));
+	},
+
+	finir: async ({ locals, params, request }) => {
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		return finir({ base: locals.base, acteur, aujourdhui, formulaire: await request.formData() }, rolesDeLaFiche(locals.base, acteur, id, aujourdhui));
 	}
 };

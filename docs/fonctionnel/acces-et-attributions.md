@@ -12,7 +12,7 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 - **Ajouter ou retirer une adresse** demande le droit `GERER_ACCES`, sur un périmètre :
   - sur le **centre** (le chef de centre, par défaut) : n'importe quelle adresse et n'importe quel profil ;
   - sur une **équipe**, si le centre donne ce droit au chef d'équipe : uniquement des agents de son équipe.
-- **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés, les sessions fermées et les liens de connexion en attente annulés, mais l'historique est gardé.
+- **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés, les sessions fermées et les liens de connexion en attente annulés, mais l'historique est gardé. Au départ, la personne quitte aussi son équipe et **tous ses rôles prennent fin le même jour** (un rôle qui n'avait pas commencé est annulé) : un chef de centre qui part n'est plus chef de centre. On ne nomme pas une personne partie.
 - **Lever une suspension ou faire revenir un « parti »** : seuls le chef de centre ou son adjoint le peuvent (`GERER_ACCES` sur le centre), même si un chef d'équipe a changé le statut de l'agent.
 - **Statut du chef de centre** : seul le super administrateur le change. Exemple : l'adjoint ne peut pas suspendre le chef de centre. Un chef de centre nommé à l'avance n'est protégé qu'à partir de sa prise de fonction.
 - **Statut d'un adjoint** : seuls le chef de centre ou le super administrateur le changent. Exemple : un adjoint ne peut pas suspendre un autre adjoint. Comme pour le chef de centre, un adjoint nommé à l'avance n'est protégé qu'à partir de sa prise de fonction.
@@ -25,6 +25,19 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 3. L'attribution prend effet à la date de début et s'arrête d'elle-même à la date de fin, s'il y en a une.
 
 Au démarrage, le chef de centre ou le super administrateur nomme les premiers membres de chaque comité.
+
+**À l'écran**, deux chemins pour les mêmes règles :
+
+- **depuis la fiche de l'agent** (gestionnaires), carte « Responsabilités » : « Attribuer », puis « Changer la date de fin » ou « Terminer » sur un rôle ;
+- **depuis la page « Nominations »**, pour quiconque peut attribuer au moins une responsabilité (rapporteur d'un comité, chef de centre…) : une carte par rôle qu'il peut donner, avec ses titulaires et le formulaire « Nommer ». Les autres n'ont ni l'entrée de menu ni la page.
+
+Chacun ne voit et ne propose que les rôles et les périmètres qu'il a le droit d'attribuer. Exemple : le rapporteur de l'« Amicale » nomme les membres de l'Amicale, mais ni un « Référent engins » (attribué par le chef de centre), ni un membre d'un autre comité.
+
+- **Terminer** (case « Je confirme ») : le rôle s'arrête la veille, ses droits disparaissent dès aujourd'hui. Un rôle qui commence aujourd'hui ou plus tard est annulé.
+- **Changer la date de fin** : on avance la fin d'un rôle en cours ou à venir ; on ne la repousse pas (« Une attribution ne peut qu’être raccourcie »). Mêmes droits que « Terminer ».
+- **Personne partie** : on ne la nomme pas (« Cette personne est partie »).
+- **Doublon refusé** : même personne, même rôle, même périmètre, périodes qui se chevauchent → « Cette personne tient déjà ce rôle sur cette période ».
+- **Tout le centre voit** les rôles en cours de chacun dans la liste des agents (« Rôles : Chef d’équipe (Équipe 1) »), sans dates ni auteur.
 
 ## Comités et responsabilités (page « Réglages du centre »)
 

@@ -1,10 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gte, isNull, lte, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { aLeDroit, occupe, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import type { StatutOperationnel } from './listes.ts';
-import { affectationEquipe, equipe, grade, personne, profil } from './schema.ts';
+import { affectationEquipe, attribution, comite, equipe, grade, personne, profil, responsabilite } from './schema.ts';
 
 export type EquipeCourante = { id: number; nom: string; couleur: string };
 
@@ -49,6 +49,26 @@ async function equipesCourantes(base: Base, aujourdhui: string): Promise<Map<num
 	return parPersonne;
 }
 
+// Rôles en cours de chaque personne, en une seule requête : « Nom », « Nom (Équipe 2) » ou « Nom (Amicale) ».
+// Les responsabilités archivées et les comités dissous n'y figurent pas.
+async function rolesCourants(base: Base, aujourdhui: string): Promise<Map<number, string[]>> {
+	const lignes = await base
+		.select({ personneId: attribution.personneId, nom: responsabilite.nom, type: attribution.perimetreType, equipe: equipe.nom, comite: comite.nom })
+		.from(attribution)
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
+		.leftJoin(equipe, and(eq(attribution.perimetreType, 'equipe'), eq(equipe.id, attribution.perimetreId)))
+		.leftJoin(comite, and(eq(attribution.perimetreType, 'comite'), eq(comite.id, attribution.perimetreId), isNull(comite.dissousLe)))
+		.where(and(isNull(responsabilite.archiveeLe), lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))));
+	const parPersonne = new Map<number, string[]>();
+	for (const l of lignes) {
+		const lieu = l.type === 'equipe' ? l.equipe : l.type === 'comite' ? l.comite : null;
+		if (l.type !== 'centre' && lieu === null) continue;
+		parPersonne.set(l.personneId, [...(parPersonne.get(l.personneId) ?? []), lieu === null ? l.nom : `${l.nom} (${lieu})`]);
+	}
+	for (const roles of parPersonne.values()) roles.sort((a, b) => a.localeCompare(b, 'fr'));
+	return parPersonne;
+}
+
 const parNom = (a: { nom: string; prenom: string }, b: { nom: string; prenom: string }) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr');
 
 export async function vueEffectif(base: Base, aujourdhui: string) {
@@ -58,10 +78,11 @@ export async function vueEffectif(base: Base, aujourdhui: string) {
 		.leftJoin(grade, eq(grade.id, personne.gradeId))
 		.leftJoin(profil, eq(profil.id, personne.profilId));
 	const equipes = await equipesCourantes(base, aujourdhui);
+	const roles = await rolesCourants(base, aujourdhui);
 	const groupes = await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(equipe.ordreRotation);
 
 	const presentes = lignes.filter((l) => l.statut !== 'parti');
-	const sansIdentifiants = ({ id, prenom, nom, grade }: (typeof presentes)[number]) => ({ id, prenom, nom, grade });
+	const sansIdentifiants = ({ id, prenom, nom, grade }: (typeof presentes)[number]) => ({ id, prenom, nom, grade, roles: roles.get(id) ?? [] });
 	const enGroupe = (garde: (l: (typeof presentes)[number]) => boolean) => presentes.filter(garde).sort(parNom).map(sansIdentifiants);
 
 	const resultat = [

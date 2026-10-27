@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, personne, profil, responsabilite } from '@gyro-caserne/socle';
+import { attribuer, chargerJeuDeDepart, comite, personne, profil, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
@@ -35,5 +35,30 @@ describe('load du layout', () => {
 		expect((await appeler(await nouveau('c@x.fr', 'Chef de centre'), base)).peutReglages).toBe(true);
 		expect((await appeler(await nouveau('a@x.fr'), base)).peutReglages).toBe(false);
 		expect((await appeler(null, base)).peutReglages).toBe(false);
+	});
+
+	it('propose « Nominations » à qui peut attribuer une responsabilité, pas aux autres', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centre);
+		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
+		const nouveau = async (email: string, nomResp?: string) => {
+			const [p] = await base.insert(personne).values({ email, prenom: 'P', nom: 'N', profilId: agent!.id }).returning();
+			if (nomResp) {
+				const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, nomResp));
+				await attribuer(base, super_, { personneId: p!.id, responsabiliteId: r!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhuiParis());
+			}
+			return { type: 'personne', id: p!.id };
+		};
+		expect((await appeler(super_, base)).peutNominations).toBe(true);
+		expect((await appeler(await nouveau('c@x.fr', 'Chef de centre'), base)).peutNominations).toBe(true);
+		expect((await appeler(await nouveau('a@x.fr'), base)).peutNominations).toBe(false);
+		expect((await appeler(null, base)).peutNominations).toBe(false);
+
+		// Rapporteur seul : il nomme dans son comité, donc il voit « Nominations ».
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const [rapporteur] = await base.insert(personne).values({ email: 'rap@x.fr', prenom: 'P', nom: 'N', profilId: agent!.id }).returning();
+		const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Rapporteur de comité'));
+		await attribuer(base, super_, { personneId: rapporteur!.id, responsabiliteId: r!.id, perimetre: { type: 'comite', id: amicale!.id }, debut: '2026-01-01' }, aujourdhuiParis());
+		expect((await appeler({ type: 'personne', id: rapporteur!.id }, base)).peutNominations).toBe(true);
 	});
 });

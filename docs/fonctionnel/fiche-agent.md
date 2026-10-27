@@ -13,7 +13,7 @@ Décrire chaque agent une seule fois, avec ce que le centre a vraiment besoin de
 | Naissance | date de naissance | l'agent et les gestionnaires ; le centre voit seulement « anniversaire aujourd'hui », sans l'âge |
 | Parcours | date d'entrée au centre, date d'engagement SPV, grade et date de nomination | tout le centre, sauf les dates d'engagement |
 | Opérationnel | équipe (affectation datée), statut opérationnel, aptitudes datées (dont l'aptitude médicale) | tout le centre ; les dates d'expiration : l'agent et les gestionnaires |
-| Responsabilités | attributions en cours et passées | tout le centre |
+| Responsabilités | attributions en cours, à venir et passées, avec dates et auteur | gestionnaires ; tout le centre voit les rôles en cours (nom du rôle et de l'équipe ou du comité) |
 | Urgence | une personne à prévenir (facultatif) | gestionnaires seulement |
 | Champs du centre | champs libres définis par le centre (taille d'EPI, casier…) | réglable par champ |
 
@@ -35,7 +35,7 @@ Ici, les **gestionnaires** sont ceux qui ont le droit `GERER_ACCES` sur le centr
 
 Menu « Agents », pour toute personne connectée :
 
-- **Un agent** voit l'effectif groupé par équipe (ordre de rotation), puis « Sans équipe », puis « Extérieurs » : prénom, nom, grade. Les partis n'y sont pas ; les suspendus y sont, sans indication.
+- **Un agent** voit l'effectif groupé par équipe (ordre de rotation), puis « Sans équipe », puis « Extérieurs » : prénom, nom, grade, et sous le nom ses rôles en cours (« Rôles : Chef d’équipe (Équipe 1) »), sans dates ni auteur. Les partis n'y sont pas ; les suspendus y sont, sans indication.
 - **Le chef de centre, l'adjoint et le super administrateur** voient la liste complète, partis compris : recherche (nom, prénom, e-mail), filtres par équipe et par statut. Sur ordinateur, la fiche s'ouvre à côté de la liste ; sur téléphone, sur sa propre page.
 - **La fiche** a trois cartes, chacune avec son bouton « Enregistrer » : identité et contact, parcours, équipe et statut. Le surnom et le contact d'urgence s'y lisent sans s'y modifier.
 - **Ajouter un agent** : prénom, nom et e-mail obligatoires, profil « Agent » présélectionné.
@@ -48,7 +48,9 @@ Changer l'e-mail d'un agent ferme ses sessions et ses liens de connexion en atte
 
 Menu « Mon profil », pour chaque agent : surnom, téléphone et son affichage, contact d'urgence, affichage de l'anniversaire. Le super administrateur, sans fiche, n'a pas ce menu.
 
-Pas encore là : photo, aptitudes, champs du centre, rappels, responsabilités à l'écran.
+Carte « Responsabilités » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. « Changer la date de fin » avance la fin d'un rôle en cours ou à venir (on ne peut pas la repousser). Une personne partie n'a plus de rôle, et on ne la nomme pas. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé. Les mêmes nominations se font aussi depuis la page « Nominations » (voir [Accès et attributions](acces-et-attributions.md)).
+
+Pas encore là : photo, aptitudes, champs du centre, rappels.
 
 ## Ce que la fonction ne fait pas
 

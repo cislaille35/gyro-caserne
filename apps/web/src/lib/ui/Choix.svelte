@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount, untrack } from 'svelte';
+
 	let {
 		id,
 		libelle,
@@ -22,14 +24,42 @@
 	const idAide = $derived(`${id}-aide`);
 	const idErreur = $derived(`${id}-erreur`);
 	const decrit = $derived([aide && idAide, erreur && idErreur].filter(Boolean).join(' ') || undefined);
+
+	// La sélection vit dans le navigateur ; on ne l'impose pas quand la page devient prête, sinon un choix
+	// fait avant serait perdu : c'est `valeur` qui reprend ce choix. Ensuite, une nouvelle `valeur` venue
+	// de la page est appliquée, et une remise à zéro du formulaire revient au choix de départ.
+	let liste: HTMLSelectElement;
+	const depart = untrack(() => valeur);
+	let monte = false;
+	$effect(() => {
+		const voulue = valeur;
+		if (!monte) {
+			monte = true;
+			if (liste.value !== voulue) valeur = liste.value;
+		} else if (liste.value !== voulue) liste.value = voulue;
+	});
+	onMount(() => {
+		const formulaire = liste.form;
+		const apresRemiseAZero = () => queueMicrotask(() => (valeur = liste.value));
+		formulaire?.addEventListener('reset', apresRemiseAZero);
+		return () => formulaire?.removeEventListener('reset', apresRemiseAZero);
+	});
 </script>
 
 <div class="champ">
 	<label for={id}>{libelle}</label>
 	{#if aide}<p id={idAide} class="aide">{aide}</p>{/if}
-	<select {id} {name} required={requis} bind:value={valeur} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit}>
+	<select
+		bind:this={liste}
+		{id}
+		{name}
+		required={requis}
+		onchange={() => (valeur = liste.value)}
+		aria-invalid={erreur ? 'true' : undefined}
+		aria-describedby={decrit}
+	>
 		{#each options as option (option.valeur)}
-			<option value={option.valeur}>{option.libelle}</option>
+			<option value={option.valeur} selected={option.valeur === depart}>{option.libelle}</option>
 		{/each}
 	</select>
 	{#if erreur}<p id={idErreur} class="erreur">{erreur}</p>{/if}
