@@ -163,7 +163,7 @@ export async function terminerAttribution(base: Base, acteur: Acteur, attributio
 	await base.batch([
 		supprimer,
 		terminer,
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'terminer_attribution', cibleType: 'attribution', cibleId: attributionId, details: { annulee: ligne.debut >= aujourdhui } }, aujourdhui)
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'terminer_attribution', cibleType: 'attribution', cibleId: attributionId, details: { annulee: ligne.debut >= aujourdhui, personneId: ligne.personneId } }, aujourdhui)
 	]);
 }
 

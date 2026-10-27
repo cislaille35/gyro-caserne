@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
+import { terminerAttribution } from '../src/actions/attributions.ts';
 import { modifierFiche } from '../src/actions/personnes.ts';
 import { apercuImport, type FichierLu } from '../src/apercu-import.ts';
 import type { Acteur } from '../src/droits.ts';
@@ -498,6 +499,50 @@ describe('apercuImport : depuis la date de l’export', () => {
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
 		expect(apercu.perimees).toEqual([{ ligne: 2, nom: 'Léa Durand' }]);
 		expect(apercu.operations).toEqual([]);
+	});
+
+	it('rôle programmé, commencé depuis l’export, encore vide dans le fichier : ligne périmée', async () => {
+		const { base, acteur, nouvelle, resp } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		await base.insert(attribution).values({ personneId: lea, responsabiliteId: resp('Référent engins'), perimetreType: 'centre', debut: '2026-10-25', saisiePar: 'super:a@b.fr', saisieLe: '2026-10-01' });
+		const fichier = await exporter(base, acteur, false, '2026-10-20');
+		expect(fichier.lignes[0]!.cellules[fichier.entetes.indexOf('Référent engins')]).toBe('');
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.perimees).toEqual([{ ligne: 2, nom: 'Léa Durand' }]);
+		expect(apercu.operations).toEqual([]);
+	});
+
+	it('changement d’équipe programmé, effectif depuis l’export ou aujourd’hui : ligne périmée', async () => {
+		for (const [finT1, debutT2] of [
+			['2026-10-24', '2026-10-25'],
+			['2026-10-26', '2026-10-27']
+		]) {
+			const { base, acteur, nouvelle } = await jeu();
+			const lea = await nouvelle('Léa', 'Durand');
+			await base.insert(affectationEquipe).values([
+				{ personneId: lea, equipeId: 1, debut: '2026-01-01', fin: finT1 },
+				{ personneId: lea, equipeId: 2, debut: debutT2 }
+			]);
+			const fichier = await exporter(base, acteur, false, '2026-10-20');
+			expect(fichier.lignes[0]!.cellules[fichier.entetes.indexOf('Équipe')]).toBe('Équipe 1');
+			const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+			expect(apercu.perimees).toEqual([{ ligne: 2, nom: 'Léa Durand' }]);
+			expect(apercu.operations).toEqual([]);
+		}
+	});
+
+	it('rôle futur annulé depuis l’export : ligne périmée', async () => {
+		const { base, acteur, nouvelle, resp } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		const [futur] = await base
+			.insert(attribution)
+			.values({ personneId: lea, responsabiliteId: resp('Référent engins'), perimetreType: 'centre', debut: '2026-11-15', saisiePar: 'super:a@b.fr', saisieLe: '2026-10-01' })
+			.returning();
+		const fichier = await exporter(base, acteur);
+		await terminerAttribution(base, acteur, futur!.id, aujourdhui);
+		expect(await base.select().from(attribution).where(eq(attribution.id, futur!.id))).toEqual([]);
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.perimees).toEqual([{ ligne: 2, nom: 'Léa Durand' }]);
 	});
 
 	it('rôle terminé avant l’export : ligne normale', async () => {

@@ -120,8 +120,9 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		const id = j.cibleType === 'personne' ? j.cibleId : (titulaire.get(j.cibleId) ?? (JSON.parse(j.details) as { personneId?: number }).personneId);
 		if (id !== undefined) perimes.add(id);
 	}
-	// Un rôle terminé de lui-même depuis l'export change aussi ce que porte le fichier.
-	if (repere) for (const a of attributions) if (a.fin !== null && a.fin >= repere.date && a.fin < aujourdhui) perimes.add(a.personneId);
+	// Un rôle ou une équipe qui commence ou finit de lui-même depuis l'export change aussi ce que porte le fichier (fin incluse).
+	const depuisExport = (debut: string, fin: string | null) => (debut > repere!.date && debut <= aujourdhui) || (fin !== null && fin >= repere!.date && fin < aujourdhui);
+	if (repere) for (const a of [...attributions, ...affectations]) if (depuisExport(a.debut, a.fin)) perimes.add(a.personneId);
 	const moi = acteur.type === 'personne' ? acteur.id : null;
 	const PAS_MOI = 'Vous ne pouvez pas vous mettre au départ par le fichier';
 
