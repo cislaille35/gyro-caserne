@@ -3,6 +3,7 @@
 Date : 2026-10-27. Validé en conversation avec le porteur, avant relecture du document.
 Maquettes de référence (téléphone et ordinateur, cliquables) : https://claude.ai/artifact/GJfxr9EbYLPPxvnBSNR2Rd. Leurs sources sont copiées dans [`2026-10-27-ecrans-par-profil/`](2026-10-27-ecrans-par-profil/).
 S'appuie sur les fondations de l'interface : [`2026-10-26-design-ui-design.md`](2026-10-26-design-ui-design.md).
+En cas d’écart, ce document prime sur les maquettes (par exemple, les salons n’y sont plus un paquet de droits).
 
 ## Pourquoi
 
@@ -32,24 +33,24 @@ Les écrans livrés jusqu'ici (réglages, nominations, agents) sont pratiques po
 
 ## Les droits en paquets
 
-Les droits restent ceux du socle. L'interface les présente **par domaine**, chacun à 2 ou 3 niveaux qui se cumulent. Le niveau de base est ce que le profil donne déjà à tout agent ; une responsabilité ajoute des niveaux au-dessus. Proposition, à affiner avec le constructeur :
+Les droits restent ceux du socle, et **aucun droit existant ne change** (ni profil, ni rôle du jeu de départ) : l'interface ne fait que les présenter autrement. Elle les range **par domaine**, chacun en niveaux cumulatifs. Pour un profil (Agent, Réserve citoyenne…), le niveau choisi décrit tous ses droits du domaine ; pour une responsabilité, ce qu'elle ajoute au-dessus du profil.
 
 | Domaine | Niveaux (cumulatifs) |
 |---|---|
-| Planning et gardes | Rien de plus · Voir les absences (`VOIR_MOTIFS_ABSENCE`) · Valider (`VALIDER_REMPLACEMENT`, `GERER_PLANNING`) |
-| Engins et anomalies | Rien de plus · Prendre en charge (`PRENDRE_EN_CHARGE_ANOMALIE`) · Gérer (`TRAITER_ANOMALIE`, `GERER_FICHES`) |
-| Stock et pharmacie | Signaler (`SIGNALER_BESOIN_STOCK`) · Gérer (`GERER_STOCK`) |
+| Planning et gardes | Rien de plus · Voir les absences (`VOIR_MOTIFS_ABSENCE`) · Valider les remplacements (`VALIDER_REMPLACEMENT`) · Gérer le planning (`GERER_PLANNING`) |
+| Engins et anomalies | Rien de plus · Gérer (`TRAITER_ANOMALIE`, `GERER_FICHES`) |
+| Stock et pharmacie | Rien de plus · Gérer (`GERER_STOCK`) |
 | Réservations | Rien · Réserver (`RESERVER`) · Gérer (`GERER_RESERVATIONS`) |
-| Salons | Lire (`LIRE_SALON`) · Publier (`PUBLIER_SALON`) · Modérer (`MODERER_SALON`, `EPINGLER_SALON`) |
-| Messagerie | Rien · Utiliser (`UTILISER_MESSAGERIE`) · Modérer (`MODERER_MESSAGERIE`) |
-| Administration de l'appli | Cases séparées, en rouge, réservées au chef de centre et à l'adjoint : gérer les accès (`GERER_ACCES`), gérer comités et responsabilités (`GERER_COMITES`, `GERER_LISTES`), nommer (`ATTRIBUER_RESPONSABILITE`) |
+| Messagerie | Rien de plus · Modérer (`MODERER_MESSAGERIE`) |
+| Administration de l'appli | Cases séparées, en rouge : gérer les accès (`GERER_ACCES`), gérer les comités (`GERER_COMITES`), gérer les responsabilités (`GERER_LISTES`), nommer (`ATTRIBUER_RESPONSABILITE`). Seuls le chef de centre, l'adjoint et le super administrateur les cochent ou les décochent (règle actuelle des réglages) ; le référent technique et le rapporteur gardent les leurs. |
 
-Les droits de base de tout agent (`VOIR_PLANNING`, `VOIR_ANNUAIRE`, `VOIR_ENGINS`, `VOIR_ANOMALIES`, `SIGNALER_ANOMALIE`, `DEMANDER_REMPLACEMENT`, `DECLARER_DISPONIBILITE`, `FAIRE_PRISE_DE_GARDE`) viennent du profil.
+Ce que tout agent a déjà par son profil (jeu de départ) : voir le planning, l'annuaire, les engins et les anomalies, signaler une anomalie ou un besoin de stock, prendre en charge une anomalie, demander un remplacement, déclarer ses disponibilités, utiliser la messagerie. Au premier niveau de chaque domaine, l'écran le rappelle (« Comme tout agent : il signale une anomalie »).
 
+- **Les salons ne sont pas des paquets** : lire, publier, modérer et épingler se règlent salon par salon (« qui peut lire, publier… ») dans la page du salon ([`salons.md`](../../fonctionnel/salons.md)).
+- **Les rôles système** (chef de centre, adjoint, chef d'équipe) ont des droits verrouillés : leur page les montre par domaine, en lecture seule, sans « Revenir au modèle ». Un rôle dont les droits ne tombent sur aucun niveau affiche « Sur mesure » et le détail.
 - **Les paquets sont fixés par l'appli**, pas créés par le centre : on évite la prolifération (recherche : des centaines de paquets non documentés ailleurs).
-- **Les modèles** : « Nouveau rôle → à partir de : Référent matériel, Référent pharmacie, Chef d'équipe, vierge… ». Un rôle garde le nom de son modèle ; s'il s'en écarte, il porte la pastille **« Personnalisé »**, et « Revenir au modèle » le remet comme son modèle.
+- **Les modèles** : « Nouveau rôle → à partir de : Référent matériel, Référent pharmacie, vierge… ». Un rôle garde le nom de son modèle ; s'il s'en écarte, il porte la pastille **« Personnalisé »**, et « Revenir au modèle » le remet comme son modèle.
 - **Le détail droit par droit** reste accessible derrière un lien, pour les cas particuliers.
-- **Les profils** (Agent, Réserve citoyenne…) se règlent avec le même écran de paquets.
 - Le libellé de `GERER_FICHES` est faux à l'écran (« Gérer les fiches des agents ») : il s'agit des fiches de prise de garde des engins. À corriger.
 
 ## La navigation
@@ -103,7 +104,7 @@ Maquette 10. En tête : icône, nom, membres en ronds, rapporteur. Trois onglets
 
 ### Super administrateur
 
-Choix de Claude : la vue du chef de centre, plus l'installation du centre ; il n'a pas de casquette d'astreinte.
+Choix de Claude : la vue du chef de centre (Agents avec le fichier, Nominations, Réglages), sans casquette d'astreinte. Aucun écran d'installation à part.
 
 ## Les écrans de gestion refaits
 
@@ -120,10 +121,10 @@ Choix de Claude : la vue du chef de centre, plus l'installation du centre ; il n
 
 - Les fonctions elles-mêmes (planning, remplacements, stock…) : leurs propres lots.
 - Les paquets créés par un centre.
+- Tout changement des droits existants (profils, rôles du jeu de départ).
 
 ## Ce qui reste au constructeur
 
-- Le découpage exact des niveaux par domaine (tableau ci-dessus à confirmer contre le modèle métier), et l'affichage d'un rôle dont les droits actuels ne tombent sur aucun niveau (par exemple « Sur mesure »).
 - Où vivent les modèles (jeu de départ du centre ou code) et comment « Revenir au modèle » retrouve le modèle d'un rôle existant.
 - La liste des icônes de rôle et leurs couleurs (contrastes AA, clair et sombre), et le fond crème en mode sombre.
 - Les composants à ajouter (groupe repliable, sélecteur à niveaux, barre d'actions collante, rangée de casquettes, bande de jours, anneau d'engin) et leur accessibilité (clavier, lecteurs d'écran).
