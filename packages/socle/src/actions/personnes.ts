@@ -53,7 +53,7 @@ async function exigerProfil(base: Base, profilId: number) {
 }
 
 // Longueurs maximales : nom du champ dans le message, limite en caractères.
-const LIMITES = {
+export const LIMITES = {
 	email: ['Adresse trop longue', 254],
 	prenom: ['Prénom trop long', 60],
 	nom: ['Nom trop long', 60],

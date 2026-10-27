@@ -50,6 +50,12 @@ function peutAttribuer(contexte: Contexte, laResponsabilite: Responsabilite, per
 	}
 }
 
+// La même règle, droits de l'acteur lus une seule fois : pour juger de nombreux cas (aperçu d'un import).
+export async function regleDAttribution(base: Base, acteur: Acteur, aujourdhui: string): Promise<(laResponsabilite: Responsabilite, perimetre: Perimetre) => boolean> {
+	const contexte = await contexteDe(base, acteur, aujourdhui);
+	return (laResponsabilite, perimetre) => peutAttribuer(contexte, laResponsabilite, perimetre);
+}
+
 function perimetreDeLigne(type: TypePerimetre, id: number | null): Perimetre {
 	return type === 'centre' || id === null ? { type: 'centre' } : { type, id };
 }
