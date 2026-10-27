@@ -73,11 +73,11 @@ const rolesDeLaFiche = (base: App.Locals['base'], acteur: Acteur, id: number, au
 export const actions: Actions = {
 	fiche: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
-		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData(), locals.superAdmins);
+		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData());
 		if (Object.keys(erreurs).length > 0) return fail<Reponse>(400, { erreurs, valeurs });
 		const { equipeId: _equipe, profilId, ...autres } = champs;
 		try {
-			await modifierFiche(locals.base, acteur, id, { ...autres, ...(profilId != null && { profilId }) }, aujourdhui);
+			await modifierFiche(locals.base, acteur, id, { ...autres, ...(profilId != null && { profilId }) }, aujourdhui, locals.superAdmins);
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}

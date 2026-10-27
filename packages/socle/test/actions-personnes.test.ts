@@ -55,63 +55,63 @@ async function direction(base: Awaited<ReturnType<typeof jeu>>['base'], profilId
 describe('ajouterPersonne', () => {
 	it('normalise l’adresse ajoutée', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: ' Dupont@Exemple.FR ', prenom: 'D', nom: 'U', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: ' Dupont@Exemple.FR ', prenom: 'D', nom: 'U', profilId: agent.id }, aujourdhui, []);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.email).toBe('dupont@exemple.fr');
 	});
 
 	it('un chef d’équipe ajoute un agent à son équipe', async () => {
 		const { base, agent, chef } = await jeu();
-		const id = await ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		const [aff] = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
 		expect(aff).toMatchObject({ equipeId: 1, debut: aujourdhui, fin: null });
 	});
 
 	it('… mais pas à une autre équipe', async () => {
 		const { base, agent, chef } = await jeu();
-		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('… ni une personne extérieure', async () => {
 		const { base, ext, chef } = await jeu();
-		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: ext.id, equipeId: 1 }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: ext.id, equipeId: 1 }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('refuse un profil plus large que les droits du chef d’équipe', async () => {
 		const { base, chef } = await jeu();
 		const [large] = await base.insert(profil).values({ nom: 'Large', typePersonne: 'agent' }).returning();
 		await base.insert(profilDroit).values({ profilId: large!.id, droit: 'GERER_ACCES', perimetreType: 'centre' });
-		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: large!.id, equipeId: 1 }, aujourdhui)).rejects.toMatchObject({ droit: 'GERER_ACCES', perimetre: { type: 'centre' } });
+		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: large!.id, equipeId: 1 }, aujourdhui, [])).rejects.toMatchObject({ droit: 'GERER_ACCES', perimetre: { type: 'centre' } });
 		const [etroit] = await base.insert(profil).values({ nom: 'Étroit', typePersonne: 'agent' }).returning();
 		await base.insert(profilDroit).values({ profilId: etroit!.id, droit: 'GERER_ACCES', perimetreType: 'equipe', perimetreId: 1 });
-		await expect(ajouterPersonne(base, chef, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: etroit!.id, equipeId: 1 }, aujourdhui)).resolves.toBeTypeOf('number');
+		await expect(ajouterPersonne(base, chef, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: etroit!.id, equipeId: 1 }, aujourdhui, [])).resolves.toBeTypeOf('number');
 	});
 
 	it('refuse un profil qui porte un droit sur une autre équipe', async () => {
 		const { base, chef } = await jeu();
 		const [autre] = await base.insert(profil).values({ nom: 'Autre équipe', typePersonne: 'agent' }).returning();
 		await base.insert(profilDroit).values({ profilId: autre!.id, droit: 'GERER_ACCES', perimetreType: 'equipe', perimetreId: 2 });
-		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: autre!.id, equipeId: 1 }, aujourdhui)).rejects.toMatchObject({ droit: 'GERER_ACCES', perimetre: { type: 'equipe', id: 2 } });
+		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: autre!.id, equipeId: 1 }, aujourdhui, [])).rejects.toMatchObject({ droit: 'GERER_ACCES', perimetre: { type: 'equipe', id: 2 } });
 	});
 
 	it('ne révèle pas une adresse existante à un acteur sans droit', async () => {
 		const { base, agent, chef } = await jeu();
-		await expect(ajouterPersonne(base, chef, { email: 'chef@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(ajouterPersonne(base, chef, { email: 'chef@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('refuse une date invalide', async () => {
 		const { base, agent } = await jeu();
-		await expect(ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, '2026-13-45')).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, '2026-13-45', [])).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
 	it('refuse un profil, une équipe ou une adresse invalides', async () => {
 		const { base, agent } = await jeu();
 		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, profilId: 99 }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, equipeId: 99 }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, email: '  ' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await ajouterPersonne(base, superAdmin, donnees, aujourdhui);
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, email: 'A@exemple.fr' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, profilId: 99 }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, equipeId: 99 }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, email: '  ' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await ajouterPersonne(base, superAdmin, donnees, aujourdhui, []);
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, email: 'A@exemple.fr' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 	it('écrit grade, dates et téléphone dans la même insertion', async () => {
 		const { base, agent } = await jeu();
@@ -120,7 +120,8 @@ describe('ajouterPersonne', () => {
 			base,
 			superAdmin,
 			{ email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, gradeId: sap!.id, dateGrade: '2025-06-01', telephone: '0600000000', naissance: '1990-05-12', entreeCentre: '2020-01-01', engagementSpv: '2019-09-01' },
-			aujourdhui
+			aujourdhui,
+			[]
 		);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p).toMatchObject({ gradeId: sap!.id, dateGrade: '2025-06-01', telephone: '0600000000', naissance: '1990-05-12', entreeCentre: '2020-01-01', engagementSpv: '2019-09-01' });
@@ -129,8 +130,8 @@ describe('ajouterPersonne', () => {
 	it('refuse une date de naissance ou un grade invalides', async () => {
 		const { base, agent } = await jeu();
 		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, naissance: '1990-13-01' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, gradeId: 99 }, aujourdhui)).rejects.toThrow('Grade inconnu');
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, naissance: '1990-13-01' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, gradeId: 99 }, aujourdhui, [])).rejects.toThrow('Grade inconnu');
 		expect(await base.select().from(personne).where(eq(personne.email, 'a@exemple.fr'))).toHaveLength(0);
 	});
 });
@@ -138,8 +139,8 @@ describe('ajouterPersonne', () => {
 describe('changerStatut', () => {
 	it('le chef d’équipe change le statut d’un membre de son équipe, pas d’un autre', async () => {
 		const { base, agent, chef } = await jeu();
-		const dans = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
-		const hors = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui);
+		const dans = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
+		const hors = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui, []);
 		await changerStatut(base, chef, dans, 'suspendu', aujourdhui);
 		const [p] = await base.select().from(personne).where(eq(personne.id, dans));
 		expect(p!.statut).toBe('suspendu');
@@ -149,17 +150,17 @@ describe('changerStatut', () => {
 	it('le chef d’équipe ne peut pas suspendre le chef de centre affecté à son équipe', async () => {
 		const { base, agent, chef } = await jeu();
 		const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre' }).returning();
-		const haut = await ajouterPersonne(base, superAdmin, { email: 'haut@exemple.fr', prenom: 'H', nom: 'C', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const haut = await ajouterPersonne(base, superAdmin, { email: 'haut@exemple.fr', prenom: 'H', nom: 'C', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await base.insert(attribution).values({ personneId: haut, responsabiliteId: chefCentre!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 		await expect(changerStatut(base, chef, haut, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
-		const simple = await ajouterPersonne(base, superAdmin, { email: 'simple@exemple.fr', prenom: 'S', nom: 'A', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const simple = await ajouterPersonne(base, superAdmin, { email: 'simple@exemple.fr', prenom: 'S', nom: 'A', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await expect(changerStatut(base, chef, simple, 'suspendu', aujourdhui)).resolves.toBeUndefined();
 	});
 
 	it('refuse si la cible a une attribution qui commence demain', async () => {
 		const { base, agent, chef } = await jeu();
 		const [resp] = await base.insert(responsabilite).values({ nom: 'Mission', nature: 'mission', typePerimetre: 'equipe' }).returning();
-		const cible = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const cible = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await base.insert(attribution).values({ personneId: cible, responsabiliteId: resp!.id, perimetreType: 'equipe', perimetreId: 1, debut: '2026-10-26', saisiePar: 'super:a@b.fr', saisieLe: aujourdhui });
 		await expect(changerStatut(base, chef, cible, 'suspendu', aujourdhui)).rejects.toThrow('Le statut d’une personne qui a une responsabilité en cours ou à venir relève du centre');
 	});
@@ -168,13 +169,13 @@ describe('changerStatut', () => {
 		const { base, chef } = await jeu();
 		const [large] = await base.insert(profil).values({ nom: 'Large', typePersonne: 'agent' }).returning();
 		await base.insert(profilDroit).values({ profilId: large!.id, droit: 'VOIR_PLANNING', perimetreType: 'centre' });
-		const cible = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: large!.id, equipeId: 1 }, aujourdhui);
+		const cible = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: large!.id, equipeId: 1 }, aujourdhui, []);
 		await expect(changerStatut(base, chef, cible, 'suspendu', aujourdhui)).rejects.toMatchObject({ droit: 'VOIR_PLANNING' });
 	});
 
 	it('refuse un statut inconnu et une date invalide', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await expect(changerStatut(base, superAdmin, id, 'inconnu' as never, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(changerStatut(base, superAdmin, id, 'parti', 'hier')).rejects.toBeInstanceOf(DonneeInvalide);
 	});
@@ -186,7 +187,7 @@ describe('changerStatut', () => {
 
 	it('suspendre un agent ferme ses sessions', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		const maintenant = new Date();
 		const demain = new Date(maintenant.getTime() + 86_400_000);
 		await base.insert(user).values([
@@ -207,7 +208,7 @@ describe('changerStatut', () => {
 
 	it('lever une suspension exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre', async () => {
 		const { base, agent, chef } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await changerStatut(base, chef, id, 'suspendu', aujourdhui);
 		await expect(changerStatut(base, chef, id, 'operationnel', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(changerStatut(base, chef, id, 'parti', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
@@ -257,7 +258,7 @@ describe('changerStatut', () => {
 	it('faire revenir un « parti » exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre et l’adjoint', async () => {
 		const { base, agent, chef } = await jeu();
 		const { chefCentre, adjoint } = await direction(base, agent.id);
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await changerStatut(base, chef, id, 'parti', aujourdhui);
 		await expect(changerStatut(base, chef, id, 'operationnel', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(changerStatut(base, chef, id, 'suspendu', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
@@ -273,7 +274,7 @@ describe('changerStatut', () => {
 
 	it('suspendre un agent efface ses liens de connexion en attente', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		const dans5min = new Date(Date.now() + 300_000);
 		const lien = (identifier: string, email: string) => ({ id: identifier, identifier, value: JSON.stringify({ type: 'magic-link', email }), expiresAt: dans5min });
 		await base.insert(verification).values([lien('magic-link:1', 'a@exemple.fr'), lien('magic-link:2', 'chef@exemple.fr')]);
@@ -287,7 +288,7 @@ describe('changerStatut', () => {
 
 	it('retirer l’accès ne casse pas sur une ligne de vérification qui n’est pas du JSON', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await base.insert(verification).values({ id: 'brut', identifier: 'autre', value: 'texte brut', expiresAt: new Date(Date.now() + 300_000) });
 
 		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
@@ -296,7 +297,7 @@ describe('changerStatut', () => {
 	it('déclarer « parti » efface naissance et contact d’urgence, qui restent vides au retour', async () => {
 		const { base, agent } = await jeu();
 		const { chefCentre } = await direction(base, agent.id);
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, naissance: '1990-05-12' }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, naissance: '1990-05-12' }, aujourdhui, []);
 		await base.update(personne).set({ contactUrgence: 'Conjoint 0600000000' }).where(eq(personne.id, id));
 
 		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
@@ -318,7 +319,7 @@ describe('changerStatut vers parti : équipe', () => {
 
 	it('retire l’agent de son équipe dès aujourd’hui, la vue ne le liste plus', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'Aline', nom: 'Zed', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'Aline', nom: 'Zed', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
 		expect(await equipes(base, id)).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: '2026-10-24' }]);
 		const groupes = await vueEffectif(base, aujourdhui);
@@ -329,7 +330,7 @@ describe('changerStatut vers parti : équipe', () => {
 
 	it('supprime l’affectation commencée aujourd’hui et celles à venir', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
 		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
 		expect(await equipes(base, id)).toEqual([]);
@@ -337,7 +338,7 @@ describe('changerStatut vers parti : équipe', () => {
 
 	it('sans équipe, le départ réussit sans ligne de retrait', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.statut).toBe('parti');
@@ -346,7 +347,7 @@ describe('changerStatut vers parti : équipe', () => {
 
 	it('au retour, la personne reste sans équipe', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
 		await changerStatut(base, superAdmin, id, 'operationnel', aujourdhui);
 		expect((await equipes(base, id)).filter((a) => a.fin === null)).toEqual([]);
@@ -356,7 +357,7 @@ describe('changerStatut vers parti : équipe', () => {
 describe('affecterEquipe', () => {
 	it('clôt l’affectation en cours la veille du début', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await affecterEquipe(base, superAdmin, id, 2, '2026-03-01', aujourdhui);
 		const lignes = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
 		expect(lignes).toHaveLength(2);
@@ -366,7 +367,7 @@ describe('affecterEquipe', () => {
 
 	it('refuse le chef d’équipe : il faut le droit sur le centre', async () => {
 		const { base, agent, chef } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await expect(affecterEquipe(base, chef, id, 2, '2026-03-01', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
@@ -376,22 +377,22 @@ describe('affecterEquipe', () => {
 		await base.insert(responsabiliteDroit).values({ responsabiliteId: centreResp!.id, droit: 'GERER_ACCES' });
 		const [gest] = await base.insert(personne).values({ email: 'g@exemple.fr', prenom: 'G', nom: 'G', profilId: agent.id }).returning();
 		await base.insert(attribution).values({ personneId: gest!.id, responsabiliteId: centreResp!.id, perimetreType: 'centre', debut: '2026-01-01', fin: '2026-10-24', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await expect(affecterEquipe(base, { type: 'personne', id: gest!.id }, id, 2, '2026-10-20', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('refuse un début antérieur au début de l’affectation en cours', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-03-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-03-01', []);
 		await expect(affecterEquipe(base, superAdmin, id, 2, '2026-02-01', aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
 	it('refuse une équipe inactive, à l’affectation comme à l’ajout', async () => {
 		const { base, agent } = await jeu();
 		const [ancienne] = await base.insert(equipe).values({ nom: 'Ancienne', couleur: 'gris', ordreRotation: 3, active: 0 }).returning();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await expect(affecterEquipe(base, superAdmin, id, ancienne!.id, aujourdhui, aujourdhui)).rejects.toThrow(new DonneeInvalide('Équipe inactive'));
-		await expect(ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'B', nom: 'C', profilId: agent.id, equipeId: ancienne!.id }, aujourdhui)).rejects.toThrow(
+		await expect(ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'B', nom: 'C', profilId: agent.id, equipeId: ancienne!.id }, aujourdhui, [])).rejects.toThrow(
 			new DonneeInvalide('Équipe inactive')
 		);
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
@@ -400,7 +401,7 @@ describe('affecterEquipe', () => {
 
 	it('le même jour, corrige l’équipe de l’affectation au lieu d’en ouvrir une autre', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await affecterEquipe(base, superAdmin, id, 2, aujourdhui, aujourdhui);
 		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([{ personneId: id, equipeId: 2, debut: aujourdhui, fin: null }]);
 		expect(await base.select().from(journal).where(eq(journal.action, 'affecter_equipe'))).toHaveLength(1);
@@ -408,7 +409,7 @@ describe('affecterEquipe', () => {
 
 	it('n’écrit rien si l’équipe ne change pas', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await affecterEquipe(base, superAdmin, id, 1, aujourdhui, aujourdhui);
 		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: null }]);
 		expect(await base.select().from(journal).where(eq(journal.action, 'affecter_equipe'))).toHaveLength(0);
@@ -436,15 +437,15 @@ describe('affecterEquipe', () => {
 describe('modifierFiche', () => {
 	async function avecAgent() {
 		const j = await jeu();
-		const id = await ajouterPersonne(j.base, superAdmin, { email: 'bruno@exemple.fr', prenom: 'Bruno', nom: 'Petit', profilId: j.agent.id }, aujourdhui);
+		const id = await ajouterPersonne(j.base, superAdmin, { email: 'bruno@exemple.fr', prenom: 'Bruno', nom: 'Petit', profilId: j.agent.id }, aujourdhui, []);
 		return { ...j, id };
 	}
 
 	it('refuse un agent ordinaire et un chef d’équipe, sans rien écrire', async () => {
 		const { base, agent, chef, id } = await avecAgent();
-		const ordinaire = await ajouterPersonne(base, superAdmin, { email: 'o@exemple.fr', prenom: 'O', nom: 'O', profilId: agent.id }, aujourdhui);
-		await expect(modifierFiche(base, { type: 'personne', id: ordinaire }, id, { nom: 'Grand' }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
-		await expect(modifierFiche(base, chef, id, { nom: 'Grand' }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		const ordinaire = await ajouterPersonne(base, superAdmin, { email: 'o@exemple.fr', prenom: 'O', nom: 'O', profilId: agent.id }, aujourdhui, []);
+		await expect(modifierFiche(base, { type: 'personne', id: ordinaire }, id, { nom: 'Grand' }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
+		await expect(modifierFiche(base, chef, id, { nom: 'Grand' }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.nom).toBe('Petit');
 	});
@@ -452,10 +453,10 @@ describe('modifierFiche', () => {
 	it('un adjoint ne modifie pas la fiche du chef de centre, rien n’est écrit', async () => {
 		const { base, agent } = await jeu();
 		const { chefCentre, adjoint } = await direction(base, agent.id);
-		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, chefCentre, { email: 'pirate@exemple.fr' }, aujourdhui)).rejects.toThrow(
+		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, chefCentre, { email: 'pirate@exemple.fr' }, aujourdhui, [])).rejects.toThrow(
 			'Seul un super administrateur modifie la fiche du chef de centre'
 		);
-		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, chefCentre, { email: 'pirate@exemple.fr' }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, chefCentre, { email: 'pirate@exemple.fr' }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 		const [p] = await base.select().from(personne).where(eq(personne.id, chefCentre));
 		expect(p!.email).toBe('cdc@exemple.fr');
 		expect(await base.select().from(journal).where(eq(journal.action, 'modifier_fiche'))).toHaveLength(0);
@@ -467,7 +468,7 @@ describe('modifierFiche', () => {
 		const [adj] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre_adjoint'));
 		const [second] = await base.insert(personne).values({ email: 'adj2@exemple.fr', prenom: 'P', nom: 'N', profilId: agent.id }).returning();
 		await base.insert(attribution).values({ personneId: second!.id, responsabiliteId: adj!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
-		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, second!.id, { email: 'pirate@exemple.fr' }, aujourdhui)).rejects.toThrow(
+		await expect(modifierFiche(base, { type: 'personne', id: adjoint }, second!.id, { email: 'pirate@exemple.fr' }, aujourdhui, [])).rejects.toThrow(
 			'Seuls le chef de centre ou un super administrateur modifient la fiche d’un adjoint'
 		);
 		const [p] = await base.select().from(personne).where(eq(personne.id, second!.id));
@@ -477,8 +478,8 @@ describe('modifierFiche', () => {
 	it('le chef de centre modifie un adjoint, le super administrateur modifie le chef de centre', async () => {
 		const { base, agent } = await jeu();
 		const { chefCentre, adjoint } = await direction(base, agent.id);
-		await modifierFiche(base, { type: 'personne', id: chefCentre }, adjoint, { nom: 'Martin' }, aujourdhui);
-		await modifierFiche(base, superAdmin, chefCentre, { nom: 'Durand' }, aujourdhui);
+		await modifierFiche(base, { type: 'personne', id: chefCentre }, adjoint, { nom: 'Martin' }, aujourdhui, []);
+		await modifierFiche(base, superAdmin, chefCentre, { nom: 'Durand' }, aujourdhui, []);
 		const noms = await base.select({ id: personne.id, nom: personne.nom }).from(personne);
 		expect(noms.find((n) => n.id === adjoint)!.nom).toBe('Martin');
 		expect(noms.find((n) => n.id === chefCentre)!.nom).toBe('Durand');
@@ -487,14 +488,14 @@ describe('modifierFiche', () => {
 	it('un adjoint modifie un agent ordinaire', async () => {
 		const { base, agent, id } = await avecAgent();
 		const { adjoint } = await direction(base, agent.id);
-		await modifierFiche(base, { type: 'personne', id: adjoint }, id, { telephone: '0611111111' }, aujourdhui);
+		await modifierFiche(base, { type: 'personne', id: adjoint }, id, { telephone: '0611111111' }, aujourdhui, []);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.telephone).toBe('0611111111');
 	});
 
 	it('journalise les seuls champs changés', async () => {
 		const { base, id } = await avecAgent();
-		await modifierFiche(base, superAdmin, id, { prenom: 'Bruno', nom: 'Grand', naissance: '1990-05-12' }, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { prenom: 'Bruno', nom: 'Grand', naissance: '1990-05-12' }, aujourdhui, []);
 		const lignes = await base.select().from(journal).where(eq(journal.action, 'modifier_fiche'));
 		expect(lignes).toHaveLength(1);
 		expect(lignes[0]).toMatchObject({ acteur: 'super:admin@exemple.fr', cibleType: 'personne', cibleId: id });
@@ -504,7 +505,7 @@ describe('modifierFiche', () => {
 
 	it('journalise l’ancienne et la nouvelle adresse, les autres champs par leur seul nom', async () => {
 		const { base, id } = await avecAgent();
-		await modifierFiche(base, superAdmin, id, { email: 'Nouveau@Exemple.fr', nom: 'Grand' }, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { email: 'Nouveau@Exemple.fr', nom: 'Grand' }, aujourdhui, []);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_fiche'));
 		expect(JSON.parse(ligne!.details!)).toEqual({ champs: ['email', 'nom'], email: { avant: 'bruno@exemple.fr', apres: 'nouveau@exemple.fr' } });
 	});
@@ -512,23 +513,23 @@ describe('modifierFiche', () => {
 	it('n’écrit que les champs de la fiche', async () => {
 		const { base, id } = await avecAgent();
 		await changerStatut(base, superAdmin, id, 'suspendu', aujourdhui);
-		await modifierFiche(base, superAdmin, id, { nom: 'Grand', statut: 'operationnel', contactUrgence: 'X' } as never, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { nom: 'Grand', statut: 'operationnel', contactUrgence: 'X' } as never, aujourdhui, []);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p).toMatchObject({ nom: 'Grand', statut: 'suspendu', contactUrgence: null });
 	});
 
 	it('normalise l’adresse', async () => {
 		const { base, id } = await avecAgent();
-		await modifierFiche(base, superAdmin, id, { email: ' Bruno.PETIT@exemple.fr ' }, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { email: ' Bruno.PETIT@exemple.fr ' }, aujourdhui, []);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.email).toBe('bruno.petit@exemple.fr');
 	});
 
 	it('refuse une adresse déjà prise par une autre personne, même écrite autrement', async () => {
 		const { base, id } = await avecAgent();
-		await expect(modifierFiche(base, superAdmin, id, { email: ' CHEF@exemple.fr' }, aujourdhui)).rejects.toThrow('Adresse déjà utilisée');
-		await expect(modifierFiche(base, superAdmin, id, { email: '  ' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await expect(modifierFiche(base, superAdmin, id, { email: 'BRUNO@exemple.fr' }, aujourdhui)).resolves.toBeUndefined();
+		await expect(modifierFiche(base, superAdmin, id, { email: ' CHEF@exemple.fr' }, aujourdhui, [])).rejects.toThrow('Adresse déjà utilisée');
+		await expect(modifierFiche(base, superAdmin, id, { email: '  ' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(modifierFiche(base, superAdmin, id, { email: 'BRUNO@exemple.fr' }, aujourdhui, [])).resolves.toBeUndefined();
 	});
 
 	it('changer l’adresse ferme les sessions et liens de l’ancienne ; la nouvelle se connecte, l’ancienne non', async () => {
@@ -546,10 +547,10 @@ describe('modifierFiche', () => {
 		const lien = (identifier: string, email: string) => ({ id: identifier, identifier, value: JSON.stringify({ type: 'magic-link', email }), expiresAt: demain });
 		await base.insert(verification).values([lien('magic-link:1', 'bruno@exemple.fr'), lien('magic-link:2', 'chef@exemple.fr')]);
 
-		await modifierFiche(base, superAdmin, id, { nom: 'Grand' }, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { nom: 'Grand' }, aujourdhui, []);
 		expect(await base.select().from(session)).toHaveLength(2);
 
-		await modifierFiche(base, superAdmin, id, { email: 'bruno.petit@exemple.fr' }, aujourdhui);
+		await modifierFiche(base, superAdmin, id, { email: 'bruno.petit@exemple.fr' }, aujourdhui, []);
 		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s2']);
 		expect((await base.select().from(verification)).map((v) => v.identifier)).toEqual(['magic-link:2']);
 		expect(await adresseAutorisee(base, 'bruno.petit@exemple.fr', [])).toBe(true);
@@ -558,34 +559,34 @@ describe('modifierFiche', () => {
 
 	it('vérifie les dates, accepte de les vider', async () => {
 		const { base, id } = await avecAgent();
-		await expect(modifierFiche(base, superAdmin, id, { naissance: '1990-13-01' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await expect(modifierFiche(base, superAdmin, id, { dateGrade: 'hier' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
-		await modifierFiche(base, superAdmin, id, { naissance: '1990-05-12' }, aujourdhui);
-		await modifierFiche(base, superAdmin, id, { naissance: null }, aujourdhui);
+		await expect(modifierFiche(base, superAdmin, id, { naissance: '1990-13-01' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(modifierFiche(base, superAdmin, id, { dateGrade: 'hier' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
+		await modifierFiche(base, superAdmin, id, { naissance: '1990-05-12' }, aujourdhui, []);
+		await modifierFiche(base, superAdmin, id, { naissance: null }, aujourdhui, []);
 		const [p] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(p!.naissance).toBeNull();
 	});
 
 	it('refuse une adresse, un prénom ou un nom absents ou qui ne sont pas du texte', async () => {
 		const { base, id } = await avecAgent();
-		await expect(modifierFiche(base, superAdmin, id, { email: null } as never, aujourdhui)).rejects.toThrow('Adresse invalide');
-		await expect(modifierFiche(base, superAdmin, id, { prenom: null } as never, aujourdhui)).rejects.toThrow('Prénom invalide');
-		await expect(modifierFiche(base, superAdmin, id, { nom: 42 } as never, aujourdhui)).rejects.toThrow('Nom invalide');
+		await expect(modifierFiche(base, superAdmin, id, { email: null } as never, aujourdhui, [])).rejects.toThrow('Adresse invalide');
+		await expect(modifierFiche(base, superAdmin, id, { prenom: null } as never, aujourdhui, [])).rejects.toThrow('Prénom invalide');
+		await expect(modifierFiche(base, superAdmin, id, { nom: 42 } as never, aujourdhui, [])).rejects.toThrow('Nom invalide');
 	});
 
 	it('refuse un grade, un profil, une personne inconnus ou un nom vide', async () => {
 		const { base, id } = await avecAgent();
-		await expect(modifierFiche(base, superAdmin, id, { gradeId: 99 }, aujourdhui)).rejects.toThrow('Grade inconnu');
-		await expect(modifierFiche(base, superAdmin, id, { profilId: 99 }, aujourdhui)).rejects.toThrow('Profil inconnu');
-		await expect(modifierFiche(base, superAdmin, 99, { nom: 'X' }, aujourdhui)).rejects.toThrow('Personne inconnue');
-		await expect(modifierFiche(base, superAdmin, id, { nom: '  ' }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(modifierFiche(base, superAdmin, id, { gradeId: 99 }, aujourdhui, [])).rejects.toThrow('Grade inconnu');
+		await expect(modifierFiche(base, superAdmin, id, { profilId: 99 }, aujourdhui, [])).rejects.toThrow('Profil inconnu');
+		await expect(modifierFiche(base, superAdmin, 99, { nom: 'X' }, aujourdhui, [])).rejects.toThrow('Personne inconnue');
+		await expect(modifierFiche(base, superAdmin, id, { nom: '  ' }, aujourdhui, [])).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 });
 
 describe('retirerEquipe', () => {
 	it('termine l’affectation en cours la veille et journalise', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await retirerEquipe(base, superAdmin, id, aujourdhui);
 		const lignes = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
 		expect(lignes).toEqual([{ personneId: id, equipeId: 1, debut: '2026-01-01', fin: '2026-10-24' }]);
@@ -595,13 +596,13 @@ describe('retirerEquipe', () => {
 
 	it('refuse sans équipe en cours', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await expect(retirerEquipe(base, superAdmin, id, aujourdhui)).rejects.toThrow('Aucune équipe en cours');
 	});
 
 	it('efface aussi le changement d’équipe prévu', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
 		await retirerEquipe(base, superAdmin, id, aujourdhui);
 		const lignes = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
@@ -610,14 +611,14 @@ describe('retirerEquipe', () => {
 
 	it('une affectation commencée aujourd’hui est supprimée, sans fin avant le début', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await retirerEquipe(base, superAdmin, id, aujourdhui);
 		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([]);
 	});
 
 	it('sans équipe en cours, efface l’affectation à venir', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
 		await retirerEquipe(base, superAdmin, id, aujourdhui);
 		expect(await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id))).toEqual([]);
@@ -625,14 +626,14 @@ describe('retirerEquipe', () => {
 
 	it('refuse si l’affectation est terminée, sans rien d’autre à venir', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await retirerEquipe(base, superAdmin, id, '2026-06-01');
 		await expect(retirerEquipe(base, superAdmin, id, aujourdhui)).rejects.toThrow('Aucune équipe en cours');
 	});
 
 	it('refuse le chef d’équipe : il faut le droit sur le centre', async () => {
 		const { base, agent, chef } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01');
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await expect(retirerEquipe(base, chef, id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
@@ -658,7 +659,7 @@ describe('retirerEquipe', () => {
 describe('journal', () => {
 	it('chaque action écrit une ligne de journal', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await changerStatut(base, superAdmin, id, 'stagiaire', aujourdhui);
 		await affecterEquipe(base, superAdmin, id, 2, '2026-11-01', aujourdhui);
 		const lignes = await base.select().from(journal);
@@ -671,7 +672,7 @@ describe('journal', () => {
 describe('mon profil', () => {
 	async function avecAgent() {
 		const j = await jeu();
-		const id = await ajouterPersonne(j.base, superAdmin, { email: 'bruno@exemple.fr', prenom: 'Bruno', nom: 'Petit', profilId: j.agent.id }, aujourdhui);
+		const id = await ajouterPersonne(j.base, superAdmin, { email: 'bruno@exemple.fr', prenom: 'Bruno', nom: 'Petit', profilId: j.agent.id }, aujourdhui, []);
 		return { ...j, id, moi: { type: 'personne', id } as Acteur };
 	}
 
@@ -727,8 +728,8 @@ describe('mon profil', () => {
 describe('statut à la création', () => {
 	it('enregistre le statut demandé, « opérationnel » par défaut', async () => {
 		const { base, agent } = await jeu();
-		const defaut = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
-		const stagiaire = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, statut: 'stagiaire' }, aujourdhui);
+		const defaut = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
+		const stagiaire = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, statut: 'stagiaire' }, aujourdhui, []);
 		const statut = async (id: number) => (await base.select().from(personne).where(eq(personne.id, id)))[0]!.statut;
 		expect(await statut(defaut)).toBe('operationnel');
 		expect(await statut(stagiaire)).toBe('stagiaire');
@@ -737,9 +738,9 @@ describe('statut à la création', () => {
 	it('refuse « parti » et un statut inconnu', async () => {
 		const { base, agent } = await jeu();
 		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'parti' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Statut impossible à la création'));
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'parti' }, aujourdhui, [])).rejects.toThrow(new DonneeInvalide('Statut impossible à la création'));
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'inconnu' as any }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Statut inconnu'));
+		await expect(ajouterPersonne(base, superAdmin, { ...donnees, statut: 'inconnu' as any }, aujourdhui, [])).rejects.toThrow(new DonneeInvalide('Statut inconnu'));
 		expect(await base.select().from(personne).where(eq(personne.email, 'a@exemple.fr'))).toHaveLength(0);
 	});
 });
@@ -760,21 +761,21 @@ describe('adresse prise entre la vérification et l’écriture', () => {
 
 	it('est traduite à l’ajout', async () => {
 		const { base, agent } = await jeu();
-		await expect(ajouterPersonne(concurrente(base, 'a@exemple.fr', agent.id), superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui)).rejects.toThrow(
+		await expect(ajouterPersonne(concurrente(base, 'a@exemple.fr', agent.id), superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, [])).rejects.toThrow(
 			new DonneeInvalide('Adresse déjà utilisée')
 		);
 	});
 
 	it('est traduite à la modification de la fiche', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
-		await expect(modifierFiche(concurrente(base, 'b@exemple.fr', agent.id), superAdmin, id, { email: 'b@exemple.fr' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Adresse déjà utilisée'));
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
+		await expect(modifierFiche(concurrente(base, 'b@exemple.fr', agent.id), superAdmin, id, { email: 'b@exemple.fr' }, aujourdhui, [])).rejects.toThrow(new DonneeInvalide('Adresse déjà utilisée'));
 	});
 
 	it('laisse passer toute autre erreur', async () => {
 		const { base, agent } = await jeu();
 		const casse = new Proxy(base, { get: (cible, cle, r) => (cle === 'batch' ? async () => Promise.reject(new Error('disque plein')) : Reflect.get(cible, cle, r)) });
-		await expect(ajouterPersonne(casse, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui)).rejects.toThrow('disque plein');
+		await expect(ajouterPersonne(casse, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, [])).rejects.toThrow('disque plein');
 	});
 });
 
@@ -785,7 +786,7 @@ describe('longueurs maximales', () => {
 	it('refuse à l’ajout un champ trop long, accepte la limite', async () => {
 		const { base, agent } = await jeu();
 		const donnees = { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id };
-		const ajout = (plus: object) => ajouterPersonne(base, superAdmin, { ...donnees, ...plus }, aujourdhui);
+		const ajout = (plus: object) => ajouterPersonne(base, superAdmin, { ...donnees, ...plus }, aujourdhui, []);
 		await expect(ajout({ prenom: trop(60) })).rejects.toThrow(new DonneeInvalide('Prénom trop long'));
 		await expect(ajout({ nom: trop(60) })).rejects.toThrow(new DonneeInvalide('Nom trop long'));
 		await expect(ajout({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
@@ -795,8 +796,8 @@ describe('longueurs maximales', () => {
 
 	it('refuse à la modification de la fiche', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
-		const modif = (champs: object) => modifierFiche(base, superAdmin, id, champs, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
+		const modif = (champs: object) => modifierFiche(base, superAdmin, id, champs, aujourdhui, []);
 		await expect(modif({ prenom: trop(60) })).rejects.toThrow(new DonneeInvalide('Prénom trop long'));
 		await expect(modif({ nom: trop(60) })).rejects.toThrow(new DonneeInvalide('Nom trop long'));
 		await expect(modif({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
@@ -806,12 +807,48 @@ describe('longueurs maximales', () => {
 
 	it('refuse dans « Mon profil »', async () => {
 		const { base, agent } = await jeu();
-		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui);
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, []);
 		const moi: Acteur = { type: 'personne', id };
 		const modif = (champs: object) => modifierMonProfil(base, moi, champs, aujourdhui);
 		await expect(modif({ surnom: trop(60) })).rejects.toThrow(new DonneeInvalide('Surnom trop long'));
 		await expect(modif({ telephone: trop(20) })).rejects.toThrow(new DonneeInvalide('Téléphone trop long'));
 		await expect(modif({ contactUrgence: trop(200) })).rejects.toThrow(new DonneeInvalide('Contact d’urgence trop long'));
 		await expect(modif({ surnom: exact(60), telephone: exact(20), contactUrgence: exact(200) })).resolves.toBeUndefined();
+	});
+});
+
+describe('adresse réservée au super administrateur', () => {
+	const reservees = ['admin@exemple.fr'];
+	const refus = new DonneeInvalide('Adresse réservée au super administrateur');
+
+	it('refuse à l’ajout, quelle que soit la casse, sans rien écrire', async () => {
+		const { base, agent } = await jeu();
+		const avant = await base.select().from(personne);
+		await expect(ajouterPersonne(base, superAdmin, { email: 'Admin@Exemple.fr ', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, reservees)).rejects.toThrow(refus);
+		expect(await base.select().from(personne)).toEqual(avant);
+	});
+
+	it('compare aussi la liste normalisée', async () => {
+		const { base, agent } = await jeu();
+		await expect(ajouterPersonne(base, superAdmin, { email: 'admin@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, [' ADMIN@exemple.fr'])).rejects.toThrow(refus);
+	});
+
+	it('accepte une adresse libre à l’ajout', async () => {
+		const { base, agent } = await jeu();
+		await expect(ajouterPersonne(base, superAdmin, { email: 'libre@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, reservees)).resolves.toBeTypeOf('number');
+	});
+
+	it('refuse à la modification de la fiche, sans rien écrire', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, reservees);
+		await expect(modifierFiche(base, superAdmin, id, { email: 'Admin@Exemple.fr ' }, aujourdhui, reservees)).rejects.toThrow(refus);
+		const [p] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(p!.email).toBe('a@exemple.fr');
+	});
+
+	it('accepte une adresse libre à la modification de la fiche', async () => {
+		const { base, agent } = await jeu();
+		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, reservees);
+		await expect(modifierFiche(base, superAdmin, id, { email: 'libre@exemple.fr' }, aujourdhui, reservees)).resolves.toBeUndefined();
 	});
 });

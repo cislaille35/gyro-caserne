@@ -32,7 +32,7 @@ export type ChampsLus = {
 } & Partial<Record<(typeof DATES)[number], string | null>>;
 
 // Lit les seuls champs envoyés (à l'ajout, les obligatoires comptent même absents). Un champ facultatif vide devient null.
-export function lireFormulaire(formulaire: FormData, superAdmins: string[], ajout = false) {
+export function lireFormulaire(formulaire: FormData, ajout = false) {
 	const valeurs: Record<string, string> = {};
 	for (const [cle, brut] of formulaire) if (typeof brut === 'string') valeurs[cle] = brut;
 	if (ajout) for (const cle of ['email', 'prenom', 'nom', 'profilId']) valeurs[cle] ??= '';
@@ -45,11 +45,7 @@ export function lireFormulaire(formulaire: FormData, superAdmins: string[], ajou
 		if (!valeur) erreurs[cle] = OBLIGATOIRES[cle];
 		else champs[cle] = valeur;
 	}
-	if (champs.email !== undefined) {
-		if (!champs.email.includes('@')) erreurs.email = 'Adresse invalide';
-		// Une fiche à l'adresse d'un super administrateur ferait de lui un agent du centre.
-		else if (superAdmins.map(normaliserAdresse).includes(champs.email)) erreurs.email = 'Adresse réservée au super administrateur';
-	}
+	if (champs.email !== undefined && !champs.email.includes('@')) erreurs.email = 'Adresse invalide';
 	if (valeurs.telephone !== undefined) champs.telephone = valeurs.telephone.trim() || null;
 	for (const cle of DATES) {
 		if (valeurs[cle] === undefined) continue;
@@ -77,6 +73,7 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Adresse vide': 'email',
 	'Adresse invalide': 'email',
 	'Adresse trop longue': 'email',
+	'Adresse réservée au super administrateur': 'email',
 	'Prénom vide': 'prenom',
 	'Prénom invalide': 'prenom',
 	'Prénom trop long': 'prenom',
