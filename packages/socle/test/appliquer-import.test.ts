@@ -180,6 +180,26 @@ describe('appliquerOperation : opérations mal formées', () => {
 		['champs tableau', { ligne: 2, type: 'modifier', personneId: 5, champs: ['prenom'] }],
 		['donnees nulles', { ligne: 2, type: 'ajouter', donnees: null }],
 		['donnees texte', { ligne: 2, type: 'ajouter', donnees: 'nina' }],
+		...(
+			[
+				['email absent', { email: undefined }],
+				['email nombre', { email: 5 }],
+				['prénom objet', { prenom: {} }],
+				['nom nul', { nom: null }],
+				['profilId texte', { profilId: '1' }],
+				['profilId nul', { profilId: 0 }],
+				['profilId immense', { profilId: 1e300 }],
+				['gradeId texte', { gradeId: '1' }],
+				['equipeId nul', { equipeId: null }],
+				['equipeId décimal', { equipeId: 1.5 }],
+				['statut inconnu', { statut: 'retraite' }],
+				['téléphone nombre', { telephone: 612345678 }],
+				['naissance date', { naissance: new Date() }],
+				['champ inconnu', { photo: 'x' }]
+			] as const
+		).map(([nom, champ]): [string, unknown] => [`donnees : ${nom}`, { ligne: 2, type: 'ajouter', donnees: { email: 'nina@exemple.fr', prenom: 'Nina', nom: 'Roux', profilId: 1, ...champ } }]),
+		['personneId immense', { ligne: 2, type: 'statut', personneId: 1e300, statut: 'parti' }],
+		['ligne immense', { ligne: 2 ** 60, type: 'terminer', attributionId: 1 }],
 		['personne absente', { ligne: 2, type: 'attribuer', responsabiliteId: 1, perimetre: { type: 'centre' } }],
 		['personne vide', { ligne: 2, type: 'attribuer', personne: {}, responsabiliteId: 1, perimetre: { type: 'centre' } }],
 		['personne à deux clés', { ligne: 2, type: 'attribuer', personne: { id: 5, ligne: 2 }, responsabiliteId: 1, perimetre: { type: 'centre' } }],

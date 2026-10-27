@@ -20,7 +20,7 @@ const objet = (v: unknown): Record<string, unknown> => {
 	return v;
 };
 const entier = (v: unknown, min: number): number => {
-	if (!Number.isInteger(v) || (v as number) < min) throw malFormee();
+	if (!Number.isSafeInteger(v) || (v as number) < min) throw malFormee();
 	return v as number;
 };
 const identifiant = (v: unknown) => entier(v, 1);
@@ -40,12 +40,33 @@ function perimetreDe(v: unknown): Perimetre {
 	return { type: type as Exclude<Perimetre['type'], 'centre'>, id: identifiant(id) };
 }
 
+type Donnees = Extract<Operation, { type: 'ajouter' }>['donnees'];
+const TEXTES = ['email', 'prenom', 'nom'];
+const FACULTATIFS = ['telephone', 'dateGrade', 'naissance', 'entreeCentre', 'engagementSpv'];
+
+function donneesDe(v: unknown): Donnees {
+	const d = objet(v);
+	for (const [cle, valeur] of Object.entries(d)) {
+		if (valeur === undefined) continue;
+		const bon = TEXTES.includes(cle)
+			? typeof valeur === 'string'
+			: FACULTATIFS.includes(cle)
+				? valeur === null || typeof valeur === 'string'
+				: cle === 'profilId' || cle === 'equipeId' || cle === 'gradeId'
+					? (cle === 'gradeId' && valeur === null) || identifiant(valeur) > 0
+					: cle === 'statut' && STATUTS_OPERATIONNELS.includes(valeur as never);
+		if (!bon) throw malFormee();
+	}
+	if ([...TEXTES, 'profilId'].some((cle) => d[cle] === undefined)) throw malFormee();
+	return d as Donnees;
+}
+
 function lire(brute: unknown): Operation {
 	const op = objet(brute);
 	const ligne = entier(op.ligne, 0);
 	switch (op.type) {
 		case 'ajouter':
-			return { ligne, type: op.type, donnees: objet(op.donnees) as Extract<Operation, { type: 'ajouter' }>['donnees'] };
+			return { ligne, type: op.type, donnees: donneesDe(op.donnees) };
 		case 'modifier':
 			return { ligne, type: op.type, personneId: identifiant(op.personneId), champs: objet(op.champs) };
 		case 'equipe':
