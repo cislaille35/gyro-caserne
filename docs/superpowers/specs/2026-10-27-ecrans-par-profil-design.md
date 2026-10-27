@@ -68,7 +68,7 @@ En haut, partout : la cloche des notifications avec son compteur, et « Moi » (
 
 - En haut de l'accueil, une rangée de **casquettes**, une par rôle tenu : « Mon astreinte », « Chef d'équipe », « Pharmacie », « Amicale », « Le centre »… Chacune porte un compteur quand quelque chose l'attend.
 - Une casquette ouvre **sa** page, avec ses seuls blocs.
-- À l'ouverture : la casquette où une action attend ; sinon la principale (le centre pour le chef de centre et l'adjoint, l'astreinte pour un chef d'équipe ou un agent). Choix de Claude.
+- À l'ouverture : la casquette où une action attend ; sinon la principale (le centre pour le chef de centre et l'adjoint, « Chef d'équipe » pour un chef d'équipe, l'astreinte pour un agent). Choix de Claude.
 - Une personne qui n'a qu'un rôle ne voit pas la rangée.
 
 ## Les écrans, profil par profil
