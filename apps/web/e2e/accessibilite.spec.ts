@@ -3,6 +3,7 @@ import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
+import { connecter } from './connexion.ts';
 import { ADRESSE, ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
 async function sansViolation(page: Page, chemin?: string) {
@@ -27,7 +28,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/affichage', '/agents', '/profil']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -36,7 +37,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -325,7 +326,7 @@ test.describe('fichier de l’effectif', () => {
 			question = dialogue.message();
 			await dialogue.dismiss();
 		});
-		await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Affichage' }).click();
+		await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Caserne' }).click();
 		await expect.poll(() => question).toBe("L'import est en cours : quitter l'arrêtera. Quitter quand même ?");
 		await expect(page).toHaveURL(/\/agents\/fichier$/);
 		await expect(page.getByRole('heading', { level: 2, name: 'Application en cours' })).toBeVisible();
@@ -370,6 +371,16 @@ test.describe('fichier de l’effectif', () => {
 test('thème sombre choisi : la page arrive déjà en sombre', async ({ request }) => {
 	const reponse = await request.get('/connexion', { headers: { cookie: 'theme=sombre' } });
 	expect(await reponse.text()).toMatch(/<html[^>]*data-theme="sombre"/);
+});
+
+test('« Se déconnecter » depuis « Moi » ferme la session', async ({ page }) => {
+	// Personne fictive à part : les sessions gardées pour les autres tests restent ouvertes.
+	await connecter(page, 'david.leroy@exemple.fr');
+	await page.getByRole('link', { name: 'Moi', exact: true }).click();
+	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await expect(page).toHaveURL(/\/connexion$/);
+	await page.goto('/');
+	await expect(page).toHaveURL(/\/connexion$/);
 });
 
 test.describe('connecté, au clavier', () => {

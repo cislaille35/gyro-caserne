@@ -2,7 +2,7 @@
 
 Ouvert à tout agent connecté. Le super administrateur n'a pas de fiche.
 
-1. Appuyez sur « Mon profil » dans le menu.
+1. Appuyez sur « Moi », en haut de l'écran, puis sur « Mon profil ».
 2. Modifiez votre surnom, votre téléphone et votre contact d'urgence.
 3. Cochez « Montrer mon téléphone au centre » pour préparer son affichage : les autres agents ne voient pas encore les numéros, ce sera pour plus tard.
 4. Cochez « Afficher mon anniversaire » pour que votre anniversaire apparaisse au centre.

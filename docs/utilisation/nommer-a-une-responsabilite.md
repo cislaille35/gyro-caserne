@@ -4,7 +4,7 @@ Réservé à qui peut attribuer au moins une responsabilité : chef de centre, a
 
 ## Nommer
 
-1. Ouvrez l'entrée « Nominations » du menu.
+1. Ouvrez l'onglet « Caserne », puis « Nominations ».
 2. Trouvez la carte du rôle (par exemple « Chef d’équipe »).
 3. Sous « Nommer », choisissez l'agent, puis l'équipe ou le comité si on vous le demande.
 4. Vérifiez la date de début (aujourd'hui par défaut). La fin est facultative : sans date, le rôle dure jusqu'à ce qu'on le termine.
