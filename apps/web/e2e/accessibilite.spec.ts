@@ -349,6 +349,10 @@ test.describe('fichier de l’effectif', () => {
 		const email = exporte.lu.entetes.indexOf('E-mail');
 		const lignes = exporte.lu.lignes.map((l) => l.cellules);
 		expect(lignes.filter((l) => l[email]!.endsWith(`.${marque}@exemple.fr`))).toHaveLength(2);
+		// Chaque colonne à sa place, sur le vrai moteur D1 (deux colonnes « nom » s'y écrasaient).
+		const zoe = lignes.find((l) => l[email] === `zoe.${marque}@exemple.fr`)!;
+		expect(zoe[exporte.lu.entetes.indexOf('Nom')]).toBe(`Import${marque}`);
+		expect(zoe[exporte.lu.entetes.indexOf('Profil')]).toBe('Agent');
 		const ampute = lignes.filter((l) => l[email] !== `yanis.${marque}@exemple.fr`);
 		await deposer(page, await classeur(exporte.lu.entetes, ampute, exporte.lu.repere));
 
