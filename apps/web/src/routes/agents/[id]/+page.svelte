@@ -22,6 +22,7 @@
 	const intitule = (l: { responsabilite: { nom: string }; perimetre: { nom: string | null } }) => (l.perimetre.nom ? `${l.responsabilite.nom} — ${l.perimetre.nom}` : l.responsabilite.nom);
 	const periode = (l: { debut: string; fin: string | null }) => (l.fin ? `du ${date(l.debut)} au ${date(l.fin)}` : `depuis le ${date(l.debut)}`);
 	const concerne = (cible: string) => form?.cible === cible;
+	const termine = $derived(form?.succes && String(form.cible ?? '').startsWith('terminer-') ? form.message : null);
 
 	// Une seule soumission à la fois par formulaire : le bouton se désactive pendant l'envoi.
 	let envoi = $state<string | null>(null);
@@ -63,8 +64,8 @@
 					<span class="note">{periode(l)} · saisi par {l.saisiePar}</span>
 					{#if concerne(cible) && form?.erreurs?.confirmation}
 						<p id="{cible}-erreur" class="echec" role="alert">{form.erreurs.confirmation}</p>
-					{:else if concerne(cible) && form?.message}
-						<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message}</p>
+					{:else if concerne(cible) && form?.message && !form.succes}
+						<p class="echec" role="alert">{form.message}</p>
 					{/if}
 				</div>
 				{#if l.peutTerminer}
@@ -216,6 +217,8 @@
 		</Carte>
 
 		<Carte titre="Responsabilités">
+			<!-- Le rôle terminé quitte sa liste : le succès s'annonce ici. -->
+			<div role="status">{#if termine}<p class="succes">{termine}</p>{/if}</div>
 			{#if data.attributions.enCours.length === 0}
 				<p>Aucune responsabilité en cours.</p>
 			{:else}

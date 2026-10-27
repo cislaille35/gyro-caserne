@@ -10,6 +10,7 @@
 	const date = (jour: string | null) => (jour ? jour.split('-').reverse().join('/') : '—');
 	const periode = (t: { debut: string; fin: string | null }) => (t.fin ? `du ${date(t.debut)} au ${date(t.fin)}` : `depuis le ${date(t.debut)}`);
 	const concerne = (cible: string) => form?.cible === cible;
+	const termine = $derived(form?.succes && String(form.cible ?? '').startsWith('terminer-') ? form.message : null);
 
 	// Une seule soumission à la fois par formulaire : le bouton se désactive pendant l'envoi.
 	let envoi = $state<string | null>(null);
@@ -32,6 +33,8 @@
 
 <div class="page">
 	<h1>Nominations</h1>
+	<!-- Le rôle terminé quitte sa liste : le succès s'annonce ici. -->
+	<div role="status">{#if termine}<p class="succes">{termine}</p>{/if}</div>
 
 	{#each data.roles as r (r.responsabiliteId)}
 		{@const nomination = `attribuer-${r.responsabiliteId}`}
@@ -51,8 +54,8 @@
 								<span class="note">{periode(t)}</span>
 								{#if concerne(cible) && form?.erreurs?.confirmation}
 									<p id="{cible}-erreur" class="echec" role="alert">{form.erreurs.confirmation}</p>
-								{:else if concerne(cible) && form?.message}
-									<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message}</p>
+								{:else if concerne(cible) && form?.message && !form.succes}
+									<p class="echec" role="alert">{form.message}</p>
 								{/if}
 							</div>
 							<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(cible)}>

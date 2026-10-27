@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/agents', '/agents/nouveau', '/profil', '/reglages']) {
+			for (const chemin of ['/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -43,6 +43,24 @@ for (const theme of ['auto', 'sombre']) {
 				await page.goto(await ficheDe(page, 'Alice Martin'));
 				await sansViolation(page);
 				await choisirParti(page);
+				await sansViolation(page);
+			});
+
+			test('responsabilités en cours, à venir et passées : /nominations et la fiche sans violation', async ({ page }) => {
+				const agent = await nouvelAgent(page);
+				await page.goto('/nominations');
+				await nommer(page, 'Référent pharmacie', agent.nom);
+				await nommer(page, 'Référent engins', agent.nom, { debut: '2099-01-01' });
+				await nommer(page, 'Chef d’équipe', agent.nom, { debut: '2020-01-01', fin: '2020-12-31' });
+				await sansViolation(page);
+
+				await page.goto(agent.fiche);
+				const cartes = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
+				await cartes.locator('summary', { hasText: 'Passées (1)' }).click();
+				await expect(cartes.getByText('Chef d’équipe — Équipe 1')).toBeVisible();
+				// Terminer sans « Je confirme » : l'erreur reliée à sa case.
+				await cartes.locator('li', { hasText: 'Référent pharmacie' }).getByRole('button', { name: 'Terminer' }).click();
+				await expect(cartes.getByRole('alert')).toHaveText('Cochez « Je confirme » pour terminer ce rôle.');
 				await sansViolation(page);
 			});
 
@@ -71,6 +89,34 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 	return (await page.getByRole('link', { name: `Voir la fiche de ${nom}` }).getAttribute('href'))!;
 }
 
+// Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
+async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string }> {
+	const marque = Date.now().toString(36);
+	const nom = `Essai${marque}`;
+	await page.goto('/agents/nouveau');
+	await page.getByLabel('Prénom').fill('Zoé');
+	await page.getByLabel('Nom', { exact: true }).fill(nom);
+	await page.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
+	// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
+	await page.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
+	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
+	await expect(page).toHaveURL(/\/agents\/\d+$/);
+	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
+	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname };
+}
+
+// Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 si le rôle vise une équipe).
+async function nommer(page: Page, role: string, agent: string, dates: { debut?: string; fin?: string } = {}) {
+	const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
+	await carte.getByLabel('Agent').selectOption({ label: `${agent} (Équipe 1)` });
+	const equipe = carte.getByRole('combobox', { name: 'Équipe' });
+	if ((await equipe.count()) > 0) await equipe.selectOption({ label: 'Équipe 1' });
+	if (dates.debut) await carte.getByLabel('Début').fill(dates.debut);
+	if (dates.fin) await carte.getByLabel('Fin').fill(dates.fin);
+	await carte.getByRole('button', { name: 'Nommer' }).click();
+	await expect(carte.getByRole('status')).toHaveText('Rôle attribué');
+}
+
 // L'avertissement n'apparaît qu'une fois la page prête : on recommence le choix jusque-là.
 async function choisirParti(page: Page) {
 	const statut = page.locator('form[action="?/statut"]');
@@ -92,22 +138,11 @@ test.describe('agents', () => {
 	test('le super administrateur ajoute un agent, puis le déclare parti : il quitte la vue des agents', async ({ browser }) => {
 		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
-		const marque = Date.now().toString(36);
-		const nom = `Essai${marque}`;
+		const { nom } = await nouvelAgent(gestion);
 
-		await gestion.goto('/agents/nouveau');
-		await gestion.getByLabel('Prénom').fill('Zoé');
-		await gestion.getByLabel('Nom', { exact: true }).fill(nom);
-		await gestion.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
-		// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
-		await gestion.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
-		await gestion.getByRole('button', { name: "Ajouter l'agent" }).click();
-		await expect(gestion).toHaveURL(/\/agents\/\d+$/);
-		await expect(gestion.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
-
-		await gestion.goto(await ficheDe(gestion, `Zoé ${nom}`));
+		await gestion.goto(await ficheDe(gestion, nom));
 		await agent.goto('/agents');
-		await expect(agent.getByText(`Zoé ${nom}`)).toBeVisible();
+		await expect(agent.getByText(nom)).toBeVisible();
 
 		await choisirParti(gestion);
 		const statut = gestion.locator('form[action="?/statut"]');
@@ -118,7 +153,48 @@ test.describe('agents', () => {
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
-		await expect(agent.getByText(`Zoé ${nom}`)).toHaveCount(0);
+		await expect(agent.getByText(nom)).toHaveCount(0);
+	});
+});
+
+test.describe('nominations', () => {
+	test('un agent ordinaire n’ouvre pas les nominations : 403', async ({ browser }) => {
+		const contexte = await browser.newContext({ storageState: ETAT_CONNECTE });
+		const reponse = await (await contexte.newPage()).goto('/nominations');
+		expect(reponse!.status()).toBe(403);
+		await contexte.close();
+	});
+
+	test('le super administrateur nomme un agent chef de son équipe : tous le voient, puis il termine le rôle', async ({ browser }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
+		const { nom } = await nouvelAgent(gestion);
+		const carte = gestion.locator('section').filter({ has: gestion.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
+		const formulaire = carte.locator('form[action="?/attribuer"]');
+
+		// Le choix de l'équipe n'apparaît qu'une fois la page prête : on recommence le choix jusque-là.
+		await expect(async () => {
+			await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
+			await expect(formulaire.getByRole('combobox', { name: 'Équipe' })).toBeVisible({ timeout: 1000 });
+		}).toPass({ timeout: 20_000 });
+		await expect(formulaire.getByLabel('Responsabilité').locator('option:checked')).toHaveText('Chef d’équipe');
+		await formulaire.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
+		await formulaire.getByRole('button', { name: 'Attribuer' }).click();
+		await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
+		await expect(carte.getByText('Chef d’équipe — Équipe 1')).toBeVisible();
+
+		await agent.goto('/agents');
+		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef d’équipe (Équipe 1)');
+
+		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef d’équipe — Équipe 1' }).check();
+		await carte.getByRole('button', { name: 'Terminer' }).click();
+		await expect(carte.getByRole('status').first()).toHaveText('Rôle terminé');
+		await expect(carte.getByText('Aucune responsabilité en cours.')).toBeVisible();
+
+		await agent.reload();
+		await expect(agent.getByRole('listitem').filter({ hasText: nom })).not.toContainText('Rôles');
+		await gestion.context().close();
+		await agent.context().close();
 	});
 });
 

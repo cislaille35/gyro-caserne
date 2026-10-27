@@ -109,6 +109,11 @@ describe('page fiche agent', () => {
 			expect(page).toMatch(/aria-describedby="terminer-2-erreur"/);
 		});
 
+		it('annonce « Rôle terminé » dans la carte, même quand le rôle a quitté la liste', () => {
+			const page = html({ data: { ...data, attributions: aucun }, form: { cible: 'terminer-2', succes: true, message: 'Rôle terminé' } });
+			expect(page).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle terminé</);
+		});
+
 		it('garde les messages à cible hors des bandeaux généraux et des champs de la fiche', () => {
 			const page = html({ data, form: { cible: 'terminer-2', erreurs: { confirmation: 'Cochez' } } });
 			expect(page).not.toContain('Le formulaire contient des erreurs.');

@@ -43,6 +43,11 @@ describe('/nominations : page', () => {
 		expect(html({ data, form: { cible: 'attribuer-5', succes: true, message: 'Rôle attribué' } })).toMatch(/role="status"[^>]*>Rôle attribué</);
 	});
 
+	it('annonce « Rôle terminé » même quand le titulaire a quitté la liste', () => {
+		const sansTitulaire = { ...data, roles: roles.map((r) => ({ ...r, titulaires: [] })) };
+		expect(html({ data: sansTitulaire, form: { cible: 'terminer-1', succes: true, message: 'Rôle terminé' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle terminé</);
+	});
+
 	it('relie l’erreur de confirmation à la case du titulaire concerné', () => {
 		const page = html({ data, form: { cible: 'terminer-1', erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } } });
 		expect(page).toMatch(/role="alert"[^>]*>Cochez « Je confirme » pour terminer ce rôle\./);
