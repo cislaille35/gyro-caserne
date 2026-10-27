@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Réglages du centre (ordinateur)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0f4c8a}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="min-height: 860px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+  <nav aria-label="Menu principal" style="flex: 1 1 220px; max-width: 240px; background: #ffffff; border-right: 1px solid #e3ddd5; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;">
+    <span style="font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: #b3121f; padding: 0 12px 16px;">Gyro Caserne</span>
+    <a href="#" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; color: #1d2733; text-decoration: none;">Accueil</a>
+    <a href="#" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; color: #1d2733; text-decoration: none;">Agents</a>
+    <a href="Nominations.dc.html" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; color: #1d2733; text-decoration: none;">Nominations</a>
+    <a href="#" aria-current="page" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; background: #fbe7e8; color: #8a0f19; font-weight: 600; text-decoration: none;">Réglages</a>
+  </nav>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px;">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+      <div>
+        <p style="margin: 0; font-size: 14px; color: #4a5562;">Réglages › Responsabilités</p>
+        <h1 style="margin: 2px 0 0; font-family: 'Barlow Condensed', sans-serif; font-size: 34px; font-weight: 700;">Réglages du centre</h1>
+      </div>
+      <div role="tablist" aria-label="Réglages" style="display: flex; gap: 4px; background: #ebe5dd; border-radius: 12px; padding: 4px;">
+        <button type="button" role="tab" aria-selected="true" style="min-height: 40px; padding: 0 16px; border: none; border-radius: 9px; background: #ffffff; font: 600 15px 'Barlow', sans-serif; color: #1d2733;">Responsabilités</button>
+        <button type="button" role="tab" aria-selected="false" style="min-height: 40px; padding: 0 16px; border: none; border-radius: 9px; background: transparent; font: 500 15px 'Barlow', sans-serif; color: #4a5562;">Comités</button>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+      <section aria-label="Liste des responsabilités" style="flex: 1 1 300px; max-width: 360px; background: #ffffff; border: 1px solid #e3ddd5; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 12px; border-bottom: 1px solid #e3ddd5; display: flex; gap: 8px;">
+          <label style="flex: 1; display: flex;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Rechercher</span><input type="search" placeholder="Rechercher" style="flex: 1; min-height: 40px; border: 1px solid #c3ccd5; border-radius: 10px; padding: 0 12px; font: 400 15px 'Barlow', sans-serif;"></label>
+          <button type="button" style="min-height: 40px; padding: 0 12px; border-radius: 10px; border: none; background: #b3121f; color: #ffffff; font: 600 15px 'Barlow', sans-serif;">+ Nouvelle</button>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 6px;">
+          <li><a href="#" aria-current="true" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; background: #eef1f4; text-decoration: none; color: #1d2733;"><span style="font-weight: 600;">Référent engins</span><span style="font-size: 13px; color: #7a4a00;">Personnalisé · 2 titulaires</span></a></li>
+          <li><a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: #1d2733;"><span style="font-weight: 600;">Référent pharmacie</span><span style="font-size: 13px; color: #4a5562;">Modèle · aucun titulaire</span></a></li>
+          <li><a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: #1d2733;"><span style="font-weight: 600;">Chef d’équipe</span><span style="font-size: 13px; color: #4a5562;">Modèle · par équipe · 4 titulaires</span></a></li>
+          <li><a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: #1d2733;"><span style="font-weight: 600;">Référent technique</span><span style="font-size: 13px; color: #4a5562;">Modèle · 1 titulaire</span></a></li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="titre-detail" style="flex: 999 1 460px; min-width: 0; background: #ffffff; border: 1px solid #e3ddd5; border-radius: 16px; display: flex; flex-direction: column;">
+        <div style="padding: 18px 20px; border-bottom: 1px solid #e3ddd5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h2 id="titre-detail" style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; flex: 1;">Référent engins</h2>
+          <span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #e6eaee; color: #4a5562; border: 1px solid #c3ccd5;">Modèle : Référent matériel</span>
+          <span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #fdf1dc; color: #7a4a00; border: 1px solid #e8c88a;">Personnalisé</span>
+        </div>
+        <div style="padding: 16px 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <sc-for list="{{domaines}}" as="d" hint-placeholder-count="6">
+            <fieldset style="margin: 0; border: 1px solid {{d.bord}}; border-radius: 12px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px;">
+              <legend style="font-weight: 600; font-size: 16px; padding: 0 4px;">{{d.nom}}</legend>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;">
+                <sc-for list="{{d.niveaux}}" as="n" hint-placeholder-count="3">
+                  <label style="{{n.style}}"><input type="radio" name="{{d.id}}" checked="{{n.coche}}" onChange="{{n.choisir}}" style="position: absolute; opacity: 0;">{{n.libelle}}</label>
+                </sc-for>
+              </div>
+              <span style="font-size: 14px; color: #4a5562;">{{d.detail}}</span>
+              <sc-if value="{{d.change}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{d.remettre}}" style="align-self: flex-start; min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; font: 500 13px 'Barlow', sans-serif; color: #1d2733;">↺ Revenir au modèle</button>
+              </sc-if>
+            </fieldset>
+          </sc-for>
+        </div>
+        <details style="margin: 0 20px 16px; border: 1px solid #e3a7ac; border-radius: 12px; padding: 0 12px;">
+          <summary style="min-height: 44px; display: flex; align-items: center; font-weight: 600; color: #8a0f19; cursor: pointer;">Administration de l’appli · aucun pouvoir</summary>
+          <p style="margin: 0 0 12px; font-size: 14px; color: #4a5562;">Réservé au chef de centre et à l’adjoint.</p>
+        </details>
+        <div style="margin-top: auto; padding: 14px 20px; border-top: 1px solid #e3ddd5; background: #fbfaf8; border-radius: 0 0 16px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <span role="status" style="flex: 1; font-size: 14px; color: #7a4a00;">{{etat}}</span>
+          <button type="button" onClick="{{toutRemettre}}" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #4a5562; background: #ffffff; font: 600 15px 'Barlow', sans-serif; color: #1d2733;">↺ Tout revenir au modèle</button>
+          <button type="button" style="min-height: 44px; padding: 0 20px; border-radius: 10px; border: none; background: #b3121f; color: #ffffff; font: 600 15px 'Barlow', sans-serif;">Enregistrer</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.modele = { planning: 0, engins: 2, stock: 1, reservations: 1, salons: 1, messagerie: 1 };
+    this.state = { choix: Object.assign({}, this.modele, { stock: 2 }) };
+  }
+  renderVals() {
+    const defs = [
+      { id: 'planning', nom: 'Planning et gardes', niveaux: ['Rien de plus', 'Voir', 'Valider'], details: ['Comme tout agent : il voit le planning.', 'Voit aussi les motifs d’absence.', 'Valide remplacements, compose les gardes.'] },
+      { id: 'engins', nom: 'Engins et anomalies', niveaux: ['Rien de plus', 'Prendre en charge', 'Gérer'], details: ['Signale une anomalie, comme tout agent.', 'Prend en charge les anomalies.', 'Traite les anomalies, tient les fiches.'] },
+      { id: 'stock', nom: 'Stock et pharmacie', niveaux: ['Signaler', 'Voir', 'Gérer'], details: ['Signale un besoin.', 'Consulte les stocks.', 'Tient le stock : entrées, sorties, seuils.'] },
+      { id: 'reservations', nom: 'Réservations', niveaux: ['Rien', 'Réserver', 'Gérer'], details: ['Ne réserve rien.', 'Réserve véhicule ou matériel.', 'Valide et gère les réservations.'] },
+      { id: 'salons', nom: 'Salons', niveaux: ['Lire', 'Publier', 'Modérer'], details: ['Lit ses salons.', 'Publie des messages.', 'Modère et épingle.'] },
+      { id: 'messagerie', nom: 'Messagerie', niveaux: ['Rien', 'Utiliser', 'Modérer'], details: ['N’écrit pas aux agents.', 'Écrit aux agents.', 'Modère les échanges signalés.'] }
+    ];
+    const choix = this.state.choix;
+    const domaines = defs.map((d) => {
+      const change = choix[d.id] !== this.modele[d.id];
+      return {
+        id: d.id, nom: d.nom, detail: d.details[choix[d.id]], change,
+        bord: change ? '#e8c88a' : '#e3ddd5',
+        remettre: () => this.setState({ choix: Object.assign({}, choix, { [d.id]: this.modele[d.id] }) }),
+        niveaux: d.niveaux.map((libelle, i) => ({
+          libelle,
+          coche: choix[d.id] === i,
+          style: 'position: relative; min-height: 40px; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: ' + (choix[d.id] === i ? '600' : '500') + '; border: 1px solid ' + (choix[d.id] === i ? '#1d2733' : '#c3ccd5') + '; background: ' + (choix[d.id] === i ? '#1d2733' : '#ffffff') + '; color: ' + (choix[d.id] === i ? '#ffffff' : '#1d2733') + ';',
+          choisir: () => this.setState({ choix: Object.assign({}, choix, { [d.id]: i }) })
+        }))
+      };
+    });
+    const n = domaines.filter((d) => d.change).length;
+    return { domaines, etat: n === 0 ? 'Identique au modèle' : n + ' domaine(s) modifié(s), pas encore enregistré(s)', toutRemettre: () => this.setState({ choix: Object.assign({}, this.modele) }) };
+  }
+}
+</script>
+</body>
+</html>

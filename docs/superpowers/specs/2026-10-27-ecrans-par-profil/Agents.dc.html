@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Agents</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1d2733}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 900px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column;">
+  <header style="background: #ffffff; border-bottom: 3px solid #b3121f; padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; flex-direction: column;">
+        <span style="font-size: 13px; color: #4a5562;">CIS Exemple · 32 agents</span>
+        <h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700;">Agents</h1>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 12px; border: none; background: #b3121f; color: #ffffff; font: 600 15px 'Barlow', sans-serif;">+ Ajouter</button>
+    </div>
+    <label style="display: flex;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Rechercher un agent</span>
+      <input type="search" placeholder="Rechercher un nom, un e-mail" style="flex: 1; min-height: 44px; border: 1px solid #c3ccd5; border-radius: 12px; padding: 0 14px; font: 400 16px 'Barlow', sans-serif; background: #fbfaf8;">
+    </label>
+    <div style="display: flex; gap: 6px; overflow-x: auto;">
+      <button type="button" aria-pressed="true" style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #1d2733; background: #1d2733; color: #ffffff; font: 500 14px 'Barlow', sans-serif; white-space: nowrap;">Tous</button>
+      <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; color: #1d2733; font: 500 14px 'Barlow', sans-serif; white-space: nowrap;">À compléter (3)</button>
+      <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; color: #1d2733; font: 500 14px 'Barlow', sans-serif; white-space: nowrap;">Indisponibles (2)</button>
+      <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; color: #1d2733; font: 500 14px 'Barlow', sans-serif; white-space: nowrap;">Partis</button>
+    </div>
+  </header>
+
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+    <sc-for list="{{equipes}}" as="e" hint-placeholder-count="4">
+      <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; overflow: hidden;">
+        <button type="button" aria-expanded="{{e.aria}}" onClick="{{e.basculer}}" style="width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: none; background: #ffffff; text-align: left; font-family: 'Barlow', sans-serif; color: #1d2733;">
+          <span aria-hidden="true" style="width: 14px; height: 40px; border-radius: 4px; background: {{e.couleur}};"></span>
+          <span style="flex: 1; display: flex; flex-direction: column;">
+            <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;">{{e.nom}}</span>
+            <span style="font-size: 14px; color: #4a5562;">{{e.resume}}</span>
+          </span>
+          <span aria-hidden="true" style="font-size: 20px; color: #4a5562;">{{e.chevron}}</span>
+        </button>
+        <sc-if value="{{e.ouvert}}" hint-placeholder-val="{{ true }}">
+          <ul style="list-style: none; margin: 0; padding: 0;">
+            <sc-for list="{{e.agents}}" as="a" hint-placeholder-count="4">
+              <li style="border-top: 1px solid #efe9e2;">
+                <a href="FicheAgent.dc.html" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; min-height: 56px; text-decoration: none;">
+                  <span aria-hidden="true" style="width: 40px; height: 40px; flex: none; border-radius: 50%; background: {{a.fond}}; color: #1d2733; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px;">{{a.initiales}}</span>
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: 600; font-size: 17px;">{{a.nom}}</span>
+                    <span style="font-size: 14px; color: #4a5562;">{{a.grade}}</span>
+                  </span>
+                  <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                    <sc-if value="{{a.aStatut}}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size: 12px; padding: 1px 8px; border-radius: 999px; background: {{a.statutFond}}; color: {{a.statutTexte}}; border: 1px solid {{a.statutTrait}};">{{a.statut}}</span>
+                    </sc-if>
+                    <span style="font-size: 12px; color: #4a5562;">{{a.roles}}</span>
+                  </span>
+                </a>
+              </li>
+            </sc-for>
+          </ul>
+        </sc-if>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ouverts: { e1: true } }; }
+  renderVals() {
+    const S = { inapte: ['Inapte temp.', '#fdf1dc', '#7a4a00', '#e8c88a'], stagiaire: ['Stagiaire', '#e7f0fa', '#0f4c8a', '#a9c6e6'], suspendu: ['Suspendu', '#e6eaee', '#4a5562', '#c3ccd5'] };
+    const ag = (prenom, nom, grade, fond, roles, statut) => {
+      const s = statut ? S[statut] : null;
+      return { nom: prenom + ' ' + nom, initiales: prenom[0] + nom[0], grade, fond, roles: roles || '', aStatut: !!s, statut: s ? s[0] : '', statutFond: s ? s[1] : '', statutTexte: s ? s[2] : '', statutTrait: s ? s[3] : '' };
+    };
+    const defs = [
+      { id: 'e1', nom: 'Équipe 1', couleur: '#b3121f', resume: '8 agents · chef : A. Martin', agents: [ag('Alice', 'Martin', 'Sergent-chef', '#fbe7e8', '★ Chef d’équipe'), ag('David', 'Leroy', 'Caporal-chef', '#e7f0fa', 'Référent engins'), ag('Emma', 'Roux', 'Sapeur', '#e6f2e2', '', 'stagiaire'), ag('Hugo', 'Blanc', 'Caporal', '#fdeedd', '', 'inapte')] },
+      { id: 'e2', nom: 'Équipe 2', couleur: '#0f4c8a', resume: '8 agents · chef : B. Petit', agents: [ag('Bruno', 'Petit', 'Adjudant', '#e7f0fa', '★ Chef d’équipe')] },
+      { id: 'e3', nom: 'Équipe 3', couleur: '#1f5a14', resume: '8 agents · chef : C. Durand', agents: [ag('Chloé', 'Durand', 'Sergent', '#e6f2e2', '★ Chef d’équipe · Engins')] },
+      { id: 'e4', nom: 'Équipe 4', couleur: '#9a4b00', resume: '7 agents · sans chef d’équipe', agents: [ag('Inès', 'Faure', 'Caporal', '#fdeedd')] },
+      { id: 'sans', nom: 'Sans équipe', couleur: '#c3ccd5', resume: '1 agent', agents: [ag('Test', 'Fictif', 'Sapeur', '#eef1f4')] }
+    ];
+    const ouverts = this.state.ouverts;
+    const equipes = defs.map((e) => {
+      const ouvert = !!ouverts[e.id];
+      return Object.assign({}, e, { ouvert, aria: ouvert ? 'true' : 'false', chevron: ouvert ? '⌃' : '⌄', basculer: () => this.setState({ ouverts: Object.assign({}, ouverts, { [e.id]: !ouvert }) }) });
+    });
+    return { equipes };
+  }
+}
+</script>
+</body>
+</html>

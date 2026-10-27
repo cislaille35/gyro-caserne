@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Comité : Amicale</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0f4c8a}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1000px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column;">
+  <header style="background: linear-gradient(180deg, #fbeaf1 0%, #f6f3ef 100%); padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 10px;">
+    <a href="AccueilAgent.dc.html" style="color: #4a5562; font-size: 15px; text-decoration: none; min-height: 36px; display: flex; align-items: center;">‹ Caserne</a>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 16px; background: #ffffff; color: #8a1f52; display: flex; align-items: center; justify-content: center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg></span>
+      <div style="display: flex; flex-direction: column;">
+        <h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 700;">Amicale</h1>
+        <span style="font-size: 15px; color: #4a5562;">3 membres · rapporteur : Bruno Petit</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 4px;">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #e7f0fa; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">BP</span>
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #e6f2e2; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-left: -10px;">CD</span>
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #fdeedd; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-left: -10px;">TF</span>
+    </div>
+  </header>
+
+  <div role="tablist" aria-label="Comité" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 16px; background: #ebe5dd; border-radius: 12px; padding: 4px; gap: 4px;">
+    <sc-for list="{{onglets}}" as="o" hint-placeholder-count="3">
+      <button type="button" role="tab" aria-selected="{{o.aria}}" onClick="{{o.choisir}}" style="{{o.style}}">{{o.nom}}</button>
+    </sc-for>
+  </div>
+
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+    <sc-if value="{{surMur}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+          <span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Écrire à l’Amicale</span>
+          <input type="text" placeholder="Écrire à l’Amicale…" style="flex: 1; min-height: 40px; border: none; font: 400 16px 'Barlow', sans-serif; background: transparent;">
+          <button type="button" style="min-height: 40px; padding: 0 14px; border-radius: 999px; border: none; background: #b3121f; color: #ffffff; font: 600 14px 'Barlow', sans-serif;">Publier</button>
+        </label>
+        <article style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 13px; color: #4a5562;">Bruno Petit · rapporteur · lundi · épinglé</span>
+          <span style="font-size: 16px;">Repas de Sainte-Barbe le 5 décembre. Inscriptions avant le 20 novembre.</span>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; font: 500 14px 'Barlow', sans-serif;">Répondre (4)</button>
+          </div>
+        </article>
+        <article style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 13px; color: #4a5562;">Chloé Durand · il y a 3 jours</span>
+          <span style="font-size: 16px;">Qui peut récupérer les tables à la mairie vendredi ?</span>
+        </article>
+      </div>
+    </sc-if>
+    <sc-if value="{{surDecisions}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 13px; color: #4a5562;">Réunion du 12 octobre</span>
+          <span style="font-weight: 600;">Budget du repas validé : 25 € par personne</span>
+          <span style="font-size: 14px; color: #4a5562;">Compte rendu joint</span>
+        </section>
+        <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="font-size: 13px; color: #4a5562;">Réunion du 14 septembre</span>
+          <span style="font-weight: 600;">Chloé Durand nommée membre</span>
+        </section>
+      </div>
+    </sc-if>
+    <sc-if value="{{surMembres}}" hint-placeholder-val="{{ false }}">
+      <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px;"><span style="flex: 1; font-weight: 600;">Bruno Petit</span><span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #fbeaf1; color: #8a1f52; border: 1px solid #e7b6cc;">Rapporteur</span></div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid #efe9e2;"><span style="flex: 1; font-weight: 600;">Chloé Durand</span><span style="font-size: 13px; color: #4a5562;">Membre</span></div>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid #efe9e2;"><span style="flex: 1; font-weight: 600;">Test Fictif</span><span style="font-size: 13px; color: #4a5562;">Membre</span></div>
+        <div style="padding: 12px 14px; border-top: 1px solid #efe9e2;"><a href="Nominations.dc.html" style="font-weight: 500;">+ Nommer un membre</a> <span style="font-size: 13px; color: #4a5562;">(rapporteur)</span></div>
+      </section>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { onglet: 'mur' }; }
+  renderVals() {
+    const defs = [{ id: 'mur', nom: 'Mur' }, { id: 'decisions', nom: 'Décisions' }, { id: 'membres', nom: 'Membres' }];
+    const onglets = defs.map((o) => {
+      const sel = this.state.onglet === o.id;
+      return { nom: o.nom, aria: sel ? 'true' : 'false', choisir: () => this.setState({ onglet: o.id }), style: 'min-height: 40px; border: none; border-radius: 9px; font: ' + (sel ? '600' : '500') + ' 15px Barlow, sans-serif; background: ' + (sel ? '#ffffff' : 'transparent') + '; color: ' + (sel ? '#1d2733' : '#4a5562') + ';' };
+    });
+    return { onglets, surMur: this.state.onglet === 'mur', surDecisions: this.state.onglet === 'decisions', surMembres: this.state.onglet === 'membres' };
+  }
+}
+</script>
+</body>
+</html>
