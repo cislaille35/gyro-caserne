@@ -39,7 +39,7 @@ describe('page fiche agent', () => {
 
 	it('avertit et demande « Je confirme » quand « Parti » est choisi', () => {
 		const page = html({ data, form: { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs: { statut: 'parti' } } });
-		expect(page).toContain("Sa date de naissance et son contact d'urgence seront effacés.");
+		expect(page).toContain("Sa date de naissance et son contact d'urgence seront effacés, et ses rôles prendront fin aujourd'hui.");
 		expect(page).toMatch(/<input[^>]*type="checkbox"[^>]*name="confirmation"[^>]*value="oui"/);
 		expect(page).toContain('Je confirme');
 		expect(page).toContain('Cochez « Je confirme » pour déclarer le départ.');
@@ -98,7 +98,7 @@ describe('page fiche agent', () => {
 			expect(page).toContain('Chef d’équipe — Équipe 1');
 			expect(page).toMatch(/<details(?![^>]*open)[^>]*>(<!--[^>]*-->)*\s*<summary[^>]*>Passées/);
 			expect(page.match(/action="\?\/terminer"/g)).toHaveLength(2);
-			expect(page.match(/name="attributionId"/g)).toHaveLength(2);
+			expect(page.match(/name="attributionId"/g)).toHaveLength(4);
 		});
 
 		it('ne montre « Terminer » que pour les rôles qu\'on peut retirer, et relie l\'erreur de confirmation à sa case', () => {
@@ -147,6 +147,32 @@ describe('page fiche agent', () => {
 			const bouton = page.match(/<button[^>]*>(<!--[^>]*-->)*Attribuer/);
 			expect(bouton).not.toBeNull();
 			expect(bouton![0]).not.toContain('disabled');
+		});
+
+		it('propose « Changer la date de fin » pour les rôles en cours et à venir qu\'on peut retirer', () => {
+			const page = html({ data: { ...data, attributions }, form: null });
+			expect(page.match(/action="\?\/finir"/g)).toHaveLength(2);
+			expect(page.match(/>Changer la date de fin</g)).toHaveLength(2);
+			expect(page).toMatch(/<input[^>]*id="nouvelle-fin-1"[^>]*type="date"|<input[^>]*type="date"[^>]*id="nouvelle-fin-1"/);
+		});
+
+		it('affiche l\'erreur de date de fin sous son champ, et annonce le succès dans la carte', () => {
+			const erreur = html({ data: { ...data, attributions }, form: { cible: 'finir-1', erreurs: { fin: 'Une attribution ne peut qu’être raccourcie' }, valeurs: { fin: '2100-01-01' } } });
+			expect(erreur).toMatch(/id="nouvelle-fin-1-erreur"[^>]*>Une attribution ne peut qu’être raccourcie/);
+			expect(erreur).toContain('value="2100-01-01"');
+			const succes = html({ data: { ...data, attributions: aucun }, form: { cible: 'finir-1', succes: true, message: 'Date de fin enregistrée' } });
+			expect(succes).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Date de fin enregistrée</);
+		});
+
+		it('a des zones d\'annonce présentes dès le chargement, dans la carte et dans le formulaire d\'attribution', () => {
+			const page = html({ data: { ...data, peutAttribuer }, form: null });
+			const carte = page.slice(page.indexOf('>Responsabilités</h2>'));
+			expect(carte.match(/role="status"/g)).toHaveLength(2);
+			const formulaire = carte.slice(carte.indexOf('action="?/attribuer"'));
+			expect(formulaire).toMatch(/role="status"/);
+			expect(formulaire).toMatch(/role="alert"/);
+			const attribue = html({ data: { ...data, peutAttribuer }, form: { cible: 'attribuer', succes: true, message: 'Rôle attribué' } });
+			expect(attribue).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle attribué</);
 		});
 	});
 });

@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { attribuer, DonneeInvalide, responsabilite, terminerAttribution, type Acteur, type Perimetre } from '@gyro-caserne/socle';
+import { attribuer, DonneeInvalide, finirAttribution, responsabilite, terminerAttribution, type Acteur, type Perimetre } from '@gyro-caserne/socle';
 import { echecAttribution } from './erreurs-attribution.ts';
 import { dateValide, type Reponse } from './formulaire-agent.ts';
 
@@ -35,18 +35,42 @@ export async function nommer({ base, acteur, aujourdhui, formulaire, cible }: Co
 	return { cible, succes: true, message: 'Rôle attribué' };
 }
 
-// « Terminer » : confirmation obligatoire, puis le socle retire le rôle dès aujourd'hui.
+// Rôles visés par « Terminer » et « Changer la date de fin ». `role` (page « Nominations ») place le message dans la carte du rôle.
 // `estVisible` limite les rôles qu'on peut viser depuis la page (un identifiant fabriqué est refusé).
-export async function terminer({ base, acteur, aujourdhui, formulaire }: Omit<Contexte, 'cible'>, estVisible: (attributionId: number) => Promise<boolean>) {
+type Retrait = Omit<Contexte, 'cible'> & { role?: number };
+type EstVisible = (attributionId: number) => Promise<boolean>;
+
+const attributionVisee = (formulaire: FormData) => {
 	const brut = String(formulaire.get('attributionId') ?? '');
-	const attributionId = /^\d+$/.test(brut) ? Number(brut) : NaN;
+	return { brut, attributionId: /^\d+$/.test(brut) ? Number(brut) : NaN };
+};
+
+// « Terminer » : confirmation obligatoire, puis le socle retire le rôle dès aujourd'hui.
+export async function terminer({ base, acteur, aujourdhui, formulaire, role }: Retrait, estVisible: EstVisible) {
+	const { brut, attributionId } = attributionVisee(formulaire);
 	const cible = `terminer-${brut}`;
-	if (formulaire.get('confirmation') !== 'oui') return fail<Reponse>(400, { cible, erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } });
+	if (formulaire.get('confirmation') !== 'oui') return fail<Reponse>(400, { cible, role, erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } });
 	try {
 		if (!(await estVisible(attributionId))) throw new DonneeInvalide('Attribution inconnue');
 		await terminerAttribution(base, acteur, attributionId, aujourdhui);
 	} catch (erreur) {
-		return echecAttribution(erreur, { cible });
+		return echecAttribution(erreur, { cible, role });
 	}
-	return { cible, succes: true, message: 'Rôle terminé' };
+	return { cible, role, succes: true, message: 'Rôle terminé' };
+}
+
+// « Changer la date de fin » : seulement raccourcir, le socle en décide.
+export async function finir({ base, acteur, aujourdhui, formulaire, role }: Retrait, estVisible: EstVisible) {
+	const { brut, attributionId } = attributionVisee(formulaire);
+	const cible = `finir-${brut}`;
+	const valeurs = { fin: String(formulaire.get('fin') ?? '').trim() };
+	if (!valeurs.fin) return fail<Reponse>(400, { cible, role, valeurs, erreurs: { fin: 'Indiquez la date de fin.' } });
+	if (!dateValide(valeurs.fin)) return fail<Reponse>(400, { cible, role, valeurs, erreurs: { fin: 'Date invalide' } });
+	try {
+		if (!(await estVisible(attributionId))) throw new DonneeInvalide('Attribution inconnue');
+		await finirAttribution(base, acteur, attributionId, valeurs.fin, aujourdhui);
+	} catch (erreur) {
+		return echecAttribution(erreur, { cible, role, valeurs });
+	}
+	return { cible, role, succes: true, message: 'Date de fin enregistrée' };
 }

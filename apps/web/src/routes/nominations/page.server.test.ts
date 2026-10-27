@@ -35,7 +35,7 @@ async function preparer() {
 const locaux = (base: unknown, acteur: unknown) => ({ base, acteur, superAdmins: ['admin@exemple.fr'] });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lire = (locals: unknown) => (load as any)({ locals });
-const agir = (nom: 'attribuer' | 'terminer', locals: unknown, corps: Record<string, string>) =>
+const agir = (nom: 'attribuer' | 'terminer' | 'finir', locals: unknown, corps: Record<string, string>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, request: new Request('http://x', { method: 'POST', body: new URLSearchParams(corps) }) });
 
@@ -47,6 +47,7 @@ describe('/nominations : accès', () => {
 		await expect(lire(locals)).rejects.toMatchObject({ status: 403 });
 		await expect(agir('attribuer', locals, { personneId: String(simpleId), responsabiliteId: String(role('Référent engins')), perimetre: 'centre', debut: aujourdhui })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('terminer', locals, { attributionId: '1', responsabiliteId: String(role('Référent engins')), confirmation: 'oui' })).rejects.toMatchObject({ status: 403 });
+		await expect(agir('finir', locals, { attributionId: '1', responsabiliteId: String(role('Référent engins')), fin: '2099-01-01' })).rejects.toMatchObject({ status: 403 });
 		expect(await nombre()).toBe(avant);
 	});
 
@@ -126,6 +127,16 @@ describe('/nominations : nommer', () => {
 		expect(resultat.status).toBe(400);
 		expect(resultat.data.erreurs.personneId).toBe('Personne inconnue');
 	});
+
+	it('refuse une personne partie, sur le champ de l’agent', async () => {
+		const { base, chef, role, nouvelle, nombre } = await preparer();
+		const partie = await nouvelle('Partie', 'parti');
+		const avant = await nombre();
+		const resultat = await agir('attribuer', locaux(base, chef), { personneId: String(partie), responsabiliteId: String(role('Référent engins')), perimetre: 'centre', debut: aujourdhui });
+		expect(resultat.status).toBe(400);
+		expect(resultat.data.erreurs.personneId).toBe('Cette personne est partie');
+		expect(await nombre()).toBe(avant);
+	});
 });
 
 describe('/nominations : terminer', () => {
@@ -146,7 +157,7 @@ describe('/nominations : terminer', () => {
 	it('termine le rôle dès aujourd’hui', async () => {
 		const { base, chef, id, roleId } = await avecTitulaire();
 		const resultat = await agir('terminer', locaux(base, chef), { attributionId: String(id), responsabiliteId: roleId, confirmation: 'oui' });
-		expect(resultat).toMatchObject({ succes: true, message: 'Rôle terminé', cible: `terminer-${id}` });
+		expect(resultat).toMatchObject({ succes: true, message: 'Rôle terminé', cible: `terminer-${id}`, role: Number(roleId) });
 		const [ligne] = await base.select().from(attribution).where(eq(attribution.id, id));
 		expect(ligne!.fin! < aujourdhui).toBe(true);
 	});
@@ -162,3 +173,34 @@ describe('/nominations : terminer', () => {
 	});
 });
 
+describe('/nominations : changer la date de fin', () => {
+	async function avecTitulaire() {
+		const contexte = await preparer();
+		const id = await attribuer(contexte.base, super_, { personneId: contexte.simpleId, responsabiliteId: contexte.role('Référent engins'), perimetre: { type: 'centre' }, debut: '2026-01-01', fin: '2099-12-31' }, aujourdhui);
+		return { ...contexte, id, roleId: String(contexte.role('Référent engins')) };
+	}
+	const finDe = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => (await base.select().from(attribution).where(eq(attribution.id, id)))[0]!.fin;
+
+	it('raccourcit le rôle ; le message vise le rôle', async () => {
+		const { base, chef, id, roleId } = await avecTitulaire();
+		const resultat = await agir('finir', locaux(base, chef), { attributionId: String(id), responsabiliteId: roleId, fin: '2099-06-30' });
+		expect(resultat).toMatchObject({ succes: true, message: 'Date de fin enregistrée', cible: `finir-${id}`, role: Number(roleId) });
+		expect(await finDe(base, id)).toBe('2099-06-30');
+	});
+
+	it('refuse d’allonger, sur le champ « fin »', async () => {
+		const { base, chef, id, roleId } = await avecTitulaire();
+		const resultat = await agir('finir', locaux(base, chef), { attributionId: String(id), responsabiliteId: roleId, fin: '2100-01-01' });
+		expect(resultat).toMatchObject({ status: 400, data: { erreurs: { fin: 'Une attribution ne peut qu’être raccourcie' } } });
+		expect(await finDe(base, id)).toBe('2099-12-31');
+	});
+
+	it('refuse un titulaire hors des droits du rapporteur, ou d’un autre rôle que celui du formulaire', async () => {
+		const { base, rapporteur, chef, id, role } = await avecTitulaire();
+		const horsDroits = await agir('finir', locaux(base, rapporteur), { attributionId: String(id), responsabiliteId: String(role('Membre de comité')), fin: '2099-01-01' });
+		expect(horsDroits.status).toBe(400);
+		const autreRole = await agir('finir', locaux(base, chef), { attributionId: String(id), responsabiliteId: String(role('Référent pharmacie')), fin: '2099-01-01' });
+		expect(autreRole.status).toBe(400);
+		expect(await finDe(base, id)).toBe('2099-12-31');
+	});
+});

@@ -10,15 +10,19 @@
 	const date = (jour: string | null) => (jour ? jour.split('-').reverse().join('/') : '—');
 	const periode = (t: { debut: string; fin: string | null }) => (t.fin ? `du ${date(t.debut)} au ${date(t.fin)}` : `depuis le ${date(t.debut)}`);
 	const concerne = (cible: string) => form?.cible === cible;
-	const termine = $derived(form?.succes && String(form.cible ?? '').startsWith('terminer-') ? form.message : null);
+	// « Terminer » ou « Changer la date de fin » peuvent sortir le titulaire de la liste : le succès s'annonce dans la carte du rôle.
+	const annonceRole = (role: number) => (form?.succes && form.role === role && /^(terminer|finir)-/.test(String(form.cible ?? '')) ? form.message : null);
 
 	// Une seule soumission à la fois par formulaire : le bouton se désactive pendant l'envoi.
 	let envoi = $state<string | null>(null);
 	const surEnvoi = (cible: string) => () => {
 		envoi = cible;
 		return async ({ update }: { update: () => Promise<void> }) => {
-			await update();
-			envoi = null;
+			try {
+				await update();
+			} finally {
+				envoi = null;
+			}
 		};
 	};
 
@@ -33,20 +37,22 @@
 
 <div class="page">
 	<h1>Nominations</h1>
-	<!-- Le rôle terminé quitte sa liste : le succès s'annonce ici. -->
-	<div role="status">{#if termine}<p class="succes">{termine}</p>{/if}</div>
 
 	{#each data.roles as r (r.responsabiliteId)}
 		{@const nomination = `attribuer-${r.responsabiliteId}`}
 		{@const erreurs = concerne(nomination) ? (form?.erreurs ?? {}) : {}}
+		{@const annonce = annonceRole(r.responsabiliteId)}
 		<Carte titre={r.nom}>
 			<h3>Titulaires</h3>
+			<!-- Le titulaire retiré ou raccourci peut quitter la liste : le succès s'annonce ici. -->
+			<div role="status">{#if annonce}<p class="succes">{annonce}</p>{/if}</div>
 			{#if r.titulaires.length === 0}
 				<p>Personne n'a ce rôle pour le moment.</p>
 			{:else}
 				<ul class="roles">
 					{#each r.titulaires as t (t.id)}
 						{@const cible = `terminer-${t.id}`}
+						{@const finir = `finir-${t.id}`}
 						{@const intitule = t.perimetre.nom ? `${t.personne.prenom} ${t.personne.nom} — ${t.perimetre.nom}` : `${t.personne.prenom} ${t.personne.nom}`}
 						<li>
 							<div>
@@ -54,10 +60,23 @@
 								<span class="note">{periode(t)}</span>
 								{#if concerne(cible) && form?.erreurs?.confirmation}
 									<p id="{cible}-erreur" class="echec" role="alert">{form.erreurs.confirmation}</p>
-								{:else if concerne(cible) && form?.message && !form.succes}
+								{:else if (concerne(cible) || concerne(finir)) && form?.message && !form.succes}
 									<p class="echec" role="alert">{form.message}</p>
 								{/if}
 							</div>
+							<form method="POST" action="?/finir" class="finir" use:enhance={surEnvoi(finir)}>
+								<input type="hidden" name="attributionId" value={t.id} />
+								<input type="hidden" name="responsabiliteId" value={r.responsabiliteId} />
+								<Champ
+									id="nouvelle-fin-{t.id}"
+									name="fin"
+									type="date"
+									libelle={`Nouvelle date de fin : ${intitule}`}
+									valeur={concerne(finir) ? (form?.valeurs?.fin ?? t.fin ?? '') : (t.fin ?? '')}
+									erreur={concerne(finir) ? form?.erreurs?.fin : undefined}
+								/>
+								<Bouton type="submit" variante="secondaire" desactive={envoi === finir}>Changer la date de fin</Bouton>
+							</form>
 							<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(cible)}>
 								<input type="hidden" name="attributionId" value={t.id} />
 								<input type="hidden" name="responsabiliteId" value={r.responsabiliteId} />
@@ -81,9 +100,11 @@
 
 			<form method="POST" action="?/attribuer" class="nomination" use:enhance={surEnvoi(nomination)}>
 				<h3>Nommer</h3>
-				{#if concerne(nomination) && (form?.message || form?.erreurs)}
-					<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message ?? 'Le formulaire contient des erreurs.'}</p>
-				{/if}
+				<!-- Zones présentes dès le chargement : le message y est annoncé. -->
+				<div role="status">{#if concerne(nomination) && form?.succes}<p class="succes">{form.message}</p>{/if}</div>
+				<div role="alert">
+					{#if concerne(nomination) && !form?.succes && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+				</div>
 				<input type="hidden" name="responsabiliteId" value={r.responsabiliteId} />
 				<Choix id="agent-{r.responsabiliteId}" name="personneId" libelle="Agent" valeur={saisie(nomination, 'personneId', '')} options={[{ valeur: '', libelle: 'Choisissez un agent' }, ...agents]} erreur={erreurs.personneId} />
 				{#if r.portee === 'centre'}
@@ -172,11 +193,15 @@
 		flex-direction: column;
 		gap: 4px;
 	}
-	form.terminer {
+	form.terminer,
+	form.finir {
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+	form.finir {
+		align-items: flex-end;
 	}
 	form.nomination {
 		margin-top: 24px;

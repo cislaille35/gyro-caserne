@@ -4,7 +4,9 @@ import { echec, type Reponse } from './formulaire-agent.ts';
 const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Cette personne tient déjà ce rôle sur cette période': 'debut',
 	'Fin avant le début': 'fin',
+	'Une attribution ne peut qu’être raccourcie': 'fin',
 	'Personne inconnue': 'personneId',
+	'Cette personne est partie': 'personneId',
 	'Responsabilité inconnue': 'responsabiliteId',
 	'Responsabilité archivée': 'responsabiliteId',
 	'Périmètre différent de celui de la responsabilité': 'perimetreId',

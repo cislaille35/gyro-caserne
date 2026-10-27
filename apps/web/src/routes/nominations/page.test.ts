@@ -36,16 +36,32 @@ describe('/nominations : page', () => {
 		const form = { cible: 'attribuer-5', erreurs: { personneId: 'Choisissez un agent.' }, valeurs: { responsabiliteId: '5', personneId: '', perimetre: 'centre', debut: '2026-10-27', fin: '' } };
 		const page = html({ data, form });
 		expect(page.match(/Choisissez un agent\./g)).toHaveLength(1);
-		expect(page.match(/role="alert"/g)).toHaveLength(1);
+		expect(page.match(/role="alert"[^>]*>(<!--[^>]*-->)*<p/g)).toHaveLength(1);
 	});
 
 	it('annonce la réussite dans une zone de statut', () => {
-		expect(html({ data, form: { cible: 'attribuer-5', succes: true, message: 'Rôle attribué' } })).toMatch(/role="status"[^>]*>Rôle attribué</);
+		expect(html({ data, form: { cible: 'attribuer-5', succes: true, message: 'Rôle attribué' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle attribué</);
 	});
 
-	it('annonce « Rôle terminé » même quand le titulaire a quitté la liste', () => {
+	it('annonce « Rôle terminé » dans la carte du rôle, même quand le titulaire a quitté la liste', () => {
 		const sansTitulaire = { ...data, roles: roles.map((r) => ({ ...r, titulaires: [] })) };
-		expect(html({ data: sansTitulaire, form: { cible: 'terminer-1', succes: true, message: 'Rôle terminé' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle terminé</);
+		const page = html({ data: sansTitulaire, form: { cible: 'terminer-1', role: 6, succes: true, message: 'Rôle terminé' } });
+		expect(page.match(/Rôle terminé/g)).toHaveLength(1);
+		const carte = page.slice(page.indexOf('>Membre de comité</h2>'));
+		expect(carte).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle terminé</);
+	});
+
+	it('a ses zones d’annonce présentes dès le chargement : une pour les titulaires et une pour « Nommer », par rôle', () => {
+		const page = html({ data, form: null });
+		expect(page.match(/role="status"/g)).toHaveLength(4);
+		expect(page.indexOf('role="status"')).toBeGreaterThan(page.indexOf('>Référent engins</h2>'));
+	});
+
+	it('propose « Changer la date de fin » pour chaque titulaire, avec l’erreur sous son champ', () => {
+		const page = html({ data, form: { cible: 'finir-1', role: 5, erreurs: { fin: 'Une attribution ne peut qu’être raccourcie' }, valeurs: { fin: '2100-01-01' } } });
+		expect(page.match(/action="\?\/finir"/g)).toHaveLength(1);
+		expect(page).toContain('>Changer la date de fin<');
+		expect(page).toMatch(/id="nouvelle-fin-1-erreur"[^>]*>Une attribution ne peut qu’être raccourcie/);
 	});
 
 	it('relie l’erreur de confirmation à la case du titulaire concerné', () => {

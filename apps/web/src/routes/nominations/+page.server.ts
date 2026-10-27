@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
-import { ceQueJePeuxAttribuer, titulairesDe, vueEffectif } from '@gyro-caserne/socle';
-import { nommer, terminer } from '#lib/server/actions-attribution.ts';
+import { ceQueJePeuxAttribuer, titulairesDe, titulairesDesMiens, vueEffectif } from '@gyro-caserne/socle';
+import { finir, nommer, terminer } from '#lib/server/actions-attribution.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,8 +16,8 @@ async function exigerNominateur(locals: App.Locals) {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { acteur, base, aujourdhui, peutAttribuer } = await exigerNominateur(locals);
-	const roles = [];
-	for (const r of peutAttribuer) roles.push({ ...r, titulaires: await titulairesDe(base, acteur, r.responsabiliteId, aujourdhui) });
+	const titulaires = await titulairesDesMiens(base, acteur, aujourdhui);
+	const roles = peutAttribuer.map((r) => ({ ...r, titulaires: titulaires.get(r.responsabiliteId) ?? [] }));
 	// Nom et équipe seulement : pas de donnée de gestion pour un rapporteur.
 	const agents = (await vueEffectif(base, aujourdhui))
 		.flatMap((g) => g.personnes.map((p) => ({ id: p.id, nom: `${p.prenom} ${p.nom}`, equipe: g.titre })))
@@ -27,6 +27,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 const entier = (brut: FormDataEntryValue | null) => (/^\d+$/.test(String(brut ?? '')) ? Number(brut) : null);
 
+// « Terminer » et « Changer la date de fin » : seuls les titulaires affichés du rôle du formulaire (un identifiant fabriqué est refusé).
+async function retrait(locals: App.Locals, request: Request) {
+	const { acteur, base, aujourdhui } = await exigerNominateur(locals);
+	const formulaire = await request.formData();
+	const role = entier(formulaire.get('responsabiliteId')) ?? undefined;
+	const estVisible = async (attributionId: number) => role !== undefined && (await titulairesDe(base, acteur, role, aujourdhui)).some((t) => t.id === attributionId);
+	return { contexte: { base, acteur, aujourdhui, formulaire, role }, estVisible };
+}
+
 export const actions: Actions = {
 	attribuer: async ({ locals, request }) => {
 		const { acteur, base, aujourdhui } = await exigerNominateur(locals);
@@ -35,12 +44,12 @@ export const actions: Actions = {
 	},
 
 	terminer: async ({ locals, request }) => {
-		const { acteur, base, aujourdhui } = await exigerNominateur(locals);
-		const formulaire = await request.formData();
-		const responsabiliteId = entier(formulaire.get('responsabiliteId'));
-		// Seuls les titulaires du rôle affiché : un identifiant fabriqué est refusé.
-		const estVisible = async (attributionId: number) =>
-			responsabiliteId !== null && (await titulairesDe(base, acteur, responsabiliteId, aujourdhui)).some((t) => t.id === attributionId);
-		return terminer({ base, acteur, aujourdhui, formulaire }, estVisible);
+		const { contexte, estVisible } = await retrait(locals, request);
+		return terminer(contexte, estVisible);
+	},
+
+	finir: async ({ locals, request }) => {
+		const { contexte, estVisible } = await retrait(locals, request);
+		return finir(contexte, estVisible);
 	}
 };

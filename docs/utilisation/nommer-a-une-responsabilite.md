@@ -4,7 +4,7 @@ Réservé à qui peut attribuer au moins une responsabilité : chef de centre, a
 
 ## Nommer
 
-1. Ouvrez la page « Nominations » (adresse `/nominations`).
+1. Ouvrez l'entrée « Nominations » du menu.
 2. Trouvez la carte du rôle (par exemple « Chef d’équipe »).
 3. Sous « Nommer », choisissez l'agent, puis l'équipe ou le comité si on vous le demande.
 4. Vérifiez la date de début (aujourd'hui par défaut). La fin est facultative : sans date, le rôle dure jusqu'à ce qu'on le termine.
@@ -19,6 +19,17 @@ Si vous gérez les agents, vous pouvez aussi le faire depuis sa fiche : carte «
 
 La personne perd le rôle et ses droits dès aujourd'hui. Un rôle qui n'avait pas encore commencé est annulé.
 
+## Changer la date de fin
+
+1. Dans la carte du rôle (ou la carte « Responsabilités » de la fiche), trouvez la personne.
+2. Saisissez la nouvelle date dans « Nouvelle date de fin », puis appuyez sur « Changer la date de fin ». Le message « Date de fin enregistrée » apparaît.
+
+On ne peut qu'avancer la fin : pour prolonger un rôle, nommez à nouveau la personne après la fin prévue.
+
 ## Si c'est refusé
 
 « Cette personne tient déjà ce rôle sur cette période » : elle a déjà ce rôle, au même endroit, sur des dates qui se chevauchent. Changez les dates, ou terminez d'abord l'ancien rôle.
+
+« Cette personne est partie » : on ne nomme pas un agent parti. S'il revient, changez d'abord son statut sur sa fiche.
+
+« Une attribution ne peut qu’être raccourcie » : la nouvelle date de fin est après celle prévue.

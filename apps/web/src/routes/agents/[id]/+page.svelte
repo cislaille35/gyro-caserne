@@ -22,15 +22,19 @@
 	const intitule = (l: { responsabilite: { nom: string }; perimetre: { nom: string | null } }) => (l.perimetre.nom ? `${l.responsabilite.nom} — ${l.perimetre.nom}` : l.responsabilite.nom);
 	const periode = (l: { debut: string; fin: string | null }) => (l.fin ? `du ${date(l.debut)} au ${date(l.fin)}` : `depuis le ${date(l.debut)}`);
 	const concerne = (cible: string) => form?.cible === cible;
-	const termine = $derived(form?.succes && String(form.cible ?? '').startsWith('terminer-') ? form.message : null);
+	// « Terminer » ou « Changer la date de fin » peuvent sortir le rôle de sa liste : le succès s'annonce dans la carte.
+	const annonceRole = $derived(form?.succes && /^(terminer|finir)-/.test(String(form.cible ?? '')) ? form.message : null);
 
 	// Une seule soumission à la fois par formulaire : le bouton se désactive pendant l'envoi.
 	let envoi = $state<string | null>(null);
 	const surEnvoi = (cible: string) => () => {
 		envoi = cible;
 		return async ({ update }: { update: () => Promise<void> }) => {
-			await update();
-			envoi = null;
+			try {
+				await update();
+			} finally {
+				envoi = null;
+			}
 		};
 	};
 
@@ -64,11 +68,24 @@
 					<span class="note">{periode(l)} · saisi par {l.saisiePar}</span>
 					{#if concerne(cible) && form?.erreurs?.confirmation}
 						<p id="{cible}-erreur" class="echec" role="alert">{form.erreurs.confirmation}</p>
-					{:else if concerne(cible) && form?.message && !form.succes}
+					{:else if (concerne(cible) || concerne(`finir-${l.id}`)) && form?.message && !form.succes}
 						<p class="echec" role="alert">{form.message}</p>
 					{/if}
 				</div>
 				{#if l.peutTerminer}
+					{@const finir = `finir-${l.id}`}
+					<form method="POST" action="?/finir" class="finir" use:enhance={surEnvoi(finir)}>
+						<input type="hidden" name="attributionId" value={l.id} />
+						<Champ
+							id="nouvelle-fin-{l.id}"
+							name="fin"
+							type="date"
+							libelle={`Nouvelle date de fin : ${intitule(l)}`}
+							valeur={concerne(finir) ? (form?.valeurs?.fin ?? l.fin ?? '') : (l.fin ?? '')}
+							erreur={concerne(finir) ? form?.erreurs?.fin : undefined}
+						/>
+						<Bouton type="submit" variante="secondaire" desactive={envoi === finir}>Changer la date de fin</Bouton>
+					</form>
 					<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(cible)}>
 						<input type="hidden" name="attributionId" value={l.id} />
 						<label>
@@ -197,7 +214,7 @@
 					/>
 					{#if statutChoisi === 'parti'}
 						<div class="depart">
-							<p id="depart-avertissement"><strong>Attention :</strong> Sa date de naissance et son contact d'urgence seront effacés.</p>
+							<p id="depart-avertissement"><strong>Attention :</strong> Sa date de naissance et son contact d'urgence seront effacés, et ses rôles prendront fin aujourd'hui.</p>
 							<label>
 								<input
 									type="checkbox"
@@ -217,8 +234,8 @@
 		</Carte>
 
 		<Carte titre="Responsabilités">
-			<!-- Le rôle terminé quitte sa liste : le succès s'annonce ici. -->
-			<div role="status">{#if termine}<p class="succes">{termine}</p>{/if}</div>
+			<!-- Le rôle terminé ou raccourci peut quitter sa liste : le succès s'annonce ici. -->
+			<div role="status">{#if annonceRole}<p class="succes">{annonceRole}</p>{/if}</div>
 			{#if data.attributions.enCours.length === 0}
 				<p>Aucune responsabilité en cours.</p>
 			{:else}
@@ -241,9 +258,11 @@
 			{#if choix}
 				<form method="POST" action="?/attribuer" class="nomination" use:enhance={surEnvoi('attribuer')}>
 					<h3>Attribuer une responsabilité</h3>
-					{#if concerne('attribuer') && (form?.message || form?.erreurs)}
-						<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message ?? 'Le formulaire contient des erreurs.'}</p>
-					{/if}
+					<!-- Zones présentes dès le chargement : le message y est annoncé. -->
+					<div role="status">{#if concerne('attribuer') && form?.succes}<p class="succes">{form.message}</p>{/if}</div>
+					<div role="alert">
+						{#if concerne('attribuer') && !form?.succes && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+					</div>
 					<Choix
 						id="responsabilite"
 						name="responsabiliteId"
@@ -381,11 +400,20 @@
 		flex-direction: column;
 		gap: 4px;
 	}
-	form.terminer {
+	form.terminer,
+	form.finir {
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+	form.finir {
+		align-items: flex-end;
+	}
+	.roles form + form {
+		margin-top: 0;
+		padding-top: 0;
+		border-top: none;
 	}
 	form.nomination {
 		margin-top: 24px;

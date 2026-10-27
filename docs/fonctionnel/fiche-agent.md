@@ -48,7 +48,7 @@ Changer l'e-mail d'un agent ferme ses sessions et ses liens de connexion en atte
 
 Menu « Mon profil », pour chaque agent : surnom, téléphone et son affichage, contact d'urgence, affichage de l'anniversaire. Le super administrateur, sans fiche, n'a pas ce menu.
 
-Carte « Responsabilités » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé. Les mêmes nominations se font aussi depuis la page « Nominations » (voir [Accès et attributions](acces-et-attributions.md)).
+Carte « Responsabilités » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. « Changer la date de fin » avance la fin d'un rôle en cours ou à venir (on ne peut pas la repousser). Une personne partie n'a plus de rôle, et on ne la nomme pas. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé. Les mêmes nominations se font aussi depuis la page « Nominations » (voir [Accès et attributions](acces-et-attributions.md)).
 
 Pas encore là : photo, aptitudes, champs du centre, rappels.
 
