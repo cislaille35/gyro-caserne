@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -15,12 +16,60 @@
 	const texte = (cle: string, actuel: string | null) => valeurs[cle] ?? actuel ?? '';
 	const date = (jour: string | null) => (jour ? jour.split('-').reverse().join('/') : '—');
 
+	const aujourdhuiIso = $derived(data.aujourdhui);
+	const intitule = (l: { responsabilite: { nom: string }; perimetre: { nom: string | null } }) => (l.perimetre.nom ? `${l.responsabilite.nom} — ${l.perimetre.nom}` : l.responsabilite.nom);
+	const periode = (l: { debut: string; fin: string | null }) => (l.fin ? `du ${date(l.debut)} au ${date(l.fin)}` : `depuis le ${date(l.debut)}`);
+	const concerne = (cible: string) => form?.cible === cible;
+
+	// Une seule soumission à la fois par formulaire : le bouton se désactive pendant l'envoi.
+	let envoi = $state<string | null>(null);
+	const surEnvoi = (cible: string) => () => {
+		envoi = cible;
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			envoi = null;
+		};
+	};
+
+	const nominations = $derived(data.peutAttribuer);
+	const saisie = (cle: string, defaut: string) => (concerne('attribuer') ? (form?.valeurs?.[cle] ?? defaut) : defaut);
+	let responsabiliteChoisie = $derived(saisie('responsabiliteId', nominations[0] ? String(nominations[0].responsabiliteId) : ''));
+	const choix = $derived(nominations.find((r) => String(r.responsabiliteId) === responsabiliteChoisie) ?? nominations[0]);
+	const erreursNomination = $derived(concerne('attribuer') ? (form?.erreurs ?? {}) : {});
+
 	let statutChoisi = $derived(form?.valeurs?.statut ?? fiche.statut);
 </script>
 
 <svelte:head>
 	<title>{fiche.prenom} {fiche.nom} · Agents · Gyro Caserne</title>
 </svelte:head>
+
+			{#snippet liste(titre: string, lignes: typeof data.attributions.enCours)}
+				<h3>{titre}</h3>
+				<ul class="roles">
+					{#each lignes as l (l.id)}
+						<li>
+							<div>
+								<strong>{intitule(l)}</strong>
+								<span class="note">{periode(l)} · saisi par {l.saisiePar}</span>
+								{#if concerne(`terminer-${l.id}`) && (form?.message || form?.erreurs)}
+									<p class={form?.succes ? 'succes' : 'echec'}>{form?.erreurs?.confirmation ?? form?.message}</p>
+								{/if}
+							</div>
+							{#if l.peutTerminer}
+								<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(`terminer-${l.id}`)}>
+									<input type="hidden" name="attributionId" value={l.id} />
+									<label>
+										<input type="checkbox" name="confirmation" value="oui" aria-label={`Je confirme : terminer ${intitule(l)}`} />
+										Je confirme
+									</label>
+									<Bouton type="submit" variante="secondaire" desactive={envoi === `terminer-${l.id}`}>Terminer</Bouton>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{/snippet}
 
 {#key fiche.id}
 	<div class="fiche">
@@ -147,6 +196,59 @@
 				</form>
 			{/if}
 		</Carte>
+
+		<Carte titre="Responsabilités">
+			{#if data.attributions.enCours.length === 0}
+				<p>Aucune responsabilité en cours.</p>
+			{:else}
+				{@render liste('En cours', data.attributions.enCours)}
+			{/if}
+			{#if data.attributions.aVenir.length > 0}
+				{@render liste('À venir', data.attributions.aVenir)}
+			{/if}
+			{#if data.attributions.passees.length > 0}
+				<details>
+					<summary>Passées ({data.attributions.passees.length})</summary>
+					<ul class="roles">
+						{#each data.attributions.passees as l (l.id)}
+							<li><div><strong>{intitule(l)}</strong> <span class="note">{periode(l)} · saisi par {l.saisiePar}</span></div></li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+
+			{#if choix}
+				<form method="POST" action="?/attribuer" class="nomination" use:enhance={surEnvoi('attribuer')}>
+					<h3>Attribuer une responsabilité</h3>
+					{#if concerne('attribuer') && form?.message}<p class={form.succes ? 'succes' : 'echec'}>{form.message}</p>{/if}
+					<Choix
+						id="responsabilite"
+						name="responsabiliteId"
+						libelle="Responsabilité"
+						bind:valeur={responsabiliteChoisie}
+						erreur={erreursNomination.responsabiliteId}
+						options={nominations.map((r) => ({ valeur: String(r.responsabiliteId), libelle: r.nom }))}
+					/>
+					{#if choix.portee === 'centre'}
+						<input type="hidden" name="perimetre" value="centre" />
+					{:else}
+						{#key choix.responsabiliteId}
+							<Choix
+								id="perimetre"
+								name="perimetre"
+								libelle={choix.portee === 'equipe' ? 'Équipe' : 'Comité'}
+								valeur={saisie('perimetre', String(choix.perimetres[0]?.id ?? ''))}
+								erreur={erreursNomination.perimetreId}
+								options={choix.perimetres.map((p) => ({ valeur: String(p.id), libelle: p.nom }))}
+							/>
+						{/key}
+					{/if}
+					<Champ id="debut" name="debut" type="date" libelle="Début" requis valeur={saisie('debut', aujourdhuiIso)} erreur={erreursNomination.debut} />
+					<Champ id="fin" name="fin" type="date" libelle="Fin" aide="Facultative : sans date, le rôle dure jusqu'à ce qu'on le termine." valeur={saisie('fin', '')} erreur={erreursNomination.fin} />
+					<Bouton type="submit" desactive={envoi === 'attribuer'}>Attribuer</Bouton>
+				</form>
+			{/if}
+		</Carte>
 	</div>
 {/key}
 
@@ -231,5 +333,50 @@
 	.erreur {
 		color: var(--accent);
 		font-weight: 600;
+	}
+	h3 {
+		margin: 16px 0 8px;
+		font: 700 1.125rem var(--police-titre);
+	}
+	.roles {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.roles li {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: center;
+		gap: 12px;
+	}
+	.roles li > div {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	form.terminer {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+	}
+	form.nomination {
+		margin-top: 24px;
+		padding-top: 24px;
+		border-top: 1px solid var(--trait);
+	}
+	form.nomination h3 {
+		margin: 0;
+	}
+	summary {
+		cursor: pointer;
+		font-weight: 600;
+		min-height: var(--cible);
+		display: flex;
+		align-items: center;
 	}
 </style>

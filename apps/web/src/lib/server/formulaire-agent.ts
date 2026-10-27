@@ -15,7 +15,7 @@ const OBLIGATOIRES = { email: 'Indiquez l’adresse e-mail.', prenom: 'Indiquez 
 const DATES = ['dateGrade', 'naissance', 'entreeCentre', 'engagementSpv'] as const;
 const IDENTIFIANTS = ['gradeId', 'profilId', 'equipeId'] as const;
 
-function dateValide(date: string): boolean {
+export function dateValide(date: string): boolean {
 	const jour = new Date(`${date}T00:00:00Z`);
 	return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(jour.getTime()) && jour.toISOString().slice(0, 10) === date;
 }
@@ -94,13 +94,13 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 };
 
 // Ce que reçoit la page après un envoi : message général, erreurs par champ, saisie à réafficher.
-export type Reponse = { message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
+export type Reponse = { cible?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
 
 // Traduit un refus du socle en réponse du formulaire ; toute autre erreur remonte.
-export function echec(erreur: unknown, contexte: Reponse = {}) {
+export function echec(erreur: unknown, contexte: Reponse = {}, champs: Record<string, string> = CHAMP_DE_L_ERREUR) {
 	if (erreur instanceof RefusDroit) return fail<Reponse>(403, { ...contexte, message: erreur.message });
 	if (erreur instanceof DonneeInvalide) {
-		const champ = CHAMP_DE_L_ERREUR[erreur.message];
+		const champ = champs[erreur.message];
 		return fail<Reponse>(400, champ ? { ...contexte, erreurs: { [champ]: erreur.message } } : { ...contexte, message: erreur.message });
 	}
 	throw erreur;

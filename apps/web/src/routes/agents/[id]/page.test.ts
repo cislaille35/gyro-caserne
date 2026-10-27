@@ -23,7 +23,8 @@ const fiche = {
 	profil: { id: 1, nom: 'Agent' },
 	protection: null
 };
-const data = { fiche, raison: null, grades: [], profils: [{ id: 1, nom: 'Agent' }], equipes: [{ id: 1, nom: 'Équipe 1' }], statuts: ['operationnel', 'suspendu', 'parti'] };
+const aucun = { enCours: [], aVenir: [], passees: [] };
+const data = { aujourdhui: '2026-10-27', attributions: aucun, peutAttribuer: [], fiche, raison: null, grades: [], profils: [{ id: 1, nom: 'Agent' }], equipes: [{ id: 1, nom: 'Équipe 1' }], statuts: ['operationnel', 'suspendu', 'parti'] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (props: Record<string, unknown>) => render(Page as any, { props }).body;
 
@@ -67,5 +68,59 @@ describe('page fiche agent', () => {
 
 	it('annonce le succès dans une zone de statut', () => {
 		expect(html({ data, form: { succes: true, message: 'Fiche enregistrée' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Fiche enregistrée</);
+	});
+
+	describe('carte Responsabilités', () => {
+		const ligne = (id: number, nom: string, peutTerminer: boolean, perimetre: { type: string; id: number | null; nom: string | null } = { type: 'centre', id: null, nom: null }) => ({
+			id,
+			responsabilite: { id: 1, nom },
+			perimetre,
+			debut: '2026-01-01',
+			fin: null,
+			saisiePar: 'Chef Test',
+			peutTerminer
+		});
+		const attributions = {
+			enCours: [ligne(1, 'Référent engins', true), ligne(2, 'Chef d’équipe', false, { type: 'equipe', id: 1, nom: 'Équipe 1' })],
+			aVenir: [ligne(3, 'Référent pharmacie', true)],
+			passees: [ligne(4, 'Membre de comité', false, { type: 'comite', id: 2, nom: 'Amicale' })]
+		};
+		const peutAttribuer = [
+			{ responsabiliteId: 5, nom: 'Référent engins', portee: 'centre', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }] },
+			{ responsabiliteId: 6, nom: 'Chef d’équipe', portee: 'equipe', perimetres: [{ type: 'equipe', id: 1, nom: 'Équipe 1' }] }
+		];
+
+		it('affiche les trois listes, la passée repliée, et « Terminer » seulement si permis', () => {
+			const page = html({ data: { ...data, attributions, peutAttribuer: [] }, form: null });
+			expect(page).toContain('>Responsabilités</h2>');
+			for (const titre of ['En cours', 'À venir', 'Passées']) expect(page).toContain(titre);
+			expect(page).toContain('Référent engins');
+			expect(page).toContain('Chef d’équipe — Équipe 1');
+			expect(page).toMatch(/<details(?![^>]*open)[^>]*>(<!--[^>]*-->)*\s*<summary[^>]*>Passées/);
+			expect(page.match(/action="\?\/terminer"/g)).toHaveLength(2);
+			expect(page.match(/name="attributionId"/g)).toHaveLength(2);
+		});
+
+		it('propose le formulaire d\'attribution seulement s\'il y a quelque chose à attribuer', () => {
+			expect(html({ data, form: null })).not.toContain('action="?/attribuer"');
+			const page = html({ data: { ...data, peutAttribuer }, form: null });
+			expect(page).toContain('action="?/attribuer"');
+			expect(page).toMatch(/<select[^>]*name="responsabiliteId"/);
+			expect(page).toMatch(/<input[^>]*type="date"[^>]*name="debut"|<input[^>]*name="debut"[^>]*type="date"/);
+			expect(page).toMatch(/name="fin"/);
+		});
+
+		it('montre l\'erreur de doublon sous la date de début et un message pour la bonne cible', () => {
+			const form = { cible: 'attribuer', erreurs: { debut: 'Cette personne tient déjà ce rôle sur cette période' }, valeurs: { responsabiliteId: '5', perimetre: 'centre', debut: '2026-02-01', fin: '' } };
+			const page = html({ data: { ...data, peutAttribuer }, form });
+			expect(page).toContain('Cette personne tient déjà ce rôle sur cette période');
+		});
+
+		it('désactive le bouton pendant l\'envoi (bouton actif au départ)', () => {
+			const page = html({ data: { ...data, peutAttribuer }, form: null });
+			const bouton = page.match(/<button[^>]*>(<!--[^>]*-->)*Attribuer/);
+			expect(bouton).not.toBeNull();
+			expect(bouton![0]).not.toContain('disabled');
+		});
 	});
 });

@@ -86,6 +86,10 @@ describe('Carte', () => {
 });
 
 describe('Bouton', () => {
+	it('se désactive à la demande (envoi en cours)', () => {
+		expect(html(Bouton, { desactive: true, children: contenu })).toMatch(/<button[^>]*disabled/);
+		expect(html(Bouton, { children: contenu })).not.toContain('disabled');
+	});
 	it('est de type button par défaut', () => {
 		expect(html(Bouton, { children: contenu })).toContain('type="button"');
 	});

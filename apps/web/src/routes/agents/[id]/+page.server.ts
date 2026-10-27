@@ -2,6 +2,9 @@ import { error, fail } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
 import {
 	affecterEquipe,
+	attribuer,
+	attributionsDe,
+	ceQueJePeuxAttribuer,
 	changerStatut,
 	DonneeInvalide,
 	equipe,
@@ -10,12 +13,16 @@ import {
 	grade,
 	modifierFiche,
 	profil,
+	responsabilite,
 	retirerEquipe,
 	STATUTS_OPERATIONNELS,
+	terminerAttribution,
 	type Acteur,
+	type Perimetre,
 	type FicheAgent
 } from '@gyro-caserne/socle';
-import { echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
+import { echecAttribution } from '#lib/server/erreurs-attribution.ts';
+import { dateValide, echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 async function lireFiche(locals: App.Locals, brut: string) {
@@ -42,12 +49,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const { acteur, aujourdhui, fiche } = await lireFiche(locals, params.id);
 	const { base } = locals;
 	return {
+		aujourdhui,
 		fiche,
 		raison: await raisonDeProtection(locals, acteur, fiche, aujourdhui),
 		grades: await base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
 		profils: await base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
 		equipes: await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
-		statuts: [...STATUTS_OPERATIONNELS]
+		statuts: [...STATUTS_OPERATIONNELS],
+		attributions: await attributionsDe(base, acteur, fiche.id, aujourdhui),
+		// Les équipes : celle de la personne d'abord, c'est le choix le plus probable.
+		peutAttribuer: (await ceQueJePeuxAttribuer(base, acteur, aujourdhui)).map((r) => ({
+			...r,
+			perimetres: [...r.perimetres].sort((a, b) => Number(b.id === fiche.equipe?.id && b.type === 'equipe') - Number(a.id === fiche.equipe?.id && a.type === 'equipe'))
+		}))
 	};
 };
 
@@ -95,5 +109,52 @@ export const actions: Actions = {
 			return echec(erreur, { valeurs });
 		}
 		return { succes: true, message: 'Statut enregistré' };
+	},
+
+	attribuer: async ({ locals, params, request }) => {
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		const formulaire = await request.formData();
+		const texte = (cle: string) => String(formulaire.get(cle) ?? '').trim();
+		const valeurs = { responsabiliteId: texte('responsabiliteId'), perimetre: texte('perimetre'), debut: texte('debut'), fin: texte('fin') };
+		const cible = 'attribuer';
+		const erreurs: Record<string, string> = {};
+		if (!/^\d+$/.test(valeurs.responsabiliteId)) erreurs.responsabiliteId = 'Choix inconnu';
+		if (!valeurs.debut) erreurs.debut = 'Indiquez la date de début.';
+		else if (!dateValide(valeurs.debut)) erreurs.debut = 'Date invalide';
+		if (valeurs.fin && !dateValide(valeurs.fin)) erreurs.fin = 'Date invalide';
+		const [laResponsabilite] = erreurs.responsabiliteId
+			? []
+			: await locals.base.select({ typePerimetre: responsabilite.typePerimetre }).from(responsabilite).where(eq(responsabilite.id, Number(valeurs.responsabiliteId)));
+		if (!erreurs.responsabiliteId && !laResponsabilite) erreurs.responsabiliteId = 'Choix inconnu';
+		let perimetre: Perimetre | null = null;
+		if (laResponsabilite?.typePerimetre === 'centre') perimetre = { type: 'centre' };
+		else if (laResponsabilite && /^\d+$/.test(valeurs.perimetre) && (laResponsabilite.typePerimetre === 'equipe' || laResponsabilite.typePerimetre === 'comite'))
+			perimetre = { type: laResponsabilite.typePerimetre, id: Number(valeurs.perimetre) };
+		else if (laResponsabilite) erreurs.perimetreId = 'Choix inconnu';
+		if (Object.keys(erreurs).length > 0 || !perimetre) return fail<Reponse>(400, { cible, erreurs, valeurs });
+		try {
+			await attribuer(locals.base, acteur, { personneId: id, responsabiliteId: Number(valeurs.responsabiliteId), perimetre, debut: valeurs.debut, ...(valeurs.fin && { fin: valeurs.fin }) }, aujourdhui);
+		} catch (erreur) {
+			return echecAttribution(erreur, { cible, valeurs });
+		}
+		return { cible, succes: true, message: 'Rôle attribué' };
+	},
+
+	terminer: async ({ locals, params, request }) => {
+		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		const formulaire = await request.formData();
+		const brut = String(formulaire.get('attributionId') ?? '');
+		const attributionId = /^\d+$/.test(brut) ? Number(brut) : NaN;
+		const cible = `terminer-${brut}`;
+		if (formulaire.get('confirmation') !== 'oui') return fail<Reponse>(400, { cible, erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } });
+		try {
+			// Seuls les rôles de cette fiche : un identifiant d'une autre personne est refusé.
+			const { enCours, aVenir } = await attributionsDe(locals.base, acteur, id, aujourdhui);
+			if (![...enCours, ...aVenir].some((a) => a.id === attributionId)) throw new DonneeInvalide('Attribution inconnue');
+			await terminerAttribution(locals.base, acteur, attributionId, aujourdhui);
+		} catch (erreur) {
+			return echecAttribution(erreur, { cible });
+		}
+		return { cible, succes: true, message: 'Rôle terminé' };
 	}
 };

@@ -48,7 +48,9 @@ Changer l'e-mail d'un agent ferme ses sessions et ses liens de connexion en atte
 
 Menu « Mon profil », pour chaque agent : surnom, téléphone et son affichage, contact d'urgence, affichage de l'anniversaire. Le super administrateur, sans fiche, n'a pas ce menu.
 
-Pas encore là : photo, aptitudes, champs du centre, rappels, responsabilités à l'écran.
+Carte « Responsabilités » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé.
+
+Pas encore là : photo, aptitudes, champs du centre, rappels.
 
 ## Ce que la fonction ne fait pas
 
