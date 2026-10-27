@@ -81,6 +81,19 @@ describe('ecrireClasseur puis lireClasseur', () => {
 		const classeur = await ecrireClasseur({ ...donnees, listes: { ...donnees.listes, rolesComite: [] } });
 		expect(await xml(classeur, 'xl/worksheets/sheet1.xml')).not.toContain('sqref="O2:O1000"');
 	});
+
+	it('met la colonne Téléphone au format texte jusqu’à la ligne 1000', async () => {
+		const classeur = await ecrireClasseur(donnees);
+		const styles = await xml(classeur, 'xl/styles.xml');
+		const formatTexte = /<numFmt numFmtId="(\d+)" formatCode="@"\/>/.exec(styles)![1];
+		const xfs = /<cellXfs[^>]*>(.*?)<\/cellXfs>/.exec(styles)![1]!.match(/<xf [^>]*>/g)!;
+		const styleTexte = xfs.findIndex((x) => x.includes(`numFmtId="${formatTexte}"`));
+		expect(styleTexte).toBeGreaterThan(0);
+		const effectif = await xml(classeur, 'xl/worksheets/sheet1.xml');
+		for (const cellule of ['J2', 'J3', 'J1000']) expect(effectif).toMatch(new RegExp(`<c r="${cellule}" s="${styleTexte}"`));
+		expect(effectif).not.toContain('r="J1001"');
+		expect((await lireClasseur(classeur)).lignes).toHaveLength(2);
+	});
 });
 
 describe('lireClasseur', () => {
@@ -89,6 +102,11 @@ describe('lireClasseur', () => {
 		const enTexte = await lireClasseur(await feuille([['N°', 'Naissance'], [12, '1/3/2024']]));
 		expect(enDate.lignes).toEqual([{ numero: 2, cellules: ['12', '01/03/2024'] }]);
 		expect(enTexte).toEqual(enDate);
+	});
+
+	it('redonne son 0 à un téléphone saisi en nombre', async () => {
+		const lu = await lireClasseur(await feuille([['N°', 'Téléphone'], [12, 612345678], [13, 123]]));
+		expect(lu.lignes.map((l) => l.cellules[1])).toEqual(['0612345678', '123']);
 	});
 
 	it('retire les espaces autour des valeurs', async () => {

@@ -12,7 +12,7 @@ import { baseDeTest } from './base-de-test.ts';
 const aujourdhui = '2026-10-27';
 
 async function jeu() {
-	const base = await baseDeTest({ compter: true });
+	const base = await baseDeTest();
 	await chargerJeuDeDepart(base, centreExemple);
 	const profils = await base.select().from(profil);
 	const profilAgent = profils.find((p) => p.typePersonne === 'agent')!;
@@ -183,7 +183,7 @@ describe('dates du fichier', () => {
 
 describe('baseDeTest', () => {
 	it('compte les requêtes, un batch pour une', async () => {
-		const base = await baseDeTest({ compter: true });
+		const base = await baseDeTest();
 		const avant = base.requetes;
 		await base.select().from(personne);
 		await base.batch([base.select().from(personne), base.select().from(grade)]);

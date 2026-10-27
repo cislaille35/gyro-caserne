@@ -1,6 +1,6 @@
 import { dateFichier, dateIso, type DonneesFichier, type FichierLu, type Repere } from '@gyro-caserne/socle';
 import readXlsxFile from 'read-excel-file/universal';
-import writeXlsxFile, { type Cell, type Feature, type Row } from 'write-excel-file/universal';
+import writeXlsxFile, { type Cell, type Feature, type Row, type Sheet } from 'write-excel-file/universal';
 import { getCellAddress, getOrderOfSiblings, insertElementMarkupAccordingToOrderOfSiblings } from 'write-excel-file/utility';
 
 const COLONNES_DATE = ['Date de grade', 'Naissance', 'Entrée au centre', 'Engagement SPV'];
@@ -13,6 +13,8 @@ const ORDRE_LISTES: CleListe[] = ['grades', 'equipes', 'statuts', 'profils', 'ro
 const texte = (valeur: string): Cell => (valeur === '' ? null : { value: valeur, type: String });
 
 function cellule(entete: string, valeur: string): Cell {
+	// Format texte : un numéro tapé garde son 0 de tête.
+	if (entete === 'Téléphone') return { value: valeur || undefined, type: String, format: '@' };
 	if (entete === 'N°' && /^\d+$/.test(valeur)) return { value: Number(valeur), type: Number };
 	const iso = COLONNES_DATE.includes(entete) ? dateIso(valeur) : null;
 	if (iso) return { value: new Date(`${iso}T00:00:00Z`), type: Date, format: 'dd/mm/yyyy' };
@@ -55,11 +57,13 @@ export async function ecrireClasseur(donnees: DonneesFichier): Promise<Blob> {
 		}
 	};
 
+	// Lignes vides jusqu'à DERNIERE_LIGNE, pour que la colonne Téléphone y soit déjà en texte.
+	const lignes = [...donnees.lignes, ...Array.from({ length: DERNIERE_LIGNE - 1 - donnees.lignes.length }, () => [])];
 	const effectif: Row[] = [
 		donnees.entetes.map((e) => ({ value: e, type: String, fontWeight: 'bold' as const })),
-		...donnees.lignes.map((ligne) => donnees.entetes.map((entete, i) => cellule(entete, ligne[i] ?? '')))
+		...lignes.map((ligne: string[]) => donnees.entetes.map((entete, i) => cellule(entete, ligne[i] ?? '')))
 	];
-	const feuilles = [
+	const feuilles: Sheet<Blob>[] = [
 		{ sheet: 'Effectif', data: effectif, stickyRowsCount: 1, columns: donnees.entetes.map((e) => ({ width: e === 'E-mail' ? 30 : Math.max(14, e.length + 2) })) },
 		{ sheet: 'Listes', data: lignesListes }
 	];
@@ -72,8 +76,10 @@ export async function ecrireClasseur(donnees: DonneesFichier): Promise<Blob> {
 
 type Valeur = string | number | boolean | Date | null;
 
-function enTexte(valeur: Valeur): string {
+function enTexte(valeur: Valeur, entete: string | undefined): string {
 	if (valeur === null) return '';
+	// Numéro français tapé en nombre : le tableur a mangé le 0.
+	if (entete === 'Téléphone' && typeof valeur === 'number' && /^\d{9}$/.test(String(valeur))) return `0${valeur}`;
 	if (valeur instanceof Date) {
 		const deux = (n: number) => String(n).padStart(2, '0');
 		return `${deux(valeur.getUTCDate())}/${deux(valeur.getUTCMonth() + 1)}/${valeur.getUTCFullYear()}`;
@@ -97,9 +103,10 @@ export async function lireClasseur(fichier: Blob): Promise<FichierLu> {
 	const effectif = lignesDe('Effectif');
 	if (!effectif) throw new Error('Feuille « Effectif » introuvable');
 
-	const [entetes = [], ...suite] = effectif.map((ligne) => ligne.map(enTexte));
+	const [ligneEntetes = [], ...suite] = effectif;
+	const entetes = ligneEntetes.map((v) => enTexte(v, undefined));
 	const lignes = suite
-		.map((cellules, i) => ({ numero: i + 2, cellules }))
+		.map((ligne, i) => ({ numero: i + 2, cellules: ligne.map((v, colonne) => enTexte(v, entetes[colonne])) }))
 		.filter((l) => l.cellules.some((c) => c !== ''));
 	return { entetes, lignes, repere: lireRepere(lignesDe('Repère')) };
 }

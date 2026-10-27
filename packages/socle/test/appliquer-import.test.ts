@@ -14,7 +14,7 @@ const aujourdhui = '2026-10-27';
 const reservees = ['Super@Exemple.fr'];
 
 async function jeu() {
-	const base = await baseDeTest({ compter: true });
+	const base = await baseDeTest();
 	await chargerJeuDeDepart(base, centreExemple);
 	const profils = await base.select().from(profil);
 	const profilAgent = profils.find((p) => p.typePersonne === 'agent')!;

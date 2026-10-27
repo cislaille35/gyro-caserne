@@ -6,9 +6,7 @@ import type { Base } from '../src/base.ts';
 
 const dossierMigrations = new URL('../migrations/', import.meta.url);
 
-// Avec { compter: true }, `requetes` compte les appels à la base (un batch compte pour un).
-export async function baseDeTest(): Promise<Base>;
-export async function baseDeTest(options: { compter: true }): Promise<Base & { requetes: number }>;
+// `requetes` compte les appels à la base (un batch compte pour un).
 export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
