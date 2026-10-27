@@ -44,10 +44,20 @@ La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le
 
 ## Coquille
 
-`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête, navigation en bas sur téléphone et menu latéral à partir de 1024 px, `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Les entrées sont dans `navigation.ts` : chaque fonction y ajoutera la sienne.
+`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête avec la cloche « Notifications » et « Moi », navigation en bas sur téléphone et menu latéral à partir de 1024 px, `<main id="contenu">`. L'entrée active porte `aria-current="page"`.
+
+Connecté, quatre onglets fixes (`navigation.ts`) : « Accueil », « Planning », « Caserne », « Échanges ». Les droits n'ajoutent pas d'onglet, seulement des liens dans les pages. `rubriqueDe` dit quel onglet (ou « Moi », ou la cloche) est actif : `/agents`, `/nominations`, `/reglages` sont rangés sous « Caserne », `/profil` et `/affichage` sous « Moi ».
+
+## Casquettes
+
+Sur l'accueil (`/`), une casquette par rôle tenu (`accueilDe` du socle) : « Le centre » (chef de centre, adjoint, super administrateur), « Chef d'équipe · … », « Mon astreinte » (tout agent), un référent, un comité. Avec deux casquettes ou plus, `Casquettes.svelte` les montre en rangée : `<nav aria-label="Casquettes">` de liens `?casquette=<id>` (rendu serveur, pas de motif d'onglets), la choisie en `aria-current="page"` avec contour épais et texte gras. Sans `?casquette`, la casquette où quelque chose attend, sinon la première. Avec une seule, pas de rangée.
 
 ## Pages
 
+- `/` : l'accueil, Gyro et la casquette choisie (voir plus haut).
+- `/caserne` : liens vers « Agents », et selon les droits « Nominations », « Réglages » ; « Engins » et « Comités » à venir.
+- `/moi` : « Mon profil », « Affichage », « Se déconnecter ».
+- `/planning`, `/echanges`, `/notifications` : à venir, un `Vide` le dit.
 - `/agents` (`routes/agents/+layout.svelte`) : pour un agent, l'effectif groupé par équipe, avec « Rôles : … » sous le nom (`vueEffectif`) ; pour un gestionnaire (`estGestionnaire` du socle), le tableau avec recherche et filtres (formulaire `GET`, paramètres `texte`, `equipe`, `statut`). Les pages filles (`/agents/<id>`, `/agents/nouveau`) s'affichent à côté de la liste à partir de 1024 px, seules en dessous.
 - `/agents/<id>` : la fiche, trois formulaires (`?/fiche`, `?/equipe` avec `equipeId`, `?/statut` avec `confirmation=oui` pour « parti »). Réservée aux gestionnaires (403 sinon) ; fiche protégée : la raison remplace les formulaires. Carte « Responsabilités » (`attributionsDe`) : listes « En cours », « À venir », « Passées » (repliée), « Terminer » et « Changer la date de fin » par rôle en cours ou à venir si `peutTerminer`, formulaire « Attribuer » si `ceQueJePeuxAttribuer` n'est pas vide et que la personne n'est pas partie ; actions `?/attribuer`, `?/terminer` et `?/finir` (module partagé, voir `/nominations`).
 - `/agents/nouveau` : ajout, puis redirection vers la fiche.
@@ -72,6 +82,7 @@ Dans `src/lib/ui/` :
 - `Statut` : badge avec texte (jamais la couleur seule).
 - `Tableau` : défile dans sa boîte sur petit écran, avec une légende.
 - `Vide` : message « rien à afficher », avec Gyro.
+- `Casquettes` : la rangée de casquettes de l'accueil.
 - `Groupe` : bloc repliable (fermé par défaut, `bind:ouvert`) ; le titre (`niveauTitre` 2 ou 3) est un bouton `aria-expanded`, le contenu est `hidden` quand il est fermé (ses champs restent dans le formulaire).
 - `Pastille` : petit badge de texte, `ton` `ok`, `info`, `alerte`, `danger` ou `neutre`.
 - `BarreActions` : barre collée en bas de l'écran (au-dessus de la navigation au téléphone) ; `message` est lu dans sa zone `role="status"`, toujours présente.
@@ -105,11 +116,13 @@ Dans `src/lib/gyro/` :
 
 `pnpm --filter @gyro-caserne/web test:a11y` (Playwright et axe, dans Chromium) :
 
-- chaque page (`/connexion`, `/affichage` ; connecté comme agent `/`, `/affichage`, `/agents`, `/profil` ; connecté comme super administrateur `/agents`, `/agents/nouveau`, `/profil`, `/reglages` et une fiche, avertissement de départ affiché ; `/reglages` aussi avec tous ses blocs ouverts, sans débord horizontal ; `/agents/fichier` avant et après le dépôt d'un fichier), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
+- chaque page (`/connexion`, `/affichage` ; connecté comme agent `/`, `/planning`, `/caserne`, `/echanges`, `/notifications`, `/moi`, `/affichage`, `/agents`, `/profil` ; connecté comme super administrateur `/caserne`, `/moi`, `/agents`, `/agents/nouveau`, `/nominations`, `/profil`, `/reglages` et une fiche, avertissement de départ affiché ; `/reglages` aussi avec tous ses blocs ouverts, sans débord horizontal ; `/agents/fichier` avant et après le dépôt d'un fichier), en thème automatique et sombre, au téléphone et à l'ordinateur : aucune violation WCAG 2.1 A et AA ;
 - premier Tab sur « Aller au contenu », puis Entrée amène au contenu ;
 - thème sombre envoyé par le serveur ; aucune animation avec « réduire les animations » ; cinq appuis sur Gyro au clavier ;
 - agents : un agent ordinaire reçoit 403 sur une fiche ; le super administrateur ajoute un agent fictif, le retrouve dans la liste, le déclare parti avec confirmation, et il disparaît de la vue d'un agent.
 - fichier de l'effectif : un agent ordinaire reçoit 403 ; le super administrateur télécharge le modèle vierge (vrai téléchargement, relu par `lireClasseur`), y ajoute 2 agents fictifs (`ecrireClasseur`), les importe (aperçu « 2 arrivées »), valide : focus sur « Application en cours », quitter la page demande confirmation (refusée, il reste), focus sur « Compte rendu » sans erreur, agents présents dans la liste. Puis il exporte, retire une ligne, réimporte : « 1 départ » en tête de l'aperçu, avec le bon nom, aucune modification ; il abandonne. Les envois d'opérations sont retenus (`page.route`) le temps de vérifier l'application en cours.
+- casquettes : un agent fictif nommé référent pharmacie voit la rangée (sans violation), « Mon astreinte » choisie ; au clavier (focus puis Entrée) il passe à « Référent pharmacie », qui prend `aria-current`. Un agent fictif sans rôle ne voit pas de rangée.
+- « Se déconnecter » depuis « Moi » ferme la session.
 - réglages : un agent ordinaire reçoit 403 ; le super administrateur crée un comité, puis une responsabilité attribuée par ce comité avec « Gérer le stock », dissout le comité avec confirmation, et la responsabilité est alors attribuée par le chef de centre.
 
 Avant les tests, `e2e/serveur.ts` recrée la base locale avec les personnes fictives (elle est effacée), lance le serveur de développement à l'adresse `BETTER_AUTH_URL` de `centres/exemple/.dev.vars` (fichier créé avec de fausses valeurs et le port 5174 s'il manque, comme en CI) et se connecte comme `test@exemple.fr` puis comme le super administrateur fictif `admin@exemple.fr` (il doit figurer dans `SUPER_ADMINS`, sinon les tests s'arrêtent), en lisant le lien dans la sortie du serveur (`test-results/serveur.log`). Une session gardée par compte : un seul lien par minute et par adresse. Aucune porte dérobée dans l'appli. Si `.dev.vars` contient une `BREVO_CLE=` non vide, les tests s'arrêtent avec une erreur : les tests locaux ne doivent jamais envoyer de vrais e-mails.

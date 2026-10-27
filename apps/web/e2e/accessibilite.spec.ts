@@ -104,20 +104,21 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 }
 
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
-async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string }> {
+async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; email: string }> {
 	const marque = Date.now().toString(36);
 	const nom = `Essai${marque}`;
 	await page.goto('/agents/nouveau');
 	await page.getByLabel('Prénom').fill('Zoé');
 	await page.getByLabel('Nom', { exact: true }).fill(nom);
-	await page.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
+	const email = `zoe.${marque}@exemple.fr`;
+	await page.getByLabel('E-mail').fill(email);
 	// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
 	await page.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
 	await expect(page.locator('form[action="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
-	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname };
+	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
 // Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 si le rôle vise une équipe).
@@ -194,7 +195,8 @@ test.describe('agents', () => {
 		await statut.getByLabel('Je confirme').check();
 		await statut.getByRole('button', { name: 'Enregistrer' }).click();
 		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
-		await expect(gestion.locator('.titre')).toContainText('Parti');
+		// Le statut s'affiche à côté du nom, sous le titre de la fiche.
+		await expect(gestion.getByRole('heading', { level: 1 }).locator('xpath=..')).toContainText('Parti');
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
@@ -365,6 +367,40 @@ test.describe('fichier de l’effectif', () => {
 		await page.getByRole('button', { name: "Abandonner l'import" }).click();
 		await expect(apercu).toHaveCount(0);
 		await page.context().close();
+	});
+});
+
+test.describe('casquettes', () => {
+	test('plusieurs rôles : on change de casquette au clavier, la choisie est marquée', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.goto('/nominations');
+		await nommer(gestion, 'Référent pharmacie', agent.nom);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		const casquettes = page.getByRole('navigation', { name: 'Casquettes' });
+		const astreinte = casquettes.getByRole('link', { name: 'Mon astreinte' });
+		const pharmacie = casquettes.getByRole('link', { name: 'Référent pharmacie' });
+		await expect(astreinte).toHaveAttribute('aria-current', 'page');
+		await expect(pharmacie).not.toHaveAttribute('aria-current');
+		await sansViolation(page);
+
+		await pharmacie.focus();
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/[?&]casquette=role/);
+		await expect(pharmacie).toHaveAttribute('aria-current', 'page');
+		await expect(astreinte).not.toHaveAttribute('aria-current');
+		await expect(page.getByRole('heading', { level: 2, name: 'Ce que ce rôle permet' })).toBeVisible();
+	});
+
+	test('un seul rôle : pas de rangée de casquettes', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		await expect(page.getByRole('navigation', { name: 'Casquettes' })).toHaveCount(0);
 	});
 });
 
