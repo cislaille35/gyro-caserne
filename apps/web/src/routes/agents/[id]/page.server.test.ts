@@ -51,6 +51,10 @@ describe('/agents/[id] : accès', () => {
 		await expect(agir('fiche', locals, agent, { nom: 'Pirate' })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).rejects.toMatchObject({ status: 403 });
 		await expect(agir('statut', locals, agent, { statut: 'suspendu' })).rejects.toMatchObject({ status: 403 });
+		const [role] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Référent engins'));
+		await expect(agir('attribuer', locals, agent, { responsabiliteId: String(role!.id), perimetre: 'centre', debut: '2026-02-01' })).rejects.toMatchObject({ status: 403 });
+		await expect(agir('terminer', locals, agent, { attributionId: '1', confirmation: 'oui' })).rejects.toMatchObject({ status: 403 });
+		expect(await base.select().from(attribution).where(eq(attribution.personneId, agent))).toEqual([]);
 		const apres = await lirePersonne(base, agent);
 		expect(apres.nom).toBe('Test');
 		expect(apres.statut).toBe('operationnel');

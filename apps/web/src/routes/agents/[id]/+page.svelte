@@ -11,8 +11,10 @@
 	let { data, form } = $props();
 
 	const fiche = $derived(data.fiche);
-	const valeurs = $derived(form?.valeurs ?? {});
-	const erreurs = $derived(form?.erreurs ?? {});
+	// Les messages d'un formulaire à cible (rôles) restent à côté de lui.
+	const generale = $derived(form && !form.cible ? form : null);
+	const valeurs = $derived(generale?.valeurs ?? {});
+	const erreurs = $derived(generale?.erreurs ?? {});
 	const texte = (cle: string, actuel: string | null) => valeurs[cle] ?? actuel ?? '';
 	const date = (jour: string | null) => (jour ? jour.split('-').reverse().join('/') : '—');
 
@@ -35,41 +37,57 @@
 	const saisie = (cle: string, defaut: string) => (concerne('attribuer') ? (form?.valeurs?.[cle] ?? defaut) : defaut);
 	let responsabiliteChoisie = $derived(saisie('responsabiliteId', nominations[0] ? String(nominations[0].responsabiliteId) : ''));
 	const choix = $derived(nominations.find((r) => String(r.responsabiliteId) === responsabiliteChoisie) ?? nominations[0]);
+	// La saisie du périmètre ne vaut que pour la responsabilité qui l'a produite.
+	const perimetreInitial = $derived.by(() => {
+		const envoye = saisie('perimetre', '');
+		const valide = choix?.perimetres.some((p) => String(p.id) === envoye);
+		return valide ? envoye : String(choix?.perimetres[0]?.id ?? '');
+	});
 	const erreursNomination = $derived(concerne('attribuer') ? (form?.erreurs ?? {}) : {});
 
-	let statutChoisi = $derived(form?.valeurs?.statut ?? fiche.statut);
+	let statutChoisi = $derived(generale?.valeurs?.statut ?? fiche.statut);
 </script>
 
 <svelte:head>
 	<title>{fiche.prenom} {fiche.nom} · Agents · Gyro Caserne</title>
 </svelte:head>
 
-			{#snippet liste(titre: string, lignes: typeof data.attributions.enCours)}
-				<h3>{titre}</h3>
-				<ul class="roles">
-					{#each lignes as l (l.id)}
-						<li>
-							<div>
-								<strong>{intitule(l)}</strong>
-								<span class="note">{periode(l)} · saisi par {l.saisiePar}</span>
-								{#if concerne(`terminer-${l.id}`) && (form?.message || form?.erreurs)}
-									<p class={form?.succes ? 'succes' : 'echec'}>{form?.erreurs?.confirmation ?? form?.message}</p>
-								{/if}
-							</div>
-							{#if l.peutTerminer}
-								<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(`terminer-${l.id}`)}>
-									<input type="hidden" name="attributionId" value={l.id} />
-									<label>
-										<input type="checkbox" name="confirmation" value="oui" aria-label={`Je confirme : terminer ${intitule(l)}`} />
-										Je confirme
-									</label>
-									<Bouton type="submit" variante="secondaire" desactive={envoi === `terminer-${l.id}`}>Terminer</Bouton>
-								</form>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			{/snippet}
+{#snippet liste(titre: string, lignes: typeof data.attributions.enCours)}
+	<h3>{titre}</h3>
+	<ul class="roles">
+		{#each lignes as l (l.id)}
+			{@const cible = `terminer-${l.id}`}
+			<li>
+				<div>
+					<strong>{intitule(l)}</strong>
+					<span class="note">{periode(l)} · saisi par {l.saisiePar}</span>
+					{#if concerne(cible) && form?.erreurs?.confirmation}
+						<p id="{cible}-erreur" class="echec" role="alert">{form.erreurs.confirmation}</p>
+					{:else if concerne(cible) && form?.message}
+						<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message}</p>
+					{/if}
+				</div>
+				{#if l.peutTerminer}
+					<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(cible)}>
+						<input type="hidden" name="attributionId" value={l.id} />
+						<label>
+							<input
+								type="checkbox"
+								name="confirmation"
+								value="oui"
+								aria-label={`Je confirme : terminer ${intitule(l)}`}
+								aria-invalid={concerne(cible) && form?.erreurs?.confirmation ? 'true' : undefined}
+								aria-describedby={concerne(cible) && form?.erreurs?.confirmation ? `${cible}-erreur` : undefined}
+							/>
+							Je confirme
+						</label>
+						<Bouton type="submit" variante="secondaire" desactive={envoi === cible}>Terminer</Bouton>
+					</form>
+				{/if}
+			</li>
+		{/each}
+	</ul>
+{/snippet}
 
 {#key fiche.id}
 	<div class="fiche">
@@ -79,10 +97,10 @@
 		</div>
 
 		<div role="status">
-			{#if form?.succes}<p class="succes">{form.message}</p>{/if}
+			{#if generale?.succes}<p class="succes">{generale.message}</p>{/if}
 		</div>
 		<div role="alert">
-			{#if form && !form.succes && (form.message || form.erreurs)}<p class="echec">{form.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+			{#if generale && !generale.succes && (generale.message || generale.erreurs)}<p class="echec">{generale.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 		</div>
 
 		<Carte titre="Identité et contact">
@@ -220,7 +238,9 @@
 			{#if choix}
 				<form method="POST" action="?/attribuer" class="nomination" use:enhance={surEnvoi('attribuer')}>
 					<h3>Attribuer une responsabilité</h3>
-					{#if concerne('attribuer') && form?.message}<p class={form.succes ? 'succes' : 'echec'}>{form.message}</p>{/if}
+					{#if concerne('attribuer') && (form?.message || form?.erreurs)}
+						<p class={form.succes ? 'succes' : 'echec'} role={form.succes ? 'status' : 'alert'}>{form.message ?? 'Le formulaire contient des erreurs.'}</p>
+					{/if}
 					<Choix
 						id="responsabilite"
 						name="responsabiliteId"
@@ -237,7 +257,7 @@
 								id="perimetre"
 								name="perimetre"
 								libelle={choix.portee === 'equipe' ? 'Équipe' : 'Comité'}
-								valeur={saisie('perimetre', String(choix.perimetres[0]?.id ?? ''))}
+								valeur={perimetreInitial}
 								erreur={erreursNomination.perimetreId}
 								options={choix.perimetres.map((p) => ({ valeur: String(p.id), libelle: p.nom }))}
 							/>

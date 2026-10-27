@@ -101,6 +101,27 @@ describe('page fiche agent', () => {
 			expect(page.match(/name="attributionId"/g)).toHaveLength(2);
 		});
 
+		it('ne montre « Terminer » que pour les rôles qu\'on peut retirer, et relie l\'erreur de confirmation à sa case', () => {
+			const seul = { enCours: [ligne(1, 'Référent engins', false), ligne(2, 'Référent pharmacie', true)], aVenir: [], passees: [] };
+			const page = html({ data: { ...data, attributions: seul }, form: { cible: 'terminer-2', erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } } });
+			expect(page.match(/>Terminer</g)).toHaveLength(1);
+			expect(page).toMatch(/role="alert"[^>]*>Cochez « Je confirme » pour terminer ce rôle\./);
+			expect(page).toMatch(/aria-describedby="terminer-2-erreur"/);
+		});
+
+		it('garde les messages à cible hors des bandeaux généraux et des champs de la fiche', () => {
+			const page = html({ data, form: { cible: 'terminer-2', erreurs: { confirmation: 'Cochez' } } });
+			expect(page).not.toContain('Le formulaire contient des erreurs.');
+			expect(page).not.toContain('depart-avertissement');
+		});
+
+		it('ne réaffiche pas un périmètre saisi pour une autre responsabilité', () => {
+			const form = { cible: 'attribuer', erreurs: { debut: 'x' }, valeurs: { responsabiliteId: '6', perimetre: '99', debut: '2026-02-01', fin: '' } };
+			const page = html({ data: { ...data, peutAttribuer }, form });
+			expect(page).toMatch(/<option[^>]*value="1"[^>]*selected|<option[^>]*selected[^>]*value="1"/);
+			expect(page).not.toContain('value="99"');
+		});
+
 		it('propose le formulaire d\'attribution seulement s\'il y a quelque chose à attribuer', () => {
 			expect(html({ data, form: null })).not.toContain('action="?/attribuer"');
 			const page = html({ data: { ...data, peutAttribuer }, form: null });
