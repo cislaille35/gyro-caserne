@@ -108,6 +108,9 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 	const enCoursDe = new Map<number, typeof attributions>();
 	for (const a of attributions) if (enCours(a.debut, a.fin, aujourdhui)) enCoursDe.set(a.personneId, [...(enCoursDe.get(a.personneId) ?? []), a]);
 	const proteges = new Set(attributions.filter((a) => PROTEGES.includes(a.systeme ?? '') && enCours(a.debut, a.fin, aujourdhui)).map((a) => a.personneId));
+	// Chef ou adjoint un seul jour depuis l'export : absent du fichier, jamais au départ.
+	const depuis = repere?.date ?? aujourdhui;
+	const protegesDepuis = new Set(attributions.filter((a) => PROTEGES.includes(a.systeme ?? '') && a.debut <= aujourdhui && (a.fin === null || a.fin >= depuis)).map((a) => a.personneId));
 
 	// Modifié depuis l'export : la personne elle-même ou l'une de ses attributions (même supprimée depuis).
 	const titulaire = new Map(attributions.map((a) => [a.id, a.personneId]));
@@ -117,6 +120,10 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		const id = j.cibleType === 'personne' ? j.cibleId : (titulaire.get(j.cibleId) ?? (JSON.parse(j.details) as { personneId?: number }).personneId);
 		if (id !== undefined) perimes.add(id);
 	}
+	// Un rôle terminé de lui-même depuis l'export change aussi ce que porte le fichier.
+	if (repere) for (const a of attributions) if (a.fin !== null && a.fin >= repere.date && a.fin < aujourdhui) perimes.add(a.personneId);
+	const moi = acteur.type === 'personne' ? acteur.id : null;
+	const PAS_MOI = 'Vous ne pouvez pas vous mettre au départ par le fichier';
 
 	// Colonnes de rôles et de comités ; les autres sont ignorées.
 	const index = new Map(entetes.map((e, i) => [e, i]));
@@ -148,7 +155,9 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 
 		// N° : l'agent à modifier, ou rien pour une arrivée.
 		const numero = v('N°');
-		const fiche = /^\d+$/.test(numero) ? parId.get(Number(numero)) : undefined;
+		// Le tableur peut écrire 12 en « 12.0 ».
+		const entier = /^(\d+)(\.0+)?$/.exec(numero);
+		const fiche = entier ? parId.get(Number(entier[1])) : undefined;
 		if (fiche) presents.add(fiche.id);
 		if (numero) {
 			if (!repere) erreur('N°', 'Partez d’un export pour modifier un agent');
@@ -164,6 +173,8 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		}
 
 		const email = normaliserAdresse(v('E-mail'));
+		// Agent reconnu à son e-mail, même si sa ligne est en erreur : il n'est pas absent.
+		if (parEmail.has(email)) presents.add(parEmail.get(email)!);
 		if (!email) erreur('E-mail', 'Indiquez l’e-mail');
 		else if (reservees.includes(email)) erreur('E-mail', 'Adresse réservée au super administrateur');
 		else if (email.length > LIMITES.email[1]) erreur('E-mail', LIMITES.email[0]);
@@ -213,6 +224,7 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		const terminer: Operation[] = [];
 		const attribuer: Operation[] = [];
 		const changements: Changement[] = [];
+		let depart: Operation | null = null;
 		const personneVisee: RefPersonne = fiche ? { id: fiche.id } : { ligne };
 		const demander = (colonne: string, role: Responsabilite, perimetre: Perimetre) => {
 			if (!peutAttribuer(role, perimetre)) erreur(colonne, 'Vous ne pouvez pas attribuer ce rôle');
@@ -259,7 +271,10 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 				ops.push({ ligne, type: 'equipe', personneId: fiche.id, equipeId: equipeFinale });
 				changements.push({ colonne: 'Équipe', avant: courante === undefined ? '' : equipeParId.get(courante)!.nom, apres: lEquipe?.nom ?? '' });
 			}
-			if (statut && statut !== fiche.statut) {
+			if (statut === 'parti' && fiche.statut !== 'parti') {
+				if (fiche.id === moi) erreur('Statut', PAS_MOI);
+				depart = { ligne, type: 'statut', personneId: fiche.id, statut };
+			} else if (statut && statut !== fiche.statut) {
 				ops.push({ ligne, type: 'statut', personneId: fiche.id, statut });
 				changements.push({ colonne: 'Statut', avant: LIBELLES_STATUT[fiche.statut], apres: LIBELLES_STATUT[statut] });
 			}
@@ -300,6 +315,11 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 			apercu.erreurs.push(...erreurs.sort((a, b) => index.get(a.colonne!)! - index.get(b.colonne!)!));
 			continue;
 		}
+		// Un passage à « Parti » se lit avec les départs et s'applique avec eux, à la fin.
+		if (depart && fiche) {
+			departs.push(depart);
+			apercu.departs.push({ personneId: fiche.id, nom: nomComplet(fiche) });
+		}
 		const toutes = [...ops, ...terminer, ...attribuer];
 		if (toutes.length === 0) continue;
 		apercu.operations.push(...toutes);
@@ -310,9 +330,13 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 	// Absents du fichier : départ, sauf ceux que l'export ne pouvait pas contenir ou déjà partis.
 	if (repere) {
 		const absents = personnes
-			.filter((p) => p.id <= repere.personne && !presents.has(p.id) && p.statut !== 'parti' && !proteges.has(p.id))
+			.filter((p) => p.id <= repere.personne && !presents.has(p.id) && p.statut !== 'parti' && !protegesDepuis.has(p.id))
 			.sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
 		for (const p of absents) {
+			if (p.id === moi) {
+				apercu.erreurs.push({ ligne: 0, colonne: null, message: PAS_MOI });
+				continue;
+			}
 			if (perimes.has(p.id)) {
 				apercu.perimees.push({ ligne: 0, nom: nomComplet(p) });
 				continue;

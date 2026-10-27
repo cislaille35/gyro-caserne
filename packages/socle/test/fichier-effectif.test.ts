@@ -126,11 +126,11 @@ describe('donneesFichier', () => {
 		});
 	});
 
-	it('donne le repère : plus grands n° du journal et des personnes', async () => {
+	it('donne le repère : plus grands n° du journal et des personnes, date de l’export', async () => {
 		const { base, nouvelle, chef } = await jeu();
 		const dernier = await nouvelle('Léa', 'Durand');
 		const [ligne] = await base.insert(journal).values({ quand: '2026-10-27', acteur: 'super:a@b.fr', action: 'essai', cibleType: 'personne', cibleId: null }).returning();
-		expect((await donneesFichier(base, chef, aujourdhui, false)).repere).toEqual({ journal: ligne!.id, personne: dernier });
+		expect((await donneesFichier(base, chef, aujourdhui, false)).repere).toEqual({ journal: ligne!.id, personne: dernier, date: aujourdhui });
 	});
 
 	it('modèle vierge : en-têtes et listes, sans ligne ni repère', async () => {

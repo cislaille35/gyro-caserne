@@ -33,10 +33,10 @@ async function jeu() {
 		if (options.equipeId) await base.insert(affectationEquipe).values({ personneId: p!.id, equipeId: options.equipeId, debut: '2026-01-01' });
 		return p!.id;
 	};
-	const nommer = async (personneId: number, responsabiliteId: number, perimetre: { type: 'centre' | 'equipe' | 'comite'; id?: number }) => {
+	const nommer = async (personneId: number, responsabiliteId: number, perimetre: { type: 'centre' | 'equipe' | 'comite'; id?: number }, fin: string | null = null) => {
 		const [a] = await base
 			.insert(attribution)
-			.values({ personneId, responsabiliteId, perimetreType: perimetre.type, perimetreId: perimetre.id ?? null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' })
+			.values({ personneId, responsabiliteId, perimetreType: perimetre.type, perimetreId: perimetre.id ?? null, debut: '2026-01-01', fin, saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' })
 			.returning();
 		return a!.id;
 	};
@@ -46,12 +46,18 @@ async function jeu() {
 	const adjoint = await nouvelle('Alain', 'Adjoint');
 	await nommer(adjoint, resp('Chef de centre adjoint'), { type: 'centre' });
 	const acteur: Acteur = { type: 'personne', id: chef };
-	return { base, profilAgent, sap, grades, resp, amicale: amicale!, nouvelle, nommer, chef, adjoint, acteur };
+	// Gestionnaire sans droit d'attribuer : GERER_ACCES seulement.
+	const secretaire = async () => {
+		const [secretariat] = await base.insert(profil).values({ nom: 'Secrétariat', typePersonne: 'agent' }).returning();
+		await base.insert(profilDroit).values({ profilId: secretariat!.id, droit: 'GERER_ACCES', perimetreType: 'centre', perimetreId: null });
+		return nouvelle('Sam', 'Secret', { profilId: secretariat!.id });
+	};
+	return { secretaire, base, profilAgent, sap, grades, resp, amicale: amicale!, nouvelle, nommer, chef, adjoint, acteur };
 }
 
 // Le fichier tel qu'exporté : une ligne de tableur par agent, à partir de la ligne 2.
-async function exporter(base: Awaited<ReturnType<typeof jeu>>['base'], acteur: Acteur, modele = false): Promise<FichierLu> {
-	const d = await donneesFichier(base, acteur, aujourdhui, modele);
+async function exporter(base: Awaited<ReturnType<typeof jeu>>['base'], acteur: Acteur, modele = false, le = aujourdhui): Promise<FichierLu> {
+	const d = await donneesFichier(base, acteur, le, modele);
 	return { entetes: d.entetes, lignes: d.lignes.map((cellules, i) => ({ numero: i + 2, cellules: [...cellules] })), repere: d.repere };
 }
 
@@ -178,6 +184,25 @@ describe('apercuImport : modifications', () => {
 		changer(fichier, id, { Statut: 'Parti', Équipe: 'Équipe 2' });
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
 		expect(apercu.operations).toEqual([{ ligne: 2, type: 'statut', personneId: id, statut: 'parti' }]);
+		expect(apercu.departs).toEqual([{ personneId: id, nom: 'Léa Durand' }]);
+		expect(apercu.modifications).toEqual([]);
+	});
+
+	it('« Parti » sur une ligne : avec les départs, à la fin des opérations', async () => {
+		const { base, acteur, nouvelle } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		const paul = await nouvelle('Paul', 'Martin');
+		const fichier = await exporter(base, acteur);
+		changer(fichier, lea, { Statut: 'Parti', Téléphone: '0600000000' });
+		changer(fichier, paul, { Prénom: 'Paulo' });
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.operations).toEqual([
+			{ ligne: 2, type: 'modifier', personneId: lea, champs: { telephone: '0600000000' } },
+			{ ligne: 3, type: 'modifier', personneId: paul, champs: { prenom: 'Paulo' } },
+			{ ligne: 2, type: 'statut', personneId: lea, statut: 'parti' }
+		]);
+		expect(apercu.departs).toEqual([{ personneId: lea, nom: 'Léa Durand' }]);
+		expect(apercu.modifications.map((m) => m.changements.map((c) => c.colonne))).toEqual([['Téléphone'], ['Prénom']]);
 	});
 
 	it('chef d’équipe qui change d’équipe : terminer l’ancien rôle, attribuer le nouveau', async () => {
@@ -297,15 +322,82 @@ describe('apercuImport : erreurs', () => {
 	});
 
 	it('rôle que l’acteur ne peut pas attribuer : erreur', async () => {
-		const { base, nouvelle, chef } = await jeu();
-		const [secretariat] = await base.insert(profil).values({ nom: 'Secrétariat', typePersonne: 'agent' }).returning();
-		await base.insert(profilDroit).values({ profilId: secretariat!.id, droit: 'GERER_ACCES', perimetreType: 'centre', perimetreId: null });
-		const secretaire = await nouvelle('Sam', 'Secret', { profilId: secretariat!.id });
-		const acteur: Acteur = { type: 'personne', id: secretaire };
+		const { base, chef, secretaire } = await jeu();
+		const acteur: Acteur = { type: 'personne', id: await secretaire() };
 		const fichier = await exporter(base, { type: 'personne', id: chef });
 		const ligne = ajouter(fichier, { ...arrivee, 'Référent engins': 'Oui' });
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
 		expect(apercu.erreurs).toContainEqual({ ligne, colonne: 'Référent engins', message: 'Vous ne pouvez pas attribuer ce rôle' });
+	});
+
+	it('rôle que l’acteur ne peut pas retirer : erreur', async () => {
+		const { base, chef, nouvelle, nommer, resp, secretaire } = await jeu();
+		const acteur: Acteur = { type: 'personne', id: await secretaire() };
+		const lea = await nouvelle('Léa', 'Durand');
+		await nommer(lea, resp('Référent engins'), { type: 'centre' });
+		const fichier = await exporter(base, { type: 'personne', id: chef });
+		changer(fichier, lea, { 'Référent engins': '' });
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'Référent engins', message: 'Vous ne pouvez pas retirer ce rôle' }]);
+	});
+
+	it('même N° sur deux lignes, chef d’équipe sans équipe, arrivée « Parti », téléphone trop long', async () => {
+		const { base, acteur, nouvelle } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		const fichier = await exporter(base, acteur);
+		const copie = ajouter(fichier, { ...arrivee, 'N°': String(lea) });
+		const sansEquipe = ajouter(fichier, { ...arrivee, 'E-mail': 'a@exemple.fr', 'Chef d’équipe': 'Oui' });
+		const partie = ajouter(fichier, { ...arrivee, 'E-mail': 'b@exemple.fr', Statut: 'Parti' });
+		const telephone = ajouter(fichier, { ...arrivee, 'E-mail': 'c@exemple.fr', Téléphone: '0'.repeat(21) });
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([
+			{ ligne: 2, colonne: 'N°', message: `Même N° qu’à la ligne ${copie}` },
+			{ ligne: copie, colonne: 'N°', message: 'Même N° qu’à la ligne 2' },
+			{ ligne: sansEquipe, colonne: 'Chef d’équipe', message: 'Indiquez l’équipe' },
+			{ ligne: partie, colonne: 'Statut', message: 'Un nouvel agent ne peut pas être « Parti »' },
+			{ ligne: telephone, colonne: 'Téléphone', message: 'Téléphone trop long' }
+		]);
+		expect(apercu.departs).toEqual([]);
+	});
+
+	it('N° « 12.0 » ou entouré d’espaces : lu comme 12', async () => {
+		const { base, acteur, nouvelle } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		const fichier = await exporter(base, acteur);
+		changer(fichier, lea, { 'N°': ` ${lea}.0 `, Prénom: 'Léna' });
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([]);
+		expect(apercu.operations).toEqual([{ ligne: 2, type: 'modifier', personneId: lea, champs: { prenom: 'Léna' } }]);
+		fichier.lignes[0]!.cellules[0] = `${lea}.5`;
+		expect((await apercuImport(base, acteur, fichier, aujourdhui, reservees)).erreurs).toContainEqual({ ligne: 2, colonne: 'N°', message: `Aucun agent n° ${lea}.5` });
+	});
+
+	it('ligne en erreur reconnue par son e-mail : pas de départ', async () => {
+		const { base, acteur, nouvelle } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		const fichier = await exporter(base, acteur);
+		changer(fichier, lea, { 'N°': '' });
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'E-mail', message: `Adresse déjà utilisée par l’agent n° ${lea}` }]);
+		expect(apercu.departs).toEqual([]);
+		expect(apercu.operations).toEqual([]);
+	});
+
+	it('le gestionnaire ne peut pas se mettre au départ par le fichier', async () => {
+		const { base, chef, secretaire } = await jeu();
+		const moi = await secretaire();
+		const acteur: Acteur = { type: 'personne', id: moi };
+		const fichier = await exporter(base, { type: 'personne', id: chef });
+		changer(fichier, moi, { Statut: 'Parti' });
+		let apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'Statut', message: 'Vous ne pouvez pas vous mettre au départ par le fichier' }]);
+		expect(apercu.departs).toEqual([]);
+
+		fichier.lignes = [];
+		apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.erreurs).toEqual([{ ligne: 0, colonne: null, message: 'Vous ne pouvez pas vous mettre au départ par le fichier' }]);
+		expect(apercu.departs).toEqual([]);
+		expect(apercu.operations).toEqual([]);
 	});
 
 	it('en-tête manquant ou en double : erreur de fichier, aucune opération', async () => {
@@ -383,6 +475,38 @@ describe('apercuImport : départs et lignes périmées', () => {
 		]);
 		expect(apercu.operations).toEqual([]);
 		expect(apercu.modifications).toEqual([]);
+	});
+});
+
+describe('apercuImport : depuis la date de l’export', () => {
+	it('adjoint pendant la période, absent du fichier : jamais au départ', async () => {
+		const { base, acteur, nouvelle, nommer, resp } = await jeu();
+		const ancien = await nouvelle('Marc', 'Ancien');
+		await nommer(ancien, resp('Chef de centre adjoint'), { type: 'centre' }, '2026-10-25');
+		const fichier = await exporter(base, acteur, false, '2026-10-20');
+		expect(fichier.lignes.some((l) => l.cellules[0] === String(ancien))).toBe(false);
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.departs).toEqual([]);
+	});
+
+	it('rôle terminé seul depuis l’export, encore « Oui » dans le fichier : ligne périmée', async () => {
+		const { base, acteur, nouvelle, nommer, resp } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		await nommer(lea, resp('Référent engins'), { type: 'centre' }, '2026-10-25');
+		const fichier = await exporter(base, acteur, false, '2026-10-20');
+		expect(fichier.lignes[0]!.cellules[fichier.entetes.indexOf('Référent engins')]).toBe('Oui');
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.perimees).toEqual([{ ligne: 2, nom: 'Léa Durand' }]);
+		expect(apercu.operations).toEqual([]);
+	});
+
+	it('rôle terminé avant l’export : ligne normale', async () => {
+		const { base, acteur, nouvelle, nommer, resp } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand');
+		await nommer(lea, resp('Référent engins'), { type: 'centre' }, '2026-10-19');
+		const fichier = await exporter(base, acteur, false, '2026-10-20');
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu).toMatchObject({ perimees: [], erreurs: [], operations: [] });
 	});
 });
 

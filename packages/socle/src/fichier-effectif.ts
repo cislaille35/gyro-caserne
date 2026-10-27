@@ -17,8 +17,8 @@ export const LIBELLES_STATUT: Record<StatutOperationnel, string> = {
 	parti: 'Parti'
 };
 
-// Plus grands n° du journal et des personnes au moment de l'export.
-export type Repere = { journal: number; personne: number };
+// Plus grands n° du journal et des personnes au moment de l'export, et son jour.
+export type Repere = { journal: number; personne: number; date: string };
 
 export type DonneesFichier = {
 	entetes: string[];
@@ -135,5 +135,5 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 			];
 		});
 
-	return { entetes, listes, colonnesListe, lignes, repere: { journal: dernierJournal?.id ?? 0, personne: dernierePersonne?.id ?? 0 } };
+	return { entetes, listes, colonnesListe, lignes, repere: { journal: dernierJournal?.id ?? 0, personne: dernierePersonne?.id ?? 0, date: aujourdhui } };
 }
