@@ -50,6 +50,19 @@ Menu « Mon profil », pour chaque agent : surnom, téléphone et son affichage,
 
 Carte « Responsabilités » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. « Changer la date de fin » avance la fin d'un rôle en cours ou à venir (on ne peut pas la repousser). Une personne partie n'a plus de rôle, et on ne la nomme pas. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé. Les mêmes nominations se font aussi depuis la page « Nominations » (voir [Accès et attributions](acces-et-attributions.md)).
 
+### Le fichier de l'effectif (lot 4)
+
+Pour charger ou changer l'effectif en masse dans Excel ou LibreOffice. Réservé au chef de centre, à l'adjoint et au super administrateur (lien « Fichier de l'effectif » en tête de la liste). Mode d'emploi : [Comment importer l'effectif ?](../utilisation/importer-l-effectif.md).
+
+- **Modèle vierge** (premier chargement) ou **export** (mises à jour) : une ligne par agent, partis et extérieurs compris, sauf le chef de centre et l'adjoint en fonction. Colonnes : n°, e-mail, prénom, nom, grade, date de grade, équipe, statut, profil, téléphone, naissance, entrée au centre, engagement SPV ; puis une colonne par responsabilité (« Oui » ou vide) et une par comité (« Comité : Amicale », avec « Membre de comité », « Rapporteur de comité »… ou vide). Listes déroulantes, dates en JJ/MM/AAAA.
+- **Import** : un aperçu d'abord, rien n'est écrit avant « Valider ». Ligne sans n° : arrivée. Ligne avec n° : modification. Agent absent du fichier : départ (statut « Parti », mêmes effets qu'à l'écran ; jamais de suppression). Case de responsabilité remplie : rôle attribué dès aujourd'hui ; vidée : rôle terminé aujourd'hui.
+- **Aperçu** : les départs en tête, avec leur nombre et leurs noms (un fichier tronqué se voit tout de suite), puis arrivées, modifications champ par champ, erreurs ligne par ligne, lignes périmées et colonnes inconnues (ignorées).
+- **Erreurs** : e-mail déjà pris (avec le n° de l'agent), valeur hors liste, date invalide, profil manquant, rôle d'équipe sur une autre équipe, deux rôles dans un même comité, adresse d'un super administrateur… Ces lignes ne sont pas appliquées ; le reste l'est.
+- **Fichier périmé** : un agent modifié dans l'appli après l'export (fiche, équipe, statut ou rôles, import compris) n'est ni modifié ni mis au départ. On réexporte avant chaque import. Une modification faite à l'écran entre l'aperçu et « Valider » n'est pas détectée.
+- Mêmes droits et contrôles qu'à l'écran, ligne par ligne. Le chef de centre et l'adjoint se nomment et se modifient à l'écran seulement. Aucun courriel ne part.
+
+Exemple : à la rentrée, le chef de centre exporte l'effectif, ajoute deux lignes sans n° pour les nouvelles recrues, passe trois agents de Sapeur à Caporal et supprime la ligne d'un agent qui a déménagé. L'aperçu annonce « 1 départ » avec son nom, « 2 arrivées », « 3 modifications » (« Grade : Sapeur → Caporal »). Il valide ; le compte rendu confirme, et il réexportera avant le prochain import.
+
 Pas encore là : photo, aptitudes, champs du centre, rappels.
 
 ## Ce que la fonction ne fait pas
