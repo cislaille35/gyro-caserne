@@ -24,7 +24,7 @@ Sur la page « Agents », réservé au chef de centre, à l'adjoint et au super 
 
 - **Colonnes de données** : n°, e-mail, prénom, nom, grade, date de grade, équipe, statut, profil, téléphone, naissance, entrée au centre, engagement SPV.
 - **Une colonne par responsabilité** non archivée de portée centre ou équipe (sauf chef de centre et adjoint), avec « Oui » ou vide. Pour une portée équipe (chef d'équipe), « Oui » vise l'équipe de la ligne.
-- **Une colonne par comité** existant, avec « Membre », « Rapporteur » ou vide.
+- **Une colonne par comité** non dissous (en-tête « Comité : <nom> »), avec le nom d'une responsabilité de portée comité (« Membre de comité », « Rapporteur de comité »…) ou vide. Le nom complet plutôt que « Membre » : il survit à un renommage et couvre toute responsabilité de portée comité (choix de Claude). Un agent qui tient deux rôles dans le même comité : ligne en erreur, à traiter à l'écran.
 - **Listes déroulantes** construites depuis les listes du centre : grades, équipes, statuts, profils, Oui, Membre/Rapporteur.
 - **Dates** au format JJ/MM/AAAA.
 - Le fichier contient sa **date d'export**. Le modèle vierge n'en a pas besoin.
@@ -54,12 +54,16 @@ Sur la page « Agents », réservé au chef de centre, à l'adjoint et au super 
 ## Hors périmètre
 
 - La photo, les aptitudes, les champs propres au centre, le contact d'urgence.
-- Les responsabilités de portée « comité » autres que membre et rapporteur. Elles se gèrent à l'écran.
 - La reprise de l'ancien MVP.
+
+## Choix techniques (essai du 2026-10-27)
+
+- Le fichier est **écrit et lu dans le navigateur** (`write-excel-file` et `read-excel-file`, sur `fflate`) : le plan gratuit de Cloudflare limite le calcul par requête. Essai : listes déroulantes et feuille masquée conservées par LibreOffice, fichier réenregistré relu sans perte.
+- Le serveur reçoit les lignes, calcule l'aperçu et l'applique **opération par opération** : D1 gratuit limite à 50 requêtes par appel.
 
 ## Ce qui reste au constructeur
 
-- **Commencer par un essai jetable** : une bibliothèque XLSX qui lit et écrit avec des listes déroulantes sur Cloudflare Workers, dans les limites du plan gratuit (mémoire, temps de calcul). Le choix de la bibliothèque et sa justification vont dans `docs/technique/`.
+- La justification des bibliothèques dans `docs/technique/`.
 - Comment savoir qu'un agent a été « modifié depuis l'export » (journal ou nouvelle colonne), selon la définition ci-dessus.
 - Comment reconnaître « Membre de comité » et « Rapporteur de comité » de façon sûre, même si on les renomme.
 - Comment l'aperçu survit entre le dépôt et la validation, puis l'écriture par lots (limites D1).
