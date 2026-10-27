@@ -80,6 +80,10 @@ describe('Tableau', () => {
 });
 
 describe('Carte', () => {
+	it('rend son titre atteignable par programme quand une ancre est donnée', () => {
+		expect(html(Carte, { titre: 'Bilan', ancre: 'bilan', children: contenu })).toMatch(/<h2[^>]*id="bilan"[^>]*tabindex="-1"/);
+		expect(html(Carte, { titre: 'Bilan', children: contenu })).not.toContain('tabindex');
+	});
 	it('relie le titre h2 à la section', () => {
 		const page = html(Carte, { titre: 'Prochaine garde', children: contenu });
 		const ref = page.match(/<section[^>]*aria-labelledby="([^"]+)"/)![1];

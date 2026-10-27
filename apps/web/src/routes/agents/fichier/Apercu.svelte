@@ -2,7 +2,7 @@
 	import type { Apercu } from '@gyro-caserne/socle';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
-	import { compter } from './textes.ts';
+	import { compter, resumer } from './textes.ts';
 
 	// `apres` : la validation est faite, seul reste ce qui n'a pas été appliqué.
 	let { apercu, apres = false, onvalider, onabandonner }: { apercu: Apercu; apres?: boolean; onvalider?: () => void; onabandonner?: () => void } = $props();
@@ -91,6 +91,7 @@
 					<p>Rien à appliquer.</p>
 				{:else}
 					<p class="note">Rien n'est écrit avant la validation.</p>
+					<p class="resume">{resumer(apercu)}</p>
 				{/if}
 				<div class="actions">
 					{#if apercu.operations.length > 0}
@@ -126,6 +127,9 @@
 	}
 	.note {
 		color: var(--doux);
+	}
+	.resume {
+		font-weight: 700;
 	}
 	.actions {
 		display: flex;

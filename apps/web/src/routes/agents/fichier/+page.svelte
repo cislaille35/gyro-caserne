@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Apercu as TypeApercu, DonneesFichier } from '@gyro-caserne/socle';
-	import { appliquerTout, type CompteRendu as TypeCompteRendu } from '#lib/fichier-effectif/appliquer.ts';
+	import { onDestroy, tick } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
+	import { appliquerTout, ConnexionPerdue, type CompteRendu as TypeCompteRendu } from '#lib/fichier-effectif/appliquer.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
 	import Apercu from './Apercu.svelte';
@@ -20,10 +22,13 @@
 
 	// Le classeur s'écrit et se lit dans le navigateur seulement.
 	const classeur = () => import('#lib/fichier-effectif/classeur.ts');
-	const texteErreur = (e: unknown) => (e instanceof Error ? e.message : String(e));
+	const texteErreur = (e: unknown) => (e instanceof ConnexionPerdue ? 'Connexion perdue : réessayez.' : e instanceof Error ? e.message : String(e));
 
 	async function demander<T>(url: string, init?: RequestInit): Promise<T> {
-		const reponse = await fetch(url, init);
+		// Sans réponse, le navigateur rejette en anglais : on le dit en français.
+		const reponse = await fetch(url, init).catch(() => {
+			throw new ConnexionPerdue();
+		});
 		if (reponse.redirected) throw new Error("Vous n'êtes plus connecté : rechargez la page.");
 		const corps = (await reponse.json().catch(() => null)) as { message?: string } | null;
 		if (!reponse.ok || corps === null) throw new Error(corps?.message ?? 'Réponse inattendue du serveur');
@@ -76,24 +81,46 @@
 		}
 	}
 
+	// Quitter la page arrête l'application : on demande confirmation.
+	const arret = new AbortController();
+	onDestroy(() => arret.abort());
+	beforeNavigate((navigation) => {
+		if (etape !== 'application' || navigation.willUnload) return;
+		if (!confirm("L'import est en cours : quitter l'arrêtera. Quitter quand même ?")) navigation.cancel();
+	});
+	$effect(() => {
+		if (etape !== 'application') return;
+		const garde = (evenement: BeforeUnloadEvent) => evenement.preventDefault();
+		window.addEventListener('beforeunload', garde);
+		return () => window.removeEventListener('beforeunload', garde);
+	});
+
+	async function focaliser(id: string) {
+		await tick();
+		document.getElementById(id)?.focus();
+	}
+
 	async function valider() {
-		if (!apercu) return;
+		if (etape !== 'apercu' || !apercu) return;
 		const operations = apercu.operations;
+		const total = operations.length;
 		etape = 'application';
 		occupe = true;
-		avancement = { fait: 0, total: operations.length };
-		annonce = `0 / ${operations.length}`;
-		compte = await appliquerTout(
-			operations,
-			(operation, nouvelles) => poster('/agents/fichier/operation', { operation, nouvelles }),
-			(fait) => {
-				avancement = { fait, total: operations.length };
-				annonce = `${fait} / ${operations.length}`;
+		avancement = { fait: 0, total };
+		annonce = `0 / ${total}`;
+		focaliser('titre-application');
+		compte = await appliquerTout(operations, (operation, nouvelles) => poster('/agents/fichier/operation', { operation, nouvelles }), {
+			signal: arret.signal,
+			avancer: (fait) => {
+				avancement = { fait, total };
+				// Annoncé toutes les 10 opérations seulement : plus souvent, le lecteur d'écran n'en finit pas.
+				if (fait % 10 === 0 && fait < total) annonce = `${fait} / ${total}`;
 			}
-		);
+		});
 		occupe = false;
 		etape = 'fini';
-		annonce = `Import terminé : ${compter(compte.appliquees, 'opération appliquée', 'opérations appliquées')}, ${compter(compte.erreurs.length, 'erreur', 'erreurs')}.`;
+		focaliser('titre-compte-rendu');
+		annonce = `Import ${compte.interruption ? 'arrêté' : 'terminé'} : ${compter(compte.appliquees, 'opération appliquée', 'opérations appliquées')}, ${compter(compte.erreurs.length, 'erreur', 'erreurs')}.`;
 	}
 
 	function abandonner() {
@@ -134,7 +161,7 @@
 	{#if etape === 'apercu' && apercu}
 		<Apercu {apercu} onvalider={valider} onabandonner={abandonner} />
 	{:else if etape === 'application'}
-		<Carte titre="Application en cours">
+		<Carte titre="Application en cours" ancre="titre-application">
 			<p class="progression">{avancement.fait} / {avancement.total}</p>
 			<progress max={avancement.total} value={avancement.fait} aria-hidden="true"></progress>
 			<p class="note">Gardez cette page ouverte jusqu'à la fin.</p>

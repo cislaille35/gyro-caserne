@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import Apercu from './Apercu.svelte';
 import CompteRendu from './CompteRendu.svelte';
 import Page from './+page.svelte';
+import { resumer } from './textes.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
@@ -71,6 +72,13 @@ describe('aperçu de l\'import', () => {
 		expect(page).toContain('Comité : Fanfare');
 	});
 
+	it('résume l\'aperçu juste avant « Valider », sans les catégories vides', () => {
+		expect(resumer(complet)).toBe('3 départs, 1 arrivée, 1 modification, 2 erreurs');
+		expect(resumer({ ...vide, departs: [{ personneId: 1, nom: 'A B' }], modifications: [complet.modifications[0]!, complet.modifications[0]!] })).toBe('1 départ, 2 modifications');
+		const page = texte(html(Apercu, { apercu: complet }));
+		expect(page).toMatch(/3 départs, 1 arrivée, 1 modification, 2 erreurs[^]*Valider/);
+	});
+
 	it('propose « Valider » seulement s\'il y a une opération, « Abandonner » toujours', () => {
 		const avec = texte(html(Apercu, { apercu: complet }));
 		expect(avec).toContain('Valider');
@@ -98,13 +106,27 @@ describe('compte rendu', () => {
 				{ operation: { ligne: 7, type: 'modifier', personneId: 3, champs: {} }, message: 'Prénom trop long' },
 				{ operation: depart(11), message: 'Personne inconnue' }
 			],
-			sautees: 2
+			nonTentees: [
+				{ ligne: 7, type: 'modifier', personneId: 3, champs: {} },
+				{ ligne: 3, type: 'equipe', personneId: 4, equipeId: null },
+				{ ligne: 7, type: 'statut', personneId: 3, statut: 'suspendu' },
+				depart(12)
+			],
+			interruption: null
 		};
-		const page = texte(html(CompteRendu, { compte, departs: complet.departs }));
+		const rendu = html(CompteRendu, { compte, departs: complet.departs });
+		const page = texte(rendu);
+		expect(rendu).toMatch(/<h2[^>]*tabindex="-1"[^>]*>Compte rendu/);
 		expect(page).toContain('45 opérations appliquées');
 		expect(page).toContain('Ligne 7 : Prénom trop long');
 		expect(page).toContain('Départ de Yves Yole : Personne inconnue');
-		expect(page).toContain('2 opérations non tentées');
+		expect(page).toContain('4 opérations non tentées : ligne 3, ligne 7, départ de Xavier Xu');
+		expect(page).not.toContain('Application arrêtée');
 		expect(page).toContain('Réexportez avant le prochain import');
+	});
+
+	it('dit pourquoi l\'application s\'est arrêtée', () => {
+		const compte = { appliquees: 0, erreurs: [], nonTentees: [depart(12)], interruption: 'connexion' };
+		expect(texte(html(CompteRendu, { compte, departs: complet.departs }))).toContain('Application arrêtée : connexion perdue.');
 	});
 });

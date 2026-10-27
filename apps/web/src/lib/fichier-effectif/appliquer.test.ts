@@ -1,11 +1,12 @@
 import type { Operation } from '@gyro-caserne/socle';
 import { describe, expect, it } from 'vitest';
-import { appliquerTout } from './appliquer.ts';
+import { appliquerTout, ConnexionPerdue } from './appliquer.ts';
 
 const ajouter = (ligne: number): Operation => ({ ligne, type: 'ajouter', donnees: { email: `l${ligne}@exemple.fr`, prenom: 'P', nom: 'N', profilId: 1 } });
 const attribuer = (ligne: number): Operation => ({ ligne, type: 'attribuer', personne: { ligne }, responsabiliteId: 5, perimetre: { type: 'centre' } });
 const depart = (personneId: number): Operation => ({ ligne: 0, type: 'statut', personneId, statut: 'parti' });
 const modifier = (ligne: number, personneId: number): Operation => ({ ligne, type: 'modifier', personneId, champs: { prenom: 'X' } });
+const PERDUE = 'Connexion perdue : cette opération a peut-être été appliquée. Réexportez pour vérifier.';
 
 describe('appliquerTout', () => {
 	it('envoie les opérations une à une, avec les agents créés par les lignes précédentes', async () => {
@@ -21,7 +22,7 @@ describe('appliquerTout', () => {
 			['ajouter', 3, { 2: 40 }],
 			['attribuer', 3, { 2: 40, 3: 41 }]
 		]);
-		expect(compte).toEqual({ appliquees: 4, erreurs: [], sautees: 0 });
+		expect(compte).toEqual({ appliquees: 4, erreurs: [], nonTentees: [], interruption: null });
 	});
 
 	it('après une erreur, saute la suite de sa ligne seulement', async () => {
@@ -39,7 +40,8 @@ describe('appliquerTout', () => {
 				{ operation: operations[0], message: 'Refus ligne 2' },
 				{ operation: operations[2], message: 'Refus ligne 3' }
 			],
-			sautees: 2
+			nonTentees: [operations[1], operations[3]],
+			interruption: null
 		});
 	});
 
@@ -51,7 +53,7 @@ describe('appliquerTout', () => {
 			return { personneId: null };
 		});
 		expect(envoyees).toEqual([10, 11, 12]);
-		expect(compte).toEqual({ appliquees: 2, erreurs: [{ operation: depart(10), message: 'Refusé' }], sautees: 0 });
+		expect(compte).toEqual({ appliquees: 2, erreurs: [{ operation: depart(10), message: 'Refusé' }], nonTentees: [], interruption: null });
 	});
 
 	it('annonce l\'avancement, opérations sautées comprises', async () => {
@@ -62,8 +64,67 @@ describe('appliquerTout', () => {
 				if (op.type === 'ajouter') throw new Error('Non');
 				return { personneId: null };
 			},
-			(fait) => etapes.push(fait)
+			{ avancer: (fait) => etapes.push(fait) }
 		);
 		expect(etapes).toEqual([1, 2, 3]);
+	});
+
+	it('dit en français qu\'une connexion perdue a peut-être appliqué l\'opération', async () => {
+		const compte = await appliquerTout([modifier(2, 7), modifier(3, 8)], async (op) => {
+			if (op.ligne === 2) throw new ConnexionPerdue();
+			return { personneId: null };
+		});
+		expect(compte.erreurs).toEqual([{ operation: modifier(2, 7), message: PERDUE }]);
+		expect(compte.appliquees).toBe(1);
+		expect(compte.interruption).toBeNull();
+	});
+
+	it('s\'arrête après 3 connexions perdues de suite, le reste compté non tenté', async () => {
+		const operations = [modifier(2, 7), depart(10), depart(11), depart(12), modifier(5, 9), depart(13)];
+		let envois = 0;
+		const etapes: number[] = [];
+		const compte = await appliquerTout(
+			operations,
+			async (op) => {
+				envois++;
+				if (op === operations[0]) return { personneId: null };
+				throw new ConnexionPerdue();
+			},
+			{ avancer: (fait) => etapes.push(fait) }
+		);
+		expect(envois).toBe(4);
+		expect(compte.appliquees).toBe(1);
+		expect(compte.erreurs.map((e) => e.message)).toEqual([PERDUE, PERDUE, PERDUE]);
+		expect(compte.nonTentees).toEqual([operations[4], operations[5]]);
+		expect(compte.interruption).toBe('connexion');
+		expect(etapes.at(-1)).toBe(6);
+	});
+
+	it('remet le compte des connexions perdues à zéro dès qu\'une réponse arrive', async () => {
+		const reponses = ['perdue', 'perdue', 'refus', 'perdue', 'perdue', 'ok'];
+		const operations = reponses.map((_, i) => depart(i + 1));
+		const compte = await appliquerTout(operations, async (op) => {
+			const r = reponses[operations.indexOf(op)];
+			if (r === 'perdue') throw new ConnexionPerdue();
+			if (r === 'refus') throw new Error('Refusé');
+			return { personneId: null };
+		});
+		expect(compte.interruption).toBeNull();
+		expect(compte.appliquees).toBe(1);
+		expect(compte.nonTentees).toEqual([]);
+	});
+
+	it('s\'arrête quand on quitte la page, le reste compté non tenté', async () => {
+		const arret = new AbortController();
+		const operations = [modifier(2, 7), modifier(3, 8), modifier(4, 9)];
+		const compte = await appliquerTout(
+			operations,
+			async () => {
+				arret.abort();
+				return { personneId: null };
+			},
+			{ signal: arret.signal }
+		);
+		expect(compte).toEqual({ appliquees: 1, erreurs: [], nonTentees: [operations[1], operations[2]], interruption: 'abandon' });
 	});
 });

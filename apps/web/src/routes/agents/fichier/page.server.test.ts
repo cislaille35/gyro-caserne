@@ -81,6 +81,22 @@ describe('/agents/fichier', () => {
 		expect(await reponse.json()).toEqual({ message: 'Fichier mal formé' });
 	});
 
+	it('refuse un fichier de plus de 2000 lignes (400)', async () => {
+		const { base } = await preparer();
+		const cellules = ['', 'x@exemple.fr', 'X', 'Y', '', '', '', '', 'Agent', '', '', '', ''];
+		const fichier = { entetes: [...ENTETES], lignes: Array.from({ length: 2001 }, (_, i) => ({ numero: i + 2, cellules })), repere: null };
+		const reponse = await envoyer(apercu, locaux(base, super_), JSON.stringify(fichier));
+		expect(reponse.status).toBe(400);
+		expect(await reponse.json()).toEqual({ message: 'Fichier trop long : 2000 lignes au plus' });
+	});
+
+	it('refuse une opération bien formée à un agent ordinaire (403), sans rien écrire', async () => {
+		const { base, alice, profilAgent } = await preparer();
+		const op = { ligne: 2, type: 'ajouter', donnees: { email: 'bob@exemple.fr', prenom: 'Bob', nom: 'Durand', profilId: profilAgent.id } };
+		await expect(envoyer(operation, locaux(base, { type: 'personne', id: alice.id }), JSON.stringify({ operation: op, nouvelles: {} }))).rejects.toMatchObject({ status: 403 });
+		expect(await base.select().from(personne)).toHaveLength(1);
+	});
+
 	it('applique une opération et rend l\'agent créé', async () => {
 		const { base, profilAgent } = await preparer();
 		const op = { ligne: 2, type: 'ajouter', donnees: { email: 'bob@exemple.fr', prenom: 'Bob', nom: 'Durand', profilId: profilAgent.id } };

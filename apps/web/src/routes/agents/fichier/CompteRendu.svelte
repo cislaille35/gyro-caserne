@@ -6,15 +6,29 @@
 
 	let { compte, departs }: { compte: CompteRendu; departs: Apercu['departs'] } = $props();
 
+	const nomDuDepart = (personneId: number) => departs.find((d) => d.personneId === personneId)?.nom;
+
 	function libelle({ operation, message }: CompteRendu['erreurs'][number]) {
 		if (operation.ligne > 0) return `Ligne ${operation.ligne} : ${message}`;
-		const nom = operation.type === 'statut' ? departs.find((d) => d.personneId === operation.personneId)?.nom : undefined;
+		const nom = operation.type === 'statut' ? nomDuDepart(operation.personneId) : undefined;
 		return nom ? `Départ de ${nom} : ${message}` : message;
 	}
+
+	// « ligne 3, ligne 7, départ de Xavier Xu » : chaque ligne une fois, dans l'ordre.
+	const nonTentees = $derived(
+		[
+			...[...new Set(compte.nonTentees.filter((o) => o.ligne > 0).map((o) => o.ligne))].sort((a, b) => a - b).map((l) => `ligne ${l}`),
+			...compte.nonTentees.flatMap((o) => (o.ligne === 0 && o.type === 'statut' ? [`départ de ${nomDuDepart(o.personneId) ?? `l'agent n° ${o.personneId}`}`] : []))
+		].join(', ')
+	);
+	const ARRETS = { connexion: 'connexion perdue', abandon: 'page quittée' };
 </script>
 
-<Carte titre="Compte rendu">
+<Carte titre="Compte rendu" ancre="titre-compte-rendu">
 	<div class="compte">
+		{#if compte.interruption}
+			<p class="arret"><strong>Application arrêtée : {ARRETS[compte.interruption]}.</strong></p>
+		{/if}
 		<p>{compte.appliquees === 0 ? 'Aucune opération appliquée.' : `${compter(compte.appliquees, 'opération appliquée', 'opérations appliquées')}.`}</p>
 		{#if compte.erreurs.length > 0}
 			<section>
@@ -24,8 +38,8 @@
 				</ul>
 			</section>
 		{/if}
-		{#if compte.sautees > 0}
-			<p>{compter(compte.sautees, 'opération non tentée', 'opérations non tentées')} après une erreur sur leur ligne.</p>
+		{#if compte.nonTentees.length > 0}
+			<p>{compter(compte.nonTentees.length, 'opération non tentée', 'opérations non tentées')} : {nonTentees}.</p>
 		{/if}
 		<p class="rappel"><strong>Réexportez avant le prochain import.</strong></p>
 	</div>

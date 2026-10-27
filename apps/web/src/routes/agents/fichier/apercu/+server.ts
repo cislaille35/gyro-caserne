@@ -4,6 +4,7 @@ import { exigerGestion } from '#lib/server/formulaire-agent.ts';
 import { lireJson, pasDuJson, refus } from '#lib/server/fichier-effectif.ts';
 import type { RequestHandler } from './$types';
 
+const LIGNES_MAX = 2000;
 const textes = (v: unknown): v is string[] => Array.isArray(v) && v.every((t) => typeof t === 'string');
 const entier = (v: unknown): v is number => Number.isInteger(v);
 
@@ -22,6 +23,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const fichier = await lireJson(request);
 	if (fichier === undefined) return pasDuJson();
 	if (!estFichierLu(fichier)) return json({ message: 'Fichier mal formé' }, { status: 400 });
+	if (fichier.lignes.length > LIGNES_MAX) return json({ message: `Fichier trop long : ${LIGNES_MAX} lignes au plus` }, { status: 400 });
 	try {
 		return json(await apercuImport(locals.base, acteur, fichier, aujourdhui, locals.superAdmins));
 	} catch (erreur) {
