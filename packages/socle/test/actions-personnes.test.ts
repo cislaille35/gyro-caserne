@@ -828,6 +828,11 @@ describe('adresse réservée au super administrateur', () => {
 		expect(await base.select().from(personne)).toEqual(avant);
 	});
 
+	it('sans droit sur la cible : RefusDroit d’abord, l’adresse réservée ne se devine pas', async () => {
+		const { base, agent, chef } = await jeu();
+		await expect(ajouterPersonne(base, chef, { email: 'admin@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui, reservees)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
 	it('compare aussi la liste normalisée', async () => {
 		const { base, agent } = await jeu();
 		await expect(ajouterPersonne(base, superAdmin, { email: 'admin@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id }, aujourdhui, [' ADMIN@exemple.fr'])).rejects.toThrow(refus);

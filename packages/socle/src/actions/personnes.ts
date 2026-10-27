@@ -99,7 +99,6 @@ export async function ajouterPersonne(
 	exigerDate(aujourdhui);
 	const email = normaliserAdresse(donnees.email);
 	if (!email) throw new DonneeInvalide('Adresse vide');
-	exigerAdresseNonReservee(email, adressesReservees);
 	exigerLongueurs({ email, prenom: donnees.prenom, nom: donnees.nom, telephone: donnees.telephone });
 	if (donnees.statut !== undefined) {
 		if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(donnees.statut)) throw new DonneeInvalide('Statut inconnu');
@@ -115,6 +114,8 @@ export async function ajouterPersonne(
 	if (!(await aLeDroit(base, acteur, 'GERER_ACCES', centre, aujourdhui))) {
 		await exigerProfilCouvert(base, acteur, donnees.profilId, aujourdhui);
 	}
+	// Après les droits : sans eux, on ne sonde pas les adresses réservées.
+	exigerAdresseNonReservee(email, adressesReservees);
 
 	if (donnees.equipeId !== undefined) {
 		const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, donnees.equipeId));
