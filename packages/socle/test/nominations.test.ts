@@ -1,10 +1,11 @@
 import { count, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
-import { attribuer, attributionsDe, ceQueJePeuxAttribuer, terminerAttribution, titulairesDe } from '../src/actions/attributions.ts';
+import { attribuer, attributionsDe, ceQueJePeuxAttribuer, peutAttribuerQuelqueChose, terminerAttribution, titulairesDe, titulairesDesMiens } from '../src/actions/attributions.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
 import { dissoudreComite } from '../src/actions/comites.ts';
 import { archiverResponsabilite } from '../src/actions/responsabilites.ts';
-import { aLeDroit, type Acteur } from '../src/droits.ts';
+import { aLeDroit, estChefDeCentre, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { attribution, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
@@ -103,7 +104,9 @@ describe('attribuer : refus du rapporteur et doublons', () => {
 		await nommer(simpleId, 'Membre de comité', amicale, '2026-11-01');
 		const avant = await ecritures();
 		const message = 'Cette personne tient déjà ce rôle sur cette période';
-		await expect(nommer(simpleId, 'Référent engins', centre, '2026-06-30')).rejects.toThrow(new DonneeInvalide(message));
+		const refus = nommer(simpleId, 'Référent engins', centre, '2026-06-30');
+		await expect(refus).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(refus).rejects.toThrow(message);
 		await expect(nommer(simpleId, 'Référent engins', centre, '2025-01-01', '2026-01-01')).rejects.toThrow(message);
 		await expect(nommer(simpleId, 'Membre de comité', amicale, '2026-10-01', '2026-11-01')).rejects.toThrow(message);
 		await expect(nommer(simpleId, 'Membre de comité', amicale, '2027-01-01')).rejects.toThrow(message);
@@ -112,6 +115,65 @@ describe('attribuer : refus du rapporteur et doublons', () => {
 		await expect(nommer(simpleId, 'Référent engins', centre, '2026-07-01')).resolves.toBeTypeOf('number');
 		await expect(nommer(simpleId, 'Membre de comité', amicale, '2026-10-01', '2026-10-31')).resolves.toBeTypeOf('number');
 		await expect(nommer(simpleId, 'Membre de comité', bureau, '2026-11-01')).resolves.toBeTypeOf('number');
+	});
+});
+
+describe('attribuer : personne partie', () => {
+	it('refuse une personne partie ; rien n’est écrit', async () => {
+		const { base, r, simpleId, ecritures } = await jeu();
+		await changerStatut(base, superAdmin, simpleId, 'parti', aujourdhui);
+		const avant = await ecritures();
+		const refus = attribuer(base, superAdmin, { personneId: simpleId, responsabiliteId: r('Référent engins'), perimetre: centre, debut: aujourdhui }, aujourdhui);
+		await expect(refus).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(refus).rejects.toThrow('Cette personne est partie');
+		expect(await ecritures()).toEqual(avant);
+	});
+});
+
+describe('changerStatut vers parti : attributions', () => {
+	it('le rôle en cours finit la veille, celui qui commence aujourd’hui ou plus tard est supprimé, l’historique reste', async () => {
+		const { base, simpleId, nommer, amicale } = await jeu();
+		const passe = await nommer(simpleId, 'Référent pharmacie', centre, '2025-01-01', '2025-12-31');
+		const enCours = await nommer(simpleId, 'Référent engins', centre, '2026-01-01');
+		const finFuture = await nommer(simpleId, 'Membre de comité', amicale, '2026-02-01', '2026-12-31');
+		const ceJour = await nommer(simpleId, 'Référent technique', centre, aujourdhui);
+		const aVenir = await nommer(simpleId, 'Rapporteur de comité', amicale, '2026-12-01');
+
+		await changerStatut(base, superAdmin, simpleId, 'parti', aujourdhui);
+
+		const restantes = await base.select({ id: attribution.id, fin: attribution.fin }).from(attribution).where(eq(attribution.personneId, simpleId)).orderBy(attribution.id);
+		expect(restantes).toEqual([
+			{ id: passe, fin: '2025-12-31' },
+			{ id: enCours, fin: '2026-10-24' },
+			{ id: finFuture, fin: '2026-10-24' }
+		]);
+		expect(restantes.map((l) => l.id)).not.toContain(ceJour);
+		expect(restantes.map((l) => l.id)).not.toContain(aVenir);
+	});
+
+	it('un chef de centre qui part n’est plus chef de centre', async () => {
+		const { base, chef } = await jeu();
+		const id = chef.type === 'personne' ? chef.id : 0;
+		expect(await estChefDeCentre(base, id, aujourdhui)).toBe(true);
+		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		expect(await estChefDeCentre(base, id, aujourdhui)).toBe(false);
+	});
+});
+
+describe('peutAttribuerQuelqueChose', () => {
+	it('même règle que ceQueJePeuxAttribuer', async () => {
+		const { base, chef, adjoint, rapporteur, simple } = await jeu();
+		expect(await peutAttribuerQuelqueChose(base, superAdmin, aujourdhui)).toBe(true);
+		expect(await peutAttribuerQuelqueChose(base, chef, aujourdhui)).toBe(true);
+		expect(await peutAttribuerQuelqueChose(base, adjoint, aujourdhui)).toBe(true);
+		expect(await peutAttribuerQuelqueChose(base, rapporteur, aujourdhui)).toBe(true);
+		expect(await peutAttribuerQuelqueChose(base, simple, aujourdhui)).toBe(false);
+	});
+
+	it('faux pour le rapporteur d’un comité dissous', async () => {
+		const { base, rapporteur, amicale } = await jeu();
+		await dissoudreComite(base, superAdmin, amicale.id, aujourdhui);
+		expect(await peutAttribuerQuelqueChose(base, rapporteur, aujourdhui)).toBe(false);
 	});
 });
 
@@ -179,6 +241,26 @@ describe('titulairesDe', () => {
 		expect((await titulairesDe(base, superAdmin, r('Membre de comité'), aujourdhui)).map((t) => t.personne.prenom)).toEqual(['Ailleurs', 'Encours', 'Avenir']);
 		expect(await titulairesDe(base, rapporteur, r('Référent engins'), aujourdhui)).toEqual([]);
 		await expect(titulairesDe(base, rapporteur, 999, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+});
+
+describe('titulairesDesMiens', () => {
+	it('pour chaque rôle que l’acteur peut attribuer, les mêmes titulaires que titulairesDe', async () => {
+		const { base, r, rapporteur, simple, nouvelle, nommer, amicale, bureau } = await jeu();
+		const membre = await nouvelle('Membre');
+		await nommer(membre, 'Membre de comité', amicale);
+		await nommer(await nouvelle('Ailleurs'), 'Membre de comité', bureau);
+		await nommer(await nouvelle('Engins'), 'Référent engins', centre);
+
+		const parRole = await titulairesDesMiens(base, rapporteur, aujourdhui);
+		expect([...parRole.keys()].sort()).toEqual([r('Membre de comité'), r('Rapporteur de comité')].sort());
+		expect(parRole.get(r('Membre de comité'))).toEqual(await titulairesDe(base, rapporteur, r('Membre de comité'), aujourdhui));
+		expect(parRole.get(r('Membre de comité'))!.map((t) => t.personne.prenom)).toEqual(['Membre']);
+		expect(parRole.get(r('Rapporteur de comité'))!.map((t) => t.personne.prenom)).toEqual(['Rapporteur']);
+
+		const pourLeSuper = await titulairesDesMiens(base, superAdmin, aujourdhui);
+		for (const [id, liste] of pourLeSuper) expect(liste).toEqual(await titulairesDe(base, superAdmin, id, aujourdhui));
+		expect(await titulairesDesMiens(base, simple, aujourdhui)).toEqual(new Map());
 	});
 });
 

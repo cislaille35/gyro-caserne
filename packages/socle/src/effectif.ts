@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gte, isNull, lte, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { aLeDroit, occupe, type Acteur } from './droits.ts';
@@ -53,15 +53,14 @@ async function equipesCourantes(base: Base, aujourdhui: string): Promise<Map<num
 // Les responsabilités archivées et les comités dissous n'y figurent pas.
 async function rolesCourants(base: Base, aujourdhui: string): Promise<Map<number, string[]>> {
 	const lignes = await base
-		.select({ personneId: attribution.personneId, debut: attribution.debut, fin: attribution.fin, nom: responsabilite.nom, type: attribution.perimetreType, equipe: equipe.nom, comite: comite.nom })
+		.select({ personneId: attribution.personneId, nom: responsabilite.nom, type: attribution.perimetreType, equipe: equipe.nom, comite: comite.nom })
 		.from(attribution)
 		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 		.leftJoin(equipe, and(eq(attribution.perimetreType, 'equipe'), eq(equipe.id, attribution.perimetreId)))
 		.leftJoin(comite, and(eq(attribution.perimetreType, 'comite'), eq(comite.id, attribution.perimetreId), isNull(comite.dissousLe)))
-		.where(isNull(responsabilite.archiveeLe));
+		.where(and(isNull(responsabilite.archiveeLe), lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))));
 	const parPersonne = new Map<number, string[]>();
 	for (const l of lignes) {
-		if (!enCours(l.debut, l.fin, aujourdhui)) continue;
 		const lieu = l.type === 'equipe' ? l.equipe : l.type === 'comite' ? l.comite : null;
 		if (l.type !== 'centre' && lieu === null) continue;
 		parPersonne.set(l.personneId, [...(parPersonne.get(l.personneId) ?? []), lieu === null ? l.nom : `${l.nom} (${lieu})`]);

@@ -73,8 +73,9 @@ export async function attribuer(
 	if (laResponsabilite.archiveeLe !== null) throw new DonneeInvalide('Responsabilité archivée');
 	if (a.perimetre.type !== laResponsabilite.typePerimetre) throw new DonneeInvalide('Périmètre différent de celui de la responsabilité');
 	if (a.fin !== undefined && a.fin < a.debut) throw new DonneeInvalide('Fin avant le début');
-	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, a.personneId));
+	const [fiche] = await base.select({ id: personne.id, statut: personne.statut }).from(personne).where(eq(personne.id, a.personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	if (fiche.statut === 'parti') throw new DonneeInvalide('Cette personne est partie');
 	if (a.perimetre.type === 'equipe') {
 		const [uneEquipe] = await base.select({ id: equipe.id }).from(equipe).where(eq(equipe.id, a.perimetre.id));
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
@@ -243,44 +244,81 @@ export async function attributionsDe(
 	return resultat;
 }
 
-// Les responsabilités que l'acteur peut attribuer, et sur quels périmètres (équipes actives, comités non dissous).
-export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhui: string): Promise<CeQueJePeuxAttribuer> {
-	exigerDate(aujourdhui);
-	const contexte = await contexteDe(base, acteur, aujourdhui);
+type Candidat = CeQueJePeuxAttribuer[number]['perimetres'][number];
+
+// Responsabilités non archivées, et périmètres où les attribuer (équipes actives, comités non dissous).
+async function candidats(base: Base): Promise<{ responsabilites: Responsabilite[]; perimetres: Record<TypePerimetre, Candidat[]> }> {
 	const responsabilites = (await base.select().from(responsabilite).where(isNull(responsabilite.archiveeLe))).sort((x, y) => x.nom.localeCompare(y.nom, 'fr'));
 	const equipes = await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(equipe.ordreRotation);
 	const comites = (await base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe))).sort((x, y) => x.nom.localeCompare(y.nom, 'fr'));
 	// Les salons et ressources n'existent pas encore : rien à proposer.
-	const candidats: Record<TypePerimetre, CeQueJePeuxAttribuer[number]['perimetres']> = {
-		centre: [{ type: 'centre', id: null, nom: 'Centre' }],
-		equipe: equipes.map((e) => ({ type: 'equipe', id: e.id, nom: e.nom })),
-		comite: comites.map((c) => ({ type: 'comite', id: c.id, nom: c.nom })),
-		salon: [],
-		ressource: []
+	return {
+		responsabilites,
+		perimetres: {
+			centre: [{ type: 'centre', id: null, nom: 'Centre' }],
+			equipe: equipes.map((e) => ({ type: 'equipe', id: e.id, nom: e.nom })),
+			comite: comites.map((c) => ({ type: 'comite', id: c.id, nom: c.nom })),
+			salon: [],
+			ressource: []
+		}
 	};
+}
+
+// Les responsabilités que l'acteur peut attribuer, et sur quels périmètres.
+export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhui: string): Promise<CeQueJePeuxAttribuer> {
+	exigerDate(aujourdhui);
+	const contexte = await contexteDe(base, acteur, aujourdhui);
+	const { responsabilites, perimetres } = await candidats(base);
 	return responsabilites
 		.map((r) => ({
 			responsabiliteId: r.id,
 			nom: r.nom,
 			portee: r.typePerimetre,
-			perimetres: candidats[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))
+			perimetres: perimetres[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))
 		}))
 		.filter((r) => r.perimetres.length > 0);
 }
 
-// Titulaires en cours et à venir d'une responsabilité, sur les périmètres que l'acteur peut attribuer.
-export async function titulairesDe(base: Base, acteur: Acteur, responsabiliteId: number, aujourdhui: string): Promise<Titulaire[]> {
+// Même règle que ceQueJePeuxAttribuer, mais s'arrête au premier rôle attribuable (pour le menu).
+export async function peutAttribuerQuelqueChose(base: Base, acteur: Acteur, aujourdhui: string): Promise<boolean> {
 	exigerDate(aujourdhui);
-	const laResponsabilite = await responsabiliteConnue(base, responsabiliteId);
+	if (acteur.type === 'super') return true;
 	const contexte = await contexteDe(base, acteur, aujourdhui);
+	const { responsabilites, perimetres } = await candidats(base);
+	return responsabilites.some((r) => perimetres[r.typePerimetre].some((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id))));
+}
+
+// Titulaires en cours et à venir des responsabilités données, sur les périmètres que l'acteur peut attribuer.
+async function titulaires(base: Base, contexte: Contexte, responsabilites: Responsabilite[], aujourdhui: string): Promise<Map<number, Titulaire[]>> {
+	const parRole = new Map(responsabilites.map((r) => [r.id, [] as Titulaire[]]));
+	if (responsabilites.length === 0) return parRole;
+	const parId = new Map(responsabilites.map((r) => [r.id, r]));
 	const nommer = await nommeurDePerimetres(base);
 	const lignes = await base
 		.select({ a: attribution, p: { id: personne.id, prenom: personne.prenom, nom: personne.nom } })
 		.from(attribution)
 		.innerJoin(personne, eq(personne.id, attribution.personneId))
-		.where(and(eq(attribution.responsabiliteId, responsabiliteId), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))))
+		.where(and(inArray(attribution.responsabiliteId, [...parId.keys()]), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))))
 		.orderBy(attribution.debut, personne.nom, personne.prenom, attribution.id);
-	return lignes
-		.filter(({ a }) => peutAttribuer(contexte, laResponsabilite, perimetreDeLigne(a.perimetreType, a.perimetreId)))
-		.map(({ a, p }) => ({ id: a.id, personne: p, perimetre: nommer(a.perimetreType, a.perimetreId), debut: a.debut, fin: a.fin }));
+	for (const { a, p } of lignes) {
+		if (!peutAttribuer(contexte, parId.get(a.responsabiliteId)!, perimetreDeLigne(a.perimetreType, a.perimetreId))) continue;
+		parRole.get(a.responsabiliteId)!.push({ id: a.id, personne: p, perimetre: nommer(a.perimetreType, a.perimetreId), debut: a.debut, fin: a.fin });
+	}
+	return parRole;
+}
+
+export async function titulairesDe(base: Base, acteur: Acteur, responsabiliteId: number, aujourdhui: string): Promise<Titulaire[]> {
+	exigerDate(aujourdhui);
+	const laResponsabilite = await responsabiliteConnue(base, responsabiliteId);
+	const contexte = await contexteDe(base, acteur, aujourdhui);
+	return (await titulaires(base, contexte, [laResponsabilite], aujourdhui)).get(responsabiliteId)!;
+}
+
+// Les titulaires de chaque responsabilité que l'acteur peut attribuer, ses droits lus une seule fois.
+export async function titulairesDesMiens(base: Base, acteur: Acteur, aujourdhui: string): Promise<Map<number, Titulaire[]>> {
+	exigerDate(aujourdhui);
+	const contexte = await contexteDe(base, acteur, aujourdhui);
+	const { responsabilites, perimetres } = await candidats(base);
+	const miennes = responsabilites.filter((r) => perimetres[r.typePerimetre].some((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id))));
+	return titulaires(base, contexte, miennes, aujourdhui);
 }

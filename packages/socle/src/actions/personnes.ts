@@ -160,6 +160,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	}
 
 	const retrait = statut === 'parti' ? retraitEquipe(base, acteur, personneId, affectations, aujourdhui) : [];
+	// Au départ, tous ses rôles prennent fin le même jour ; l'historique reste.
+	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
@@ -167,7 +169,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 			.set(statut === 'parti' ? { statut, naissance: null, contactUrgence: null } : { statut })
 			.where(eq(personne.id, personneId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui),
-		...retrait
+		...retrait,
+		...roles
 	] as const;
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
 		await base.batch(ecritures);

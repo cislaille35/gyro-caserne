@@ -12,7 +12,7 @@ Décider qui peut entrer dans l'appli, ce que chacun peut y faire, et garder l'h
 - **Ajouter ou retirer une adresse** demande le droit `GERER_ACCES`, sur un périmètre :
   - sur le **centre** (le chef de centre, par défaut) : n'importe quelle adresse et n'importe quel profil ;
   - sur une **équipe**, si le centre donne ce droit au chef d'équipe : uniquement des agents de son équipe.
-- **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés, les sessions fermées et les liens de connexion en attente annulés, mais l'historique est gardé.
+- **Suspension ou départ** : le statut opérationnel passe à « suspendu » ou « parti ». Les accès sont coupés, les sessions fermées et les liens de connexion en attente annulés, mais l'historique est gardé. Au départ, la personne quitte aussi son équipe et **tous ses rôles prennent fin le même jour** (un rôle qui n'avait pas commencé est annulé) : un chef de centre qui part n'est plus chef de centre. On ne nomme pas une personne partie.
 - **Lever une suspension ou faire revenir un « parti »** : seuls le chef de centre ou son adjoint le peuvent (`GERER_ACCES` sur le centre), même si un chef d'équipe a changé le statut de l'agent.
 - **Statut du chef de centre** : seul le super administrateur le change. Exemple : l'adjoint ne peut pas suspendre le chef de centre. Un chef de centre nommé à l'avance n'est protégé qu'à partir de sa prise de fonction.
 - **Statut d'un adjoint** : seuls le chef de centre ou le super administrateur le changent. Exemple : un adjoint ne peut pas suspendre un autre adjoint. Comme pour le chef de centre, un adjoint nommé à l'avance n'est protégé qu'à partir de sa prise de fonction.
