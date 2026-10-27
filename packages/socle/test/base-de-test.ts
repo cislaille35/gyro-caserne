@@ -52,6 +52,7 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 }
 
 // Dans un batch, D1 rend chaque ligne comme un objet indexé par nom de colonne : deux colonnes de même nom n'en font qu'une.
+// Imité pour les listes de lignes seulement (aucun batch ne lit une ligne seule avec get).
 function imiterD1(sqlite: DatabaseSync, requete: string, resultat: { rows: unknown[] }) {
 	if (!Array.isArray(resultat.rows) || !resultat.rows.every(Array.isArray)) return resultat;
 	const noms = sqlite.prepare(requete).columns().map((c) => c.name);
