@@ -77,6 +77,16 @@ describe('ecrireClasseur puis lireClasseur', () => {
 		expect(classeurXml).not.toMatch(/<sheet [^>]*name="Effectif"[^>]*state="hidden"/);
 	});
 
+	it('fige la ligne d’en-tête comme Excel l’attend (sinon il propose de réparer le fichier)', async () => {
+		const effectif = await xml(await ecrireClasseur(donnees), 'xl/worksheets/sheet1.xml');
+		expect(effectif).toContain('<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/>');
+		expect(effectif).not.toContain('bottomRight');
+		// Même sans aucune liste déroulante.
+		const sansListe = await xml(await ecrireClasseur({ ...donnees, colonnesListe: {} }), 'xl/worksheets/sheet1.xml');
+		expect(sansListe).toContain('activePane="bottomLeft"');
+		expect(sansListe).not.toContain('dataValidations');
+	});
+
 	it("n'écrit pas de liste vide", async () => {
 		const classeur = await ecrireClasseur({ ...donnees, listes: { ...donnees.listes, rolesComite: [] } });
 		expect(await xml(classeur, 'xl/worksheets/sheet1.xml')).not.toContain('sqref="O2:O1000"');

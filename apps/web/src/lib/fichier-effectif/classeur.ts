@@ -38,14 +38,17 @@ export async function ecrireClasseur(donnees: DonneesFichier): Promise<Blob> {
 		return [`<dataValidation type="list" allowBlank="1" showErrorMessage="1" sqref="${plage}"><formula1>Listes!$${lettre}$1:$${lettre}$${valeurs.length}</formula1></dataValidation>`];
 	});
 
-	const listesDeroulantes: Feature<Blob> = {
+	const retouches: Feature<Blob> = {
 		files: {
 			transform: {
 				'xl/worksheets/sheet{id}.xml': {
 					transform(xml, _options, { sheetIndex }) {
-						if (sheetIndex !== 0 || validations.length === 0) return xml;
+						if (sheetIndex !== 0) return xml;
+						// Seules des lignes sont figées : le volet actif est celui du bas à gauche, sinon Excel propose de réparer le fichier.
+						const fige = xml.replace(/<pane [^>]*\/>/, '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/>');
+						if (validations.length === 0) return fige;
 						const bloc = `<dataValidations count="${validations.length}">${validations.join('')}</dataValidations>`;
-						return insertElementMarkupAccordingToOrderOfSiblings(xml, bloc, getOrderOfSiblings('xl/worksheets/sheet{id}.xml', 'worksheet')!, 'worksheet');
+						return insertElementMarkupAccordingToOrderOfSiblings(fige, bloc, getOrderOfSiblings('xl/worksheets/sheet{id}.xml', 'worksheet')!, 'worksheet');
 					}
 				},
 				'xl/workbook.xml': {
@@ -71,7 +74,7 @@ export async function ecrireClasseur(donnees: DonneesFichier): Promise<Blob> {
 	if (repere) {
 		feuilles.push({ sheet: 'Repère', data: [[{ value: repere.journal, type: Number }, { value: repere.personne, type: Number }, texte(repere.date)]] });
 	}
-	return writeXlsxFile(feuilles, { features: [listesDeroulantes] }).toBlob();
+	return writeXlsxFile(feuilles, { features: [retouches] }).toBlob();
 }
 
 type Valeur = string | number | boolean | Date | null;
