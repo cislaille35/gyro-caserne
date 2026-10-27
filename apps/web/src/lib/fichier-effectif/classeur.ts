@@ -58,7 +58,7 @@ export async function ecrireClasseur(donnees: DonneesFichier): Promise<Blob> {
 	};
 
 	// Lignes vides jusqu'à DERNIERE_LIGNE, pour que la colonne Téléphone y soit déjà en texte.
-	const lignes = [...donnees.lignes, ...Array.from({ length: DERNIERE_LIGNE - 1 - donnees.lignes.length }, () => [])];
+	const lignes = [...donnees.lignes, ...Array.from({ length: Math.max(0, DERNIERE_LIGNE - 1 - donnees.lignes.length) }, () => [])];
 	const effectif: Row[] = [
 		donnees.entetes.map((e) => ({ value: e, type: String, fontWeight: 'bold' as const })),
 		...lignes.map((ligne: string[]) => donnees.entetes.map((entete, i) => cellule(entete, ligne[i] ?? '')))

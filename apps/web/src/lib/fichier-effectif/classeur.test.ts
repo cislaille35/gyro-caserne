@@ -94,6 +94,13 @@ describe('ecrireClasseur puis lireClasseur', () => {
 		expect(effectif).not.toContain('r="J1001"');
 		expect((await lireClasseur(classeur)).lignes).toHaveLength(2);
 	});
+
+	it('écrit plus de 999 agents', async () => {
+		const lignes = Array.from({ length: 1200 }, (_, i) => [String(i + 1), `agent${i}@exemple.fr`, 'Agent', `N${i}`, '', '', '', 'Opérationnel', 'Agent', '', '', '', '', '', '']);
+		const lu = await lireClasseur(await ecrireClasseur({ ...donnees, lignes }));
+		expect(lu.lignes).toHaveLength(1200);
+		expect(lu.lignes.at(-1)!.cellules[3]).toBe('N1199');
+	});
 });
 
 describe('lireClasseur', () => {
