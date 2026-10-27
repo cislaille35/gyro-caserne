@@ -37,7 +37,7 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 			base.requetes++;
 			sqlite.exec('BEGIN');
 			try {
-				const resultats = requetes.map((r) => executer(r.sql, r.params, r.method));
+				const resultats = requetes.map((r) => imiterD1(sqlite, r.sql, executer(r.sql, r.params, r.method)));
 				sqlite.exec('COMMIT');
 				return resultats;
 			} catch (erreur) {
@@ -49,4 +49,13 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	) as Base & { requetes: number };
 	base.requetes = 0;
 	return base;
+}
+
+// Dans un batch, D1 rend chaque ligne comme un objet indexé par nom de colonne : deux colonnes de même nom n'en font qu'une.
+// Imité pour les listes de lignes seulement (aucun batch ne lit une ligne seule avec get).
+function imiterD1(sqlite: DatabaseSync, requete: string, resultat: { rows: unknown[] }) {
+	if (!Array.isArray(resultat.rows) || !resultat.rows.every(Array.isArray)) return resultat;
+	const noms = sqlite.prepare(requete).columns().map((c) => c.name);
+	const rows = (resultat.rows as unknown[][]).map((ligne) => Object.values(Object.fromEntries(noms.map((nom, i) => [nom, ligne[i]]))));
+	return { rows };
 }

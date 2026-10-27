@@ -51,17 +51,14 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 	if (!(await estGestionnaire(base, acteur, aujourdhui))) throw new RefusDroit('GERER_ACCES', { type: 'centre' });
 
 	// Toutes les lectures d'un bloc : une seule requête comptée.
+	// Pas de jointure à noms de colonnes en double : dans un batch, D1 n'en garde qu'une.
 	const [grades, equipes, profils, responsabilites, comites, personnes, affectations, attributions, [dernierJournal], [dernierePersonne]] = await base.batch([
-		base.select({ libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
+		base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
 		base.select().from(responsabilite).where(isNull(responsabilite.archiveeLe)),
 		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)),
-		base
-			.select({ personne, grade: grade.libelle, profil: profil.nom })
-			.from(personne)
-			.leftJoin(grade, eq(grade.id, personne.gradeId))
-			.leftJoin(profil, eq(profil.id, personne.profilId)),
+		base.select().from(personne),
 		base.select().from(affectationEquipe).orderBy(asc(affectationEquipe.debut)),
 		base
 			.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
@@ -93,6 +90,8 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 
 	if (modele) return { entetes, listes, colonnesListe, lignes: [], repere: null };
 
+	const libelleGrade = new Map(grades.map((g) => [g.id, g.libelle]));
+	const nomProfil = new Map(profils.map((p) => [p.id, p.nom]));
 	const nomEquipe = new Map(equipes.map((e) => [e.id, e.nom]));
 	const equipeDe = new Map<number, string>();
 	for (const a of affectations) {
@@ -105,20 +104,20 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 	for (const a of attributions) attributionsDe.set(a.personneId, [...(attributionsDe.get(a.personneId) ?? []), a]);
 
 	const lignes = personnes
-		.filter(({ personne: p }) => !protegees.has(p.id))
-		.sort((a, b) => a.personne.nom.localeCompare(b.personne.nom, 'fr') || a.personne.prenom.localeCompare(b.personne.prenom, 'fr'))
-		.map(({ personne: p, grade: libelleGrade, profil: nomProfil }) => {
+		.filter((p) => !protegees.has(p.id))
+		.sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'))
+		.map((p) => {
 			const siennes = attributionsDe.get(p.id) ?? [];
 			return [
 				String(p.id),
 				p.email,
 				p.prenom,
 				p.nom,
-				libelleGrade ?? '',
+				(p.gradeId !== null && libelleGrade.get(p.gradeId)) || '',
 				dateFichier(p.dateGrade),
 				equipeDe.get(p.id) ?? '',
 				LIBELLES_STATUT[p.statut],
-				nomProfil ?? '',
+				(p.profilId !== null && nomProfil.get(p.profilId)) || '',
 				p.telephone ?? '',
 				dateFichier(p.naissance),
 				dateFichier(p.entreeCentre),
