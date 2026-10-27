@@ -2,7 +2,6 @@ import { error, fail } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
 import {
 	affecterEquipe,
-	attribuer,
 	attributionsDe,
 	ceQueJePeuxAttribuer,
 	changerStatut,
@@ -13,16 +12,13 @@ import {
 	grade,
 	modifierFiche,
 	profil,
-	responsabilite,
 	retirerEquipe,
 	STATUTS_OPERATIONNELS,
-	terminerAttribution,
 	type Acteur,
-	type Perimetre,
 	type FicheAgent
 } from '@gyro-caserne/socle';
-import { echecAttribution } from '#lib/server/erreurs-attribution.ts';
-import { dateValide, echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
+import { nommer, terminer } from '#lib/server/actions-attribution.ts';
+import { echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 async function lireFiche(locals: App.Locals, brut: string) {
@@ -113,48 +109,17 @@ export const actions: Actions = {
 
 	attribuer: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
-		const formulaire = await request.formData();
-		const texte = (cle: string) => String(formulaire.get(cle) ?? '').trim();
-		const valeurs = { responsabiliteId: texte('responsabiliteId'), perimetre: texte('perimetre'), debut: texte('debut'), fin: texte('fin') };
-		const cible = 'attribuer';
-		const erreurs: Record<string, string> = {};
-		if (!/^\d+$/.test(valeurs.responsabiliteId)) erreurs.responsabiliteId = 'Choix inconnu';
-		if (!valeurs.debut) erreurs.debut = 'Indiquez la date de début.';
-		else if (!dateValide(valeurs.debut)) erreurs.debut = 'Date invalide';
-		if (valeurs.fin && !dateValide(valeurs.fin)) erreurs.fin = 'Date invalide';
-		const [laResponsabilite] = erreurs.responsabiliteId
-			? []
-			: await locals.base.select({ typePerimetre: responsabilite.typePerimetre }).from(responsabilite).where(eq(responsabilite.id, Number(valeurs.responsabiliteId)));
-		if (!erreurs.responsabiliteId && !laResponsabilite) erreurs.responsabiliteId = 'Choix inconnu';
-		let perimetre: Perimetre | null = null;
-		if (laResponsabilite?.typePerimetre === 'centre') perimetre = { type: 'centre' };
-		else if (laResponsabilite && /^\d+$/.test(valeurs.perimetre) && (laResponsabilite.typePerimetre === 'equipe' || laResponsabilite.typePerimetre === 'comite'))
-			perimetre = { type: laResponsabilite.typePerimetre, id: Number(valeurs.perimetre) };
-		else if (laResponsabilite) erreurs.perimetreId = 'Choix inconnu';
-		if (Object.keys(erreurs).length > 0 || !perimetre) return fail<Reponse>(400, { cible, erreurs, valeurs });
-		try {
-			await attribuer(locals.base, acteur, { personneId: id, responsabiliteId: Number(valeurs.responsabiliteId), perimetre, debut: valeurs.debut, ...(valeurs.fin && { fin: valeurs.fin }) }, aujourdhui);
-		} catch (erreur) {
-			return echecAttribution(erreur, { cible, valeurs });
-		}
-		return { cible, succes: true, message: 'Rôle attribué' };
+		return nommer({ base: locals.base, acteur, aujourdhui, formulaire: await request.formData(), cible: 'attribuer' }, id);
 	},
 
 	terminer: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
-		const formulaire = await request.formData();
-		const brut = String(formulaire.get('attributionId') ?? '');
-		const attributionId = /^\d+$/.test(brut) ? Number(brut) : NaN;
-		const cible = `terminer-${brut}`;
-		if (formulaire.get('confirmation') !== 'oui') return fail<Reponse>(400, { cible, erreurs: { confirmation: 'Cochez « Je confirme » pour terminer ce rôle.' } });
-		try {
-			// Seuls les rôles de cette fiche : un identifiant d'une autre personne est refusé.
-			const { enCours, aVenir } = await attributionsDe(locals.base, acteur, id, aujourdhui);
-			if (![...enCours, ...aVenir].some((a) => a.id === attributionId)) throw new DonneeInvalide('Attribution inconnue');
-			await terminerAttribution(locals.base, acteur, attributionId, aujourdhui);
-		} catch (erreur) {
-			return echecAttribution(erreur, { cible });
-		}
-		return { cible, succes: true, message: 'Rôle terminé' };
+		const { base } = locals;
+		// Seuls les rôles de cette fiche : un identifiant d'une autre personne est refusé.
+		const estVisible = async (attributionId: number) => {
+			const { enCours, aVenir } = await attributionsDe(base, acteur, id, aujourdhui);
+			return [...enCours, ...aVenir].some((a) => a.id === attributionId);
+		};
+		return terminer({ base, acteur, aujourdhui, formulaire: await request.formData() }, estVisible);
 	}
 };

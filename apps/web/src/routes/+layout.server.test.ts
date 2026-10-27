@@ -36,4 +36,22 @@ describe('load du layout', () => {
 		expect((await appeler(await nouveau('a@x.fr'), base)).peutReglages).toBe(false);
 		expect((await appeler(null, base)).peutReglages).toBe(false);
 	});
+
+	it('propose « Nominations » à qui peut attribuer une responsabilité, pas aux autres', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centre);
+		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
+		const nouveau = async (email: string, nomResp?: string) => {
+			const [p] = await base.insert(personne).values({ email, prenom: 'P', nom: 'N', profilId: agent!.id }).returning();
+			if (nomResp) {
+				const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, nomResp));
+				await attribuer(base, super_, { personneId: p!.id, responsabiliteId: r!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhuiParis());
+			}
+			return { type: 'personne', id: p!.id };
+		};
+		expect((await appeler(super_, base)).peutNominations).toBe(true);
+		expect((await appeler(await nouveau('c@x.fr', 'Chef de centre'), base)).peutNominations).toBe(true);
+		expect((await appeler(await nouveau('a@x.fr'), base)).peutNominations).toBe(false);
+		expect((await appeler(null, base)).peutNominations).toBe(false);
+	});
 });
