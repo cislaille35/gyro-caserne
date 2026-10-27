@@ -8,13 +8,14 @@ Dans `apps/web/src/app.css`, en variables CSS. On ne met jamais une couleur en d
 
 | Jeton | Rôle |
 |---|---|
-| `--fond`, `--surface`, `--trait` | Fond de page, cartes, bordures |
+| `--fond`, `--surface`, `--trait`, `--trait-doux` | Fond de page (crème en clair), cartes, bordures, bord des cartes et groupes |
 | `--encre`, `--doux` | Texte, texte secondaire |
 | `--rouge`, `--sur-rouge`, `--accent` | Rouge pompier (boutons), texte posé dessus, repère de l'entrée active |
 | `--focus` | Repère du clavier (contour de 3 px) |
-| `--statut-<ok\|info\|alerte\|neutre>-<fond\|texte\|trait>` | Badges de statut |
+| `--statut-<ok\|info\|alerte\|danger\|neutre>-<fond\|texte\|trait>` | Badges de statut, pastilles |
+| `--icone-<icône>-<fond\|texte>` | Tuile de chaque icône de rôle |
 | `--police`, `--police-titre` | Barlow, Barlow Condensed (servies par l'appli) |
-| `--rayon-petit`, `--rayon-grand`, `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
+| `--rayon-petit`, `--rayon-grand` (16 px, cartes), `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
 
 Chaque jeton a sa valeur claire et sombre ; les contrastes AA sont vérifiés par `src/jetons.test.ts`.
 Les couleurs d'équipe viennent du centre (`centres/<id>/centre.ts`), jamais du code.
@@ -71,6 +72,11 @@ Dans `src/lib/ui/` :
 - `Statut` : badge avec texte (jamais la couleur seule).
 - `Tableau` : défile dans sa boîte sur petit écran, avec une légende.
 - `Vide` : message « rien à afficher », avec Gyro.
+- `Groupe` : bloc repliable (fermé par défaut, `bind:ouvert`) ; le titre (`niveauTitre` 2 ou 3) est un bouton `aria-expanded`, le contenu est `hidden` quand il est fermé (ses champs restent dans le formulaire).
+- `Pastille` : petit badge de texte, `ton` `ok`, `info`, `alerte`, `danger` ou `neutre`.
+- `BarreActions` : barre collée en bas de l'écran (au-dessus de la navigation au téléphone) ; `message` est lu dans sa zone `role="status"`, toujours présente.
+- `Initiales` : rond décoratif avec les initiales d'une personne (le nom doit être écrit à côté).
+- `IconeRole` : tuile colorée décorative d'un rôle ; les tracés sont dans `icones-roles.ts` (`ICONES_ROLES`), une couleur par icône.
 
 ## Gyro
 

@@ -3,13 +3,19 @@ import { createRawSnippet, type Component } from 'svelte';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import BarreActions from './BarreActions.svelte';
 import Bouton from './Bouton.svelte';
 import Carte from './Carte.svelte';
 import Champ from './Champ.svelte';
 import Choix from './Choix.svelte';
+import Groupe from './Groupe.svelte';
+import IconeRole from './IconeRole.svelte';
+import Initiales from './Initiales.svelte';
+import Pastille from './Pastille.svelte';
 import PastilleEquipe from './PastilleEquipe.svelte';
 import Statut from './Statut.svelte';
 import Tableau from './Tableau.svelte';
+import { ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,5 +145,75 @@ describe('Choix', () => {
 	it('marque le champ obligatoire seulement si demandé', () => {
 		expect(html(Choix, { ...base, requis: true })).toMatch(/<select[^>]*required/);
 		expect(html(Choix, base)).not.toMatch(/<select[^>]*required/);
+	});
+});
+
+describe('Groupe', () => {
+	const base = { titre: 'Référents', resume: '4 rôles', children: contenu };
+
+	it('fermé par défaut : bouton replié, contenu caché aux lecteurs d’écran', () => {
+		const page = html(Groupe, base);
+		const bouton = page.match(/<button[^>]*>/)![0];
+		expect(bouton).toContain('type="button"');
+		expect(bouton).toContain('aria-expanded="false"');
+		const zone = bouton.match(/aria-controls="([^"]+)"/)![1];
+		expect(page).toMatch(new RegExp(`<div[^>]*id="${zone}"[^>]*hidden`));
+		expect(page).toContain('Contenu');
+	});
+
+	it('ouvert : bouton déplié, contenu visible', () => {
+		const page = html(Groupe, { ...base, ouvert: true });
+		expect(page).toContain('aria-expanded="true"');
+		expect(page).not.toMatch(/<div[^>]*\shidden/);
+	});
+
+	it('titre et résumé dans le bouton, au niveau de titre demandé, chevron décoratif', () => {
+		expect(html(Groupe, base)).toMatch(/<h2[^>]*>\s*<button[\s\S]*Référents[\s\S]*4 rôles[\s\S]*<\/button>(\s|<!---->)*<\/h2>/);
+		expect(html(Groupe, { ...base, niveauTitre: 3 })).toMatch(/<h3[^>]*>\s*<button/);
+		expect(html(Groupe, base)).toMatch(/<span[^>]*aria-hidden="true"[^>]*>›<\/span>/);
+	});
+
+	it('s’ouvre et se ferme au clic (et donc à Entrée, bouton natif)', () => {
+		// Pas de DOM dans les tests : on vérifie que le code client bascule `ouvert` au clic du bouton.
+		const code = compile(readFileSync(new URL('./Groupe.svelte', import.meta.url), 'utf8'), { generate: 'client' }).js.code;
+		expect(code).toMatch(/'click', button, \(\) => ouvert\(!ouvert\(\)\)/);
+	});
+});
+
+describe('Pastille', () => {
+	it.each(['ok', 'info', 'alerte', 'danger', 'neutre'])('ton %s : écrit son texte avec les couleurs du ton', (ton) => {
+		const page = html(Pastille, { ton, children: contenu });
+		expect(page).toContain('Contenu');
+		expect(page).toContain(`--statut-${ton}-texte`);
+	});
+});
+
+describe('BarreActions', () => {
+	it('annonce son message et porte les actions', () => {
+		const page = html(BarreActions, { message: '2 domaines modifiés', children: contenu });
+		expect(page).toMatch(/role="status"[^>]*>2 domaines modifiés</);
+		expect(page).toContain('Contenu');
+	});
+	it('garde la zone d’annonce même sans message', () => {
+		expect(html(BarreActions, { children: contenu })).toContain('role="status"');
+	});
+});
+
+describe('Initiales', () => {
+	it('écrit les initiales en majuscules, cachées aux lecteurs d’écran', () => {
+		const page = html(Initiales, { prenom: 'émile', nom: 'Martin' });
+		expect(page).toMatch(/<span[^>]*aria-hidden="true"[^>]*>ÉM<\/span>/);
+	});
+});
+
+describe('IconeRole', () => {
+	it.each(Object.keys(ICONES_ROLES))('%s : tuile décorative avec son tracé et sa couleur', (icone) => {
+		const page = html(IconeRole, { icone });
+		expect(page).toMatch(/<span[^>]*aria-hidden="true"/);
+		expect(page).toContain(`d="${ICONES_ROLES[icone as keyof typeof ICONES_ROLES]}"`);
+		expect(page).toContain(`--icone-${icone}-fond`);
+	});
+	it('a les dix icônes des rôles', () => {
+		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil']);
 	});
 });

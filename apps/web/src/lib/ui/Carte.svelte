@@ -15,7 +15,7 @@
 <style>
 	section {
 		background: var(--surface);
-		border: 1px solid var(--trait);
+		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
 		padding: 20px;
 	}

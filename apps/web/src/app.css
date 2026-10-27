@@ -5,11 +5,12 @@
 @import '@fontsource/barlow-condensed/700.css';
 
 :root {
-	--fond: #eef1f4;
+	--fond: #f6f3ef;
 	--surface: #ffffff;
 	--encre: #1d2733;
 	--doux: #4a5562;
 	--trait: #d5dbe1;
+	--trait-doux: #e3ddd5;
 	--accent: #b3121f;
 	--rouge: #b3121f;
 	--sur-rouge: #ffffff;
@@ -27,11 +28,34 @@
 	--statut-neutre-fond: #e6eaee;
 	--statut-neutre-texte: #4a5562;
 	--statut-neutre-trait: #c3ccd5;
+	--statut-danger-fond: #fbe7e8;
+	--statut-danger-texte: #8a0f19;
+	--statut-danger-trait: #e3a7ac;
+	--icone-etoile-fond: #fbe7e8;
+	--icone-etoile-texte: #8a0f19;
+	--icone-casque-fond: #fdeedd;
+	--icone-casque-texte: #9a4b00;
+	--icone-camion-fond: #e7f0fa;
+	--icone-camion-texte: #0f4c8a;
+	--icone-croix-fond: #e6f2e2;
+	--icone-croix-texte: #1f5a14;
+	--icone-cle-fond: #eceaf6;
+	--icone-cle-texte: #4b3f8a;
+	--icone-ballon-fond: #e3f2f1;
+	--icone-ballon-texte: #0f5e58;
+	--icone-livre-fond: #f3ede4;
+	--icone-livre-texte: #6b4a1f;
+	--icone-groupe-fond: #eef1f4;
+	--icone-groupe-texte: #4a5562;
+	--icone-coeur-fond: #fbeaf1;
+	--icone-coeur-texte: #8a1f52;
+	--icone-outil-fond: #e6eef0;
+	--icone-outil-texte: #2f5560;
 
 	--police: 'Barlow', system-ui, sans-serif;
 	--police-titre: 'Barlow Condensed', 'Arial Narrow', sans-serif;
 	--rayon-petit: 6px;
-	--rayon-grand: 14px;
+	--rayon-grand: 16px;
 	--cible: 44px;
 
 	color-scheme: light;
@@ -43,6 +67,7 @@
 	--encre: #e6ebf0;
 	--doux: #a7b2bd;
 	--trait: #2b3642;
+	--trait-doux: #2b3642;
 	--accent: #ff8a92;
 	--rouge: #b3121f;
 	--sur-rouge: #ffffff;
@@ -60,6 +85,29 @@
 	--statut-neutre-fond: #252e39;
 	--statut-neutre-texte: #a7b2bd;
 	--statut-neutre-trait: #3d4957;
+	--statut-danger-fond: #3a1a1d;
+	--statut-danger-texte: #ffb3b9;
+	--statut-danger-trait: #7a2f36;
+	--icone-etoile-fond: #3a1a1d;
+	--icone-etoile-texte: #ffb3b9;
+	--icone-casque-fond: #3a2a12;
+	--icone-casque-texte: #f5c58a;
+	--icone-camion-fond: #14283d;
+	--icone-camion-texte: #a9d1ff;
+	--icone-croix-fond: #1b3314;
+	--icone-croix-texte: #a9dd8f;
+	--icone-cle-fond: #262142;
+	--icone-cle-texte: #c9bff5;
+	--icone-ballon-fond: #10302e;
+	--icone-ballon-texte: #8fdcd3;
+	--icone-livre-fond: #33291a;
+	--icone-livre-texte: #e3c79a;
+	--icone-groupe-fond: #252e39;
+	--icone-groupe-texte: #c3ccd5;
+	--icone-coeur-fond: #3a1a2a;
+	--icone-coeur-texte: #f5a9cb;
+	--icone-outil-fond: #1c2c31;
+	--icone-outil-texte: #a9cdd6;
 
 	color-scheme: dark;
 }
@@ -71,6 +119,7 @@
 		--encre: #e6ebf0;
 		--doux: #a7b2bd;
 		--trait: #2b3642;
+		--trait-doux: #2b3642;
 		--accent: #ff8a92;
 		--rouge: #b3121f;
 		--sur-rouge: #ffffff;
@@ -88,6 +137,29 @@
 	--statut-neutre-fond: #252e39;
 	--statut-neutre-texte: #a7b2bd;
 	--statut-neutre-trait: #3d4957;
+	--statut-danger-fond: #3a1a1d;
+	--statut-danger-texte: #ffb3b9;
+	--statut-danger-trait: #7a2f36;
+	--icone-etoile-fond: #3a1a1d;
+	--icone-etoile-texte: #ffb3b9;
+	--icone-casque-fond: #3a2a12;
+	--icone-casque-texte: #f5c58a;
+	--icone-camion-fond: #14283d;
+	--icone-camion-texte: #a9d1ff;
+	--icone-croix-fond: #1b3314;
+	--icone-croix-texte: #a9dd8f;
+	--icone-cle-fond: #262142;
+	--icone-cle-texte: #c9bff5;
+	--icone-ballon-fond: #10302e;
+	--icone-ballon-texte: #8fdcd3;
+	--icone-livre-fond: #33291a;
+	--icone-livre-texte: #e3c79a;
+	--icone-groupe-fond: #252e39;
+	--icone-groupe-texte: #c3ccd5;
+	--icone-coeur-fond: #3a1a2a;
+	--icone-coeur-texte: #f5a9cb;
+	--icone-outil-fond: #1c2c31;
+	--icone-outil-texte: #a9cdd6;
 
 		color-scheme: dark;
 	}
