@@ -24,7 +24,10 @@
 		<div class="entete">
 			<h1 id="titre-agents">Agents</h1>
 			{#if data.gestion}
-				<a class="ajout" href="/agents/nouveau">Ajouter un agent</a>
+				<div class="liens">
+					<a class="fichier" href="/agents/fichier">Fichier de l'effectif</a>
+					<a class="ajout" href="/agents/nouveau">Ajouter un agent</a>
+				</div>
 			{/if}
 		</div>
 
@@ -125,6 +128,17 @@
 	h1,
 	h2 {
 		margin: 0;
+	}
+	.liens {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+	}
+	.fichier {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
 	}
 	.ajout {
 		display: inline-flex;
