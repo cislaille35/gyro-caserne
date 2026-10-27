@@ -49,6 +49,7 @@ for (const theme of ['auto', 'sombre']) {
 			test('responsabilités en cours, à venir et passées : /nominations et la fiche sans violation', async ({ page }) => {
 				const agent = await nouvelAgent(page);
 				await page.goto('/nominations');
+				await pret(page);
 				await nommer(page, 'Référent pharmacie', agent.nom);
 				await nommer(page, 'Référent engins', agent.nom, { debut: '2099-01-01' });
 				await nommer(page, 'Chef d’équipe', agent.nom, { debut: '2020-01-01', fin: '2020-12-31' });
@@ -89,11 +90,17 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 	return (await page.getByRole('link', { name: `Voir la fiche de ${nom}` }).getAttribute('href'))!;
 }
 
+// Une liste déroulante choisie avant que la page soit prête revient à sa valeur de départ : on attend.
+async function pret(page: Page) {
+	await page.waitForLoadState('networkidle');
+}
+
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
 async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string }> {
 	const marque = Date.now().toString(36);
 	const nom = `Essai${marque}`;
 	await page.goto('/agents/nouveau');
+	await pret(page);
 	await page.getByLabel('Prénom').fill('Zoé');
 	await page.getByLabel('Nom', { exact: true }).fill(nom);
 	await page.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
@@ -102,6 +109,7 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string }> 
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
+	await expect(page.locator('form[action="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
 	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname };
 }
 
