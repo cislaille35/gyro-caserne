@@ -62,9 +62,13 @@ export async function droitsDe(base: Base, acteur: Acteur, date: string): Promis
 	return [...accordes(duProfil), ...accordes(valides)];
 }
 
+// Parmi des droits déjà lus, l'un donne-t-il `droit` sur `vise` ?
+export function accorde(droits: DroitAccorde[], droit: Droit, vise: Perimetre): boolean {
+	return droits.some((d) => d.droit === droit && couvre(d.perimetre, vise));
+}
+
 export async function aLeDroit(base: Base, acteur: Acteur, droit: Droit, vise: Perimetre, date: string): Promise<boolean> {
-	const droits = await droitsDe(base, acteur, date);
-	return droits.some((accorde) => accorde.droit === droit && couvre(accorde.perimetre, vise));
+	return accorde(await droitsDe(base, acteur, date), droit, vise);
 }
 
 // Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.
