@@ -18,7 +18,7 @@
 	const resume = (n: number, equipe: { chefs: string[] } | null) =>
 		!equipe ? pluriel(n) : equipe.chefs.length === 0 ? `${pluriel(n)} · sans chef d’équipe` : `${pluriel(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Les partis restent repliés, sauf quand on les cherche.
-	const ouvert = (titre: string) => titre !== 'Partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
+	const ouvert = (cle: string) => cle !== 'partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
 	const filtres = $derived(
 		data.gestion
 			? [
@@ -85,9 +85,9 @@
 			</form>
 		{/if}
 
-		{#each data.groupes as g (g.titre)}
+		{#each data.groupes as g (g.cle)}
 			{@const sansChef = g.equipe?.chefs.length === 0}
-			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.titre)}>
+			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.cle)}>
 				{#snippet action()}
 					{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="cache">un chef pour {g.titre}</span></a>{/if}
 				{/snippet}

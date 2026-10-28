@@ -46,6 +46,22 @@ async function jeu() {
 const acteur = (id: number): Acteur => ({ type: 'personne', id });
 
 describe('vueEffectif', () => {
+	it('donne à chaque groupe une clé stable, qui ne dépend pas du nom de l’équipe', async () => {
+		const { base, profilExt, nouvelle } = await jeu();
+		await base.update(equipe).set({ nom: 'Partis' }).where(eq(equipe.id, 2));
+		await nouvelle('Paul', 'Bernard', { equipeId: 2 });
+		await nouvelle('Sans', 'Equipe');
+		await nouvelle('Ext', 'Erieur', { profilId: profilExt.id });
+		await nouvelle('Max', 'Parti', { statut: 'parti' });
+		const groupes = (await listeGestion(base, { type: 'super', email: 'a@b.fr' }, {}, aujourdhui)).groupes;
+		expect(groupes.map((g) => [g.cle, g.titre])).toEqual([
+			['equipe:2', 'Partis'],
+			['sans-equipe', 'Sans équipe'],
+			['exterieurs', 'Extérieurs'],
+			['partis', 'Partis']
+		]);
+	});
+
 	it('groupe par équipe, puis sans équipe, puis extérieurs, sans groupe vide', async () => {
 		const { base, profilExt, nouvelle } = await jeu();
 		await nouvelle('Zoé', 'Martin', { equipeId: 3 });

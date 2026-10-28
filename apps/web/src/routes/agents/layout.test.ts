@@ -11,6 +11,7 @@ vi.mock('$app/state', () => etat);
 const enfants = createRawSnippet(() => ({ render: () => '<p>Contenu de la page</p>' }));
 const groupes = [
 	{
+		cle: 'equipe:1',
 		titre: 'Équipe 1',
 		equipe: { couleur: '#b3121f', chefs: ['A. Martin'] },
 		personnes: [
@@ -18,8 +19,8 @@ const groupes = [
 			{ id: 2, prenom: 'Paul', nom: 'Durand', grade: null, roles: [] }
 		]
 	},
-	{ titre: 'Équipe 4', equipe: { couleur: '#9a4b00', chefs: [] }, personnes: [{ id: 3, prenom: 'Inès', nom: 'Faure', grade: 'Caporal', roles: [] }] },
-	{ titre: 'Sans équipe', equipe: null, personnes: [{ id: 4, prenom: 'Test', nom: 'Fictif', grade: null, roles: [] }] }
+	{ cle: 'equipe:4', titre: 'Équipe 4', equipe: { couleur: '#9a4b00', chefs: [] }, personnes: [{ id: 3, prenom: 'Inès', nom: 'Faure', grade: 'Caporal', roles: [] }] },
+	{ cle: 'sans-equipe', titre: 'Sans équipe', equipe: null, personnes: [{ id: 4, prenom: 'Test', nom: 'Fictif', grade: null, roles: [] }] }
 ];
 const ligne = (id: number, prenom: string, nom: string, autres: Record<string, unknown> = {}) => ({
 	id,
@@ -35,8 +36,8 @@ const ligne = (id: number, prenom: string, nom: string, autres: Record<string, u
 const gestion = (autres: Record<string, unknown> = {}) => ({
 	gestion: true,
 	groupes: [
-		{ titre: 'Équipe 1', equipe: { couleur: '#b3121f', chefs: [] }, personnes: [ligne(1, 'Alice', 'Martin', { statut: 'stagiaire', aCompleter: true }), ligne(2, 'Paul', 'Durand')] },
-		{ titre: 'Partis', equipe: null, personnes: [ligne(5, 'Zoé', 'Zorro', { statut: 'parti' })] }
+		{ cle: 'equipe:1', titre: 'Équipe 1', equipe: { couleur: '#b3121f', chefs: [] }, personnes: [ligne(1, 'Alice', 'Martin', { statut: 'stagiaire', aCompleter: true }), ligne(2, 'Paul', 'Durand')] },
+		{ cle: 'partis', titre: 'Partis', equipe: null, personnes: [ligne(5, 'Zoé', 'Zorro', { statut: 'parti' })] }
 	],
 	comptes: { 'a-completer': 1, indisponibles: 1, partis: 1 },
 	filtres: { texte: '', filtre: '' },
@@ -146,6 +147,16 @@ describe('/agents : gestion', () => {
 		} finally {
 			Object.assign(etat.page, { url: new URL('http://x/agents') });
 		}
+	});
+
+	it('replie le groupe des partis par sa clé, pas par son titre : une équipe nommée « Partis » reste ouverte', () => {
+		const groupes = [
+			{ cle: 'equipe:7', titre: 'Partis', equipe: { couleur: '#b3121f', chefs: ['A. Martin'] }, personnes: [ligne(1, 'Alice', 'Martin')] },
+			{ cle: 'partis', titre: 'Anciens', equipe: null, personnes: [ligne(5, 'Zoé', 'Zorro', { statut: 'parti' })] }
+		];
+		const mise = html(Layout, { data: gestion({ groupes }), children: enfants });
+		expect(boutonDuGroupe(mise, 'Partis')).toBe('true');
+		expect(boutonDuGroupe(mise, 'Anciens')).toBe('false');
 	});
 
 	it('replie les partis, sauf s’ils sont filtrés ou cherchés', () => {

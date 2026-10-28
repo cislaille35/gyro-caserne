@@ -20,7 +20,8 @@ export type LigneGestion = {
 };
 
 // Une équipe active porte sa couleur et ses chefs en cours (« A. Martin ») ; les autres groupes, rien.
-export type GroupeAgents<P> = { titre: string; equipe: { couleur: string; chefs: string[] } | null; personnes: P[] };
+// `cle` : stable, « equipe:<id> », « sans-equipe », « exterieurs » ou « partis » ; le titre peut changer.
+export type GroupeAgents<P> = { cle: string; titre: string; equipe: { couleur: string; chefs: string[] } | null; personnes: P[] };
 
 export const FILTRES_GESTION = ['a-completer', 'indisponibles', 'partis'] as const;
 export type FiltreGestion = (typeof FILTRES_GESTION)[number];
@@ -113,10 +114,10 @@ async function ranger<R extends Rangee, P>(base: Base, aujourdhui: string, range
 	const present = (r: R) => r.statut !== 'parti' && r.type !== 'exterieur';
 
 	const groupes: GroupeAgents<P>[] = [
-		...actives.map((g) => ({ titre: g.nom, equipe: { couleur: g.couleur, chefs: chefs.get(g.id) ?? [] }, personnes: enGroupe((r) => present(r) && equipes.get(r.id)?.id === g.id) })),
-		{ titre: 'Sans équipe', equipe: null, personnes: enGroupe((r) => present(r) && !equipes.has(r.id)) },
-		{ titre: 'Extérieurs', equipe: null, personnes: enGroupe((r) => r.statut !== 'parti' && r.type === 'exterieur') },
-		{ titre: 'Partis', equipe: null, personnes: enGroupe((r) => r.statut === 'parti') }
+		...actives.map((g) => ({ cle: `equipe:${g.id}`, titre: g.nom, equipe: { couleur: g.couleur, chefs: chefs.get(g.id) ?? [] }, personnes: enGroupe((r) => present(r) && equipes.get(r.id)?.id === g.id) })),
+		{ cle: 'sans-equipe', titre: 'Sans équipe', equipe: null, personnes: enGroupe((r) => present(r) && !equipes.has(r.id)) },
+		{ cle: 'exterieurs', titre: 'Extérieurs', equipe: null, personnes: enGroupe((r) => r.statut !== 'parti' && r.type === 'exterieur') },
+		{ cle: 'partis', titre: 'Partis', equipe: null, personnes: enGroupe((r) => r.statut === 'parti') }
 	];
 	return groupes.filter((g) => g.personnes.length > 0);
 }
