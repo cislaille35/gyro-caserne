@@ -357,9 +357,12 @@ test.describe('échanges', () => {
 
 		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
 		await agent.goto('/');
+		// Page prête : le geste passe par JavaScript, qui garde le focus dans la section.
+		await expect(agent.locator('.accueil[data-pret]')).toBeAttached();
 		const bouton = agent.getByRole('button', { name: `Pris connaissance : ${titre}` });
 		await bouton.click();
 		await expect(bouton).toHaveCount(0);
+		await expect(agent.locator(':focus')).toHaveAttribute('id', /^(a-ne-pas-manquer|contenu)$/);
 		await expect(agent.getByRole('link', { name: titre, exact: true })).toHaveCount(0);
 		await agent.context().close();
 
@@ -383,8 +386,10 @@ test.describe('échanges', () => {
 
 		const agentUn = await pageAgent(browser, un.email);
 		const reponse = agentUn.getByRole('group', { name: `Votre réponse : ${titre}` });
+		await expect(agentUn.locator('.accueil[data-pret]')).toBeAttached();
 		await reponse.getByRole('button', { name: 'Présent' }).click();
 		await expect(reponse.getByRole('button', { name: 'Présent' })).toHaveAttribute('aria-pressed', 'true');
+		await expect(reponse.getByRole('button', { name: 'Présent' })).toBeFocused();
 		await agentUn.reload();
 		await expect(reponse.getByRole('button', { name: 'Présent' })).toHaveAttribute('aria-pressed', 'true');
 		await expect(reponse.getByRole('button', { name: 'Absent' })).toHaveAttribute('aria-pressed', 'false');
@@ -426,12 +431,15 @@ test.describe('échanges', () => {
 		await autre.context().close();
 	});
 
-	test('les envois du navigateur annoncent leur longueur : la garde de taille les laisse passer', async ({ page }) => {
+	test('les envois du navigateur annoncent leur longueur : la garde de taille les laisse passer', async ({ browser, page }) => {
+		const gestion = await pageSuper(browser);
+		const { email } = await nouvelAgent(gestion);
+		await gestion.context().close();
 		const envois: Request[] = [];
 		page.on('request', (r) => {
 			if (r.method() === 'POST') envois.push(r);
 		});
-		await connecter(page, 'alice.martin@exemple.fr');
+		await connecter(page, email);
 		await page.goto('/echanges/vie');
 		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
 		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/vie?/publier']));

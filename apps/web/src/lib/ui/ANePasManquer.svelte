@@ -24,10 +24,12 @@
 	// Sans JavaScript, la page revient sur la casquette choisie.
 	const action = (nom: string) => `?casquette=${encodeURIComponent(casquette)}&/${nom}`;
 
-	// Après un geste, le focus reste sur son bouton ; s'il a disparu, il va au titre de la section, ou au contenu si elle a disparu.
-	const garderFocus: SubmitFunction = () => async ({ update }) => {
+	// Après un geste, SvelteKit remet le focus en haut de la page : on le rend à son bouton ; s'il a disparu, au titre de la section,
+	// ou au contenu si elle a disparu.
+	const garderFocus: SubmitFunction = ({ submitter }) => async ({ update }) => {
 		await update();
-		if (document.activeElement === document.body || !document.activeElement?.isConnected) (document.getElementById('a-ne-pas-manquer') ?? document.getElementById('contenu'))?.focus();
+		if (submitter?.isConnected) submitter.focus();
+		else (document.getElementById('a-ne-pas-manquer') ?? document.getElementById('contenu'))?.focus();
 	};
 </script>
 

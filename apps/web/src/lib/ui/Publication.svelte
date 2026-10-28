@@ -43,11 +43,13 @@
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);
 
-	// Après un geste, le focus reste sur son bouton ; si le bouton a disparu (vote, prise de connaissance), il revient à la publication.
+	// Après un geste, SvelteKit remet le focus en haut de la page : on le rend à son bouton ; si le bouton a disparu
+	// (vote, prise de connaissance), à la publication.
 	let carte = $state<HTMLElement>();
-	const garderFocus: SubmitFunction = () => async ({ update }) => {
+	const garderFocus: SubmitFunction = ({ submitter }) => async ({ update }) => {
 		await update();
-		if (document.activeElement === document.body || !document.activeElement?.isConnected) carte?.focus();
+		if (submitter?.isConnected) submitter.focus();
+		else carte?.focus();
 	};
 </script>
 
