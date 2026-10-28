@@ -2,7 +2,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Coquille from './Coquille.svelte';
-import { entreesNavigation } from './navigation.ts';
+import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
@@ -22,11 +22,35 @@ describe('Coquille', () => {
 		expect(page).toContain('Bonjour');
 	});
 
-	it("marque seulement l'entrée de la page courante", () => {
-		const page = html('/affichage');
+	const courant = (page: string) => {
 		expect(page.match(/aria-current="page"/g)).toHaveLength(1);
-		const lien = page.match(/<a\b[^>]*aria-current="page"[^>]*>/)![0];
-		expect(lien).toContain('href="/affichage"');
+		return page.match(/<a\b[^>]*aria-current="page"[^>]*>/)![0];
+	};
+
+	it("marque seulement l'onglet dont descend la page courante", () => {
+		expect(courant(html('/agents/12'))).toContain('href="/caserne"');
+		expect(courant(html('/reglages'))).toContain('href="/caserne"');
+		expect(courant(html('/'))).toContain('href="/"');
+	});
+
+	it('marque « Moi » pour le profil et l’affichage, la cloche pour les notifications', () => {
+		expect(courant(html('/profil'))).toContain('href="/moi"');
+		expect(courant(html('/affichage'))).toContain('href="/moi"');
+		expect(courant(html('/notifications'))).toContain('href="/notifications"');
+	});
+
+	it('sans connexion : « Affichage » reste marqué dans la navigation, sans cloche ni « Moi »', () => {
+		const page = html('/affichage', false);
+		expect(courant(page)).toContain('href="/affichage"');
+		expect(page).not.toContain('href="/notifications"');
+		expect(page).not.toContain('href="/moi"');
+	});
+
+	it('met la cloche « Notifications » et « Moi » en haut, hors de la navigation', () => {
+		const page = html('/');
+		const entete = page.match(/<header[\s\S]*?<\/header>/)![0];
+		expect(entete).toMatch(/<a[^>]*href="\/notifications"[^>]*aria-label="Notifications"/);
+		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Moi[\s\S]*?<\/a>/);
 	});
 
 	it('a une navigation nommée avec un texte visible par entrée', () => {
@@ -43,29 +67,33 @@ describe('Coquille', () => {
 });
 
 describe('entreesNavigation', () => {
-	it("sans connexion : pas d'accueil", () => {
-		const hrefs = entreesNavigation(false).map((e) => e.href);
-		expect(hrefs).toEqual(['/connexion', '/affichage']);
+	it('connecté : les quatre onglets, dans l’ordre', () => {
+		expect(entreesNavigation(true).map((e) => [e.href, e.libelle])).toEqual([
+			['/', 'Accueil'],
+			['/planning', 'Planning'],
+			['/caserne', 'Caserne'],
+			['/echanges', 'Échanges']
+		]);
 	});
-	it('connecté : pas de connexion', () => {
-		const hrefs = entreesNavigation(true).map((e) => e.href);
-		expect(hrefs).toEqual(['/', '/agents', '/affichage']);
+	it('sans connexion : Connexion et Affichage', () => {
+		expect(entreesNavigation(false).map((e) => e.href)).toEqual(['/connexion', '/affichage']);
 	});
-	it('une personne connectée a « Mon profil »', () => {
-		const hrefs = entreesNavigation(true, true).map((e) => e.href);
-		expect(hrefs).toEqual(['/', '/agents', '/profil', '/affichage']);
+});
+
+describe('rubriqueDe', () => {
+	it('range chaque page sous son onglet', () => {
+		expect(rubriqueDe('/')).toBe('/');
+		expect(rubriqueDe('/planning')).toBe('/planning');
+		expect(rubriqueDe('/agents')).toBe('/caserne');
+		expect(rubriqueDe('/agents/12')).toBe('/caserne');
+		expect(rubriqueDe('/nominations')).toBe('/caserne');
+		expect(rubriqueDe('/reglages')).toBe('/caserne');
+		expect(rubriqueDe('/echanges')).toBe('/echanges');
+		expect(rubriqueDe('/profil')).toBe('/moi');
+		expect(rubriqueDe('/affichage')).toBe('/moi');
+		expect(rubriqueDe('/notifications')).toBe('/notifications');
 	});
-	it('« Réglages » apparaît seulement pour qui peut régler le centre', () => {
-		expect(entreesNavigation(true, true, true).map((e) => e.href)).toEqual(['/', '/agents', '/profil', '/reglages', '/affichage']);
-		expect(entreesNavigation(true, true).map((e) => e.href)).not.toContain('/reglages');
-		expect(entreesNavigation(false, false, true).map((e) => e.href)).not.toContain('/reglages');
-	});
-	it('« Nominations » apparaît pour qui peut attribuer, avant « Réglages », jamais sans connexion', () => {
-		expect(entreesNavigation(true, true, true, true).map((e) => e.href)).toEqual(['/', '/agents', '/profil', '/nominations', '/reglages', '/affichage']);
-		expect(entreesNavigation(true, true).map((e) => e.href)).not.toContain('/nominations');
-		expect(entreesNavigation(false, false, false, true).map((e) => e.href)).not.toContain('/nominations');
-	});
-	it('« Mon profil » n\'apparaît pas sans connexion', () => {
-		expect(entreesNavigation(false, true).map((e) => e.href)).not.toContain('/profil');
+	it('ne confond pas un chemin qui commence pareil', () => {
+		expect(rubriqueDe('/agentsx')).not.toBe('/caserne');
 	});
 });

@@ -3,12 +3,18 @@ import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
+import { connecter } from './connexion.ts';
 import { ADRESSE, ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
 async function sansViolation(page: Page, chemin?: string) {
 	if (chemin) await page.goto(chemin);
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
+}
+
+// Marque unique d'un essai : les projets téléphone et ordinateur peuvent tomber sur la même milliseconde.
+function nouvelleMarque(): string {
+	return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 for (const theme of ['auto', 'sombre']) {
@@ -27,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/affichage', '/agents', '/profil']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -36,7 +42,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -71,7 +77,7 @@ for (const theme of ['auto', 'sombre']) {
 				await ouvrirFichier(page);
 				await sansViolation(page);
 				const modele = (await (await page.request.get('/agents/fichier/donnees?modele=1')).json()) as DonneesFichier;
-				const marque = Date.now().toString(36);
+				const marque = nouvelleMarque();
 				await deposer(page, await classeur(modele.entetes, [arrivee(modele.entetes, marque, 'Yanis')], null));
 				await expect(page.getByRole('heading', { level: 3, name: '1 arrivée' })).toBeVisible();
 				await sansViolation(page);
@@ -103,29 +109,32 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 }
 
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
-async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string }> {
-	const marque = Date.now().toString(36);
+async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; email: string }> {
+	const marque = nouvelleMarque();
 	const nom = `Essai${marque}`;
 	await page.goto('/agents/nouveau');
 	await page.getByLabel('Prénom').fill('Zoé');
 	await page.getByLabel('Nom', { exact: true }).fill(nom);
-	await page.getByLabel('E-mail').fill(`zoe.${marque}@exemple.fr`);
+	const email = `zoe.${marque}@exemple.fr`;
+	await page.getByLabel('E-mail').fill(email);
 	// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
 	await page.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
 	await expect(page.locator('form[action="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
-	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname };
+	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
-// Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 si le rôle vise une équipe).
+// Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 ou comité « Amicale » si le rôle en vise un).
 async function nommer(page: Page, role: string, agent: string, dates: { debut?: string; fin?: string } = {}) {
 	const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
 	const formulaire = carte.locator('form[action="?/attribuer"]');
 	await formulaire.getByLabel('Agent', { exact: true }).selectOption({ label: `${agent} (Équipe 1)` });
 	const equipe = formulaire.getByRole('combobox', { name: 'Équipe' });
 	if ((await equipe.count()) > 0) await equipe.selectOption({ label: 'Équipe 1' });
+	const comite = formulaire.getByRole('combobox', { name: 'Comité' });
+	if ((await comite.count()) > 0) await comite.selectOption({ label: 'Amicale' });
 	if (dates.debut) await formulaire.getByLabel('Début', { exact: true }).fill(dates.debut);
 	if (dates.fin) await formulaire.getByLabel('Fin', { exact: true }).fill(dates.fin);
 	await formulaire.getByRole('button', { name: 'Nommer' }).click();
@@ -193,7 +202,8 @@ test.describe('agents', () => {
 		await statut.getByLabel('Je confirme').check();
 		await statut.getByRole('button', { name: 'Enregistrer' }).click();
 		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
-		await expect(gestion.locator('.titre')).toContainText('Parti');
+		// Le statut s'affiche à côté du nom de l'agent (sur ordinateur, la liste a aussi son titre).
+		await expect(gestion.getByRole('heading', { level: 1, name: nom }).locator('xpath=..')).toContainText('Parti');
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
@@ -256,7 +266,7 @@ test.describe('réglages', () => {
 
 	test('le super administrateur crée un comité et une responsabilité qu’il attribue, puis le dissout : le chef de centre attribue', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
-		const marque = Date.now().toString(36);
+		const marque = nouvelleMarque();
 		const comite = `Comité sport ${marque}`;
 		const responsabilite = `Référent sport ${marque}`;
 		await page.goto('/reglages');
@@ -304,7 +314,7 @@ test.describe('fichier de l’effectif', () => {
 		expect(modele.lu.lignes).toEqual([]);
 		expect(modele.lu.repere).toBeNull();
 
-		const marque = Date.now().toString(36);
+		const marque = nouvelleMarque();
 		const entetes = modele.lu.entetes;
 		await deposer(page, await classeur(entetes, [arrivee(entetes, marque, 'Yanis'), arrivee(entetes, marque, 'Zoe')], null));
 		await expect(page.getByRole('heading', { level: 3, name: 'Aucun départ' })).toBeVisible();
@@ -325,7 +335,7 @@ test.describe('fichier de l’effectif', () => {
 			question = dialogue.message();
 			await dialogue.dismiss();
 		});
-		await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Affichage' }).click();
+		await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Caserne' }).click();
 		await expect.poll(() => question).toBe("L'import est en cours : quitter l'arrêtera. Quitter quand même ?");
 		await expect(page).toHaveURL(/\/agents\/fichier$/);
 		await expect(page.getByRole('heading', { level: 2, name: 'Application en cours' })).toBeVisible();
@@ -367,9 +377,79 @@ test.describe('fichier de l’effectif', () => {
 	});
 });
 
+test.describe('casquettes', () => {
+	test('plusieurs rôles : on change de casquette au clavier, la choisie est marquée', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.goto('/nominations');
+		await nommer(gestion, 'Référent pharmacie', agent.nom);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		const casquettes = page.getByRole('navigation', { name: 'Casquettes' });
+		const astreinte = casquettes.getByRole('link', { name: 'Mon astreinte' });
+		const pharmacie = casquettes.getByRole('link', { name: 'Référent pharmacie' });
+		await expect(astreinte).toHaveAttribute('aria-current', 'true');
+		await expect(pharmacie).not.toHaveAttribute('aria-current');
+		await sansViolation(page);
+
+		await astreinte.focus();
+		await page.keyboard.press('Tab');
+		await expect(pharmacie).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/[?&]casquette=role/);
+		await expect(pharmacie).toHaveAttribute('aria-current', 'true');
+		await expect(astreinte).not.toHaveAttribute('aria-current');
+		await expect(page.getByRole('heading', { level: 2, name: 'Ce que ce rôle permet' })).toBeVisible();
+	});
+
+	test('cinq casquettes : la rangée défile seule, la page ne déborde pas, chacune s’atteint au clavier', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.goto('/nominations');
+		for (const role of ['Chef d’équipe', 'Référent engins', 'Référent pharmacie', 'Membre de comité']) await nommer(gestion, role, agent.nom);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		const liens = page.getByRole('navigation', { name: 'Casquettes' }).getByRole('link');
+		await expect(liens).toHaveText([/Chef d’équipe · Équipe 1/, /Mon astreinte/, /Référent engins/, /Référent pharmacie/, /Amicale/]);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+
+		await liens.first().focus();
+		for (let i = 0; i < 5; i++) {
+			if (i > 0) await page.keyboard.press('Tab');
+			await expect(liens.nth(i)).toBeFocused();
+			await expect(liens.nth(i)).toBeInViewport();
+		}
+		await page.keyboard.press('Enter');
+		await expect(liens.nth(4)).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByRole('heading', { level: 2, name: 'Membres' })).toBeVisible();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+	});
+
+	test('un seul rôle : pas de rangée de casquettes', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		await expect(page.getByRole('navigation', { name: 'Casquettes' })).toHaveCount(0);
+	});
+});
+
 test('thème sombre choisi : la page arrive déjà en sombre', async ({ request }) => {
 	const reponse = await request.get('/connexion', { headers: { cookie: 'theme=sombre' } });
 	expect(await reponse.text()).toMatch(/<html[^>]*data-theme="sombre"/);
+});
+
+test('« Se déconnecter » depuis « Moi » ferme la session', async ({ page }) => {
+	// Personne fictive à part : les sessions gardées pour les autres tests restent ouvertes.
+	await connecter(page, 'david.leroy@exemple.fr');
+	await page.getByRole('link', { name: 'Moi', exact: true }).click();
+	await page.getByRole('button', { name: 'Se déconnecter' }).click();
+	await expect(page).toHaveURL(/\/connexion$/);
+	await page.goto('/');
+	await expect(page).toHaveURL(/\/connexion$/);
 });
 
 test.describe('connecté, au clavier', () => {

@@ -1,54 +1,55 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { entreesNavigation } from './navigation.ts';
+	import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
-	let {
-		chemin,
-		connecte,
-		estPersonne = false,
-		peutReglages = false,
-		peutNominations = false,
-		nomCentre,
-		children
-	}: { chemin: string; connecte: boolean; estPersonne?: boolean; peutReglages?: boolean; peutNominations?: boolean; nomCentre: string; children: Snippet } = $props();
+	let { chemin, connecte, nomCentre, children }: { chemin: string; connecte: boolean; nomCentre: string; children: Snippet } = $props();
 
-	const entrees = $derived(entreesNavigation(connecte, estPersonne, peutReglages, peutNominations));
+	const entrees = $derived(entreesNavigation(connecte));
+	// Sans connexion, seule la page elle-même est marquée.
+	const actif = $derived(connecte ? rubriqueDe(chemin) : chemin);
+	const courant = (href: string) => (actif === href ? 'page' : undefined);
 
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
+		planning: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
+		caserne: 'M3 21V9l9-5 9 5v12 M9 21v-6h6v6',
+		echanges: 'M4 5h16v11H8l-4 4z',
 		connexion: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
-		agents: 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20 M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.35 M15.5 4.15a3.5 3.5 0 0 1 0 6.7',
-		profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
-		nominations: 'M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.3 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z',
-		reglages: 'M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M20 18h0 M16 4v4 M10 10v4 M18 16v4',
-		affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5'
+		affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5',
+		cloche: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20a2 2 0 0 0 4 0',
+		moi: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'
 	};
 </script>
+
+{#snippet icone(nom: string)}
+	<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<path d={dessins[nom]}></path>
+	</svg>
+{/snippet}
 
 <a class="evitement" href="#contenu">Aller au contenu</a>
 
 <div class="coquille">
 	<header>
-		<span class="appli">Gyro Caserne</span>
-		<span class="centre">{nomCentre}</span>
+		<div class="titre">
+			<span class="appli">Gyro Caserne</span>
+			<span class="centre">{nomCentre}</span>
+		</div>
+		{#if connecte}
+			<a class="rond" href="/notifications" aria-label="Notifications" aria-current={courant('/notifications')}>
+				{@render icone('cloche')}
+			</a>
+			<a class="moi" href="/moi" aria-current={courant('/moi')}>
+				<span class="rond">{@render icone('moi')}</span>
+				<span>Moi</span>
+			</a>
+		{/if}
 	</header>
 
 	<nav aria-label="Navigation principale">
 		{#each entrees as entree (entree.href)}
-			<a href={entree.href} aria-current={chemin === entree.href ? 'page' : undefined}>
-				<svg
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-				>
-					<path d={dessins[entree.icone]}></path>
-				</svg>
+			<a href={entree.href} aria-current={courant(entree.href)}>
+				{@render icone(entree.icone)}
 				<span>{entree.libelle}</span>
 			</a>
 		{/each}
@@ -84,10 +85,48 @@
 	}
 	header {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
 		padding: 0.75rem 1rem;
 		background: var(--surface);
 		border-bottom: 1px solid var(--trait);
+	}
+	.titre {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+	header a {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--encre);
+		text-decoration: none;
+	}
+	.rond {
+		width: var(--cible);
+		height: var(--cible);
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		border: 1px solid var(--trait-doux);
+		background: var(--surface);
+	}
+	.moi {
+		padding-right: 0.25rem;
+		font-weight: 600;
+	}
+	header a[aria-current='page'] {
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	header a[aria-current='page'] .rond,
+	header a.rond[aria-current='page'] {
+		border: 2px solid var(--accent);
 	}
 	.appli {
 		font-family: var(--police-titre);
@@ -138,7 +177,7 @@
 	@media (min-width: 1024px) {
 		.coquille {
 			display: grid;
-			grid-template-columns: 16rem 1fr;
+			grid-template-columns: 16rem minmax(0, 1fr);
 			grid-template-rows: auto 1fr;
 			grid-template-areas:
 				'menu entete'
@@ -146,6 +185,8 @@
 		}
 		header {
 			grid-area: entete;
+		}
+		.titre {
 			flex-direction: row;
 			align-items: baseline;
 			gap: 0.75rem;

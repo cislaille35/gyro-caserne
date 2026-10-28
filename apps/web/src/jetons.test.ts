@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const css = readFileSync(new URL('./app.css', import.meta.url), 'utf8');
 
@@ -48,10 +49,21 @@ describe('jetons', () => {
 			['doux', 'surface'],
 			['accent', 'surface'],
 			['sur-rouge', 'rouge'],
-			...['ok', 'info', 'alerte', 'neutre'].map((k) => [`statut-${k}-texte`, `statut-${k}-fond`])
+			...['ok', 'info', 'alerte', 'danger', 'neutre'].map((k) => [`statut-${k}-texte`, `statut-${k}-fond`]),
+			...Object.keys(ICONES_ROLES).map((k) => [`icone-${k}-texte`, `icone-${k}-fond`])
 		]) {
+			expect(t[a], a).toMatch(/^#[0-9a-f]{6}$/);
+			expect(t[b], b).toMatch(/^#[0-9a-f]{6}$/);
 			expect(contraste(t[a], t[b]), `${a}/${b}`).toBeGreaterThanOrEqual(4.5);
 		}
 		expect(contraste(t.focus, t.fond), 'focus/fond').toBeGreaterThanOrEqual(3);
+	});
+
+	it('fond crème et bord doux en clair, fond inchangé en sombre', () => {
+		expect(themes.clair.fond).toBe('#f6f3ef');
+		expect(themes.clair['trait-doux']).toBe('#e3ddd5');
+		expect(themes.clair['rayon-grand']).toBe('16px');
+		expect(themes.sombre.fond).toBe('#11171f');
+		expect(themes.sombre['trait-doux']).toBe('#2b3642');
 	});
 });

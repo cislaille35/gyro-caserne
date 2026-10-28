@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche d’agent : David Leroy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0f4c8a}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1000px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column;">
+  <header style="background: #ffffff; border-bottom: 3px solid #b3121f; padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 10px;">
+    <a href="Agents.dc.html" style="color: #4a5562; font-size: 15px; text-decoration: none; min-height: 36px; display: flex; align-items: center;">‹ Agents</a>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <span aria-hidden="true" style="width: 64px; height: 64px; border-radius: 50%; background: #e7f0fa; color: #0f4c8a; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px;">DL</span>
+      <div style="display: flex; flex-direction: column;">
+        <h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1;">David Leroy</h1>
+        <span style="font-size: 15px; color: #4a5562;">Caporal-chef · Équipe 1</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+      <span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #e6f2e2; color: #1f5a14; border: 1px solid #a9cf9c;">Opérationnel</span>
+      <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #e7f0fa; color: #0f4c8a; border: 1px solid #a9c6e6;">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V8h11v8M14 11h4l3 3v2h-7M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0"/></svg>Référent engins</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+      <a href="#" style="min-height: 44px; border-radius: 12px; border: 1px solid #c3ccd5; display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; color: #1d2733; font-weight: 500;">Appeler</a>
+      <a href="#" style="min-height: 44px; border-radius: 12px; border: 1px solid #c3ccd5; display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; color: #1d2733; font-weight: 500;">Écrire</a>
+    </div>
+  </header>
+
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+    <sc-for list="{{blocs}}" as="b" hint-placeholder-count="5">
+      <section style="background: #ffffff; border-radius: 16px; border: 1px solid {{b.bord}}; overflow: hidden;">
+        <button type="button" aria-expanded="{{b.aria}}" onClick="{{b.basculer}}" style="width: 100%; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 8px 14px; border: none; background: #ffffff; text-align: left; font-family: 'Barlow', sans-serif; color: {{b.couleurTitre}};">
+          <span style="flex: 1; display: flex; flex-direction: column;">
+            <span style="font-weight: 600; font-size: 17px;">{{b.nom}}</span>
+            <span style="font-size: 14px; color: #4a5562;">{{b.resume}}</span>
+          </span>
+          <span aria-hidden="true" style="font-size: 20px; color: #4a5562;">{{b.chevron}}</span>
+        </button>
+        <sc-if value="{{b.ouvert}}" hint-placeholder-val="{{ false }}">
+          <dl style="margin: 0; padding: 0 14px 6px;">
+            <sc-for list="{{b.lignes}}" as="l" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #efe9e2;">
+                <dt style="color: #4a5562; font-size: 15px;">{{l.cle}}</dt>
+                <dd style="margin: 0; font-size: 15px; font-weight: 500; text-align: right;">{{l.val}}</dd>
+              </div>
+            </sc-for>
+          </dl>
+          <div style="padding: 4px 14px 14px;">
+            <button type="button" style="min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid {{b.bordBouton}}; background: #ffffff; color: {{b.couleurBouton}}; font: 500 14px 'Barlow', sans-serif;">{{b.action}}</button>
+          </div>
+        </sc-if>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ouvert: 'roles' }; }
+  renderVals() {
+    const defs = [
+      { id: 'identite', nom: 'Identité et contact', resume: 'david.leroy@exemple.fr · 06 12 34 56 78', action: 'Modifier', lignes: [{ cle: 'E-mail', val: 'david.leroy@exemple.fr' }, { cle: 'Téléphone', val: '06 12 34 56 78' }, { cle: 'Naissance', val: '12/04/1990' }] },
+      { id: 'parcours', nom: 'Parcours', resume: 'Caporal-chef depuis 2023 · entré en 2015', action: 'Modifier', lignes: [{ cle: 'Grade', val: 'Caporal-chef, 01/03/2023' }, { cle: 'Entrée au centre', val: '01/09/2015' }, { cle: 'Engagement SPV', val: 'jusqu’au 31/08/2027' }] },
+      { id: 'equipe', nom: 'Équipe et statut', resume: 'Équipe 1 · Opérationnel', action: 'Changer d’équipe ou de statut', lignes: [{ cle: 'Équipe', val: 'Équipe 1, depuis 01/01/2024' }, { cle: 'Statut', val: 'Opérationnel' }, { cle: 'Profil', val: 'Agent' }] },
+      { id: 'roles', nom: 'Rôles', resume: 'Référent engins · Membre de l’Amicale', action: '+ Nommer à un rôle', lignes: [{ cle: 'Référent engins', val: 'depuis 03/2024' }, { cle: 'Amicale', val: 'membre depuis 2022' }] },
+      { id: 'depart', nom: 'Départ du centre', resume: 'Fin des rôles, sortie d’équipe', action: 'Déclarer un départ', danger: true, lignes: [{ cle: 'Ce qui se passe', val: 'Rôles terminés, naissance et contact d’urgence effacés' }] }
+    ];
+    const blocs = defs.map((b) => {
+      const ouvert = this.state.ouvert === b.id;
+      return Object.assign({}, b, {
+        ouvert, aria: ouvert ? 'true' : 'false', chevron: ouvert ? '⌃' : '⌄',
+        bord: b.danger ? '#e3a7ac' : '#e3ddd5', couleurTitre: b.danger ? '#8a0f19' : '#1d2733',
+        bordBouton: b.danger ? '#8a0f19' : '#c3ccd5', couleurBouton: b.danger ? '#8a0f19' : '#1d2733',
+        basculer: () => this.setState({ ouvert: ouvert ? null : b.id })
+      });
+    });
+    return { blocs };
+  }
+}
+</script>
+</body>
+</html>

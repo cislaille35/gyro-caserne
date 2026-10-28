@@ -2,7 +2,7 @@
 
 Réservé au chef de centre, à son adjoint et au super administrateur.
 
-1. Ouvrez la page « Agents » de l'appli (adresse `/agents`).
+1. Ouvrez l'onglet « Caserne », puis « Agents » (adresse `/agents`).
 2. Appuyez sur « Ajouter un agent ».
 3. Remplissez le prénom, le nom et l'e-mail. L'e-mail sert à la connexion : il doit être celui de l'agent, et pas déjà utilisé.
 4. Si vous le savez, ajoutez le téléphone, la date de naissance, le grade et sa date, l'entrée au centre et l'engagement SPV.

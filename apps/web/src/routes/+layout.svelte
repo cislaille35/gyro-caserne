@@ -17,6 +17,6 @@
 	});
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} estPersonne={data.estPersonne} peutReglages={data.peutReglages} peutNominations={data.peutNominations} nomCentre={centre.nom}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} nomCentre={centre.nom}>
 	{@render children()}
 </Coquille>

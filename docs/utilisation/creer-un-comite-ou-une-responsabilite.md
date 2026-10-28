@@ -4,14 +4,14 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 
 ## Un comité
 
-1. Ouvrez la page « Réglages » (adresse `/reglages`).
+1. Ouvrez l'onglet « Caserne », puis « Réglages » (adresse `/reglages`).
 2. Dans la carte « Comités », appuyez sur « Créer un comité ».
 3. Saisissez son nom et son thème (par exemple « sport »).
 4. Appuyez sur « Créer le comité ». Le message « Le comité « … » est créé. » apparaît.
 
 ## Une responsabilité
 
-1. Ouvrez la page « Réglages » (adresse `/reglages`).
+1. Ouvrez l'onglet « Caserne », puis « Réglages » (adresse `/reglages`).
 2. Dans la carte « Responsabilités », appuyez sur « Créer une responsabilité ».
 3. Saisissez son nom, puis choisissez :
    - la nature : fonction ou mission ;

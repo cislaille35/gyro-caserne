@@ -1,17 +1,30 @@
 export type EntreeNavigation = { href: string; libelle: string; icone: string };
 
 const accueil = { href: '/', libelle: 'Accueil', icone: 'accueil' };
-const agents = { href: '/agents', libelle: 'Agents', icone: 'agents' };
-const profil = { href: '/profil', libelle: 'Mon profil', icone: 'profil' };
+const planning = { href: '/planning', libelle: 'Planning', icone: 'planning' };
+const caserne = { href: '/caserne', libelle: 'Caserne', icone: 'caserne' };
+const echanges = { href: '/echanges', libelle: 'Échanges', icone: 'echanges' };
 const connexion = { href: '/connexion', libelle: 'Connexion', icone: 'connexion' };
-const nominations = { href: '/nominations', libelle: 'Nominations', icone: 'nominations' };
-const reglages = { href: '/reglages', libelle: 'Réglages', icone: 'reglages' };
 const affichage = { href: '/affichage', libelle: 'Affichage', icone: 'affichage' };
 
-// Le super administrateur est connecté sans fiche : pas de « Mon profil ».
-// « Nominations » : réservé à qui peut attribuer au moins une responsabilité.
-// « Réglages » : réservé à qui gère les comités ou les responsabilités du centre.
-export function entreesNavigation(connecte: boolean, estPersonne = false, peutReglages = false, peutNominations = false): EntreeNavigation[] {
-	if (!connecte) return [connexion, affichage];
-	return [accueil, agents, ...(estPersonne ? [profil] : []), ...(peutNominations ? [nominations] : []), ...(peutReglages ? [reglages] : []), affichage];
+// Les droits n'ajoutent pas d'onglet : ils ajoutent des boutons dans les pages.
+export function entreesNavigation(connecte: boolean): EntreeNavigation[] {
+	return connecte ? [accueil, planning, caserne, echanges] : [connexion, affichage];
+}
+
+// Les pages rangées sous un onglet, ou sous « Moi », en plus de la sienne.
+const rangement: Record<string, string[]> = {
+	'/caserne': ['/agents', '/nominations', '/reglages'],
+	'/moi': ['/profil', '/affichage']
+};
+
+const sous = (chemin: string, racine: string) => chemin === racine || chemin.startsWith(`${racine}/`);
+
+// L'entrée (onglet, « Moi » ou cloche) dont descend la page courante.
+export function rubriqueDe(chemin: string): string {
+	if (chemin === '/') return '/';
+	for (const racine of ['/planning', '/caserne', '/echanges', '/notifications', '/moi']) {
+		if (sous(chemin, racine) || (rangement[racine] ?? []).some((r) => sous(chemin, r))) return racine;
+	}
+	return chemin;
 }

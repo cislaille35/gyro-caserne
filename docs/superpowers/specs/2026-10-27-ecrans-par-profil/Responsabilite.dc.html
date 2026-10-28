@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Responsabilité : Référent engins</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0f4c8a}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1100px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column;">
+  <header style="background: #ffffff; border-bottom: 3px solid #b3121f; padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <a href="Main.dc.html" style="color: #4a5562; font-size: 15px; text-decoration: none; min-height: 36px; display: flex; align-items: center;">‹ Réglages</a>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 14px; background: #fbe7e8; color: #b3121f; display: flex; align-items: center; justify-content: center;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V8h11v8"/><path d="M14 11h4l3 3v2h-7"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+      </span>
+      <div style="display: flex; flex-direction: column;">
+        <h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1;">Référent engins</h1>
+        <span style="font-size: 14px; color: #4a5562;">Tout le centre · nommé par le chef de centre</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+      <span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #e6eaee; color: #4a5562; border: 1px solid #c3ccd5;">Modèle : Référent matériel</span>
+      <sc-if value="{{personnalise}}" hint-placeholder-val="{{ true }}">
+        <span style="font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #fdf1dc; color: #7a4a00; border: 1px solid #e8c88a;">Personnalisé</span>
+      </sc-if>
+    </div>
+  </header>
+
+  <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+    <p style="margin: 0; font-size: 16px; color: #4a5562;">Ce que le référent peut faire, en plus de ce que tout agent fait déjà. Touchez un domaine pour le régler.</p>
+
+    <sc-for list="{{domaines}}" as="d" hint-placeholder-count="6">
+      <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3ddd5; overflow: hidden;">
+        <button type="button" aria-expanded="{{d.ouvertAria}}" onClick="{{d.basculer}}" style="width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: #ffffff; text-align: left; font-family: 'Barlow', sans-serif; color: #1d2733;">
+          <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #eef1f4; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #4a5562;">{{d.initiale}}</span>
+          <span style="flex: 1; display: flex; flex-direction: column;">
+            <span style="font-weight: 600; font-size: 17px;">{{d.nom}}</span>
+            <span style="font-size: 14px; color: #4a5562;">{{d.resume}}</span>
+          </span>
+          <sc-if value="{{d.change}}" hint-placeholder-val="{{ false }}">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #c27a00;" aria-label="modifié"></span>
+          </sc-if>
+          <span aria-hidden="true" style="font-size: 20px; color: #4a5562;">{{d.chevron}}</span>
+        </button>
+        <sc-if value="{{d.ouvert}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px;">
+            <div role="radiogroup" aria-label="{{d.nom}}" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;">
+              <sc-for list="{{d.niveaux}}" as="n" hint-placeholder-count="3">
+                <button type="button" role="radio" aria-checked="{{n.choisi}}" onClick="{{n.choisir}}" style="{{n.style}}">{{n.libelle}}</button>
+              </sc-for>
+            </div>
+            <span style="font-size: 15px; color: #1d2733;">{{d.detail}}</span>
+            <sc-if value="{{d.change}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{d.remettre}}" style="align-self: flex-start; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid #c3ccd5; background: #ffffff; color: #1d2733; font: 500 14px 'Barlow', sans-serif;">↺ Revenir au modèle ({{d.modele}})</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </section>
+    </sc-for>
+
+    <section style="background: #ffffff; border-radius: 16px; border: 1px solid #e3a7ac; overflow: hidden;">
+      <button type="button" aria-expanded="false" style="width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: #ffffff; text-align: left; font-family: 'Barlow', sans-serif; color: #1d2733;">
+        <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #fbe7e8; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #8a0f19;">A</span>
+        <span style="flex: 1; display: flex; flex-direction: column;">
+          <span style="font-weight: 600; font-size: 17px; color: #8a0f19;">Administration de l’appli</span>
+          <span style="font-size: 14px; color: #4a5562;">Aucun pouvoir · réservé chef et adjoint</span>
+        </span>
+        <span aria-hidden="true" style="font-size: 20px; color: #4a5562;">›</span>
+      </button>
+    </section>
+  </div>
+
+  <div style="position: sticky; bottom: 0; margin-top: auto; background: #ffffff; border-top: 1px solid #e3ddd5; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px;">
+    <sc-if value="{{personnalise}}" hint-placeholder-val="{{ true }}">
+      <span role="status" style="font-size: 14px; color: #7a4a00;">{{nbChanges}} domaine(s) modifié(s), pas encore enregistré(s)</span>
+    </sc-if>
+    <div style="display: flex; gap: 10px;">
+      <button type="button" style="flex: 2; min-height: 50px; border-radius: 12px; border: none; background: #b3121f; color: #ffffff; font: 600 17px 'Barlow', sans-serif;">Enregistrer</button>
+      <button type="button" onClick="{{toutRemettre}}" style="flex: 1; min-height: 50px; border-radius: 12px; border: 1px solid #4a5562; background: #ffffff; color: #1d2733; font: 600 16px 'Barlow', sans-serif;">↺ Tout revenir</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.modele = { planning: 0, engins: 2, stock: 1, reservations: 1, salons: 1, messagerie: 1 };
+    this.state = { choix: Object.assign({}, this.modele, { stock: 2 }), ouvert: 'engins' };
+  }
+  renderVals() {
+    const defs = [
+      { id: 'planning', nom: 'Planning et gardes', niveaux: ['Rien de plus', 'Voir', 'Valider'], details: ['Comme tout agent : il voit le planning.', 'Voit aussi les motifs d’absence.', 'Valide remplacements et échanges, compose les gardes.'] },
+      { id: 'engins', nom: 'Engins et anomalies', niveaux: ['Rien de plus', 'Prendre en charge', 'Gérer'], details: ['Comme tout agent : il signale une anomalie.', 'Prend en charge les anomalies signalées.', 'Traite les anomalies et tient les fiches des engins.'] },
+      { id: 'stock', nom: 'Stock et pharmacie', niveaux: ['Signaler', 'Voir', 'Gérer'], details: ['Signale un besoin, comme tout agent.', 'Consulte les stocks.', 'Tient le stock : entrées, sorties, seuils.'] },
+      { id: 'reservations', nom: 'Réservations', niveaux: ['Rien', 'Réserver', 'Gérer'], details: ['Ne réserve rien.', 'Réserve un véhicule ou du matériel.', 'Valide et gère toutes les réservations.'] },
+      { id: 'salons', nom: 'Salons', niveaux: ['Lire', 'Publier', 'Modérer'], details: ['Lit les salons de ses équipes et comités.', 'Publie des messages.', 'Modère et épingle.'] },
+      { id: 'messagerie', nom: 'Messagerie', niveaux: ['Rien', 'Utiliser', 'Modérer'], details: ['N’écrit pas aux autres agents.', 'Écrit aux autres agents.', 'Modère les échanges signalés.'] }
+    ];
+    const choix = this.state.choix;
+    const domaines = defs.map((d) => {
+      const ouvert = this.state.ouvert === d.id;
+      const change = choix[d.id] !== this.modele[d.id];
+      return {
+        nom: d.nom,
+        initiale: d.nom.charAt(0),
+        resume: d.niveaux[choix[d.id]],
+        detail: d.details[choix[d.id]],
+        modele: d.niveaux[this.modele[d.id]],
+        change,
+        ouvert,
+        ouvertAria: ouvert ? 'true' : 'false',
+        chevron: ouvert ? '⌃' : '⌄',
+        basculer: () => this.setState({ ouvert: ouvert ? null : d.id }),
+        remettre: () => this.setState({ choix: Object.assign({}, choix, { [d.id]: this.modele[d.id] }) }),
+        niveaux: d.niveaux.map((libelle, i) => ({
+          libelle,
+          choisi: choix[d.id] === i ? 'true' : 'false',
+          style: 'min-height: 44px; border-radius: 10px; font: ' + (choix[d.id] === i ? '600' : '500') + ' 15px Barlow, sans-serif; border: 1px solid ' + (choix[d.id] === i ? '#1d2733' : '#c3ccd5') + '; background: ' + (choix[d.id] === i ? '#1d2733' : '#ffffff') + '; color: ' + (choix[d.id] === i ? '#ffffff' : '#1d2733') + ';',
+          choisir: () => this.setState({ choix: Object.assign({}, choix, { [d.id]: i }) })
+        }))
+      };
+    });
+    const nbChanges = domaines.filter((d) => d.change).length;
+    return { domaines, nbChanges, personnalise: nbChanges > 0, toutRemettre: () => this.setState({ choix: Object.assign({}, this.modele) }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,8 +1,11 @@
 import { redirect } from '@sveltejs/kit';
-import { prenomDe } from '@gyro-caserne/socle';
+import { accueilDe, prenomDe } from '@gyro-caserne/socle';
+import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.acteur) redirect(303, '/connexion');
-	return { prenom: await prenomDe(locals.base, locals.acteur) };
+export const load: PageServerLoad = async ({ locals, url }) => {
+	const { acteur, base } = locals;
+	if (!acteur) redirect(303, '/connexion');
+	const accueil = await accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhuiParis());
+	return { prenom: await prenomDe(base, acteur), ...accueil };
 };
