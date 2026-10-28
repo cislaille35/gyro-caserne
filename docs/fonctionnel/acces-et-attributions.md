@@ -44,7 +44,22 @@ Chacun ne voit et ne propose que les rôles et les périmètres qu'il a le droit
 Avant d'attribuer une responsabilité, elle doit exister. La page « Réglages » crée et fait vivre :
 
 - **les comités** (nom, thème court : « sport », « formation ») : créer, renommer, dissoudre. Le comité du centre ne se renomme pas et ne se dissout pas ;
-- **les responsabilités** : nom, nature (fonction ou mission), portée (centre, équipe ou comité), qui l'attribue, droits. Créer, modifier, archiver.
+- **les responsabilités** (rôles) : nom, nature (fonction ou mission), portée (centre, équipe ou comité), qui l'attribue, icône, droits. Créer à partir d'un modèle, modifier, archiver ;
+- **les profils** (Agent, Réserve citoyenne) : leurs droits par domaine. Réservé au chef de centre, à l'adjoint et au super administrateur.
+
+La liste range les rôles par thème, dans des groupes repliables : « Chef de centre et adjoint », « Chefs d'équipe » (portée équipe), « Référents » (portée centre), « Comités » (les comités en cours, leurs membres et leur rapporteur, et les rôles de portée comité), « Profils », « Archivés ». Un rôle sans titulaire est signalé « Aucun titulaire ». L'icône d'un rôle est celle choisie, sinon celle de son modèle, sinon celle de son thème.
+
+**Les droits en paquets.** La page d'un rôle range ses droits par domaine, chacun en niveaux cumulatifs (fixés par l'appli) :
+
+| Domaine | Niveaux |
+|---|---|
+| Planning et gardes | Rien de plus · Voir les absences · Valider les remplacements · Gérer le planning |
+| Engins et anomalies | Rien de plus · Gérer (traiter les anomalies, fiches de prise de garde) |
+| Stock et pharmacie | Rien de plus · Gérer |
+| Réservations | Rien · Réserver · Gérer |
+| Messagerie | Rien de plus · Modérer |
+
+Les droits d'administration (gérer les accès, les comités, les responsabilités, nommer) sont des cases à part. Des droits qui ne tombent sur aucun niveau s'affichent « Sur mesure » : enregistrer sans toucher ce domaine les garde tels quels. Un rôle créé à partir d'un modèle garde ce modèle : s'il s'en écarte, il porte « Personnalisé », et « Revenir au modèle » (un domaine) ou « Tout revenir » (tout le rôle) le remet comme son modèle. Les rôles du jeu de départ n'ont pas de modèle. Le « Détail droit par droit » reste accessible pour les cas particuliers. Pour un profil, le niveau décrit tous ses droits du domaine ; les droits de base (voir le planning, l'annuaire…) ne s'y règlent pas.
 
 **Qui attribue** une responsabilité : le chef de centre, un comité désigné, ou, pour une portée « comité », le comité visé lui-même (cas du membre et du rapporteur).
 
@@ -63,9 +78,9 @@ Avant d'attribuer une responsabilité, elle doit exister. La page « Réglages �
 
 **Règles** :
 
-- Rien n'est supprimé : on dissout un comité, on archive une responsabilité ; ils restent dans « Anciens » et ne sont plus proposés. On ne les réactive pas.
+- Rien n'est supprimé : on dissout un comité, on archive une responsabilité ; ils restent dans « Archivés » et ne sont plus proposés. On ne les réactive pas.
 - Noms uniques (comités entre eux, responsabilités entre elles), sans tenir compte des majuscules : « amicale » est refusé si « Amicale » existe, même parmi les anciens. 60 caractères au plus.
-- Les responsabilités système (chef de centre, adjoint, chef d'équipe) ne s'archivent pas ; leurs droits verrouillés ne se retirent pas.
+- Les responsabilités système (chef de centre, adjoint, chef d'équipe) ne s'archivent pas et leur page est en lecture seule ; leurs droits verrouillés ne se retirent pas.
 - La portée ne change pas tant que quelqu'un tient la responsabilité, aujourd'hui ou plus tard.
 
 **Effets d'une dissolution ou d'un archivage**, le jour même, après une case « Je confirme » :

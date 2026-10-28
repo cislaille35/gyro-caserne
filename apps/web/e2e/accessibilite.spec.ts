@@ -83,23 +83,30 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 			});
 
-			test('/reglages, tous les formulaires ouverts : sans violation, sans débord', async ({ page }) => {
-				await page.goto('/reglages');
-				await page.waitForLoadState('networkidle');
-				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
-				await sansViolation(page);
-				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+			test('réglages, groupes et blocs ouverts : sans violation, sans débord', async ({ page }) => {
+				for (const chemin of ['/reglages', `/reglages/roles/${await idRole(page, 'Référent engins')}`, '/reglages/roles/nouveau?modele=vierge', '/reglages/comites/nouveau']) {
+					await page.goto(chemin);
+					await page.waitForLoadState('networkidle');
+					await toutOuvrir(page);
+					await sansViolation(page);
+					expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+				}
 			});
 		});
 	});
 }
 
-// Le bloc repliable dont le titre est donné, ouvert. L'hydratation ne referme pas un bloc ouvert.
-async function ouvrir(page: Page, titre: string) {
-	const bloc = page.locator('details').filter({ has: page.locator('summary', { hasText: titre }) });
-	await bloc.locator('summary').click();
-	await expect(bloc.locator('form').first()).toBeVisible();
-	return bloc;
+// Ouvre les groupes repliés et les blocs <details> de la page.
+async function toutOuvrir(page: Page) {
+	for (const bouton of await page.locator('button[aria-expanded="false"]').all()) if (await bouton.isVisible()) await bouton.click();
+	await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
+}
+
+// L'identifiant d'un rôle, lu dans le lien de la liste des réglages.
+async function idRole(page: Page, nom: string): Promise<string> {
+	await page.goto('/reglages');
+	const href = await page.locator('main a', { hasText: nom }).first().getAttribute('href');
+	return href!.split('/').pop()!;
 }
 
 // Adresse de la fiche, lue dans la liste de gestion.
@@ -264,36 +271,49 @@ test.describe('réglages', () => {
 		await contexte.close();
 	});
 
-	test('le super administrateur crée un comité et une responsabilité qu’il attribue, puis le dissout : le chef de centre attribue', async ({ browser }) => {
+	test('le super administrateur crée un comité, puis un rôle qu’il attribue, règle un domaine, puis dissout le comité : le chef de centre attribue', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const marque = nouvelleMarque();
 		const comite = `Comité sport ${marque}`;
-		const responsabilite = `Référent sport ${marque}`;
+		const role = `Référent sport ${marque}`;
+
 		await page.goto('/reglages');
+		await page.getByRole('link', { name: '+ Nouveau comité' }).click();
+		await page.getByLabel('Nom', { exact: true }).fill(comite);
+		await page.getByLabel('Thème').fill('sport');
+		await page.getByRole('button', { name: 'Créer le comité' }).click();
+		await expect(page).toHaveURL(/\/reglages\/comites\/\d+$/);
+		await expect(page.getByRole('heading', { level: 1, name: comite })).toBeVisible();
+		const pageComite = page.url();
 
-		const creation = await ouvrir(page, 'Créer un comité');
-		await creation.getByLabel('Nom', { exact: true }).fill(comite);
-		await creation.getByLabel('Thème').fill('sport');
-		await creation.getByRole('button', { name: 'Créer le comité' }).click();
-		await expect(page.getByText(`Le comité « ${comite} » est créé.`)).toBeVisible();
+		await page.goto('/reglages/roles/nouveau');
+		await page.getByRole('link', { name: /Vierge/ }).click();
+		await page.getByLabel('Nom', { exact: true }).fill(role);
+		await page.getByLabel('Portée').selectOption({ label: 'Tout le centre' });
+		await page.getByLabel('Qui attribue').selectOption({ label: `Le comité « ${comite} »` });
+		await page.getByText('Ballon').locator('..').click();
+		await page.getByRole('button', { name: 'Créer le rôle' }).click();
+		await expect(page).toHaveURL(/\/reglages\/roles\/\d+$/);
+		await expect(page.getByRole('heading', { level: 1, name: role })).toBeVisible();
+		await expect(page.getByText(`nommé par le comité « ${comite} »`)).toBeVisible();
 
-		const nouvelle = await ouvrir(page, 'Créer une responsabilité');
-		await nouvelle.getByLabel('Nom', { exact: true }).fill(responsabilite);
-		await nouvelle.getByLabel('Portée').selectOption({ label: 'Centre' });
-		await nouvelle.getByLabel('Qui attribue').selectOption({ label: `Le comité « ${comite} »` });
-		await nouvelle.getByLabel('Gérer le stock', { exact: true }).check();
-		await nouvelle.getByRole('button', { name: 'Créer la responsabilité' }).click();
-		await expect(page.getByText(`La responsabilité « ${responsabilite} » est créée.`)).toBeVisible();
-		// Colonnes : portée, qui attribue, droits, titulaires.
-		const ligne = page.getByRole('row', { name: new RegExp(responsabilite) });
-		await expect(ligne.getByRole('cell').nth(1)).toHaveText(comite);
-		await expect(ligne.getByRole('cell').nth(2)).toHaveText('Gérer le stock');
+		// Un domaine changé : la barre le dit avant l'enregistrement.
+		const stock = page.locator('main section').filter({ has: page.getByRole('button', { name: /Stock et pharmacie/ }) });
+		if ((await stock.getByRole('button', { name: /Stock et pharmacie/ }).getAttribute('aria-expanded')) === 'false') await stock.getByRole('button', { name: /Stock et pharmacie/ }).click();
+		await stock.getByText('Gérer', { exact: true }).click();
+		await expect(page.getByText('1 domaine modifié, pas encore enregistré')).toBeVisible();
+		await expect(page.getByText('Personnalisé', { exact: true })).toBeVisible();
+		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
+		const pageRole = page.url();
 
-		const reglage = await ouvrir(page, `Modifier ou dissoudre « ${comite} »`);
-		await reglage.getByLabel('Je confirme').check();
-		await reglage.getByRole('button', { name: 'Dissoudre le comité' }).click();
+		await page.goto(pageComite);
+		await page.locator('summary', { hasText: 'Dissoudre le comité' }).click();
+		await page.getByLabel('Je confirme').check();
+		await page.getByRole('button', { name: 'Dissoudre le comité' }).click();
 		await expect(page.getByText('Le comité est dissous.')).toBeVisible();
-		await expect(ligne.getByRole('cell').nth(1)).toHaveText('Le chef de centre');
+		await page.goto(pageRole);
+		await expect(page.getByText('nommé par le chef de centre')).toBeVisible();
 		await page.context().close();
 	});
 });

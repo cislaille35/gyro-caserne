@@ -88,7 +88,8 @@ describe('page Réglages', () => {
 	});
 
 	it('sans JavaScript, les groupes restent ouverts', () => {
-		const tete = render(Layout, { props: { data, children: createRawSnippet(() => ({ render: () => '<p>x</p>' })) } }).head;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const tete = render(Layout as any, { props: { data, children: createRawSnippet(() => ({ render: () => '<p>x</p>' })) } }).head;
 		expect(tete).toMatch(/<noscript><style>\.groupe > \[hidden\]/);
 	});
 
