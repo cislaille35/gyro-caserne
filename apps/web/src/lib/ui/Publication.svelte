@@ -53,7 +53,7 @@
 	{/if}
 
 	{#if p.priseDeConnaissance}
-		<p class="doux">Prise de connaissance demandée{p.priseDeConnaissance.faite ? ' : vous l’avez faite' : ''}.</p>
+		<p class="doux">Prise de connaissance demandée{p.priseDeConnaissance.le ? ' : vous l’avez faite' : ''}.</p>
 	{/if}
 
 	{#if p.photos.length > 0}

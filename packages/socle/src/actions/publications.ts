@@ -1,12 +1,13 @@
-import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { accesMur, estConvoque, exigerMur, refusMur, type CleMur, type Mur } from '../murs.ts';
+import { accesMur, estConvoque, exigerMur, refusMur, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
+import type { CommentaireVue } from './interactions.ts';
 import { nomActeur } from './personnes.ts';
 
 const PHOTOS_MAX = 4;
@@ -42,7 +43,10 @@ export type PublicationVue = {
 	jaimeParMoi: boolean;
 	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
 	sondage: { question: string; reponses: string[]; resultats: number[]; vote: number | null } | null;
-	priseDeConnaissance: { faite: boolean } | null;
+	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait.
+	priseDeConnaissance: { le: string | null } | null;
+	// Les 2 derniers, du plus ancien au plus récent.
+	derniersCommentaires: CommentaireVue[];
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
 
@@ -209,6 +213,33 @@ export async function lireMur(
 	const enTete = avant === undefined ? epinglees : [];
 	const publications = suivantes.slice(0, taille);
 	const lignes = [...enTete, ...publications];
+	const vues = await vuesDe(base, acteur, mur, appartenances, lignes, { visite: maintenant });
+	const vue = (p: (typeof lignes)[number]) => vues.find((v) => v.id === p.id)!;
+	return { mur, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
+}
+
+// Une publication seule, avec tous ses commentaires (la visite du mur n'est pas marquée). Trois requêtes.
+export async function lirePublication(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<{ mur: Mur; publication: PublicationVue; commentaires: CommentaireVue[] }> {
+	const { ligne, mur, appartenances } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
+	const tous: CommentaireVue[] = [];
+	const [vue] = await vuesDe(base, acteur, mur, appartenances, [ligne], { tous });
+	return { mur, publication: vue!, commentaires: tous };
+}
+
+export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
+	auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
+
+// Tout ce qui accompagne des publications, en une requête : comptes, gestes de l'acteur, photos, auteurs, derniers commentaires.
+// `visite` : marque la visite du mur ; `tous` : reçoit tous les commentaires (d'une seule publication) au lieu des 2 derniers.
+async function vuesDe(
+	base: Base,
+	acteur: Acteur,
+	mur: Mur,
+	appartenances: Appartenances,
+	lignes: (typeof publication.$inferSelect)[],
+	options: { visite?: string; tous?: CommentaireVue[] }
+): Promise<PublicationVue[]> {
+	const cle = mur.cle;
 	const ids = lignes.map((p) => p.id);
 	const idsAuteurs = [...new Set(lignes.map((p) => /^personne:(\d+)$/.exec(p.auteur)?.[1]).filter((x) => x !== undefined).map(Number))];
 
@@ -232,22 +263,40 @@ export async function lireMur(
 			.where(inArray(voteSondage.publicationId, ids))
 			.groupBy(voteSondage.publicationId, voteSondage.reponse),
 		base
-			.select({ publicationId: priseConnaissance.publicationId })
+			.select({ publicationId: priseConnaissance.publicationId, le: priseConnaissance.le })
 			.from(priseConnaissance)
 			.where(and(inArray(priseConnaissance.publicationId, ids), eq(priseConnaissance.personneId, moi))),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs))
+		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
+		base
+			.select({ id: commentaire.id, publicationId: commentaire.publicationId, auteur: commentaire.auteur, texte: commentaire.texte, creeLe: commentaire.creeLe, prenom: personne.prenom, nom: personne.nom })
+			.from(commentaire)
+			.leftJoin(personne, sql`${commentaire.auteur} = 'personne:' || ${personne.id}`)
+			.where(
+				and(
+					inArray(commentaire.publicationId, ids),
+					options.tous ? undefined : sql`${commentaire.id} in (select d.id from ${commentaire} d where d.publication_id = ${commentaire.publicationId} order by d.id desc limit 2)`
+				)
+			)
+			.orderBy(asc(commentaire.id))
 	] as const;
-	const visite = base
-		.insert(visiteMur)
-		.values({ personneId: moi, mur: cle, vueLe: maintenant })
-		.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } });
-	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs] = acteur.type === 'personne' ? await base.batch([...lectures, visite]) : await base.batch(lectures);
+	const maintenant = options.visite;
+	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs, derniers] =
+		acteur.type === 'personne' && maintenant
+			? await base.batch([
+					...lectures,
+					base
+						.insert(visiteMur)
+						.values({ personneId: moi, mur: cle, vueLe: maintenant })
+						.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } })
+				])
+			: await base.batch(lectures);
+	const vusCommentaires = derniers.map((c) => ({ ...commentaireVu(acteur, mur, c), publicationId: c.publicationId }));
+	options.tous?.push(...vusCommentaires.map(({ publicationId: _, ...c }) => c));
 
 	const vue = (p: (typeof lignes)[number]): PublicationVue => {
 		const j = jaimes.find((x) => x.publicationId === p.id);
-		const auteur = p.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : auteurs.find((a) => `personne:${a.id}` === p.auteur);
 		const sesReponses = reponses.filter((r) => r.publicationId === p.id);
 		const sesVotes = votes.filter((v) => v.publicationId === p.id);
 		const choix: string[] = p.sondageReponses ? JSON.parse(p.sondageReponses) : [];
@@ -255,7 +304,7 @@ export async function lireMur(
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
-			auteur: auteur ? { prenom: auteur.prenom, nom: auteur.nom } : { prenom: '', nom: 'Personne inconnue' },
+			auteur: auteurVu(p.auteur, auteurs.find((a) => `personne:${a.id}` === p.auteur)),
 			type: p.type,
 			texte: p.texte,
 			creeLe: p.creeLe,
@@ -286,11 +335,20 @@ export async function lireMur(
 							resultats: choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0),
 							vote: sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null
 						},
-			priseDeConnaissance: p.priseDeConnaissance === 1 ? { faite: prises.some((x) => x.publicationId === p.id) } : null,
+			priseDeConnaissance: p.priseDeConnaissance === 1 ? { le: prises.find((x) => x.publicationId === p.id)?.le ?? null } : null,
+			derniersCommentaires: vusCommentaires
+				.filter((c) => c.publicationId === p.id)
+				.slice(-2)
+				.map(({ publicationId: _, ...c }) => c),
 			droits: droitsSur(acteur, mur, p)
 		};
 	};
-	return { mur, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
+	return lignes.map(vue);
+}
+
+// Un commentaire tel que l'acteur le voit : supprimable par son auteur ou un modérateur du mur.
+export function commentaireVu(acteur: Acteur, mur: Mur, c: { id: number; auteur: string; texte: string; creeLe: string; prenom: string | null; nom: string | null }): CommentaireVue {
+	return { id: c.id, auteur: auteurVu(c.auteur, c), texte: c.texte, creeLe: c.creeLe, supprimable: c.auteur === nomActeur(acteur) || mur.peutModerer };
 }
 
 // Une photo, à qui peut lire son mur.

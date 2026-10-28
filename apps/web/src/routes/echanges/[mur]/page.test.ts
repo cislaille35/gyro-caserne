@@ -20,6 +20,7 @@ const pub = (p: Partial<PublicationVue> = {}): PublicationVue => ({
 	evenement: null,
 	sondage: null,
 	priseDeConnaissance: null,
+	derniersCommentaires: [],
 	droits: { modifier: false, supprimer: false, epingler: false, fermer: false },
 	...p
 });

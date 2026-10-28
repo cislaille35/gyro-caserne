@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
-import { epingler, fermerCommentaires, lireMur, modifierPublication, photo, publier, supprimerPublication } from '../src/actions/publications.ts';
+import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, supprimerPublication } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, photoPublication, priseConnaissance, profil, publication, reponseEvenement, responsabilite, visiteMur, voteSondage } from '../src/schema.ts';
@@ -343,6 +343,7 @@ describe('lireMur', () => {
 			evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous', convoque: true, reponse: 'present', compte: { present: 2, absent: 0, incertain: 1 } },
 			sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], resultats: [1, 0, 1], vote: 2 },
 			priseDeConnaissance: null,
+			derniersCommentaires: [{ id: expect.any(Number), auteur: { prenom: 'Autre', nom: 'Test' }, texte: 'Super', creeLe: maintenant, supprimable: false }],
 			droits: { modifier: false, supprimer: false, epingler: false, fermer: false }
 		});
 		const vueChef = (await lireMur(base, acteur(chef), 'vie', {}, maintenant)).publications[0]!;
@@ -386,9 +387,9 @@ describe('lireMur', () => {
 		const id = await publier(base, superAdmin, 'centre', { type: 'annonce', texte: 'Lire', priseDeConnaissance: true }, maintenant);
 		await base.insert(priseConnaissance).values({ publicationId: id, personneId: agent, le: maintenant });
 		const vue = (await lireMur(base, acteur(agent), 'centre', {}, maintenant)).publications[0]!;
-		expect(vue.priseDeConnaissance).toEqual({ faite: true });
+		expect(vue.priseDeConnaissance).toEqual({ le: maintenant });
 		expect(vue.auteur).toEqual({ prenom: 'Super', nom: 'administrateur' });
-		expect((await lireMur(base, acteur(autre), 'centre', {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ faite: false });
+		expect((await lireMur(base, acteur(autre), 'centre', {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ le: null });
 		const duSuper = (await lireMur(base, superAdmin, 'centre', {}, maintenant)).publications[0]!;
 		expect(duSuper.droits).toEqual({ modifier: true, supprimer: true, epingler: true, fermer: true });
 	});
@@ -406,6 +407,25 @@ describe('lireMur', () => {
 		await lireMur(base, acteur(agent), 'vie', {}, '2026-10-28T16:00');
 		await lireMur(base, superAdmin, 'vie', {}, maintenant);
 		expect(await base.select().from(visiteMur)).toEqual([{ personneId: agent, mur: 'vie', vueLe: '2026-10-28T16:00' }]);
+	});
+
+	it('les 2 derniers commentaires de chaque publication, du plus ancien au plus récent', async () => {
+		const { base, agent, autre, chef } = await jeu();
+		const a = await publier(base, acteur(agent), 'vie', message('A'), maintenant);
+		const b = await publier(base, acteur(agent), 'vie', message('B'), maintenant);
+		for (const [i, texte] of ['un', 'deux', 'trois'].entries())
+			await base.insert(commentaire).values({ publicationId: a, auteur: `personne:${i === 2 ? agent : autre}`, texte, creeLe: `2026-10-28T15:0${i}` });
+		await base.insert(commentaire).values({ publicationId: b, auteur: 'super:admin@exemple.fr', texte: 'seul', creeLe: maintenant });
+		const vue = async (qui: Acteur) => (await lireMur(base, qui, 'vie', {}, maintenant)).publications;
+		const [pb, pa] = await vue(acteur(agent));
+		expect(pa!.commentaires).toBe(3);
+		expect(pa!.derniersCommentaires.map((c) => [c.texte, c.auteur.prenom, c.supprimable])).toEqual([
+			['deux', 'Autre', false],
+			['trois', 'Agent', true]
+		]);
+		expect(pb!.derniersCommentaires.map((c) => [c.texte, c.auteur])).toEqual([['seul', { prenom: 'Super', nom: 'administrateur' }]]);
+		// Le modérateur peut supprimer tout commentaire.
+		expect((await vue(acteur(chef)))[1]!.derniersCommentaires.map((c) => c.supprimable)).toEqual([true, true]);
 	});
 
 	it('mur non lisible : refus', async () => {
@@ -428,6 +448,31 @@ describe('lireMur', () => {
 		expect(page.publications).toHaveLength(20);
 		expect(page.publications.every((p) => p.jaimeParMoi && p.jaime === 1)).toBe(true);
 		expect(page.publications.filter((p) => p.photos.length === 1)).toHaveLength(10);
+	});
+});
+
+describe('lirePublication', () => {
+	it('la publication vue par l’acteur, tous ses commentaires, sans marquer la visite', async () => {
+		const { base, agent, autre } = await jeu();
+		const id = await publier(base, acteur(agent), 'vie', { type: 'annonce', texte: 'Lire' }, maintenant);
+		for (const texte of ['un', 'deux', 'trois']) await base.insert(commentaire).values({ publicationId: id, auteur: `personne:${autre}`, texte, creeLe: maintenant });
+		await base.insert(jaime).values({ publicationId: id, personneId: agent });
+		const avant = base.requetes;
+		const lu = await lirePublication(base, acteur(agent), id, maintenant);
+		expect(base.requetes - avant).toBeLessThanOrEqual(4);
+		expect(lu.mur).toMatchObject({ cle: 'vie', peutPublier: true });
+		expect(lu.publication).toMatchObject({ id, texte: 'Lire', jaime: 1, jaimeParMoi: true, commentaires: 3 });
+		expect(lu.publication.derniersCommentaires.map((c) => c.texte)).toEqual(['deux', 'trois']);
+		expect(lu.commentaires.map((c) => c.texte)).toEqual(['un', 'deux', 'trois']);
+		expect(await base.select().from(visiteMur)).toEqual([]);
+	});
+
+	it('refus : publication inconnue, mur non lisible ; le super administrateur lit', async () => {
+		const { base, agent, chef, e1 } = await jeu();
+		const id = await publier(base, acteur(chef), `equipe:${e1.id}`, message(), maintenant);
+		await expect(lirePublication(base, acteur(agent), id, maintenant)).rejects.toThrow(RefusDroit);
+		await expect(lirePublication(base, acteur(agent), 999, maintenant)).rejects.toThrow(DonneeInvalide);
+		expect((await lirePublication(base, superAdmin, id, maintenant)).publication.droits.epingler).toBe(true);
 	});
 });
 

@@ -9,7 +9,7 @@ import { REPONSES_EVENEMENT, STATUTS_AVEC_ACCES, type ReponseEvenement } from '.
 import { appartenances, estConvoque, estMembre, exigerMur, refusMur } from '../murs.ts';
 import { affectationEquipe, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
-import { cible, texte, type Convoques } from './publications.ts';
+import { cible, commentaireVu, texte, type Convoques } from './publications.ts';
 
 export type Personne = { id: number; prenom: string; nom: string };
 export type CommentaireVue = { id: number; auteur: { prenom: string; nom: string }; texte: string; creeLe: string; supprimable: boolean };
@@ -59,13 +59,7 @@ export async function lireCommentaires(base: Base, acteur: Acteur, idPublication
 		.leftJoin(personne, sql`${commentaire.auteur} = 'personne:' || ${personne.id}`)
 		.where(eq(commentaire.publicationId, idPublication))
 		.orderBy(asc(commentaire.id));
-	return lignes.map((c) => ({
-		id: c.id,
-		auteur: c.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : c.nom === null ? { prenom: '', nom: 'Personne inconnue' } : { prenom: c.prenom!, nom: c.nom },
-		texte: c.texte,
-		creeLe: c.creeLe,
-		supprimable: c.auteur === nomActeur(acteur) || mur.peutModerer
-	}));
+	return lignes.map((c) => commentaireVu(acteur, mur, c));
 }
 
 export async function aimer(base: Base, acteur: Acteur, id: number, oui: boolean, aujourdhui: string): Promise<void> {
