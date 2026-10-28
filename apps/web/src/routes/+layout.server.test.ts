@@ -72,7 +72,7 @@ describe('load du layout', () => {
 		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
 		await publier(base, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'] } }, maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(3);
-		await repondreEvenement(base, alice, evenement, 'incertain', maintenant.slice(0, 10));
+		await repondreEvenement(base, alice, evenement, 'incertain', maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(2);
 		// Un événement avec sondage compte une fois, tant que la réponse ou le vote manque.
 		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant);

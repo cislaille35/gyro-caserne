@@ -238,6 +238,9 @@ describe('interactions', () => {
 		expect(await base.select().from(reponseEvenement)).toMatchObject([{ personneId: alice.id, reponse: 'incertain' }]);
 		expect(await agir('repondre', locaux(base, bruno), 'centre', [['id', id], ['reponse', 'present']])).toMatchObject({ status: 403, data: { message: 'Vous n’êtes pas convoqué à cet événement.' } });
 		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'peut-etre']])).toMatchObject({ status: 400, data: { message: 'Choisissez une réponse.' } });
+		// Commencé : plus de réponse.
+		await base.update(publication).set({ debut: '2026-01-01T08:00' });
+		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'absent']])).toMatchObject({ status: 400, data: { message: 'Cet événement est passé : vous ne pouvez plus répondre.' } });
 	});
 
 	it('voter : un choix par personne, qu’on peut changer', async () => {

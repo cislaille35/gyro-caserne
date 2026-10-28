@@ -80,7 +80,7 @@ export const gestes = {
 		surPublication(r, async (acteur, id, f) => {
 			const reponse = texte(f, 'reponse');
 			// Le socle refuse une réponse inconnue.
-			await repondreEvenement(r.locals.base, acteur, id, reponse as 'present', maintenantParis().slice(0, 10));
+			await repondreEvenement(r.locals.base, acteur, id, reponse as 'present', maintenantParis());
 			return `Réponse enregistrée : ${LIBELLES[reponse]}.`;
 		}),
 	voter: (r: Requete) =>

@@ -23,11 +23,11 @@ describe('load de /notifications', () => {
 		expect(data.evenements).toMatchObject([{ id: evenement, debut: '2099-01-01T19:00' }]);
 		expect(data.sondages).toMatchObject([{ id: sondage, cle: 'vie' }]);
 		await prendreConnaissance(base, alice, annonce, maintenant);
-		await repondreEvenement(base, alice, evenement, 'absent', maintenant.slice(0, 10));
+		await repondreEvenement(base, alice, evenement, 'absent', maintenant);
 		expect(await charger({ base, acteur: alice })).toMatchObject({ annonces: [], evenements: [], sondages: [{ id: sondage }] });
 		// Un événement avec sondage : une seule ligne, sous les événements, tant que la réponse ou le vote manque.
 		const repas = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant);
-		await repondreEvenement(base, alice, repas, 'present', maintenant.slice(0, 10));
+		await repondreEvenement(base, alice, repas, 'present', maintenant);
 		expect(await charger({ base, acteur: alice })).toMatchObject({ evenements: [{ id: repas, sondage: true }], sondages: [{ id: sondage }] });
 	});
 });

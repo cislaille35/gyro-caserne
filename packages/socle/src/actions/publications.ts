@@ -86,14 +86,16 @@ function exigerSondage(sondage: DonneesPublication['sondage']) {
 	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses) };
 }
 
-async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication, aujourdhui: string) {
+async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication, maintenant: string) {
 	const ev = donnees.evenement;
 	if (donnees.type !== 'evenement') {
 		if (ev) throw new DonneeInvalide('Date et lieu réservés aux événements');
 		return { debut: null, lieu: null, convoques: null };
 	}
 	if (!ev) throw new DonneeInvalide('Date et lieu de l’événement manquants');
-	if (exigerDateHeure(ev.debut, 'Début') < aujourdhui) throw new DonneeInvalide('Événement passé');
+	exigerDateHeure(ev.debut, 'Début');
+	// Date et heure, à la minute : un événement qui commence maintenant peut encore être publié.
+	if (ev.debut.slice(0, 16) < maintenant.slice(0, 16)) throw new DonneeInvalide('Événement passé');
 	const lieu = texte(ev.lieu, 'Lieu', 200);
 	// Dans un mur d'équipe, on convoque cette équipe.
 	let convoques: Convoques;
@@ -119,7 +121,7 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 	}
 	const photos = exigerPhotos(donnees.photos);
 	const sondage = exigerSondage(donnees.sondage);
-	const evenement = await exigerEvenement(base, mur, donnees, aujourdhui);
+	const evenement = await exigerEvenement(base, mur, donnees, maintenant);
 
 	const ecritures = [
 		base

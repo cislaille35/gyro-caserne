@@ -69,12 +69,13 @@ export async function aimer(base: Base, acteur: Acteur, id: number, oui: boolean
 	else await base.delete(jaime).where(and(eq(jaime.publicationId, id), eq(jaime.personneId, moi)));
 }
 
-// Seulement les convoqués (voir estConvoque). On peut changer sa réponse.
-export async function repondreEvenement(base: Base, acteur: Acteur, id: number, reponse: ReponseEvenement, aujourdhui: string): Promise<void> {
-	exigerDate(aujourdhui);
+// Seulement les convoqués (voir estConvoque), et avant le début. On peut changer sa réponse.
+export async function repondreEvenement(base: Base, acteur: Acteur, id: number, reponse: ReponseEvenement, maintenant: string): Promise<void> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(REPONSES_EVENEMENT as readonly string[]).includes(reponse)) throw new DonneeInvalide('Réponse inconnue');
 	const { ligne, cle, appartenances, moi } = await pourAgir(base, acteur, id, aujourdhui);
 	if (ligne.debut === null) throw new DonneeInvalide('Pas un événement');
+	if (ligne.debut.slice(0, 16) <= maintenant.slice(0, 16)) throw new DonneeInvalide('Cet événement est passé');
 	if (!estConvoque(appartenances, cle, JSON.parse(ligne.convoques ?? '"tous"'))) throw refusMur(cle, 'lire', 'Vous n’êtes pas convoqué à cet événement');
 	await base.insert(reponseEvenement).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse } });
 }

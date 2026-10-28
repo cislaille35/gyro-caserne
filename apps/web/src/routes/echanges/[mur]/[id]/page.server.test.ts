@@ -40,7 +40,7 @@ describe('une publication seule', () => {
 		expect(suivi.priseDeConnaissance.manquante.map((p: { prenom: string }) => p.prenom)).toEqual(['Bruno']);
 
 		const ev = await publier(base, alice, `equipe:${e1.id}`, { type: 'evenement', texte: 'Manœuvre', evenement: { debut: demain(), lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
-		await repondreEvenement(base, alice, ev, 'present', maintenantParis().slice(0, 10));
+		await repondreEvenement(base, alice, ev, 'present', maintenantParis());
 		const deLAuteur = (await charger(locaux(base, alice), `equipe:${e1.id}`, ev)).suivi;
 		expect(deLAuteur.evenement.present.map((p: { prenom: string }) => p.prenom)).toEqual(['Alice']);
 		expect((await charger(locaux(base, chef), `equipe:${e1.id}`, ev)).suivi.evenement).toBeDefined();

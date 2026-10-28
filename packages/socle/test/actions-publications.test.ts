@@ -123,11 +123,13 @@ describe('publier', () => {
 		expect(ligne).toMatchObject({ sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]' });
 	});
 
-	it('événement : début du jour ou futur, lieu, convoqués ; seulement pour le type événement', async () => {
+	it('événement : début à venir (date et heure), lieu, convoqués ; seulement pour le type événement', async () => {
 		const { base, chef, e1, e2 } = await jeu();
 		const evenement = (debut: string, convoques: 'tous' | number[] = 'tous', lieu = 'Caserne') => ({ type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut, lieu, convoques } });
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-27T20:00'), maintenant)).rejects.toThrow(DonneeInvalide);
-		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-28T08:00'), maintenant)).resolves.toBeGreaterThan(0);
+		// Date et heure : plus tôt dans la journée, c'est passé.
+		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-28T14:29'), maintenant)).rejects.toThrow('Événement passé');
+		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-28T14:30'), maintenant)).resolves.toBeGreaterThan(0);
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30'), maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T25:00'), maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', 'tous', ' '), maintenant)).rejects.toThrow(DonneeInvalide);

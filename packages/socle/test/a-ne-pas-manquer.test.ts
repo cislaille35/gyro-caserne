@@ -114,7 +114,7 @@ describe('à ne pas manquer', () => {
 		await publier(base, acteur(chef), 'centre', evenement('2026-11-03T19:00', [e2.id]), maintenant);
 		// Passé dans l'heure : plus à venir.
 		await publier(base, acteur(chef), 'centre', evenement('2026-10-28T14:00'), '2026-10-28T08:00');
-		await repondreEvenement(base, acteur(agent), plusTard, 'present', aujourdhui);
+		await repondreEvenement(base, acteur(agent), plusTard, 'present', maintenant);
 
 		const { evenements } = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
 		expect(evenements).toEqual([

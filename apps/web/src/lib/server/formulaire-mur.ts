@@ -86,6 +86,7 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Commentaires fermés': { texte: 'Les commentaires sont fermés.' },
 	'Commentaire inconnu': { texte: 'Ce commentaire n’existe plus.' },
 	'Réponse inconnue': { texte: 'Choisissez une réponse.' },
+	'Cet événement est passé': { texte: 'Cet événement est passé : vous ne pouvez plus répondre.' },
 	'Réservé aux personnes ayant une fiche': { texte: 'Le super administrateur n’a pas de fiche : ce geste est réservé aux agents.' }
 };
 
