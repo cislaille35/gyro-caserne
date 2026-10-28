@@ -20,10 +20,18 @@ async function jeu() {
 	const profilExt = profils.find((p) => p.typePersonne === 'exterieur')!;
 	const [sap] = await base.select().from(grade).limit(1);
 
-	const nouvelle = async (prenom: string, nom: string, options: { profilId?: number; statut?: StatutOperationnel; equipeId?: number } = {}) => {
+	const nouvelle = async (prenom: string, nom: string, options: { profilId?: number; statut?: StatutOperationnel; equipeId?: number; sansGrade?: boolean; entreeCentre?: string | null } = {}) => {
 		const [p] = await base
 			.insert(personne)
-			.values({ email: `${prenom}.${nom}@Exemple.fr`.toLowerCase(), prenom, nom, profilId: options.profilId ?? profilAgent.id, gradeId: sap!.id, statut: options.statut ?? 'operationnel' })
+			.values({
+				email: `${prenom}.${nom}@Exemple.fr`.toLowerCase(),
+				prenom,
+				nom,
+				profilId: options.profilId ?? profilAgent.id,
+				gradeId: options.sansGrade ? null : sap!.id,
+				entreeCentre: options.entreeCentre === undefined ? '2020-01-01' : options.entreeCentre,
+				statut: options.statut ?? 'operationnel'
+			})
 			.returning();
 		if (options.equipeId) await base.insert(affectationEquipe).values({ personneId: p!.id, equipeId: options.equipeId, debut: '2026-01-01' });
 		return p!.id;
@@ -134,6 +142,22 @@ describe('vueEffectif', () => {
 		});
 	});
 
+	it('donne à chaque équipe sa couleur et ses chefs en cours (un chef parti ne compte pas)', async () => {
+		const { base, nouvelle, fonction } = await jeu();
+		const alice = await nouvelle('Alice', 'Martin', { equipeId: 1 });
+		const parti = await nouvelle('Paul', 'Parti', { equipeId: 2, statut: 'parti' });
+		await nouvelle('Léa', 'Durand', { equipeId: 2 });
+		await nouvelle('Sans', 'Equipe');
+		await fonction(alice, 'chef_equipe', { type: 'equipe', id: 1 });
+		await fonction(parti, 'chef_equipe', { type: 'equipe', id: 2 });
+		const [e1] = await base.select().from(equipe).where(eq(equipe.id, 1));
+		expect(await vueEffectif(base, aujourdhui)).toMatchObject([
+			{ titre: 'Équipe 1', equipe: { couleur: e1!.couleur, chefs: ['A. Martin'] } },
+			{ titre: 'Équipe 2', equipe: { chefs: [] } },
+			{ titre: 'Sans équipe', equipe: null }
+		]);
+	});
+
 	it('une équipe inactive n’a pas de groupe', async () => {
 		const { base, nouvelle } = await jeu();
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, 1));
@@ -160,26 +184,62 @@ describe('estGestionnaire et listeGestion', () => {
 		await fonction(chef, 'chef_centre', { type: 'centre' });
 		expect(await estGestionnaire(base, acteur(chef), aujourdhui)).toBe(true);
 		expect(await estGestionnaire(base, superAdmin, aujourdhui)).toBe(true);
-		expect(await listeGestion(base, acteur(chef), {}, aujourdhui)).toHaveLength(1);
-		expect(await listeGestion(base, superAdmin, {}, aujourdhui)).toHaveLength(1);
+		expect((await listeGestion(base, acteur(chef), {}, aujourdhui)).groupes).toHaveLength(1);
+		expect((await listeGestion(base, superAdmin, {}, aujourdhui)).groupes).toHaveLength(1);
 	});
 
-	it('filtre par texte (casse ignorée), équipe, statut', async () => {
-		const { base, profilExt, nouvelle } = await jeu();
+	const titresEtNoms = (liste: Awaited<ReturnType<typeof listeGestion>>) => liste.groupes.map((g) => [g.titre, g.personnes.map((p) => p.nom)]);
+
+	it('groupe par équipe, puis sans équipe, extérieurs et partis, avec e-mail, statut et rôles', async () => {
+		const { base, profilExt, nouvelle, fonction } = await jeu();
+		const lea = await nouvelle('Léa', 'Durand', { equipeId: 1 });
+		await fonction(lea, 'chef_equipe', { type: 'equipe', id: 1 });
+		await nouvelle('Paul', 'Bernard');
+		await nouvelle('Gone', 'Away', { statut: 'parti', equipeId: 1 });
+		await nouvelle('Ext', 'Erieur', { profilId: profilExt.id });
+		const liste = await listeGestion(base, superAdmin, {}, aujourdhui);
+		expect(titresEtNoms(liste)).toEqual([
+			['Équipe 1', ['Durand']],
+			['Sans équipe', ['Bernard']],
+			['Extérieurs', ['Erieur']],
+			['Partis', ['Away']]
+		]);
+		expect(liste.groupes[0]).toMatchObject({ equipe: { chefs: ['L. Durand'] } });
+		expect(liste.groupes[0]!.personnes[0]).toEqual({ id: lea, prenom: 'Léa', nom: 'Durand', email: 'léa.durand@exemple.fr', grade: 'Jeune sapeur-pompier', statut: 'operationnel', roles: ['Chef d’équipe (Équipe 1)'], aCompleter: false });
+	});
+
+	it('cherche dans le nom, le prénom et l’e-mail (casse ignorée)', async () => {
+		const { base, nouvelle } = await jeu();
 		await nouvelle('Léa', 'Durand', { equipeId: 1 });
 		await nouvelle('Paul', 'Bernard');
-		await nouvelle('Gone', 'Away', { statut: 'parti' });
-		await nouvelle('Ext', 'Erieur', { profilId: profilExt.id });
-		const noms = async (f: Parameters<typeof listeGestion>[2]) => (await listeGestion(base, superAdmin, f, aujourdhui)).map((l) => l.nom);
-		expect(await noms({ texte: 'DURAND' })).toEqual(['Durand']);
-		expect(await noms({ texte: 'léa' })).toEqual(['Durand']);
-		expect(await noms({ texte: 'paul.bernard@EXEMPLE' })).toEqual(['Bernard']);
-		expect(await noms({ equipeId: 1 })).toEqual(['Durand']);
-		expect(await noms({ equipeId: 'aucune' })).toEqual(['Away', 'Bernard', 'Erieur']);
-		expect(await noms({ statut: 'parti' })).toEqual(['Away']);
-		const lignes = await listeGestion(base, superAdmin, { texte: 'durand' }, aujourdhui);
-		expect(lignes[0]).toMatchObject({ prenom: 'Léa', equipe: { id: 1, nom: 'Équipe 1' }, exterieur: false, statut: 'operationnel' });
-		expect((await listeGestion(base, superAdmin, { texte: 'erieur' }, aujourdhui))[0]!.exterieur).toBe(true);
+		const noms = async (texte: string) => (await listeGestion(base, superAdmin, { texte }, aujourdhui)).groupes.flatMap((g) => g.personnes.map((p) => p.nom));
+		expect(await noms('DURAND')).toEqual(['Durand']);
+		expect(await noms('léa')).toEqual(['Durand']);
+		expect(await noms('paul.bernard@EXEMPLE')).toEqual(['Bernard']);
+	});
+
+	it('filtre : à compléter (sans grade ou sans date d’entrée, hors partis et extérieurs), indisponibles, partis ; et les compte', async () => {
+		const { base, profilExt, nouvelle } = await jeu();
+		await nouvelle('Complet', 'Ok', { equipeId: 1 });
+		await nouvelle('Sans', 'Grade', { equipeId: 1, sansGrade: true });
+		await nouvelle('Sans', 'Entree', { entreeCentre: null });
+		await nouvelle('Ext', 'Erieur', { profilId: profilExt.id, entreeCentre: null });
+		await nouvelle('Gone', 'Away', { statut: 'parti', entreeCentre: null });
+		await nouvelle('Stag', 'Iaire', { statut: 'stagiaire' });
+		await nouvelle('Sus', 'Pendu', { statut: 'suspendu', equipeId: 1 });
+		const liste = (filtre?: 'a-completer' | 'indisponibles' | 'partis') => listeGestion(base, superAdmin, { filtre }, aujourdhui);
+		expect(titresEtNoms(await liste('a-completer'))).toEqual([
+			['Équipe 1', ['Grade']],
+			['Sans équipe', ['Entree']]
+		]);
+		expect(titresEtNoms(await liste('indisponibles'))).toEqual([
+			['Équipe 1', ['Pendu']],
+			['Sans équipe', ['Iaire']]
+		]);
+		expect(titresEtNoms(await liste('partis'))).toEqual([['Partis', ['Away']]]);
+		const tous = await liste();
+		expect(tous.comptes).toEqual({ 'a-completer': 2, indisponibles: 2, partis: 1 });
+		expect(tous.groupes.flatMap((g) => g.personnes.filter((p) => p.aCompleter).map((p) => p.nom))).toEqual(['Grade', 'Entree']);
 	});
 });
 

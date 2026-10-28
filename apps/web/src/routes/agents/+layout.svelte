@@ -1,18 +1,54 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
-	import Choix from '#lib/ui/Choix.svelte';
-	import PastilleEquipe from '#lib/ui/PastilleEquipe.svelte';
+	import Groupe from '#lib/ui/Groupe.svelte';
+	import Initiales from '#lib/ui/Initiales.svelte';
+	import Pastille from '#lib/ui/Pastille.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
-	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
-	import Tableau from '#lib/ui/Tableau.svelte';
+	import type { StatutPersonne } from '#lib/ui/statut.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, children } = $props();
 
+	type Personne = { id: number; prenom: string; nom: string; grade: string | null; roles: string[]; email?: string; statut?: StatutPersonne; aCompleter?: boolean };
+
 	const enfant = $derived(page.url.pathname !== '/agents');
+	const pluriel = (n: number) => `${n} ${n > 1 ? 'agents' : 'agent'}`;
+	const resume = (n: number, equipe: { chefs: string[] } | null) =>
+		!equipe ? pluriel(n) : equipe.chefs.length === 0 ? `${pluriel(n)} · sans chef d’équipe` : `${pluriel(n)} · chef : ${equipe.chefs.join(', ')}`;
+	// Les partis restent repliés, sauf quand on les cherche.
+	const ouvert = (titre: string) => titre !== 'Partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
+	const filtres = $derived(
+		data.gestion
+			? [
+					{ valeur: '', libelle: 'Tous' },
+					{ valeur: 'a-completer', libelle: `À compléter (${data.comptes['a-completer']})` },
+					{ valeur: 'indisponibles', libelle: `Indisponibles (${data.comptes.indisponibles})` },
+					{ valeur: 'partis', libelle: 'Partis' }
+				]
+			: []
+	);
 </script>
+
+{#snippet agent(p: Personne)}
+	<li class="agent">
+		<Initiales prenom={p.prenom} nom={p.nom} />
+		<span class="identite">
+			{#if data.gestion}
+				<a class="nom" href="/agents/{p.id}" aria-current={page.url.pathname === `/agents/${p.id}` ? 'page' : undefined}>{p.prenom} {p.nom}</a>
+			{:else}
+				<span class="nom">{p.prenom} {p.nom}</span>
+			{/if}
+			{#if p.grade}<span class="petit">{p.grade}</span>{/if}
+			{#if p.email}<span class="petit email">{p.email}</span>{/if}
+		</span>
+		<span class="etat">
+			{#if p.statut && p.statut !== 'operationnel'}<Statut statut={p.statut} />{/if}
+			{#if p.aCompleter}<Pastille ton="alerte">À compléter</Pastille>{/if}
+			{#if p.roles.length > 0}<small class="petit"><span class="cache">Rôles : </span>{p.roles.join(' · ')}</small>{/if}
+		</span>
+	</li>
+{/snippet}
 
 <!-- Pour la gestion, le titre vient de la page affichée dans le volet. -->
 <svelte:head>
@@ -33,63 +69,28 @@
 
 		{#if data.gestion}
 			<form method="GET" role="search" class="filtres">
-				<Champ id="filtre-texte" name="texte" type="search" libelle="Rechercher" aide="Nom, prénom ou e-mail" valeur={data.filtres.texte} />
-				<Choix
-					id="filtre-equipe"
-					name="equipe"
-					libelle="Équipe"
-					valeur={data.filtres.equipe}
-					options={[
-						{ valeur: '', libelle: 'Toutes' },
-						{ valeur: 'aucune', libelle: 'Aucune équipe' },
-						...data.equipes.map((e) => ({ valeur: String(e.id), libelle: e.nom }))
-					]}
-				/>
-				<Choix
-					id="filtre-statut"
-					name="statut"
-					libelle="Statut"
-					valeur={data.filtres.statut}
-					options={[{ valeur: '', libelle: 'Tous' }, ...data.statuts.map((s) => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))]}
-				/>
-				<Bouton type="submit">Filtrer</Bouton>
-			</form>
-
-			{#if data.lignes.length === 0}
-				<Vide texte="Aucun agent ne correspond." />
-			{:else}
-				<Tableau legende="Liste des agents du centre">
-					<thead>
-						<tr><th scope="col">Nom</th><th scope="col">Grade</th><th scope="col">Équipe</th><th scope="col">Statut</th><th scope="col">Fiche</th></tr>
-					</thead>
-					<tbody>
-						{#each data.lignes as ligne (ligne.id)}
-							<tr>
-								<th scope="row">{ligne.prenom} {ligne.nom}<span class="email">{ligne.email}</span></th>
-								<td>{ligne.grade ?? '—'}</td>
-								<td>{#if ligne.equipe}<PastilleEquipe nom={ligne.equipe.nom} couleur={ligne.equipe.couleur} />{:else}—{/if}</td>
-								<td><Statut statut={ligne.statut} /></td>
-								<td><a href="/agents/{ligne.id}">Voir la fiche<span class="cache"> de {ligne.prenom} {ligne.nom}</span></a></td>
-							</tr>
-						{/each}
-					</tbody>
-				</Tableau>
-			{/if}
-		{:else}
-			{#each data.groupes as groupe (groupe.titre)}
-				<h2>{groupe.titre}</h2>
-				<ul>
-					{#each groupe.personnes as p (p.id)}
-						<li>
-							{p.prenom} {p.nom}{#if p.grade}<span class="grade"> · {p.grade}</span>{/if}
-							{#if p.roles.length > 0}<small class="roles">Rôles : {p.roles.join(', ')}</small>{/if}
-						</li>
+				<div class="recherche">
+					<Champ id="filtre-texte" name="texte" type="search" libelle="Rechercher un agent" aide="Nom, prénom ou e-mail" valeur={data.filtres.texte} />
+					<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
+					<button type="submit" class="chercher" name="filtre" value={data.filtres.filtre}>Rechercher</button>
+				</div>
+				<div class="pastilles" role="group" aria-label="Filtrer la liste">
+					{#each filtres as f (f.valeur)}
+						<button type="submit" class="pastille" name="filtre" value={f.valeur} aria-pressed={data.filtres.filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
 					{/each}
-				</ul>
-			{:else}
-				<Vide texte="Aucun agent à afficher." />
-			{/each}
+				</div>
+			</form>
 		{/if}
+
+		{#each data.groupes as g (g.titre)}
+			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={g.equipe?.chefs.length === 0} ouvert={ouvert(g.titre)}>
+				<ul>
+					{#each g.personnes as p (p.id)}{@render agent(p)}{/each}
+				</ul>
+			</Groupe>
+		{:else}
+			<Vide texte={data.gestion ? 'Aucun agent ne correspond.' : 'Aucun agent à afficher.'} />
+		{/each}
 	</section>
 
 	{#if data.gestion || page.error}
@@ -114,6 +115,9 @@
 		flex-direction: column;
 		gap: 16px;
 	}
+	.liste {
+		gap: 12px;
+	}
 	.masquee,
 	.masque {
 		display: none;
@@ -125,8 +129,7 @@
 		justify-content: space-between;
 		gap: 12px;
 	}
-	h1,
-	h2 {
+	h1 {
 		margin: 0;
 	}
 	.liens {
@@ -154,33 +157,111 @@
 	}
 	.filtres {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 16px;
-		align-items: flex-end;
-		padding: 16px;
-		background: var(--surface);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-grand);
+		flex-direction: column;
+		gap: 12px;
 	}
-	.filtres :global(.champ) {
+	.recherche {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		gap: 8px;
+	}
+	.recherche :global(.champ) {
 		flex: 1 1 180px;
+	}
+	.pastilles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	button {
+		min-height: var(--cible);
+		font: 600 1rem var(--police);
+		color: var(--encre);
+		cursor: pointer;
+	}
+	.chercher {
+		padding: 0 16px;
+		border-radius: var(--rayon-petit);
+		border: 2px solid var(--encre);
+		background: var(--surface);
+	}
+	.pastille {
+		padding: 0 16px;
+		border-radius: 999px;
+		border: 1px solid var(--trait);
+		background: var(--surface);
+	}
+	/* Pressé : fond plein et gras, pas seulement une teinte. */
+	.pastille[aria-pressed='true'] {
+		background: var(--encre);
+		color: var(--surface);
+		border-color: var(--encre);
+		font-weight: 700;
 	}
 	ul {
 		margin: 0;
-		padding-left: 20px;
+		padding: 0;
+		list-style: none;
 	}
-	.roles {
-		display: block;
+	.agent {
+		position: relative;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 12px;
+		min-height: 56px;
+		padding: 8px 14px;
 	}
-	.grade,
-	.roles,
-	.email {
+	.agent + .agent {
+		border-top: 1px solid var(--trait-doux);
+	}
+	.identite {
+		flex: 1 1 140px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+	.nom {
+		font-weight: 600;
+		color: var(--encre);
+	}
+	/* Toute la ligne ouvre la fiche. */
+	a.nom {
+		text-decoration: none;
+	}
+	a.nom::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	a.nom:hover {
+		text-decoration: underline;
+	}
+	a.nom:focus-visible {
+		outline: none;
+	}
+	a.nom:focus-visible::after {
+		outline: 3px solid var(--focus);
+		outline-offset: -3px;
+	}
+	.agent:has(a[aria-current='page']) {
+		background: var(--statut-neutre-fond);
+	}
+	.etat {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 4px 8px;
+		max-width: 100%;
+	}
+	.petit {
 		color: var(--doux);
+		font-size: 0.875rem;
 	}
 	.email {
-		display: block;
-		font-weight: 400;
-		font-size: 0.875rem;
+		overflow-wrap: anywhere;
 	}
 	.cache {
 		position: absolute;
@@ -189,13 +270,10 @@
 		overflow: hidden;
 		clip-path: inset(50%);
 	}
-	.retour,
-	td a {
+	.retour {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-	}
-	.retour {
 		align-self: flex-start;
 	}
 	@media (min-width: 1024px) {
@@ -204,7 +282,7 @@
 			display: flex;
 		}
 		.liste {
-			flex: 0 1 560px;
+			flex: 0 1 480px;
 		}
 		.detail {
 			flex: 1 1 0;

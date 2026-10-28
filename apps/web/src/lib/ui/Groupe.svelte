@@ -6,17 +6,19 @@
 		resume,
 		ouvert = $bindable(false),
 		niveauTitre = 2,
+		couleur,
+		alerte = false,
 		children
-	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; children: Snippet } = $props();
+	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; couleur?: string; alerte?: boolean; children: Snippet } = $props();
 	const id = $props.id();
 </script>
 
-<section class="groupe">
+<section class="groupe" style:border-left={couleur ? `6px solid ${couleur}` : undefined}>
 	<svelte:element this={`h${niveauTitre}`} class="entete">
 		<button type="button" aria-expanded={ouvert ? 'true' : 'false'} aria-controls={id} onclick={() => (ouvert = !ouvert)}>
 			<span class="textes">
 				<span class="titre">{titre}</span>
-				{#if resume}<span class="resume">{resume}</span>{/if}
+				{#if resume}<span class="resume" class:alerte>{resume}</span>{/if}
 			</span>
 			<span class="chevron" aria-hidden="true">›</span>
 		</button>
@@ -63,6 +65,10 @@
 	.resume {
 		font-size: 0.875rem;
 		color: var(--doux);
+	}
+	.resume.alerte {
+		color: var(--statut-alerte-texte);
+		font-weight: 600;
 	}
 	.chevron {
 		font-size: 1.25rem;

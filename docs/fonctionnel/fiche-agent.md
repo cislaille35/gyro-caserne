@@ -35,8 +35,8 @@ Ici, les **gestionnaires** sont ceux qui ont le droit `GERER_ACCES` sur le centr
 
 « Agents » (onglet « Caserne »), pour toute personne connectée :
 
-- **Un agent** voit l'effectif groupé par équipe (ordre de rotation), puis « Sans équipe », puis « Extérieurs » : prénom, nom, grade, et sous le nom ses rôles en cours (« Rôles : Chef d’équipe (Équipe 1) »), sans dates ni auteur. Les partis n'y sont pas ; les suspendus y sont, sans indication.
-- **Le chef de centre, l'adjoint et le super administrateur** voient la liste complète, partis compris : recherche (nom, prénom, e-mail), filtres par équipe et par statut. Sur ordinateur, la fiche s'ouvre à côté de la liste ; sur téléphone, sur sa propre page.
+- **Un agent** voit l'effectif groupé par équipe (ordre de rotation), puis « Sans équipe », puis « Extérieurs ». Chaque équipe porte un liseré de sa couleur et un résumé (« 8 agents · chef : A. Martin », ou « sans chef d’équipe » en orange). Par agent : prénom, nom, grade et ses rôles en cours, sans dates ni auteur. Les partis n'y sont pas ; les suspendus y sont, sans indication.
+- **Le chef de centre, l'adjoint et le super administrateur** voient la même liste, avec en plus l'e-mail, le statut (sauf « Opérationnel »), la pastille « À compléter » et un dernier groupe « Partis », replié. Recherche (nom, prénom, e-mail) et filtres en pastilles : Tous, À compléter (sans grade ou sans date d'entrée, hors partis et extérieurs), Indisponibles (ni opérationnel ni parti), Partis. Sur ordinateur, la fiche s'ouvre à côté de la liste ; sur téléphone, sur sa propre page.
 - **La fiche** a trois cartes, chacune avec son bouton « Enregistrer » : identité et contact, parcours, équipe et statut. Le surnom et le contact d'urgence s'y lisent sans s'y modifier.
 - **Ajouter un agent** : prénom, nom et e-mail obligatoires, profil « Agent » présélectionné.
 - **Équipe** : le changement prend effet le jour même ; « Aucune équipe » retire l'agent de son équipe.

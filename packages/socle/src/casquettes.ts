@@ -109,7 +109,7 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 	return [
 		...sansChef.map((e) => ({ texte: `${e.nom} sans chef d’équipe`, lien: '/nominations' })),
 		...sansTitulaire.map((r) => ({ texte: `${r.nom} : aucun titulaire`, lien: '/nominations' })),
-		...(fiches > 0 ? [{ texte: `${fiches} ${fiches > 1 ? 'fiches' : 'fiche'} à compléter (grade ou date d’entrée manquants)`, lien: '/agents' }] : [])
+		...(fiches > 0 ? [{ texte: `${fiches} ${fiches > 1 ? 'fiches' : 'fiche'} à compléter (grade ou date d’entrée manquants)`, lien: '/agents?filtre=a-completer' }] : [])
 	];
 }
 

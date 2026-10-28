@@ -1,4 +1,4 @@
-import { and, eq, gte, isNull, lte, or } from 'drizzle-orm';
+import { and, eq, gte, isNull, lte, ne, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { aLeDroit, occupe, type Acteur } from './droits.ts';
@@ -14,10 +14,17 @@ export type LigneGestion = {
 	nom: string;
 	email: string;
 	grade: string | null;
-	equipe: EquipeCourante | null;
 	statut: StatutOperationnel;
-	exterieur: boolean;
+	roles: string[];
+	aCompleter: boolean;
 };
+
+// Une équipe active porte sa couleur et ses chefs en cours (« A. Martin ») ; les autres groupes, rien.
+export type GroupeAgents<P> = { titre: string; equipe: { couleur: string; chefs: string[] } | null; personnes: P[] };
+
+export const FILTRES_GESTION = ['a-completer', 'indisponibles', 'partis'] as const;
+export type FiltreGestion = (typeof FILTRES_GESTION)[number];
+export type ListeGestion = { groupes: GroupeAgents<LigneGestion>[]; comptes: Record<FiltreGestion, number> };
 
 export type FicheAgent = Omit<typeof personne.$inferSelect, 'photo' | 'gradeId' | 'profilId'> & {
 	equipe: EquipeCourante | null;
@@ -71,52 +78,96 @@ async function rolesCourants(base: Base, aujourdhui: string): Promise<Map<number
 
 const parNom = (a: { nom: string; prenom: string }, b: { nom: string; prenom: string }) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr');
 
+// Chefs d'équipe en cours de chaque équipe, « A. Martin » ; un agent parti ne compte pas.
+async function chefsDEquipe(base: Base, aujourdhui: string): Promise<Map<number, string[]>> {
+	const lignes = await base
+		.select({ equipeId: attribution.perimetreId, prenom: personne.prenom, nom: personne.nom })
+		.from(attribution)
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
+		.innerJoin(personne, eq(personne.id, attribution.personneId))
+		.where(
+			and(
+				eq(responsabilite.systeme, 'chef_equipe'),
+				eq(attribution.perimetreType, 'equipe'),
+				ne(personne.statut, 'parti'),
+				lte(attribution.debut, aujourdhui),
+				or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))
+			)
+		);
+	const parEquipe = new Map<number, string[]>();
+	for (const l of lignes.sort(parNom)) {
+		if (l.equipeId === null) continue;
+		parEquipe.set(l.equipeId, [...(parEquipe.get(l.equipeId) ?? []), `${l.prenom.trim().charAt(0)}. ${l.nom}`]);
+	}
+	return parEquipe;
+}
+
+type Rangee = { id: number; prenom: string; nom: string; statut: StatutOperationnel; type: string | null };
+
+// Par équipe active, puis sans équipe, extérieurs et partis ; sans groupe vide.
+async function ranger<R extends Rangee, P>(base: Base, aujourdhui: string, rangees: R[], montrer: (r: R) => P): Promise<GroupeAgents<P>[]> {
+	const equipes = await equipesCourantes(base, aujourdhui);
+	const chefs = await chefsDEquipe(base, aujourdhui);
+	const actives = await base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe).where(eq(equipe.active, 1)).orderBy(equipe.ordreRotation);
+	const enGroupe = (garde: (r: R) => boolean) => rangees.filter(garde).sort(parNom).map(montrer);
+	const present = (r: R) => r.statut !== 'parti' && r.type !== 'exterieur';
+
+	const groupes: GroupeAgents<P>[] = [
+		...actives.map((g) => ({ titre: g.nom, equipe: { couleur: g.couleur, chefs: chefs.get(g.id) ?? [] }, personnes: enGroupe((r) => present(r) && equipes.get(r.id)?.id === g.id) })),
+		{ titre: 'Sans équipe', equipe: null, personnes: enGroupe((r) => present(r) && !equipes.has(r.id)) },
+		{ titre: 'Extérieurs', equipe: null, personnes: enGroupe((r) => r.statut !== 'parti' && r.type === 'exterieur') },
+		{ titre: 'Partis', equipe: null, personnes: enGroupe((r) => r.statut === 'parti') }
+	];
+	return groupes.filter((g) => g.personnes.length > 0);
+}
+
+// La vue de tous : ni statut ni e-mail, pas de partis.
 export async function vueEffectif(base: Base, aujourdhui: string) {
 	const lignes = await base
 		.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, statut: personne.statut, grade: grade.libelle, type: profil.typePersonne })
 		.from(personne)
 		.leftJoin(grade, eq(grade.id, personne.gradeId))
 		.leftJoin(profil, eq(profil.id, personne.profilId));
-	const equipes = await equipesCourantes(base, aujourdhui);
 	const roles = await rolesCourants(base, aujourdhui);
-	const groupes = await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(equipe.ordreRotation);
-
 	const presentes = lignes.filter((l) => l.statut !== 'parti');
-	const sansIdentifiants = ({ id, prenom, nom, grade }: (typeof presentes)[number]) => ({ id, prenom, nom, grade, roles: roles.get(id) ?? [] });
-	const enGroupe = (garde: (l: (typeof presentes)[number]) => boolean) => presentes.filter(garde).sort(parNom).map(sansIdentifiants);
-
-	const resultat = [
-		...groupes.map((g) => ({ titre: g.nom, personnes: enGroupe((l) => l.type !== 'exterieur' && equipes.get(l.id)?.id === g.id) })),
-		{ titre: 'Sans équipe', personnes: enGroupe((l) => l.type !== 'exterieur' && !equipes.has(l.id)) },
-		{ titre: 'Extérieurs', personnes: enGroupe((l) => l.type === 'exterieur') }
-	];
-	return resultat.filter((g) => g.personnes.length > 0);
+	return ranger(base, aujourdhui, presentes, ({ id, prenom, nom, grade }) => ({ id, prenom, nom, grade, roles: roles.get(id) ?? [] }));
 }
 
-export async function listeGestion(
-	base: Base,
-	acteur: Acteur,
-	filtres: { texte?: string; equipeId?: number | 'aucune'; statut?: StatutOperationnel },
-	aujourdhui: string
-): Promise<LigneGestion[]> {
+const indisponible = (statut: StatutOperationnel) => statut !== 'operationnel' && statut !== 'parti';
+
+export async function listeGestion(base: Base, acteur: Acteur, filtres: { texte?: string; filtre?: FiltreGestion }, aujourdhui: string): Promise<ListeGestion> {
 	await exigerGestionnaire(base, acteur, aujourdhui);
 	const lignes = await base
-		.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, email: personne.email, statut: personne.statut, grade: grade.libelle, type: profil.typePersonne })
+		.select({
+			id: personne.id,
+			prenom: personne.prenom,
+			nom: personne.nom,
+			email: personne.email,
+			statut: personne.statut,
+			gradeId: personne.gradeId,
+			entreeCentre: personne.entreeCentre,
+			grade: grade.libelle,
+			type: profil.typePersonne
+		})
 		.from(personne)
 		.leftJoin(grade, eq(grade.id, personne.gradeId))
 		.leftJoin(profil, eq(profil.id, personne.profilId));
-	const equipes = await equipesCourantes(base, aujourdhui);
+	const roles = await rolesCourants(base, aujourdhui);
+	// Fiche à compléter : sans grade ou sans date d'entrée, pour un agent présent du centre.
+	const toutes = lignes.map((l) => ({ ...l, aCompleter: l.statut !== 'parti' && l.type !== 'exterieur' && (l.gradeId === null || l.entreeCentre === null) }));
+	const garde: Record<FiltreGestion, (l: (typeof toutes)[number]) => boolean> = {
+		'a-completer': (l) => l.aCompleter,
+		indisponibles: (l) => indisponible(l.statut),
+		partis: (l) => l.statut === 'parti'
+	};
 	const texte = filtres.texte?.trim().toLowerCase();
-
-	return lignes
-		.map(({ type, ...l }): LigneGestion => {
-			const e = equipes.get(l.id);
-			return { ...l, equipe: e ? { id: e.id, nom: e.nom, couleur: e.couleur } : null, exterieur: type === 'exterieur' };
-		})
+	const gardees = toutes
 		.filter((l) => !texte || [l.prenom, l.nom, l.email].some((champ) => champ.toLowerCase().includes(texte)))
-		.filter((l) => filtres.equipeId === undefined || (filtres.equipeId === 'aucune' ? l.equipe === null : l.equipe?.id === filtres.equipeId))
-		.filter((l) => filtres.statut === undefined || l.statut === filtres.statut)
-		.sort(parNom);
+		.filter((l) => filtres.filtre === undefined || garde[filtres.filtre](l));
+
+	const groupes = await ranger(base, aujourdhui, gardees, ({ id, prenom, nom, email, grade, statut, aCompleter }) => ({ id, prenom, nom, email, grade, statut, roles: roles.get(id) ?? [], aCompleter }));
+	const compter = (f: FiltreGestion) => toutes.filter(garde[f]).length;
+	return { groupes, comptes: { 'a-completer': compter('a-completer'), indisponibles: compter('indisponibles'), partis: compter('partis') } };
 }
 
 export async function ficheAgent(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<FicheAgent> {

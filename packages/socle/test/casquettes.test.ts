@@ -167,7 +167,7 @@ describe('aDecider', () => {
 			{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Équipe 3 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Référent pharmacie : aucun titulaire', lien: '/nominations' },
-			{ texte: '2 fiches à compléter (grade ou date d’entrée manquants)', lien: '/agents' }
+			{ texte: '2 fiches à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' }
 		]);
 	});
 
@@ -184,7 +184,7 @@ describe('aDecider', () => {
 		const { base, role, nouvelle, nommer } = await jeu();
 		const chef = await nouvelle('Claire', { complete: false });
 		await nommer(chef, role('Chef de centre'), { type: 'centre' });
-		expect(await aDecider(base, acteur(chef), aujourdhui)).toContainEqual({ texte: '1 fiche à compléter (grade ou date d’entrée manquants)', lien: '/agents' });
+		expect(await aDecider(base, acteur(chef), aujourdhui)).toContainEqual({ texte: '1 fiche à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' });
 
 		const vide = await baseDeTest();
 		expect(await aDecider(vide, superAdmin, aujourdhui)).toEqual([]);

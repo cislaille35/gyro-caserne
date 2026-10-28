@@ -147,7 +147,7 @@ async function domaineOuvert(page: Page, nom: string) {
 // Adresse de la fiche, lue dans la liste de gestion.
 async function ficheDe(page: Page, nom: string): Promise<string> {
 	await page.goto(`/agents?texte=${encodeURIComponent(nom.split(' ')[1]!)}`);
-	return (await page.getByRole('link', { name: `Voir la fiche de ${nom}` }).getAttribute('href'))!;
+	return (await page.getByRole('link', { name: nom, exact: true }).getAttribute('href'))!;
 }
 
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
@@ -496,8 +496,8 @@ test.describe('fichier de l’effectif', () => {
 		await sansViolation(page);
 
 		await page.goto(`/agents?texte=Import${marque}`);
-		await expect(page.getByRole('link', { name: `Voir la fiche de Yanis Import${marque}` })).toBeVisible();
-		await expect(page.getByRole('link', { name: `Voir la fiche de Zoe Import${marque}` })).toBeVisible();
+		await expect(page.getByRole('link', { name: `Yanis Import${marque}`, exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: `Zoe Import${marque}`, exact: true })).toBeVisible();
 
 		// Exporter, retirer Yanis, réimporter : son départ vient en tête de l'aperçu.
 		await ouvrirFichier(page);
