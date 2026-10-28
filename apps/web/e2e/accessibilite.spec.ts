@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page, type Request } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
 import { connecter } from './connexion.ts';
@@ -38,6 +38,34 @@ for (const theme of ['auto', 'sombre']) {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('échanges remplis : accueil, notifications, mur et publication sans violation', async ({ browser, page }) => {
+				const gestion = await pageSuper(browser, theme);
+				const marque = nouvelleMarque();
+				await gestion.goto('/echanges/centre');
+				const annonce = await publier(gestion, { type: 'Annonce', texte: `Consigne ${marque}`, prise: true });
+				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] });
+				// L'auteur voit le suivi de son annonce.
+				await gestion.goto(`/echanges/centre/${annonce}`);
+				await expect(gestion.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
+				await toutOuvrir(gestion);
+				await sansViolation(gestion);
+				await gestion.context().close();
+
+				await page.goto('/');
+				await expect(page.getByRole('heading', { name: 'À ne pas manquer' })).toBeVisible();
+				await expect(page.getByRole('button', { name: `Pris connaissance : Consigne ${marque}` })).toBeVisible();
+				await expect(page.getByRole('group', { name: `Votre réponse : Manœuvre ${marque}` })).toBeVisible();
+				await sansViolation(page);
+				await page.goto('/notifications');
+				await expect(page.getByRole('link', { name: new RegExp(`Consigne ${marque}`) })).toBeVisible();
+				await sansViolation(page);
+				for (const chemin of ['/echanges/centre', `/echanges/centre/${annonce}`]) {
+					await page.goto(chemin);
+					await toutOuvrir(page);
+					await sansViolation(page);
+				}
+			});
 		});
 
 		test.describe('super administrateur', () => {
@@ -174,8 +202,8 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 	return (await page.getByRole('link', { name: nom, exact: true }).getAttribute('href'))!;
 }
 
-// Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
-async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; email: string }> {
+// Un agent neuf (de l'équipe 1 par défaut), pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
+async function nouvelAgent(page: Page, equipe = 'Équipe 1'): Promise<{ nom: string; fiche: string; email: string }> {
 	const marque = nouvelleMarque();
 	const nom = `Essai${marque}`;
 	await page.goto('/agents/nouveau');
@@ -184,11 +212,11 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; em
 	const email = `zoe.${marque}@exemple.fr`;
 	await page.getByLabel('E-mail').fill(email);
 	// Les filtres de la liste sont aussi dans la page : chaque libellé doit viser le champ de l'ajout.
-	await page.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
+	await page.locator('form[method="POST"]').getByRole('combobox', { name: 'Équipe' }).selectOption({ label: equipe });
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
-	await expect(page.locator('form[action^="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
+	await expect(page.locator('form[action^="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText(equipe);
 	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
@@ -257,6 +285,197 @@ async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) =
 	}).toPass();
 	return bloc;
 }
+
+// Une page du super administrateur, dans le thème voulu.
+async function pageSuper(browser: Browser, theme?: string): Promise<Page> {
+	const contexte = await browser.newContext({ storageState: ETAT_SUPER });
+	if (theme) await contexte.addCookies([{ name: 'theme', value: theme, url: ADRESSE }]);
+	return contexte.newPage();
+}
+
+// Une page où l'agent vient de se connecter.
+async function pageAgent(browser: Browser, email: string): Promise<Page> {
+	const page = await (await browser.newContext()).newPage();
+	await connecter(page, email);
+	return page;
+}
+
+// Le formulaire « Publier » du mur ouvert, une fois la page prête : avec JavaScript, les champs d'événement se cachent.
+async function formulairePret(page: Page): Promise<Locator> {
+	const formulaire = page.locator('#publier');
+	await expect(formulaire.getByRole('group', { name: 'Pour un événement' })).toBeHidden();
+	return formulaire;
+}
+
+type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; photo?: Buffer };
+
+// Publie sur le mur ouvert et renvoie l'identifiant de la publication, lu dans son lien « Commenter ».
+async function publier(page: Page, s: Saisie): Promise<number> {
+	const formulaire = await formulairePret(page);
+	if (s.type) await formulaire.getByLabel('Type', { exact: true }).selectOption({ label: s.type });
+	await formulaire.getByLabel('Texte', { exact: true }).fill(s.texte);
+	if (s.prise) await formulaire.getByLabel('Demander une prise de connaissance (annonce)').check();
+	if (s.debut) await formulaire.getByLabel('Date et heure').fill(s.debut);
+	if (s.lieu) await formulaire.getByLabel('Lieu', { exact: true }).fill(s.lieu);
+	for (const equipe of s.equipes ?? []) await formulaire.getByRole('checkbox', { name: equipe, exact: true }).check();
+	if (s.question) {
+		await formulaire.locator('summary', { hasText: 'Ajouter un sondage' }).click();
+		await formulaire.getByLabel('Question', { exact: true }).fill(s.question);
+		for (const [i, r] of (s.reponses ?? []).entries()) await formulaire.getByLabel(`Réponse ${i + 1}`, { exact: true }).fill(r);
+	}
+	if (s.photo) await formulaire.getByLabel('Photos').setInputFiles({ name: 'essai.jpg', mimeType: 'image/jpeg', buffer: s.photo });
+	await formulaire.getByRole('button', { name: 'Publier' }).click();
+	await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
+	const lien = await publicationDe(page, s.texte).getByRole('link', { name: 'Commenter' }).getAttribute('href');
+	return Number(lien!.split('#')[0]!.split('/').pop());
+}
+
+const publicationDe = (page: Page, texte: string) => page.locator('article').filter({ hasText: texte });
+
+// Une petite photo fictive en JPEG, dessinée par le navigateur.
+async function photoFictive(page: Page): Promise<Buffer> {
+	const adresse = await page.evaluate(() => {
+		const toile = document.createElement('canvas');
+		toile.width = 160;
+		toile.height = 120;
+		const dessin = toile.getContext('2d')!;
+		dessin.fillStyle = '#b22222';
+		dessin.fillRect(0, 0, 160, 120);
+		dessin.fillStyle = '#ffffff';
+		dessin.fillRect(40, 30, 80, 60);
+		return toile.toDataURL('image/jpeg', 0.8);
+	});
+	return Buffer.from(adresse.split(',')[1]!, 'base64');
+}
+
+test.describe('échanges', () => {
+	test('annonce à prendre en compte : l’agent la voit sur son accueil, « Pris connaissance » la retire, l’auteur voit qui l’a fait', async ({ browser }) => {
+		const gestion = await pageSuper(browser);
+		const titre = `Consigne ${nouvelleMarque()}`;
+		await gestion.goto('/echanges/centre');
+		const id = await publier(gestion, { type: 'Annonce', texte: titre, prise: true });
+
+		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
+		await agent.goto('/');
+		const bouton = agent.getByRole('button', { name: `Pris connaissance : ${titre}` });
+		await bouton.click();
+		await expect(bouton).toHaveCount(0);
+		await expect(agent.getByRole('link', { name: titre, exact: true })).toHaveCount(0);
+		await agent.context().close();
+
+		await gestion.goto(`/echanges/centre/${id}`);
+		const suivi = gestion.locator('#suivi');
+		await expect(suivi).toContainText('1 a pris connaissance');
+		await expect(suivi).toContainText(/pas encore : .*Alice Martin/);
+		await suivi.locator('summary', { hasText: 'Qui a pris connaissance' }).click();
+		await expect(suivi.getByText('Test Fictif', { exact: true })).toBeVisible();
+		await gestion.context().close();
+	});
+
+	test('événement convoquant l’équipe 1 : un agent de l’équipe 1 répond depuis l’accueil, un agent de l’équipe 2 ne le voit pas', async ({ browser }) => {
+		const gestion = await pageSuper(browser);
+		const un = await nouvelAgent(gestion);
+		const deux = await nouvelAgent(gestion, 'Équipe 2');
+		const titre = `Manœuvre ${nouvelleMarque()}`;
+		await gestion.goto('/echanges/centre');
+		await publier(gestion, { type: 'Événement', texte: titre, debut: '2099-06-01T18:30', lieu: 'Caserne', equipes: ['Équipe 1'] });
+		await gestion.context().close();
+
+		const agentUn = await pageAgent(browser, un.email);
+		const reponse = agentUn.getByRole('group', { name: `Votre réponse : ${titre}` });
+		await reponse.getByRole('button', { name: 'Présent' }).click();
+		await expect(reponse.getByRole('button', { name: 'Présent' })).toHaveAttribute('aria-pressed', 'true');
+		await agentUn.reload();
+		await expect(reponse.getByRole('button', { name: 'Présent' })).toHaveAttribute('aria-pressed', 'true');
+		await expect(reponse.getByRole('button', { name: 'Absent' })).toHaveAttribute('aria-pressed', 'false');
+		await agentUn.context().close();
+
+		const agentDeux = await pageAgent(browser, deux.email);
+		await expect(agentDeux.getByText(titre)).toHaveCount(0);
+		// Sur le mur, il lit l'événement sans être convoqué : pas de réponse à donner.
+		await agentDeux.goto('/echanges/centre');
+		await expect(publicationDe(agentDeux, titre)).toContainText('Équipe 1');
+		await expect(publicationDe(agentDeux, titre).getByRole('group', { name: 'Votre réponse' })).toHaveCount(0);
+		await agentDeux.context().close();
+	});
+
+	test('une photo publiée sur le mur de l’équipe 1 s’affiche ; un agent de l’équipe 2 ne peut pas l’ouvrir : 403', async ({ browser }) => {
+		const gestion = await pageSuper(browser);
+		const un = await nouvelAgent(gestion);
+		const deux = await nouvelAgent(gestion, 'Équipe 2');
+		await gestion.context().close();
+
+		const page = await pageAgent(browser, un.email);
+		await page.goto('/echanges');
+		await page.getByRole('navigation', { name: 'Murs' }).getByRole('link', { name: /^Équipe 1/ }).click();
+		await expect(page.getByRole('heading', { level: 1, name: 'Équipe 1' })).toBeVisible();
+		const texte = `Photo de la manœuvre ${nouvelleMarque()}`;
+		await publier(page, { texte, photo: await photoFictive(page) });
+		const image = publicationDe(page, texte).getByRole('img', { name: `Photo 1 sur 1, publiée par ${un.nom}` });
+		await image.scrollIntoViewIfNeeded();
+		await expect.poll(() => image.evaluate((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+		const adresse = (await image.getAttribute('src'))!;
+		expect(adresse).toMatch(/^\/echanges\/photo\/\d+$/);
+		const lue = await page.request.get(adresse);
+		expect(lue.status()).toBe(200);
+		expect(lue.headers()['content-type']).toBe('image/jpeg');
+		await page.context().close();
+
+		const autre = await pageAgent(browser, deux.email);
+		expect((await autre.request.get(adresse)).status()).toBe(403);
+		await autre.context().close();
+	});
+
+	test('les envois du navigateur annoncent leur longueur : la garde de taille les laisse passer', async ({ page }) => {
+		const envois: Request[] = [];
+		page.on('request', (r) => {
+			if (r.method() === 'POST') envois.push(r);
+		});
+		await connecter(page, 'alice.martin@exemple.fr');
+		await page.goto('/echanges/vie');
+		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
+		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/vie?/publier']));
+		for (const r of envois) expect((await r.allHeaders())['content-length'], r.url()).toMatch(/^[1-9]\d*$/);
+	});
+});
+
+test.describe('échanges au clavier', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('publier : un refus met le focus sur le champ fautif, puis « J’aime » se bascule au clavier', async ({ page }) => {
+		const texte = `Sortie vélo ${nouvelleMarque()}`;
+		await page.goto('/echanges/vie');
+		const formulaire = await formulairePret(page);
+		const type = formulaire.getByLabel('Type', { exact: true });
+		await type.focus();
+		await type.selectOption({ label: 'Événement' });
+		await page.keyboard.press('Tab');
+		await expect(formulaire.getByLabel('Texte', { exact: true })).toBeFocused();
+		await page.keyboard.type(texte);
+		const envoyer = formulaire.getByRole('button', { name: 'Publier' });
+		await envoyer.focus();
+		await page.keyboard.press('Enter');
+		await expect(formulaire.getByText('Indiquez la date et l’heure.')).toBeVisible();
+		await expect(formulaire.getByLabel('Date et heure')).toBeFocused();
+		await expect(page.locator('div[role="alert"]')).toHaveText('La publication contient des erreurs.');
+
+		await formulaire.getByLabel('Date et heure').fill('2099-07-14T09:00');
+		await formulaire.getByLabel('Lieu', { exact: true }).focus();
+		await page.keyboard.type('Parc des sports');
+		await envoyer.focus();
+		await page.keyboard.press('Enter');
+		await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
+
+		const jaime = publicationDe(page, texte).getByRole('button', { name: /^J’aime/ });
+		await expect(jaime).toHaveAttribute('aria-pressed', 'false');
+		await jaime.focus();
+		await page.keyboard.press('Enter');
+		await expect(jaime).toHaveAttribute('aria-pressed', 'true');
+		await expect(jaime).toBeFocused();
+		await page.keyboard.press('Space');
+		await expect(jaime).toHaveAttribute('aria-pressed', 'false');
+	});
+});
 
 test.describe('agents', () => {
 	test('un agent ordinaire n’ouvre pas une fiche : 403', async ({ browser }) => {
