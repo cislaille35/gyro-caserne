@@ -15,7 +15,7 @@ const TAILLE_PHOTO_MAX = 400 * 1024;
 const EPINGLEES_MAX = 10;
 const PAGE_MAX = 30;
 
-type Convoques = 'tous' | number[];
+export type Convoques = 'tous' | number[];
 
 export type DonneesPublication = {
 	type: TypePublication;
@@ -47,14 +47,14 @@ export type PublicationVue = {
 };
 
 // Date et heure de Paris, « AAAA-MM-JJTHH:MM » (secondes permises) ; rend la date seule.
-function exigerDateHeure(valeur: unknown, libelle: string): string {
+export function exigerDateHeure(valeur: unknown, libelle: string): string {
 	if (typeof valeur !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(valeur)) throw new DonneeInvalide(`${libelle} invalide`);
 	const jour = valeur.slice(0, 10);
 	exigerDate(jour);
 	return jour;
 }
 
-function texte(valeur: unknown, libelle: string, max: number): string {
+export function texte(valeur: unknown, libelle: string, max: number): string {
 	const propre = typeof valeur === 'string' ? valeur.trim() : '';
 	if (!propre) throw new DonneeInvalide(`${libelle} vide`);
 	if (propre.length > max) throw new DonneeInvalide(`${libelle} trop long`);
@@ -141,25 +141,24 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 }
 
 // « fermer » : fermer les commentaires s'ils sont ouverts (auteur ou modérateur), les rouvrir sinon (modérateur seulement).
-function droitsSur(acteur: Acteur, mur: Mur, p: { auteur: string; commentairesFermes: number }): PublicationVue['droits'] {
+export function droitsSur(acteur: Acteur, mur: Mur, p: { auteur: string; commentairesFermes: number }): PublicationVue['droits'] {
 	const moi = p.auteur === nomActeur(acteur);
 	return { modifier: moi && mur.peutPublier, supprimer: moi || mur.peutModerer, epingler: mur.peutModerer, fermer: mur.peutModerer || (moi && p.commentairesFermes === 0) };
 }
 
-// La publication, son mur (que l'acteur doit pouvoir lire) et les droits de l'acteur dessus.
-async function cible(base: Base, acteur: Acteur, id: number, maintenant: string) {
-	const aujourdhui = exigerDateHeure(maintenant, 'Date');
-	const [ligne] = await base.select({ mur: publication.mur, auteur: publication.auteur, commentairesFermes: publication.commentairesFermes }).from(publication).where(eq(publication.id, id));
+// La publication, son mur (que l'acteur doit pouvoir lire, celui de la publication et non un autre) et les droits de l'acteur dessus.
+export async function cible(base: Base, acteur: Acteur, id: number, aujourdhui: string) {
+	const [ligne] = await base.select().from(publication).where(eq(publication.id, id));
 	if (!ligne) throw new DonneeInvalide('Publication inconnue');
 	const mur = await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	return { cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
+	return { ligne, mur, cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
 }
 
 const journalPublication = (base: Base, acteur: Acteur, action: string, id: number, maintenant: string, details?: object) =>
 	ligneJournal(base, { acteur: nomActeur(acteur), action, cibleType: 'publication', cibleId: id, details }, maintenant);
 
 export async function modifierPublication(base: Base, acteur: Acteur, id: number, champs: { texte: string }, maintenant: string): Promise<void> {
-	const { cle, droits } = await cible(base, acteur, id, maintenant);
+	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (!droits.modifier) throw refusMur(cle, 'publier');
 	const corps = texte(champs.texte, 'Texte', 4000);
 	await base.batch([base.update(publication).set({ texte: corps, modifieeLe: maintenant }).where(eq(publication.id, id)), journalPublication(base, acteur, 'modifier_publication', id, maintenant)]);
@@ -167,19 +166,19 @@ export async function modifierPublication(base: Base, acteur: Acteur, id: number
 
 // Photos, commentaires, j'aime, réponses et votes partent avec la publication (suppression en cascade).
 export async function supprimerPublication(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
-	const { cle, droits } = await cible(base, acteur, id, maintenant);
+	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (!droits.supprimer) throw refusMur(cle, 'moderer');
 	await base.batch([base.delete(publication).where(eq(publication.id, id)), journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })]);
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
-	const { cle, droits } = await cible(base, acteur, id, maintenant);
+	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (!droits.epingler) throw refusMur(cle, 'moderer');
 	await base.batch([base.update(publication).set({ epinglee: oui ? 1 : 0 }).where(eq(publication.id, id)), journalPublication(base, acteur, oui ? 'epingler' : 'desepingler', id, maintenant)]);
 }
 
 export async function fermerCommentaires(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
-	const { cle, droits } = await cible(base, acteur, id, maintenant);
+	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	// Rouvrir est réservé aux modérateurs : l'auteur ne passe pas outre leur décision.
 	if (!droits.fermer || (!oui && !droits.epingler)) throw refusMur(cle, 'moderer');
 	await base.batch([
