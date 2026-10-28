@@ -50,7 +50,7 @@ Ce lot livre les **murs** et **« À ne pas manquer »**. Les autres lignes ont 
   - **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes), réponse **présent / absent / incertain** ; l'auteur voit qui a répondu et qui pas encore ; un **sondage** optionnel (ex. « petit déjeuner : oui / non ») ;
   - **Bravo** : une réussite (examen, compétition).
   - Dans « Vie du centre » et les murs d'équipe et de comité, tous les types sauf « Annonce » avec prise de connaissance, réservée aux modérateurs (choix de Claude).
-- **Sondage** seul possible aussi sur un message (une question, 2 à 6 réponses, une seule réponse par personne, résultats visibles de tous).
+- **Sondage** seul possible aussi sur un message (une question, 2 à 6 réponses, une seule réponse par personne ; les résultats s'affichent une fois qu'on a voté, choix de Claude pour ne pas orienter le vote).
 - **« J'aime »** et **commentaires** ; l'auteur ou un modérateur peut fermer les commentaires.
 - **Épingler** (modérateurs) : en haut du mur et dans « À ne pas manquer ».
 - **Modifier, supprimer** : l'auteur ; **supprimer** : les modérateurs. La suppression est inscrite au journal (sans le contenu).
