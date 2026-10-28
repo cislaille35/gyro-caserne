@@ -40,7 +40,7 @@ Ici, les **gestionnaires** sont ceux qui ont le droit `GERER_ACCES` sur le centr
 - **La fiche** commence par un en-tête : initiales, nom, grade, équipe, statut, rôles en cours avec leur icône, « Appeler » (seulement si l'agent a un téléphone) et « Écrire » (messagerie de l'appareil). Suivent cinq blocs repliés, chacun avec un résumé : « Identité et contact », « Parcours », « Équipe et statut » (chacun avec son bouton « Enregistrer »), « Rôles » et « Départ du centre » (liseré rouge). Un bloc qui porte une erreur s'ouvre seul ; sans JavaScript, tous restent ouverts. Le surnom et le contact d'urgence s'y lisent sans s'y modifier.
 - **Ajouter un agent** : prénom, nom et e-mail obligatoires, profil « Agent » présélectionné.
 - **Équipe** : le changement prend effet le jour même ; « Aucune équipe » retire l'agent de son équipe.
-- **Départ** : le bloc « Départ du centre » avertit (naissance et contact d'urgence effacés, rôles terminés) et demande de cocher « Je confirme » avant « Déclarer le départ ». « Parti » n'est plus dans la liste des statuts, sauf pour un agent déjà parti (pour le réintégrer).
+- **Départ** : le bloc « Départ du centre » avertit (naissance et contact d'urgence effacés, rôles terminés) et demande de cocher « Je confirme » avant « Déclarer le départ ». « Parti » n'est pas dans la liste des statuts ; pour réintégrer un agent parti, on lui choisit un autre statut. Après un enregistrement, le bloc enregistré reste ouvert. Sur une fiche protégée, le résumé du départ donne la raison.
 
 Un agent ordinaire qui ouvre une fiche reçoit un refus. Un adjoint ne modifie pas la fiche du chef de centre ni celle d'un autre adjoint : la raison s'affiche à la place des formulaires.
 

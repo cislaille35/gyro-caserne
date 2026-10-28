@@ -106,6 +106,18 @@ describe('page fiche agent', () => {
 			expect(ouvert(html({ data, form: { cible: 'attribuer', succes: true, message: 'Rôle attribué' } }), 'Rôles')).toBe(true);
 		});
 
+		it('après un enregistrement réussi, le bloc enregistré reste ouvert', () => {
+			for (const [bloc, titre] of [['identite', 'Identité et contact'], ['parcours', 'Parcours'], ['equipe', 'Équipe et statut'], ['depart', 'Départ du centre']]) {
+				const page = html({ data, form: { succes: true, message: 'Enregistré', bloc } });
+				for (const autre of BLOCS) expect(ouvert(page, autre)).toBe(autre === titre);
+			}
+		});
+
+		it('un refus du socle sur l’équipe ouvre « Équipe et statut »', () => {
+			const page = html({ data, form: { message: 'Seul un super administrateur change l’équipe du chef de centre', valeurs: { equipeId: '1' } } });
+			expect(ouvert(page, 'Équipe et statut')).toBe(true);
+		});
+
 		it('sans JavaScript, les blocs restent ouverts', () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			expect(render(Page as any, { props: { data, form: null } }).head).toMatch(/<noscript><style>[^<]*\.groupe > \[hidden\][^<]*display: block/);
@@ -139,17 +151,28 @@ describe('page fiche agent', () => {
 		expect(page).toMatch(/aria-describedby="depart-avertissement confirmation-erreur"/);
 	});
 
-	it('un agent parti : plus de formulaire de départ, et « Parti » reste dans la liste des statuts pour le réintégrer', () => {
+	it('un agent parti : plus de formulaire de départ ; pour le réintégrer, on choisit un statut (« Parti » n’est pas proposé)', () => {
 		const page = html({ data: { ...data, fiche: { ...fiche, statut: 'parti' } }, form: null });
 		expect(page).not.toContain('Déclarer le départ');
 		expect(bloc(page, 'Départ du centre')[0]).toContain('A quitté le centre');
-		expect(page.match(/<select[^>]*name="statut"[\s\S]*?<\/select>/)![0]).toContain('value="parti"');
+		const statut = page.match(/<select[^>]*name="statut"[\s\S]*?<\/select>/)![0];
+		expect(statut).not.toContain('value="parti"');
+		expect(statut).toMatch(/<option[^>]*value=""[^>]*selected[^>]*>À choisir|<option[^>]*selected[^>]*value=""[^>]*>À choisir/);
+	});
+
+	it('un agent parti : une erreur de départ s’affiche quand même dans son bloc', () => {
+		const page = html({ data: { ...data, fiche: { ...fiche, statut: 'parti' } }, form: { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs: { statut: 'parti' } } });
+		expect(ouvert(page, 'Départ du centre')).toBe(true);
+		expect(page.slice(page.indexOf('>Départ du centre<'))).toContain('Cochez « Je confirme » pour déclarer le départ.');
 	});
 
 	it('remplace les formulaires par la raison quand la fiche est protégée', () => {
 		const raison = 'Seul un super administrateur modifie la fiche du chef de centre.';
 		const page = html({ data: { ...data, raison }, form: null });
-		expect(page.split(raison)).toHaveLength(5);
+		// Dans quatre blocs, et en résumé du départ (rien ne s'y déclare).
+		expect(page.split(raison)).toHaveLength(6);
+		expect(bloc(page, 'Départ du centre')[0]).toContain(raison);
+		expect(page).not.toContain('Fin des rôles, données personnelles effacées');
 		expect(page).not.toContain('<form');
 		expect(page).not.toContain('<input');
 		expect(page).not.toContain('<select');

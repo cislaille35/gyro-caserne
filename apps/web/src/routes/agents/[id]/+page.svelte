@@ -52,9 +52,9 @@
 	});
 	const erreursNomination = $derived(concerne('attribuer') ? (form?.erreurs ?? {}) : {});
 
-	// « Parti » se déclare dans son propre bloc ; un agent parti le garde dans la liste, pour être réintégré.
-	const statuts = $derived(data.statuts.filter((s) => s !== 'parti' || fiche.statut === 'parti'));
-	const statutAffiche = $derived(valeurs.statut && statuts.some((s) => s === valeurs.statut) ? valeurs.statut : fiche.statut);
+	// « Parti » se déclare dans son propre bloc. Un agent parti se réintègre en choisissant un statut.
+	const statuts = $derived(data.statuts.filter((s) => s !== 'parti'));
+	const statutAffiche = $derived(valeurs.statut && statuts.some((s) => s === valeurs.statut) ? valeurs.statut : fiche.statut === 'parti' ? '' : fiche.statut);
 
 	// Résumés des blocs fermés.
 	const enCours = $derived(data.attributions.enCours);
@@ -64,7 +64,7 @@
 		parcours: [fiche.grade?.libelle ?? 'Aucun grade', fiche.entreeCentre && `au centre depuis ${fiche.entreeCentre.slice(0, 4)}`].filter(Boolean).join(' · '),
 		equipe: `${fiche.equipe?.nom ?? 'Aucune équipe'} · ${LIBELLES_STATUT[fiche.statut]}`,
 		roles: [enCours.length ? enCours.map(intitule).join(' · ') : 'Aucun rôle en cours', data.attributions.aVenir.length && `${data.attributions.aVenir.length} à venir`].filter(Boolean).join(' · '),
-		depart: fiche.statut === 'parti' ? 'A quitté le centre' : 'Fin des rôles, données personnelles effacées'
+		depart: fiche.statut === 'parti' ? 'A quitté le centre' : (data.raison ?? 'Fin des rôles, données personnelles effacées')
 	});
 
 	// Le bloc concerné par le dernier envoi s'ouvre seul : on y voit l'erreur ou le message.
@@ -72,7 +72,8 @@
 	const PARCOURS = ['gradeId', 'dateGrade', 'profilId', 'entreeCentre', 'engagementSpv'];
 	const blocOuvert = $derived.by(() => {
 		if (form?.cible) return 'roles';
-		if (!generale || generale.succes) return null;
+		if (!generale) return null;
+		if (generale.succes) return generale.bloc ?? null;
 		// Les champs en erreur, ou à défaut ceux envoyés, désignent le formulaire.
 		const champs = Object.keys({ ...valeurs, ...erreurs });
 		if (champs.includes('confirmation') || valeurs.statut === 'parti') return 'depart';
@@ -263,7 +264,7 @@
 							libelle="Statut"
 							valeur={statutAffiche}
 							erreur={erreurs.statut}
-							options={statuts.map((s) => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))}
+							options={[...(fiche.statut === 'parti' ? [{ valeur: '', libelle: 'À choisir' }] : []), ...statuts.map((s) => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))]}
 						/>
 						<Bouton type="submit">Enregistrer</Bouton>
 					</form>
@@ -338,6 +339,7 @@
 					<p class="raison">{data.raison}</p>
 				{:else if fiche.statut === 'parti'}
 					<p>A quitté le centre. Pour le réintégrer, changez son statut dans « Équipe et statut ».</p>
+					{#if erreurs.confirmation}<p class="erreur">{erreurs.confirmation}</p>{/if}
 				{:else}
 					<form method="POST" action="?/statut">
 						<input type="hidden" name="statut" value="parti" />
