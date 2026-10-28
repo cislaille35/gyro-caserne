@@ -5,8 +5,11 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins } from '#lib/server/auth.ts';
+import { envoiRefuse } from '#lib/server/taille-envoi.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const refus = envoiRefuse(event.request, event.url.pathname);
+	if (refus) return refus;
 	event.locals.affichage = lireAffichage(event.cookies);
 	const resoudre: typeof resolve = (evenement, options) =>
 		resolve(evenement, { ...options, transformPageChunk: ({ html }) => appliquerAffichage(html, event.locals.affichage) });
