@@ -45,7 +45,7 @@
 		<span class="etat">
 			{#if p.statut && p.statut !== 'operationnel'}<Statut statut={p.statut} />{/if}
 			{#if p.aCompleter}<Pastille ton="alerte">À compléter</Pastille>{/if}
-			{#if p.roles.length > 0}<small class="petit"><span class="cache">Rôles : </span>{p.roles.join(' · ')}</small>{/if}
+			{#if p.roles.length > 0}<small class="petit"><span class="cache">Rôles :</span> {p.roles.join(' · ')}</small>{/if}
 		</span>
 	</li>
 {/snippet}

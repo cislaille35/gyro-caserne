@@ -73,6 +73,8 @@ describe('/agents : vue de tous', () => {
 		expect(mise).toContain('Sergent-chef');
 		expect(mise).toMatch(/Rôles\s*:[\s\S]*Chef d’équipe \(Équipe 1\)[\s\S]*Rapporteur \(Amicale\)/);
 		expect(mise.match(/Rôles/g)).toHaveLength(1);
+		// Une espace entre « Rôles : » (lu seulement) et les rôles, pour le texte lu.
+		expect(mise).toMatch(/Rôles :<\/span> Chef d’équipe/);
 		expect(mise).not.toContain('@exemple.fr');
 		expect(mise).not.toContain('aria-pressed');
 		expect(mise).not.toContain('class="statut');
