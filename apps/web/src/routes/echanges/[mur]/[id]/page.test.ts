@@ -44,6 +44,12 @@ describe('page d’une publication', () => {
 		expect(page).toContain('href="/echanges/centre"');
 	});
 
+	it('cibles du focus après « Commenter » : chaque commentaire, puis le titre de la liste', () => {
+		const page = html();
+		for (const c of commentaires) expect(page).toMatch(new RegExp(`<li[^>]*id="commentaire-${c.id}"[^>]*tabindex="-1"`));
+		expect(page).toMatch(/<h2 id="titre-commentaires" tabindex="-1"/);
+	});
+
 	it('commentaires fermés ou mur en lecture seule : pas de formulaire, un message', () => {
 		const fermes = html({ publication: { ...publication, commentairesFermes: true } });
 		expect(fermes).not.toContain('?/commenter');

@@ -473,6 +473,8 @@ test.describe('échanges au clavier', () => {
 		await envoyer.focus();
 		await page.keyboard.press('Enter');
 		await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
+		// Publiée : le focus va sur la nouvelle publication.
+		await expect(publicationDe(page, texte)).toBeFocused();
 
 		const jaime = publicationDe(page, texte).getByRole('button', { name: /^J’aime/ });
 		await expect(jaime).toHaveAttribute('aria-pressed', 'false');
@@ -482,6 +484,19 @@ test.describe('échanges au clavier', () => {
 		await expect(jaime).toBeFocused();
 		await page.keyboard.press('Space');
 		await expect(jaime).toHaveAttribute('aria-pressed', 'false');
+
+		// Commenter au clavier : le focus va sur le nouveau commentaire.
+		await publicationDe(page, texte).getByRole('link', { name: 'Commenter' }).click();
+		const champ = page.getByLabel('Votre commentaire');
+		await expect(page.locator('#commenter')).toBeVisible();
+		await champ.focus();
+		const commentaire = `Je viens ${nouvelleMarque()}`;
+		await page.keyboard.type(commentaire);
+		await page.keyboard.press('Tab');
+		await expect(page.getByRole('button', { name: 'Commenter' })).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(page.locator('div[role="status"]')).toHaveText('Commentaire publié.');
+		await expect(page.locator('li', { hasText: commentaire })).toBeFocused();
 	});
 });
 

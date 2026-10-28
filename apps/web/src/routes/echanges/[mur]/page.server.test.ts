@@ -74,8 +74,9 @@ describe('publier', () => {
 			['photos', jpeg(2000, 'deux.jpg')],
 			['photos', new File([], '')]
 		]);
-		expect(r).toMatchObject({ cible: 'publier', succes: 'Publication envoyée.' });
 		const p = await derniere(base);
+		// L'identifiant sert à y mettre le focus.
+		expect(r).toMatchObject({ cible: 'publier', succes: 'Publication envoyée.', id: p.id });
 		expect(p).toMatchObject({ type: 'message', texte: 'Petit déjeuner samedi ?', sondageQuestion: 'Vous venez ?', sondageReponses: '["Oui","Non"]' });
 		expect(await base.select({ id: photoPublication.id }).from(photoPublication).where(eq(photoPublication.publicationId, p.id))).toHaveLength(2);
 	});
@@ -200,7 +201,9 @@ describe('interactions', () => {
 		const { base, alice, bruno } = await preparer();
 		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
 		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'Salut']])).toMatchObject({ cible: `publication:${id}`, succes: 'Commentaire publié.' });
-		expect(await base.select().from(commentaire)).toMatchObject([{ texte: 'Salut', auteur: `personne:${bruno.id}` }]);
+		const [nouveau] = await base.select().from(commentaire);
+		expect(nouveau).toMatchObject({ texte: 'Salut', auteur: `personne:${bruno.id}` });
+		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'Encore']])).toMatchObject({ id: nouveau!.id + 1 });
 		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', ' ']])).toMatchObject({ status: 400, data: { message: 'Écrivez votre commentaire.' } });
 		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'x'.repeat(2001)]])).toMatchObject({ status: 400, data: { message: 'Le commentaire ne peut pas dépasser 2 000 caractères.', valeurs: { texte: 'x'.repeat(2001) } } });
 		await fermerCommentaires(base, alice, Number(id), true, maintenantParis());

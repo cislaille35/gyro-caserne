@@ -33,7 +33,7 @@
 
 <p class="retour"><a href="/echanges">‹ Tous les murs</a></p>
 <header class="titre">
-	<h1>{data.mur.nom}</h1>
+	<h1 id="titre-mur" tabindex="-1">{data.mur.nom}</h1>
 	{#if data.mur.lectureSeule}<Pastille ton="neutre">Lecture seule</Pastille>{/if}
 </header>
 

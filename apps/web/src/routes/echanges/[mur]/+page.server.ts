@@ -27,12 +27,13 @@ export const actions: Actions = {
 		if (envoiTropLourd(request)) return fail<Reponse>(413, { cible: 'publier', message: 'Envoi trop lourd : 4 photos de 400 Ko au plus. Sans JavaScript, réduisez vos photos avant de les envoyer.' });
 		const { donnees, valeurs, erreurs } = await lirePublication(await request.formData());
 		if (!donnees) return fail<Reponse>(400, { cible: 'publier', erreurs, valeurs });
+		let id: number;
 		try {
-			await publier(locals.base, acteur, params.mur, donnees, maintenantParis());
+			id = await publier(locals.base, acteur, params.mur, donnees, maintenantParis());
 		} catch (erreur) {
 			return echecMur(erreur, 'publier', valeurs);
 		}
-		return { cible: 'publier', succes: 'Publication envoyée.' } satisfies Reponse;
+		return { cible: 'publier', succes: 'Publication envoyée.', id } satisfies Reponse;
 	},
 	modifier: ({ locals, params, request }) =>
 		surPublication({ locals, params, request }, async (acteur, id, f) => {

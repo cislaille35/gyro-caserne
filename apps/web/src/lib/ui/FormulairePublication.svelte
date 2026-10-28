@@ -51,13 +51,14 @@
 			champPhotos.focus();
 			return;
 		}
-		// Refusée : le premier champ en erreur prend le focus.
+		// Refusée : le premier champ en erreur prend le focus. Envoyée : la nouvelle publication, sinon le titre du mur
+		// (page de publications plus anciennes), sinon le contenu.
 		return async ({ update, result, formElement }) => {
 			await update();
 			envoi = false;
-			if (result.type !== 'failure') return;
 			await tick();
-			formElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			if (result.type === 'failure') formElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			else if (result.type === 'success') (document.getElementById(`publication-${result.data?.id}`) ?? document.getElementById('titre-mur') ?? document.getElementById('contenu'))?.focus();
 		};
 	};
 	const erreurPhoto = $derived(erreurPhotos || erreurs.photos);

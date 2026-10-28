@@ -32,7 +32,7 @@ const texte = (f: FormData, cle: string) => {
 // Une publication visée depuis la page d'un mur doit être de ce mur ; sinon, elle n'existe pas ici.
 export async function surPublication(
 	{ locals, params, request }: Requete,
-	faire: (acteur: Acteur, id: number, f: FormData) => Promise<string>,
+	faire: (acteur: Acteur, id: number, f: FormData) => Promise<string | { succes: string; id: number }>,
 	valeurs?: (f: FormData) => Valeurs
 ) {
 	const acteur = exigerActeur(locals);
@@ -43,7 +43,8 @@ export async function surPublication(
 	const [ligne] = await locals.base.select({ mur: publication.mur }).from(publication).where(eq(publication.id, id));
 	if (!ligne || (params.mur !== undefined && ligne.mur !== params.mur)) return fail<Reponse>(404, { cible, message: 'Cette publication n’existe plus.' });
 	try {
-		return { cible, succes: await faire(acteur, id, f) } satisfies Reponse;
+		const fait = await faire(acteur, id, f);
+		return (typeof fait === 'string' ? { cible, succes: fait } : { cible, ...fait }) satisfies Reponse;
 	} catch (erreur) {
 		return echecMur(erreur, cible, valeurs?.(f));
 	}
@@ -57,8 +58,7 @@ export const gestes = {
 		surPublication(
 			r,
 			async (acteur, id, f) => {
-				await commenter(r.locals.base, acteur, id, texte(f, 'texte'), maintenantParis());
-				return 'Commentaire publié.';
+				return { succes: 'Commentaire publié.', id: await commenter(r.locals.base, acteur, id, texte(f, 'texte'), maintenantParis()) };
 			},
 			(f) => ({ texte: texte(f, 'texte') })
 		),

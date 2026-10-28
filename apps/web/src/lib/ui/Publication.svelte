@@ -53,7 +53,7 @@
 	};
 </script>
 
-<article class="publication" aria-labelledby="auteur-{p.id}" tabindex="-1" bind:this={carte}>
+<article id="publication-{p.id}" class="publication" aria-labelledby="auteur-{p.id}" tabindex="-1" bind:this={carte}>
 	<p class="entete">
 		<span id="auteur-{p.id}" class="auteur">{auteur}</span>
 		<span class="doux">· le {quand(p.creeLe)}{p.modifieeLe ? ' · modifiée' : ''}</span>

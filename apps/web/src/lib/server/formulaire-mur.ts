@@ -19,7 +19,8 @@ export function erreurLecture(erreur: unknown): never {
 
 // Saisie à réafficher après un refus (les photos ne reviennent pas : il faut les choisir à nouveau).
 export type Valeurs = { type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[] };
-export type Reponse = { cible: string; succes?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
+// `id` : ce qui vient d'être créé (publication, commentaire), pour y mettre le focus.
+export type Reponse = { cible: string; succes?: string; id?: number; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
 
 const texte = (f: FormData, cle: string) => {
 	const v = f.get(cle);

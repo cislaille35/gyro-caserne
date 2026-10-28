@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { tick } from 'svelte';
 	import type { Personne } from '@gyro-caserne/socle';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Publication from '#lib/ui/Publication.svelte';
@@ -30,11 +31,14 @@
 		['sans_reponse', 'Sans réponse']
 	] as const;
 
-	// Commentaire refusé : le champ reprend le focus pour corriger.
+	// Commentaire refusé : le champ reprend le focus pour corriger. Publié : le nouveau commentaire, sinon le titre de la liste,
+	// sinon le contenu (publication supprimée entre-temps).
 	let champ = $state<HTMLTextAreaElement>();
 	const surCommentaire: SubmitFunction = () => async ({ result, update }) => {
 		await update();
+		await tick();
 		if (result.type === 'failure') champ?.focus();
+		else if (result.type === 'success') (document.getElementById(`commentaire-${result.data?.id}`) ?? document.getElementById('titre-commentaires') ?? document.getElementById('contenu'))?.focus();
 	};
 	// Commentaire supprimé : son bouton a disparu, le focus revient au titre de la liste.
 	let titre = $state<HTMLElement>();
@@ -61,7 +65,7 @@
 	{#if data.commentaires.length > 0}
 		<ul class="commentaires">
 			{#each data.commentaires as c (c.id)}
-				<li>
+				<li id="commentaire-{c.id}" tabindex="-1">
 					<p><span class="auteur">{nom(c.auteur)}</span> <span class="doux">· le {quand(c.creeLe)}</span></p>
 					<p class="texte">{c.texte}</p>
 					{#if c.supprimable}

@@ -35,6 +35,13 @@ const html = (data: Record<string, unknown> = {}, form: unknown = null) =>
 	render(Page as any, { props: { data: { mur, epinglees: [], publications: [], suite: null, equipes, plusAnciennes: false, anniversaires: [], ...data }, form } }).body;
 
 describe('page d’un mur', () => {
+	it('cibles du focus après « Publier » : chaque publication, puis le titre du mur', () => {
+		const page = html({ epinglees: [pub({ id: 9, epinglee: true })], publications: [pub()] });
+		expect(page).toMatch(/<article[^>]*id="publication-9"[^>]*tabindex="-1"/);
+		expect(page).toMatch(/<article[^>]*id="publication-1"[^>]*tabindex="-1"/);
+		expect(page).toMatch(/<h1 id="titre-mur" tabindex="-1"/);
+	});
+
 	it('le texte n’est jamais interprété comme du HTML', () => {
 		const page = html({ publications: [pub({ texte: '<img src=x onerror=alert(1)>\nLigne 2' })] });
 		expect(page).not.toContain('<img src=x');
