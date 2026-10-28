@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import type { Droit } from '@gyro-caserne/socle';
+	import { iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { DOMAINES, estPersonnalise, niveauxDe } from '#lib/paquets.ts';
 	import Groupe from '#lib/ui/Groupe.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import type { IconeRole as Icone } from '#lib/ui/icones-roles.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
-	import { iconeDe, titulaires } from './roles.ts';
+	import { titulaires } from './roles.ts';
 	import type { LayoutData } from './$types';
 
 	// Les rôles rangés par thème, les comités et les profils : une ligne par élément, un appui ouvre sa page.
@@ -61,9 +61,9 @@
 {#snippet role(r: Resp)}
 	{#snippet info()}
 		{#if r.titulaires === 0}<Pastille ton="alerte">Aucun titulaire</Pastille>{:else}{titulaires(r.titulaires)}{/if}
-		{#if estPersonnalise(r.droits.map((d) => d.droit as Droit), r.modele)}<Pastille ton="info">Personnalisé</Pastille>{/if}
+		{#if estPersonnalise(r.droits.map((d) => d.droit as Droit), r.modele)}<Pastille ton="alerte">Personnalisé</Pastille>{/if}
 	{/snippet}
-	{@render ligne(`/reglages/roles/${r.id}`, iconeDe(r), r.nom, info)}
+	{@render ligne(`/reglages/roles/${r.id}`, iconeDuRole(r), r.nom, info)}
 {/snippet}
 
 {#snippet groupeRoles(cle: 'commandement' | 'equipes' | 'referents', titre: string, roles: Resp[])}
@@ -118,7 +118,7 @@
 			<ul>
 				{#each archives as r (r.id)}
 					{#snippet info()}Archivé le {new Date(`${r.archiveeLe}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC' })}{/snippet}
-					{@render ligne(`/reglages/roles/${r.id}`, iconeDe(r), r.nom, info)}
+					{@render ligne(`/reglages/roles/${r.id}`, iconeDuRole(r), r.nom, info)}
 				{/each}
 				{#each dissous as c (c.id)}
 					<li class="dissous">{c.nom}, comité dissous le {new Date(`${c.dissousLe}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC' })}</li>

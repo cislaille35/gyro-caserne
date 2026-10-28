@@ -29,7 +29,8 @@
 	// Pour un profil, le premier niveau ne dit pas « comme tout agent ».
 	const niveauxAffiches = (d: (typeof DOMAINES)[number]) => (profil ? d.niveaux.map((n, i) => (i === 0 ? { ...n, phrase: 'Rien dans ce domaine.' } : n)) : d.niveaux);
 
-	let ouverts = $state<Record<string, boolean>>({});
+	// Une valeur par domaine : un bind sur `undefined` ferait échouer l'hydratation (Groupe a une valeur par défaut).
+	let ouverts = $state<Record<string, boolean>>(Object.fromEntries(DOMAINES.map((d) => [d.id, false])));
 	onMount(() => {
 		if (matchMedia('(min-width: 1024px)').matches) ouverts = Object.fromEntries(DOMAINES.map((d) => [d.id, true]));
 	});

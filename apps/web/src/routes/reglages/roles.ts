@@ -1,4 +1,4 @@
-import { MODELES, type Attributeur } from '@gyro-caserne/socle';
+import type { Attributeur } from '@gyro-caserne/socle';
 import type { IconeRole } from '#lib/ui/icones-roles.ts';
 
 // Les icônes proposées, avec leur nom lu par les lecteurs d'écran.
@@ -25,21 +25,6 @@ export const NATURES = [
 	{ valeur: 'fonction', libelle: 'Fonction' },
 	{ valeur: 'mission', libelle: 'Mission' }
 ];
-
-type Role = { icone: string | null; modele: string | null; systeme: string | null; portee: string };
-
-// L'icône choisie, sinon celle du modèle, sinon celle du thème (qui découle de la portée).
-export function iconeDe(r: Role): IconeRole {
-	if (r.icone) return r.icone as IconeRole;
-	const deModele = MODELES.find((m) => m.id === r.modele)?.icone;
-	if (deModele) return deModele;
-	if (r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint') return 'etoile';
-	return r.portee === 'equipe' ? 'casque' : r.portee === 'comite' ? 'groupe' : 'outil';
-}
-
-export function nomModele(id: string | null): string | null {
-	return MODELES.find((m) => m.id === id)?.nom ?? null;
-}
 
 export function valeurAttributeur(a: Attributeur): string {
 	return a.type === 'comite' ? `comite:${a.id}` : a.type;

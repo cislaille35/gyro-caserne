@@ -25,6 +25,7 @@ const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => 
 const responsabilites = [
 	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
 	role(2, 'Chef d’équipe', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
+	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
 	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
 	role(5, 'Rapporteur de comité', { portee: 'comite', attributeur: { type: 'comite_vise' } }),
@@ -39,6 +40,7 @@ const profils = [{ id: 1, nom: 'Agent', typePersonne: 'agent', droits: ['VOIR_PL
 const data = { peutPouvoir: true, responsabilites, comites, profils, comitesChoix: [] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
+const ligne = (page: string, id: number) => page.slice(page.indexOf(`href="/reglages/roles/${id}"`), page.indexOf('</a>', page.indexOf(`href="/reglages/roles/${id}"`)));
 const groupe = (page: string, titre: string) => page.slice(page.indexOf(`>${titre}<`), page.indexOf('</section>', page.indexOf(`>${titre}<`)));
 
 describe('page Réglages', () => {
@@ -46,7 +48,8 @@ describe('page Réglages', () => {
 		const page = html(Page, { data });
 		for (const titre of ['Chef de centre et adjoint', 'Chefs d’équipe', 'Référents', 'Comités', 'Profils', 'Archivés']) expect(page).toContain(`>${titre}<`);
 		expect(page).toMatch(/aria-expanded="false"/);
-		expect(groupe(page, 'Référents')).toContain('2 rôles · 1 sans titulaire');
+		expect(groupe(page, 'Référents')).toContain('3 rôles · 1 sans titulaire');
+		expect(ligne(page, 7)).toContain('--icone-camion-fond');
 		expect(groupe(page, 'Chef de centre et adjoint')).toContain('Chef de centre');
 		expect(groupe(page, 'Chefs d’équipe')).toContain('Chef d’équipe');
 	});
@@ -56,7 +59,9 @@ describe('page Réglages', () => {
 		expect(page).toMatch(/<a href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-alerte-fond\)[^>]*>(<!---->)?Aucun titulaire/);
 		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
 		expect(engins).toContain('2 titulaires');
-		expect(engins).toContain('Personnalisé');
+		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);
+		// Même règle d'icône que l'accueil : d'après le nom, sans icône ni modèle.
+		expect(ligne(page, 1)).toContain('--icone-etoile-fond');
 		const pharmacie = page.slice(page.indexOf('href="/reglages/roles/4"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/4"')));
 		expect(pharmacie).not.toContain('Personnalisé');
 	});

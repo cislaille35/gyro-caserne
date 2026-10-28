@@ -1,4 +1,4 @@
-import { and, count, countDistinct, eq, isNull, lte, or, gte, sql } from 'drizzle-orm';
+import { and, count, countDistinct, eq, isNull, lte, ne, or, gte, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDate } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
@@ -48,8 +48,19 @@ export async function listerComites(base: Base, acteur: Acteur, aujourdhui: stri
 		.selectDistinct({ id: attribution.perimetreId, prenom: personne.prenom, nom: personne.nom })
 		.from(attribution)
 		.innerJoin(personne, eq(personne.id, attribution.personneId))
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 		.innerJoin(responsabiliteDroit, and(eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId), eq(responsabiliteDroit.droit, 'ATTRIBUER_RESPONSABILITE')))
-		.where(and(eq(attribution.perimetreType, 'comite'), lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))))
+		// Mêmes filtres que les casquettes : rôle de comité non archivé, attribution en cours, agent présent.
+		.where(
+			and(
+				eq(attribution.perimetreType, 'comite'),
+				eq(responsabilite.typePerimetre, 'comite'),
+				isNull(responsabilite.archiveeLe),
+				ne(personne.statut, 'parti'),
+				lte(attribution.debut, aujourdhui),
+				or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))
+			)
+		)
 		.orderBy(personne.nom, personne.prenom);
 	return comites.map((c) => ({
 		id: c.id,

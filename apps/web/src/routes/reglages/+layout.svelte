@@ -10,7 +10,7 @@
 
 <svelte:head>
 	<!-- Sans JavaScript, les groupes ne se replient pas : tout reste visible. -->
-	<noscript><style>.groupe > [hidden] { display: block !important; }</style></noscript>
+	<noscript><style>.groupe > [hidden] { display: block !important; } .groupe .chevron { display: none; }</style></noscript>
 </svelte:head>
 
 <div class="reglages" class:enfant>

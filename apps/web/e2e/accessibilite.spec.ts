@@ -291,7 +291,7 @@ test.describe('réglages', () => {
 		await page.getByLabel('Nom', { exact: true }).fill(role);
 		await page.getByLabel('Portée').selectOption({ label: 'Tout le centre' });
 		await page.getByLabel('Qui attribue').selectOption({ label: `Le comité « ${comite} »` });
-		await page.getByText('Ballon').locator('..').click();
+		await page.getByRole('radio', { name: 'Ballon' }).check();
 		await page.getByRole('button', { name: 'Créer le rôle' }).click();
 		await expect(page).toHaveURL(/\/reglages\/roles\/\d+$/);
 		await expect(page.getByRole('heading', { level: 1, name: role })).toBeVisible();
@@ -300,9 +300,9 @@ test.describe('réglages', () => {
 		// Un domaine changé : la barre le dit avant l'enregistrement.
 		const stock = page.locator('main section').filter({ has: page.getByRole('button', { name: /Stock et pharmacie/ }) });
 		if ((await stock.getByRole('button', { name: /Stock et pharmacie/ }).getAttribute('aria-expanded')) === 'false') await stock.getByRole('button', { name: /Stock et pharmacie/ }).click();
-		await stock.getByText('Gérer', { exact: true }).click();
+		await stock.getByRole('radio', { name: 'Gérer' }).check();
 		await expect(page.getByText('1 domaine modifié, pas encore enregistré')).toBeVisible();
-		await expect(page.getByText('Personnalisé', { exact: true })).toBeVisible();
+		await expect(page.locator('main header').getByText('Personnalisé', { exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
 		const pageRole = page.url();

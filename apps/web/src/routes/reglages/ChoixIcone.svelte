@@ -61,7 +61,7 @@
 		border-color: var(--encre);
 	}
 	.tuile:has(input:checked)::after {
-		content: '✓';
+		content: '✓' / '';
 		position: absolute;
 		top: -6px;
 		right: -6px;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { estDroitPouvoir, type Droit } from '@gyro-caserne/socle';
+	import { estDroitPouvoir, iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { LIBELLES_DROIT } from '#lib/droits.ts';
 	import { ADMINISTRATION, appliquerNiveaux, DOMAINES, estPersonnalise, niveauxDe, type DomaineId } from '#lib/paquets.ts';
 	import BarreActions from '#lib/ui/BarreActions.svelte';
@@ -12,7 +12,7 @@
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import ChoixIcone from '../../ChoixIcone.svelte';
 	import Domaines from '../../Domaines.svelte';
-	import { iconeDe, NATURES, optionsAttributeur, PORTEES, quiAttribue, valeurAttributeur } from '../../roles.ts';
+	import { NATURES, optionsAttributeur, PORTEES, quiAttribue, valeurAttributeur } from '../../roles.ts';
 
 	let { data, form } = $props();
 
@@ -71,7 +71,7 @@
 
 <header class="entete">
 	<div class="titre">
-		<IconeRole icone={iconeDe(role)} taille={48} />
+		<IconeRole icone={iconeDuRole(role)} taille={48} />
 		<div>
 			<h1>{role.nom}</h1>
 			<p class="sous-titre">{porteeLibelle} · {quiAttribue(role.attributeur, data.comitesChoix)}</p>
@@ -128,7 +128,7 @@
 					<Choix id="role-portee" name="portee" libelle="Portée" valeur={saisie('portee', role.portee)} erreur={erreurs('role').portee} options={PORTEES} />
 				{/if}
 				<Choix id="role-attributeur" name="attributeur" libelle="Qui attribue" valeur={saisie('attributeur', valeurAttributeur(role.attributeur))} erreur={erreurs('role').attributeur} options={optionsAttributeur(data.comitesChoix)} />
-				<ChoixIcone valeur={iconeDe(role)} erreur={erreurs('role').icone} />
+				<ChoixIcone valeur={iconeDuRole(role)} erreur={erreurs('role').icone} />
 			</div>
 		</Groupe>
 

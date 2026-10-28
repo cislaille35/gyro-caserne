@@ -49,10 +49,10 @@ describe('page d’un rôle', () => {
 	it('enregistre un niveau : seul ce domaine change', async () => {
 		const { base, referent, resp, droitsDe } = await preparer();
 		const pharma = await resp('Référent pharmacie');
-		const r = await agir('enregistrer', locaux(base, referent), pharma.id, [...fiche('Référent pharmacie'), ['niveau-engins', '1'], ['niveau-stock', '1'], ['niveau-planning', '0'], ['icone', 'croix']]);
+		const r = await agir('enregistrer', locaux(base, referent), pharma.id, [...fiche('Référent pharmacie'), ['niveau-engins', '1'], ['niveau-stock', '1'], ['niveau-planning', '0'], ['icone', 'coeur']]);
 		expect(r).toMatchObject({ cible: 'role', succes: expect.stringContaining('Référent pharmacie') });
 		expect(await droitsDe(pharma.id)).toEqual(['GERER_FICHES', 'GERER_STOCK', 'TRAITER_ANOMALIE']);
-		expect((await resp('Référent pharmacie')).icone).toBe('croix');
+		expect((await resp('Référent pharmacie')).icone).toBe('coeur');
 	});
 
 	it('un domaine « Sur mesure » non touché garde ses droits', async () => {
@@ -100,6 +100,33 @@ describe('page d’un rôle', () => {
 		expect(await droitsDe(id)).toEqual(['RESERVER']);
 		await agir('revenir', locaux(base, chef), id, [['domaine', 'tout']]);
 		expect(await droitsDe(id)).toEqual(['GERER_FICHES', 'TRAITER_ANOMALIE']);
+	});
+
+	it('« Revenir au modèle » ne touche que les domaines : salons et droits hors domaine restent', async () => {
+		const { base, chef, droitsDe } = await preparer();
+		const id = await creerResponsabilite(base, chef, { nom: 'Référent matériel', nature: 'mission', portee: 'centre', attributeur: { type: 'chef_centre' }, droits: ['GERER_STOCK', 'LIRE_SALON', 'FAIRE_PRISE_DE_GARDE'], modele: 'referent_materiel' }, '2026-01-01');
+		await agir('revenir', locaux(base, chef), id, [['domaine', 'stock']]);
+		expect(await droitsDe(id)).toEqual(['FAIRE_PRISE_DE_GARDE', 'LIRE_SALON']);
+		await agir('revenir', locaux(base, chef), id, [['domaine', 'tout']]);
+		expect(await droitsDe(id)).toEqual(['FAIRE_PRISE_DE_GARDE', 'GERER_FICHES', 'LIRE_SALON', 'TRAITER_ANOMALIE']);
+	});
+
+	it('« Tout revenir » rend aussi les droits d’administration du modèle à qui gère le pouvoir, pas aux autres', async () => {
+		const { base, chef, referent, droitsDe } = await preparer();
+		const id = await creerResponsabilite(base, chef, { nom: 'Rapporteur bis', nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: ['GERER_STOCK'], modele: 'rapporteur_comite' }, '2026-01-01');
+		await agir('revenir', locaux(base, referent), id, [['domaine', 'tout']]);
+		expect(await droitsDe(id)).toEqual([]);
+		await agir('revenir', locaux(base, chef), id, [['domaine', 'tout']]);
+		expect(await droitsDe(id)).toEqual(['ATTRIBUER_RESPONSABILITE']);
+	});
+
+	it('n’enregistre pas l’icône de repli affichée ; enregistre celle choisie', async () => {
+		const { base, referent, resp } = await preparer();
+		const engins = await resp('Référent engins');
+		await agir('enregistrer', locaux(base, referent), engins.id, [...fiche('Référent engins'), ['icone', 'camion']]);
+		expect((await resp('Référent engins')).icone).toBeNull();
+		await agir('enregistrer', locaux(base, referent), engins.id, [...fiche('Référent engins'), ['icone', 'ballon']]);
+		expect((await resp('Référent engins')).icone).toBe('ballon');
 	});
 
 	it('sans modèle, rien à revenir', async () => {

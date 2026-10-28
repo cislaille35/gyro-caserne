@@ -97,7 +97,7 @@
 		font-weight: 700;
 	}
 	.option:has(input:checked) span::before {
-		content: '✓ ';
+		content: '✓ ' / '';
 	}
 	.option:has(input:focus-visible) {
 		outline: 3px solid var(--focus);

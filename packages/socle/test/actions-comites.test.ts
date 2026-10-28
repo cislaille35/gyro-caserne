@@ -6,7 +6,7 @@ import { creerComite, dissoudreComite, listerComites, modifierComite } from '../
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart, NOM_COMITE_CENTRE } from '../src/jeu-de-depart.ts';
-import { attribution, comite, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { attribution, comite, journal, personne, profil, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -63,6 +63,18 @@ describe('listerComites', () => {
 		const liste = await listerComites(base, superAdmin, aujourdhui);
 		expect(liste.find((c) => c.id === amicale.id)).toMatchObject({ membresEnCours: 2, rapporteurs: ['Alice Martin'] });
 		expect(liste.find((c) => c.estCentre)!.rapporteurs).toEqual([]);
+	});
+
+	it('ne compte pas comme rapporteur un agent parti, ni un rôle archivé', async () => {
+		const { base, comite_, donner } = await jeu();
+		const amicale = await comite_('Amicale');
+		const parti = await donner('parti@exemple.fr', 'Rapporteur de comité', { type: 'comite', id: amicale.id });
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, (parti as { id: number }).id));
+		const [archive] = await base.insert(responsabilite).values({ nom: 'Ancien rapporteur', nature: 'mission', typePerimetre: 'comite', archiveeLe: '2026-01-01' }).returning();
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: archive!.id, droit: 'ATTRIBUER_RESPONSABILITE' });
+		const autre = await donner('autre@exemple.fr', 'Membre de comité', { type: 'comite', id: amicale.id });
+		await base.insert(attribution).values({ personneId: (autre as { id: number }).id, responsabiliteId: archive!.id, perimetreType: 'comite', perimetreId: amicale.id, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		expect((await listerComites(base, superAdmin, aujourdhui)).find((c) => c.id === amicale.id)!.rapporteurs).toEqual([]);
 	});
 });
 

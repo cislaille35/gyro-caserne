@@ -4,13 +4,14 @@ import {
 	DonneeInvalide,
 	DROITS,
 	estDroitPouvoir,
+	iconeDuRole,
 	listerResponsabilites,
 	MODELES,
 	modifierResponsabilite,
 	type Droit
 } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
-import { appliquerNiveaux, DOMAINES, niveauxDe } from '#lib/paquets.ts';
+import { appliquerNiveaux, DOMAINES, niveauxDe, type DomaineId } from '#lib/paquets.ts';
 import { accesReglages, attributeurDe, comitesChoix, echec, manque, niveauxChoisis, numero, texte, type Reponse, type Valeurs } from '#lib/server/formulaire-reglages.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -89,7 +90,8 @@ export const actions: Actions = {
 					nom: valeurs.nom ?? '',
 					...(valeurs.nature ? { nature: valeurs.nature as Nature } : {}),
 					...(valeurs.portee ? { portee: valeurs.portee as Portee } : {}),
-					...(valeurs.icone ? { icone: valeurs.icone } : {}),
+					// L'icône affichée par défaut n'est enregistrée que si elle est choisie (autre que celle de repli).
+					...(valeurs.icone && (role.icone !== null || valeurs.icone !== iconeDuRole(role)) ? { icone: valeurs.icone } : {}),
 					attributeur: qui,
 					droits
 				},
@@ -112,14 +114,16 @@ export const actions: Actions = {
 		const actuels = role.droits.map((d) => d.droit as Droit);
 		const domaine = texte(formulaire, 'domaine');
 		let droits: Droit[];
+		// Comme à l'écran : seuls les domaines reviennent au niveau du modèle ; salons et droits hors domaine restent.
+		const duModele = niveauxDe(modele.droits);
+		const numeriques = Object.fromEntries(DOMAINES.flatMap((d) => (typeof duModele[d.id] === 'number' ? [[d.id, duModele[d.id]]] : []))) as Partial<Record<DomaineId, number>>;
 		if (domaine === 'tout') {
 			// Sans le pouvoir, les droits d'administration restent tels quels.
-			droits = [...sansPouvoir(modele.droits), ...pouvoirDe(pouvoir ? modele.droits : actuels)];
+			droits = [...sansPouvoir(appliquerNiveaux(actuels, numeriques)), ...pouvoirDe(pouvoir ? modele.droits : actuels)];
 		} else {
 			const d = DOMAINES.find((x) => x.id === domaine);
-			const niveau = d && niveauxDe(modele.droits)[d.id];
-			if (!d || typeof niveau !== 'number') return manque(cible, 'Domaine inconnu.');
-			droits = appliquerNiveaux(actuels, { [d.id]: niveau });
+			if (!d || numeriques[d.id] === undefined) return manque(cible, 'Domaine inconnu.');
+			droits = appliquerNiveaux(actuels, { [d.id]: numeriques[d.id] });
 		}
 		try {
 			await modifierResponsabilite(base, acteur, role.id, { droits }, aujourdhui);

@@ -2,9 +2,8 @@ import { and, asc, eq, gte, isNull, lte, ne, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
-import type { NomIcone } from './icones.ts';
+import { iconeDuRole, type NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
-import { MODELES } from './modeles.ts';
 import { attribution, comite, equipe, personne, profil, responsabilite, responsabiliteDroit } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
@@ -21,15 +20,6 @@ export type Accueil = { casquettes: Casquette[]; choisie: string; contenu: Conte
 const enCoursLe = (aujourdhui: string) => and(lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui)));
 // Un agent parti ne tient plus rien.
 const present = ne(personne.statut, 'parti');
-
-// L'icône choisie, sinon celle du modèle, sinon déduite du nom.
-function iconeDuRole(nom: string, icone: string | null, modele: string | null): NomIcone {
-	if (icone) return icone as NomIcone;
-	const deModele = MODELES.find((m) => m.id === modele)?.icone;
-	if (deModele) return deModele;
-	const n = nom.toLowerCase();
-	return n.includes('engin') ? 'camion' : n.includes('pharmacie') ? 'croix' : n.includes('technique') ? 'cle' : 'outil';
-}
 
 const parNom = (a: { nom: string }, b: { nom: string }) => a.nom.localeCompare(b.nom, 'fr');
 
@@ -52,7 +42,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 	const tient = (garde: (l: (typeof valides)[number]) => boolean) => valides.some(garde);
 
 	const referents = new Map<number, { nom: string; icone: NomIcone }>();
-	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, { nom: l.nom, icone: iconeDuRole(l.nom, l.icone, l.modele) });
+	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, { nom: l.nom, icone: iconeDuRole(l) });
 
 	return [
 		...(tient((l) => l.systeme === 'chef_centre' || l.systeme === 'chef_centre_adjoint') ? [centre] : []),
