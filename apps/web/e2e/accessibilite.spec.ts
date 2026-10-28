@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
 import { connecter } from './connexion.ts';
@@ -48,10 +48,15 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
-			test('fiche d’un agent sans violation, avertissement de départ compris', async ({ page }) => {
+			test('fiche d’un agent, blocs ouverts, sans violation, erreur de départ comprise', async ({ page }) => {
 				await page.goto(await ficheDe(page, 'Alice Martin'));
+				await page.waitForLoadState('networkidle');
+				await toutOuvrir(page);
 				await sansViolation(page);
-				await choisirParti(page);
+				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+				// Sans « Je confirme », rien n'est effacé : le bloc se rouvre seul avec l'erreur.
+				await page.getByRole('button', { name: 'Déclarer le départ' }).click();
+				await expect(page.getByText('Cochez « Je confirme » pour déclarer le départ.')).toBeVisible();
 				await sansViolation(page);
 			});
 
@@ -64,7 +69,7 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 
 				await page.goto(agent.fiche);
-				const cartes = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
+				const cartes = await blocDeFiche(page, 'Rôles', (b) => b.locator('summary', { hasText: 'Passées (1)' }));
 				await cartes.locator('summary', { hasText: 'Passées (1)' }).click();
 				await expect(cartes.getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
 				// Terminer sans « Je confirme » : l'erreur reliée à sa case.
@@ -215,11 +220,15 @@ async function deposer(page: Page, contenu: Buffer) {
 	await expect(page.getByRole('heading', { level: 2, name: "Aperçu de l'import" })).toBeVisible();
 }
 
-// Choisi même avant que la page soit prête, « Parti » affiche l'avertissement une fois la page prête.
-async function choisirParti(page: Page) {
-	const statut = page.locator('form[action="?/statut"]');
-	await statut.getByLabel('Statut').selectOption('parti');
-	await expect(statut.getByLabel('Je confirme')).toBeVisible();
+// Ouvre un bloc de la fiche et renvoie sa section. Le bouton ne répond qu'une fois la page prête : on réessaie.
+async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) => Locator): Promise<Locator> {
+	const bouton = page.getByRole('button', { name: new RegExp(`^${titre}`) });
+	const bloc = page.locator('section').filter({ has: bouton });
+	await expect(async () => {
+		if ((await bouton.getAttribute('aria-expanded')) === 'false') await bouton.click();
+		await expect(attendu(bloc)).toBeVisible({ timeout: 1000 });
+	}).toPass();
+	return bloc;
 }
 
 test.describe('agents', () => {
@@ -239,13 +248,12 @@ test.describe('agents', () => {
 		await agent.goto('/agents');
 		await expect(agent.getByText(nom)).toBeVisible();
 
-		await choisirParti(gestion);
-		const statut = gestion.locator('form[action="?/statut"]');
-		await statut.getByLabel('Je confirme').check();
-		await statut.getByRole('button', { name: 'Enregistrer' }).click();
+		const depart = await blocDeFiche(gestion, 'Départ du centre', (b) => b.getByLabel('Je confirme'));
+		await depart.getByLabel('Je confirme').check();
+		await depart.getByRole('button', { name: 'Déclarer le départ' }).click();
 		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
-		// Le statut s'affiche à côté du nom de l'agent (sur ordinateur, la liste a aussi son titre).
-		await expect(gestion.getByRole('heading', { level: 1, name: nom }).locator('xpath=..')).toContainText('Parti');
+		// Le statut s'affiche dans l'en-tête de la fiche (sur ordinateur, la liste a aussi son titre).
+		await expect(gestion.locator('header', { has: gestion.getByRole('heading', { level: 1, name: nom }) })).toContainText('Parti');
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
@@ -265,10 +273,10 @@ test.describe('nominations', () => {
 		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
 		const { nom } = await nouvelAgent(gestion);
-		const carte = gestion.locator('section').filter({ has: gestion.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
+		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action="?/attribuer"]'));
 		const formulaire = carte.locator('form[action="?/attribuer"]');
 
-		// Choisi même avant que la page soit prête, le rôle d'équipe fait apparaître le choix de l'équipe.
+		// Le rôle d'équipe fait apparaître le choix de l'équipe.
 		await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
 		await expect(formulaire.getByRole('combobox', { name: 'Équipe' })).toBeVisible();
 		await expect(formulaire.getByLabel('Responsabilité').locator('option:checked')).toHaveText('Chef d’équipe');

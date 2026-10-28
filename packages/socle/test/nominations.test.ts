@@ -183,7 +183,7 @@ describe('attributionsDe', () => {
 		await expect(attributionsDe(base, rapporteur, simpleId, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
-	it('classe en cours, à venir et passées, avec les noms des périmètres et de l’auteur', async () => {
+	it('classe en cours, à venir et passées, avec les noms des périmètres, l’icône du rôle et l’auteur', async () => {
 		const { base, r, chef, simpleId, nommer, amicale, equipes } = await jeu();
 		await nommer(simpleId, 'Référent engins', centre, '2025-01-01', '2025-12-31');
 		await nommer(simpleId, 'Membre de comité', amicale, '2026-01-01', aujourdhui);
@@ -191,13 +191,13 @@ describe('attributionsDe', () => {
 
 		const { enCours, aVenir, passees } = await attributionsDe(base, chef, simpleId, aujourdhui);
 		expect(enCours).toEqual([
-			{ id: expect.any(Number), responsabilite: { id: r('Membre de comité'), nom: 'Membre de comité' }, perimetre: { type: 'comite', id: amicale.id, nom: 'Amicale' }, debut: '2026-01-01', fin: aujourdhui, saisiePar: 'Super administrateur', peutTerminer: true }
+			{ id: expect.any(Number), responsabilite: { id: r('Membre de comité'), nom: 'Membre de comité', icone: 'groupe' }, perimetre: { type: 'comite', id: amicale.id, nom: 'Amicale' }, debut: '2026-01-01', fin: aujourdhui, saisiePar: 'Super administrateur', peutTerminer: true }
 		]);
 		expect(aVenir).toEqual([
-			{ id: expect.any(Number), responsabilite: { id: r('Chef d’équipe'), nom: 'Chef d’équipe' }, perimetre: { type: 'equipe', id: equipes[1]!.id, nom: 'Équipe 2' }, debut: '2026-12-01', fin: null, saisiePar: 'Chef Test', peutTerminer: true }
+			{ id: expect.any(Number), responsabilite: { id: r('Chef d’équipe'), nom: 'Chef d’équipe', icone: 'casque' }, perimetre: { type: 'equipe', id: equipes[1]!.id, nom: 'Équipe 2' }, debut: '2026-12-01', fin: null, saisiePar: 'Chef Test', peutTerminer: true }
 		]);
 		expect(passees).toEqual([
-			{ id: expect.any(Number), responsabilite: { id: r('Référent engins'), nom: 'Référent engins' }, perimetre: { type: 'centre', id: null, nom: null }, debut: '2025-01-01', fin: '2025-12-31', saisiePar: 'Super administrateur', peutTerminer: false }
+			{ id: expect.any(Number), responsabilite: { id: r('Référent engins'), nom: 'Référent engins', icone: 'camion' }, perimetre: { type: 'centre', id: null, nom: null }, debut: '2025-01-01', fin: '2025-12-31', saisiePar: 'Super administrateur', peutTerminer: false }
 		]);
 	});
 
