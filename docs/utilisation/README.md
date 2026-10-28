@@ -15,3 +15,5 @@ Format d'une page :
 - [Comment modifier mon profil ?](modifier-mon-profil.md)
 - [Comment créer un comité ou une responsabilité ?](creer-un-comite-ou-une-responsabilite.md)
 - [Comment nommer quelqu'un à une responsabilité ?](nommer-a-une-responsabilite.md)
+- [Comment publier sur un mur ?](publier-sur-un-mur.md)
+- [Comment répondre à une convocation ?](repondre-a-une-convocation.md)

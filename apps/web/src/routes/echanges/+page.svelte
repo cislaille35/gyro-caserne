@@ -1,10 +1,13 @@
-<script lang="ts">
-	import Vide from '#lib/ui/Vide.svelte';
-</script>
-
 <svelte:head>
 	<title>Échanges · Gyro Caserne</title>
 </svelte:head>
 
-<h1>Échanges</h1>
-<Vide texte="Les murs et la messagerie arrivent bientôt." />
+<!-- À l'ordinateur, à droite de la liste des murs. -->
+<p class="invite">Choisissez un mur pour lire ses publications et publier.</p>
+
+<style>
+	.invite {
+		margin: 3.5rem 0 0;
+		color: var(--doux);
+	}
+</style>

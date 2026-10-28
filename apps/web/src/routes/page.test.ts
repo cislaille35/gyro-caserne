@@ -4,9 +4,10 @@ import Page from './+page.svelte';
 
 const astreinte = { id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 };
 const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile', compte: 2 };
-const page = (data: Record<string, unknown>) =>
+const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] };
+const page = (data: Record<string, unknown>, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, ...data } } }).body;
+	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, aNePasManquer: vide, ...data }, form } }).body;
 
 describe('accueil', () => {
 	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; astreinte vide sans fausses données', () => {
@@ -78,5 +79,77 @@ describe('accueil', () => {
 		expect(html).toContain('Rapporteur de comité');
 		// Deux homonymes : deux lignes (clé par personne).
 		expect(html.match(/Bruno Petit/g)).toHaveLength(2);
+	});
+
+	it('rien n’attend : pas de section « À ne pas manquer »', () => {
+		expect(page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } })).not.toContain('À ne pas manquer');
+	});
+
+	describe('« À ne pas manquer »', () => {
+		const item = (id: number, titre: string, cle = 'centre', nomMur = 'Le centre') => ({ id, cle, nomMur, titre });
+		const complet = {
+			annonces: [item(1, 'Note de service')],
+			evenements: [
+				{ ...item(2, 'Manœuvre'), debut: '2026-10-29T19:00', demain: true, reponse: null },
+				{ ...item(3, 'Repas'), debut: '2026-11-05T12:00', demain: false, reponse: 'absent' }
+			],
+			sondages: [item(4, 'Repas ?', 'vie', 'Vie du centre'), item(3, 'Repas')],
+			epinglees: [item(1, 'Note de service'), item(5, 'Consignes hiver')],
+			nouveautes: [{ cle: 'comite:2', nom: 'Amicale', nombre: 3 }, { cle: 'vie', nom: 'Vie du centre', nombre: 1 }]
+		};
+		const html = (casquette = 'astreinte', form: unknown = null) =>
+			page({ casquettes: [centre, astreinte], choisie: casquette, contenu: casquette === 'centre' ? { type: 'centre', aDecider: [] } : { type: 'astreinte' }, aNePasManquer: complet }, form);
+
+		it('en tête de la casquette, sous la rangée des casquettes', () => {
+			for (const casquette of ['astreinte', 'centre']) {
+				const h = html(casquette);
+				expect(h).toMatch(/<h2[^>]*>À ne pas manquer<\/h2>/);
+				expect(h.indexOf('aria-label="Casquettes"')).toBeLessThan(h.indexOf('À ne pas manquer'));
+			}
+			expect(html('centre').indexOf('À ne pas manquer')).toBeLessThan(html('centre').indexOf('À décider'));
+		});
+
+		it('annonce : bouton « Pris connaissance » nommé par son titre, envoyé à l’accueil ; épinglée une seule fois', () => {
+			const h = html();
+			expect(h).toMatch(/<form[^>]*method="POST"[^>]*action="\?casquette=astreinte&amp;\/prendreConnaissance"/);
+			expect(h).toMatch(/<button[^>]*type="submit"[^>]*>[\s\S]*?Pris connaissance<span class="masque[^"]*"> : Note de service<\/span>/);
+			expect(h.match(/Note de service/g)).toHaveLength(2);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/1"/);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/5"[^>]*>[\s\S]*?Consignes hiver/);
+		});
+
+		it('événements : réponse sur place, la sienne marquée, « demain » écrit', () => {
+			const h = html();
+			expect(h.match(/action="[^"]*\/repondre"/g)).toHaveLength(2);
+			expect(h).toMatch(/<button[^>]*name="reponse"[^>]*value="absent"[^>]*aria-pressed="true"/);
+			expect(h).toMatch(/<button[^>]*name="reponse"[^>]*value="present"[^>]*aria-pressed="false"/);
+			expect(h).toContain('Demain');
+			expect(h).toMatch(/role="group"[^>]*aria-labelledby="reponse-2"/);
+			// L'événement porte son sondage : une seule fois, sous « Événements ».
+			expect(h.match(/href="\/echanges\/centre\/3"/g)).toHaveLength(2);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/3"[^>]*>Sondage ouvert : votez sur la publication<span class="masque[^"]*"> : Repas<\/span>/);
+			const sondages = h.slice(h.indexOf('Sondages ouverts'));
+			expect(sondages).not.toContain('/echanges/centre/3');
+		});
+
+		it('sondage et nouveautés : des liens', () => {
+			const h = html();
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/vie\/4"[^>]*>[\s\S]*?Repas \?/);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Amicale : 3 nouveautés/);
+			expect(h).toContain('Vie du centre : 1 nouveauté<');
+		});
+
+		it('sans JavaScript, la casquette choisie est gardée après un geste', () => {
+			const h = html('astreinte');
+			expect(h).toContain('action="?casquette=astreinte&amp;/prendreConnaissance"');
+			expect(h).toContain('action="?casquette=astreinte&amp;/repondre"');
+			expect(html('centre')).toContain('action="?casquette=centre&amp;/repondre"');
+		});
+
+		it('résultat d’un geste annoncé ; un refus près de l’élément', () => {
+			expect(html('astreinte', { cible: 'publication:2', succes: 'Réponse enregistrée : présent.' })).toMatch(/role="status"[^>]*>Réponse enregistrée : présent\./);
+			const refus = html('astreinte', { cible: 'publication:2', message: 'Vous n’êtes pas convoqué à cet événement.' });
+			expect(refus).toMatch(/role="alert"[^>]*>Vous n’êtes pas convoqué/);
+		});
 	});
 });

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { check, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { checkDans, DROITS, NATURES_RESPONSABILITE, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE } from './listes.ts';
+import { check, customType, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { checkDans, DROITS, NATURES_RESPONSABILITE, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -198,6 +198,99 @@ export const envoiLien = sqliteTable('envoi_lien', {
 	adresse: text('adresse').primaryKey(),
 	envoyeLe: integer('envoye_le', { mode: 'timestamp_ms' }).notNull()
 });
+
+// Murs : une publication appartient à un mur désigné par sa clé (« centre », « vie », « equipe:<id> », « comite:<id> », voir murs.ts).
+// Format de l'auteur comme le journal : personne:<id> ou super:<email>.
+export const publication = sqliteTable(
+	'publication',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		mur: text('mur').notNull(),
+		auteur: text('auteur').notNull(),
+		type: text('type', { enum: TYPES_PUBLICATION }).notNull(),
+		texte: text('texte').notNull(),
+		priseDeConnaissance: integer('prise_de_connaissance').notNull().default(0),
+		epinglee: integer('epinglee').notNull().default(0),
+		commentairesFermes: integer('commentaires_fermes').notNull().default(0),
+		creeLe: text('cree_le').notNull(),
+		modifieeLe: text('modifiee_le'),
+		// Événement : début (date et heure), lieu, convoqués (JSON : « tous » ou liste d'identifiants d'équipes).
+		debut: text('debut'),
+		lieu: text('lieu'),
+		convoques: text('convoques'),
+		// Sondage : question et réponses (JSON, liste de textes).
+		sondageQuestion: text('sondage_question'),
+		sondageReponses: text('sondage_reponses')
+	},
+	(t) => [
+		check('publication_type', checkDans('type', TYPES_PUBLICATION)),
+		check('publication_prise_de_connaissance', sql`${sql.identifier('prise_de_connaissance')} IN (0, 1)`),
+		check('publication_epinglee', sql`${sql.identifier('epinglee')} IN (0, 1)`),
+		check('publication_commentaires_fermes', sql`${sql.identifier('commentaires_fermes')} IN (0, 1)`),
+		index('publication_mur').on(t.mur, t.creeLe)
+	]
+);
+
+const versPublication = () => integer('publication_id').notNull().references(() => publication.id, { onDelete: 'cascade' });
+const versPersonne = () => integer('personne_id').notNull().references(() => personne.id);
+
+export const commentaire = sqliteTable(
+	'commentaire',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		publicationId: versPublication(),
+		auteur: text('auteur').notNull(),
+		texte: text('texte').notNull(),
+		creeLe: text('cree_le').notNull()
+	},
+	(t) => [index('commentaire_publication').on(t.publicationId)]
+);
+
+export const jaime = sqliteTable('jaime', { publicationId: versPublication(), personneId: versPersonne() }, (t) => [primaryKey({ columns: [t.publicationId, t.personneId] })]);
+
+export const reponseEvenement = sqliteTable(
+	'reponse_evenement',
+	{ publicationId: versPublication(), personneId: versPersonne(), reponse: text('reponse', { enum: REPONSES_EVENEMENT }).notNull() },
+	(t) => [primaryKey({ columns: [t.publicationId, t.personneId] }), check('reponse_evenement_reponse', checkDans('reponse', REPONSES_EVENEMENT))]
+);
+
+// Une seule réponse par personne : son rang dans la liste des réponses du sondage.
+export const voteSondage = sqliteTable(
+	'vote_sondage',
+	{ publicationId: versPublication(), personneId: versPersonne(), reponse: integer('reponse').notNull() },
+	(t) => [primaryKey({ columns: [t.publicationId, t.personneId] })]
+);
+
+export const priseConnaissance = sqliteTable(
+	'prise_connaissance',
+	{ publicationId: versPublication(), personneId: versPersonne(), le: text('le').notNull() },
+	(t) => [primaryKey({ columns: [t.publicationId, t.personneId] })]
+);
+
+// Octets bruts ; D1 rend un BLOB en ArrayBuffer, SQLite de Node en Uint8Array : toujours relu en Uint8Array.
+const octets = customType<{ data: Uint8Array; driverData: ArrayBuffer | Uint8Array | number[] }>({
+	dataType: () => 'blob',
+	fromDriver: (valeur) => (valeur instanceof Uint8Array ? valeur : new Uint8Array(valeur))
+});
+
+export const photoPublication = sqliteTable(
+	'photo_publication',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		publicationId: versPublication(),
+		ordre: integer('ordre').notNull(),
+		type: text('type', { enum: TYPES_PHOTO }).notNull(),
+		donnees: octets('donnees').notNull()
+	},
+	(t) => [check('photo_publication_type', checkDans('type', TYPES_PHOTO)), index('photo_publication_publication').on(t.publicationId)]
+);
+
+// Dernière visite d'une personne sur un mur : sert à compter les nouveautés.
+export const visiteMur = sqliteTable(
+	'visite_mur',
+	{ personneId: versPersonne(), mur: text('mur').notNull(), vueLe: text('vue_le').notNull() },
+	(t) => [primaryKey({ columns: [t.personneId, t.mur] })]
+);
 
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';

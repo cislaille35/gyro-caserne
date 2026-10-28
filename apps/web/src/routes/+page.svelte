@@ -2,12 +2,17 @@
 	import centre from '$centre';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
 	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import ANePasManquer from '#lib/ui/ANePasManquer.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
 	import Casquettes from '#lib/ui/Casquettes.svelte';
 	import Initiales from '#lib/ui/Initiales.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data } = $props();
+	let { data, form } = $props();
+
+	// Une seule zone annoncée par page, pour les gestes de « À ne pas manquer ».
+	const annonceSucces = $derived(form?.succes ?? '');
+	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
 	const phrase = $derived(
@@ -37,7 +42,11 @@
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
+	<div class="annonce" role="status">{annonceSucces}</div>
+	<div class="annonce" role="alert">{annonceEchec}</div>
+
 	<div class="contenu">
+		<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
 		{#if data.contenu.type === 'centre'}
 			<Carte titre="À décider">
 				{#if data.contenu.aDecider.length > 0}
@@ -156,6 +165,14 @@
 	}
 	.titre {
 		font-weight: 700;
+	}
+	.annonce {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 	.membre {
 		display: flex;

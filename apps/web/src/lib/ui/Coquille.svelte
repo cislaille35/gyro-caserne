@@ -2,12 +2,16 @@
 	import type { Snippet } from 'svelte';
 	import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
-	let { chemin, connecte, nomCentre, children }: { chemin: string; connecte: boolean; nomCentre: string; children: Snippet } = $props();
+	let { chemin, connecte, nomCentre, cloche = 0, children }: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; children: Snippet } = $props();
 
 	const entrees = $derived(entreesNavigation(connecte));
 	// Sans connexion, seule la page elle-même est marquée.
 	const actif = $derived(connecte ? rubriqueDe(chemin) : chemin);
 	const courant = (href: string) => (actif === href ? 'page' : undefined);
+	// Le nombre est dit dans le nom du lien ; la pastille le montre.
+	const nomCloche = $derived(
+		cloche > 99 ? 'Notifications, plus de 99 nouvelles' : cloche > 0 ? `Notifications, ${cloche} ${cloche > 1 ? 'nouvelles' : 'nouvelle'}` : 'Notifications'
+	);
 
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
@@ -36,8 +40,9 @@
 			<span class="centre">{nomCentre}</span>
 		</div>
 		{#if connecte}
-			<a class="rond" href="/notifications" aria-label="Notifications" aria-current={courant('/notifications')}>
+			<a class="rond cloche" href="/notifications" aria-label={nomCloche} aria-current={courant('/notifications')}>
 				{@render icone('cloche')}
+				{#if cloche > 0}<span class="nombre" aria-hidden="true">{cloche > 99 ? '99+' : cloche}</span>{/if}
 			</a>
 			<a class="moi" href="/moi" aria-current={courant('/moi')}>
 				<span class="rond">{@render icone('moi')}</span>
@@ -115,6 +120,27 @@
 		border-radius: 50%;
 		border: 1px solid var(--trait-doux);
 		background: var(--surface);
+	}
+	.cloche {
+		position: relative;
+	}
+	.nombre {
+		position: absolute;
+		top: -4px;
+		right: -6px;
+		min-width: 22px;
+		height: 22px;
+		padding: 0 5px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 999px;
+		border: 2px solid var(--surface);
+		background: var(--rouge);
+		color: var(--sur-rouge);
+		font-size: 0.75rem;
+		font-weight: 700;
+		line-height: 1;
 	}
 	.moi {
 		padding-right: 0.25rem;

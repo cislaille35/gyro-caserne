@@ -6,9 +6,9 @@ import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
-function html(chemin: string, connecte = true) {
+function html(chemin: string, connecte = true, cloche = 0) {
 	return render(Coquille, {
-		props: { chemin, connecte, nomCentre: 'CIS Test', children: contenu }
+		props: { chemin, connecte, nomCentre: 'CIS Test', cloche, children: contenu }
 	}).body;
 }
 
@@ -51,6 +51,18 @@ describe('Coquille', () => {
 		const entete = page.match(/<header[\s\S]*?<\/header>/)![0];
 		expect(entete).toMatch(/<a[^>]*href="\/notifications"[^>]*aria-label="Notifications"/);
 		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Moi[\s\S]*?<\/a>/);
+	});
+
+	it('la cloche dit le nombre de nouvelles, au singulier comme au pluriel, sans compter sur la couleur', () => {
+		const lien = (n: number) => html('/', true, n).match(/<a[^>]*href="\/notifications"[^>]*>[\s\S]*?<\/a>/)![0];
+		expect(lien(0)).toMatch(/aria-label="Notifications"/);
+		expect(lien(0)).not.toContain('class="nombre"');
+		expect(lien(1)).toContain('aria-label="Notifications, 1 nouvelle"');
+		expect(lien(3)).toContain('aria-label="Notifications, 3 nouvelles"');
+		expect(lien(3)).toMatch(/<span class="nombre[^"]*"[^>]*aria-hidden="true"[^>]*>3<\/span>/);
+		expect(lien(99)).toContain('aria-label="Notifications, 99 nouvelles"');
+		expect(lien(120)).toContain('aria-label="Notifications, plus de 99 nouvelles"');
+		expect(lien(120)).toMatch(/>99\+<\/span>/);
 	});
 
 	it('a une navigation nommée avec un texte visible par entrée', () => {
