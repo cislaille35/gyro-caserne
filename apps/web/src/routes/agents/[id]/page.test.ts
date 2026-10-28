@@ -1,6 +1,9 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
+
+const etat = vi.hoisted(() => ({ page: { url: new URL('http://x/agents/3') } }));
+vi.mock('$app/state', () => etat);
 
 const fiche = {
 	id: 3,
@@ -297,5 +300,20 @@ describe('page fiche agent', () => {
 			const attribue = html({ data: { ...data, peutAttribuer }, form: { cible: 'attribuer', succes: true, message: 'Rôle attribué' } });
 			expect(attribue).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Rôle attribué</);
 		});
+	});
+});
+
+describe('la liste garde sa recherche et son filtre après un enregistrement', () => {
+	it('chaque formulaire envoie vers une adresse qui les porte, sans le nom d’une action précédente', () => {
+		Object.assign(etat.page, { url: new URL('http://x/agents/3?/fiche&texte=al&filtre=a-completer') });
+		try {
+			const peutAttribuer = [{ responsabiliteId: 9, nom: 'Référent engins', perimetres: [{ type: 'centre', id: null, nom: null }] }];
+			const page = html({ data: { ...data, peutAttribuer }, form: null });
+			const actions = [...page.matchAll(/action="([^"]*)"/g)].map((m) => m[1]);
+			expect(actions.length).toBeGreaterThanOrEqual(5);
+			for (const action of actions) expect(action).toMatch(/^\?\/(fiche|equipe|statut|attribuer|terminer|finir)&amp;texte=al&amp;filtre=a-completer$/);
+		} finally {
+			Object.assign(etat.page, { url: new URL('http://x/agents/3') });
+		}
 	});
 });

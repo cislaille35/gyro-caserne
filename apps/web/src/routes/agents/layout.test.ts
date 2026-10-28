@@ -136,6 +136,18 @@ describe('/agents : gestion', () => {
 		}
 	});
 
+	it('après un enregistrement sans JavaScript, garde recherche et filtre sans le nom de l’action (liens et « Retour à la liste »)', () => {
+		Object.assign(etat.page, { url: new URL('http://x/agents/1?/fiche&texte=mar&filtre=a-completer') });
+		try {
+			const mise = html(Layout, { data: gestion({ filtres: { texte: 'mar', filtre: 'a-completer' } }), children: enfants });
+			expect(mise).toContain('href="/agents/2?texte=mar&amp;filtre=a-completer"');
+			expect(mise).toMatch(/<a class="retour[^"]*" href="\/agents\?texte=mar&amp;filtre=a-completer">Retour à la liste<\/a>/);
+			expect(mise).not.toContain('/fiche');
+		} finally {
+			Object.assign(etat.page, { url: new URL('http://x/agents') });
+		}
+	});
+
 	it('replie les partis, sauf s’ils sont filtrés ou cherchés', () => {
 		expect(boutonDuGroupe(html(Layout, { data: gestion(), children: enfants }), 'Équipe 1')).toBe('true');
 		expect(boutonDuGroupe(html(Layout, { data: gestion(), children: enfants }), 'Partis')).toBe('false');

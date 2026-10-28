@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { rechercheListe } from '#lib/liste-agents.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import Choix from '#lib/ui/Choix.svelte';
@@ -13,6 +15,8 @@
 	let { data, form } = $props();
 
 	const fiche = $derived(data.fiche);
+	// Après un envoi, la liste à côté garde sa recherche et son filtre.
+	const action = (nom: string) => `?/${nom}${rechercheListe(page.url).replace('?', '&')}`;
 	// Les messages d'un formulaire à cible (rôles) restent à côté de lui.
 	const generale = $derived(form && !form.cible ? form : null);
 	const valeurs = $derived(generale?.valeurs ?? {});
@@ -108,7 +112,7 @@
 				</div>
 				{#if l.peutTerminer}
 					{@const finir = `finir-${l.id}`}
-					<form method="POST" action="?/finir" class="finir" use:enhance={surEnvoi(finir)}>
+					<form method="POST" action={action('finir')} class="finir" use:enhance={surEnvoi(finir)}>
 						<input type="hidden" name="attributionId" value={l.id} />
 						<Champ
 							id="nouvelle-fin-{l.id}"
@@ -120,7 +124,7 @@
 						/>
 						<Bouton type="submit" variante="secondaire" desactive={envoi === finir}>Changer la date de fin</Bouton>
 					</form>
-					<form method="POST" action="?/terminer" class="terminer" use:enhance={surEnvoi(cible)}>
+					<form method="POST" action={action('terminer')} class="terminer" use:enhance={surEnvoi(cible)}>
 						<input type="hidden" name="attributionId" value={l.id} />
 						<label>
 							<input
@@ -180,7 +184,7 @@
 						<dt>Date de naissance</dt><dd>{date(fiche.naissance)}</dd>
 					</dl>
 				{:else}
-					<form method="POST" action="?/fiche">
+					<form method="POST" action={action('fiche')}>
 						<Champ id="prenom" name="prenom" libelle="Prénom" requis maxlength={60} valeur={texte('prenom', fiche.prenom)} erreur={erreurs.prenom} />
 						<Champ id="nom" name="nom" libelle="Nom" requis maxlength={60} valeur={texte('nom', fiche.nom)} erreur={erreurs.nom} />
 						<Champ id="email" name="email" type="email" libelle="E-mail" aide="Sert à la connexion." requis maxlength={254} valeur={texte('email', fiche.email)} erreur={erreurs.email} />
@@ -209,7 +213,7 @@
 						<dt>Engagement SPV</dt><dd>{date(fiche.engagementSpv)}</dd>
 					</dl>
 				{:else}
-					<form method="POST" action="?/fiche">
+					<form method="POST" action={action('fiche')}>
 						<Choix
 							id="grade"
 							name="gradeId"
@@ -245,7 +249,7 @@
 						<dt>Statut</dt><dd>{LIBELLES_STATUT[fiche.statut]}</dd>
 					</dl>
 				{:else}
-					<form method="POST" action="?/equipe">
+					<form method="POST" action={action('equipe')}>
 						<Choix
 							id="equipe"
 							name="equipeId"
@@ -257,7 +261,7 @@
 						/>
 						<Bouton type="submit">Enregistrer</Bouton>
 					</form>
-					<form method="POST" action="?/statut">
+					<form method="POST" action={action('statut')}>
 						<Choix
 							id="statut"
 							name="statut"
@@ -296,7 +300,7 @@
 				{/if}
 
 				{#if choix}
-					<form method="POST" action="?/attribuer" class="nomination" use:enhance={surEnvoi('attribuer')}>
+					<form method="POST" action={action('attribuer')} class="nomination" use:enhance={surEnvoi('attribuer')}>
 						<h3>Attribuer une responsabilité</h3>
 						<!-- Zones présentes dès le chargement : le message y est annoncé. -->
 						<div role="status">{#if concerne('attribuer') && form?.succes}<p class="succes">{form.message}</p>{/if}</div>
@@ -341,7 +345,7 @@
 					<p>A quitté le centre. Pour le réintégrer, changez son statut dans « Équipe et statut ».</p>
 					{#if erreurs.confirmation}<p class="erreur">{erreurs.confirmation}</p>{/if}
 				{:else}
-					<form method="POST" action="?/statut">
+					<form method="POST" action={action('statut')}>
 						<input type="hidden" name="statut" value="parti" />
 						<p id="depart-avertissement"><strong>Attention :</strong> Sa date de naissance et son contact d'urgence seront effacés, et ses rôles prendront fin aujourd'hui.</p>
 						<label>

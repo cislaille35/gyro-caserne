@@ -188,7 +188,7 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; em
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
-	await expect(page.locator('form[action="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
+	await expect(page.locator('form[action^="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
 	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
@@ -283,6 +283,33 @@ test.describe('agents', () => {
 		await page.context().close();
 	});
 
+	test('filtrer « À compléter », enregistrer une fiche : le filtre reste, l’agent suivant s’ouvre', async ({ browser }, testInfo) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const premier = await nouvelAgent(page);
+		const second = await nouvelAgent(page);
+		await page.goto('/agents?filtre=a-completer');
+		await page.getByRole('link', { name: premier.nom, exact: true }).click();
+		await expect(page.getByRole('heading', { level: 1, name: premier.nom })).toBeVisible();
+		const bloc = await blocDeFiche(page, 'Identité et contact', (b) => b.getByLabel('Téléphone', { exact: true }));
+		await bloc.getByLabel('Téléphone', { exact: true }).fill('06 00 00 00 01');
+		await bloc.getByRole('button', { name: 'Enregistrer' }).click();
+		await expect(page.getByText('Fiche enregistrée')).toBeVisible();
+		await expect(page).toHaveURL(/filtre=a-completer/);
+		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
+		// Sur téléphone, la liste est derrière la fiche : « Retour à la liste » la rend, filtrée.
+		if (testInfo.project.name === 'telephone') {
+			await page.getByRole('link', { name: 'Retour à la liste' }).click();
+			await expect(page).toHaveURL(/\/agents\?filtre=a-completer$/);
+		} else {
+			await expect(page.getByRole('link', { name: 'Retour à la liste' })).toBeHidden();
+		}
+		await expect(page.getByRole('button', { name: /^À compléter/ })).toHaveAttribute('aria-pressed', 'true');
+		await page.getByRole('link', { name: second.nom, exact: true }).click();
+		await expect(page.getByRole('heading', { level: 1, name: second.nom })).toBeVisible();
+		await expect(page).toHaveURL(/\/agents\/\d+\?filtre=a-completer$/);
+		await page.context().close();
+	});
+
 	test('la fiche au clavier : un bloc s’ouvre (Entrée) et se ferme (Espace)', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		await page.goto(await ficheDe(page, 'Alice Martin'));
@@ -336,8 +363,8 @@ test.describe('nominations', () => {
 		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
 		const { nom } = await nouvelAgent(gestion);
-		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action="?/attribuer"]'));
-		const formulaire = carte.locator('form[action="?/attribuer"]');
+		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action^="?/attribuer"]'));
+		const formulaire = carte.locator('form[action^="?/attribuer"]');
 
 		// Le rôle d'équipe fait apparaître le choix de l'équipe.
 		await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });

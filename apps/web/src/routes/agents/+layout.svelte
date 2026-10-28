@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { rechercheListe } from '#lib/liste-agents.ts';
 	import Champ from '#lib/ui/Champ.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
 	import Initiales from '#lib/ui/Initiales.svelte';
@@ -37,7 +38,7 @@
 		<span class="identite">
 			{#if data.gestion}
 				<!-- La liste garde sa recherche et son filtre à côté de la fiche. -->
-				<a class="nom" href="/agents/{p.id}{page.url.search}" aria-current={courant ? 'page' : undefined}>{p.prenom} {p.nom}</a>
+				<a class="nom" href="/agents/{p.id}{rechercheListe(page.url)}" aria-current={courant ? 'page' : undefined}>{p.prenom} {p.nom}</a>
 			{:else}
 				<span class="nom">{p.prenom} {p.nom}</span>
 			{/if}
@@ -101,7 +102,7 @@
 
 	{#if data.gestion || page.error}
 		<div class="detail" class:masque={!enfant}>
-			{#if enfant}<a class="retour" href="/agents">Retour à la liste</a>{/if}
+			{#if enfant}<a class="retour" href="/agents{rechercheListe(page.url)}">Retour à la liste</a>{/if}
 			{@render children()}
 		</div>
 	{/if}
@@ -304,6 +305,10 @@
 		}
 		.detail {
 			flex: 1 1 0;
+		}
+		/* La liste est à côté : pas de retour. */
+		.retour {
+			display: none;
 		}
 	}
 </style>
