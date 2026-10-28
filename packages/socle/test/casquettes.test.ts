@@ -113,6 +113,22 @@ describe('casquettesDe', () => {
 		]);
 	});
 
+	it('icône d’un rôle : celle choisie, sinon celle de son modèle, sinon selon le nom', async () => {
+		const { base, role, nouvelle, nommer } = await jeu();
+		const bruno = await nouvelle('Bruno');
+		const [a] = await base.insert(responsabilite).values({ nom: 'Référent engins 2', nature: 'mission', typePerimetre: 'centre', modele: 'referent_pharmacie', icone: 'ballon' }).returning();
+		const [b] = await base.insert(responsabilite).values({ nom: 'Référent engins 3', nature: 'mission', typePerimetre: 'centre', modele: 'referent_pharmacie' }).returning();
+		await nommer(bruno, a!.id, { type: 'centre' });
+		await nommer(bruno, b!.id, { type: 'centre' });
+		await nommer(bruno, role('Référent engins'), { type: 'centre' });
+		const casquettes = await casquettesDe(base, acteur(bruno), aujourdhui);
+		expect(casquettes.filter((c) => c.id.startsWith('role:')).map((c) => [c.nom, c.icone])).toEqual([
+			['Référent engins', 'camion'],
+			['Référent engins 2', 'ballon'],
+			['Référent engins 3', 'croix']
+		]);
+	});
+
 	it('ignore une attribution passée ou à venir, un rôle archivé et un comité dissous', async () => {
 		const { base, role, idComite, nouvelle, nommer } = await jeu();
 		const id = await nouvelle('Chloé');

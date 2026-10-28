@@ -4,6 +4,7 @@ import type { Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
 import type { NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
+import { MODELES } from './modeles.ts';
 import { attribution, comite, equipe, personne, profil, responsabilite, responsabiliteDroit } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
@@ -21,8 +22,11 @@ const enCoursLe = (aujourdhui: string) => and(lte(attribution.debut, aujourdhui)
 // Un agent parti ne tient plus rien.
 const present = ne(personne.statut, 'parti');
 
-// En attendant l'icône choisie par rôle : déduite du nom.
-function iconeDuRole(nom: string): NomIcone {
+// L'icône choisie, sinon celle du modèle, sinon déduite du nom.
+function iconeDuRole(nom: string, icone: string | null, modele: string | null): NomIcone {
+	if (icone) return icone as NomIcone;
+	const deModele = MODELES.find((m) => m.id === modele)?.icone;
+	if (deModele) return deModele;
 	const n = nom.toLowerCase();
 	return n.includes('engin') ? 'camion' : n.includes('pharmacie') ? 'croix' : n.includes('technique') ? 'cle' : 'outil';
 }
@@ -36,7 +40,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 
 	const [lignes, equipes, comites] = await base.batch([
 		base
-			.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme })
+			.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele })
 			.from(attribution)
 			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 			.where(and(eq(attribution.personneId, acteur.id), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui))),
@@ -47,8 +51,8 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 	const valides = lignes.filter((l) => l.type === l.portee);
 	const tient = (garde: (l: (typeof valides)[number]) => boolean) => valides.some(garde);
 
-	const referents = new Map<number, string>();
-	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, l.nom);
+	const referents = new Map<number, { nom: string; icone: NomIcone }>();
+	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, { nom: l.nom, icone: iconeDuRole(l.nom, l.icone, l.modele) });
 
 	return [
 		...(tient((l) => l.systeme === 'chef_centre' || l.systeme === 'chef_centre_adjoint') ? [centre] : []),
@@ -56,7 +60,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 			.filter((e) => tient((l) => l.systeme === 'chef_equipe' && l.perimetreId === e.id))
 			.map((e) => ({ id: `equipe:${e.id}`, nom: `Chef d’équipe · ${e.nom}`, icone: 'casque' as const })),
 		{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque' },
-		...[...referents].map(([id, nom]) => ({ id: `role:${id}`, nom, icone: iconeDuRole(nom) })).sort(parNom),
+		...[...referents].map(([id, r]) => ({ id: `role:${id}`, ...r })).sort(parNom),
 		...comites.filter((c) => tient((l) => l.type === 'comite' && l.perimetreId === c.id)).map((c) => ({ id: `comite:${c.id}`, nom: c.nom, icone: 'groupe' as const }))
 	];
 }

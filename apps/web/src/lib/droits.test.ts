@@ -11,4 +11,8 @@ describe('LIBELLES_DROIT', () => {
 	it('n’affiche jamais le nom technique du droit', () => {
 		for (const droit of DROITS) expect(LIBELLES_DROIT[droit]).not.toMatch(/[A-Z]_[A-Z]/);
 	});
+
+	it('dit que GERER_FICHES porte sur les fiches de prise de garde', () => {
+		expect(LIBELLES_DROIT.GERER_FICHES).toBe('Gérer les fiches de prise de garde');
+	});
 });

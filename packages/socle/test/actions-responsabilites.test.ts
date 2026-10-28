@@ -365,6 +365,15 @@ describe('modèles et icônes', () => {
 		await expect(modifierResponsabilite(base, chef, engins.id, { icone: 'licorne' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Icône inconnue'));
 	});
 
+	it('refuse au référent technique un modèle qui porte un droit de pouvoir (rapporteur), rien d’écrit', async () => {
+		const { base, referent } = await jeu();
+		const avant = (await base.select().from(responsabilite)).length;
+		await expect(
+			creerResponsabilite(base, referent, { nom: 'Rapporteur bis', nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: ['ATTRIBUER_RESPONSABILITE'], modele: 'rapporteur_comite' }, aujourdhui)
+		).rejects.toBeInstanceOf(RefusDroit);
+		expect(await base.select().from(responsabilite)).toHaveLength(avant);
+	});
+
 	it('les responsabilités du jeu de départ n’ont ni modèle ni icône', async () => {
 		const { base, chef } = await jeu();
 		expect((await listerResponsabilites(base, chef, aujourdhui)).every((r) => r.modele === null && r.icone === null)).toBe(true);

@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { NOM_COMITE_CENTRE } from '../jeu-de-depart.ts';
 import { ligneJournal } from '../journal.ts';
-import { attribution, comite, responsabilite } from '../schema.ts';
+import { attribution, comite, personne, responsabilite, responsabiliteDroit } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 
 const LONGUEUR_MAX = 60;
@@ -43,7 +43,23 @@ export async function listerComites(base: Base, acteur: Acteur, aujourdhui: stri
 		.from(attribution)
 		.where(and(eq(attribution.perimetreType, 'comite'), lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))))
 		.groupBy(attribution.perimetreId);
-	return comites.map((c) => ({ id: c.id, nom: c.nom, theme: c.theme, dissousLe: c.dissousLe, estCentre: c.nom === NOM_COMITE_CENTRE, membresEnCours: enCours.find((e) => e.id === c.id)?.membres ?? 0 }));
+	// Le rapporteur : qui tient dans le comité un rôle qui nomme.
+	const rapporteurs = await base
+		.selectDistinct({ id: attribution.perimetreId, prenom: personne.prenom, nom: personne.nom })
+		.from(attribution)
+		.innerJoin(personne, eq(personne.id, attribution.personneId))
+		.innerJoin(responsabiliteDroit, and(eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId), eq(responsabiliteDroit.droit, 'ATTRIBUER_RESPONSABILITE')))
+		.where(and(eq(attribution.perimetreType, 'comite'), lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui))))
+		.orderBy(personne.nom, personne.prenom);
+	return comites.map((c) => ({
+		id: c.id,
+		nom: c.nom,
+		theme: c.theme,
+		dissousLe: c.dissousLe,
+		estCentre: c.nom === NOM_COMITE_CENTRE,
+		membresEnCours: enCours.find((e) => e.id === c.id)?.membres ?? 0,
+		rapporteurs: rapporteurs.filter((r) => r.id === c.id).map((r) => `${r.prenom} ${r.nom}`)
+	}));
 }
 
 export async function creerComite(base: Base, acteur: Acteur, donnees: { nom: string; theme: string }, aujourdhui: string): Promise<number> {

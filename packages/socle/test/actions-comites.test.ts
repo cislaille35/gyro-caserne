@@ -51,12 +51,27 @@ describe('droit GERER_COMITES', () => {
 	});
 });
 
+describe('listerComites', () => {
+	it('donne les rapporteurs en cours (rôle de comité qui nomme), par comité', async () => {
+		const { base, comite_, donner, nouvelle, responsabilite_ } = await jeu();
+		const amicale = await comite_('Amicale');
+		const rap = await donner('rap@exemple.fr', 'Rapporteur de comité', { type: 'comite', id: amicale.id });
+		await base.update(personne).set({ prenom: 'Alice', nom: 'Martin' }).where(eq(personne.id, (rap as { id: number }).id));
+		await donner('membre@exemple.fr', 'Membre de comité', { type: 'comite', id: amicale.id });
+		const ancien = await nouvelle('ancien@exemple.fr');
+		await base.insert(attribution).values({ personneId: ancien, responsabiliteId: (await responsabilite_('Rapporteur de comité')).id, perimetreType: 'comite', perimetreId: amicale.id, debut: '2025-01-01', fin: '2025-12-31', saisiePar: 'super:a@b.fr', saisieLe: '2025-01-01' });
+		const liste = await listerComites(base, superAdmin, aujourdhui);
+		expect(liste.find((c) => c.id === amicale.id)).toMatchObject({ membresEnCours: 2, rapporteurs: ['Alice Martin'] });
+		expect(liste.find((c) => c.estCentre)!.rapporteurs).toEqual([]);
+	});
+});
+
 describe('creerComite', () => {
 	it('crée, journalise et apparaît dans la liste', async () => {
 		const { base } = await jeu();
 		const id = await creerComite(base, superAdmin, { nom: '  Sport  ', theme: ' sport ' }, aujourdhui);
 		const liste = await listerComites(base, superAdmin, aujourdhui);
-		expect(liste.find((c) => c.id === id)).toEqual({ id, nom: 'Sport', theme: 'sport', dissousLe: null, estCentre: false, membresEnCours: 0 });
+		expect(liste.find((c) => c.id === id)).toEqual({ id, nom: 'Sport', theme: 'sport', dissousLe: null, estCentre: false, membresEnCours: 0, rapporteurs: [] });
 		expect(liste.filter((c) => c.estCentre).map((c) => c.nom)).toEqual([NOM_COMITE_CENTRE]);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'creer_comite'));
 		expect(ligne).toMatchObject({ cibleType: 'comite', cibleId: id, acteur: 'super:admin@exemple.fr' });
