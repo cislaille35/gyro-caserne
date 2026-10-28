@@ -1,9 +1,55 @@
-import { fail } from '@sveltejs/kit';
-import { DonneeInvalide, RefusDroit } from '@gyro-caserne/socle';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { asc, isNull } from 'drizzle-orm';
+import { aLeDroit, comite, DonneeInvalide, RefusDroit, type Acteur, type Attributeur } from '@gyro-caserne/socle';
+import { DOMAINES, type DomaineId } from '#lib/paquets.ts';
 
-// Ce que reçoit la page après un envoi. `cible` dit quel formulaire est concerné
-// (comite-nouveau, comite-3, resp-nouvelle, resp-5) : le message s'affiche à côté.
-export type Valeurs = { nom?: string; theme?: string; nature?: string; portee?: string; attributeur?: string; droits?: string[] };
+const CENTRE = { type: 'centre' } as const;
+
+// Qui peut quoi sur le centre : comités (GERER_COMITES), responsabilités (GERER_LISTES), pouvoir (GERER_ACCES ou super).
+export async function accesReglages(locals: App.Locals, aujourdhui: string) {
+	const { acteur, base } = locals;
+	if (!acteur) redirect(303, '/connexion');
+	const [comites, listes, pouvoir] = await Promise.all([
+		aLeDroit(base, acteur, 'GERER_COMITES', CENTRE, aujourdhui),
+		aLeDroit(base, acteur, 'GERER_LISTES', CENTRE, aujourdhui),
+		acteur.type === 'super' ? true : aLeDroit(base, acteur, 'GERER_ACCES', CENTRE, aujourdhui)
+	]);
+	if (!comites && !listes) error(403, 'Accès réservé à qui gère les comités ou les responsabilités du centre');
+	return { acteur: acteur as Acteur, base, comites, listes, pouvoir };
+}
+
+export function texte(formulaire: FormData, cle: string): string | undefined {
+	const brut = formulaire.get(cle);
+	return typeof brut === 'string' ? brut : undefined;
+}
+
+export function numero(brut: string | undefined): number | null {
+	return brut !== undefined && /^\d+$/.test(brut) ? Number(brut) : null;
+}
+
+export function attributeurDe(brut: string | undefined): Attributeur | null {
+	if (brut === 'chef_centre' || brut === 'comite_vise') return { type: brut };
+	const comite = /^comite:(\d+)$/.exec(brut ?? '');
+	return comite ? { type: 'comite', id: Number(comite[1]) } : null;
+}
+
+// Le niveau choisi par domaine ; « sur_mesure » ou absent : le domaine n'est pas touché.
+export function niveauxChoisis(formulaire: FormData): Partial<Record<DomaineId, number>> {
+	const choix: Partial<Record<DomaineId, number>> = {};
+	for (const d of DOMAINES) {
+		const n = numero(texte(formulaire, `niveau-${d.id}`));
+		if (n !== null && n < d.niveaux.length) choix[d.id] = n;
+	}
+	return choix;
+}
+
+// Les comités qui peuvent attribuer un rôle (non dissous), même sans le droit de gérer les comités.
+export async function comitesChoix(base: App.Locals['base']) {
+	return base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom));
+}
+
+// Ce que reçoit la page après un envoi. `cible` dit quel formulaire est concerné (role, detail, archiver…) : le message s'affiche à côté.
+export type Valeurs = { nom?: string; theme?: string; nature?: string; portee?: string; attributeur?: string; icone?: string; droits?: string[] };
 export type Reponse = { cible: string; succes?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
 
 // Message du socle -> champ du formulaire et phrase claire. Un message absent de la table s'affiche tel quel.
@@ -33,7 +79,11 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'La portée d’une responsabilité système ne change pas': { champ: 'portee', texte: 'La portée d’une responsabilité système ne change pas.' },
 	'Portée verrouillée : la responsabilité est tenue': { champ: 'portee', texte: 'La portée ne change pas tant que quelqu’un tient ou tiendra cette responsabilité.' },
 	'Droit verrouillé : impossible de le retirer': { champ: 'droits', texte: 'Un droit verrouillé ne se retire pas.' },
-	'Une responsabilité système ne s’archive pas': { texte: 'Une responsabilité système (chef de centre, adjoint, chef d’équipe) ne s’archive pas.' }
+	'Une responsabilité système ne s’archive pas': { texte: 'Une responsabilité système (chef de centre, adjoint, chef d’équipe) ne s’archive pas.' },
+	'Icône inconnue': { champ: 'icone', texte: 'Choisissez une icône de la liste.' },
+	'Modèle inconnu': { texte: 'Ce modèle n’existe pas : choisissez-en un dans la liste.' },
+	'Profil inconnu': { texte: 'Ce profil n’existe pas.' },
+	'Un profil ne donne pas de droit de pouvoir': { texte: 'Un profil ne donne pas de droit d’administration.' }
 };
 
 const REFUS = [
