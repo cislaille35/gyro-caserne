@@ -5,24 +5,26 @@ Réservé à qui peut attribuer au moins une responsabilité : chef de centre, a
 ## Nommer
 
 1. Ouvrez l'onglet « Caserne », puis « Nominations ».
-2. Trouvez la carte du rôle (par exemple « Chef d’équipe »).
-3. Sous « Nommer », choisissez l'agent, puis l'équipe ou le comité si on vous le demande.
-4. Vérifiez la date de début (aujourd'hui par défaut). La fin est facultative : sans date, le rôle dure jusqu'à ce qu'on le termine.
-5. Appuyez sur « Nommer ». Le message « Rôle attribué » apparaît, et l'agent rejoint les titulaires.
+2. Trouvez la carte du rôle (par exemple « Chef d’équipe »). La recherche en haut trouve un rôle ou un agent.
+3. Appuyez sur « Nommer » : un volet s'ouvre. Choisissez l'agent, puis l'équipe ou le comité si on vous le demande.
+4. Le rôle commence aujourd'hui, sans date de fin. Pour d'autres dates, ouvrez « Changer les dates ».
+5. Appuyez sur « Nommer ». Le volet se ferme, le message « Rôle attribué » apparaît, et l'agent rejoint les titulaires.
 
-Si vous gérez les agents, vous pouvez aussi le faire depuis sa fiche : carte « Responsabilités », bouton « Attribuer ».
+Si vous gérez les agents, vous pouvez aussi le faire depuis sa fiche : bloc « Rôles », bouton « Attribuer ».
 
 ## Terminer un rôle
 
-1. Dans la carte du rôle (ou la carte « Responsabilités » de la fiche), trouvez la personne.
-2. Cochez « Je confirme », puis appuyez sur « Terminer ». Le message « Rôle terminé » apparaît.
+1. Dans la carte du rôle, appuyez sur le nom de la personne (bouton « Retirer … »).
+2. Appuyez sur « Confirmer le retrait ». Le message « Rôle terminé » apparaît.
+
+Depuis la fiche de l'agent (bloc « Rôles ») : cochez « Je confirme », puis appuyez sur « Terminer ».
 
 La personne perd le rôle et ses droits dès aujourd'hui. Un rôle qui n'avait pas encore commencé est annulé.
 
 ## Changer la date de fin
 
-1. Dans la carte du rôle (ou la carte « Responsabilités » de la fiche), trouvez la personne.
-2. Saisissez la nouvelle date dans « Nouvelle date de fin », puis appuyez sur « Changer la date de fin ». Le message « Date de fin enregistrée » apparaît.
+1. Dans la carte du rôle, appuyez sur le nom de la personne (ou, sur la fiche, trouvez le rôle dans le bloc « Rôles »).
+2. Saisissez la nouvelle date (« Ou choisir la date de fin » dans la carte, « Nouvelle date de fin » sur la fiche), puis appuyez sur « Changer la date de fin ». Le message « Date de fin enregistrée » apparaît.
 
 On ne peut qu'avancer la fin : pour prolonger un rôle, nommez à nouveau la personne après la fin prévue.
 

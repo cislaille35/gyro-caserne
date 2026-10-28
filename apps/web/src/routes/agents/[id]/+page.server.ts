@@ -81,7 +81,9 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}
-		return { succes: true, message: 'Fiche enregistrée' };
+		// Le bloc de la page reste ouvert après l'enregistrement.
+		const bloc = ['prenom', 'nom', 'email', 'telephone', 'naissance'].some((c) => c in valeurs) ? 'identite' : 'parcours';
+		return { succes: true, message: 'Fiche enregistrée', bloc };
 	},
 
 	equipe: async ({ locals, params, request }) => {
@@ -93,10 +95,10 @@ export const actions: Actions = {
 			if (equipeId === null) await retirerEquipe(locals.base, acteur, id, aujourdhui);
 			else await affecterEquipe(locals.base, acteur, id, equipeId, aujourdhui, aujourdhui);
 		} catch (erreur) {
-			if (erreur instanceof DonneeInvalide && erreur.message === 'Aucune équipe en cours') return { succes: true, message: 'Aucune équipe à retirer.' };
-			return echec(erreur);
+			if (erreur instanceof DonneeInvalide && erreur.message === 'Aucune équipe en cours') return { succes: true, message: 'Aucune équipe à retirer.', bloc: 'equipe' };
+			return echec(erreur, { valeurs: { equipeId: brut } });
 		}
-		return { succes: true, message: 'Équipe enregistrée' };
+		return { succes: true, message: 'Équipe enregistrée', bloc: 'equipe' };
 	},
 
 	statut: async ({ locals, params, request }) => {
@@ -113,7 +115,7 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}
-		return { succes: true, message: 'Statut enregistré' };
+		return { succes: true, message: 'Statut enregistré', bloc: statut === 'parti' ? 'depart' : 'equipe' };
 	},
 
 	attribuer: async ({ locals, params, request }) => {

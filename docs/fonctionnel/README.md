@@ -18,4 +18,10 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Messagerie | [messagerie.md](messagerie.md) |
 | Notifications | [notifications.md](notifications.md) |
 
-Aucune fonction n'est encore livrée. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).
+## Ce qui est livré
+
+- **Fiche agent** : la liste des agents par équipe, avec recherche et filtres pour la gestion ; la fiche en blocs ; l'ajout, le départ ; le fichier de l'effectif (import, export).
+- **Accès et attributions** : connexion, profils, rôles et comités (page « Réglages »), nominations depuis la fiche ou la page « Nominations ».
+- **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil et le choix de l'affichage.
+
+Les autres fonctions ne sont pas encore livrées : leurs pages décrivent la cible. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).

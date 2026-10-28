@@ -6,21 +6,27 @@
 		resume,
 		ouvert = $bindable(false),
 		niveauTitre = 2,
+		couleur,
+		alerte = false,
+		action,
 		children
-	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; children: Snippet } = $props();
+	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; couleur?: string; alerte?: boolean; action?: Snippet; children: Snippet } = $props();
 	const id = $props.id();
 </script>
 
-<section class="groupe">
-	<svelte:element this={`h${niveauTitre}`} class="entete">
-		<button type="button" aria-expanded={ouvert ? 'true' : 'false'} aria-controls={id} onclick={() => (ouvert = !ouvert)}>
-			<span class="textes">
-				<span class="titre">{titre}</span>
-				{#if resume}<span class="resume">{resume}</span>{/if}
-			</span>
-			<span class="chevron" aria-hidden="true">›</span>
-		</button>
-	</svelte:element>
+<section class="groupe" style:border-left={couleur ? `6px solid ${couleur}` : undefined}>
+	<div class="ligne">
+		<svelte:element this={`h${niveauTitre}`} class="entete">
+			<button type="button" aria-expanded={ouvert ? 'true' : 'false'} aria-controls={id} onclick={() => (ouvert = !ouvert)}>
+				<span class="textes">
+					<span class="titre">{titre}</span>
+					{#if resume}<span class="resume" class:alerte>{resume}</span>{/if}
+				</span>
+				<span class="chevron" aria-hidden="true">›</span>
+			</button>
+		</svelte:element>
+		{#if action}{@render action()}{/if}
+	</div>
 	<div {id} class="contenu" hidden={!ouvert}>{@render children()}</div>
 </section>
 
@@ -31,7 +37,13 @@
 		border-radius: var(--rayon-grand);
 		overflow: hidden;
 	}
+	.ligne {
+		display: flex;
+		align-items: center;
+	}
 	.entete {
+		flex: 1;
+		min-width: 0;
 		margin: 0;
 		font: inherit;
 	}
@@ -63,6 +75,10 @@
 	.resume {
 		font-size: 0.875rem;
 		color: var(--doux);
+	}
+	.resume.alerte {
+		color: var(--statut-alerte-texte);
+		font-weight: 600;
 	}
 	.chevron {
 		font-size: 1.25rem;

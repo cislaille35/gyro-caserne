@@ -5,6 +5,7 @@ import { accorde, droitsDe, estChefDeCentre, type Acteur, type DroitAccorde, typ
 import { estGestionnaire } from '../effectif.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
+import { iconeDuRole, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
 import type { TypePerimetre } from '../listes.ts';
 import { attribution, comite, equipe, personne, responsabilite } from '../schema.ts';
@@ -173,7 +174,7 @@ export type PerimetreNomme = { type: TypePerimetre; id: number | null; nom: stri
 
 export type LigneAttribution = {
 	id: number;
-	responsabilite: { id: number; nom: string };
+	responsabilite: { id: number; nom: string; icone: NomIcone };
 	perimetre: PerimetreNomme;
 	debut: string;
 	fin: string | null;
@@ -193,6 +194,7 @@ export type CeQueJePeuxAttribuer = {
 	responsabiliteId: number;
 	nom: string;
 	portee: TypePerimetre;
+	icone: NomIcone;
 	perimetres: { type: TypePerimetre; id: number | null; nom: string }[];
 }[];
 
@@ -236,7 +238,7 @@ export async function attributionsDe(
 		const passee = a.fin !== null && a.fin < aujourdhui;
 		const ligne: LigneAttribution = {
 			id: a.id,
-			responsabilite: { id: r.id, nom: r.nom },
+			responsabilite: { id: r.id, nom: r.nom, icone: iconeDuRole({ ...r, portee: r.typePerimetre }) },
 			perimetre: nommer(a.perimetreType, a.perimetreId),
 			debut: a.debut,
 			fin: a.fin,
@@ -280,6 +282,7 @@ export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhu
 			responsabiliteId: r.id,
 			nom: r.nom,
 			portee: r.typePerimetre,
+			icone: iconeDuRole({ ...r, portee: r.typePerimetre }),
 			perimetres: perimetres[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))
 		}))
 		.filter((r) => r.perimetres.length > 0);

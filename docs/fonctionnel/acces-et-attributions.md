@@ -28,12 +28,12 @@ Au démarrage, le chef de centre ou le super administrateur nomme les premiers m
 
 **À l'écran**, deux chemins pour les mêmes règles :
 
-- **depuis la fiche de l'agent** (gestionnaires), carte « Responsabilités » : « Attribuer », puis « Changer la date de fin » ou « Terminer » sur un rôle ;
-- **depuis la page « Nominations »**, pour quiconque peut attribuer au moins une responsabilité (rapporteur d'un comité, chef de centre…) : une carte par rôle qu'il peut donner, avec ses titulaires et le formulaire « Nommer ». Elle s'ouvre depuis l'onglet « Caserne » ; les autres n'y ont ni le lien ni la page.
+- **depuis la fiche de l'agent** (gestionnaires), bloc « Rôles » : « Attribuer », puis « Changer la date de fin » ou « Terminer » sur un rôle ;
+- **depuis la page « Nominations »**, pour quiconque peut attribuer au moins une responsabilité (rapporteur d'un comité, chef de centre…) : une carte par rôle qu'il peut donner (icône, nom, périmètre), ses titulaires en pastilles et « Aucun titulaire » en orange s'il n'y en a pas. « Nommer » ouvre un volet (agent, début aujourd'hui, « Changer les dates » replié) ; « Annuler » ou Échap le ferment et le focus revient sur « Nommer ». Un refus garde le volet ouvert, l'erreur dedans et le focus sur le premier champ fautif ; refermé puis rouvert, le volet repart à neuf ; une pastille ouvre la confirmation du retrait, avec aussi « Changer la date de fin ». Une recherche filtre les cartes par rôle ou par agent. Sans JavaScript, tout marche par l'adresse de la page. Elle s'ouvre depuis l'onglet « Caserne » ; les autres n'y ont ni le lien ni la page.
 
 Chacun ne voit et ne propose que les rôles et les périmètres qu'il a le droit d'attribuer. Exemple : le rapporteur de l'« Amicale » nomme les membres de l'Amicale, mais ni un « Référent engins » (attribué par le chef de centre), ni un membre d'un autre comité.
 
-- **Terminer** (case « Je confirme ») : le rôle s'arrête la veille, ses droits disparaissent dès aujourd'hui. Un rôle qui commence aujourd'hui ou plus tard est annulé.
+- **Terminer** (case « Je confirme » sur la fiche, « Confirmer le retrait » sur « Nominations ») : le rôle s'arrête la veille, ses droits disparaissent dès aujourd'hui. Un rôle qui commence aujourd'hui ou plus tard est annulé.
 - **Changer la date de fin** : on avance la fin d'un rôle en cours ou à venir ; on ne la repousse pas (« Une attribution ne peut qu’être raccourcie »). Mêmes droits que « Terminer ».
 - **Personne partie** : on ne la nomme pas (« Cette personne est partie »).
 - **Doublon refusé** : même personne, même rôle, même périmètre, périodes qui se chevauchent → « Cette personne tient déjà ce rôle sur cette période ».

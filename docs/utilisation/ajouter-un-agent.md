@@ -10,4 +10,4 @@ Réservé au chef de centre, à son adjoint et au super administrateur.
 6. Choisissez son équipe, ou « Aucune équipe ». L'équipe compte à partir d'aujourd'hui.
 7. Appuyez sur « Ajouter l'agent ». Sa fiche s'ouvre.
 
-L'agent peut alors se connecter avec son e-mail. Pour corriger sa fiche plus tard, ouvrez-la depuis la liste, modifiez la carte voulue et appuyez sur « Enregistrer ».
+L'agent peut alors se connecter avec son e-mail. Pour corriger sa fiche plus tard, ouvrez-la depuis la liste, ouvrez le bloc voulu (par exemple « Parcours »), modifiez et appuyez sur « Enregistrer ». Sans grade ni date d'entrée, l'agent porte la pastille « À compléter » : voir [Comment compléter les fiches des agents ?](completer-les-fiches.md).

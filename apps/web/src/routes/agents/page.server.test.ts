@@ -29,38 +29,46 @@ describe('load de /agents', () => {
 		const data = await appeler({ acteur: { type: 'personne', id: alice.id }, base });
 		expect(data.gestion).toBe(false);
 		expect(data.groupes.map((g: { titre: string }) => g.titre)).toEqual(['Rouge', 'Sans équipe']);
+		expect(data.groupes[0].equipe).toEqual({ couleur: '#c00', chefs: [] });
 		const brut = JSON.stringify(data);
 		expect(brut).not.toContain('@exemple.fr');
 		expect(brut).not.toContain('Zorro');
 		for (const statut of ['parti', 'stagiaire', 'operationnel', 'suspendu']) expect(brut).not.toContain(statut);
-		expect(data.lignes).toBeUndefined();
+		expect(data.comptes).toBeUndefined();
+		expect(data.filtres).toBeUndefined();
 	});
 
-	it('donne la liste de gestion au super administrateur', async () => {
+	it('donne au super administrateur la liste par équipe, les comptes et les filtres', async () => {
 		const { base } = await preparer();
 		const data = await appeler({ acteur: super_, base });
 		expect(data.gestion).toBe(true);
-		expect(data.lignes.map((l: { prenom: string }) => l.prenom)).toEqual(['Bob', 'Alice', 'Zoé']);
-		expect(data.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Rouge']);
-		expect(data.statuts).toContain('stagiaire');
-		expect(data.filtres).toEqual({ texte: '', equipe: '', statut: '' });
+		expect(data.groupes.map((g: { titre: string; personnes: { prenom: string }[] }) => [g.titre, g.personnes.map((p) => p.prenom)])).toEqual([
+			['Rouge', ['Alice']],
+			['Sans équipe', ['Bob']],
+			['Partis', ['Zoé']]
+		]);
+		expect(data.groupes[0].personnes[0]).toMatchObject({ email: 'alice@exemple.fr', statut: 'operationnel', aCompleter: true });
+		expect(data.comptes).toEqual({ 'a-completer': 2, indisponibles: 0, partis: 1 });
+		expect(data.filtres).toEqual({ texte: '', filtre: '' });
 	});
 
-	it('applique les filtres de l\'URL et les renvoie', async () => {
-		const { base, rouge } = await preparer();
-		const parTexte = await appeler({ acteur: super_, base }, '?texte=bob');
-		expect(parTexte.lignes.map((l: { prenom: string }) => l.prenom)).toEqual(['Bob']);
-		const parEquipe = await appeler({ acteur: super_, base }, `?equipe=${rouge.id}`);
-		expect(parEquipe.lignes.map((l: { prenom: string }) => l.prenom)).toEqual(['Alice']);
-		const sans = await appeler({ acteur: super_, base }, '?equipe=aucune&statut=stagiaire');
-		expect(sans.lignes.map((l: { prenom: string }) => l.prenom)).toEqual(['Bob']);
-		expect(sans.filtres).toEqual({ texte: '', equipe: 'aucune', statut: 'stagiaire' });
-	});
-
-	it('ignore un filtre d\'équipe ou de statut invalide', async () => {
+	it('applique la recherche et le filtre de l\'URL et les renvoie', async () => {
 		const { base } = await preparer();
-		const data = await appeler({ acteur: super_, base }, '?equipe=abc&statut=zzz');
-		expect(data.lignes).toHaveLength(3);
-		expect(data.filtres).toEqual({ texte: '', equipe: '', statut: '' });
+		const prenoms = (data: { groupes: { personnes: { prenom: string }[] }[] }) => data.groupes.flatMap((g) => g.personnes.map((p) => p.prenom));
+		expect(prenoms(await appeler({ acteur: super_, base }, '?texte=bob'))).toEqual(['Bob']);
+		// Un stagiaire part en intervention : il n'est pas indisponible.
+		const indispo = await appeler({ acteur: super_, base }, '?filtre=indisponibles');
+		expect(prenoms(indispo)).toEqual([]);
+		expect(indispo.filtres).toEqual({ texte: '', filtre: 'indisponibles' });
+		const partis = await appeler({ acteur: super_, base }, '?texte=zo&filtre=partis');
+		expect(prenoms(partis)).toEqual(['Zoé']);
+		expect(partis.filtres).toEqual({ texte: 'zo', filtre: 'partis' });
+	});
+
+	it('ignore un filtre invalide', async () => {
+		const { base } = await preparer();
+		const data = await appeler({ acteur: super_, base }, '?filtre=zzz');
+		expect(data.groupes.flatMap((g: { personnes: unknown[] }) => g.personnes)).toHaveLength(3);
+		expect(data.filtres).toEqual({ texte: '', filtre: '' });
 	});
 });

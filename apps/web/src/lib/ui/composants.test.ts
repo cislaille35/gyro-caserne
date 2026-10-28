@@ -173,6 +173,21 @@ describe('Groupe', () => {
 		expect(html(Groupe, base)).toMatch(/<span[^>]*aria-hidden="true"[^>]*>›<\/span>/);
 	});
 
+	it('liseré de couleur et résumé en alerte, sur demande seulement', () => {
+		const page = html(Groupe, { ...base, couleur: '#b3121f', alerte: true });
+		expect(page).toMatch(/<section[^>]*style="border-left: 6px solid #b3121f;?"/);
+		expect(page).toMatch(/class="resume[^"]*alerte/);
+		expect(html(Groupe, base)).not.toContain('border-left');
+		expect(html(Groupe, base)).not.toMatch(/class="resume[^"]*alerte/);
+	});
+
+	it('action facultative à côté du titre, hors du bouton', () => {
+		const action = createRawSnippet(() => ({ render: () => '<a href="/nominations">Nommer</a>' }));
+		const page = html(Groupe, { ...base, action });
+		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
+		expect(page.match(/<button[\s\S]*?<\/button>/)![0]).not.toContain('Nommer');
+	});
+
 	it('s’ouvre et se ferme au clic (et donc à Entrée, bouton natif)', () => {
 		// Pas de DOM dans les tests : on vérifie que le code client bascule `ouvert` au clic du bouton.
 		const code = compile(readFileSync(new URL('./Groupe.svelte', import.meta.url), 'utf8'), { generate: 'client' }).js.code;

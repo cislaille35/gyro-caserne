@@ -14,7 +14,9 @@ async function exigerNominateur(locals: App.Locals) {
 	return { acteur, base, aujourdhui, peutAttribuer };
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+const entier = (brut: FormDataEntryValue | null) => (/^\d+$/.test(String(brut ?? '')) ? Number(brut) : null);
+
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const { acteur, base, aujourdhui, peutAttribuer } = await exigerNominateur(locals);
 	const titulaires = await titulairesDesMiens(base, acteur, aujourdhui);
 	const roles = peutAttribuer.map((r) => ({ ...r, titulaires: titulaires.get(r.responsabiliteId) ?? [] }));
@@ -22,10 +24,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const agents = (await vueEffectif(base, aujourdhui))
 		.flatMap((g) => g.personnes.map((p) => ({ id: p.id, nom: `${p.prenom} ${p.nom}`, equipe: g.titre })))
 		.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-	return { aujourdhui, roles, agents };
+	// Sans JavaScript, le panneau « Nommer », la confirmation « Retirer » et la recherche passent par l'adresse.
+	const parametre = (cle: string) => entier(url.searchParams.get(cle));
+	return { aujourdhui, roles, agents, nommer: parametre('nommer'), retirer: parametre('retirer'), recherche: url.searchParams.get('q')?.trim() ?? '' };
 };
-
-const entier = (brut: FormDataEntryValue | null) => (/^\d+$/.test(String(brut ?? '')) ? Number(brut) : null);
 
 // « Terminer » et « Changer la date de fin » : seuls les titulaires affichés du rôle du formulaire (un identifiant fabriqué est refusé).
 async function retrait(locals: App.Locals, request: Request) {

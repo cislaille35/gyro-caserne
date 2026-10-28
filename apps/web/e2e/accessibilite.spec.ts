@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { DonneesFichier, FichierLu } from '@gyro-caserne/socle';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { ecrireClasseur, lireClasseur } from '../src/lib/fichier-effectif/classeur.ts';
 import { connecter } from './connexion.ts';
@@ -48,10 +48,15 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
-			test('fiche d’un agent sans violation, avertissement de départ compris', async ({ page }) => {
+			test('fiche d’un agent, blocs ouverts, sans violation, erreur de départ comprise', async ({ page }) => {
 				await page.goto(await ficheDe(page, 'Alice Martin'));
+				await page.waitForLoadState('networkidle');
+				await toutOuvrir(page);
 				await sansViolation(page);
-				await choisirParti(page);
+				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+				// Sans « Je confirme », rien n'est effacé : le bloc se rouvre seul avec l'erreur.
+				await page.getByRole('button', { name: 'Déclarer le départ' }).click();
+				await expect(page.getByText('Cochez « Je confirme » pour déclarer le départ.')).toBeVisible();
 				await sansViolation(page);
 			});
 
@@ -64,7 +69,7 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 
 				await page.goto(agent.fiche);
-				const cartes = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
+				const cartes = await blocDeFiche(page, 'Rôles', (b) => b.locator('summary', { hasText: 'Passées (1)' }));
 				await cartes.locator('summary', { hasText: 'Passées (1)' }).click();
 				await expect(cartes.getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
 				// Terminer sans « Je confirme » : l'erreur reliée à sa case.
@@ -80,6 +85,25 @@ for (const theme of ['auto', 'sombre']) {
 				const marque = nouvelleMarque();
 				await deposer(page, await classeur(modele.entetes, [arrivee(modele.entetes, marque, 'Yanis')], null));
 				await expect(page.getByRole('heading', { level: 3, name: '1 arrivée' })).toBeVisible();
+				await sansViolation(page);
+			});
+
+			test('/agents filtrée et cherchée, sans violation', async ({ page }) => {
+				for (const chemin of ['/agents?filtre=a-completer', '/agents?filtre=indisponibles', '/agents?filtre=partis', '/agents?texte=Martin&filtre=partis']) await sansViolation(page, chemin);
+			});
+
+			test('/nominations : volet « Nommer » ouvert, puis étape de retrait, sans violation', async ({ page }) => {
+				const { nom } = await nouvelAgent(page);
+				await page.goto('/nominations');
+				await page.waitForLoadState('networkidle');
+				await nommer(page, 'Référent technique', nom);
+				await carteRole(page, 'Référent pharmacie').getByRole('button', { name: 'Nommer', exact: true }).click();
+				await expect(page.getByRole('dialog', { name: 'Nommer : Référent pharmacie' })).toBeVisible();
+				await sansViolation(page);
+				await page.keyboard.press('Escape');
+				await expect(page.getByRole('dialog')).toHaveCount(0);
+				await carteRole(page, 'Référent technique').getByRole('button', { name: `Retirer ${nom}` }).click();
+				await expect(page.locator(':focus')).toContainText(`Retirer ${nom} ?`);
 				await sansViolation(page);
 			});
 
@@ -147,7 +171,7 @@ async function domaineOuvert(page: Page, nom: string) {
 // Adresse de la fiche, lue dans la liste de gestion.
 async function ficheDe(page: Page, nom: string): Promise<string> {
 	await page.goto(`/agents?texte=${encodeURIComponent(nom.split(' ')[1]!)}`);
-	return (await page.getByRole('link', { name: `Voir la fiche de ${nom}` }).getAttribute('href'))!;
+	return (await page.getByRole('link', { name: nom, exact: true }).getAttribute('href'))!;
 }
 
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
@@ -164,23 +188,31 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; em
 	await page.getByRole('button', { name: "Ajouter l'agent" }).click();
 	await expect(page).toHaveURL(/\/agents\/\d+$/);
 	await expect(page.getByRole('heading', { level: 1, name: `Zoé ${nom}` })).toBeVisible();
-	await expect(page.locator('form[action="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
+	await expect(page.locator('form[action^="?/equipe"]').getByLabel('Équipe').locator('option:checked')).toHaveText('Équipe 1');
 	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
+// La carte d'un rôle sur /nominations.
+const carteRole = (page: Page, role: string) => page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
+
 // Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 ou comité « Amicale » si le rôle en vise un).
 async function nommer(page: Page, role: string, agent: string, dates: { debut?: string; fin?: string } = {}) {
-	const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
-	const formulaire = carte.locator('form[action="?/attribuer"]');
+	const carte = carteRole(page, role);
+	await carte.getByRole('button', { name: 'Nommer', exact: true }).click();
+	const formulaire = carte.locator('dialog form[action="?/attribuer"]');
+	await expect(formulaire).toBeVisible();
 	await formulaire.getByLabel('Agent', { exact: true }).selectOption({ label: `${agent} (Équipe 1)` });
 	const equipe = formulaire.getByRole('combobox', { name: 'Équipe' });
 	if ((await equipe.count()) > 0) await equipe.selectOption({ label: 'Équipe 1' });
 	const comite = formulaire.getByRole('combobox', { name: 'Comité' });
 	if ((await comite.count()) > 0) await comite.selectOption({ label: 'Amicale' });
+	if (dates.debut || dates.fin) await formulaire.getByText('Changer les dates', { exact: true }).click();
 	if (dates.debut) await formulaire.getByLabel('Début', { exact: true }).fill(dates.debut);
 	if (dates.fin) await formulaire.getByLabel('Fin', { exact: true }).fill(dates.fin);
 	await formulaire.getByRole('button', { name: 'Nommer' }).click();
-	await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
+	// Le volet se ferme, la réussite s'annonce dans la carte.
+	await expect(carte.getByRole('status')).toHaveText('Rôle attribué');
+	await expect(carte.locator('dialog')).toHaveCount(0);
 }
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -215,11 +247,15 @@ async function deposer(page: Page, contenu: Buffer) {
 	await expect(page.getByRole('heading', { level: 2, name: "Aperçu de l'import" })).toBeVisible();
 }
 
-// Choisi même avant que la page soit prête, « Parti » affiche l'avertissement une fois la page prête.
-async function choisirParti(page: Page) {
-	const statut = page.locator('form[action="?/statut"]');
-	await statut.getByLabel('Statut').selectOption('parti');
-	await expect(statut.getByLabel('Je confirme')).toBeVisible();
+// Ouvre un bloc de la fiche et renvoie sa section. Le bouton ne répond qu'une fois la page prête : on réessaie.
+async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) => Locator): Promise<Locator> {
+	const bouton = page.getByRole('button', { name: new RegExp(`^${titre}`) });
+	const bloc = page.locator('section').filter({ has: bouton });
+	await expect(async () => {
+		if ((await bouton.getAttribute('aria-expanded')) === 'false') await bouton.click();
+		await expect(attendu(bloc)).toBeVisible({ timeout: 1000 });
+	}).toPass();
+	return bloc;
 }
 
 test.describe('agents', () => {
@@ -228,6 +264,69 @@ test.describe('agents', () => {
 		const reponse = await (await contexte.newPage()).goto('/agents/1');
 		expect(reponse!.status()).toBe(403);
 		await contexte.close();
+	});
+
+	test('filtrer « À compléter » puis ouvrir une fiche : le filtre reste', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		// Sans grade ni date d'entrée, l'agent neuf est à compléter.
+		const { nom } = await nouvelAgent(page);
+		await page.goto('/agents');
+		const filtre = page.getByRole('button', { name: /^À compléter/ });
+		await filtre.click();
+		await expect(page).toHaveURL(/[?&]filtre=a-completer/);
+		await expect(filtre).toHaveAttribute('aria-pressed', 'true');
+		await page.getByRole('link', { name: nom, exact: true }).click();
+		await expect(page).toHaveURL(/\/agents\/\d+\?.*filtre=a-completer/);
+		await expect(page.getByRole('heading', { level: 1, name: nom })).toBeVisible();
+		// Sur téléphone, la liste est cachée derrière la fiche : le filtre y reste choisi.
+		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
+		await page.context().close();
+	});
+
+	test('filtrer « À compléter », enregistrer une fiche : le filtre reste, l’agent suivant s’ouvre', async ({ browser }, testInfo) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const premier = await nouvelAgent(page);
+		const second = await nouvelAgent(page);
+		await page.goto('/agents?filtre=a-completer');
+		await page.getByRole('link', { name: premier.nom, exact: true }).click();
+		await expect(page.getByRole('heading', { level: 1, name: premier.nom })).toBeVisible();
+		const bloc = await blocDeFiche(page, 'Identité et contact', (b) => b.getByLabel('Téléphone', { exact: true }));
+		await bloc.getByLabel('Téléphone', { exact: true }).fill('06 00 00 00 01');
+		await bloc.getByRole('button', { name: 'Enregistrer' }).click();
+		await expect(page.getByText('Fiche enregistrée')).toBeVisible();
+		await expect(page).toHaveURL(/filtre=a-completer/);
+		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
+		// Sur téléphone, la liste est derrière la fiche : « Retour à la liste » la rend, filtrée.
+		if (testInfo.project.name === 'telephone') {
+			await page.getByRole('link', { name: 'Retour à la liste' }).click();
+			await expect(page).toHaveURL(/\/agents\?filtre=a-completer$/);
+		} else {
+			await expect(page.getByRole('link', { name: 'Retour à la liste' })).toBeHidden();
+		}
+		await expect(page.getByRole('button', { name: /^À compléter/ })).toHaveAttribute('aria-pressed', 'true');
+		await page.getByRole('link', { name: second.nom, exact: true }).click();
+		await expect(page.getByRole('heading', { level: 1, name: second.nom })).toBeVisible();
+		await expect(page).toHaveURL(/\/agents\/\d+\?filtre=a-completer$/);
+		await page.context().close();
+	});
+
+	test('la fiche au clavier : un bloc s’ouvre (Entrée) et se ferme (Espace)', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		await page.goto(await ficheDe(page, 'Alice Martin'));
+		const bouton = page.getByRole('button', { name: /^Identité et contact/ });
+		const champ = page.locator('section').filter({ has: bouton }).getByRole('textbox').first();
+		await expect(champ).toBeHidden();
+		// Tant que la page n'est pas prête, Entrée ne fait rien : on recommence.
+		await expect(async () => {
+			await bouton.focus();
+			if ((await bouton.getAttribute('aria-expanded')) === 'false') await page.keyboard.press('Enter');
+			await expect(bouton).toHaveAttribute('aria-expanded', 'true', { timeout: 1000 });
+		}).toPass();
+		await expect(champ).toBeVisible();
+		await page.keyboard.press('Space');
+		await expect(bouton).toHaveAttribute('aria-expanded', 'false');
+		await expect(champ).toBeHidden();
+		await page.context().close();
 	});
 
 	test('le super administrateur ajoute un agent, puis le déclare parti : il quitte la vue des agents', async ({ browser }) => {
@@ -239,13 +338,12 @@ test.describe('agents', () => {
 		await agent.goto('/agents');
 		await expect(agent.getByText(nom)).toBeVisible();
 
-		await choisirParti(gestion);
-		const statut = gestion.locator('form[action="?/statut"]');
-		await statut.getByLabel('Je confirme').check();
-		await statut.getByRole('button', { name: 'Enregistrer' }).click();
+		const depart = await blocDeFiche(gestion, 'Départ du centre', (b) => b.getByLabel('Je confirme'));
+		await depart.getByLabel('Je confirme').check();
+		await depart.getByRole('button', { name: 'Déclarer le départ' }).click();
 		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
-		// Le statut s'affiche à côté du nom de l'agent (sur ordinateur, la liste a aussi son titre).
-		await expect(gestion.getByRole('heading', { level: 1, name: nom }).locator('xpath=..')).toContainText('Parti');
+		// Le statut s'affiche dans l'en-tête de la fiche (sur ordinateur, la liste a aussi son titre).
+		await expect(gestion.locator('header', { has: gestion.getByRole('heading', { level: 1, name: nom }) })).toContainText('Parti');
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
@@ -265,17 +363,18 @@ test.describe('nominations', () => {
 		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const agent = await (await browser.newContext({ storageState: ETAT_CONNECTE })).newPage();
 		const { nom } = await nouvelAgent(gestion);
-		const carte = gestion.locator('section').filter({ has: gestion.getByRole('heading', { level: 2, name: 'Responsabilités' }) });
-		const formulaire = carte.locator('form[action="?/attribuer"]');
+		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action^="?/attribuer"]'));
+		const formulaire = carte.locator('form[action^="?/attribuer"]');
 
-		// Choisi même avant que la page soit prête, le rôle d'équipe fait apparaître le choix de l'équipe.
+		// Le rôle d'équipe fait apparaître le choix de l'équipe.
 		await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
 		await expect(formulaire.getByRole('combobox', { name: 'Équipe' })).toBeVisible();
 		await expect(formulaire.getByLabel('Responsabilité').locator('option:checked')).toHaveText('Chef d’équipe');
 		await formulaire.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 		await formulaire.getByRole('button', { name: 'Attribuer' }).click();
 		await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
-		await expect(carte.getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
+		// Dans la liste du bloc (le résumé du bloc porte le même nom).
+		await expect(carte.getByRole('list').getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
 
 		await agent.goto('/agents');
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef d’équipe (Équipe 1)');
@@ -295,6 +394,80 @@ test.describe('nominations', () => {
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).not.toContainText('Rôles');
 		await gestion.context().close();
 		await agent.context().close();
+	});
+
+	test('/nominations au clavier : volet « Nommer » (ordre de Tab, Échap, refus), nommer puis retirer', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const { nom } = await nouvelAgent(page);
+		await page.goto('/nominations');
+		await page.waitForLoadState('networkidle');
+		const carte = carteRole(page, 'Référent technique');
+		const ouvrir = carte.getByRole('button', { name: 'Nommer', exact: true });
+		const volet = page.getByRole('dialog', { name: 'Nommer : Référent technique' });
+		const agent = volet.getByLabel('Agent', { exact: true });
+		const valider = volet.getByRole('button', { name: 'Nommer' });
+
+		// Le volet prend le focus ; Tab passe par l'agent, les dates, « Nommer », « Annuler » ; Échap ferme et rend le focus.
+		await ouvrir.focus();
+		await page.keyboard.press('Enter');
+		await expect(agent).toBeFocused();
+		await expect(volet.getByLabel('Début', { exact: true })).toBeHidden();
+		await page.keyboard.press('Tab');
+		await expect(volet.getByText('Changer les dates', { exact: true })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(valider).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(volet.getByRole('button', { name: 'Annuler' })).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(volet).toHaveCount(0);
+		await expect(ouvrir).toBeFocused();
+
+		// Refus du serveur : l'erreur dans le volet, le focus sur le champ fautif.
+		await page.keyboard.press('Enter');
+		await expect(agent).toBeFocused();
+		await volet.getByText('Changer les dates', { exact: true }).press('Enter');
+		await volet.getByLabel('Fin', { exact: true }).fill('2099-12-31');
+		await valider.press('Enter');
+		await expect(volet.getByText('Choisissez un agent.')).toBeVisible();
+		await expect(agent).toBeFocused();
+		// Refermé puis rouvert, le volet repart à neuf.
+		await page.keyboard.press('Escape');
+		await expect(ouvrir).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(agent).toBeFocused();
+		await expect(volet.getByText('Choisissez un agent.')).toHaveCount(0);
+		await expect(volet.getByRole('alert')).toHaveText('');
+		await expect(volet.getByLabel('Fin', { exact: true })).toHaveValue('');
+
+		// Nommer : le volet se ferme, le focus revient sur « Nommer ».
+		await agent.selectOption({ label: `${nom} (Équipe 1)` });
+		await page.keyboard.press('Tab');
+		await page.keyboard.press('Tab');
+		await expect(valider).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(carte.getByRole('status')).toHaveText('Rôle attribué');
+		await expect(volet).toHaveCount(0);
+		await expect(ouvrir).toBeFocused();
+
+		// Retirer : la question prend le focus, « Annuler » le rend à la pastille, puis on confirme.
+		const pastille = carte.getByRole('button', { name: `Retirer ${nom}` });
+		await pastille.focus();
+		await page.keyboard.press('Enter');
+		await expect(page.locator(':focus')).toContainText(`Retirer ${nom} ?`);
+		await carte.getByRole('button', { name: 'Annuler' }).press('Enter');
+		await expect(pastille).toBeFocused();
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Tab');
+		await expect(carte.getByRole('button', { name: 'Confirmer le retrait' })).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(carte.getByRole('status')).toHaveText('Rôle terminé');
+		await expect(pastille).toHaveCount(0);
+
+		// La recherche d'un agent ne garde que ses rôles.
+		await nommer(page, 'Référent pharmacie', nom);
+		await page.getByLabel('Rechercher un rôle ou un agent').fill(nom);
+		await expect(page.locator('section.carte h2')).toHaveText(['Référent pharmacie']);
+		await page.context().close();
 	});
 });
 
@@ -496,8 +669,8 @@ test.describe('fichier de l’effectif', () => {
 		await sansViolation(page);
 
 		await page.goto(`/agents?texte=Import${marque}`);
-		await expect(page.getByRole('link', { name: `Voir la fiche de Yanis Import${marque}` })).toBeVisible();
-		await expect(page.getByRole('link', { name: `Voir la fiche de Zoe Import${marque}` })).toBeVisible();
+		await expect(page.getByRole('link', { name: `Yanis Import${marque}`, exact: true })).toBeVisible();
+		await expect(page.getByRole('link', { name: `Zoe Import${marque}`, exact: true })).toBeVisible();
 
 		// Exporter, retirer Yanis, réimporter : son départ vient en tête de l'aperçu.
 		await ouvrirFichier(page);

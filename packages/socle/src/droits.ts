@@ -27,11 +27,33 @@ function accordes(lignes: Array<{ droit: Droit; type: TypePerimetre; id: number 
 	});
 }
 
-// Seule définition des droits d'un acteur : tout le reste (aLeDroit, affichage) s'y appuie.
-export async function droitsDe(base: Base, acteur: Acteur, date: string): Promise<DroitAccorde[]> {
-	if (acteur.type === 'super') return DROITS.map((droit) => ({ droit, perimetre: { type: 'centre' } }));
+// Droits déjà lus, par base : une base sert une seule requête HTTP. Toute écriture vide le cache (voir base.ts).
+const droitsLus = new WeakMap<Base, Map<string, Promise<DroitAccorde[]>>>();
 
-	const [fiche] = await base.select({ statut: personne.statut, profilId: personne.profilId }).from(personne).where(eq(personne.id, acteur.id));
+export function oublierDroits(base: Base): void {
+	droitsLus.delete(base);
+}
+
+// Seule définition des droits d'un acteur : tout le reste (aLeDroit, affichage) s'y appuie.
+export function droitsDe(base: Base, acteur: Acteur, date: string): Promise<DroitAccorde[]> {
+	if (acteur.type === 'super') return Promise.resolve(DROITS.map((droit) => ({ droit, perimetre: { type: 'centre' } })));
+	const parActeur = droitsLus.get(base) ?? new Map<string, Promise<DroitAccorde[]>>();
+	droitsLus.set(base, parActeur);
+	const cle = `${acteur.id}|${date}`;
+	const dejaLus = parActeur.get(cle);
+	if (dejaLus) return dejaLus;
+	const droits = lireDroits(base, acteur.id, date);
+	parActeur.set(cle, droits);
+	// Un échec n'est pas gardé.
+	droits.catch(() => {
+		if (parActeur.get(cle) === droits) parActeur.delete(cle);
+	});
+	return droits;
+}
+
+async function lireDroits(base: Base, personneId: number, date: string): Promise<DroitAccorde[]> {
+
+	const [fiche] = await base.select({ statut: personne.statut, profilId: personne.profilId }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche || !(STATUTS_AVEC_ACCES as readonly string[]).includes(fiche.statut)) return [];
 
 	const duProfil =
@@ -54,7 +76,7 @@ export async function droitsDe(base: Base, acteur: Acteur, date: string): Promis
 		.from(attribution)
 		.innerJoin(responsabiliteDroit, eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId))
 		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-		.where(eq(attribution.personneId, acteur.id));
+		.where(eq(attribution.personneId, personneId));
 
 	// Une attribution hors du type de périmètre de sa responsabilité ne donne rien.
 	const valides = desAttributions.filter((ligne) => ligne.type === ligne.typeResponsabilite && enCours(ligne.debut, ligne.fin, date));

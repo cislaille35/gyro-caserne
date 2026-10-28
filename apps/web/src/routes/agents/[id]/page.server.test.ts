@@ -97,8 +97,10 @@ describe('/agents/[id] : ?/fiche', () => {
 		const { base, agent } = await preparer();
 		const [unGrade] = await base.select().from(grade).limit(1);
 		const resultat = await agir('fiche', locaux(base, super_), agent, { prenom: ' Alicia ', telephone: '', gradeId: String(unGrade!.id), dateGrade: '2026-03-01', entreeCentre: '' });
-		expect(resultat).toEqual({ succes: true, message: 'Fiche enregistrée' });
+		expect(resultat).toEqual({ succes: true, message: 'Fiche enregistrée', bloc: 'identite' });
 		expect(await lirePersonne(base, agent)).toMatchObject({ prenom: 'Alicia', telephone: null, gradeId: unGrade!.id, dateGrade: '2026-03-01', entreeCentre: null, nom: 'Test' });
+		// Le formulaire « Parcours » envoie ses seuls champs : son bloc reste ouvert.
+		expect(await agir('fiche', locaux(base, super_), agent, { dateGrade: '2026-03-02' })).toEqual({ succes: true, message: 'Fiche enregistrée', bloc: 'parcours' });
 	});
 
 	it('renvoie le refus du socle en 403, rien d\'écrit', async () => {
@@ -136,29 +138,29 @@ describe('/agents/[id] : ?/equipe', () => {
 	it('affecte à une équipe à partir d\'aujourd\'hui, puis retire avec « aucune »', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		const locals = locaux(base, super_);
-		expect(await agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée', bloc: 'equipe' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: aujourdhuiParis(), fin: null }]);
 
-		expect(await agir('equipe', locals, agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locals, agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée', bloc: 'equipe' });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 
 	it('« aucune » retire aussi une affectation à venir que la fiche n\'affiche pas', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2999-01-01' });
-		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Équipe enregistrée', bloc: 'equipe' });
 		expect(await base.select().from(affectationEquipe)).toEqual([]);
 	});
 
 	it('« aucune » sans aucune équipe répond « Aucune équipe à retirer. »', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Aucune équipe à retirer.' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: 'aucune' })).toEqual({ succes: true, message: 'Aucune équipe à retirer.', bloc: 'equipe' });
 	});
 
 	it('ne réécrit rien si l\'équipe ne change pas', async () => {
 		const { base, agent, equipe1 } = await preparer();
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01' });
-		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée' });
+		expect(await agir('equipe', locaux(base, super_), agent, { equipeId: String(equipe1.id) })).toEqual({ succes: true, message: 'Équipe enregistrée', bloc: 'equipe' });
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe1.id, debut: '2026-01-01', fin: null }]);
 	});
 
@@ -170,7 +172,7 @@ describe('/agents/[id] : ?/equipe', () => {
 		expect(await base.select().from(affectationEquipe)).toEqual([{ personneId: agent, equipeId: equipe2!.id, debut: aujourdhuiParis(), fin: null }]);
 
 		const refus = await agir('equipe', locaux(base, { type: 'personne', id: adjoint }), chef, { equipeId: String(equipe1.id) });
-		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change l’équipe du chef de centre' } });
+		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change l’équipe du chef de centre', valeurs: { equipeId: String(equipe1.id) } } });
 		expect(await base.select().from(affectationEquipe)).toHaveLength(1);
 	});
 
@@ -196,13 +198,13 @@ describe('/agents/[id] : ?/statut', () => {
 
 	it('vers « parti » confirmé : statut changé, naissance et contact d\'urgence effacés', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('statut', locaux(base, super_), agent, { statut: 'parti', confirmation: 'oui' })).toEqual({ succes: true, message: 'Statut enregistré' });
+		expect(await agir('statut', locaux(base, super_), agent, { statut: 'parti', confirmation: 'oui' })).toEqual({ succes: true, message: 'Statut enregistré', bloc: 'depart' });
 		expect(await lirePersonne(base, agent)).toMatchObject({ statut: 'parti', naissance: null, contactUrgence: null });
 	});
 
 	it('change un autre statut sans confirmation', async () => {
 		const { base, agent } = await preparer();
-		expect(await agir('statut', locaux(base, super_), agent, { statut: 'suspendu' })).toEqual({ succes: true, message: 'Statut enregistré' });
+		expect(await agir('statut', locaux(base, super_), agent, { statut: 'suspendu' })).toEqual({ succes: true, message: 'Statut enregistré', bloc: 'equipe' });
 		expect((await lirePersonne(base, agent)).statut).toBe('suspendu');
 	});
 
