@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDate } from '../dates.ts';
+import { exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -45,14 +45,6 @@ export type PublicationVue = {
 	priseDeConnaissance: { faite: boolean } | null;
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
-
-// Date et heure de Paris, « AAAA-MM-JJTHH:MM » (secondes permises) ; rend la date seule.
-export function exigerDateHeure(valeur: unknown, libelle: string): string {
-	if (typeof valeur !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(valeur)) throw new DonneeInvalide(`${libelle} invalide`);
-	const jour = valeur.slice(0, 10);
-	exigerDate(jour);
-	return jour;
-}
 
 export function texte(valeur: unknown, libelle: string, max: number): string {
 	const propre = typeof valeur === 'string' ? valeur.trim() : '';

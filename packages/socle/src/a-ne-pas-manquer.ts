@@ -1,23 +1,23 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { nomActeur } from './actions/personnes.ts';
-import { exigerDateHeure } from './actions/publications.ts';
 import type { Base } from './base.ts';
-import { ajouterJours, exigerDate } from './dates.ts';
+import { ajouterJours, exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES, type ReponseEvenement } from './listes.ts';
 import { estConvoque, estMembre, mursEtAppartenances, type CleMur, type Mur } from './murs.ts';
 import { personne, priseConnaissance, profil, publication, reponseEvenement, visiteMur, voteSondage } from './schema.ts';
 
-export type Item = { id: number; cle: CleMur; nomMur: string; titre: string };
+export type ItemANePasManquer = { id: number; cle: CleMur; nomMur: string; titre: string };
 export type ANePasManquer = {
-	annonces: Item[];
-	evenements: (Item & { debut: string; demain: boolean; reponse: ReponseEvenement | null })[];
-	sondages: Item[];
-	epinglees: Item[];
+	annonces: ItemANePasManquer[];
+	evenements: (ItemANePasManquer & { debut: string; demain: boolean; reponse: ReponseEvenement | null })[];
+	sondages: ItemANePasManquer[];
+	epinglees: ItemANePasManquer[];
 	nouveautes: { cle: CleMur; nom: string; nombre: number }[];
 };
 
 const RECENT = 30;
+const ANNONCES = 90;
 const SANS_VISITE = 14;
 
 // Le début du texte, sur une ligne, 80 caractères au plus.
@@ -27,7 +27,7 @@ function titre(texte: string): string {
 }
 
 // Deux requêtes : les murs de l'acteur, puis un bloc de lectures filtrées ici selon ses murs.
-// Annonces, événements et sondages : seulement les murs dont il est membre (pas ceux qu'il supervise), hors lecture seule.
+// Annonces (90 derniers jours), événements et sondages : seulement les murs dont il est membre (pas ceux qu'il supervise), hors lecture seule.
 export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string): Promise<ANePasManquer> {
 	exigerDate(aujourdhui);
 	exigerDateHeure(maintenant, 'Date');
@@ -38,26 +38,30 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const pasDeMoi = ne(publication.auteur, nomActeur(acteur));
 	const recent = gte(publication.creeLe, ajouterJours(aujourdhui, -RECENT));
-	const champs = { id: publication.id, mur: publication.mur, texte: publication.texte };
+	// Le début du texte suffit au titre.
+	const champs = { id: publication.id, mur: publication.mur, texte: sql<string>`substr(${publication.texte}, 1, 200)`.as('debut_texte') };
+	// Murs où l'acteur a quelque chose à faire : membre, et mur ouvert. Quelques clés seulement (centre, vie, son équipe, ses comités).
+	const aTraiter = murs.filter((m) => !m.lectureSeule && estMembre(appartenances, m.cle)).map((m) => m.cle);
+	const surSesMurs = inArray(publication.mur, aTraiter);
 
 	const [annonces, evenements, sondages, epinglees, nouveautes] = await base.batch([
 		base
 			.select(champs)
 			.from(publication)
 			.leftJoin(priseConnaissance, and(eq(priseConnaissance.publicationId, publication.id), eq(priseConnaissance.personneId, moi)))
-			.where(and(eq(publication.type, 'annonce'), eq(publication.priseDeConnaissance, 1), pasDeMoi, isNull(priseConnaissance.publicationId)))
+			.where(and(surSesMurs, eq(publication.type, 'annonce'), eq(publication.priseDeConnaissance, 1), pasDeMoi, gte(publication.creeLe, ajouterJours(aujourdhui, -ANNONCES)), isNull(priseConnaissance.publicationId)))
 			.orderBy(desc(publication.creeLe), desc(publication.id)),
 		base
 			.select({ ...champs, debut: publication.debut, convoques: publication.convoques, reponse: reponseEvenement.reponse })
 			.from(publication)
 			.leftJoin(reponseEvenement, and(eq(reponseEvenement.publicationId, publication.id), eq(reponseEvenement.personneId, moi)))
-			.where(gt(publication.debut, maintenant))
+			.where(and(surSesMurs, gt(publication.debut, maintenant)))
 			.orderBy(asc(publication.debut), asc(publication.id)),
 		base
 			.select(champs)
 			.from(publication)
 			.leftJoin(voteSondage, and(eq(voteSondage.publicationId, publication.id), eq(voteSondage.personneId, moi)))
-			.where(and(sql`${publication.sondageQuestion} is not null`, recent, isNull(voteSondage.publicationId)))
+			.where(and(surSesMurs, sql`${publication.sondageQuestion} is not null`, recent, isNull(voteSondage.publicationId)))
 			.orderBy(desc(publication.creeLe), desc(publication.id)),
 		base
 			.select(champs)
@@ -74,17 +78,15 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	]);
 
 	const parCle = new Map<string, Mur>(murs.map((m) => [m.cle, m]));
-	const item = (p: { id: number; mur: string; texte: string }): Item => ({ id: p.id, cle: p.mur as CleMur, nomMur: parCle.get(p.mur)!.nom, titre: titre(p.texte) });
-	// Mur où l'acteur a quelque chose à faire : membre, et mur ouvert.
-	const aTraiter = (cle: string) => parCle.get(cle)?.lectureSeule === false && estMembre(appartenances, cle);
+	const item = (p: { id: number; mur: string; texte: string }): ItemANePasManquer => ({ id: p.id, cle: p.mur as CleMur, nomMur: parCle.get(p.mur)!.nom, titre: titre(p.texte) });
 	const demain = ajouterJours(aujourdhui, 1);
 
 	return {
-		annonces: annonces.filter((p) => aTraiter(p.mur)).map(item),
+		annonces: annonces.map(item),
 		evenements: evenements
-			.filter((p) => aTraiter(p.mur) && estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"')))
+			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"')))
 			.map((p) => ({ ...item(p), debut: p.debut!, demain: p.debut!.slice(0, 10) === demain, reponse: p.reponse })),
-		sondages: sondages.filter((p) => aTraiter(p.mur)).map(item),
+		sondages: sondages.map(item),
 		epinglees: epinglees.filter((p) => parCle.has(p.mur)).map(item),
 		nouveautes: murs.flatMap((m) => {
 			const nombre = nouveautes.find((n) => n.mur === m.cle)?.nombre ?? 0;

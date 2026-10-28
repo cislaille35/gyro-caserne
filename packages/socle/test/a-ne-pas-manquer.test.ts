@@ -59,6 +59,30 @@ describe('à ne pas manquer', () => {
 		expect((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).annonces).toEqual([]);
 	});
 
+	it('annonces : seulement celles des 90 derniers jours', async () => {
+		const { base, chef, agent } = await jeu();
+		await publier(base, acteur(chef), 'centre', annonce('Il y a 91 jours'), '2026-07-29T10:00');
+		const recente = await publier(base, acteur(chef), 'centre', annonce('Il y a 89 jours'), '2026-07-31T10:00');
+		const limite = await publier(base, acteur(chef), 'centre', annonce('Il y a 90 jours'), '2026-07-30T00:00');
+		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).annonces)).toEqual([recente, limite]);
+	});
+
+	it('bornes : sondage et épinglée à J−30 inclus, J−31 exclus ; nouveautés dès J−14 sans visite', async () => {
+		const { base, chef, agent } = await jeu();
+		const s30 = await publier(base, acteur(chef), 'vie', sondage('J−30'), '2026-09-28T00:00');
+		await publier(base, acteur(chef), 'vie', sondage('J−31'), '2026-09-27T23:59');
+		const e30 = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−30' }, '2026-09-28T00:00');
+		const e31 = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−31' }, '2026-09-27T23:59');
+		await epingler(base, acteur(chef), e30, true, maintenant);
+		await epingler(base, acteur(chef), e31, true, maintenant);
+		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−14' }, '2026-10-14T00:00');
+		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−15' }, '2026-10-13T23:59');
+		const vu = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
+		expect(ids(vu.sondages)).toEqual([s30]);
+		expect(ids(vu.epinglees)).toEqual([e30]);
+		expect(vu.nouveautes).toEqual([{ cle: 'centre', nom: 'Le centre', nombre: 1 }]);
+	});
+
 	it('un agent de l’équipe 2 ne voit rien du mur de l’équipe 1 ; le chef de centre qui supervise n’est pas attendu', async () => {
 		const { base, chef, agent, autre, affecter, e1, e2 } = await jeu();
 		await affecter(agent, e1.id);

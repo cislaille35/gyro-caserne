@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { requeteTenues } from '../casquettes.ts';
 import type { Base } from '../base.ts';
-import { exigerDate } from '../dates.ts';
+import { exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -9,7 +9,7 @@ import { REPONSES_EVENEMENT, STATUTS_AVEC_ACCES, type ReponseEvenement } from '.
 import { appartenances, estConvoque, estMembre, exigerMur, refusMur } from '../murs.ts';
 import { affectationEquipe, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
-import { cible, exigerDateHeure, texte, type Convoques } from './publications.ts';
+import { cible, texte, type Convoques } from './publications.ts';
 
 export type Personne = { id: number; prenom: string; nom: string };
 export type CommentaireVue = { id: number; auteur: { prenom: string; nom: string }; texte: string; creeLe: string; supprimable: boolean };
