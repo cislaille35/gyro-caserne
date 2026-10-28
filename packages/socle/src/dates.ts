@@ -17,3 +17,9 @@ export function veille(date: string): string {
 	jour.setUTCDate(jour.getUTCDate() - 1);
 	return jour.toISOString().slice(0, 10);
 }
+
+export function ajouterJours(date: string, jours: number): string {
+	const jour = new Date(`${date}T00:00:00Z`);
+	jour.setUTCDate(jour.getUTCDate() + jours);
+	return jour.toISOString().slice(0, 10);
+}

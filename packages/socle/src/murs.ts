@@ -64,7 +64,7 @@ export async function mursDe(base: Base, acteur: Acteur, aujourdhui: string): Pr
 	return (await mursEtAppartenances(base, acteur, aujourdhui)).murs;
 }
 
-async function mursEtAppartenances(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ murs: Mur[]; appartenances: Appartenances }> {
+export async function mursEtAppartenances(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ murs: Mur[]; appartenances: Appartenances }> {
 	const lesEquipes = base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation));
 	const lesComites = base.select({ id: comite.id, nom: comite.nom, dissousLe: comite.dissousLe }).from(comite).orderBy(asc(comite.nom));
 

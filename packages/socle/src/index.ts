@@ -22,3 +22,4 @@ export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Ca
 export { exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
 export { epingler, fermerCommentaires, lireMur, modifierPublication, photo, publier, supprimerPublication, type DonneesPublication, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
+export { aNePasManquer, anniversairesDuJour, type ANePasManquer, type Item } from './a-ne-pas-manquer.ts';
