@@ -1,12 +1,13 @@
 import { and, asc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { requeteTenues } from '../casquettes.ts';
 import type { Base } from '../base.ts';
 import { exigerDate } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, STATUTS_AVEC_ACCES, type ReponseEvenement } from '../listes.ts';
-import { exigerMur, refusMur } from '../murs.ts';
-import { affectationEquipe, attribution, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, responsabilite, voteSondage } from '../schema.ts';
+import { appartenances, estConvoque, estMembre, exigerMur, refusMur } from '../murs.ts';
+import { affectationEquipe, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 import { cible, exigerDateHeure, texte, type Convoques } from './publications.ts';
 
@@ -74,20 +75,13 @@ export async function aimer(base: Base, acteur: Acteur, id: number, oui: boolean
 	else await base.delete(jaime).where(and(eq(jaime.publicationId, id), eq(jaime.personneId, moi)));
 }
 
-// Seulement les convoqués : tout le mur, ou les membres en cours des équipes convoquées. On peut changer sa réponse.
+// Seulement les convoqués (voir estConvoque). On peut changer sa réponse.
 export async function repondreEvenement(base: Base, acteur: Acteur, id: number, reponse: ReponseEvenement, aujourdhui: string): Promise<void> {
 	exigerDate(aujourdhui);
 	if (!(REPONSES_EVENEMENT as readonly string[]).includes(reponse)) throw new DonneeInvalide('Réponse inconnue');
-	const { ligne, cle, moi } = await pourAgir(base, acteur, id, aujourdhui);
+	const { ligne, cle, appartenances, moi } = await pourAgir(base, acteur, id, aujourdhui);
 	if (ligne.debut === null) throw new DonneeInvalide('Pas un événement');
-	const convoques: Convoques = JSON.parse(ligne.convoques ?? '"tous"');
-	if (convoques !== 'tous') {
-		const membre = await base
-			.select({ equipeId: affectationEquipe.equipeId })
-			.from(affectationEquipe)
-			.where(and(eq(affectationEquipe.personneId, moi), inArray(affectationEquipe.equipeId, convoques), enCoursLe(aujourdhui)));
-		if (membre.length === 0) throw refusMur(cle, 'lire');
-	}
+	if (!estConvoque(appartenances, cle, JSON.parse(ligne.convoques ?? '"tous"'))) throw refusMur(cle, 'lire', 'Vous n’êtes pas convoqué à cet événement');
 	await base.insert(reponseEvenement).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse } });
 }
 
@@ -108,19 +102,17 @@ export async function prendreConnaissance(base: Base, acteur: Acteur, id: number
 	await base.insert(priseConnaissance).values({ publicationId: id, personneId: moi, le: maintenant }).onConflictDoNothing();
 }
 
-const enCoursLe = (aujourdhui: string) => and(lte(affectationEquipe.debut, aujourdhui), or(isNull(affectationEquipe.fin), gte(affectationEquipe.fin, aujourdhui)));
 const parNom = (a: Personne, b: Personne) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr');
 
-// Qui a fait quoi, et qui pas encore parmi les lecteurs (ou convoqués) du jour. Auteur et modérateurs seulement. Trois requêtes.
+// Qui a fait quoi, et qui pas encore parmi les membres du mur (ou les convoqués) ce jour-là. Auteur et modérateurs seulement. Trois requêtes.
 export async function suiviPublication(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<Suivi> {
 	exigerDate(aujourdhui);
-	const { ligne, mur, cle, droits } = await cible(base, acteur, id, aujourdhui);
+	const { ligne, cle, droits } = await cible(base, acteur, id, aujourdhui);
 	if (!droits.supprimer) throw refusMur(cle, 'moderer');
 	const convoques: Convoques | null = ligne.debut === null ? null : JSON.parse(ligne.convoques ?? '"tous"');
-	const [type, numero] = cle.split(':') as [string, string | undefined];
-	const equipesUtiles = [...new Set([...(type === 'equipe' ? [Number(numero)] : []), ...(Array.isArray(convoques) ? convoques : [])])];
+	const equipes = [...new Set([...(cle.startsWith('equipe:') ? [Number(cle.slice('equipe:'.length))] : []), ...(Array.isArray(convoques) ? convoques : [])])];
 
-	// Comme mursDe : agents (ni partis, ni suspendus, ni extérieurs), leurs équipes en cours et les rôles qui ouvrent des murs.
+	// Agents (ni partis, ni suspendus, ni extérieurs, comme mursDe), affectations en cours des équipes utiles, rôles tenus par chacun.
 	const [agents, affectations, tenues, prises, reponses] = await base.batch([
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
@@ -128,22 +120,10 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 			.leftJoin(profil, eq(profil.id, personne.profilId))
 			.where(and(inArray(personne.statut, STATUTS_AVEC_ACCES), or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur')))),
 		base
-			.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId })
+			.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin })
 			.from(affectationEquipe)
-			.where(and(inArray(affectationEquipe.equipeId, equipesUtiles), enCoursLe(aujourdhui))),
-		base
-			.select({ personneId: attribution.personneId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
-			.from(attribution)
-			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-			.where(
-				and(
-					isNull(responsabilite.archiveeLe),
-					eq(attribution.perimetreType, responsabilite.typePerimetre),
-					lte(attribution.debut, aujourdhui),
-					or(isNull(attribution.fin), gte(attribution.fin, aujourdhui)),
-					or(inArray(responsabilite.systeme, ['chef_centre', 'chef_centre_adjoint', 'chef_equipe']), eq(attribution.perimetreType, 'comite'))
-				)
-			),
+			.where(and(inArray(affectationEquipe.equipeId, equipes), lte(affectationEquipe.debut, aujourdhui), or(isNull(affectationEquipe.fin), gte(affectationEquipe.fin, aujourdhui)))),
+		requeteTenues(base, null, aujourdhui),
 		base
 			.select({ personneId: priseConnaissance.personneId, prenom: personne.prenom, nom: personne.nom })
 			.from(priseConnaissance)
@@ -156,33 +136,31 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 			.where(eq(reponseEvenement.publicationId, id))
 	]);
 
-	const tient = (p: number, garde: (t: (typeof tenues)[number]) => boolean) => tenues.some((t) => t.personneId === p && garde(t));
-	const membre = (p: number, equipeId: number) => affectations.some((a) => a.personneId === p && a.equipeId === equipeId);
-	const litLeMur = (p: number) => {
-		if (type === 'centre' || type === 'vie' || tient(p, (t) => t.systeme === 'chef_centre' || t.systeme === 'chef_centre_adjoint')) return true;
-		const n = Number(numero);
-		if (type === 'equipe') return membre(p, n) || tient(p, (t) => t.systeme === 'chef_equipe' && t.perimetreId === n);
-		// Un comité dissous n'est plus lu que par le chef de centre et l'adjoint.
-		return !mur.lectureSeule && tient(p, (t) => t.type === 'comite' && t.perimetreId === n);
-	};
-	const lecteurs = agents.filter((a) => litLeMur(a.id));
+	const de = (p: number) =>
+		appartenances(
+			affectations.filter((x) => x.personneId === p),
+			tenues.filter((t) => t.personneId === p),
+			aujourdhui
+		);
+	const parAgent = agents.map((ag) => ({ ...ag, a: de(ag.id) }));
+	const membres = parAgent.filter((x) => estMembre(x.a, cle));
 	const personneDe = (p: { personneId: number; prenom: string; nom: string }): Personne => ({ id: p.personneId, prenom: p.prenom, nom: p.nom });
+	const seule = (x: Personne): Personne => ({ id: x.id, prenom: x.prenom, nom: x.nom });
 
 	const suivi: Suivi = {};
 	if (ligne.priseDeConnaissance === 1) {
 		const faite = prises.map(personneDe).sort(parNom);
 		// L'auteur n'a pas à prendre connaissance de sa propre annonce.
-		const manquante = lecteurs.filter((l) => !faite.some((f) => f.id === l.id) && `personne:${l.id}` !== ligne.auteur).sort(parNom);
+		const manquante = membres.filter((m) => !faite.some((f) => f.id === m.id) && `personne:${m.id}` !== ligne.auteur).map(seule).sort(parNom);
 		suivi.priseDeConnaissance = { faite, manquante };
 	}
 	if (convoques !== null) {
-		const attendus = convoques === 'tous' ? lecteurs : lecteurs.filter((l) => convoques.some((e) => membre(l.id, e)));
 		const parReponse = (r: ReponseEvenement) => reponses.filter((x) => x.reponse === r).map(personneDe).sort(parNom);
 		suivi.evenement = {
 			present: parReponse('present'),
 			absent: parReponse('absent'),
 			incertain: parReponse('incertain'),
-			sans_reponse: attendus.filter((a) => !reponses.some((r) => r.personneId === a.id)).sort(parNom)
+			sans_reponse: parAgent.filter((x) => estConvoque(x.a, cle, convoques) && !reponses.some((r) => r.personneId === x.id)).map(seule).sort(parNom)
 		};
 	}
 	return suivi;

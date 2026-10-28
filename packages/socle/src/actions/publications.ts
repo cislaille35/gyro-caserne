@@ -1,12 +1,12 @@
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { enCours, exigerDate } from '../dates.ts';
+import { exigerDate } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { exigerMur, refusMur, type CleMur, type Mur } from '../murs.ts';
-import { affectationEquipe, commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
+import { accesMur, estConvoque, exigerMur, refusMur, type CleMur, type Mur } from '../murs.ts';
+import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 
 const PHOTOS_MAX = 4;
@@ -150,8 +150,8 @@ export function droitsSur(acteur: Acteur, mur: Mur, p: { auteur: string; comment
 export async function cible(base: Base, acteur: Acteur, id: number, aujourdhui: string) {
 	const [ligne] = await base.select().from(publication).where(eq(publication.id, id));
 	if (!ligne) throw new DonneeInvalide('Publication inconnue');
-	const mur = await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	return { ligne, mur, cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
+	const { mur, appartenances } = await accesMur(base, acteur, ligne.mur, aujourdhui, 'lire');
+	return { ligne, mur, appartenances, cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
 }
 
 const journalPublication = (base: Base, acteur: Acteur, action: string, id: number, maintenant: string, details?: object) =>
@@ -199,7 +199,7 @@ export async function lireMur(
 	const { avant, nombre = 20 } = page;
 	if (avant !== undefined && !(Number.isInteger(avant) && avant > 0)) throw new DonneeInvalide('Page invalide');
 	const taille = Number.isInteger(nombre) ? Math.min(Math.max(nombre, 1), PAGE_MAX) : 20;
-	const mur = await exigerMur(base, acteur, cle, aujourdhui, 'lire');
+	const { mur, appartenances } = await accesMur(base, acteur, cle, aujourdhui, 'lire');
 
 	const [epinglees, suivantes] = await base.batch([
 		base.select().from(publication).where(and(eq(publication.mur, cle), eq(publication.epinglee, 1)))
@@ -244,18 +244,13 @@ export async function lireMur(
 			.where(and(inArray(priseConnaissance.publicationId, ids), eq(priseConnaissance.personneId, moi))),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
-		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi))
+		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs))
 	] as const;
 	const visite = base
 		.insert(visiteMur)
 		.values({ personneId: moi, mur: cle, vueLe: maintenant })
 		.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } });
-	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs, affectations] = acteur.type === 'personne' ? await base.batch([...lectures, visite]) : await base.batch(lectures);
-
-	const mesEquipes = affectations.filter((a) => enCours(a.debut, a.fin, aujourdhui)).map((a) => a.equipeId);
-	// Le super administrateur, sans fiche, n'est jamais convoqué.
-	const estConvoque = (convoques: Convoques) => acteur.type === 'personne' && (convoques === 'tous' || convoques.some((id) => mesEquipes.includes(id)));
+	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs] = acteur.type === 'personne' ? await base.batch([...lectures, visite]) : await base.batch(lectures);
 
 	const vue = (p: (typeof lignes)[number]): PublicationVue => {
 		const j = jaimes.find((x) => x.publicationId === p.id);
@@ -285,7 +280,7 @@ export async function lireMur(
 							debut: p.debut,
 							lieu: p.lieu ?? '',
 							convoques,
-							convoque: estConvoque(convoques),
+							convoque: estConvoque(appartenances, cle, convoques),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
 							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>
 						},

@@ -6,7 +6,7 @@ import type { Acteur } from '../src/droits.ts';
 import { dissoudreComite } from '../src/actions/comites.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { exigerMur, mursDe, type Mur } from '../src/murs.ts';
+import { appartenances, estConvoque, estMembre, exigerMur, mursDe, type Mur } from '../src/murs.ts';
 import { affectationEquipe, attribution, comite, equipe, personne, photoPublication, profil, publication, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -220,6 +220,24 @@ describe('mursDe', () => {
 		base.requetes = 0;
 		await mursDe(base, acteur(chef), aujourdhui);
 		expect(base.requetes).toBeLessThanOrEqual(10);
+	});
+});
+
+describe('membres naturels et convoqués (règle partagée avec le suivi)', () => {
+	const tenue = (type: string, perimetreId: number | null, systeme: string | null = null, nomme: string | null = null) => ({ type, portee: type, perimetreId, systeme, nomme });
+	it('centre et vie : tout agent ; équipe : membres en cours et chef ; comité : membres ; jamais le chef de centre qui supervise', () => {
+		const membre = appartenances([{ equipeId: 1, debut: '2026-01-01', fin: null }, { equipeId: 2, debut: '2026-01-01', fin: hier }], [tenue('comite', 7)], aujourdhui);
+		expect(['centre', 'vie', 'equipe:1', 'equipe:2', 'comite:7', 'comite:8'].map((c) => estMembre(membre, c))).toEqual([true, true, true, false, true, false]);
+		const chefEquipe = appartenances([], [tenue('equipe', 2, 'chef_equipe')], aujourdhui);
+		expect(estMembre(chefEquipe, 'equipe:2')).toBe(true);
+		expect(estConvoque(chefEquipe, 'centre', [2])).toBe(true);
+		expect(estConvoque(chefEquipe, 'centre', [1])).toBe(false);
+		const chef = appartenances([], [tenue('centre', null, 'chef_centre')], aujourdhui);
+		expect(chef.tous).toBe(true);
+		expect(['centre', 'equipe:1', 'comite:7'].map((c) => estMembre(chef, c))).toEqual([true, false, false]);
+		expect(estConvoque(chef, 'comite:7', 'tous')).toBe(false);
+		// Une tenue hors de la portée de sa responsabilité ne compte pas.
+		expect(estMembre(appartenances([], [{ ...tenue('comite', 7), portee: 'centre' }], aujourdhui), 'comite:7')).toBe(false);
 	});
 });
 

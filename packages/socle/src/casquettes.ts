@@ -25,14 +25,14 @@ const parNom = (a: { nom: string }, b: { nom: string }) => a.nom.localeCompare(b
 
 // Rôles tenus aujourd'hui par une personne (non archivés), à passer à un batch.
 // `nomme` : le rôle donne ATTRIBUER_RESPONSABILITE ; tout rôle de comité qui le porte fait de son titulaire le modérateur du mur du comité (rapporteur).
-// Partagé avec les murs (murs.ts).
-export function requeteTenues(base: Base, personneId: number, aujourdhui: string) {
+// Partagé avec les murs (murs.ts) ; sans personne (null) : les rôles de tout le monde, pour le suivi des publications.
+export function requeteTenues(base: Base, personneId: number | null, aujourdhui: string) {
 	return base
-		.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele, nomme: responsabiliteDroit.droit })
+		.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele, nomme: responsabiliteDroit.droit })
 		.from(attribution)
 		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 		.leftJoin(responsabiliteDroit, and(eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId), eq(responsabiliteDroit.droit, 'ATTRIBUER_RESPONSABILITE')))
-		.where(and(eq(attribution.personneId, personneId), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui)));
+		.where(and(personneId === null ? undefined : eq(attribution.personneId, personneId), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui)));
 }
 
 // Une attribution hors du type de périmètre de sa responsabilité ne compte pas (comme pour les droits).
@@ -97,7 +97,7 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 	const [equipes, attributions, responsabilites, personnes] = await base.batch([
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base
-			.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
+			.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
 			.from(attribution)
 			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 			.innerJoin(personne, eq(personne.id, attribution.personneId))

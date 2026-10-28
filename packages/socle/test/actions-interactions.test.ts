@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
 import { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter } from '../src/actions/interactions.ts';
-import { fermerCommentaires, publier } from '../src/actions/publications.ts';
+import { fermerCommentaires, lireMur, publier } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, priseConnaissance, profil, reponseEvenement, responsabilite, voteSondage } from '../src/schema.ts';
@@ -45,6 +45,7 @@ async function jeu() {
 const message = (texte = 'Bonjour') => ({ type: 'message' as const, texte });
 const evenement = (convoques: 'tous' | number[] = 'tous') => ({ type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques } });
 const annonce = { type: 'annonce' as const, texte: 'Note de service', priseDeConnaissance: true };
+const noms = (liste: { prenom: string; nom: string }[]) => liste.map((p) => p.nom);
 
 describe('commentaires', () => {
 	it('commenter : lecteur, 1 à 2 000 caractères ; lus du plus ancien au plus récent', async () => {
@@ -157,11 +158,28 @@ describe('réponses aux événements', () => {
 		await affecter(agent, e1.id);
 		await affecter(autre, e2.id, '2026-10-01');
 		const id = await publier(base, acteur(chef), 'centre', evenement([e1.id, e2.id]), maintenant);
+		// Lecteur non convoqué : un refus qui le dit.
 		await expect(repondreEvenement(base, acteur(autre), id, 'present', aujourdhui)).rejects.toThrow(RefusDroit);
-		await expect(repondreEvenement(base, acteur(chef), id, 'present', aujourdhui)).rejects.toThrow(RefusDroit);
+		await expect(repondreEvenement(base, acteur(chef), id, 'present', aujourdhui)).rejects.toThrow('Vous n’êtes pas convoqué à cet événement');
 		await expect(repondreEvenement(base, superAdmin, id, 'present', aujourdhui)).rejects.toThrow(DonneeInvalide);
 		await repondreEvenement(base, acteur(agent), id, 'absent', aujourdhui);
 		expect(await base.select().from(reponseEvenement)).toHaveLength(1);
+	});
+
+	it('le chef d’équipe est convoqué sur le mur de son équipe et quand son équipe est convoquée ailleurs', async () => {
+		const { base, agent, chef, nommer, e1, e2 } = await jeu();
+		await nommer(agent, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		const surEquipe = await publier(base, acteur(chef), `equipe:${e1.id}`, evenement(), maintenant);
+		const surCentre = await publier(base, acteur(chef), 'centre', evenement([e1.id]), maintenant);
+		const autreEquipe = await publier(base, acteur(chef), 'centre', evenement([e2.id]), maintenant);
+		const convoque = async (cle: string) => (await lireMur(base, acteur(agent), cle, {}, maintenant)).publications[0]!.evenement!.convoque;
+		expect(await convoque(`equipe:${e1.id}`)).toBe(true);
+		expect((await lireMur(base, acteur(agent), 'centre', {}, maintenant)).publications.map((p) => p.evenement!.convoque)).toEqual([false, true]);
+		expect(noms((await suiviPublication(base, acteur(chef), surEquipe, aujourdhui)).evenement!.sans_reponse)).toEqual(['Test']);
+		expect((await suiviPublication(base, acteur(chef), surCentre, aujourdhui)).evenement!.sans_reponse.map((p) => p.id)).toEqual([agent]);
+		await repondreEvenement(base, acteur(agent), surEquipe, 'present', aujourdhui);
+		await repondreEvenement(base, acteur(agent), surCentre, 'absent', aujourdhui);
+		await expect(repondreEvenement(base, acteur(agent), autreEquipe, 'present', aujourdhui)).rejects.toThrow('Vous n’êtes pas convoqué à cet événement');
 	});
 
 	it('refusé sur un mur en lecture seule', async () => {
@@ -242,7 +260,6 @@ describe('suiviPublication', () => {
 		await j.affecter(j.autre, j.e2.id);
 		return { ...j, membres };
 	}
-	const noms = (liste: { prenom: string; nom: string }[]) => liste.map((p) => p.nom);
 
 	it('prise de connaissance : 5 faites, 3 manquantes, en 3 requêtes', async () => {
 		const { base, chef, membres, e1 } = await equipeDeHuit();
@@ -277,16 +294,33 @@ describe('suiviPublication', () => {
 		expect(noms(ev.sans_reponse)).toEqual(['Aubry', 'Caron', 'Fabre']);
 	});
 
-	it('convoqués « tous » d’un mur de comité : ses membres en cours ; liste d’équipes : leurs membres qui lisent le mur', async () => {
-		const { base, chef, agent, autre, nommer, affecter, amicale, e1 } = await jeu();
+	it('convoqués « tous » d’un mur de comité : ses membres en cours et le rapporteur ; liste d’équipes : leurs membres qui lisent le mur', async () => {
+		const { base, chef, agent, autre, nouvelle, nommer, affecter, amicale, e1 } = await jeu();
+		const rapporteur = await nouvelle('Rapporteur', 'Zola');
 		await nommer(agent, 'Membre de comité', { type: 'comite', id: amicale.id });
 		await nommer(autre, 'Membre de comité', { type: 'comite', id: amicale.id });
+		await nommer(rapporteur, 'Rapporteur de comité', { type: 'comite', id: amicale.id });
 		await affecter(agent, e1.id);
 		const tous = await publier(base, acteur(chef), `comite:${amicale.id}`, evenement(), maintenant);
-		// Le chef de centre lit tous les murs : il est convoqué aussi.
-		expect(noms((await suiviPublication(base, acteur(chef), tous, aujourdhui)).evenement!.sans_reponse).sort()).toEqual(['Centre', 'Test', 'Test']);
+		// Le chef de centre lit tous les murs mais n'est pas membre du comité : il n'est pas attendu.
+		expect(noms((await suiviPublication(base, acteur(chef), tous, aujourdhui)).evenement!.sans_reponse)).toEqual(['Test', 'Test', 'Zola']);
+		await expect(repondreEvenement(base, acteur(chef), tous, 'present', aujourdhui)).rejects.toThrow('Vous n’êtes pas convoqué à cet événement');
 		const e1Seule = await publier(base, acteur(chef), `comite:${amicale.id}`, evenement([e1.id]), maintenant);
 		expect((await suiviPublication(base, acteur(chef), e1Seule, aujourdhui)).evenement!.sans_reponse.map((p) => p.id)).toEqual([agent]);
+	});
+
+	it('mur d’équipe : chef d’équipe attendu, chef de centre et adjoint qui supervisent non', async () => {
+		const { base, chef, agent, autre, nouvelle, nommer, affecter, e1 } = await jeu();
+		const chefEquipe = await nouvelle('Chefequipe', 'Bernard');
+		const adjoint = await nouvelle('Adjoint', 'Roux');
+		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(adjoint, 'Chef de centre adjoint', { type: 'centre' });
+		await affecter(agent, e1.id);
+		await affecter(autre, e1.id);
+		const id = await publier(base, acteur(chefEquipe), `equipe:${e1.id}`, annonce, maintenant);
+		expect((await suiviPublication(base, acteur(chef), id, aujourdhui)).priseDeConnaissance!.manquante.map((p) => p.id).sort()).toEqual([agent, autre].sort());
+		const parLeChef = await publier(base, acteur(chef), `equipe:${e1.id}`, annonce, maintenant);
+		expect(noms((await suiviPublication(base, acteur(chefEquipe), parLeChef, aujourdhui)).priseDeConnaissance!.manquante)).toEqual(['Bernard', 'Test', 'Test']);
 	});
 
 	it('mur « Le centre » : tous les agents ; l’auteur n’est pas attendu pour sa propre annonce', async () => {
@@ -303,5 +337,31 @@ describe('suiviPublication', () => {
 		await expect(suiviPublication(base, acteur(agent), id, aujourdhui)).resolves.toBeDefined();
 		await expect(suiviPublication(base, acteur(chef), id, aujourdhui)).resolves.toBeDefined();
 		await expect(suiviPublication(base, superAdmin, id, aujourdhui)).resolves.toBeDefined();
+	});
+});
+
+describe('budget de requêtes', () => {
+	it('publication, mur (droits), écriture : 3 requêtes par geste', async () => {
+		const { base, agent, autre, chef, affecter, e1 } = await jeu();
+		await affecter(autre, e1.id);
+		const sondage = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const tous = await publier(base, acteur(chef), 'vie', evenement(), maintenant);
+		const equipes = await publier(base, acteur(chef), 'centre', evenement([e1.id]), maintenant);
+		const note = await publier(base, acteur(chef), 'centre', annonce, maintenant);
+		const c = await commenter(base, acteur(autre), sondage, 'Oui !', maintenant);
+		const requetes = async (geste: () => Promise<unknown>) => {
+			const avant = base.requetes;
+			await geste();
+			return base.requetes - avant;
+		};
+		expect(await requetes(() => aimer(base, acteur(autre), sondage, true, aujourdhui))).toBe(3);
+		expect(await requetes(() => aimer(base, acteur(autre), sondage, false, aujourdhui))).toBe(3);
+		expect(await requetes(() => voter(base, acteur(autre), sondage, 1, aujourdhui))).toBe(3);
+		expect(await requetes(() => prendreConnaissance(base, acteur(autre), note, maintenant))).toBe(3);
+		expect(await requetes(() => repondreEvenement(base, acteur(autre), tous, 'present', aujourdhui))).toBe(3);
+		expect(await requetes(() => repondreEvenement(base, acteur(autre), equipes, 'present', aujourdhui))).toBe(3);
+		expect(await requetes(() => commenter(base, acteur(autre), sondage, 'Encore', maintenant))).toBe(3);
+		expect(await requetes(() => lireCommentaires(base, acteur(autre), sondage, aujourdhui))).toBe(3);
+		expect(await requetes(() => supprimerCommentaire(base, acteur(autre), c, maintenant))).toBe(3);
 	});
 });
