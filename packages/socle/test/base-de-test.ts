@@ -7,8 +7,9 @@ import { oublierDroits } from '../src/droits.ts';
 
 const dossierMigrations = new URL('../migrations/', import.meta.url);
 
-// `requetes` compte les appels à la base (un batch compte pour un). Comme creerBaseD1, toute écriture fait oublier les droits lus.
-export async function baseDeTest(): Promise<Base & { requetes: number }> {
+// `requetes` compte les appels à la base (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus).
+// Comme creerBaseD1, toute écriture fait oublier les droits lus.
+export async function baseDeTest(): Promise<Base & { requetes: number; parametresMax: number }> {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
 	for (const fichier of readdirSync(dossierMigrations).filter((f) => f.endsWith('.sql')).sort()) {
@@ -17,6 +18,7 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	}
 
 	const executer = (requete: string, params: unknown[], methode: 'run' | 'all' | 'values' | 'get') => {
+		base.parametresMax = Math.max(base.parametresMax, params.length);
 		const instruction = sqlite.prepare(requete);
 		instruction.setReturnArrays(true);
 		const valeurs = params as never[];
@@ -49,8 +51,9 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 			}
 		},
 		{ schema }
-	) as Base & { requetes: number };
+	) as Base & { requetes: number; parametresMax: number };
 	base.requetes = 0;
+	base.parametresMax = 0;
 	return base;
 }
 

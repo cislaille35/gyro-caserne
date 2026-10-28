@@ -132,6 +132,7 @@ describe('publier', () => {
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', 'tous', ' '), maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', [999]), maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', []), maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', Array.from({ length: 31 }, (_, i) => i + 1)), maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', { type: 'evenement', texte: 'Sans détail' }, maintenant)).rejects.toThrow(DonneeInvalide);
 		await expect(publier(base, acteur(chef), 'centre', { ...message(), evenement: { debut: '2026-10-30T20:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant)).rejects.toThrow(DonneeInvalide);
 		const id = await publier(base, acteur(chef), 'centre', evenement('2026-10-30T20:00', [e1.id, e2.id]), maintenant);
@@ -157,6 +158,10 @@ describe('publier', () => {
 		await expect(avec([jpeg(400 * 1024 + 1)])).rejects.toThrow(DonneeInvalide);
 		await expect(avec([jpeg(400 * 1024), jpeg(), jpeg(), webp()])).resolves.toBeGreaterThan(0);
 		expect(await base.select().from(photoPublication)).toHaveLength(4);
+		// Absentes (null) : aucune photo ; autre chose qu'une liste : refus net, pas d'erreur de programme.
+		await expect(publier(base, acteur(agent), 'vie', { ...message(), photos: null as never }, maintenant)).resolves.toBeGreaterThan(0);
+		await expect(publier(base, acteur(agent), 'vie', { ...message(), photos: 'x' as never }, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(publier(base, acteur(agent), 'vie', { ...message(), photos: [null] as never }, maintenant)).rejects.toThrow(DonneeInvalide);
 	});
 
 	it('mur en lecture seule : publier refusé', async () => {
@@ -185,17 +190,35 @@ describe('modifier, supprimer, épingler, fermer', () => {
 		expect(entree!.details).not.toContain('Corrigé');
 	});
 
+	it('modifier : refusé sur un mur en lecture seule ou non lisible', async () => {
+		const { base, agent, affecter, e1, e2 } = await jeu();
+		await affecter(agent, e1.id);
+		const id = await publier(base, acteur(agent), `equipe:${e1.id}`, message(), maintenant);
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
+		await expect(modifierPublication(base, acteur(agent), id, { texte: 'Corrigé' }, maintenant)).rejects.toThrow(RefusDroit);
+		await base.update(equipe).set({ active: 1 }).where(eq(equipe.id, e1.id));
+		await base.update(affectationEquipe).set({ equipeId: e2.id }).where(eq(affectationEquipe.personneId, agent));
+		await expect(modifierPublication(base, acteur(agent), id, { texte: 'Corrigé' }, maintenant)).rejects.toThrow(RefusDroit);
+		await expect(fermerCommentaires(base, acteur(agent), id, true, maintenant)).rejects.toThrow(RefusDroit);
+	});
+
 	it('supprimer : l’auteur ou un modérateur, refusé pour un autre agent ; photos et dépendances supprimées ; journal sans contenu', async () => {
 		const { base, agent, autre, chef } = await jeu();
 		const id = await publier(base, acteur(agent), 'vie', { ...message('Contenu'), photos: [jpeg()] }, maintenant);
 		await base.insert(jaime).values({ publicationId: id, personneId: autre });
 		await base.insert(commentaire).values({ publicationId: id, auteur: `personne:${autre}`, texte: 'Bravo', creeLe: maintenant });
+		await base.insert(reponseEvenement).values({ publicationId: id, personneId: autre, reponse: 'present' });
+		await base.insert(voteSondage).values({ publicationId: id, personneId: autre, reponse: 0 });
+		await base.insert(priseConnaissance).values({ publicationId: id, personneId: autre, le: maintenant });
 		await expect(supprimerPublication(base, acteur(autre), id, maintenant)).rejects.toThrow(RefusDroit);
 		await supprimerPublication(base, acteur(chef), id, maintenant);
 		expect(await base.select().from(publication)).toHaveLength(0);
 		expect(await base.select().from(photoPublication)).toHaveLength(0);
 		expect(await base.select().from(jaime)).toHaveLength(0);
 		expect(await base.select().from(commentaire)).toHaveLength(0);
+		expect(await base.select().from(reponseEvenement)).toHaveLength(0);
+		expect(await base.select().from(voteSondage)).toHaveLength(0);
+		expect(await base.select().from(priseConnaissance)).toHaveLength(0);
 		const [entree] = await base.select().from(journal).where(eq(journal.action, 'supprimer_publication'));
 		expect(entree).toMatchObject({ acteur: `personne:${chef}`, cibleId: id });
 		expect(entree!.details).not.toContain('Contenu');
@@ -230,14 +253,24 @@ describe('modifier, supprimer, épingler, fermer', () => {
 		expect((await base.select().from(publication))[0]!.epinglee).toBe(0);
 	});
 
-	it('fermer les commentaires : l’auteur ou un modérateur', async () => {
+	it('commentaires : l’auteur ou un modérateur ferme, seul un modérateur rouvre', async () => {
 		const { base, agent, autre, chef } = await jeu();
 		const id = await publier(base, acteur(agent), 'vie', message(), maintenant);
+		const fermes = async () => (await base.select().from(publication))[0]!.commentairesFermes;
+		const droitFermer = async (qui: number) => (await lireMur(base, acteur(qui), 'vie', {}, maintenant)).publications[0]!.droits.fermer;
 		await expect(fermerCommentaires(base, acteur(autre), id, true, maintenant)).rejects.toThrow(RefusDroit);
 		await fermerCommentaires(base, acteur(agent), id, true, maintenant);
-		expect((await base.select().from(publication))[0]!.commentairesFermes).toBe(1);
+		expect(await fermes()).toBe(1);
+		// L'auteur ne rouvre pas : il ne passe pas outre un modérateur.
+		expect(await droitFermer(agent)).toBe(false);
+		await expect(fermerCommentaires(base, acteur(agent), id, false, maintenant)).rejects.toThrow(RefusDroit);
+		expect(await droitFermer(chef)).toBe(true);
 		await fermerCommentaires(base, acteur(chef), id, false, maintenant);
-		expect((await base.select().from(publication))[0]!.commentairesFermes).toBe(0);
+		expect(await fermes()).toBe(0);
+		await fermerCommentaires(base, acteur(chef), id, true, maintenant);
+		expect(await fermes()).toBe(1);
+		await fermerCommentaires(base, acteur(chef), id, false, maintenant);
+		expect(await droitFermer(agent)).toBe(true);
 	});
 });
 
@@ -306,7 +339,7 @@ describe('lireMur', () => {
 			jaime: 2,
 			commentaires: 1,
 			jaimeParMoi: true,
-			evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous', reponse: 'present', compte: { present: 2, absent: 0, incertain: 1 } },
+			evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous', convoque: true, reponse: 'present', compte: { present: 2, absent: 0, incertain: 1 } },
 			sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], resultats: [1, 0, 1], vote: 2 },
 			priseDeConnaissance: null,
 			droits: { modifier: false, supprimer: false, epingler: false, fermer: false }
@@ -316,6 +349,35 @@ describe('lireMur', () => {
 		expect(vueChef.jaimeParMoi).toBe(false);
 		expect(vueChef.sondage!.vote).toBeNull();
 		expect(vueChef.evenement!.reponse).toBe('incertain');
+	});
+
+	it('convoqué : « tous » ou son équipe en cours ; jamais le super administrateur', async () => {
+		const { base, agent, autre, chef, affecter, e1, e2 } = await jeu();
+		await affecter(agent, e1.id);
+		await affecter(autre, e2.id);
+		await publier(base, acteur(chef), 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: [e1.id] } }, maintenant);
+		const convoque = async (qui: Acteur, cle = 'centre') => (await lireMur(base, qui, cle, {}, maintenant)).publications[0]!.evenement!.convoque;
+		expect(await convoque(acteur(agent))).toBe(true);
+		expect(await convoque(acteur(autre))).toBe(false);
+		expect(await convoque(acteur(chef))).toBe(false);
+		expect(await convoque(superAdmin)).toBe(false);
+		await publier(base, acteur(chef), 'vie', { type: 'evenement', texte: 'Repas', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		expect(await convoque(acteur(autre), 'vie')).toBe(true);
+		expect(await convoque(superAdmin, 'vie')).toBe(false);
+	});
+
+	it('limites D1 : 10 épinglées au plus, pages de 30 au plus, jamais plus de 90 paramètres par requête', async () => {
+		const { base, agent, chef } = await jeu();
+		const lignes = Array.from({ length: 60 }, (_, i) => ({ mur: 'vie', auteur: `personne:${i % 2 ? agent : chef}`, type: 'message' as const, texte: `n° ${i}`, creeLe: maintenant, epinglee: i < 15 ? 1 : 0 }));
+		for (let i = 0; i < 60; i += 10) await base.insert(publication).values(lignes.slice(i, i + 10));
+		const ids = (await base.select({ id: publication.id }).from(publication).orderBy(publication.id)).map((p) => p.id);
+		await base.insert(jaime).values(ids.map((id) => ({ publicationId: id, personneId: chef })));
+		base.parametresMax = 0;
+		const page = await lireMur(base, acteur(agent), 'vie', { nombre: 100 }, maintenant);
+		expect(page.epinglees.map((p) => p.id)).toEqual(ids.slice(5, 15).reverse());
+		expect(page.publications).toHaveLength(30);
+		expect(base.parametresMax).toBeGreaterThan(30);
+		expect(base.parametresMax).toBeLessThanOrEqual(90);
 	});
 
 	it('prise de connaissance demandée, faite ou non par l’acteur ; auteur super administrateur', async () => {
@@ -350,7 +412,7 @@ describe('lireMur', () => {
 		await expect(lireMur(base, acteur(agent), `equipe:${e1.id}`, {}, maintenant)).rejects.toThrow(RefusDroit);
 	});
 
-	it('mur de 300 publications : au plus 12 requêtes', async () => {
+	it('mur de 300 publications : 3 requêtes', async () => {
 		const { base, agent, autre, chef } = await jeu();
 		const lignes = Array.from({ length: 300 }, (_, i) => ({ mur: 'vie', auteur: `personne:${i % 2 ? agent : autre}`, type: 'message' as const, texte: `n° ${i}`, creeLe: `2026-10-${String(1 + (i % 27)).padStart(2, '0')}T10:00`, epinglee: i < 3 ? 1 : 0 }));
 		for (let i = 0; i < 300; i += 50) await base.insert(publication).values(lignes.slice(i, i + 50));
@@ -360,7 +422,7 @@ describe('lireMur', () => {
 		const avant = base.requetes;
 		const page = await lireMur(base, acteur(chef), 'vie', {}, maintenant);
 		const requetes = base.requetes - avant;
-		expect(requetes).toBeLessThanOrEqual(12);
+		expect(requetes).toBe(3);
 		expect(page.epinglees).toHaveLength(3);
 		expect(page.publications).toHaveLength(20);
 		expect(page.publications.every((p) => p.jaimeParMoi && p.jaime === 1)).toBe(true);

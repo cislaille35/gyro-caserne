@@ -1,17 +1,19 @@
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDate } from '../dates.ts';
+import { enCours, exigerDate } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
 import { exigerMur, refusMur, type CleMur, type Mur } from '../murs.ts';
-import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
+import { affectationEquipe, commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 
 const PHOTOS_MAX = 4;
 const TAILLE_PHOTO_MAX = 400 * 1024;
-const PAGE_MAX = 50;
+// D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
+const EPINGLEES_MAX = 10;
+const PAGE_MAX = 30;
 
 type Convoques = 'tous' | number[];
 
@@ -38,7 +40,7 @@ export type PublicationVue = {
 	jaime: number;
 	commentaires: number;
 	jaimeParMoi: boolean;
-	evenement: { debut: string; lieu: string; convoques: Convoques; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
+	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
 	sondage: { question: string; reponses: string[]; resultats: number[]; vote: number | null } | null;
 	priseDeConnaissance: { faite: boolean } | null;
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
@@ -67,10 +69,12 @@ function estDuType(type: string, o: Uint8Array): boolean {
 	return false;
 }
 
-function exigerPhotos(photos: DonneesPublication['photos'] = []) {
+function exigerPhotos(valeur: DonneesPublication['photos']) {
+	const photos = valeur ?? [];
+	if (!Array.isArray(photos)) throw new DonneeInvalide('Photos invalides');
 	if (photos.length > PHOTOS_MAX) throw new DonneeInvalide(`${PHOTOS_MAX} photos au plus`);
 	for (const p of photos) {
-		if (!(TYPES_PHOTO as readonly string[]).includes(p.type) || !(p.donnees instanceof Uint8Array) || !estDuType(p.type, p.donnees)) throw new DonneeInvalide('Photo JPEG ou WebP seulement');
+		if (!p || !(TYPES_PHOTO as readonly string[]).includes(p.type) || !(p.donnees instanceof Uint8Array) || !estDuType(p.type, p.donnees)) throw new DonneeInvalide('Photo JPEG ou WebP seulement');
 		if (p.donnees.length > TAILLE_PHOTO_MAX) throw new DonneeInvalide('Photo trop lourde (400 Ko au plus)');
 	}
 	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
@@ -99,7 +103,7 @@ async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication
 	else if (ev.convoques === 'tous') convoques = 'tous';
 	else {
 		convoques = Array.isArray(ev.convoques) ? [...new Set(ev.convoques)] : [];
-		if (convoques.length === 0 || !convoques.every((id) => Number.isInteger(id) && id > 0)) throw new DonneeInvalide('Convoqués invalides');
+		if (convoques.length === 0 || convoques.length > 30 || !convoques.every((id) => Number.isInteger(id) && id > 0)) throw new DonneeInvalide('Convoqués invalides');
 		const connues = await base.select({ id: equipe.id }).from(equipe).where(inArray(equipe.id, convoques));
 		if (connues.length !== convoques.length) throw new DonneeInvalide('Équipe inconnue');
 	}
@@ -127,6 +131,7 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 		// Juste après l'insertion, last_insert_rowid() est l'id de la publication. Jamais le texte au journal.
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'publier', cibleType: 'publication', cibleId: sql`last_insert_rowid()`, details: { mur: cle, type: donnees.type, photos: photos.length } }, maintenant)
 	] as const;
+	// Le batch est une transaction : aucune autre écriture ne s'intercale, et AUTOINCREMENT donne le plus grand id à la publication qui vient d'être insérée.
 	const derniere = sql`(select max(${publication.id}) from ${publication})`;
 	const [lignes] =
 		photos.length === 0
@@ -135,18 +140,19 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 	return lignes[0]!.id;
 }
 
-function droitsSur(acteur: Acteur, mur: Mur, auteur: string): PublicationVue['droits'] {
-	const moi = auteur === nomActeur(acteur);
-	return { modifier: moi && mur.peutPublier, supprimer: moi || mur.peutModerer, epingler: mur.peutModerer, fermer: moi || mur.peutModerer };
+// « fermer » : fermer les commentaires s'ils sont ouverts (auteur ou modérateur), les rouvrir sinon (modérateur seulement).
+function droitsSur(acteur: Acteur, mur: Mur, p: { auteur: string; commentairesFermes: number }): PublicationVue['droits'] {
+	const moi = p.auteur === nomActeur(acteur);
+	return { modifier: moi && mur.peutPublier, supprimer: moi || mur.peutModerer, epingler: mur.peutModerer, fermer: mur.peutModerer || (moi && p.commentairesFermes === 0) };
 }
 
 // La publication, son mur (que l'acteur doit pouvoir lire) et les droits de l'acteur dessus.
 async function cible(base: Base, acteur: Acteur, id: number, maintenant: string) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
-	const [ligne] = await base.select({ mur: publication.mur, auteur: publication.auteur }).from(publication).where(eq(publication.id, id));
+	const [ligne] = await base.select({ mur: publication.mur, auteur: publication.auteur, commentairesFermes: publication.commentairesFermes }).from(publication).where(eq(publication.id, id));
 	if (!ligne) throw new DonneeInvalide('Publication inconnue');
 	const mur = await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	return { cle: ligne.mur, droits: droitsSur(acteur, mur, ligne.auteur) };
+	return { cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
 }
 
 const journalPublication = (base: Base, acteur: Acteur, action: string, id: number, maintenant: string, details?: object) =>
@@ -174,7 +180,8 @@ export async function epingler(base: Base, acteur: Acteur, id: number, oui: bool
 
 export async function fermerCommentaires(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
 	const { cle, droits } = await cible(base, acteur, id, maintenant);
-	if (!droits.fermer) throw refusMur(cle, 'moderer');
+	// Rouvrir est réservé aux modérateurs : l'auteur ne passe pas outre leur décision.
+	if (!droits.fermer || (!oui && !droits.epingler)) throw refusMur(cle, 'moderer');
 	await base.batch([
 		base.update(publication).set({ commentairesFermes: oui ? 1 : 0 }).where(eq(publication.id, id)),
 		journalPublication(base, acteur, oui ? 'fermer_commentaires' : 'ouvrir_commentaires', id, maintenant)
@@ -196,7 +203,9 @@ export async function lireMur(
 	const mur = await exigerMur(base, acteur, cle, aujourdhui, 'lire');
 
 	const [epinglees, suivantes] = await base.batch([
-		base.select().from(publication).where(and(eq(publication.mur, cle), eq(publication.epinglee, 1))).orderBy(desc(publication.id)),
+		base.select().from(publication).where(and(eq(publication.mur, cle), eq(publication.epinglee, 1)))
+			.orderBy(desc(publication.id))
+			.limit(EPINGLEES_MAX),
 		base
 			.select()
 			.from(publication)
@@ -236,13 +245,18 @@ export async function lireMur(
 			.where(and(inArray(priseConnaissance.publicationId, ids), eq(priseConnaissance.personneId, moi))),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs))
+		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
+		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi))
 	] as const;
 	const visite = base
 		.insert(visiteMur)
 		.values({ personneId: moi, mur: cle, vueLe: maintenant })
 		.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } });
-	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs] = acteur.type === 'personne' ? await base.batch([...lectures, visite]) : await base.batch(lectures);
+	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs, affectations] = acteur.type === 'personne' ? await base.batch([...lectures, visite]) : await base.batch(lectures);
+
+	const mesEquipes = affectations.filter((a) => enCours(a.debut, a.fin, aujourdhui)).map((a) => a.equipeId);
+	// Le super administrateur, sans fiche, n'est jamais convoqué.
+	const estConvoque = (convoques: Convoques) => acteur.type === 'personne' && (convoques === 'tous' || convoques.some((id) => mesEquipes.includes(id)));
 
 	const vue = (p: (typeof lignes)[number]): PublicationVue => {
 		const j = jaimes.find((x) => x.publicationId === p.id);
@@ -250,6 +264,7 @@ export async function lireMur(
 		const sesReponses = reponses.filter((r) => r.publicationId === p.id);
 		const sesVotes = votes.filter((v) => v.publicationId === p.id);
 		const choix: string[] = p.sondageReponses ? JSON.parse(p.sondageReponses) : [];
+		const convoques: Convoques = JSON.parse(p.convoques ?? '"tous"');
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
@@ -270,7 +285,8 @@ export async function lireMur(
 					: {
 							debut: p.debut,
 							lieu: p.lieu ?? '',
-							convoques: JSON.parse(p.convoques ?? '"tous"'),
+							convoques,
+							convoque: estConvoque(convoques),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
 							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>
 						},
@@ -284,7 +300,7 @@ export async function lireMur(
 							vote: sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null
 						},
 			priseDeConnaissance: p.priseDeConnaissance === 1 ? { faite: prises.some((x) => x.publicationId === p.id) } : null,
-			droits: droitsSur(acteur, mur, p.auteur)
+			droits: droitsSur(acteur, mur, p)
 		};
 	};
 	return { mur, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
