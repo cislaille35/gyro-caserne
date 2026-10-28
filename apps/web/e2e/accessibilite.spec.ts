@@ -299,8 +299,13 @@ test.describe('réglages', () => {
 
 		// Un domaine changé : la barre le dit avant l'enregistrement.
 		const stock = page.locator('main section').filter({ has: page.getByRole('button', { name: /Stock et pharmacie/ }) });
-		if ((await stock.getByRole('button', { name: /Stock et pharmacie/ }).getAttribute('aria-expanded')) === 'false') await stock.getByRole('button', { name: /Stock et pharmacie/ }).click();
-		await stock.getByRole('radio', { name: 'Gérer' }).check();
+		// Sur ordinateur, les domaines s'ouvrent seuls une fois la page prête : on n'ouvre que si besoin, et on réessaie.
+		const gerer = stock.getByRole('radio', { name: 'Gérer' });
+		await expect(async () => {
+			if (!(await gerer.isVisible())) await stock.getByRole('button', { name: /Stock et pharmacie/ }).click();
+			await expect(gerer).toBeVisible({ timeout: 1000 });
+		}).toPass();
+		await gerer.check();
 		await expect(page.getByText('1 domaine modifié, pas encore enregistré')).toBeVisible();
 		await expect(page.locator('main header').getByText('Personnalisé', { exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
