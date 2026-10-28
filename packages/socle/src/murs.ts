@@ -76,9 +76,12 @@ export async function exigerMur(base: Base, acteur: Acteur, cle: string, aujourd
 	if (!forme) throw new DonneeInvalide('Mur inconnu');
 	const trouve = (await mursDe(base, acteur, aujourdhui)).find((m) => m.cle === cle);
 	const permis = trouve && (besoin === 'lire' || (besoin === 'publier' ? trouve.peutPublier : trouve.peutModerer));
-	if (!permis) {
-		const perimetre: Perimetre = forme[1] ? { type: forme[1] as 'equipe' | 'comite', id: Number(forme[2]) } : { type: 'centre' };
-		throw new RefusDroit(BESOINS[besoin], perimetre, 'Mur non accessible');
-	}
+	if (!permis) throw refusMur(cle, besoin);
 	return trouve;
+}
+
+export function refusMur(cle: string, besoin: 'lire' | 'publier' | 'moderer'): RefusDroit {
+	const forme = /^(equipe|comite):(\d+)$/.exec(cle);
+	const perimetre: Perimetre = forme ? { type: forme[1] as 'equipe' | 'comite', id: Number(forme[2]) } : { type: 'centre' };
+	return new RefusDroit(BESOINS[besoin], perimetre, 'Mur non accessible');
 }
