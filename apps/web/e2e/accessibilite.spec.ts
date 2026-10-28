@@ -130,7 +130,9 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 				await page.keyboard.press('Escape');
 				await expect(page.getByRole('dialog')).toHaveCount(0);
-				await carteRole(page, 'Référent technique').getByRole('button', { name: `Retirer ${nom}` }).click();
+				await carteRole(page, 'Référent technique')
+					.getByRole('button', { name: `Retirer ${nom}` })
+					.click();
 				await expect(page.locator(':focus')).toContainText(`Retirer ${nom} ?`);
 				await sansViolation(page);
 			});
@@ -396,6 +398,8 @@ test.describe('échanges', () => {
 		await agentUn.context().close();
 
 		const agentDeux = await pageAgent(browser, deux.email);
+		// Accueil prêt avant de constater l'absence.
+		await expect(agentDeux.locator('.accueil[data-pret]')).toBeAttached();
 		await expect(agentDeux.getByText(titre)).toHaveCount(0);
 		// Sur le mur, il lit l'événement sans être convoqué : pas de réponse à donner.
 		await agentDeux.goto('/echanges/centre');
@@ -412,7 +416,10 @@ test.describe('échanges', () => {
 
 		const page = await pageAgent(browser, un.email);
 		await page.goto('/echanges');
-		await page.getByRole('navigation', { name: 'Murs' }).getByRole('link', { name: /^Équipe 1/ }).click();
+		await page
+			.getByRole('navigation', { name: 'Murs' })
+			.getByRole('link', { name: /^Équipe 1/ })
+			.click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Équipe 1' })).toBeVisible();
 		const texte = `Photo de la manœuvre ${nouvelleMarque()}`;
 		await publier(page, { texte, photo: await photoFictive(page) });
