@@ -176,16 +176,21 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; em
 // Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 ou comité « Amicale » si le rôle en vise un).
 async function nommer(page: Page, role: string, agent: string, dates: { debut?: string; fin?: string } = {}) {
 	const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
-	const formulaire = carte.locator('form[action="?/attribuer"]');
+	await carte.getByRole('button', { name: 'Nommer', exact: true }).click();
+	const formulaire = carte.locator('dialog form[action="?/attribuer"]');
+	await expect(formulaire).toBeVisible();
 	await formulaire.getByLabel('Agent', { exact: true }).selectOption({ label: `${agent} (Équipe 1)` });
 	const equipe = formulaire.getByRole('combobox', { name: 'Équipe' });
 	if ((await equipe.count()) > 0) await equipe.selectOption({ label: 'Équipe 1' });
 	const comite = formulaire.getByRole('combobox', { name: 'Comité' });
 	if ((await comite.count()) > 0) await comite.selectOption({ label: 'Amicale' });
+	if (dates.debut || dates.fin) await formulaire.getByText('Changer les dates', { exact: true }).click();
 	if (dates.debut) await formulaire.getByLabel('Début', { exact: true }).fill(dates.debut);
 	if (dates.fin) await formulaire.getByLabel('Fin', { exact: true }).fill(dates.fin);
 	await formulaire.getByRole('button', { name: 'Nommer' }).click();
-	await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
+	// Le volet se ferme, la réussite s'annonce dans la carte.
+	await expect(carte.getByRole('status')).toHaveText('Rôle attribué');
+	await expect(carte.locator('dialog')).toHaveCount(0);
 }
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -304,6 +309,51 @@ test.describe('nominations', () => {
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).not.toContainText('Rôles');
 		await gestion.context().close();
 		await agent.context().close();
+	});
+
+	test('/nominations : le volet « Nommer » au clavier, puis retirer un titulaire avec confirmation, sans violation', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const { nom } = await nouvelAgent(page);
+		await page.goto('/nominations');
+		await page.waitForLoadState('networkidle');
+		const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: 'Référent technique', exact: true }) });
+		const ouvrir = carte.getByRole('button', { name: 'Nommer', exact: true });
+
+		// Le volet prend le focus, Échap le ferme et rend le focus au bouton.
+		await ouvrir.click();
+		const volet = page.getByRole('dialog', { name: 'Nommer : Référent technique' });
+		await expect(volet).toBeVisible();
+		await expect(volet.getByLabel('Agent', { exact: true })).toBeFocused();
+		await expect(volet.getByLabel('Début', { exact: true })).toBeHidden();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await expect(volet).toHaveCount(0);
+		await expect(ouvrir).toBeFocused();
+
+		// Refus du serveur : le volet reste ouvert, l'erreur dedans.
+		await ouvrir.click();
+		await volet.getByRole('button', { name: 'Nommer' }).click();
+		await expect(volet.getByText('Choisissez un agent.')).toBeVisible();
+		await page.keyboard.press('Escape');
+
+		await nommer(page, 'Référent technique', nom);
+		const pastille = carte.getByRole('button', { name: `Retirer ${nom}` });
+		await pastille.click();
+		await expect(page.locator(':focus')).toContainText(`Retirer ${nom} ?`);
+		await sansViolation(page);
+		await carte.getByRole('button', { name: 'Annuler' }).click();
+		await expect(pastille).toBeFocused();
+
+		await pastille.click();
+		await carte.getByRole('button', { name: 'Confirmer le retrait' }).click();
+		await expect(carte.getByRole('status')).toHaveText('Rôle terminé');
+		await expect(pastille).toHaveCount(0);
+
+		// La recherche d'un agent ne garde que ses rôles.
+		await nommer(page, 'Référent pharmacie', nom);
+		await page.getByLabel('Rechercher un rôle ou un agent').fill(nom);
+		await expect(page.locator('section.carte h2')).toHaveText(['Référent pharmacie']);
+		await page.context().close();
 	});
 });
 

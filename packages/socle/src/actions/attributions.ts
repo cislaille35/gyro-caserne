@@ -194,6 +194,7 @@ export type CeQueJePeuxAttribuer = {
 	responsabiliteId: number;
 	nom: string;
 	portee: TypePerimetre;
+	icone: NomIcone;
 	perimetres: { type: TypePerimetre; id: number | null; nom: string }[];
 }[];
 
@@ -281,6 +282,7 @@ export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhu
 			responsabiliteId: r.id,
 			nom: r.nom,
 			portee: r.typePerimetre,
+			icone: iconeDuRole({ ...r, portee: r.typePerimetre }),
 			perimetres: perimetres[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))
 		}))
 		.filter((r) => r.perimetres.length > 0);

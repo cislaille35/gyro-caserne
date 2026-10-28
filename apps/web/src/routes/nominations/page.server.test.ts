@@ -34,7 +34,7 @@ async function preparer() {
 
 const locaux = (base: unknown, acteur: unknown) => ({ base, acteur, superAdmins: ['admin@exemple.fr'] });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const lire = (locals: unknown) => (load as any)({ locals });
+const lire = (locals: unknown, adresse = 'http://x/nominations') => (load as any)({ locals, url: new URL(adresse) });
 const agir = (nom: 'attribuer' | 'terminer' | 'finir', locals: unknown, corps: Record<string, string>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, request: new Request('http://x', { method: 'POST', body: new URLSearchParams(corps) }) });
@@ -81,6 +81,21 @@ describe('/nominations : chargement', () => {
 		expect(noms).not.toContain('Partie Test');
 		expect(donnees.agents.map((a: { id: number }) => a.id)).not.toContain(parti);
 		expect(Object.keys(donnees.agents[0]).sort()).toEqual(['equipe', 'id', 'nom']);
+	});
+});
+
+describe('/nominations : adresse', () => {
+	it('lit le panneau ouvert et la recherche dans l’adresse (sans JavaScript)', async () => {
+		const { base, chef } = await preparer();
+		expect(await lire(locaux(base, chef))).toMatchObject({ nommer: null, retirer: null, recherche: '' });
+		expect(await lire(locaux(base, chef), 'http://x/nominations?nommer=5&retirer=7&q=+pharmacie+')).toMatchObject({ nommer: 5, retirer: 7, recherche: 'pharmacie' });
+		expect(await lire(locaux(base, chef), 'http://x/nominations?nommer=abc&retirer=-1')).toMatchObject({ nommer: null, retirer: null });
+	});
+
+	it('donne l’icône de chaque rôle', async () => {
+		const { base, chef } = await preparer();
+		const { roles } = await lire(locaux(base, chef));
+		expect(roles.find((r: { nom: string }) => r.nom === 'Référent engins').icone).toBe('camion');
 	});
 });
 
