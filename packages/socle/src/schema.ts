@@ -129,7 +129,11 @@ export const responsabilite = sqliteTable(
 		comiteAttributeurId: integer('comite_attributeur_id').references(() => comite.id),
 		systeme: text('systeme', { enum: RESPONSABILITES_SYSTEME }).unique(),
 		// Date ISO d'archivage ; nul tant que la responsabilité sert.
-		archiveeLe: text('archivee_le')
+		archiveeLe: text('archivee_le'),
+		// Identifiant du modèle d'origine (modeles.ts) ; nul pour un rôle fait à la main.
+		modele: text('modele'),
+		// Nom d'icône (icones.ts) ; nul : l'appli choisit.
+		icone: text('icone')
 	},
 	() => [
 		check('responsabilite_nature', checkDans('nature', NATURES_RESPONSABILITE)),

@@ -326,3 +326,47 @@ describe('attribuer après archivage ou dissolution', () => {
 		await expect(attribuer(base, superAdmin, { personneId: cible, responsabiliteId: membre.id, perimetre: { type: 'comite', id: amicale.id }, debut: aujourdhui }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Comité dissous'));
 	});
 });
+
+describe('modèles et icônes', () => {
+	it('crée depuis un modèle : garde le modèle, prend son icône par défaut, journalise', async () => {
+		const { base, chef } = await jeu();
+		const id = await creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'Référent matériel', droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'], modele: 'referent_materiel' }, aujourdhui);
+		const [lue] = await base.select().from(responsabilite).where(eq(responsabilite.id, id));
+		expect(lue).toMatchObject({ modele: 'referent_materiel', icone: 'camion' });
+		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'creer_responsabilite'));
+		expect(JSON.parse(ligne!.details)).toMatchObject({ modele: 'referent_materiel', icone: 'camion' });
+		expect((await listerResponsabilites(base, chef, aujourdhui)).find((r) => r.id === id)).toMatchObject({ modele: 'referent_materiel', icone: 'camion' });
+	});
+
+	it('garde l’icône choisie ; sans modèle ni icône, les deux sont nuls', async () => {
+		const { base, chef } = await jeu();
+		const avec = await creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'A', modele: 'vierge', icone: 'ballon' }, aujourdhui);
+		const sans = await creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'B' }, aujourdhui);
+		const lignes = await base.select().from(responsabilite);
+		expect(lignes.find((r) => r.id === avec)).toMatchObject({ modele: 'vierge', icone: 'ballon' });
+		expect(lignes.find((r) => r.id === sans)).toMatchObject({ modele: null, icone: null });
+	});
+
+	it('refuse un modèle ou une icône inconnus, rien n’est écrit', async () => {
+		const { base, chef } = await jeu();
+		const avant = (await base.select().from(responsabilite)).length;
+		await expect(creerResponsabilite(base, chef, { ...nouvelleResp, modele: 'pompier_volant' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Modèle inconnu'));
+		await expect(creerResponsabilite(base, chef, { ...nouvelleResp, icone: 'licorne' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Icône inconnue'));
+		expect(await base.select().from(responsabilite)).toHaveLength(avant);
+	});
+
+	it('modifie l’icône, journalise, refuse une icône inconnue', async () => {
+		const { base, chef, resp } = await jeu();
+		const engins = await resp('Référent engins');
+		await modifierResponsabilite(base, chef, engins.id, { icone: 'camion' }, aujourdhui);
+		expect((await resp('Référent engins')).icone).toBe('camion');
+		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_responsabilite'));
+		expect(JSON.parse(ligne!.details)).toEqual({ champs: ['icone'] });
+		await expect(modifierResponsabilite(base, chef, engins.id, { icone: 'licorne' }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Icône inconnue'));
+	});
+
+	it('les responsabilités du jeu de départ n’ont ni modèle ni icône', async () => {
+		const { base, chef } = await jeu();
+		expect((await listerResponsabilites(base, chef, aujourdhui)).every((r) => r.modele === null && r.icone === null)).toBe(true);
+	});
+});

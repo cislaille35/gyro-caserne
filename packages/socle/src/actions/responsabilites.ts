@@ -4,8 +4,10 @@ import { exigerDate } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
+import { NOMS_ICONES, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
 import { DROITS, estDroitPouvoir, NATURES_RESPONSABILITE, type Droit, type TypePerimetre } from '../listes.ts';
+import { MODELES } from '../modeles.ts';
 import { attribution, comite, responsabilite, responsabiliteDroit } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 
@@ -27,7 +29,7 @@ async function exiger(base: Base, acteur: Acteur, aujourdhui: string) {
 }
 
 // Gère le pouvoir : super administrateur, ou GERER_ACCES sur le centre (chef de centre, adjoint).
-async function geresLePouvoir(base: Base, acteur: Acteur, aujourdhui: string): Promise<boolean> {
+export async function geresLePouvoir(base: Base, acteur: Acteur, aujourdhui: string): Promise<boolean> {
 	return acteur.type === 'super' || (await aLeDroit(base, acteur, 'GERER_ACCES', { type: 'centre' }, aujourdhui));
 }
 
@@ -54,7 +56,12 @@ function exigerPortee(portee: unknown): Portee {
 	return portee as Portee;
 }
 
-function exigerDroits(droits: unknown): Droit[] {
+function exigerIcone(icone: unknown): NomIcone {
+	if (!(NOMS_ICONES as readonly unknown[]).includes(icone)) throw new DonneeInvalide('Icône inconnue');
+	return icone as NomIcone;
+}
+
+export function exigerDroits(droits: unknown): Droit[] {
 	if (!Array.isArray(droits) || droits.some((d) => !(DROITS as readonly unknown[]).includes(d))) throw new DonneeInvalide('Droit inconnu');
 	return [...new Set(droits as Droit[])];
 }
@@ -128,6 +135,8 @@ export async function listerResponsabilites(base: Base, acteur: Acteur, aujourdh
 			droits: siens.map((d) => ({ droit: d.droit, verrouille: d.verrouille === 1 })),
 			systeme: r.systeme as string | null,
 			archiveeLe: r.archiveeLe,
+			modele: r.modele,
+			icone: r.icone,
 			titulaires: titulaires.find((t) => t.id === r.id)?.n ?? 0,
 			protegee: !pouvoir && siens.some((d) => estDroitPouvoir(d.droit))
 		};
@@ -137,7 +146,7 @@ export async function listerResponsabilites(base: Base, acteur: Acteur, aujourdh
 export async function creerResponsabilite(
 	base: Base,
 	acteur: Acteur,
-	donnees: { nom: string; nature: Nature; portee: Portee; attributeur: Attributeur; droits: Droit[] },
+	donnees: { nom: string; nature: Nature; portee: Portee; attributeur: Attributeur; droits: Droit[]; modele?: string; icone?: string },
 	aujourdhui: string
 ): Promise<number> {
 	await exiger(base, acteur, aujourdhui);
@@ -146,15 +155,19 @@ export async function creerResponsabilite(
 	const nom = texte(donnees.nom);
 	const nature = exigerNature(donnees.nature);
 	const portee = exigerPortee(donnees.portee);
+	const modele = donnees.modele === undefined ? null : MODELES.find((m) => m.id === donnees.modele);
+	if (modele === undefined) throw new DonneeInvalide('Modèle inconnu');
+	// Sans icône choisie, celle du modèle.
+	const icone = donnees.icone === undefined ? (modele?.icone ?? null) : exigerIcone(donnees.icone);
 	const comiteAttributeurId = await comiteAttributeur(base, donnees.attributeur, portee);
 	await exigerNomLibre(base, nom);
 
 	// La nouvelle responsabilité, retrouvée par son nom (unique).
 	const idNouvelle = sql<number>`(SELECT ${responsabilite.id} FROM ${responsabilite} WHERE ${responsabilite.nom} = ${nom} ORDER BY ${responsabilite.id} DESC LIMIT 1)`;
 	const [lignes] = await base.batch([
-		base.insert(responsabilite).values({ nom, nature, typePerimetre: portee, comiteAttributeurId }).returning({ id: responsabilite.id }),
+		base.insert(responsabilite).values({ nom, nature, typePerimetre: portee, comiteAttributeurId, modele: modele?.id ?? null, icone }).returning({ id: responsabilite.id }),
 		// L'ordre compte : le journal suit l'insertion, last_insert_rowid() est l'id de la responsabilité.
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'creer_responsabilite', cibleType: 'responsabilite', cibleId: sql`last_insert_rowid()`, details: { nom, nature, portee, attributeur: attributeurDe({ comiteAttributeurId, typePerimetre: portee }), droits } }, aujourdhui),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'creer_responsabilite', cibleType: 'responsabilite', cibleId: sql`last_insert_rowid()`, details: { nom, nature, portee, attributeur: attributeurDe({ comiteAttributeurId, typePerimetre: portee }), droits, ...(modele ? { modele: modele.id } : {}), ...(icone ? { icone } : {}) } }, aujourdhui),
 		...(droits.length > 0 ? [base.insert(responsabiliteDroit).values(droits.map((droit) => ({ responsabiliteId: idNouvelle, droit })))] : [])
 	]);
 	return lignes[0]!.id;
@@ -164,7 +177,7 @@ export async function modifierResponsabilite(
 	base: Base,
 	acteur: Acteur,
 	id: number,
-	champs: Partial<{ nom: string; nature: Nature; portee: Portee; attributeur: Attributeur; droits: Droit[] }>,
+	champs: Partial<{ nom: string; nature: Nature; portee: Portee; attributeur: Attributeur; droits: Droit[]; icone: string }>,
 	aujourdhui: string
 ): Promise<void> {
 	await exiger(base, acteur, aujourdhui);
@@ -172,7 +185,7 @@ export async function modifierResponsabilite(
 	if (ligne.archiveeLe !== null) throw new DonneeInvalide('Responsabilité archivée');
 	const actuels = await exigerNonProtegee(base, acteur, id, aujourdhui);
 
-	const changes: Partial<Pick<Responsabilite, 'nom' | 'nature' | 'typePerimetre' | 'comiteAttributeurId'>> = {};
+	const changes: Partial<Pick<Responsabilite, 'nom' | 'nature' | 'typePerimetre' | 'comiteAttributeurId' | 'icone'>> = {};
 	const noms: string[] = [];
 	if (champs.nom !== undefined) {
 		const nom = texte(champs.nom);
@@ -187,6 +200,13 @@ export async function modifierResponsabilite(
 		if (nature !== ligne.nature) {
 			changes.nature = nature;
 			noms.push('nature');
+		}
+	}
+	if (champs.icone !== undefined) {
+		const icone = exigerIcone(champs.icone);
+		if (icone !== ligne.icone) {
+			changes.icone = icone;
+			noms.push('icone');
 		}
 	}
 	const portee = champs.portee === undefined ? (ligne.typePerimetre as Portee) : exigerPortee(champs.portee);
