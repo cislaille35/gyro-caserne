@@ -2,11 +2,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { drizzle } from 'drizzle-orm/sqlite-proxy';
 import * as schema from '../src/schema.ts';
-import type { Base } from '../src/base.ts';
+import { ecrit, type Base } from '../src/base.ts';
+import { oublierDroits } from '../src/droits.ts';
 
 const dossierMigrations = new URL('../migrations/', import.meta.url);
 
-// `requetes` compte les appels à la base (un batch compte pour un).
+// `requetes` compte les appels à la base (un batch compte pour un). Comme creerBaseD1, toute écriture fait oublier les droits lus.
 export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
@@ -30,11 +31,13 @@ export async function baseDeTest(): Promise<Base & { requetes: number }> {
 	const base = drizzle(
 		async (requete, params, methode) => {
 			base.requetes++;
+			if (ecrit(requete)) oublierDroits(base);
 			return executer(requete, params, methode);
 		},
 		// Tout ou rien, comme le batch de D1.
 		async (requetes) => {
 			base.requetes++;
+			if (requetes.some((r) => ecrit(r.sql))) oublierDroits(base);
 			sqlite.exec('BEGIN');
 			try {
 				const resultats = requetes.map((r) => imiterD1(sqlite, r.sql, executer(r.sql, r.params, r.method)));

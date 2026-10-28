@@ -1,4 +1,6 @@
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { creerBaseD1 } from '../src/base.ts';
 import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur } from '../src/droits.ts';
 import { attribution, equipe, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -194,5 +196,43 @@ describe('droitsDe', () => {
 		const droits = await droitsDe(base, { type: 'super', email: 'a@b.fr' }, aujourdhui);
 		expect(droits).toHaveLength(28);
 		expect(droits.every((d) => d.perimetre.type === 'centre')).toBe(true);
+	});
+});
+
+describe('droitsDe : lus une fois par requête', () => {
+	it('relire les mêmes droits ne coûte aucune requête ; une autre date les relit', async () => {
+		const { base, agent, nouvelle } = await jeuDeDonnees();
+		const id = await nouvelle('a@x.fr', agent.id);
+		const premiere = await droitsDe(base, personneActeur(id), aujourdhui);
+		const avant = base.requetes;
+		expect(await droitsDe(base, personneActeur(id), aujourdhui)).toEqual(premiere);
+		expect(await aLeDroit(base, personneActeur(id), 'VOIR_PLANNING', centre, aujourdhui)).toBe(true);
+		expect(base.requetes).toBe(avant);
+		await droitsDe(base, personneActeur(id), '2026-10-26');
+		expect(base.requetes).toBeGreaterThan(avant);
+	});
+
+	it('toute écriture, seule ou en batch, fait relire les droits', async () => {
+		const { base, agent, chefCentre, nouvelle, attribuer } = await jeuDeDonnees();
+		const id = await nouvelle('a@x.fr', agent.id);
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_ACCES', centre, aujourdhui)).toBe(false);
+		await attribuer(id, chefCentre.id, centre, '2026-01-01');
+		expect(await aLeDroit(base, personneActeur(id), 'GERER_ACCES', centre, aujourdhui)).toBe(true);
+		await base.batch([base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, id))]);
+		expect(await droitsDe(base, personneActeur(id), aujourdhui)).toEqual([]);
+	});
+
+	it('avec D1 aussi : une écriture fait relire les droits', async () => {
+		const envoyees: string[] = [];
+		const instruction = { bind: () => instruction, raw: async () => [], all: async () => ({ results: [] }), run: async () => ({ results: [], meta: {} }) };
+		const d1 = { prepare: (sql: string) => (envoyees.push(sql), instruction), batch: async () => [] } as unknown as D1Database;
+		const base = creerBaseD1(d1);
+		const lectures = () => envoyees.filter((sql) => sql.startsWith('select')).length;
+		await droitsDe(base, personneActeur(1), aujourdhui);
+		await droitsDe(base, personneActeur(1), aujourdhui);
+		expect(lectures()).toBe(1);
+		await base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, 1));
+		await droitsDe(base, personneActeur(1), aujourdhui);
+		expect(lectures()).toBe(2);
 	});
 });
