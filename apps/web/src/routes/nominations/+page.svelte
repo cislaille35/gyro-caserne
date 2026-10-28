@@ -40,8 +40,11 @@
 	});
 
 	const agents = $derived(data.agents.map((a) => ({ valeur: String(a.id), libelle: `${a.nom} (${a.equipe})` })));
+	// Rouvert par l'agent, le volet repart à neuf : la réponse déjà vue (erreurs, saisie) ne s'y affiche plus.
+	let vue = $state.raw<typeof form>(null);
+	const pourVolet = (cible: string) => concerne(cible) && form !== vue;
 	// La saisie réaffichée ne vaut que pour le rôle qui l'a produite.
-	const saisie = (cible: string, cle: string, defaut: string) => (concerne(cible) ? (form?.valeurs?.[cle] ?? defaut) : defaut);
+	const saisie = (cible: string, cle: string, defaut: string) => (pourVolet(cible) ? (form?.valeurs?.[cle] ?? defaut) : defaut);
 
 	const focaliser = async (...ids: string[]) => {
 		await tick();
@@ -54,6 +57,7 @@
 	const ouvrirNommer = (e: MouseEvent, role: number) => {
 		e.preventDefault();
 		retirer = null;
+		vue = form;
 		nommer = role;
 	};
 	const fermerNommer = (role: number) => {
@@ -79,9 +83,16 @@
 		focaliser(`titulaire-${titulaire}`);
 	};
 
+	// Après un refus, le focus va au premier champ en erreur de la zone, sinon à son message.
+	const focaliserErreur = async (zone: string) => {
+		await tick();
+		const conteneur = document.getElementById(zone);
+		(conteneur?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? conteneur?.querySelector<HTMLElement>('[role="alert"]'))?.focus();
+	};
+
 	// Une seule soumission à la fois par formulaire ; après une réussite, le focus revient dans la carte.
 	let envoi = $state<string | null>(null);
-	const surEnvoi = (cible: string, apres: string[]) => () => {
+	const surEnvoi = (cible: string, apres: string[], zone: string) => () => {
 		envoi = cible;
 		return async ({ update, result }: { update: () => Promise<void>; result: { type: string } }) => {
 			try {
@@ -90,6 +101,7 @@
 				envoi = null;
 			}
 			if (result.type === 'success') focaliser(...apres);
+			else if (result.type === 'failure') focaliserErreur(zone);
 		};
 	};
 </script>
@@ -118,7 +130,7 @@
 		{#each visibles as r (r.responsabiliteId)}
 			{@const id = r.responsabiliteId}
 			{@const cible = `attribuer-${id}`}
-			{@const erreurs = concerne(cible) ? (form?.erreurs ?? {}) : {}}
+			{@const erreurs = pourVolet(cible) ? (form?.erreurs ?? {}) : {}}
 			{@const message = annonce(id)}
 			<section class="carte" aria-labelledby="role-{id}">
 				<div class="tete">
@@ -157,16 +169,16 @@
 					{@const terminer = `terminer-${t.id}`}
 					{@const finir = `finir-${t.id}`}
 					{@const refus = (concerne(terminer) || concerne(finir)) && !form?.succes ? (form?.erreurs?.confirmation ?? form?.message) : null}
-					<div class="etape" role="group" aria-labelledby="retrait-{t.id}">
+					<div id="etape-{t.id}" class="etape" role="group" aria-labelledby="retrait-{t.id}">
 						<p id="retrait-{t.id}" tabindex="-1"><strong>Retirer {intitule(t)} ?</strong> <span class="note">Rôle tenu {periode(t)}.</span></p>
-						{#if refus}<p class="echec" role="alert">{refus}</p>{/if}
-						<form method="POST" action="?/terminer" use:enhance={surEnvoi(terminer, [`role-${id}`])}>
+						{#if refus}<p class="echec" role="alert" tabindex="-1">{refus}</p>{/if}
+						<form method="POST" action="?/terminer" use:enhance={surEnvoi(terminer, [`role-${id}`], `etape-${t.id}`)}>
 							<input type="hidden" name="attributionId" value={t.id} />
 							<input type="hidden" name="responsabiliteId" value={id} />
 							<input type="hidden" name="confirmation" value="oui" />
 							<Bouton type="submit" desactive={envoi === terminer}>Confirmer le retrait</Bouton>
 						</form>
-						<form method="POST" action="?/finir" class="finir" use:enhance={surEnvoi(finir, [`titulaire-${t.id}`, `role-${id}`])}>
+						<form method="POST" action="?/finir" class="finir" use:enhance={surEnvoi(finir, [`titulaire-${t.id}`, `role-${id}`], `etape-${t.id}`)}>
 							<input type="hidden" name="attributionId" value={t.id} />
 							<input type="hidden" name="responsabiliteId" value={id} />
 							<Champ
@@ -186,6 +198,7 @@
 				{#if nommer === id}
 					{@const datesEnCause = Boolean(erreurs.debut || erreurs.fin)}
 					<dialog
+						id="volet-{id}"
 						class="volet"
 						open
 						aria-labelledby="titre-nommer-{id}"
@@ -195,10 +208,10 @@
 						{@attach enFenetre}
 					>
 						<h3 id="titre-nommer-{id}">Nommer : {r.nom}</h3>
-						<div role="alert">
-							{#if concerne(cible) && !form?.succes && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+						<div role="alert" tabindex="-1">
+							{#if pourVolet(cible) && !form?.succes && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 						</div>
-						<form method="POST" action="?/attribuer" use:enhance={surEnvoi(cible, [`nommer-${id}`])}>
+						<form method="POST" action="?/attribuer" use:enhance={surEnvoi(cible, [`nommer-${id}`], `volet-${id}`)}>
 							<input type="hidden" name="responsabiliteId" value={id} />
 							<Choix id="agent-{id}" name="personneId" libelle="Agent" valeur={saisie(cible, 'personneId', '')} options={[{ valeur: '', libelle: 'Choisissez un agent' }, ...agents]} erreur={erreurs.personneId} />
 							{#if r.portee === 'centre'}

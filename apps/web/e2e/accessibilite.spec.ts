@@ -278,7 +278,8 @@ test.describe('agents', () => {
 		await page.getByRole('link', { name: nom, exact: true }).click();
 		await expect(page).toHaveURL(/\/agents\/\d+\?.*filtre=a-completer/);
 		await expect(page.getByRole('heading', { level: 1, name: nom })).toBeVisible();
-		await expect(filtre).toHaveAttribute('aria-pressed', 'true');
+		// Sur téléphone, la liste est cachée derrière la fiche : le filtre y reste choisi.
+		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
 		await page.context().close();
 	});
 
