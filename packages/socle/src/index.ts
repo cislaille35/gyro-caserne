@@ -19,3 +19,4 @@ export { iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
 export { MODELES, type Modele } from './modeles.ts';
 export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
+export { exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';

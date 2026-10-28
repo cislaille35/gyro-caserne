@@ -23,22 +23,33 @@ const present = ne(personne.statut, 'parti');
 
 const parNom = (a: { nom: string }, b: { nom: string }) => a.nom.localeCompare(b.nom, 'fr');
 
+// Rôles tenus aujourd'hui par une personne (non archivés), à passer à un batch ; `nomme` : le rôle donne ATTRIBUER_RESPONSABILITE (rapporteur d'un comité).
+// Partagé avec les murs (murs.ts).
+export function requeteTenues(base: Base, personneId: number, aujourdhui: string) {
+	return base
+		.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele, nomme: responsabiliteDroit.droit })
+		.from(attribution)
+		.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
+		.leftJoin(responsabiliteDroit, and(eq(responsabiliteDroit.responsabiliteId, attribution.responsabiliteId), eq(responsabiliteDroit.droit, 'ATTRIBUER_RESPONSABILITE')))
+		.where(and(eq(attribution.personneId, personneId), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui)));
+}
+
+// Une attribution hors du type de périmètre de sa responsabilité ne compte pas (comme pour les droits).
+export function tenuesValides<L extends { type: string; portee: string }>(lignes: L[]): L[] {
+	return lignes.filter((l) => l.type === l.portee);
+}
+
 // Les casquettes tenues, sans leur compte : une seule requête.
 async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<Omit<Casquette, 'compte'>[]> {
 	const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile' as const };
 	if (acteur.type === 'super') return [centre];
 
 	const [lignes, equipes, comites] = await base.batch([
-		base
-			.select({ responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, portee: responsabilite.typePerimetre, nom: responsabilite.nom, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele })
-			.from(attribution)
-			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
-			.where(and(eq(attribution.personneId, acteur.id), isNull(responsabilite.archiveeLe), enCoursLe(aujourdhui))),
+		requeteTenues(base, acteur.id, aujourdhui),
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom))
 	]);
-	// Une attribution hors du type de périmètre de sa responsabilité ne compte pas (comme pour les droits).
-	const valides = lignes.filter((l) => l.type === l.portee);
+	const valides = tenuesValides(lignes);
 	const tient = (garde: (l: (typeof valides)[number]) => boolean) => valides.some(garde);
 
 	const referents = new Map<number, { nom: string; icone: NomIcone }>();

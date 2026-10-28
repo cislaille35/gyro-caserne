@@ -52,6 +52,14 @@ export const STATUTS_AVEC_ACCES = ['operationnel', 'stagiaire', 'inapte_temporai
 
 export const NATURES_RESPONSABILITE = ['fonction', 'mission'] as const;
 
+export const TYPES_PUBLICATION = ['message', 'annonce', 'evenement', 'bravo'] as const;
+export type TypePublication = (typeof TYPES_PUBLICATION)[number];
+
+export const REPONSES_EVENEMENT = ['present', 'absent', 'incertain'] as const;
+export type ReponseEvenement = (typeof REPONSES_EVENEMENT)[number];
+
+export const TYPES_PHOTO = ['image/jpeg', 'image/webp'] as const;
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 
