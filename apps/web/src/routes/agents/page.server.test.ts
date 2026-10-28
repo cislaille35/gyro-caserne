@@ -48,7 +48,7 @@ describe('load de /agents', () => {
 			['Partis', ['Zoé']]
 		]);
 		expect(data.groupes[0].personnes[0]).toMatchObject({ email: 'alice@exemple.fr', statut: 'operationnel', aCompleter: true });
-		expect(data.comptes).toEqual({ 'a-completer': 2, indisponibles: 1, partis: 1 });
+		expect(data.comptes).toEqual({ 'a-completer': 2, indisponibles: 0, partis: 1 });
 		expect(data.filtres).toEqual({ texte: '', filtre: '' });
 	});
 
@@ -56,8 +56,9 @@ describe('load de /agents', () => {
 		const { base } = await preparer();
 		const prenoms = (data: { groupes: { personnes: { prenom: string }[] }[] }) => data.groupes.flatMap((g) => g.personnes.map((p) => p.prenom));
 		expect(prenoms(await appeler({ acteur: super_, base }, '?texte=bob'))).toEqual(['Bob']);
+		// Un stagiaire part en intervention : il n'est pas indisponible.
 		const indispo = await appeler({ acteur: super_, base }, '?filtre=indisponibles');
-		expect(prenoms(indispo)).toEqual(['Bob']);
+		expect(prenoms(indispo)).toEqual([]);
 		expect(indispo.filtres).toEqual({ texte: '', filtre: 'indisponibles' });
 		const partis = await appeler({ acteur: super_, base }, '?texte=zo&filtre=partis');
 		expect(prenoms(partis)).toEqual(['Zoé']);

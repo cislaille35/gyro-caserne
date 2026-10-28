@@ -24,18 +24,20 @@
 					{ valeur: '', libelle: 'Tous' },
 					{ valeur: 'a-completer', libelle: `À compléter (${data.comptes['a-completer']})` },
 					{ valeur: 'indisponibles', libelle: `Indisponibles (${data.comptes.indisponibles})` },
-					{ valeur: 'partis', libelle: 'Partis' }
+					{ valeur: 'partis', libelle: `Partis (${data.comptes.partis})` }
 				]
 			: []
 	);
 </script>
 
 {#snippet agent(p: Personne)}
-	<li class="agent">
+	{@const courant = page.url.pathname === `/agents/${p.id}`}
+	<li class="agent" class:courant>
 		<Initiales prenom={p.prenom} nom={p.nom} />
 		<span class="identite">
 			{#if data.gestion}
-				<a class="nom" href="/agents/{p.id}" aria-current={page.url.pathname === `/agents/${p.id}` ? 'page' : undefined}>{p.prenom} {p.nom}</a>
+				<!-- La liste garde sa recherche et son filtre à côté de la fiche. -->
+				<a class="nom" href="/agents/{p.id}{page.url.search}" aria-current={courant ? 'page' : undefined}>{p.prenom} {p.nom}</a>
 			{:else}
 				<span class="nom">{p.prenom} {p.nom}</span>
 			{/if}
@@ -83,7 +85,11 @@
 		{/if}
 
 		{#each data.groupes as g (g.titre)}
-			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={g.equipe?.chefs.length === 0} ouvert={ouvert(g.titre)}>
+			{@const sansChef = g.equipe?.chefs.length === 0}
+			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.titre)}>
+				{#snippet action()}
+					{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="cache">un chef pour {g.titre}</span></a>{/if}
+				{/snippet}
 				<ul>
 					{#each g.personnes as p (p.id)}{@render agent(p)}{/each}
 				</ul>
@@ -245,8 +251,20 @@
 		outline: 3px solid var(--focus);
 		outline-offset: -3px;
 	}
-	.agent:has(a[aria-current='page']) {
+	/* L'agent affiché : fond, liseré et nom en gras, pas la couleur seule. */
+	.courant {
 		background: var(--statut-neutre-fond);
+		box-shadow: inset 4px 0 0 var(--encre);
+	}
+	.courant .nom {
+		font-weight: 800;
+	}
+	.nommer {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
+		padding: 0 14px;
+		font-weight: 600;
 	}
 	.etat {
 		display: flex;

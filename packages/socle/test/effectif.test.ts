@@ -218,7 +218,7 @@ describe('estGestionnaire et listeGestion', () => {
 		expect(await noms('paul.bernard@EXEMPLE')).toEqual(['Bernard']);
 	});
 
-	it('filtre : à compléter (sans grade ou sans date d’entrée, hors partis et extérieurs), indisponibles, partis ; et les compte', async () => {
+	it('filtre : à compléter (sans grade ou sans date d’entrée, hors partis et extérieurs), indisponibles (inaptes et suspendus, pas les stagiaires), partis ; et les compte', async () => {
 		const { base, profilExt, nouvelle } = await jeu();
 		await nouvelle('Complet', 'Ok', { equipeId: 1 });
 		await nouvelle('Sans', 'Grade', { equipeId: 1, sansGrade: true });
@@ -227,6 +227,7 @@ describe('estGestionnaire et listeGestion', () => {
 		await nouvelle('Gone', 'Away', { statut: 'parti', entreeCentre: null });
 		await nouvelle('Stag', 'Iaire', { statut: 'stagiaire' });
 		await nouvelle('Sus', 'Pendu', { statut: 'suspendu', equipeId: 1 });
+		await nouvelle('In', 'Apte', { statut: 'inapte_temporaire' });
 		const liste = (filtre?: 'a-completer' | 'indisponibles' | 'partis') => listeGestion(base, superAdmin, { filtre }, aujourdhui);
 		expect(titresEtNoms(await liste('a-completer'))).toEqual([
 			['Équipe 1', ['Grade']],
@@ -234,7 +235,7 @@ describe('estGestionnaire et listeGestion', () => {
 		]);
 		expect(titresEtNoms(await liste('indisponibles'))).toEqual([
 			['Équipe 1', ['Pendu']],
-			['Sans équipe', ['Iaire']]
+			['Sans équipe', ['Apte']]
 		]);
 		expect(titresEtNoms(await liste('partis'))).toEqual([['Partis', ['Away']]]);
 		const tous = await liste();

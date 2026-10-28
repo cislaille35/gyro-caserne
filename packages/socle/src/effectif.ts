@@ -133,7 +133,8 @@ export async function vueEffectif(base: Base, aujourdhui: string) {
 	return ranger(base, aujourdhui, presentes, ({ id, prenom, nom, grade }) => ({ id, prenom, nom, grade, roles: roles.get(id) ?? [] }));
 }
 
-const indisponible = (statut: StatutOperationnel) => statut !== 'operationnel' && statut !== 'parti';
+// Un stagiaire part en intervention : seuls l'inapte temporaire et le suspendu sont indisponibles.
+const indisponible = (statut: StatutOperationnel) => statut === 'inapte_temporaire' || statut === 'suspendu';
 
 export async function listeGestion(base: Base, acteur: Acteur, filtres: { texte?: string; filtre?: FiltreGestion }, aujourdhui: string): Promise<ListeGestion> {
 	await exigerGestionnaire(base, acteur, aujourdhui);

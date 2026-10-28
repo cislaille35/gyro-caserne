@@ -65,6 +65,7 @@ describe('/agents : vue de tous', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">1 agent · sans chef d’équipe</);
 		expect(mise.match(/class="resume[^"]*alerte/g)).toHaveLength(1);
+		expect(mise).not.toContain('/nominations');
 	});
 
 	it('montre nom, grade et rôles, sans statut, e-mail, filtres ni lien vers la fiche', () => {
@@ -118,6 +119,23 @@ describe('/agents : gestion', () => {
 		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">2 agents · sans chef d’équipe</);
 	});
 
+	it('propose « Nommer » à côté d’une équipe sans chef', () => {
+		const mise = html(Layout, { data: gestion(), children: enfants });
+		expect(mise).toMatch(/<a[^>]*href="\/nominations"[^>]*>Nommer <span class="cache[^"]*">un chef pour Équipe 1<\/span><\/a>/);
+		expect(mise.match(/href="\/nominations"/g)).toHaveLength(1);
+	});
+
+	it('garde la recherche et le filtre dans le lien vers la fiche', () => {
+		Object.assign(etat.page, { url: new URL('http://x/agents?texte=mar&filtre=partis') });
+		try {
+			const mise = html(Layout, { data: gestion({ filtres: { texte: 'mar', filtre: 'partis' } }), children: enfants });
+			expect(mise).toContain('href="/agents/5?texte=mar&amp;filtre=partis"');
+			expect(boutonDuGroupe(mise, 'Partis')).toBe('true');
+		} finally {
+			Object.assign(etat.page, { url: new URL('http://x/agents') });
+		}
+	});
+
 	it('replie les partis, sauf s’ils sont filtrés ou cherchés', () => {
 		expect(boutonDuGroupe(html(Layout, { data: gestion(), children: enfants }), 'Équipe 1')).toBe('true');
 		expect(boutonDuGroupe(html(Layout, { data: gestion(), children: enfants }), 'Partis')).toBe('false');
@@ -135,7 +153,7 @@ describe('/agents : gestion', () => {
 		expect(pastille('Tous')).toBe('false');
 		expect(pastille('À compléter \\(1\\)')).toBe('true');
 		expect(pastille('Indisponibles \\(1\\)')).toBe('false');
-		expect(pastille('Partis')).toBe('false');
+		expect(pastille('Partis \\(1\\)')).toBe('false');
 		expect(html(Layout, { data: gestion(), children: enfants })).toMatch(/aria-pressed="true"[^>]*>Tous/);
 	});
 
@@ -150,6 +168,9 @@ describe('/agents : gestion', () => {
 			expect(mise).toMatch(/class="liste[^"]*masquee/);
 			expect(mise).toMatch(/<a[^>]*href="\/agents\/2"[^>]*aria-current="page"|<a[^>]*aria-current="page"[^>]*href="\/agents\/2"/);
 			expect(mise.match(/aria-current="page"/g)).toHaveLength(1);
+			// Pas la couleur seule : la ligne porte aussi un repère (liseré, gras).
+			expect(mise).toMatch(/<li class="agent[^"]*courant[^"]*">[\s\S]*?Paul Durand/);
+			expect(mise.match(/courant/g)).toHaveLength(1);
 		} finally {
 			Object.assign(etat.page, { url: new URL('http://x/agents') });
 		}
