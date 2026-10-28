@@ -42,7 +42,8 @@ export type PublicationVue = {
 	commentaires: number;
 	jaimeParMoi: boolean;
 	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
-	sondage: { question: string; reponses: string[]; resultats: number[]; vote: number | null } | null;
+	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs.
+	sondage: { question: string; reponses: string[]; resultats: number[] | null; vote: number | null } | null;
 	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait.
 	priseDeConnaissance: { le: string | null } | null;
 	// Les 2 derniers, du plus ancien au plus récent.
@@ -306,6 +307,8 @@ async function vuesDe(
 		const sesVotes = votes.filter((v) => v.publicationId === p.id);
 		const choix: string[] = p.sondageReponses ? JSON.parse(p.sondageReponses) : [];
 		const convoques: Convoques = JSON.parse(p.convoques ?? '"tous"');
+		const droits = droitsSur(acteur, mur, p);
+		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
@@ -337,15 +340,15 @@ async function vuesDe(
 					: {
 							question: p.sondageQuestion,
 							reponses: choix,
-							resultats: choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0),
-							vote: sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null
+							resultats: monVote !== null || droits.supprimer ? choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0) : null,
+							vote: monVote
 						},
 			priseDeConnaissance: p.priseDeConnaissance === 1 ? { le: prises.find((x) => x.publicationId === p.id)?.le ?? null } : null,
 			derniersCommentaires: vusCommentaires
 				.filter((c) => c.publicationId === p.id)
 				.slice(-2)
 				.map(({ publicationId: _, ...c }) => c),
-			droits: droitsSur(acteur, mur, p)
+			droits
 		};
 	};
 	return lignes.map(vue);

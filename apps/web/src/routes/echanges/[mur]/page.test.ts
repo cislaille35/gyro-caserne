@@ -178,6 +178,13 @@ describe('gestes sur une publication', () => {
 		expect(apres).toContain('Changer mon vote');
 		// Sans pouvoir voter : les résultats.
 		expect(html({ publications: [pub({ sondage })] })).toContain('Oui : 3 voix, 75 %');
+		// Résultats non transmis (pas encore voté) : ni voix ni nombre de réponses.
+		const cache = { ...sondage, resultats: null };
+		expect(agir(pub({ sondage: cache }))).toContain('action="?/voter"');
+		expect(agir(pub({ sondage: cache }))).not.toContain('0 réponse');
+		const lecture = html({ publications: [pub({ sondage: cache })] });
+		expect(lecture).toContain('Les résultats sont réservés à ceux qui ont voté.');
+		expect(lecture).not.toContain('voix');
 	});
 
 	it('prise de connaissance : bouton, puis la date', () => {

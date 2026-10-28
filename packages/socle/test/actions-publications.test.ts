@@ -368,6 +368,20 @@ describe('lireMur', () => {
 		expect(vueChef.evenement!.reponse).toBe('incertain');
 	});
 
+	it('résultats du sondage : seulement à qui a voté, à l’auteur et aux modérateurs', async () => {
+		const { base, agent, autre, chef, nouvelle } = await jeu();
+		const tiers = await nouvelle('Tiers');
+		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		await base.insert(voteSondage).values({ publicationId: id, personneId: autre, reponse: 1 });
+		const sondage = async (qui: Acteur) => (await lireMur(base, qui, 'vie', {}, maintenant)).publications[0]!.sondage!;
+		expect(await sondage(acteur(autre))).toMatchObject({ resultats: [0, 1], vote: 1 });
+		expect(await sondage(acteur(agent))).toMatchObject({ resultats: [0, 1], vote: null });
+		expect(await sondage(acteur(chef))).toMatchObject({ resultats: [0, 1] });
+		expect(await sondage(superAdmin)).toMatchObject({ resultats: [0, 1] });
+		expect(await sondage(acteur(tiers))).toEqual({ question: 'Pizza ?', reponses: ['Oui', 'Non'], resultats: null, vote: null });
+		expect((await lirePublication(base, acteur(tiers), id, maintenant)).publication.sondage!.resultats).toBeNull();
+	});
+
 	it('convoqué : « tous » ou son équipe en cours ; jamais le super administrateur', async () => {
 		const { base, agent, autre, chef, affecter, e1, e2 } = await jeu();
 		await affecter(agent, e1.id);

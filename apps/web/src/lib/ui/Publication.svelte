@@ -38,7 +38,7 @@
 		!p.evenement || p.evenement.convoques === 'tous' ? 'tout le mur' : p.evenement.convoques.map((id) => equipes.find((e) => e.id === id)?.nom ?? 'équipe archivée').join(', ')
 	);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-	const total = $derived(p.sondage ? p.sondage.resultats.reduce((a, b) => a + b, 0) : 0);
+	const total = $derived(p.sondage?.resultats ? p.sondage.resultats.reduce((a, b) => a + b, 0) : 0);
 	const pourcent = (n: number) => (total === 0 ? 0 : Math.round((n * 100) / total));
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);
@@ -97,6 +97,8 @@
 						{/each}
 					</div>
 				</form>
+			{:else if !p.sondage.resultats}
+				<p class="doux">Les résultats sont réservés à ceux qui ont voté.</p>
 			{:else}
 				<ul class="resultats">
 					{#each p.sondage.reponses as reponse, i (i)}
@@ -121,7 +123,7 @@
 					</details>
 				{/if}
 			{/if}
-			<p class="doux">{pluriel(total, 'réponse')}</p>
+			{#if p.sondage.resultats}<p class="doux">{pluriel(total, 'réponse')}</p>{/if}
 		</div>
 	{/if}
 

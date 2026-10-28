@@ -29,7 +29,7 @@ Un texte, jusqu'à 4 photos, et un **type** :
 - **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** ;
 - **Bravo** : une réussite (examen, compétition).
 
-En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne. Les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; on peut changer son vote.
+En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne. Les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; l'auteur et les modérateurs les voient toujours. Ils ne sont même pas envoyés au téléphone de qui n'a pas voté. On peut changer son vote.
 
 Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
 
