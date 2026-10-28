@@ -8,6 +8,8 @@
 
 	const c = $derived(data.comite);
 	const concerne = (cible: string) => form?.cible === cible;
+	// Un bloc s'ouvre seulement s'il est visé ; sinon aucun attribut open n'est posé, et l'hydratation ne referme pas ce que l'agent a ouvert.
+	const ouvert = (cible: string) => (concerne(cible) && !form?.succes ? { open: true } : {});
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
 	const saisie = (champ: 'nom' | 'theme', defaut: string) => (concerne('comite') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
@@ -64,7 +66,7 @@
 	{#if c.estCentre}
 		<p class="aide">Le comité du centre ne se dissout pas.</p>
 	{:else}
-		<details class="pli" open={concerne('dissoudre') && !form?.succes ? true : undefined}>
+		<details class="pli" {...ouvert('dissoudre')}>
 			<summary>Dissoudre le comité</summary>
 			{@render retour('dissoudre')}
 			<form method="POST" action="?/dissoudre" class="formulaire">

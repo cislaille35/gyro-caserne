@@ -49,6 +49,8 @@
 	}
 
 	const concerne = (cible: string) => form?.cible === cible;
+	// Un bloc s'ouvre seulement s'il est visé ; sinon aucun attribut open n'est posé, et l'hydratation ne referme pas ce que l'agent a ouvert.
+	const ouvert = (cible: string) => (concerne(cible) && !form?.succes ? { open: true } : {});
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
 	const saisie = (champ: 'nom' | 'nature' | 'portee' | 'attributeur', defaut: string) => (concerne('role') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
 	const porteeLibelle = $derived(PORTEES.find((p) => p.valeur === role.portee)?.libelle ?? role.portee);
@@ -144,7 +146,7 @@
 <!-- Sans JavaScript, « Revenir au modèle » et « Tout revenir » envoient ce formulaire. -->
 {#if !lectureSeule}<form id="revenir" method="POST" action="?/revenir"></form>{/if}
 
-<details class="pli" open={concerne('detail') && !form?.succes ? true : undefined}>
+<details class="pli" {...ouvert('detail')}>
 	<summary>Détail droit par droit</summary>
 	{@render retour('detail')}
 	{#if lectureSeule}
@@ -171,7 +173,7 @@
 </details>
 
 {#if !lectureSeule}
-	<details class="pli" open={concerne('archiver') && !form?.succes ? true : undefined}>
+	<details class="pli" {...ouvert('archiver')}>
 		<summary>Archiver le rôle</summary>
 		{@render retour('archiver')}
 		<form method="POST" action="?/archiver" class="formulaire-detail">
