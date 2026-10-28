@@ -254,6 +254,21 @@ describe('modifier, supprimer, épingler, fermer', () => {
 		expect((await base.select().from(publication))[0]!.epinglee).toBe(0);
 	});
 
+	it('épingler : dix épinglées au plus par mur, sinon refus', async () => {
+		const { base, agent, chef } = await jeu();
+		await base.insert(publication).values(Array.from({ length: 10 }, (_, i) => ({ mur: 'vie', auteur: `personne:${agent}`, type: 'message' as const, texte: `n° ${i}`, creeLe: maintenant, epinglee: 1 })));
+		const [premiere] = await base.select().from(publication);
+		const onzieme = await publier(base, acteur(agent), 'vie', message(), maintenant);
+		const ailleurs = await publier(base, acteur(chef), 'centre', message(), maintenant);
+		await expect(epingler(base, acteur(chef), onzieme, true, maintenant)).rejects.toThrow('Dix publications sont déjà épinglées : désépinglez-en une d’abord');
+		// Une déjà épinglée le reste ; un autre mur n'est pas concerné.
+		await epingler(base, acteur(chef), premiere!.id, true, maintenant);
+		await epingler(base, acteur(chef), ailleurs, true, maintenant);
+		await epingler(base, acteur(chef), premiere!.id, false, maintenant);
+		await epingler(base, acteur(chef), onzieme, true, maintenant);
+		expect((await base.select().from(publication).where(eq(publication.id, onzieme)))[0]!.epinglee).toBe(1);
+	});
+
 	it('commentaires : l’auteur ou un modérateur ferme, seul un modérateur rouvre', async () => {
 		const { base, agent, autre, chef } = await jeu();
 		const id = await publier(base, acteur(agent), 'vie', message(), maintenant);

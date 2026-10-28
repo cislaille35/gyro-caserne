@@ -169,8 +169,13 @@ export async function supprimerPublication(base: Base, acteur: Acteur, id: numbe
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
-	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
+	const { ligne, cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (!droits.epingler) throw refusMur(cle, 'moderer');
+	// Au-delà de dix, une épinglée ne serait plus affichée : on refuse plutôt que de la cacher.
+	if (oui && ligne.epinglee === 0) {
+		const [{ n }] = (await base.select({ n: count() }).from(publication).where(and(eq(publication.mur, cle), eq(publication.epinglee, 1)))) as [{ n: number }];
+		if (n >= EPINGLEES_MAX) throw new DonneeInvalide('Dix publications sont déjà épinglées : désépinglez-en une d’abord');
+	}
 	await base.batch([base.update(publication).set({ epinglee: oui ? 1 : 0 }).where(eq(publication.id, id)), journalPublication(base, acteur, oui ? 'epingler' : 'desepingler', id, maintenant)]);
 }
 

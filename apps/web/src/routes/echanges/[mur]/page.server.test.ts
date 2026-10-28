@@ -146,6 +146,17 @@ describe('modération', () => {
 		expect(await base.select().from(journal).where(eq(journal.action, 'supprimer_publication'))).toHaveLength(1);
 	});
 
+	it('onzième épingle refusée, message sous la publication', async () => {
+		const { base, chef } = await preparer();
+		for (let i = 0; i < 10; i++) await publier(base, chef, 'vie', { type: 'message', texte: `n°${i}` }, maintenantParis());
+		await base.update(publication).set({ epinglee: 1 });
+		const id = String(await publier(base, chef, 'vie', { type: 'message', texte: 'Onzième' }, maintenantParis()));
+		expect(await agir('epingler', locaux(base, chef), 'vie', [['id', id], ['oui', '1']])).toMatchObject({
+			status: 400,
+			data: { cible: `publication:${id}`, message: 'Dix publications sont déjà épinglées : désépinglez-en une d’abord' }
+		});
+	});
+
 	it('une publication d’un autre mur que celui de l’adresse, ou inconnue : 404', async () => {
 		const { base, chef, alice, bruno, e2 } = await preparer();
 		const id = String(await publier(base, bruno, `equipe:${e2.id}`, { type: 'message', texte: 'Équipe 2' }, maintenantParis()));
