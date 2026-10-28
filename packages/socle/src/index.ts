@@ -15,5 +15,7 @@ export { dateFichier, dateIso, donneesFichier, ENTETES, LIBELLES_STATUT, type Do
 export { estGestionnaire, ficheAgent, listeGestion, vueEffectif, type FicheAgent, type LigneGestion } from './effectif.ts';
 export { creerComite, dissoudreComite, listerComites, modifierComite } from './actions/comites.ts';
 export { archiverResponsabilite, creerResponsabilite, listerResponsabilites, modifierResponsabilite, type Attributeur } from './actions/responsabilites.ts';
-export { NOMS_ICONES, type NomIcone } from './icones.ts';
+export { iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
+export { MODELES, type Modele } from './modeles.ts';
+export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';

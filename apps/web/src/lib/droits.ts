@@ -14,7 +14,7 @@ export const LIBELLES_DROIT: Record<Droit, string> = {
 	FAIRE_PRISE_DE_GARDE: 'Faire la prise de garde',
 	PRENDRE_EN_CHARGE_ANOMALIE: 'Prendre en charge une anomalie',
 	TRAITER_ANOMALIE: 'Traiter une anomalie',
-	GERER_FICHES: 'Gérer les fiches des agents',
+	GERER_FICHES: 'Gérer les fiches de prise de garde',
 	GERER_STOCK: 'Gérer le stock',
 	GERER_PLANNING: 'Gérer le planning',
 	VALIDER_REMPLACEMENT: 'Valider un remplacement',

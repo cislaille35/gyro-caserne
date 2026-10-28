@@ -1,0 +1,79 @@
+<script lang="ts">
+	import { untrack } from 'svelte';
+	import type { Droit } from '@gyro-caserne/socle';
+	import { DOMAINES, niveauxDe } from '#lib/paquets.ts';
+	import BarreActions from '#lib/ui/BarreActions.svelte';
+	import Bouton from '#lib/ui/Bouton.svelte';
+	import IconeRole from '#lib/ui/IconeRole.svelte';
+	import Domaines from '../../Domaines.svelte';
+
+	let { data, form } = $props();
+
+	const droits = $derived(data.profil.droits as Droit[]);
+	let choix = $state(untrack(() => niveauxDe(droits)));
+	$effect.pre(() => {
+		choix = niveauxDe(droits);
+	});
+	const depart = $derived(niveauxDe(droits));
+	const modifies = $derived(DOMAINES.filter((d) => choix[d.id] !== depart[d.id]).length);
+	const message = $derived(modifies === 0 ? '' : modifies === 1 ? '1 domaine modifié, pas encore enregistré' : `${modifies} domaines modifiés, pas encore enregistrés`);
+</script>
+
+<svelte:head>
+	<title>{data.profil.nom} · Réglages · Gyro Caserne</title>
+</svelte:head>
+
+<header class="titre">
+	<IconeRole icone="casque" taille={48} />
+	<div>
+		<h1>{data.profil.nom}</h1>
+		<p class="sous-titre">Profil · {data.profil.typePersonne === 'agent' ? 'agents du centre' : 'personnes extérieures'}</p>
+	</div>
+</header>
+
+<div role="alert">
+	{#if form?.message}<p class="echec">{form.message}</p>{/if}
+</div>
+<div role="status">
+	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
+</div>
+
+<p class="intro">Ce que ce profil donne à chaque personne qui l’a, domaine par domaine. Les droits de base (voir le planning, l’annuaire…) ne se règlent pas ici.</p>
+
+<form method="POST" class="formulaire">
+	<Domaines droits={droits} bind:choix profil />
+	<BarreActions {message}>
+		<Bouton type="submit">Enregistrer</Bouton>
+	</BarreActions>
+</form>
+
+<style>
+	.titre {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	h1,
+	p {
+		margin: 0;
+	}
+	.sous-titre,
+	.intro {
+		color: var(--doux);
+	}
+	.formulaire {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.echec,
+	.succes {
+		padding: 12px 16px;
+		border-radius: var(--rayon-petit);
+		border: 2px solid var(--accent);
+		font-weight: 600;
+	}
+	.succes {
+		border-color: var(--ok);
+	}
+</style>
