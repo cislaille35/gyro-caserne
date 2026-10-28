@@ -195,8 +195,8 @@ test.describe('agents', () => {
 		await statut.getByLabel('Je confirme').check();
 		await statut.getByRole('button', { name: 'Enregistrer' }).click();
 		await expect(gestion.getByText('Statut enregistré')).toBeVisible();
-		// Le statut s'affiche à côté du nom, sous le titre de la fiche.
-		await expect(gestion.getByRole('heading', { level: 1 }).locator('xpath=..')).toContainText('Parti');
+		// Le statut s'affiche à côté du nom de l'agent (sur ordinateur, la liste a aussi son titre).
+		await expect(gestion.getByRole('heading', { level: 1, name: nom }).locator('xpath=..')).toContainText('Parti');
 
 		await agent.reload();
 		await expect(agent.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible();
