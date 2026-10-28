@@ -97,6 +97,15 @@ describe('/nominations : panneau « Nommer »', () => {
 		expect(equipe).toContain('>Équipe</label>');
 	});
 
+	it('ne montre rien pour un rôle ou un titulaire absent de la page (adresse fabriquée)', () => {
+		const page = html({ data: { ...data, nommer: 99, retirer: 99 }, form: null });
+		expect(page).not.toContain('<dialog');
+		expect(page).not.toContain('?/attribuer');
+		expect(page).not.toContain('?/terminer');
+		expect(page).not.toContain('?/finir');
+		expect(page).toBe(html({ data, form: null }));
+	});
+
 	it('reste ouvert sur une erreur du serveur, affichée dans le panneau, dates dépliées si elles sont en cause', () => {
 		const form = { cible: 'attribuer-5', erreurs: { debut: 'Cette personne tient déjà ce rôle sur cette période' }, valeurs: { responsabiliteId: '5', personneId: '3', perimetre: 'centre', debut: '2026-12-01', fin: '' } };
 		const page = html({ data, form });
