@@ -177,7 +177,7 @@
 	@media (min-width: 1024px) {
 		.coquille {
 			display: grid;
-			grid-template-columns: 16rem 1fr;
+			grid-template-columns: 16rem minmax(0, 1fr);
 			grid-template-rows: auto 1fr;
 			grid-template-areas:
 				'menu entete'

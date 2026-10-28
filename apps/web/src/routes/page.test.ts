@@ -27,7 +27,11 @@ describe('accueil', () => {
 		const lienCentre = html.match(/<a[^>]*href="\?casquette=centre"[^>]*>/)![0];
 		expect(lienCentre).toContain('aria-label="Le centre, 2 en attente"');
 		expect(lienCentre).not.toContain('aria-current');
-		expect(html).toMatch(/<a[^>]*href="\?casquette=astreinte"[^>]*aria-current="page"/);
+		// « true », pas « page » : l'onglet « Accueil » porte déjà « page ».
+		expect(html).toMatch(/<a[^>]*href="\?casquette=astreinte"[^>]*aria-current="true"/);
+		expect(html).not.toMatch(/aria-current="page"/);
+		// Sans puces, VoiceOver perd la liste : rôle explicite.
+		expect(html).toMatch(/<nav[^>]*aria-label="Casquettes"[^>]*>\s*<ul[^>]*role="list"/);
 		expect(html.indexOf('Bonjour Alice')).toBeLessThan(html.indexOf('aria-label="Casquettes"'));
 	});
 
@@ -40,6 +44,7 @@ describe('accueil', () => {
 			contenu: { type: 'centre', aDecider: [{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' }] }
 		});
 		expect(html).toContain('À décider');
+		expect(html.match(/<ul[^>]*class="liste[^"]*"[^>]*>/g)!.every((ul) => ul.includes('role="list"'))).toBe(true);
 		expect(html).toMatch(/<a[^>]*href="\/nominations"[^>]*>[\s\S]*?Équipe 2 sans chef d’équipe/);
 		for (const [href, titre] of [['/agents', 'Agents'], ['/nominations', 'Nominations'], ['/reglages', 'Réglages']]) {
 			expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>[\\s\\S]*?${titre}`));

@@ -12,6 +12,11 @@ async function sansViolation(page: Page, chemin?: string) {
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 }
 
+// Marque unique d'un essai : les projets téléphone et ordinateur peuvent tomber sur la même milliseconde.
+function nouvelleMarque(): string {
+	return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 for (const theme of ['auto', 'sombre']) {
 	test.describe(`thème ${theme}`, () => {
 		test.beforeEach(async ({ context }) => {
@@ -72,7 +77,7 @@ for (const theme of ['auto', 'sombre']) {
 				await ouvrirFichier(page);
 				await sansViolation(page);
 				const modele = (await (await page.request.get('/agents/fichier/donnees?modele=1')).json()) as DonneesFichier;
-				const marque = Date.now().toString(36);
+				const marque = nouvelleMarque();
 				await deposer(page, await classeur(modele.entetes, [arrivee(modele.entetes, marque, 'Yanis')], null));
 				await expect(page.getByRole('heading', { level: 3, name: '1 arrivée' })).toBeVisible();
 				await sansViolation(page);
@@ -105,7 +110,7 @@ async function ficheDe(page: Page, nom: string): Promise<string> {
 
 // Un agent neuf de l'équipe 1, pour des tests qui ne dépendent pas les uns des autres. On finit sur sa fiche.
 async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; email: string }> {
-	const marque = Date.now().toString(36);
+	const marque = nouvelleMarque();
 	const nom = `Essai${marque}`;
 	await page.goto('/agents/nouveau');
 	await page.getByLabel('Prénom').fill('Zoé');
@@ -121,13 +126,15 @@ async function nouvelAgent(page: Page): Promise<{ nom: string; fiche: string; em
 	return { nom: `Zoé ${nom}`, fiche: new URL(page.url()).pathname, email };
 }
 
-// Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 si le rôle vise une équipe).
+// Sur /nominations, nommer l'agent au rôle dont la carte porte le nom (équipe 1 ou comité « Amicale » si le rôle en vise un).
 async function nommer(page: Page, role: string, agent: string, dates: { debut?: string; fin?: string } = {}) {
 	const carte = page.locator('section').filter({ has: page.getByRole('heading', { level: 2, name: role, exact: true }) });
 	const formulaire = carte.locator('form[action="?/attribuer"]');
 	await formulaire.getByLabel('Agent', { exact: true }).selectOption({ label: `${agent} (Équipe 1)` });
 	const equipe = formulaire.getByRole('combobox', { name: 'Équipe' });
 	if ((await equipe.count()) > 0) await equipe.selectOption({ label: 'Équipe 1' });
+	const comite = formulaire.getByRole('combobox', { name: 'Comité' });
+	if ((await comite.count()) > 0) await comite.selectOption({ label: 'Amicale' });
 	if (dates.debut) await formulaire.getByLabel('Début', { exact: true }).fill(dates.debut);
 	if (dates.fin) await formulaire.getByLabel('Fin', { exact: true }).fill(dates.fin);
 	await formulaire.getByRole('button', { name: 'Nommer' }).click();
@@ -259,7 +266,7 @@ test.describe('réglages', () => {
 
 	test('le super administrateur crée un comité et une responsabilité qu’il attribue, puis le dissout : le chef de centre attribue', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
-		const marque = Date.now().toString(36);
+		const marque = nouvelleMarque();
 		const comite = `Comité sport ${marque}`;
 		const responsabilite = `Référent sport ${marque}`;
 		await page.goto('/reglages');
@@ -307,7 +314,7 @@ test.describe('fichier de l’effectif', () => {
 		expect(modele.lu.lignes).toEqual([]);
 		expect(modele.lu.repere).toBeNull();
 
-		const marque = Date.now().toString(36);
+		const marque = nouvelleMarque();
 		const entetes = modele.lu.entetes;
 		await deposer(page, await classeur(entetes, [arrivee(entetes, marque, 'Yanis'), arrivee(entetes, marque, 'Zoe')], null));
 		await expect(page.getByRole('heading', { level: 3, name: 'Aucun départ' })).toBeVisible();
@@ -382,16 +389,42 @@ test.describe('casquettes', () => {
 		const casquettes = page.getByRole('navigation', { name: 'Casquettes' });
 		const astreinte = casquettes.getByRole('link', { name: 'Mon astreinte' });
 		const pharmacie = casquettes.getByRole('link', { name: 'Référent pharmacie' });
-		await expect(astreinte).toHaveAttribute('aria-current', 'page');
+		await expect(astreinte).toHaveAttribute('aria-current', 'true');
 		await expect(pharmacie).not.toHaveAttribute('aria-current');
 		await sansViolation(page);
 
-		await pharmacie.focus();
+		await astreinte.focus();
+		await page.keyboard.press('Tab');
+		await expect(pharmacie).toBeFocused();
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/[?&]casquette=role/);
-		await expect(pharmacie).toHaveAttribute('aria-current', 'page');
+		await expect(pharmacie).toHaveAttribute('aria-current', 'true');
 		await expect(astreinte).not.toHaveAttribute('aria-current');
 		await expect(page.getByRole('heading', { level: 2, name: 'Ce que ce rôle permet' })).toBeVisible();
+	});
+
+	test('cinq casquettes : la rangée défile seule, la page ne déborde pas, chacune s’atteint au clavier', async ({ browser, page }) => {
+		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const agent = await nouvelAgent(gestion);
+		await gestion.goto('/nominations');
+		for (const role of ['Chef d’équipe', 'Référent engins', 'Référent pharmacie', 'Membre de comité']) await nommer(gestion, role, agent.nom);
+		await gestion.context().close();
+
+		await connecter(page, agent.email);
+		const liens = page.getByRole('navigation', { name: 'Casquettes' }).getByRole('link');
+		await expect(liens).toHaveText([/Chef d’équipe · Équipe 1/, /Mon astreinte/, /Référent engins/, /Référent pharmacie/, /Amicale/]);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+
+		await liens.first().focus();
+		for (let i = 0; i < 5; i++) {
+			if (i > 0) await page.keyboard.press('Tab');
+			await expect(liens.nth(i)).toBeFocused();
+			await expect(liens.nth(i)).toBeInViewport();
+		}
+		await page.keyboard.press('Enter');
+		await expect(liens.nth(4)).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByRole('heading', { level: 2, name: 'Membres' })).toBeVisible();
+		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 	});
 
 	test('un seul rôle : pas de rangée de casquettes', async ({ browser, page }) => {

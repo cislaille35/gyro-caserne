@@ -41,7 +41,7 @@
 		{#if data.contenu.type === 'centre'}
 			<Carte titre="À décider">
 				{#if data.contenu.aDecider.length > 0}
-					<ul class="liste">
+					<ul class="liste" role="list">
 						{#each data.contenu.aDecider as element (element.texte)}
 							<li><a class="ligne alerte" href={element.lien}><span>{element.texte}</span><span aria-hidden="true">›</span></a></li>
 						{/each}
@@ -51,7 +51,7 @@
 				{/if}
 			</Carte>
 			<Carte titre="Gérer">
-				<ul class="liste">
+				<ul class="liste" role="list">
 					{#each gerer as lien (lien.href)}
 						<li>
 							<a class="ligne" href={lien.href}>
@@ -76,7 +76,7 @@
 		{:else if data.contenu.type === 'comite'}
 			<Carte titre="Membres">
 				{#if data.contenu.membres.length > 0}
-					<ul class="liste">
+					<ul class="liste" role="list">
 						{#each data.contenu.membres as membre (membre.personneId)}
 							<li class="membre">
 								<Initiales prenom={membre.prenom} nom={membre.nom} />

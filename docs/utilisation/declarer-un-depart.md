@@ -2,7 +2,7 @@
 
 Réservé au chef de centre, à son adjoint et au super administrateur.
 
-1. Ouvrez la page « Agents » (adresse `/agents`) et appuyez sur « Voir la fiche » de l'agent.
+1. Ouvrez l'onglet « Caserne », puis « Agents » (adresse `/agents`), et appuyez sur « Voir la fiche » de l'agent.
 2. Dans la carte « Équipe et statut », choisissez le statut « Parti ».
 3. Lisez l'avertissement : sa date de naissance et son contact d'urgence seront effacés, et ses rôles prendront fin.
 4. Cochez « Je confirme », puis appuyez sur « Enregistrer ». Le message « Statut enregistré » apparaît.

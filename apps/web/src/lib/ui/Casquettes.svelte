@@ -7,12 +7,12 @@
 </script>
 
 <nav aria-label="Casquettes">
-	<ul>
+	<ul role="list">
 		{#each casquettes as c (c.id)}
 			<li>
 				<a
 					href="?casquette={encodeURIComponent(c.id)}"
-					aria-current={c.id === choisie ? 'page' : undefined}
+					aria-current={c.id === choisie ? 'true' : undefined}
 					aria-label={c.compte > 0 ? `${c.nom}, ${c.compte} en attente` : undefined}
 					data-sveltekit-noscroll
 					data-sveltekit-replacestate
@@ -52,7 +52,7 @@
 		text-decoration: none;
 	}
 	/* La choisie : contour épais et texte gras, pas seulement une couleur. */
-	a[aria-current='page'] {
+	a[aria-current='true'] {
 		border: 2px solid var(--encre);
 		font-weight: 700;
 	}
