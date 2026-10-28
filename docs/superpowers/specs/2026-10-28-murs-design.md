@@ -54,7 +54,7 @@ Ce lot livre les **murs** et **« À ne pas manquer »**. Les autres lignes ont 
 - **« J'aime »** et **commentaires** ; l'auteur ou un modérateur peut fermer les commentaires.
 - **Épingler** (modérateurs) : en haut du mur et dans « À ne pas manquer ».
 - **Modifier, supprimer** : l'auteur ; **supprimer** : les modérateurs. La suppression est inscrite au journal (sans le contenu).
-- **Anniversaires** : « Vie du centre » affiche chaque jour les anniversaires des agents qui l'ont accepté (fiche agent), sans l'âge.
+- **Anniversaires** : « Vie du centre » affiche chaque jour les anniversaires des agents dont la date de naissance est inscrite et qui n'ont pas coupé l'affichage dans « Mon profil » (activé par défaut, décision du porteur), sans l'âge.
 
 ## « À ne pas manquer » sur l'accueil
 
@@ -77,8 +77,9 @@ La cloche (« Notifications ») reprend 1 à 3 en liste. Les **notifications sur
 
 ## Les photos
 
-- Jusqu'à 4 photos par publication, réduites dans le navigateur avant l'envoi (largeur maximale et poids raisonnables, choix du constructeur).
-- Stockées dans **Cloudflare R2** (gratuit jusqu'à 10 Go), **privées** : servies par l'appli après vérification que la personne peut lire le mur ; jamais d'adresse publique.
+- Jusqu'à 4 photos par publication, **réduites dans le navigateur** avant l'envoi (environ 100 à 300 Ko chacune, JPEG ou WebP ; refus au-delà d'une taille maximale côté serveur).
+- **Rangées dans la base D1**, comme dans le MVP (décision du porteur : pas de R2, donc ni moyen de paiement ni réglage Cloudflare). Calcul : 5 Go gratuits, environ 300 Ko par photo et une cinquantaine de photos par mois, soit environ 180 Mo par an.
+- **Privées** : servies par l'appli après vérification que la personne peut lire le mur ; jamais d'adresse publique.
 - Supprimer une publication supprime ses photos.
 
 ## La conservation
@@ -95,6 +96,6 @@ La cloche (« Notifications ») reprend 1 à 3 en liste. Les **notifications sur
 
 - Le modèle de données (salon, publication, commentaire, réaction, réponse, prise de connaissance, pièces jointes) et la création automatique des murs d'équipe et de comité.
 - La pagination des murs et le budget de requêtes (≤ 45 par page, cache des droits par requête déjà en place).
-- La réduction des photos et la configuration R2 par centre (`centres/<id>/wrangler.jsonc`), avec un essai jetable d'abord.
+- La réduction des photos dans le navigateur, la taille maximale acceptée et le stockage en base (taille de ligne D1 : 2 Mo au plus).
 - Les composants (carte de publication, sondage, réponse à un événement, galerie) et leur accessibilité.
 - La doc : `docs/fonctionnel/salons.md` (renommé ou aligné « murs »), `docs/technique/`, aides dans `docs/utilisation/`.
