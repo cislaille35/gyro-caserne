@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../../centres/exemple/centre.ts';
-import { attribution, chargerJeuDeDepart, equipe, grade, personne, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
-import { load } from './+page.server';
+import { actions, load } from './+page.server';
+import { maintenantParis } from '#lib/aujourdhui.ts';
+import { requeteFormulaire, preparer } from './echanges/de-test.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const appeler = (locals: unknown, recherche = '') => (load as any)({ locals, url: new URL(`http://localhost/${recherche}`) });
@@ -33,7 +35,8 @@ describe('load de /', () => {
 			prenom: 'Alice',
 			casquettes: [{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 }],
 			choisie: 'astreinte',
-			contenu: { type: 'astreinte' }
+			contenu: { type: 'astreinte' },
+			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] }
 		});
 	});
 
@@ -70,5 +73,43 @@ describe('load de /', () => {
 		const avant = base.requetes;
 		expect(await appeler({ acteur: alice, base })).toMatchObject({ choisie: 'centre' });
 		expect(base.requetes - avant).toBeLessThanOrEqual(50);
+	});
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const geste = async (nom: string, locals: unknown, corps: [string, string][]) => (actions as any)[nom]({ locals, params: {}, url: new URL('http://localhost/'), request: await requeteFormulaire(corps) });
+
+describe('« À ne pas manquer » sur l’accueil', () => {
+	it('annonce à prendre en compte, événement et sondage ; « Pris connaissance » et réponse sur place', async () => {
+		const { base, chef, alice } = await preparer();
+		const maintenant = maintenantParis();
+		const annonce = await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
+		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		const sondage = await publier(base, chef, 'vie', { type: 'message', texte: 'Repas ?', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const locals = { base, acteur: alice };
+		const data = await appeler(locals);
+		expect(data.aNePasManquer.annonces.map((a: { id: number }) => a.id)).toEqual([annonce]);
+		expect(data.aNePasManquer.evenements).toMatchObject([{ id: evenement, reponse: null, demain: false }]);
+		expect(data.aNePasManquer.sondages.map((a: { id: number }) => a.id)).toEqual([sondage]);
+
+		expect(await geste('repondre', locals, [['id', String(evenement)], ['reponse', 'present']])).toEqual({ cible: `publication:${evenement}`, succes: 'Réponse enregistrée : présent.' });
+		expect(await base.select().from(reponseEvenement)).toMatchObject([{ publicationId: evenement, personneId: alice.id, reponse: 'present' }]);
+		expect(await geste('prendreConnaissance', locals, [['id', String(annonce)]])).toEqual({ cible: `publication:${annonce}`, succes: 'Prise de connaissance enregistrée.' });
+		expect(await base.select().from(priseConnaissance)).toMatchObject([{ publicationId: annonce, personneId: alice.id }]);
+
+		const apres = await appeler(locals);
+		expect(apres.aNePasManquer.annonces).toEqual([]);
+		expect(apres.aNePasManquer.evenements).toMatchObject([{ id: evenement, reponse: 'present' }]);
+	});
+
+	it('gestes refusés : identifiant invalide, publication inconnue, non convoqué, sans connexion', async () => {
+		const { base, chef, bruno, e1 } = await preparer();
+		const evenement = await publier(base, chef, `equipe:${e1.id}`, { type: 'evenement', texte: 'Réunion', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
+		const locals = { base, acteur: bruno };
+		expect(await geste('repondre', locals, [['id', 'abc'], ['reponse', 'present']])).toMatchObject({ status: 400 });
+		expect(await geste('repondre', locals, [['id', '9999'], ['reponse', 'present']])).toMatchObject({ status: 404 });
+		expect(await geste('repondre', locals, [['id', String(evenement)], ['reponse', 'present']])).toMatchObject({ status: 403, data: { cible: `publication:${evenement}` } });
+		await expect(geste('prendreConnaissance', { base, acteur: null }, [['id', String(evenement)]])).rejects.toMatchObject({ status: 303 });
+		expect(await base.select().from(reponseEvenement)).toEqual([]);
 	});
 });

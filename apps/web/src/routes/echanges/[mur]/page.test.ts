@@ -32,7 +32,7 @@ const equipes = [
 ];
 const html = (data: Record<string, unknown> = {}, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { mur, epinglees: [], publications: [], suite: null, equipes, plusAnciennes: false, ...data }, form } }).body;
+	render(Page as any, { props: { data: { mur, epinglees: [], publications: [], suite: null, equipes, plusAnciennes: false, anniversaires: [], ...data }, form } }).body;
 
 describe('page d’un mur', () => {
 	it('le texte n’est jamais interprété comme du HTML', () => {
@@ -109,6 +109,15 @@ describe('page d’un mur', () => {
 		expect(page).toContain('value="Salle"');
 		const refus = html({ publications: [pub(), pub({ id: 2 })] }, { cible: 'publication:1', message: 'Vous n’avez pas le droit de faire cela.' });
 		expect(refus.match(/Vous n’avez pas le droit de faire cela\./g)).toHaveLength(2);
+	});
+
+	it('anniversaires du jour en tête, sans l’âge ; rien s’il n’y en a pas', () => {
+		const vie = html({ anniversaires: [{ prenom: 'Alice', nom: 'Martin' }, { prenom: 'Bruno', nom: 'Petit' }, { prenom: 'Chloé', nom: 'Roux' }], epinglees: [pub({ epinglee: true })] });
+		expect(vie).toContain('Bon anniversaire à Alice Martin, Bruno Petit et Chloé Roux !');
+		expect(vie.indexOf('Bon anniversaire')).toBeLessThan(vie.indexOf('Épinglées'));
+		expect(vie.indexOf('<h1')).toBeLessThan(vie.indexOf('Bon anniversaire'));
+		expect(html({ anniversaires: [{ prenom: 'Alice', nom: 'Martin' }] })).toContain('Bon anniversaire à Alice Martin !');
+		expect(html()).not.toContain('anniversaire');
 	});
 
 	it('une seule zone annoncée (status, alert) par page', () => {

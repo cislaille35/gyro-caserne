@@ -23,6 +23,8 @@
 	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
 	const retour = (id: number) => (form?.cible === `publication:${id}` ? form : undefined);
 	const suite = $derived(data.plusAnciennes);
+	// « Alice Martin, Bruno Petit et Chloé Roux »
+	const fetes = $derived(new Intl.ListFormat('fr', { type: 'conjunction' }).format(data.anniversaires.map((a) => `${a.prenom} ${a.nom}`.trim())));
 </script>
 
 <svelte:head>
@@ -34,6 +36,8 @@
 	<h1>{data.mur.nom}</h1>
 	{#if data.mur.lectureSeule}<Pastille ton="neutre">Lecture seule</Pastille>{/if}
 </header>
+
+{#if data.anniversaires.length > 0}<p class="anniversaires">Bon anniversaire à {fetes} !</p>{/if}
 
 <div class="annonce" role="status">{annonceSucces}</div>
 <div class="annonce" role="alert">{annonceEchec}</div>
@@ -113,6 +117,14 @@
 	}
 	.aide {
 		color: var(--doux);
+	}
+	.anniversaires {
+		margin: 0 0 16px;
+		padding: 12px 16px;
+		border-radius: var(--rayon-petit);
+		border: 1px solid var(--trait-doux);
+		background: var(--surface);
+		font-weight: 600;
 	}
 	.annonce {
 		position: absolute;

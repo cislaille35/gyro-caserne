@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { commentaire, commenter, fermerCommentaires, jaime, journal, photoPublication, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
+import { commentaire, commenter, fermerCommentaires, jaime, journal, personne, photoPublication, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
 import { envoyer, jpeg, locaux, preparer } from '../de-test.ts';
 import { actions, load } from './+page.server';
 
@@ -40,6 +40,15 @@ describe('un mur', () => {
 		expect(suite.epinglees).toEqual([]);
 		expect(suite.publications.map((p: { texte: string }) => p.texte)).toEqual(['n°1']);
 		await expect(charger(locaux(base, alice), 'vie', '?avant=abc')).rejects.toMatchObject({ status: 400 });
+	});
+
+	it('« Vie du centre » : les anniversaires du jour, sans l’âge ; pas sur les autres murs', async () => {
+		const { base, alice, bruno } = await preparer();
+		const jour = aujourdhuiParis().slice(5);
+		await base.update(personne).set({ naissance: `1990-${jour}` }).where(eq(personne.id, alice.id));
+		await base.update(personne).set({ naissance: `1985-${jour}`, anniversaireVisible: 0 }).where(eq(personne.id, bruno.id));
+		expect((await charger(locaux(base, bruno), 'vie')).anniversaires).toEqual([{ prenom: 'Alice', nom: 'Test' }]);
+		expect((await charger(locaux(base, bruno), 'centre')).anniversaires).toEqual([]);
 	});
 
 	it('donne les équipes à convoquer, sauf sur un mur d’équipe', async () => {

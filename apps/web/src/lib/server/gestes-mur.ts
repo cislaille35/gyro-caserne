@@ -16,7 +16,8 @@ import {
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { echecMur, exigerActeur, type Reponse, type Valeurs } from './formulaire-mur.ts';
 
-type Requete = { locals: App.Locals; params: { mur: string }; request: Request };
+// Sans mur (depuis l'accueil), toute publication que le socle permet de viser.
+type Requete = { locals: App.Locals; params: { mur?: string }; request: Request };
 
 // Un identifiant envoyé par un formulaire ; null s'il n'en est pas un.
 const entier = (f: FormData, cle: string) => {
@@ -40,7 +41,7 @@ export async function surPublication(
 	if (id === null) return fail<Reponse>(400, { cible: 'publication', message: 'Cette publication n’existe plus.' });
 	const cible = `publication:${id}`;
 	const [ligne] = await locals.base.select({ mur: publication.mur }).from(publication).where(eq(publication.id, id));
-	if (ligne?.mur !== params.mur) return fail<Reponse>(404, { cible, message: 'Cette publication n’existe plus.' });
+	if (!ligne || (params.mur !== undefined && ligne.mur !== params.mur)) return fail<Reponse>(404, { cible, message: 'Cette publication n’existe plus.' });
 	try {
 		return { cible, succes: await faire(acteur, id, f) } satisfies Reponse;
 	} catch (erreur) {

@@ -3,9 +3,11 @@ import { eq } from 'drizzle-orm';
 import centre from '$centre';
 import { attribution, chargerJeuDeDepart, commentaire, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
+import { maintenantParis } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
-import { load as accueil } from './+page.server';
+import { actions as actionsAccueil, load as accueil } from './+page.server';
+import { load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
@@ -84,11 +86,38 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
-	it('/ (accueil)', async () => {
-		const { locals, compter } = await centreDe150();
+	it('/ (accueil), « À ne pas manquer » rempli ; puis chaque geste et le rechargement ; /notifications', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const maintenant = maintenantParis();
+		const ids: number[] = [];
+		for (let i = 0; i < 20; i++) ids.push(await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: `Note ${i}`, priseDeConnaissance: true }, maintenant));
+		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant));
+		await base.update(publication).set({ epinglee: 1 });
+		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
+		const url = new URL('http://localhost/');
+		for (const l of [locals, deLAgent]) {
+			const n = await compter(async () => {
+				await (racine as any)({ locals: l });
+				await (accueil as any)({ locals: l, url });
+			});
+			expect(n).toBeLessThanOrEqual(BUDGET);
+		}
+		const gestes: [string, [string, string][]][] = [
+			['prendreConnaissance', [['id', String(ids[0])]]],
+			['repondre', [['id', String(ids[20])], ['reponse', 'present']]]
+		];
+		for (const [nom, champs] of gestes) {
+			const n = await compter(async () => {
+				expect(await (actionsAccueil as any)[nom]({ locals: deLAgent, params: {}, url, request: await requeteFormulaire(champs) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals: deLAgent });
+				const data = await (accueil as any)({ locals: deLAgent, url });
+				expect(data.aNePasManquer.annonces).toHaveLength(19);
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
-			await (accueil as any)({ locals, url: new URL('http://localhost/') });
+			await (racine as any)({ locals: deLAgent });
+			await (notifications as any)({ locals: deLAgent });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});

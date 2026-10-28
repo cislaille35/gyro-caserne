@@ -17,6 +17,6 @@
 	});
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} nomCentre={centre.nom}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} nomCentre={centre.nom}>
 	{@render children()}
 </Coquille>

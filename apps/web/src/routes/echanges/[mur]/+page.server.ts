@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
-import { epingler, equipe, lireMur, modifierPublication, publier, supprimerPublication } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { anniversairesDuJour, epingler, equipe, lireMur, modifierPublication, publier, supprimerPublication } from '@gyro-caserne/socle';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { echecMur, envoiTropLourd, erreurLecture, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
 import { gestes, surPublication } from '#lib/server/gestes-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -13,7 +13,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		const mur = await lireMur(locals.base, acteur, params.mur, { avant: avant === null ? undefined : /^\d+$/.test(avant) ? Number(avant) : NaN, nombre: 20 }, maintenantParis());
 		// Les équipes, pour nommer les convoqués et convoquer (les actives) ; sur un mur d'équipe, c'est l'équipe du mur.
 		const equipes = mur.mur.type === 'equipe' ? [] : await locals.base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation));
-		return { ...mur, equipes, plusAnciennes: avant !== null };
+		// « Vie du centre » souhaite les anniversaires du jour.
+		const anniversaires = mur.mur.type === 'vie' ? await anniversairesDuJour(locals.base, aujourdhuiParis()) : [];
+		return { ...mur, equipes, anniversaires, plusAnciennes: avant !== null };
 	} catch (erreur) {
 		erreurLecture(erreur);
 	}
