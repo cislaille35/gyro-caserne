@@ -283,7 +283,8 @@ test.describe('nominations', () => {
 		await formulaire.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 		await formulaire.getByRole('button', { name: 'Attribuer' }).click();
 		await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
-		await expect(carte.getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
+		// Dans la liste du bloc (le résumé du bloc porte le même nom).
+		await expect(carte.getByRole('list').getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
 
 		await agent.goto('/agents');
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef d’équipe (Équipe 1)');
