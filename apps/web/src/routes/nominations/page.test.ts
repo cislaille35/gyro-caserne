@@ -60,7 +60,8 @@ describe('/nominations : cartes', () => {
 
 	it('a une zone d’annonce par carte dès le chargement, et des boutons actifs', () => {
 		const page = html({ data, form: null });
-		expect(page.match(/role="status"/g)).toHaveLength(3);
+		// Trois cartes, plus le résultat de la recherche.
+		expect(page.match(/role="status"/g)).toHaveLength(4);
 		expect(page).not.toMatch(/<button[^>]*disabled/);
 	});
 });
@@ -168,6 +169,13 @@ describe('/nominations : recherche', () => {
 	});
 
 	it('dit quand rien ne correspond', () => {
-		expect(html({ data: { ...data, recherche: 'zzz' }, form: null })).toContain('Aucun rôle ni agent ne correspond à « zzz ».');
+		expect(html({ data: { ...data, recherche: 'zzz' }, form: null })).toMatch(/<p role="status"[^>]*>Aucun rôle ni agent ne correspond à « zzz »\.<\/p>/);
+	});
+
+	it('annonce le nombre de cartes trouvées dans une zone de statut, présente dès le chargement (RGAA 7.5)', () => {
+		const statut = (recherche: string) => html({ data: { ...data, recherche }, form: null }).match(/<p role="status"[^>]*>([^<]*)<\/p>/)?.[1];
+		expect(statut('')).toBe('');
+		expect(statut('referent')).toBe('1 rôle correspond.');
+		expect(statut('martin')).toBe('2 rôles correspondent.');
 	});
 });

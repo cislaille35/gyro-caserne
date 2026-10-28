@@ -39,6 +39,13 @@
 		return cherche ? data.roles.filter((r) => [r.nom, ...r.titulaires.map(nomDe)].some((texte) => simple(texte).includes(cherche))) : data.roles;
 	});
 
+	// Annoncé à chaque frappe (RGAA 7.5) ; rien sans recherche.
+	const resultat = $derived.by(() => {
+		if (!simple(recherche)) return '';
+		if (visibles.length === 0) return `Aucun rôle ni agent ne correspond à « ${recherche.trim()} ».`;
+		return visibles.length === 1 ? '1 rôle correspond.' : `${visibles.length} rôles correspondent.`;
+	});
+
 	const agents = $derived(data.agents.map((a) => ({ valeur: String(a.id), libelle: `${a.nom} (${a.equipe})` })));
 	// Rouvert par l'agent, le volet repart à neuf : la réponse déjà vue (erreurs, saisie) ne s'y affiche plus.
 	let vue = $state.raw<typeof form>(null);
@@ -122,9 +129,7 @@
 		</div>
 	</form>
 
-	{#if visibles.length === 0}
-		<p>Aucun rôle ni agent ne correspond à « {recherche.trim()} ».</p>
-	{/if}
+	<p role="status" class="resultat">{resultat}</p>
 
 	<div class="cartes">
 		{#each visibles as r (r.responsabiliteId)}
@@ -270,6 +275,9 @@
 	.note {
 		color: var(--doux);
 		font-size: 0.9375rem;
+	}
+	.resultat {
+		margin: 0;
 	}
 	.recherche label {
 		font-weight: 600;
