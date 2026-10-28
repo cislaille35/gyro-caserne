@@ -23,7 +23,8 @@ const present = ne(personne.statut, 'parti');
 
 const parNom = (a: { nom: string }, b: { nom: string }) => a.nom.localeCompare(b.nom, 'fr');
 
-// Rôles tenus aujourd'hui par une personne (non archivés), à passer à un batch ; `nomme` : le rôle donne ATTRIBUER_RESPONSABILITE (rapporteur d'un comité).
+// Rôles tenus aujourd'hui par une personne (non archivés), à passer à un batch.
+// `nomme` : le rôle donne ATTRIBUER_RESPONSABILITE ; tout rôle de comité qui le porte fait de son titulaire le modérateur du mur du comité (rapporteur).
 // Partagé avec les murs (murs.ts).
 export function requeteTenues(base: Base, personneId: number, aujourdhui: string) {
 	return base

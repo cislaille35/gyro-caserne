@@ -38,7 +38,7 @@ Ce lot livre les **murs** et **« À ne pas manquer »**. Les autres lignes ont 
 - Le chef de centre, l'adjoint et le super administrateur lisent et modèrent tous les murs (choix de Claude ; les murs ne sont pas privés comme la messagerie).
 - Les droits restent ceux du socle (`LIRE_SALON`, `PUBLIER_SALON`, `MODERER_SALON`, `EPINGLER_SALON`, périmètre « salon »). Choix de Claude : les droits du tableau se **déduisent de l'appartenance au moment de la lecture** (être dans l'équipe, membre ou rapporteur du comité, chef ou adjoint, agent), dans `droitsDe`, sans ligne à synchroniser. Les droits donnés en plus par un profil ou une responsabilité sur un salon s'y ajoutent. L'écran pour « ouvrir un mur à d'autres » (un référent qui publie dans « Le centre », les extérieurs) n'est **pas dans ce lot**.
 - Les **extérieurs** (réserve citoyenne) n'ont accès à aucun mur par défaut.
-- Un mur d'équipe désactivée ou de comité dissous passe en **lecture seule**.
+- Un mur d'équipe désactivée passe en **lecture seule**. Un mur de comité dissous est gardé comme **archive en lecture seule** pour le chef de centre, l'adjoint et le super administrateur seulement : les anciens membres n'y ont plus accès (la dissolution clôt leurs attributions).
 - Pas de sous-salon : **chaque publication a son fil de commentaires** (« Voyage à Prague » et ses réponses).
 
 ## Une publication

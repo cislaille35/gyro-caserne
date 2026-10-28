@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
+import { dissoudreComite } from '../src/actions/comites.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { exigerMur, mursDe, type Mur } from '../src/murs.ts';
@@ -23,14 +24,14 @@ async function jeu() {
 	const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
 	const equipes = await base.select().from(equipe).orderBy(equipe.ordreRotation);
 
-	const nouvelle = async (prenom: string, options: { exterieur?: boolean; statut?: 'parti' | 'suspendu' } = {}) => {
+	const nouvelle = async (prenom: string, options: { exterieur?: boolean; sansProfil?: boolean; statut?: 'parti' | 'suspendu' } = {}) => {
 		const [p] = await base
 			.insert(personne)
 			.values({
 				email: `${prenom.toLowerCase()}@exemple.fr`,
 				prenom,
 				nom: 'Test',
-				profilId: profils.find((x) => x.typePersonne === (options.exterieur ? 'exterieur' : 'agent'))!.id,
+				profilId: options.sansProfil ? null : profils.find((x) => x.typePersonne === (options.exterieur ? 'exterieur' : 'agent'))!.id,
 				statut: options.statut ?? 'operationnel'
 			})
 			.returning();
@@ -48,8 +49,8 @@ async function jeu() {
 			saisieLe: '2026-01-01'
 		});
 	};
-	const affecter = async (personneId: number, equipeId: number, fin: string | null = null) => {
-		await base.insert(affectationEquipe).values({ personneId, equipeId, debut: '2026-01-01', fin });
+	const affecter = async (personneId: number, equipeId: number, fin: string | null = null, debut = '2026-01-01') => {
+		await base.insert(affectationEquipe).values({ personneId, equipeId, debut, fin });
 	};
 	return { base, nouvelle, nommer, affecter, amicale: amicale!, e1: equipes[0]!, e2: equipes[1]! };
 }
@@ -123,27 +124,77 @@ describe('mursDe', () => {
 	it('super administrateur : tous les murs ; équipe inactive et comité dissous en lecture seule, à la fin', async () => {
 		const { base, amicale, e1 } = await jeu();
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
-		await base.update(comite).set({ dissousLe: '2026-10-01' }).where(eq(comite.id, amicale.id));
+		await dissoudreComite(base, superAdmin, amicale.id, aujourdhui);
 		const murs = resume(await mursDe(base, superAdmin, aujourdhui));
 		expect(murs.slice(0, 2)).toEqual(['centre PM-', 'vie PM-']);
 		expect(murs.filter((m) => m.endsWith('L'))).toEqual([`equipe:${e1.id} -ML`, `comite:${amicale.id} -ML`]);
-		expect(murs.indexOf(`equipe:${e1.id} -ML`)).toBeLessThan(murs.indexOf(`comite:${amicale.id} -ML`));
 		const derniereEquipeActive = murs.findLastIndex((m) => m.startsWith('equipe:') && !m.endsWith('L'));
 		expect(murs.indexOf(`equipe:${e1.id} -ML`)).toBeGreaterThan(derniereEquipeActive);
 		expect(murs.at(-1)).toBe(`comite:${amicale.id} -ML`);
 	});
 
-	it('membre d’une équipe inactive ou d’un comité dissous : lecture seule, publier refusé', async () => {
-		const { base, nouvelle, nommer, affecter, amicale, e1 } = await jeu();
+	it('membre d’une équipe inactive : lecture seule, publier refusé', async () => {
+		const { base, nouvelle, affecter, e1 } = await jeu();
 		const id = await nouvelle('David');
 		await affecter(id, e1.id);
-		await nommer(id, 'Rapporteur de comité', { type: 'comite', id: amicale.id });
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
-		await base.update(comite).set({ dissousLe: '2026-10-01' }).where(eq(comite.id, amicale.id));
-		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--', `equipe:${e1.id} --L`, `comite:${amicale.id} -ML`]);
+		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--', `equipe:${e1.id} --L`]);
 		expect((await exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'lire')).nom).toBe(e1.nom);
 		await expect(exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'publier')).rejects.toBeInstanceOf(RefusDroit);
-		await expect(exigerMur(base, acteur(id), `comite:${amicale.id}`, aujourdhui, 'publier')).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('chef d’une équipe inactive : lit et modère, ne publie pas', async () => {
+		const { base, nouvelle, nommer, e1 } = await jeu();
+		const id = await nouvelle('Alice');
+		await nommer(id, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
+		expect(resume(await mursDe(base, acteur(id), aujourdhui))[2]).toBe(`equipe:${e1.id} -ML`);
+		expect((await exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'moderer')).peutModerer).toBe(true);
+		await expect(exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'publier')).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('comité dissous : archive en lecture seule pour le chef, l’adjoint et le super ; les anciens membres et rapporteur n’y ont plus accès', async () => {
+		const { base, nouvelle, nommer, amicale } = await jeu();
+		const membre = await nouvelle('Bruno');
+		const rapporteur = await nouvelle('Chloé');
+		const chef = await nouvelle('Claire');
+		const adjoint = await nouvelle('Hugo');
+		await nommer(membre, 'Membre de comité', { type: 'comite', id: amicale.id });
+		await nommer(rapporteur, 'Rapporteur de comité', { type: 'comite', id: amicale.id });
+		await nommer(chef, 'Chef de centre', { type: 'centre' });
+		await nommer(adjoint, 'Chef de centre adjoint', { type: 'centre' });
+		await dissoudreComite(base, superAdmin, amicale.id, aujourdhui);
+		const cle = `comite:${amicale.id}`;
+		for (const id of [membre, rapporteur]) {
+			expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--']);
+			await expect(exigerMur(base, acteur(id), cle, aujourdhui, 'lire')).rejects.toBeInstanceOf(RefusDroit);
+		}
+		for (const qui of [acteur(chef), acteur(adjoint), superAdmin]) {
+			expect(await exigerMur(base, qui, cle, aujourdhui, 'moderer')).toMatchObject({ lectureSeule: true, peutPublier: false, peutModerer: true });
+			await expect(exigerMur(base, qui, cle, aujourdhui, 'publier')).rejects.toBeInstanceOf(RefusDroit);
+		}
+	});
+
+	it('comité dissous, attribution restée ouverte : pas d’accès pour le membre', async () => {
+		const { base, nouvelle, nommer, amicale } = await jeu();
+		const id = await nouvelle('Bruno');
+		await nommer(id, 'Rapporteur de comité', { type: 'comite', id: amicale.id });
+		await base.update(comite).set({ dissousLe: '2026-10-01' }).where(eq(comite.id, amicale.id));
+		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--']);
+	});
+
+	it('bornes : affectation finie aujourd’hui garde l’accès, affectation qui commence demain n’en donne pas', async () => {
+		const { base, nouvelle, affecter, e1, e2 } = await jeu();
+		const id = await nouvelle('David');
+		await affecter(id, e1.id, aujourdhui);
+		await affecter(id, e2.id, null, '2026-10-29');
+		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--', `equipe:${e1.id} P--`]);
+	});
+
+	it('personne sans profil : comptée comme agent', async () => {
+		const { base, nouvelle } = await jeu();
+		const id = await nouvelle('Nina', { sansProfil: true });
+		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--']);
 	});
 
 	it('extérieur, parti, suspendu : aucun mur', async () => {
@@ -185,7 +236,7 @@ describe('exigerMur', () => {
 
 	it('clé mal formée : « Mur inconnu »', async () => {
 		const { base } = await jeu();
-		for (const cle of ['equipe:abc', 'equipe:', 'salon', 'comite:01', 'equipe:1:2']) {
+		for (const cle of ['equipe:abc', 'equipe:', 'salon', 'comite:01', 'equipe:1:2', 'equipe:007', 'equipe:1.5', 'comite:-1']) {
 			await expect(exigerMur(base, superAdmin, cle, aujourdhui, 'lire')).rejects.toThrow(new DonneeInvalide('Mur inconnu'));
 		}
 	});

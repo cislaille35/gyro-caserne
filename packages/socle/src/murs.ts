@@ -59,8 +59,9 @@ export async function mursDe(base: Base, acteur: Acteur, aujourdhui: string): Pr
 	const murEquipe = equipes
 		.filter((e) => tous || membreEquipe.has(e.id) || chefEquipe.has(e.id))
 		.map((e) => mur(`equipe:${e.id}`, e.nom, 'equipe', membreEquipe.has(e.id) || chefEquipe.has(e.id), tous || chefEquipe.has(e.id), e.active !== 1));
+	// Un comité dissous reste une archive pour le chef, l'adjoint et le super seulement.
 	const murComite = comites
-		.filter((c) => tous || membreComite.has(c.id))
+		.filter((c) => tous || (membreComite.has(c.id) && c.dissousLe === null))
 		.map((c) => mur(`comite:${c.id}`, c.nom, 'comite', membreComite.has(c.id), tous || rapporteur.has(c.id), c.dissousLe !== null));
 	return [mur('centre', 'Le centre', 'centre', tous, tous), mur('vie', 'Vie du centre', 'vie', true, tous), ...ouvertsPuisFermes(murEquipe), ...ouvertsPuisFermes(murComite)];
 }
