@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, personne, profil, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, personne, profil, publication, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { load as racine } from './+layout.server';
 import { load as accueil } from './+page.server';
+import { load as echanges } from './echanges/+layout.server';
+import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
@@ -87,5 +89,33 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await (accueil as any)({ locals, url: new URL('http://localhost/') });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/echanges/[mur] : 300 publications, puis une publication et le rechargement', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const lignes = Array.from({ length: 300 }, (_, i) => ({ mur: 'centre', auteur: `personne:${locals.acteur.id}`, type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00', epinglee: i < 12 ? 1 : 0 }));
+		for (let i = 0; i < lignes.length; i += 50) await base.insert(publication).values(lignes.slice(i, i + 50));
+		const params = { mur: 'centre' };
+		const url = new URL('http://localhost/echanges/centre');
+		const page = async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals });
+			return (mur as any)({ locals, params, url });
+		};
+		const n = await compter(async () => {
+			const data = await page();
+			expect(data.publications).toHaveLength(20);
+			expect(data.epinglees).toHaveLength(10);
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		const formulaire = new FormData();
+		formulaire.append('type', 'message');
+		formulaire.append('texte', 'Nouvelle');
+		const request = new Request('http://localhost', { method: 'POST', body: formulaire });
+		const n2 = await compter(async () => {
+			expect(await (actionsMur.publier as any)({ locals, params, url, request })).toMatchObject({ succes: expect.any(String) });
+			await page();
+		});
+		expect(n2).toBeLessThanOrEqual(BUDGET);
 	});
 });
