@@ -130,7 +130,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const url = new URL('http://localhost/echanges/centre');
 		const page = async () => {
 			await (racine as any)({ locals });
-			await (echanges as any)({ locals });
+			await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
 			return (mur as any)({ locals, params, url });
 		};
 		const n = await compter(async () => {
@@ -160,7 +160,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const params = (id: number) => ({ mur: 'centre', id: String(id) });
 		const page = async (id: number) => {
 			await (racine as any)({ locals });
-			await (echanges as any)({ locals });
+			await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
 			return (publicationSeule as any)({ locals, params: params(id) });
 		};
 		for (const id of [annonce, evenement]) {
@@ -192,7 +192,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			const n2 = await compter(async () => {
 				await (actionsMur as any)[nom]({ locals, params: { mur: 'centre' }, url, request: await requeteFormulaire([['id', String(id)], ...champs]) });
 				await (racine as any)({ locals });
-				await (echanges as any)({ locals });
+				await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
 				await (mur as any)({ locals, params: { mur: 'centre' }, url });
 			});
 			expect(n2, nom).toBeLessThanOrEqual(BUDGET);
