@@ -14,7 +14,7 @@ Diffuser l'information du centre et organiser les événements, avec **peu de mu
 | **Comité** (un par comité) | les membres du comité | les membres | le rapporteur |
 
 - Le chef de centre, l'adjoint et le super administrateur lisent et modèrent **tous** les murs.
-- Les droits se déduisent de l'appartenance du jour (équipe, comité, rôle) : rien à régler mur par mur. Un droit de salon donné en plus par un profil ou une responsabilité s'y ajoute.
+- Les droits se déduisent de l'appartenance du jour (équipe, comité, rôle) : rien à régler mur par mur. Ouvrir un mur à d'autres (un référent qui publie dans « Le centre », par exemple) viendra dans un prochain lot.
 - Les **extérieurs** (réserve citoyenne), les agents **partis** ou **suspendus** n'ont accès à aucun mur.
 - Le mur d'une **équipe désactivée** passe en **lecture seule**.
 - Le mur d'un **comité dissous** devient une **archive en lecture seule**, visible du chef de centre, de l'adjoint et du super administrateur seulement : les anciens membres n'y ont plus accès.
