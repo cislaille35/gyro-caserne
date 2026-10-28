@@ -92,6 +92,23 @@ describe('page d’un rôle', () => {
 		expect(r).toMatchObject({ status: 400, data: { cible: 'role', erreurs: { nom: expect.stringContaining('déjà') } } });
 	});
 
+	it('après un refus, renvoie les niveaux, les cases d’administration et l’icône choisis', async () => {
+		const { base, chef, resp } = await preparer();
+		const engins = await resp('Référent engins');
+		const r = await agir('enregistrer', locaux(base, chef), engins.id, [...fiche('Référent pharmacie'), ['niveau-stock', '1'], ['niveau-planning', 'sur_mesure'], ['administration', 'oui'], ['admin', 'GERER_COMITES'], ['icone', 'ballon']]);
+		expect(r).toMatchObject({ status: 400, data: { valeurs: { niveaux: { stock: '1', planning: 'sur_mesure' }, admin: ['GERER_COMITES'], icone: 'ballon' } } });
+	});
+
+	it('renommer un rôle sans icône garde l’icône affichée avant', async () => {
+		const { base, referent, resp } = await preparer();
+		const engins = await resp('Référent engins');
+		await agir('enregistrer', locaux(base, referent), engins.id, [...fiche('Référent véhicules'), ['icone', 'camion']]);
+		expect((await resp('Référent véhicules')).icone).toBe('camion');
+		const pharma = await resp('Référent pharmacie');
+		await agir('enregistrer', locaux(base, referent), pharma.id, fiche('Référent pharmacie'));
+		expect((await resp('Référent pharmacie')).icone).toBeNull();
+	});
+
 	it('« Revenir au modèle » rend les droits du modèle, domaine par domaine ou en entier', async () => {
 		const { base, chef, droitsDe } = await preparer();
 		const id = await creerResponsabilite(base, chef, { nom: 'Référent matériel', nature: 'mission', portee: 'centre', attributeur: { type: 'chef_centre' }, droits: ['GERER_STOCK', 'RESERVER'], modele: 'referent_materiel' }, '2026-01-01');

@@ -99,6 +99,15 @@ describe('page d’un rôle', () => {
 		expect(html({}, { cible: 'role', succes: 'Le rôle « X » est enregistré.' })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le rôle « X » est enregistré\./);
 	});
 
+	it('après un refus, réaffiche les niveaux, les cases d’administration et l’icône choisis', () => {
+		const page = html({ peutPouvoir: true }, { cible: 'role', erreurs: { nom: 'Ce nom est déjà utilisé.' }, valeurs: { nom: 'Doublon', niveaux: { stock: '0', reservations: '2' }, admin: ['GERER_COMITES'], icone: 'ballon' } });
+		expect(page).toMatch(/<input type="radio" name="niveau-stock" value="0" checked/);
+		expect(page).toMatch(/<input type="radio" name="niveau-reservations" value="2" checked/);
+		expect(page).toMatch(/<input type="checkbox" name="admin" value="GERER_COMITES" checked/);
+		expect(page).toMatch(/name="icone" value="ballon" checked/);
+		expect(page).toContain('3 domaines modifiés, pas encore enregistrés');
+	});
+
 	it('archiver demande « Je confirme »', () => {
 		const page = html({});
 		expect(page).toContain('Les 2 personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.');

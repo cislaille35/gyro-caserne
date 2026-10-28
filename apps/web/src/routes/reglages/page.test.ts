@@ -60,7 +60,7 @@ describe('page Réglages', () => {
 		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
 		expect(engins).toContain('2 titulaires');
 		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);
-		// Même règle d'icône que l'accueil : d'après le nom, sans icône ni modèle.
+		// Même règle d'icône que l'accueil : le chef de centre, sans icône ni modèle, prend celle de son thème.
 		expect(ligne(page, 1)).toContain('--icone-etoile-fond');
 		const pharmacie = page.slice(page.indexOf('href="/reglages/roles/4"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/4"')));
 		expect(pharmacie).not.toContain('Personnalisé');

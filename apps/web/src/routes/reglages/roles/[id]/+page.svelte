@@ -23,12 +23,24 @@
 
 	const adminDe = (droits: Droit[]) => droits.filter(estDroitPouvoir);
 
+	// Après un refus, la saisie revient du serveur : on la réaffiche.
+	const saisis = $derived(form?.cible === 'role' && !form?.succes ? form?.valeurs : undefined);
+	function choixDepart() {
+		const c = niveauxDe(actuels);
+		for (const d of DOMAINES) {
+			const n = Number(saisis?.niveaux?.[d.id] ?? NaN);
+			if (Number.isInteger(n) && n >= 0 && n < d.niveaux.length) c[d.id] = n;
+		}
+		return c;
+	}
+	const adminDepart = () => (saisis?.admin ? adminDe(saisis.admin as Droit[]) : adminDe(actuels));
+
 	// Ce qui est choisi à l'écran, pas encore enregistré. Repart de la page à chaque chargement (autre rôle, envoi).
-	let choix = $state(untrack(() => niveauxDe(actuels)));
-	let admin = $state(untrack(() => adminDe(actuels)));
+	let choix = $state(untrack(choixDepart));
+	let admin = $state(untrack(adminDepart));
 	$effect.pre(() => {
-		choix = niveauxDe(actuels);
-		admin = adminDe(actuels);
+		choix = choixDepart();
+		admin = adminDepart();
 	});
 
 	const departNiveaux = $derived(niveauxDe(actuels));
@@ -130,7 +142,7 @@
 					<Choix id="role-portee" name="portee" libelle="Portée" valeur={saisie('portee', role.portee)} erreur={erreurs('role').portee} options={PORTEES} />
 				{/if}
 				<Choix id="role-attributeur" name="attributeur" libelle="Qui attribue" valeur={saisie('attributeur', valeurAttributeur(role.attributeur))} erreur={erreurs('role').attributeur} options={optionsAttributeur(data.comitesChoix)} />
-				<ChoixIcone valeur={iconeDuRole(role)} erreur={erreurs('role').icone} />
+				<ChoixIcone valeur={(saisis?.icone as ReturnType<typeof iconeDuRole> | undefined) ?? iconeDuRole(role)} erreur={erreurs('role').icone} />
 			</div>
 		</Groupe>
 

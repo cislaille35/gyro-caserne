@@ -57,8 +57,20 @@ function valeursDe(formulaire: FormData): Valeurs {
 		nature: texte(formulaire, 'nature'),
 		portee: texte(formulaire, 'portee'),
 		attributeur: texte(formulaire, 'attributeur'),
-		icone: texte(formulaire, 'icone')
+		icone: texte(formulaire, 'icone'),
+		// Pour réafficher les choix après un refus.
+		niveaux: Object.fromEntries(DOMAINES.flatMap((d) => (texte(formulaire, `niveau-${d.id}`) !== undefined ? [[d.id, texte(formulaire, `niveau-${d.id}`)!]] : []))),
+		...(texte(formulaire, 'administration') === 'oui' ? { admin: formulaire.getAll('admin').filter((d): d is string => typeof d === 'string') } : {})
 	};
+}
+
+// L'icône à enregistrer : celle choisie ; sans icône enregistrée, rien, sauf si un nouveau nom ou une nouvelle portée changerait l'icône affichée.
+function iconeAEnregistrer(role: Parameters<typeof iconeDuRole>[0], valeurs: Valeurs): string | undefined {
+	if (role.icone !== null) return valeurs.icone || undefined;
+	const affichee = iconeDuRole(role);
+	if (valeurs.icone && valeurs.icone !== affichee) return valeurs.icone;
+	const apres = iconeDuRole({ ...role, nom: (valeurs.nom ?? role.nom).trim(), portee: valeurs.portee || role.portee });
+	return apres !== affichee ? affichee : undefined;
 }
 
 const pouvoirDe = (droits: Droit[]) => droits.filter(estDroitPouvoir);
@@ -81,6 +93,7 @@ export const actions: Actions = {
 			const cochees = formulaire.getAll('admin').filter((d): d is Droit => typeof d === 'string' && (DROITS as readonly string[]).includes(d));
 			droits = [...sansPouvoir(droits), ...pouvoirDe(cochees)];
 		}
+		const icone = iconeAEnregistrer(role, valeurs);
 		try {
 			await modifierResponsabilite(
 				base,
@@ -90,8 +103,7 @@ export const actions: Actions = {
 					nom: valeurs.nom ?? '',
 					...(valeurs.nature ? { nature: valeurs.nature as Nature } : {}),
 					...(valeurs.portee ? { portee: valeurs.portee as Portee } : {}),
-					// L'icône affichée par défaut n'est enregistrée que si elle est choisie (autre que celle de repli).
-					...(valeurs.icone && (role.icone !== null || valeurs.icone !== iconeDuRole(role)) ? { icone: valeurs.icone } : {}),
+					...(icone ? { icone } : {}),
 					attributeur: qui,
 					droits
 				},

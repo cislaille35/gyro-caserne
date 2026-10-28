@@ -49,7 +49,7 @@ export async function comitesChoix(base: App.Locals['base']) {
 }
 
 // Ce que reçoit la page après un envoi. `cible` dit quel formulaire est concerné (role, detail, archiver…) : le message s'affiche à côté.
-export type Valeurs = { nom?: string; theme?: string; nature?: string; portee?: string; attributeur?: string; icone?: string; droits?: string[] };
+export type Valeurs = { nom?: string; theme?: string; nature?: string; portee?: string; attributeur?: string; icone?: string; droits?: string[]; niveaux?: Record<string, string>; admin?: string[] };
 export type Reponse = { cible: string; succes?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
 
 // Message du socle -> champ du formulaire et phrase claire. Un message absent de la table s'affiche tel quel.
