@@ -1,124 +1,104 @@
+import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import Layout from './+layout.svelte';
 import Page from './+page.svelte';
 
-const comites = [
-	{ id: 1, nom: 'Comité du centre', theme: 'centre', dissousLe: null, estCentre: true, membresEnCours: 4 },
-	{ id: 2, nom: 'Amicale', theme: 'amicale', dissousLe: null, estCentre: false, membresEnCours: 3 },
-	{ id: 3, nom: 'Sport', theme: 'sport', dissousLe: '2026-05-01', estCentre: false, membresEnCours: 0 }
-];
+const etat = vi.hoisted(() => ({ page: { url: new URL('http://x/reglages') } }));
+vi.mock('$app/state', () => etat);
+
+const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => ({
+	id,
+	nom,
+	nature: 'mission',
+	portee: 'centre',
+	attributeur: { type: 'chef_centre' },
+	droits: [],
+	systeme: null,
+	archiveeLe: null,
+	modele: null,
+	icone: null,
+	titulaires: 1,
+	protegee: false,
+	...champs
+});
 const responsabilites = [
-	{ id: 10, nom: 'Chef d’équipe', nature: 'fonction', portee: 'equipe', attributeur: { type: 'chef_centre' }, droits: [{ droit: 'VALIDER_REMPLACEMENT', verrouille: true }], systeme: 'chef_equipe', archiveeLe: null, titulaires: 3, protegee: false },
-	{ id: 11, nom: 'Référent engins', nature: 'mission', portee: 'centre', attributeur: { type: 'chef_centre' }, droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }], systeme: null, archiveeLe: null, titulaires: 2, protegee: false },
-	{ id: 12, nom: 'Rapporteur de comité', nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: [{ droit: 'ATTRIBUER_RESPONSABILITE', verrouille: false }], systeme: null, archiveeLe: null, titulaires: 2, protegee: true },
-	{ id: 13, nom: 'Ancien rôle', nature: 'mission', portee: 'centre', attributeur: { type: 'comite', id: 2 }, droits: [], systeme: null, archiveeLe: '2026-04-02', titulaires: 0, protegee: false }
+	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
+	role(2, 'Chef d’équipe', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
+	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
+	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
+	role(5, 'Rapporteur de comité', { portee: 'comite', attributeur: { type: 'comite_vise' } }),
+	role(6, 'Ancien rôle', { archiveeLe: '2026-04-02' })
 ];
-const data = { comites, responsabilites, comitesChoix: [{ id: 1, nom: 'Comité du centre' }, { id: 2, nom: 'Amicale' }], peutPouvoir: false,
-	droitsMetier: ['VOIR_PLANNING', 'TRAITER_ANOMALIE', 'VALIDER_REMPLACEMENT'],
-	droitsPouvoir: ['GERER_ACCES', 'ATTRIBUER_RESPONSABILITE', 'GERER_LISTES', 'GERER_COMITES']
-};
+const comites = [
+	{ id: 1, nom: 'Comité du centre', theme: 'centre', dissousLe: null, estCentre: true, membresEnCours: 4, rapporteurs: ['Alice Martin'] },
+	{ id: 2, nom: 'Amicale', theme: 'amicale', dissousLe: null, estCentre: false, membresEnCours: 0, rapporteurs: [] },
+	{ id: 3, nom: 'Sport', theme: 'sport', dissousLe: '2026-05-01', estCentre: false, membresEnCours: 0, rapporteurs: [] }
+];
+const profils = [{ id: 1, nom: 'Agent', typePersonne: 'agent', droits: ['VOIR_PLANNING', 'VOIR_MOTIFS_ABSENCE'] }];
+const data = { peutPouvoir: true, responsabilites, comites, profils, comitesChoix: [] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const html = (props: Record<string, unknown>) => render(Page as any, { props }).body;
+const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
+const groupe = (page: string, titre: string) => page.slice(page.indexOf(`>${titre}<`), page.indexOf('</section>', page.indexOf(`>${titre}<`)));
 
 describe('page Réglages', () => {
-	it('range les droits en deux groupes, métier et pouvoir', () => {
-		const page = html({ data, form: null });
-		expect(page).toMatch(/<legend[^>]*>\s*Droits métier\s*<\/legend>/);
-		expect(page).toMatch(/<legend[^>]*>\s*Droits de pouvoir\s*<\/legend>/);
+	it('range les rôles par thème dans des groupes repliés, avec un résumé', () => {
+		const page = html(Page, { data });
+		for (const titre of ['Chef de centre et adjoint', 'Chefs d’équipe', 'Référents', 'Comités', 'Profils', 'Archivés']) expect(page).toContain(`>${titre}<`);
+		expect(page).toMatch(/aria-expanded="false"/);
+		expect(groupe(page, 'Référents')).toContain('2 rôles · 1 sans titulaire');
+		expect(groupe(page, 'Chef de centre et adjoint')).toContain('Chef de centre');
+		expect(groupe(page, 'Chefs d’équipe')).toContain('Chef d’équipe');
 	});
 
-	it('désactive les cases de pouvoir du référent technique et dit pourquoi', () => {
-		const page = html({ data, form: null });
-		expect(page).toMatch(/<input[^>]*value="GERER_ACCES"[^>]*disabled/);
-		expect(page).not.toMatch(/<input[^>]*value="VOIR_PLANNING"[^>]*disabled/);
-		expect(page).toContain('Seuls le chef de centre');
+	it('une ligne par rôle, qui ouvre sa page : « Aucun titulaire » en alerte, « Personnalisé » en pastille', () => {
+		const page = html(Page, { data });
+		expect(page).toMatch(/<a href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-alerte-fond\)[^>]*>(<!---->)?Aucun titulaire/);
+		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
+		expect(engins).toContain('2 titulaires');
+		expect(engins).toContain('Personnalisé');
+		const pharmacie = page.slice(page.indexOf('href="/reglages/roles/4"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/4"')));
+		expect(pharmacie).not.toContain('Personnalisé');
 	});
 
-	it('laisse les cases de pouvoir libres à qui gère le pouvoir', () => {
-		const page = html({ data: { ...data, peutPouvoir: true }, form: null });
-		expect(page).not.toMatch(/<input[^>]*value="GERER_ACCES"[^>]*disabled/);
+	it('comités en cours avec membres et rapporteur, et les rôles de portée comité', () => {
+		const comitesHtml = groupe(html(Page, { data }), 'Comités');
+		expect(comitesHtml).toMatch(/href="\/reglages\/comites\/1"[\s\S]*4 membres · rapporteur : Alice Martin/);
+		expect(comitesHtml).toContain('pas de rapporteur');
+		expect(comitesHtml).toContain('Rapporteur de comité');
+		expect(comitesHtml).not.toContain('Sport');
 	});
 
-	it('montre la raison, sans formulaire, pour une responsabilité protégée', () => {
-		const page = html({ data, form: null });
-		expect(page).toContain('Cette responsabilité donne un droit de pouvoir');
-		expect(page).not.toMatch(/name="id" value="12"/);
-		expect(page).toMatch(/name="id" value="11"/);
+	it('profils avec leurs niveaux ; archivés et dissous à part', () => {
+		const page = html(Page, { data });
+		expect(groupe(page, 'Profils')).toMatch(/href="\/reglages\/profils\/1"[\s\S]*Planning et gardes : Voir les absences/);
+		const archives = groupe(page, 'Archivés');
+		expect(archives).toContain('Ancien rôle');
+		expect(archives).toContain('Sport, comité dissous');
 	});
 
-	it('bloque l’archivage d’une responsabilité système et la dissolution du comité du centre', () => {
-		const page = html({ data, form: null });
-		expect(page).not.toMatch(/name="id" value="10"[^>]*>[\s\S]{0,300}Je confirme/);
-		expect(page).toContain('ne s’archive pas');
-		expect(page).toContain('ne se dissout pas');
+	it('« + Nouveau rôle » et « + Nouveau comité » selon les droits ; pas de profils sans pouvoir', () => {
+		const page = html(Page, { data });
+		expect(page).toContain('href="/reglages/roles/nouveau"');
+		expect(page).toContain('href="/reglages/comites/nouveau"');
+		const sansComites = html(Page, { data: { ...data, comites: null, profils: null } });
+		expect(sansComites).not.toContain('/reglages/comites/nouveau');
+		expect(sansComites).not.toContain('>Profils<');
+		expect(sansComites).toContain('>Référents<');
 	});
 
-	it('avertit avant dissolution et archivage, avec la case « Je confirme »', () => {
-		const page = html({ data, form: null });
-		expect(page).toContain('Les 3 personnes qui tiennent un rôle dans ce comité le perdent aujourd’hui, avec ses droits ; les nominations à venir sont annulées. Les responsabilités qu’il attribuait seront attribuées par le chef de centre.');
-		expect(page).toContain('Les 2 personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.');
-		expect(page).toContain('Je confirme');
-		expect(page).toMatch(/<input[^>]*name="confirmation"[^>]*value="oui"/);
+	it('sans JavaScript, les groupes restent ouverts', () => {
+		const tete = render(Layout, { props: { data, children: createRawSnippet(() => ({ render: () => '<p>x</p>' })) } }).head;
+		expect(tete).toMatch(/<noscript><style>\.groupe > \[hidden\]/);
 	});
 
-	it('range dissous et archivés dans une section repliée « Anciens »', () => {
-		const page = html({ data, form: null });
-		expect(page).toMatch(/<details[^>]*>\s*<summary[^>]*>Anciens/);
-		expect(page).toContain('Sport');
-		expect(page).toContain('Ancien rôle');
-	});
-
-	it('n’affiche pas la carte dont la liste est nulle', () => {
-		const page = html({ data: { ...data, comites: null }, form: null });
-		expect(page).not.toContain('>Comités<');
-		expect(page).toContain('>Responsabilités<');
-	});
-
-	it('affiche l’erreur à côté du bon formulaire seulement', () => {
-		const page = html({ data, form: { cible: 'comite-2', erreurs: { nom: 'Ce nom est déjà utilisé' }, valeurs: { nom: 'Sport', theme: 'x' } } });
-		expect(page.match(/Ce nom est déjà utilisé/g)).toHaveLength(1);
-		expect(page).toContain('Le formulaire contient des erreurs.');
-		expect(page.match(/Le formulaire contient des erreurs\./g)).toHaveLength(1);
-		expect(page).toMatch(/<details[^>]*open/);
-	});
-
-	it('lie le message des droits aux deux groupes de droits', () => {
-		const page = html({ data, form: { cible: 'resp-11', erreurs: { droits: 'Un droit verrouillé ne se retire pas.' }, valeurs: { nom: 'Référent engins' } } });
-		expect(page).toMatch(/<p[^>]*id="resp-11-droits-erreur"[^>]*>Un droit verrouillé/);
-		const groupes = page.match(/<fieldset[^>]*resp-11-droits-erreur[^>]*>/g) ?? [];
-		expect(groupes).toHaveLength(2);
-		expect(html({ data, form: null })).not.toContain('droits-erreur');
-	});
-
-	it('met dans le bandeau du haut le message d’un formulaire inconnu', () => {
-		for (const cible of ['comite-?', 'resp-?', 'comite-3']) {
-			const page = html({ data, form: { cible, message: 'Comité inconnu.' } });
-			expect(page).toMatch(/<h1[^>]*>[^<]*<\/h1> <div role="alert">(<!--[^>]*-->)*<p[^>]*class="echec[^"]*"[^>]*>Comité inconnu\./);
-			expect(page.match(/Comité inconnu\./g)).toHaveLength(1);
-		}
-		const connu = html({ data, form: { cible: 'comite-2', message: 'Comité inconnu.' } });
-		expect(connu.indexOf('Comité inconnu.')).toBeGreaterThan(connu.indexOf('Modifier ou dissoudre « Amicale »'));
-	});
-
-	it('n’impose pas d’attribut open à un bloc sans cible : l’hydratation ne le referme pas', () => {
-		const page = html({ data, form: null });
-		expect(page).not.toMatch(/<details[^>]*\sopen/);
-		expect(html({ data, form: { cible: 'comite-2', message: 'x' } }).match(/<details[^>]*\sopen/g)).toHaveLength(1);
-	});
-
-	it('annonce un succès dans une région de statut', () => {
-		const page = html({ data, form: { cible: 'comite-nouveau', succes: 'Le comité « Sport » est créé.' } });
-		expect(page).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le comité « Sport » est créé\./);
-	});
-
-	it('garde les formulaires hors des tableaux, pour qu’ils tiennent sur un téléphone', () => {
-		const page = html({ data, form: null });
-		for (const tableau of page.match(/<table[\s\S]*?<\/table>/g) ?? []) expect(tableau).not.toMatch(/<form|<details/);
-		expect(page).toMatch(/<summary[^>]*>Modifier ou dissoudre « Amicale »/);
-		expect(page).toMatch(/<summary[^>]*>Modifier ou archiver « Référent engins »/);
-	});
-
-	it('borne les noms à 60 caractères', () => {
-		expect(html({ data, form: null })).toMatch(/id="comite-nouveau-nom"[^>]*maxlength="60"/);
+	it('sur une page de réglage, la liste est à côté et un lien ramène aux réglages', () => {
+		etat.page.url = new URL('http://x/reglages/roles/3');
+		const mise = html(Layout, { data, children: createRawSnippet(() => ({ render: () => '<p>Contenu</p>' })) });
+		expect(mise).toMatch(/<nav[^>]*aria-label="Réglages du centre"/);
+		expect(mise).toMatch(/href="\/reglages\/roles\/3" aria-current="page"/);
+		expect(mise).toContain('href="/reglages">‹ Réglages');
+		etat.page.url = new URL('http://x/reglages');
+		expect(html(Layout, { data, children: createRawSnippet(() => ({ render: () => '<p>Contenu</p>' })) })).not.toContain('<nav');
 	});
 });
