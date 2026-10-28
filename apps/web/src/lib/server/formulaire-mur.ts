@@ -80,14 +80,24 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Lieu trop long': { champ: 'lieu', texte: 'Le lieu ne peut pas dépasser 200 caractères.' },
 	'Convoqués invalides': { champ: 'convoques', texte: 'Choisissez les équipes convoquées.' },
 	'Équipe inconnue': { champ: 'convoques', texte: 'Une des équipes choisies n’existe pas.' },
-	'Publication inconnue': { texte: 'Cette publication n’existe plus.' }
+	'Publication inconnue': { texte: 'Cette publication n’existe plus.' },
+	'Commentaire vide': { texte: 'Écrivez votre commentaire.' },
+	'Commentaire trop long': { texte: 'Le commentaire ne peut pas dépasser 2 000 caractères.' },
+	'Commentaires fermés': { texte: 'Les commentaires sont fermés.' },
+	'Commentaire inconnu': { texte: 'Ce commentaire n’existe plus.' },
+	'Réponse inconnue': { texte: 'Choisissez une réponse.' },
+	'Réservé aux personnes ayant une fiche': { texte: 'Le super administrateur n’a pas de fiche : ce geste est réservé aux agents.' }
 };
+
+// Refus du socle dont la raison est à dire telle quelle.
+const RAISONS = ['Vous n’êtes pas convoqué à cet événement'];
 
 // Traduit un refus du socle en réponse du formulaire visé ; toute autre erreur remonte.
 export function echecMur(erreur: unknown, cible: string, valeurs?: Valeurs) {
 	if (erreur instanceof RefusDroit) {
-		const message =
-			cible !== 'publier'
+		const message = RAISONS.includes(erreur.message)
+			? `${erreur.message}.`
+			: cible !== 'publier'
 				? 'Vous n’avez pas le droit de faire cela.'
 				: erreur.droit === 'MODERER_SALON'
 					? 'Seuls les modérateurs du mur demandent une prise de connaissance.'

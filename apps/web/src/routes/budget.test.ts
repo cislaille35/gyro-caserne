@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, personne, profil, publication, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, commentaire, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
 import { load as accueil } from './+page.server';
 import { load as echanges } from './echanges/+layout.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
+import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
 import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
@@ -117,5 +118,55 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await page();
 		});
 		expect(n2).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/echanges/[mur]/[id] : annonce suivie, 50 commentaires ; chaque geste puis le rechargement', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const maintenant = '2026-10-28T10:00:00';
+		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const evenement = await publier(base, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		const agents = await base.select({ id: personne.id }).from(personne);
+		for (const a of agents.slice(0, 100)) await prendreConnaissance(base, { type: 'personne', id: a.id }, annonce, maintenant);
+		await base.insert(commentaire).values(Array.from({ length: 50 }, (_, i) => ({ publicationId: annonce, auteur: `personne:${agents[i]!.id}`, texte: `Commentaire ${i}`, creeLe: maintenant })));
+		const params = (id: number) => ({ mur: 'centre', id: String(id) });
+		const page = async (id: number) => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals });
+			return (publicationSeule as any)({ locals, params: params(id) });
+		};
+		for (const id of [annonce, evenement]) {
+			const n = await compter(async () => {
+				const data = await page(id);
+				expect(data.suivi).not.toBeNull();
+			});
+			expect(n).toBeLessThanOrEqual(BUDGET);
+		}
+		const [dernier] = await base.select({ id: commentaire.id }).from(commentaire).orderBy(commentaire.id).limit(1);
+		const gestes: [string, number, [string, string][]][] = [
+			['commenter', annonce, [['texte', 'Vu']]],
+			['supprimerCommentaire', annonce, [['commentaire', String(dernier!.id)]]],
+			['aimer', annonce, [['oui', '1']]],
+			['voter', annonce, [['reponse', '0']]],
+			['prendreConnaissance', annonce, []],
+			['fermerCommentaires', annonce, [['oui', '1']]],
+			['repondre', evenement, [['reponse', 'present']]]
+		];
+		const url = new URL('http://localhost/echanges/centre');
+		for (const [nom, id, champs] of gestes) {
+			// Depuis la page de la publication, puis depuis le mur.
+			const n = await compter(async () => {
+				const r = await (actionsPublication as any)[nom]({ locals, params: params(id), request: await requeteFormulaire([['id', String(id)], ...champs]) });
+				expect(r, nom).toMatchObject({ succes: expect.any(String) });
+				await page(id);
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+			const n2 = await compter(async () => {
+				await (actionsMur as any)[nom]({ locals, params: { mur: 'centre' }, url, request: await requeteFormulaire([['id', String(id)], ...champs]) });
+				await (racine as any)({ locals });
+				await (echanges as any)({ locals });
+				await (mur as any)({ locals, params: { mur: 'centre' }, url });
+			});
+			expect(n2, nom).toBeLessThanOrEqual(BUDGET);
+		}
 	});
 });

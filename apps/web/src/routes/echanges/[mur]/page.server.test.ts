@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { journal, photoPublication, publication, publier } from '@gyro-caserne/socle';
+import { commentaire, commenter, fermerCommentaires, jaime, journal, photoPublication, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { envoyer, jpeg, locaux, preparer } from '../de-test.ts';
 import { actions, load } from './+page.server';
@@ -170,5 +170,86 @@ describe('taille des envois', () => {
 		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
 		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...photos]);
 		expect(r).toMatchObject({ succes: 'Publication envoyée.' });
+	});
+});
+
+describe('interactions', () => {
+	const evenement = (convoques: 'tous' | number[]) => ({ type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut: demain(), lieu: 'Caserne', convoques } });
+
+	it('commenter : publié, texte contrôlé et gardé, refusé si les commentaires sont fermés', async () => {
+		const { base, alice, bruno } = await preparer();
+		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'Salut']])).toMatchObject({ cible: `publication:${id}`, succes: 'Commentaire publié.' });
+		expect(await base.select().from(commentaire)).toMatchObject([{ texte: 'Salut', auteur: `personne:${bruno.id}` }]);
+		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', ' ']])).toMatchObject({ status: 400, data: { message: 'Écrivez votre commentaire.' } });
+		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'x'.repeat(2001)]])).toMatchObject({ status: 400, data: { message: 'Le commentaire ne peut pas dépasser 2 000 caractères.', valeurs: { texte: 'x'.repeat(2001) } } });
+		await fermerCommentaires(base, alice, Number(id), true, maintenantParis());
+		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'Encore']])).toMatchObject({ status: 400, data: { message: 'Les commentaires sont fermés.', valeurs: { texte: 'Encore' } } });
+	});
+
+	it('supprimer un commentaire : son auteur ou un modérateur, pas un autre agent ; jamais celui d’une autre publication', async () => {
+		const { base, chef, alice, bruno } = await preparer();
+		const id = await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
+		const autre = await publier(base, alice, 'vie', { type: 'message', texte: 'Autre' }, maintenantParis());
+		const c1 = String(await commenter(base, alice, id, 'Un', maintenantParis()));
+		const c2 = String(await commenter(base, alice, id, 'Deux', maintenantParis()));
+		expect(await agir('supprimerCommentaire', locaux(base, bruno), 'vie', [['id', String(id)], ['commentaire', c1]])).toMatchObject({ status: 403 });
+		expect(await agir('supprimerCommentaire', locaux(base, alice), 'vie', [['id', String(autre)], ['commentaire', c1]])).toMatchObject({ status: 400, data: { message: 'Ce commentaire n’existe plus.' } });
+		expect(await agir('supprimerCommentaire', locaux(base, alice), 'vie', [['id', String(id)], ['commentaire', c1]])).toMatchObject({ succes: 'Commentaire supprimé.' });
+		expect(await agir('supprimerCommentaire', locaux(base, chef), 'vie', [['id', String(id)], ['commentaire', c2]])).toMatchObject({ succes: 'Commentaire supprimé.' });
+		expect(await base.select().from(commentaire)).toHaveLength(0);
+	});
+
+	it('j’aime, puis plus ; refusé au super administrateur, qui n’a pas de fiche', async () => {
+		const { base, alice, bruno } = await preparer();
+		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		expect(await agir('aimer', locaux(base, bruno), 'vie', [['id', id], ['oui', '1']])).toMatchObject({ succes: 'Vous aimez cette publication.' });
+		expect(await base.select().from(jaime)).toHaveLength(1);
+		expect(await agir('aimer', locaux(base, bruno), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ succes: 'J’aime retiré.' });
+		expect(await base.select().from(jaime)).toHaveLength(0);
+		expect(await agir('aimer', locaux(base, { type: 'super', email: 'a@b.fr' }), 'vie', [['id', id], ['oui', '1']])).toMatchObject({ status: 400, data: { message: expect.stringContaining('pas de fiche') } });
+	});
+
+	it('répondre à un événement : les convoqués seulement, réponse changeable', async () => {
+		const { base, chef, alice, bruno, e1 } = await preparer();
+		const id = String(await publier(base, chef, 'centre', evenement([e1.id]), maintenantParis()));
+		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'present']])).toMatchObject({ succes: 'Réponse enregistrée : présent.' });
+		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'incertain']])).toMatchObject({ succes: 'Réponse enregistrée : incertain.' });
+		expect(await base.select().from(reponseEvenement)).toMatchObject([{ personneId: alice.id, reponse: 'incertain' }]);
+		expect(await agir('repondre', locaux(base, bruno), 'centre', [['id', id], ['reponse', 'present']])).toMatchObject({ status: 403, data: { message: 'Vous n’êtes pas convoqué à cet événement.' } });
+		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'peut-etre']])).toMatchObject({ status: 400, data: { message: 'Choisissez une réponse.' } });
+	});
+
+	it('voter : un choix par personne, qu’on peut changer', async () => {
+		const { base, alice, bruno } = await preparer();
+		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Samedi', sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenantParis()));
+		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '1']])).toMatchObject({ succes: 'Vote enregistré.' });
+		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '0']])).toMatchObject({ succes: 'Vote enregistré.' });
+		expect(await base.select().from(voteSondage)).toMatchObject([{ personneId: bruno.id, reponse: 0 }]);
+		for (const reponse of ['2', 'abc', '']) expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', reponse]])).toMatchObject({ status: 400, data: { message: 'Choisissez une réponse.' } });
+	});
+
+	it('prendre connaissance d’une annonce, une fois', async () => {
+		const { base, chef, alice } = await preparer();
+		const id = String(await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenantParis()));
+		expect(await agir('prendreConnaissance', locaux(base, alice), 'centre', [['id', id]])).toMatchObject({ succes: 'Prise de connaissance enregistrée.' });
+		expect(await agir('prendreConnaissance', locaux(base, alice), 'centre', [['id', id]])).toMatchObject({ succes: expect.any(String) });
+		expect(await base.select().from(priseConnaissance)).toHaveLength(1);
+	});
+
+	it('fermer les commentaires : l’auteur ferme, seul un modérateur rouvre', async () => {
+		const { base, chef, alice } = await preparer();
+		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		expect(await agir('fermerCommentaires', locaux(base, alice), 'vie', [['id', id], ['oui', '1']])).toMatchObject({ succes: 'Commentaires fermés.' });
+		expect(await agir('fermerCommentaires', locaux(base, alice), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ status: 403 });
+		expect(await agir('fermerCommentaires', locaux(base, chef), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ succes: 'Commentaires rouverts.' });
+		expect((await base.select().from(publication))[0]!.commentairesFermes).toBe(0);
+	});
+
+	it('une publication d’un autre mur que celui de l’adresse : 404 pour chaque geste', async () => {
+		const { base, chef } = await preparer();
+		const id = String(await publier(base, chef, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
+		for (const nom of ['commenter', 'supprimerCommentaire', 'aimer', 'repondre', 'voter', 'prendreConnaissance', 'fermerCommentaires'])
+			expect(await agir(nom, locaux(base, chef), 'centre', [['id', id]]), nom).toMatchObject({ status: 404 });
 	});
 });

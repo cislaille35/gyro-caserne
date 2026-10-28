@@ -1,0 +1,231 @@
+<script lang="ts">
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import type { Personne } from '@gyro-caserne/socle';
+	import Bouton from '#lib/ui/Bouton.svelte';
+	import Publication from '#lib/ui/Publication.svelte';
+
+	let { data, form } = $props();
+
+	const p = $derived(data.publication);
+	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
+	const noms = (liste: Personne[]) => (liste.length === 0 ? 'personne' : liste.map(nom).join(', '));
+	const quand = (iso: string) =>
+		new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
+	// Une seule zone annoncée par page, pour toutes les réponses des formulaires.
+	const annonceSucces = $derived(form?.succes ?? '');
+	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
+	const retour = $derived(form?.cible === `publication:${p.id}` ? form : undefined);
+	const prise = $derived(data.suivi?.priseDeConnaissance);
+	// « 31 ont pris connaissance, 4 pas encore : … »
+	const bilan = $derived(
+		prise
+			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore : ${noms(prise.manquante)}.` : 'personne d’autre n’est attendu.'}`
+			: ''
+	);
+	const CATEGORIES = [
+		['present', 'Présents'],
+		['absent', 'Absents'],
+		['incertain', 'Incertains'],
+		['sans_reponse', 'Sans réponse']
+	] as const;
+
+	// Commentaire refusé : le champ reprend le focus pour corriger.
+	let champ = $state<HTMLTextAreaElement>();
+	const surCommentaire: SubmitFunction = () => async ({ result, update }) => {
+		await update();
+		if (result.type === 'failure') champ?.focus();
+	};
+	// Commentaire supprimé : son bouton a disparu, le focus revient au titre de la liste.
+	let titre = $state<HTMLElement>();
+	const surSuppression: SubmitFunction = () => async ({ update }) => {
+		await update();
+		if (!document.activeElement?.isConnected || document.activeElement === document.body) titre?.focus();
+	};
+</script>
+
+<svelte:head>
+	<title>Publication de {nom(p.auteur)} · {data.mur.nom} · Gyro Caserne</title>
+</svelte:head>
+
+<p class="retour"><a href="/echanges/{data.mur.cle}">‹ {data.mur.nom}</a></p>
+<h1>Publication de {nom(p.auteur)}</h1>
+
+<div class="annonce" role="status">{annonceSucces}</div>
+<div class="annonce" role="alert">{annonceEchec}</div>
+
+<Publication {p} equipes={data.equipes} {retour} {agir} lectureSeule={data.mur.lectureSeule} seule />
+
+<section aria-labelledby="titre-commentaires" class="bloc">
+	<h2 id="titre-commentaires" tabindex="-1" bind:this={titre}>Commentaires ({data.commentaires.length})</h2>
+	{#if data.commentaires.length > 0}
+		<ul class="commentaires">
+			{#each data.commentaires as c (c.id)}
+				<li>
+					<p><span class="auteur">{nom(c.auteur)}</span> <span class="doux">· le {quand(c.creeLe)}</span></p>
+					<p class="texte">{c.texte}</p>
+					{#if c.supprimable}
+						<form method="POST" action="?/supprimerCommentaire" use:enhance={surSuppression}>
+							<input type="hidden" name="id" value={p.id} />
+							<input type="hidden" name="commentaire" value={c.id} />
+							<button type="submit" class="petit" aria-label="Supprimer le commentaire de {nom(c.auteur)}">Supprimer</button>
+						</form>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+	{:else}
+		<p class="doux">Aucun commentaire pour l’instant.</p>
+	{/if}
+
+	{#if data.mur.lectureSeule}
+		<p class="doux">Ce mur est en lecture seule : on n’y commente plus.</p>
+	{:else if p.commentairesFermes}
+		<p class="doux">Les commentaires sont fermés.</p>
+	{:else}
+		<form method="POST" action="?/commenter" id="commenter" class="formulaire" use:enhance={surCommentaire}>
+			<input type="hidden" name="id" value={p.id} />
+			<label for="texte-commentaire">Votre commentaire</label>
+			<textarea id="texte-commentaire" name="texte" rows="3" maxlength="2000" required bind:this={champ} value={retour?.valeurs?.texte ?? ''}></textarea>
+			<Bouton type="submit">Commenter</Bouton>
+		</form>
+	{/if}
+</section>
+
+{#if data.suivi}
+	<section id="suivi" aria-labelledby="titre-suivi" class="bloc">
+		<h2 id="titre-suivi">Suivi</h2>
+		{#if prise}
+			<p>{bilan}</p>
+			{#if prise.faite.length > 0}
+				<details>
+					<summary>Qui a pris connaissance</summary>
+					<p>{noms(prise.faite)}</p>
+				</details>
+			{/if}
+		{/if}
+		{#if data.suivi.evenement}
+			<dl class="categories">
+				{#each CATEGORIES as [cle, libelle] (cle)}
+					<div>
+						<dt>{libelle} ({data.suivi.evenement[cle].length})</dt>
+						<dd>{noms(data.suivi.evenement[cle])}</dd>
+					</div>
+				{/each}
+			</dl>
+		{/if}
+	</section>
+{/if}
+
+<style>
+	.retour {
+		margin: 0 0 8px;
+	}
+	.retour a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
+		color: var(--encre);
+		font-weight: 600;
+	}
+	h1 {
+		margin: 0 0 16px;
+		font: 700 1.75rem var(--police-titre);
+	}
+	h2 {
+		margin: 0;
+		font: 700 1.25rem var(--police-titre);
+	}
+	.bloc {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 20px;
+	}
+	p,
+	dl,
+	ul {
+		margin: 0;
+	}
+	.commentaires {
+		list-style: none;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.commentaires li {
+		padding: 10px 12px;
+		border: 1px solid var(--trait-doux);
+		border-radius: var(--rayon-petit);
+		background: var(--surface);
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.auteur {
+		font-weight: 700;
+	}
+	.doux {
+		color: var(--doux);
+	}
+	.texte {
+		white-space: pre-line;
+		overflow-wrap: anywhere;
+	}
+	.petit {
+		align-self: flex-start;
+		min-height: var(--cible);
+		padding: 0 14px;
+		border: 2px solid var(--trait);
+		border-radius: var(--rayon-petit);
+		background: transparent;
+		color: var(--encre);
+		font: 600 0.9375rem var(--police);
+		cursor: pointer;
+	}
+	.formulaire {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.formulaire > :global(button) {
+		align-self: flex-start;
+	}
+	label {
+		font-weight: 600;
+	}
+	textarea {
+		padding: 10px 14px;
+		border: 2px solid var(--doux);
+		border-radius: var(--rayon-petit);
+		background: var(--surface);
+		color: var(--encre);
+		font: 400 1rem var(--police);
+	}
+	summary {
+		min-height: var(--cible);
+		display: flex;
+		align-items: center;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.categories {
+		display: grid;
+		gap: 8px;
+	}
+	dt {
+		font-weight: 700;
+	}
+	dd {
+		margin: 0;
+	}
+	.annonce {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+</style>

@@ -1,8 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { asc, eq } from 'drizzle-orm';
-import { epingler, equipe, lireMur, modifierPublication, publication, publier, supprimerPublication, type Acteur } from '@gyro-caserne/socle';
+import { asc } from 'drizzle-orm';
+import { epingler, equipe, lireMur, modifierPublication, publier, supprimerPublication } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { echecMur, envoiTropLourd, erreurLecture, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
+import { gestes, surPublication } from '#lib/server/gestes-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
@@ -18,28 +19,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 };
 
-// L'identifiant d'une publication visée par un bouton.
-const idDe = (f: FormData) => {
-	const brut = f.get('id');
-	return typeof brut === 'string' && /^\d+$/.test(brut) ? Number(brut) : null;
-};
-
-// Une publication visée depuis la page d'un mur doit être de ce mur ; sinon, elle n'existe pas ici.
-async function surPublication(locals: App.Locals, params: { mur: string }, request: Request, faire: (acteur: Acteur, id: number, f: FormData) => Promise<string>) {
-	const acteur = exigerActeur(locals);
-	const f = await request.formData();
-	const id = idDe(f);
-	if (id === null) return fail<Reponse>(400, { cible: 'publication', message: 'Cette publication n’existe plus.' });
-	const cible = `publication:${id}`;
-	const [ligne] = await locals.base.select({ mur: publication.mur }).from(publication).where(eq(publication.id, id));
-	if (ligne?.mur !== params.mur) return fail<Reponse>(404, { cible, message: 'Cette publication n’existe plus.' });
-	try {
-		return { cible, succes: await faire(acteur, id, f) } satisfies Reponse;
-	} catch (erreur) {
-		return echecMur(erreur, cible);
-	}
-}
-
 export const actions: Actions = {
 	publier: async ({ locals, params, request }) => {
 		const acteur = exigerActeur(locals);
@@ -54,20 +33,21 @@ export const actions: Actions = {
 		return { cible: 'publier', succes: 'Publication envoyée.' } satisfies Reponse;
 	},
 	modifier: ({ locals, params, request }) =>
-		surPublication(locals, params, request, async (acteur, id, f) => {
+		surPublication({ locals, params, request }, async (acteur, id, f) => {
 			const texte = f.get('texte');
 			await modifierPublication(locals.base, acteur, id, { texte: typeof texte === 'string' ? texte : '' }, maintenantParis());
 			return 'Publication modifiée.';
 		}),
 	supprimer: ({ locals, params, request }) =>
-		surPublication(locals, params, request, async (acteur, id) => {
+		surPublication({ locals, params, request }, async (acteur, id) => {
 			await supprimerPublication(locals.base, acteur, id, maintenantParis());
 			return 'Publication supprimée.';
 		}),
 	epingler: ({ locals, params, request }) =>
-		surPublication(locals, params, request, async (acteur, id, f) => {
+		surPublication({ locals, params, request }, async (acteur, id, f) => {
 			const oui = f.get('oui') === '1';
 			await epingler(locals.base, acteur, id, oui, maintenantParis());
 			return oui ? 'Publication épinglée.' : 'Épingle retirée.';
-		})
+		}),
+	...gestes
 };

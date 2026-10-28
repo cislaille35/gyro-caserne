@@ -67,7 +67,7 @@ describe('page d’un mur', () => {
 		expect(page).toContain('Événement');
 		expect(page).toContain('jeudi 5 novembre à 19:30');
 		expect(page).toContain('Équipe 2 (vous l’êtes)');
-		expect(page).toContain('Oui : 3 voix (votre choix)');
+		expect(page).toContain('Oui : 3 voix, 75 % (votre choix)');
 		expect(page).toContain('src="/echanges/photo/7"');
 		expect(page).toContain('alt="Photo 2 sur 2, publiée par Alice Martin"');
 		expect(page).toContain('2 j’aime · 1 commentaire');
@@ -119,3 +119,76 @@ describe('page d’un mur', () => {
 		expect(page).toMatch(/class="pages[^"]*sous-le-lien/);
 	});
 });
+
+describe('gestes sur une publication', () => {
+	const agir = (p: PublicationVue, data: Record<string, unknown> = {}) => html({ publications: [p], estPersonne: true, ...data });
+	const commentaire = (id: number, texte: string) => ({ id, auteur: { prenom: 'Bruno', nom: 'Petit' }, texte, creeLe: '2026-10-28T15:00', supprimable: false });
+
+	it('« J’aime » : bouton à bascule avec le nombre ; en texte pour qui ne peut pas agir', () => {
+		const aime = agir(pub({ jaime: 3, jaimeParMoi: true }));
+		expect(aime).toContain('action="?/aimer"');
+		expect(aime).toMatch(/<button[^>]*aria-pressed="true"[^>]*>J’aime <span[^>]*>3<\/span>/);
+		expect(aime).toMatch(/name="oui" value="0"/);
+		expect(agir(pub({ jaime: 0 }))).toMatch(/<button[^>]*aria-pressed="false"[^>]*>J’aime/);
+		expect(html({ publications: [pub({ jaime: 2 })] })).not.toContain('?/aimer');
+		expect(agir(pub({ jaime: 2 }), { mur: { ...mur, lectureSeule: true, peutPublier: false } })).not.toContain('?/aimer');
+	});
+
+	it('les 2 derniers commentaires, puis « Voir les N commentaires » ou « Commenter »', () => {
+		const page = agir(pub({ commentaires: 5, derniersCommentaires: [commentaire(4, 'Quatre'), commentaire(5, 'Cinq')] }));
+		expect(page).toContain('Quatre');
+		expect(page).toContain('Bruno Petit');
+		expect(page).toMatch(/href="\/echanges\/vie\/1"[^>]*>Voir les 5 commentaires/);
+		expect(agir(pub({ commentaires: 1, derniersCommentaires: [commentaire(4, 'Seul')] }))).toMatch(/href="\/echanges\/vie\/1#commenter"[^>]*>Commenter/);
+		const fermes = agir(pub({ commentairesFermes: true }));
+		expect(fermes).not.toContain('>Commenter<');
+		expect(fermes).toContain('commentaires fermés');
+	});
+
+	it('réponse à l’événement : trois boutons à bascule, pour les convoqués seulement ; comptes en texte', () => {
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, reponse: 'incertain' as const, compte: { present: 2, absent: 0, incertain: 1 } };
+		const page = agir(pub({ type: 'evenement', evenement }));
+		expect(page).toContain('action="?/repondre"');
+		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
+			expect(page).toMatch(new RegExp(`<button[^>]*name="reponse" value="${valeur}"[^>]*aria-pressed="${appuye}"[^>]*>${libelle}<`));
+		expect(page).toContain('Réponses : 2 présents, 0 absent, 1 incertain');
+		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, convoque: false } }))).not.toContain('?/repondre');
+	});
+
+	it('sondage : les choix, puis les résultats en nombre et en pourcentage (jamais la couleur seule)', () => {
+		const sondage = { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], resultats: [3, 1], vote: null };
+		const avant = agir(pub({ sondage }));
+		expect(avant).toContain('action="?/voter"');
+		expect(avant).toMatch(/<button[^>]*name="reponse" value="0"[^>]*>Oui</);
+		expect(avant).toContain('4 réponses');
+		expect(avant).not.toContain('75 %');
+		const apres = agir(pub({ sondage: { ...sondage, vote: 0 } }));
+		expect(apres).toContain('Oui : 3 voix, 75 % (votre choix)');
+		expect(apres).toContain('Non : 1 voix, 25 %');
+		expect(apres).toMatch(/class="barre[^"]*" aria-hidden="true"/);
+		expect(apres).toContain('Changer mon vote');
+		// Sans pouvoir voter : les résultats.
+		expect(html({ publications: [pub({ sondage })] })).toContain('Oui : 3 voix, 75 %');
+	});
+
+	it('prise de connaissance : bouton, puis la date', () => {
+		const avant = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null } }));
+		expect(avant).toContain('action="?/prendreConnaissance"');
+		expect(avant).toContain('>Pris connaissance<');
+		const apres = agir(pub({ type: 'annonce', priseDeConnaissance: { le: '2026-10-28T14:30:00' } }));
+		expect(apres).not.toContain('?/prendreConnaissance');
+		expect(apres).toContain('Vous avez pris connaissance le 28 octobre à 14:30.');
+		// L’auteur n’a pas à prendre connaissance de son annonce ; il en voit le suivi.
+		const auteur = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null }, droits: { modifier: true, supprimer: true, epingler: false, fermer: true } }));
+		expect(auteur).not.toContain('?/prendreConnaissance');
+		expect(auteur).toMatch(/href="\/echanges\/vie\/1#suivi"[^>]*>Voir le suivi/);
+	});
+
+	it('fermer ou rouvrir les commentaires selon le droit', () => {
+		const droits = { modifier: false, supprimer: true, epingler: true, fermer: true };
+		expect(agir(pub({ droits }))).toMatch(/action="\?\/fermerCommentaires"[\s\S]*Fermer les commentaires/);
+		expect(agir(pub({ droits, commentairesFermes: true }))).toContain('Rouvrir les commentaires');
+		expect(agir(pub())).not.toContain('?/fermerCommentaires');
+	});
+});
+
