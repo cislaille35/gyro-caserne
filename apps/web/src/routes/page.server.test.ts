@@ -102,13 +102,16 @@ describe('« À ne pas manquer » sur l’accueil', () => {
 		expect(apres.aNePasManquer.evenements).toMatchObject([{ id: evenement, reponse: 'present' }]);
 	});
 
-	it('gestes refusés : identifiant invalide, publication inconnue, non convoqué, sans connexion', async () => {
+	it('gestes refusés : identifiant invalide, publication inconnue, non convoqué, mur illisible, sans connexion', async () => {
 		const { base, chef, bruno, e1 } = await preparer();
 		const evenement = await publier(base, chef, `equipe:${e1.id}`, { type: 'evenement', texte: 'Réunion', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
 		const locals = { base, acteur: bruno };
 		expect(await geste('repondre', locals, [['id', 'abc'], ['reponse', 'present']])).toMatchObject({ status: 400 });
 		expect(await geste('repondre', locals, [['id', '9999'], ['reponse', 'present']])).toMatchObject({ status: 404 });
 		expect(await geste('repondre', locals, [['id', String(evenement)], ['reponse', 'present']])).toMatchObject({ status: 403, data: { cible: `publication:${evenement}` } });
+		const annonce = await publier(base, chef, `equipe:${e1.id}`, { type: 'annonce', texte: 'Consigne', priseDeConnaissance: true }, maintenantParis());
+		expect(await geste('prendreConnaissance', locals, [['id', String(annonce)]])).toMatchObject({ status: 403, data: { cible: `publication:${annonce}`, message: 'Vous n’avez pas le droit de faire cela.' } });
+		expect(await base.select().from(priseConnaissance)).toEqual([]);
 		await expect(geste('prendreConnaissance', { base, acteur: null }, [['id', String(evenement)]])).rejects.toMatchObject({ status: 303 });
 		expect(await base.select().from(reponseEvenement)).toEqual([]);
 	});

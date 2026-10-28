@@ -9,7 +9,9 @@
 	const actif = $derived(connecte ? rubriqueDe(chemin) : chemin);
 	const courant = (href: string) => (actif === href ? 'page' : undefined);
 	// Le nombre est dit dans le nom du lien ; la pastille le montre.
-	const nomCloche = $derived(cloche > 0 ? `Notifications, ${cloche} ${cloche > 1 ? 'nouvelles' : 'nouvelle'}` : 'Notifications');
+	const nomCloche = $derived(
+		cloche > 99 ? 'Notifications, plus de 99 nouvelles' : cloche > 0 ? `Notifications, ${cloche} ${cloche > 1 ? 'nouvelles' : 'nouvelle'}` : 'Notifications'
+	);
 
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',

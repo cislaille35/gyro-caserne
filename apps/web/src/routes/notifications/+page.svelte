@@ -3,10 +3,13 @@
 
 	let { data } = $props();
 
+	// « Événement demain, à répondre et sondage à voter », « Événement avec sondage, à voter »…
+	const quoiEvenement = (e: { demain: boolean; reponse: string | null; sondage: boolean }) =>
+		`Événement${e.demain ? ' demain' : ''}${e.reponse === null ? `, à répondre${e.sondage ? ' et sondage à voter' : ''}` : ' avec sondage, à voter'}`;
 	// Ce qu'il faut faire est écrit, pas seulement montré.
 	const elements = $derived([
 		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte' })),
-		...data.evenements.map((e) => ({ ...e, quoi: e.demain ? 'Événement demain, à répondre' : 'Événement à répondre' })),
+		...data.evenements.map((e) => ({ ...e, quoi: quoiEvenement(e) })),
 		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre' }))
 	]);
 </script>

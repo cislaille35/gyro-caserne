@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { ANePasManquer, ItemANePasManquer } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { regrouper } from '../a-faire.ts';
 	import Bouton from './Bouton.svelte';
 	import Carte from './Carte.svelte';
 	import Pastille from './Pastille.svelte';
 
-	let { a, form = null }: { a: ANePasManquer; form?: { cible: string; message?: string } | null } = $props();
+	let { a, casquette, form = null }: { a: ANePasManquer; casquette: string; form?: { cible: string; message?: string } | null } = $props();
 
 	const REPONSES = [
 		['present', 'Présent'],
@@ -18,9 +19,10 @@
 		new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const refus = (id: number) => (form?.cible === `publication:${id}` ? form.message : undefined);
 
-	// Une épinglée déjà listée plus haut (annonce, événement, sondage) n'est pas répétée.
-	const epinglees = $derived(a.epinglees.filter((e) => ![...a.annonces, ...a.evenements, ...a.sondages].some((i) => i.id === e.id)));
-	const rien = $derived(a.annonces.length + a.evenements.length + a.sondages.length + epinglees.length + a.nouveautes.length === 0);
+	const r = $derived(regrouper(a));
+	const rien = $derived(r.annonces.length + r.evenements.length + r.sondages.length + r.epinglees.length + r.nouveautes.length === 0);
+	// Sans JavaScript, la page revient sur la casquette choisie.
+	const action = (nom: string) => `?casquette=${encodeURIComponent(casquette)}&/${nom}`;
 
 	// Après un geste, le focus reste sur son bouton ; s'il a disparu, il va au titre de la section, ou au contenu si elle a disparu.
 	const garderFocus: SubmitFunction = () => async ({ update }) => {
@@ -37,14 +39,14 @@
 {#if !rien}
 	<Carte titre="À ne pas manquer" ancre="a-ne-pas-manquer">
 		<div class="groupes">
-			{#if a.annonces.length > 0}
+			{#if r.annonces.length > 0}
 				<section aria-labelledby="anm-annonces">
 					<h3 id="anm-annonces">Annonces à prendre en compte</h3>
 					<ul role="list">
-						{#each a.annonces as i (i.id)}
+						{#each r.annonces as i (i.id)}
 							<li class="element">
 								{@render titreDe(i)}
-								<form method="POST" action="?/prendreConnaissance" use:enhance={garderFocus}>
+								<form method="POST" action={action('prendreConnaissance')} use:enhance={garderFocus}>
 									<input type="hidden" name="id" value={i.id} />
 									<Bouton type="submit">Pris connaissance<span class="masque">{` : ${i.titre}`}</span></Bouton>
 								</form>
@@ -55,15 +57,15 @@
 				</section>
 			{/if}
 
-			{#if a.evenements.length > 0}
+			{#if r.evenements.length > 0}
 				<section aria-labelledby="anm-evenements">
 					<h3 id="anm-evenements">Événements</h3>
 					<ul role="list">
-						{#each a.evenements as e (e.id)}
+						{#each r.evenements as e (e.id)}
 							<li class="element">
 								{@render titreDe(e)}
 								<span class="quand">{#if e.demain}<Pastille ton="alerte">Demain</Pastille>{/if}<span>{debut(e.debut)}</span></span>
-								<form method="POST" action="?/repondre" use:enhance={garderFocus}>
+								<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
 									<input type="hidden" name="id" value={e.id} />
 									<p id="reponse-{e.id}" class="question">Votre réponse<span class="masque">{` : ${e.titre}`}</span></p>
 									<div role="group" aria-labelledby="reponse-{e.id}" class="boutons">
@@ -72,6 +74,7 @@
 										{/each}
 									</div>
 								</form>
+								{#if e.sondage}<a class="lien" href={lien(e)}>Sondage ouvert : votez sur la publication<span class="masque">{` : ${e.titre}`}</span></a>{/if}
 								{#if refus(e.id)}<p class="echec">{refus(e.id)}</p>{/if}
 							</li>
 						{/each}
@@ -79,29 +82,29 @@
 				</section>
 			{/if}
 
-			{#if a.sondages.length > 0}
+			{#if r.sondages.length > 0}
 				<section aria-labelledby="anm-sondages">
 					<h3 id="anm-sondages">Sondages ouverts</h3>
 					<ul role="list">
-						{#each a.sondages as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
+						{#each r.sondages as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
 					</ul>
 				</section>
 			{/if}
 
-			{#if epinglees.length > 0}
+			{#if r.epinglees.length > 0}
 				<section aria-labelledby="anm-epinglees">
 					<h3 id="anm-epinglees">Épinglées</h3>
 					<ul role="list">
-						{#each epinglees as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
+						{#each r.epinglees as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
 					</ul>
 				</section>
 			{/if}
 
-			{#if a.nouveautes.length > 0}
+			{#if r.nouveautes.length > 0}
 				<section aria-labelledby="anm-nouveautes">
 					<h3 id="anm-nouveautes">Nouveautés</h3>
 					<ul role="list">
-						{#each a.nouveautes as n (n.cle)}
+						{#each r.nouveautes as n (n.cle)}
 							<li><a class="ligne" href="/echanges/{n.cle}">{n.nom} : {n.nombre} {n.nombre > 1 ? 'nouveautés' : 'nouveauté'}</a></li>
 						{/each}
 					</ul>
@@ -153,6 +156,13 @@
 	}
 	.doux {
 		color: var(--doux);
+	}
+	.lien {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		color: var(--encre);
+		font-weight: 600;
 	}
 	.quand {
 		display: flex;

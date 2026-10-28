@@ -1,6 +1,7 @@
 import { aLeDroit, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
-import { aNePasManquerDe, nombreAFaire } from '#lib/server/a-faire.ts';
+import { nombreAFaire } from '#lib/a-faire.ts';
+import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -10,7 +11,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// « Nominations » : dès qu'il y a au moins une responsabilité à attribuer.
 	const peutNominations = acteur === null ? false : await peutAttribuerQuelqueChose(base, acteur, aujourdhuiParis());
 	// La cloche : seule une personne a quelque chose à faire sur les murs.
-	const cloche = acteur?.type === 'personne' ? nombreAFaire(await aNePasManquerDe(base, acteur)) : 0;
+	const cloche = acteur?.type === 'personne' ? await compterCloche(base, acteur) : 0;
 	return {
 		affichage: locals.affichage,
 		connecte: acteur !== null,
@@ -25,4 +26,14 @@ async function peutReglerLeCentre(base: App.Locals['base'], acteur: NonNullable<
 	const aujourdhui = aujourdhuiParis();
 	const centre = { type: 'centre' } as const;
 	return (await aLeDroit(base, acteur, 'GERER_LISTES', centre, aujourdhui)) || (await aLeDroit(base, acteur, 'GERER_COMITES', centre, aujourdhui));
+}
+
+// Une panne passagère de la base ne doit pas faire tomber toutes les pages : la cloche reste muette.
+async function compterCloche(base: App.Locals['base'], acteur: NonNullable<App.Locals['acteur']>) {
+	try {
+		return nombreAFaire(await aNePasManquerDe(base, acteur));
+	} catch (erreur) {
+		console.error('Cloche illisible', erreur);
+		return 0;
+	}
 }

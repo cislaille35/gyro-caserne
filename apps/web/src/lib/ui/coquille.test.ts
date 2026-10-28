@@ -60,6 +60,8 @@ describe('Coquille', () => {
 		expect(lien(1)).toContain('aria-label="Notifications, 1 nouvelle"');
 		expect(lien(3)).toContain('aria-label="Notifications, 3 nouvelles"');
 		expect(lien(3)).toMatch(/<span class="nombre[^"]*"[^>]*aria-hidden="true"[^>]*>3<\/span>/);
+		expect(lien(99)).toContain('aria-label="Notifications, 99 nouvelles"');
+		expect(lien(120)).toContain('aria-label="Notifications, plus de 99 nouvelles"');
 		expect(lien(120)).toMatch(/>99\+<\/span>/);
 	});
 

@@ -93,7 +93,7 @@ describe('accueil', () => {
 				{ ...item(2, 'Manœuvre'), debut: '2026-10-29T19:00', demain: true, reponse: null },
 				{ ...item(3, 'Repas'), debut: '2026-11-05T12:00', demain: false, reponse: 'absent' }
 			],
-			sondages: [item(4, 'Repas ?', 'vie', 'Vie du centre')],
+			sondages: [item(4, 'Repas ?', 'vie', 'Vie du centre'), item(3, 'Repas')],
 			epinglees: [item(1, 'Note de service'), item(5, 'Consignes hiver')],
 			nouveautes: [{ cle: 'comite:2', nom: 'Amicale', nombre: 3 }, { cle: 'vie', nom: 'Vie du centre', nombre: 1 }]
 		};
@@ -111,7 +111,7 @@ describe('accueil', () => {
 
 		it('annonce : bouton « Pris connaissance » nommé par son titre, envoyé à l’accueil ; épinglée une seule fois', () => {
 			const h = html();
-			expect(h).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/prendreConnaissance"/);
+			expect(h).toMatch(/<form[^>]*method="POST"[^>]*action="\?casquette=astreinte&amp;\/prendreConnaissance"/);
 			expect(h).toMatch(/<button[^>]*type="submit"[^>]*>[\s\S]*?Pris connaissance<span class="masque[^"]*"> : Note de service<\/span>/);
 			expect(h.match(/Note de service/g)).toHaveLength(2);
 			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/1"/);
@@ -120,11 +120,16 @@ describe('accueil', () => {
 
 		it('événements : réponse sur place, la sienne marquée, « demain » écrit', () => {
 			const h = html();
-			expect(h.match(/action="\?\/repondre"/g)).toHaveLength(2);
+			expect(h.match(/action="[^"]*\/repondre"/g)).toHaveLength(2);
 			expect(h).toMatch(/<button[^>]*name="reponse"[^>]*value="absent"[^>]*aria-pressed="true"/);
 			expect(h).toMatch(/<button[^>]*name="reponse"[^>]*value="present"[^>]*aria-pressed="false"/);
 			expect(h).toContain('Demain');
 			expect(h).toMatch(/role="group"[^>]*aria-labelledby="reponse-2"/);
+			// L'événement porte son sondage : une seule fois, sous « Événements ».
+			expect(h.match(/href="\/echanges\/centre\/3"/g)).toHaveLength(2);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/3"[^>]*>Sondage ouvert : votez sur la publication<span class="masque[^"]*"> : Repas<\/span>/);
+			const sondages = h.slice(h.indexOf('Sondages ouverts'));
+			expect(sondages).not.toContain('/echanges/centre/3');
 		});
 
 		it('sondage et nouveautés : des liens', () => {
@@ -132,6 +137,13 @@ describe('accueil', () => {
 			expect(h).toMatch(/<a[^>]*href="\/echanges\/vie\/4"[^>]*>[\s\S]*?Repas \?/);
 			expect(h).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Amicale : 3 nouveautés/);
 			expect(h).toContain('Vie du centre : 1 nouveauté<');
+		});
+
+		it('sans JavaScript, la casquette choisie est gardée après un geste', () => {
+			const h = html('astreinte');
+			expect(h).toContain('action="?casquette=astreinte&amp;/prendreConnaissance"');
+			expect(h).toContain('action="?casquette=astreinte&amp;/repondre"');
+			expect(html('centre')).toContain('action="?casquette=centre&amp;/repondre"');
 		});
 
 		it('résultat d’un geste annoncé ; un refus près de l’élément', () => {

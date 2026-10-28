@@ -46,7 +46,7 @@
 	<div class="annonce" role="alert">{annonceEchec}</div>
 
 	<div class="contenu">
-		<ANePasManquer a={data.aNePasManquer} {form} />
+		<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
 		{#if data.contenu.type === 'centre'}
 			<Carte titre="À décider">
 				{#if data.contenu.aDecider.length > 0}

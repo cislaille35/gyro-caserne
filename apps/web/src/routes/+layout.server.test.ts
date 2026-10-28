@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
 import { attribuer, chargerJeuDeDepart, comite, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
-import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { load } from './+layout.server';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,8 +74,20 @@ describe('load du layout', () => {
 		expect((await appeler(alice, base)).cloche).toBe(3);
 		await repondreEvenement(base, alice, evenement, 'incertain', maintenant.slice(0, 10));
 		expect((await appeler(alice, base)).cloche).toBe(2);
+		// Un événement avec sondage compte une fois, tant que la réponse ou le vote manque.
+		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		expect((await appeler(alice, base)).cloche).toBe(3);
 		// Le super administrateur et le visiteur : rien.
 		expect((await appeler(super_, base)).cloche).toBe(0);
 		expect((await appeler(null, base)).cloche).toBe(0);
+	});
+
+	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {
+		const { base, alice } = await preparer();
+		const enPanne = new Proxy(base, { get: (cible, cle) => (cle === 'batch' ? () => Promise.reject(new Error('D1 indisponible')) : Reflect.get(cible, cle)) });
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, cloche: 0 });
+		expect(erreur).toHaveBeenCalled();
+		erreur.mockRestore();
 	});
 });
