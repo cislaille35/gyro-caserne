@@ -12,8 +12,9 @@
 </script>
 
 <div class="echanges" class:sur-un-mur={actif !== undefined}>
-	<nav class="murs" aria-labelledby="titre-murs">
-		<svelte:element this={actif ? 'h2' : 'h1'} id="titre-murs">Échanges</svelte:element>
+	<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
+	<nav class="murs" aria-label="Murs">
+		{#if !actif}<h1>Échanges</h1>{/if}
 		{#if data.murs.length === 0}
 			<Vide texte="Vous n’avez accès à aucun mur." />
 		{:else}
@@ -41,8 +42,7 @@
 		display: grid;
 		gap: 1rem;
 	}
-	h1,
-	h2 {
+	h1 {
 		margin: 0 0 12px;
 		font: 700 1.75rem var(--police-titre);
 	}

@@ -71,6 +71,21 @@ describe('reduirePhoto', () => {
 		await expect(reduirePhoto(new File(['texte'], 'note.txt', { type: 'text/plain' }))).rejects.toThrow('« note.txt » n’est pas une image');
 	});
 
+	it('navigateur sans canevas : un message clair', async () => {
+		simuler(800, 600);
+		vi.stubGlobal('OffscreenCanvas', undefined);
+		await expect(reduirePhoto(new File([new Uint8Array(3)], 'p.jpg', { type: 'image/jpeg' }))).rejects.toThrow('Votre navigateur ne peut pas réduire cette photo ; essayez avec un autre navigateur');
+		vi.stubGlobal(
+			'OffscreenCanvas',
+			class {
+				getContext() {
+					return null;
+				}
+			}
+		);
+		await expect(reduirePhoto(new File([new Uint8Array(3)], 'p.jpg', { type: 'image/jpeg' }))).rejects.toThrow('Votre navigateur ne peut pas réduire cette photo');
+	});
+
 	it('refuse une image illisible', async () => {
 		vi.stubGlobal('createImageBitmap', vi.fn(async () => Promise.reject(new Error('décodage'))));
 		await expect(reduirePhoto(new File([new Uint8Array(3)], 'abimee.jpg', { type: 'image/jpeg' }))).rejects.toThrow('« abimee.jpg » est illisible');

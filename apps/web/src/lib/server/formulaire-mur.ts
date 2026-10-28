@@ -2,6 +2,8 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { DonneeInvalide, RefusDroit, type Acteur, type DonneesPublication } from '@gyro-caserne/socle';
 
 const TAILLE_PHOTO_MAX = 400 * 1024;
+// 4 photos de 400 Ko et 0,1 Mo pour le texte et les autres champs.
+const ENVOI_MAX = 4 * TAILLE_PHOTO_MAX + 100 * 1024;
 
 export function exigerActeur(locals: App.Locals): Acteur {
 	if (!locals.acteur) redirect(303, '/connexion');
@@ -24,7 +26,14 @@ const texte = (f: FormData, cle: string) => {
 	return typeof v === 'string' ? v : '';
 };
 
-// Lit le formulaire « Publier ». Une photo trop lourde (envoyée sans JavaScript, donc sans réduction) est refusée avant lecture.
+// Avant toute lecture du corps : un envoi sans longueur annoncée ou trop lourd est refusé, pour ne pas saturer la mémoire du serveur.
+export function envoiTropLourd(request: Request): boolean {
+	const longueur = Number(request.headers.get('content-length') ?? NaN);
+	return !Number.isFinite(longueur) || longueur > ENVOI_MAX;
+}
+
+// Lit le formulaire « Publier » (corps déjà limité par envoiTropLourd). Une photo de plus de 400 Ko (envoyée sans JavaScript,
+// donc sans réduction) est refusée avant d'être copiée pour le socle.
 export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesPublication; valeurs: Valeurs; erreurs?: Record<string, string> }> {
 	const valeurs: Valeurs = {
 		type: texte(f, 'type'),
@@ -61,8 +70,8 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Photo JPEG ou WebP seulement': { champ: 'photos', texte: 'Les photos doivent être en JPEG ou WebP.' },
 	'Photo trop lourde (400 Ko au plus)': { champ: 'photos', texte: 'Photo trop lourde : 400 Ko au plus.' },
 	'Question vide': { champ: 'sondage', texte: 'Indiquez la question du sondage.' },
-	'Question trop long': { champ: 'sondage', texte: 'La question ne peut pas dépasser 200 caractères.' },
-	'Réponse trop long': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },
+	'Question trop longue': { champ: 'sondage', texte: 'La question ne peut pas dépasser 200 caractères.' },
+	'Réponse trop longue': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },
 	'De 2 à 6 réponses': { champ: 'sondage', texte: 'Proposez de 2 à 6 réponses.' },
 	'Date et lieu de l’événement manquants': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },
 	'Début invalide': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import Bouton from './Bouton.svelte';
 	import Champ from './Champ.svelte';
@@ -35,6 +35,7 @@
 	onMount(() => (js = true));
 
 	// Les photos sont réduites avant l'envoi ; un fichier illisible arrête l'envoi avec un message.
+	let champPhotos: HTMLInputElement;
 	const surEnvoi: SubmitFunction = async ({ formData, cancel }) => {
 		erreurPhotos = '';
 		const fichiers = formData.getAll('photos').filter((f): f is File => typeof f !== 'string' && f.size > 0);
@@ -46,11 +47,17 @@
 			erreurPhotos = e instanceof Error ? `${e.message}.` : 'Photo illisible.';
 			envoi = false;
 			cancel();
+			await tick();
+			champPhotos.focus();
 			return;
 		}
-		return async ({ update }) => {
+		// Refusée : le premier champ en erreur prend le focus.
+		return async ({ update, result, formElement }) => {
 			await update();
 			envoi = false;
+			if (result.type !== 'failure') return;
+			await tick();
+			formElement.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 		};
 	};
 	const erreurPhoto = $derived(erreurPhotos || erreurs.photos);
@@ -58,12 +65,9 @@
 
 <section id="publier" class="carte" aria-labelledby="titre-publier">
 	<h2 id="titre-publier">Publier sur {mur.nom}</h2>
-	<div role="alert">
-		{#if concerne && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'La publication contient des erreurs.'}</p>{/if}
-	</div>
-	<div role="status">
-		{#if concerne && form?.succes}<p class="succes">{form.succes}</p>{/if}
-	</div>
+	<!-- Annoncé par la zone unique de la page ; ici, seulement visible. -->
+	{#if concerne && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'La publication contient des erreurs.'}</p>{/if}
+	{#if concerne && form?.succes}<p class="succes">{form.succes}</p>{/if}
 	<form method="POST" action="?/publier" enctype="multipart/form-data" class="formulaire" use:enhance={surEnvoi}>
 		<Choix id="publier-type" name="type" libelle="Type" options={TYPES} bind:valeur={type} erreur={erreurs.type} />
 
@@ -122,6 +126,7 @@
 			<label for="publier-photos">Photos</label>
 			<p id="publier-photos-aide" class="aide">4 au plus, en JPEG ou WebP. Elles sont réduites avant l’envoi.</p>
 			<input
+				bind:this={champPhotos}
 				id="publier-photos"
 				name="photos"
 				type="file"

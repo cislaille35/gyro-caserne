@@ -106,6 +106,15 @@ describe('page d’un mur', () => {
 		expect(page).toContain('Écrivez le texte de la publication.');
 		expect(page).toContain('Photo trop lourde : 400 Ko au plus.');
 		expect(page).toContain('value="Salle"');
-		expect(html({ publications: [pub()] }, { cible: 'publication:1', message: 'Vous n’avez pas le droit de faire cela.' })).toContain('Vous n’avez pas le droit de faire cela.');
+		const refus = html({ publications: [pub(), pub({ id: 2 })] }, { cible: 'publication:1', message: 'Vous n’avez pas le droit de faire cela.' });
+		expect(refus.match(/Vous n’avez pas le droit de faire cela\./g)).toHaveLength(2);
+	});
+
+	it('une seule zone annoncée (status, alert) par page', () => {
+		const page = html({ publications: [pub(), pub({ id: 2 })], epinglees: [pub({ id: 3 })] }, { cible: 'publication:2', succes: 'Publication épinglée.' });
+		expect(page.match(/role="status"/g)).toHaveLength(1);
+		expect(page.match(/role="alert"/g)).toHaveLength(1);
+		expect(page).toMatch(/role="status">Publication épinglée\.</);
+		expect(page).toMatch(/class="pages[^"]*sous-le-lien/);
 	});
 });

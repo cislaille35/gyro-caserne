@@ -26,12 +26,19 @@ export async function preparer() {
 
 export const locaux = (base: unknown, acteur: unknown) => ({ base, acteur });
 
-// Une action comme SvelteKit l'appelle : formulaire en plusieurs parties (photos comprises), paramètres de route.
-export function envoyer(actions: Record<string, unknown>, nom: string, locals: unknown, mur: string, corps: [string, string | File][]) {
+// Un envoi de formulaire tel que le navigateur le fait : plusieurs parties (photos comprises), avec sa longueur.
+export async function requeteFormulaire(corps: [string, string | File][]) {
 	const formulaire = new FormData();
 	for (const [cle, valeur] of corps) formulaire.append(cle, valeur);
+	const brouillon = new Request('http://x', { method: 'POST', body: formulaire });
+	const octets = await brouillon.arrayBuffer();
+	return new Request('http://x', { method: 'POST', body: octets, headers: { 'content-type': brouillon.headers.get('content-type')!, 'content-length': String(octets.byteLength) } });
+}
+
+// Une action comme SvelteKit l'appelle, avec les paramètres de route.
+export async function envoyer(actions: Record<string, unknown>, nom: string, locals: unknown, mur: string, corps: [string, string | File][]) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (actions[nom] as any)({ locals, params: { mur }, url: new URL(`http://x/echanges/${mur}`), request: new Request('http://x', { method: 'POST', body: formulaire }) });
+	return (actions[nom] as any)({ locals, params: { mur }, url: new URL(`http://x/echanges/${mur}`), request: await requeteFormulaire(corps) });
 }
 
 // Un fichier JPEG fictif (les premiers octets suffisent au contrôle).

@@ -15,8 +15,13 @@ export async function reduirePhoto(fichier: File): Promise<Blob> {
 	const echelle = Math.min(1, COTE_MAX / Math.max(image.width, image.height));
 	const largeur = Math.round(image.width * echelle);
 	const hauteur = Math.round(image.height * echelle);
-	const toile = new OffscreenCanvas(largeur, hauteur);
-	toile.getContext('2d')!.drawImage(image, 0, 0, largeur, hauteur);
+	const toile = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(largeur, hauteur) : null;
+	const contexte = toile?.getContext('2d');
+	if (!toile || !contexte) {
+		image.close();
+		throw new Error('Votre navigateur ne peut pas réduire cette photo ; essayez avec un autre navigateur');
+	}
+	contexte.drawImage(image, 0, 0, largeur, hauteur);
 	image.close();
 	let blob!: Blob;
 	for (const quality of QUALITES) {

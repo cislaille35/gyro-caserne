@@ -46,10 +46,11 @@ export type PublicationVue = {
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
 
-export function texte(valeur: unknown, libelle: string, max: number): string {
+// `feminin` : accord du message (« Question trop longue »).
+export function texte(valeur: unknown, libelle: string, max: number, feminin = false): string {
 	const propre = typeof valeur === 'string' ? valeur.trim() : '';
 	if (!propre) throw new DonneeInvalide(`${libelle} vide`);
-	if (propre.length > max) throw new DonneeInvalide(`${libelle} trop long`);
+	if (propre.length > max) throw new DonneeInvalide(`${libelle} trop long${feminin ? 'ue' : ''}`);
 	return propre;
 }
 
@@ -74,8 +75,8 @@ function exigerPhotos(valeur: DonneesPublication['photos']) {
 
 function exigerSondage(sondage: DonneesPublication['sondage']) {
 	if (!sondage) return { sondageQuestion: null, sondageReponses: null };
-	const question = texte(sondage.question, 'Question', 200);
-	const reponses = Array.isArray(sondage.reponses) ? sondage.reponses.map((r) => texte(r, 'Réponse', 100)) : [];
+	const question = texte(sondage.question, 'Question', 200, true);
+	const reponses = Array.isArray(sondage.reponses) ? sondage.reponses.map((r) => texte(r, 'Réponse', 100, true)) : [];
 	if (reponses.length < 2 || reponses.length > 6) throw new DonneeInvalide('De 2 à 6 réponses');
 	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses) };
 }

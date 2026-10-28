@@ -66,8 +66,9 @@
 
 	<p class="doux">{p.jaime} j’aime · {pluriel(p.commentaires, 'commentaire')}{p.commentairesFermes ? ' · commentaires fermés' : ''}</p>
 
-	<div role="status">{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}</div>
-	<div role="alert">{#if retour?.message}<p class="echec">{retour.message}</p>{/if}</div>
+	<!-- Annoncé par la zone unique de la page ; ici, seulement visible. -->
+	{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}
+	{#if retour?.message}<p class="echec">{retour.message}</p>{/if}
 
 	{#if p.droits.epingler || p.droits.modifier || p.droits.supprimer}
 		<div class="gestes">

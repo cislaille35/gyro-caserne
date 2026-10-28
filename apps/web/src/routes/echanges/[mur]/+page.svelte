@@ -1,10 +1,24 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import FormulairePublication from '#lib/ui/FormulairePublication.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import Publication from '#lib/ui/Publication.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
+
+	// Le lien flottant « Publier » s'efface quand le formulaire est à l'écran.
+	let formulaireVisible = $state(false);
+	onMount(() => {
+		const cible = document.getElementById('publier');
+		if (!cible || typeof IntersectionObserver !== 'function') return;
+		const observateur = new IntersectionObserver(([e]) => (formulaireVisible = e!.isIntersecting));
+		observateur.observe(cible);
+		return () => observateur.disconnect();
+	});
+	// Une seule zone annoncée par page, pour toutes les réponses des formulaires.
+	const annonceSucces = $derived(form?.succes ?? '');
+	const annonceEchec = $derived(form && !form.succes ? (form.message ?? 'La publication contient des erreurs.') : '');
 
 	const retour = (id: number) => (form?.cible === `publication:${id}` ? form : undefined);
 	const suite = $derived(data.plusAnciennes);
@@ -20,7 +34,9 @@
 	{#if data.mur.lectureSeule}<Pastille ton="neutre">Lecture seule</Pastille>{/if}
 </header>
 
-{#if form?.cible === 'publication' && form.message}<p class="echec" role="alert">{form.message}</p>{/if}
+<div class="annonce" role="status">{annonceSucces}</div>
+<div class="annonce" role="alert">{annonceEchec}</div>
+{#if form?.cible === 'publication' && form.message}<p class="echec">{form.message}</p>{/if}
 
 {#if data.epinglees.length > 0}
 	<section aria-labelledby="titre-epinglees" class="liste">
@@ -36,7 +52,7 @@
 	{:else}
 		<Vide texte={suite ? 'Aucune publication plus ancienne.' : 'Rien n’a encore été publié ici.'} />
 	{/each}
-	<p class="pages">
+	<p class="pages" class:sous-le-lien={data.mur.peutPublier}>
 		{#if data.suite !== null}<a href="?avant={data.suite}">Voir plus</a>{/if}
 		{#if suite}<a href="/echanges/{data.mur.cle}">Revenir aux plus récentes</a>{/if}
 	</p>
@@ -44,7 +60,7 @@
 
 {#if data.mur.peutPublier}
 	<FormulairePublication mur={data.mur} equipes={data.equipes} {form} />
-	<a class="aller-publier" href="#publier">Publier</a>
+	<a class="aller-publier" href="#publier" hidden={formulaireVisible}>Publier</a>
 {:else if data.mur.lectureSeule}
 	<p class="aide">Ce mur est en lecture seule : on n’y publie plus.</p>
 {:else}
@@ -90,8 +106,23 @@
 		gap: 16px;
 		margin: 0;
 	}
+	/* Laisse « Voir plus » et la dernière publication dégagés du lien flottant. */
+	.sous-le-lien {
+		padding-bottom: 4rem;
+	}
 	.aide {
 		color: var(--doux);
+	}
+	.annonce {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+	.aller-publier[hidden] {
+		display: none;
 	}
 	.echec {
 		padding: 12px 16px;

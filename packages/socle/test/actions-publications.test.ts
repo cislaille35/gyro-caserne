@@ -112,11 +112,12 @@ describe('publier', () => {
 		const { base, agent } = await jeu();
 		const avec = (question: string, reponses: string[]) => publier(base, acteur(agent), 'vie', { ...message(), sondage: { question, reponses } }, maintenant);
 		await expect(avec('', ['Oui', 'Non'])).rejects.toThrow(DonneeInvalide);
-		await expect(avec('q'.repeat(201), ['Oui', 'Non'])).rejects.toThrow(DonneeInvalide);
+		await expect(avec('q'.repeat(201), ['Oui', 'Non'])).rejects.toThrow('Question trop longue');
 		await expect(avec('Pizza ?', ['Oui'])).rejects.toThrow(DonneeInvalide);
 		await expect(avec('Pizza ?', ['1', '2', '3', '4', '5', '6', '7'])).rejects.toThrow(DonneeInvalide);
 		await expect(avec('Pizza ?', ['Oui', ' '])).rejects.toThrow(DonneeInvalide);
-		await expect(avec('Pizza ?', ['Oui', 'r'.repeat(101)])).rejects.toThrow(DonneeInvalide);
+		await expect(avec('Pizza ?', ['Oui', 'r'.repeat(101)])).rejects.toThrow('Réponse trop longue');
+		await expect(publier(base, acteur(agent), 'vie', message('t'.repeat(4001)), maintenant)).rejects.toThrow('Texte trop long');
 		const id = await avec(' Pizza ? ', ['Oui', 'Non']);
 		const [ligne] = await base.select().from(publication).where(eq(publication.id, id));
 		expect(ligne).toMatchObject({ sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]' });

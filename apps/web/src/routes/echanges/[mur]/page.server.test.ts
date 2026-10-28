@@ -112,6 +112,10 @@ describe('publier', () => {
 		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Proposez de 2 à 6 réponses.' } } });
 		expect(await vie([['type', 'message'], ['texte', 'x'], ['reponse', 'Oui'], ['reponse', 'Non']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez la question du sondage.' } } });
 		expect(await vie([['type', 'annonce'], ['texte', 'x'], ['priseDeConnaissance', 'oui']])).toMatchObject({ status: 403, data: { message: expect.stringContaining('modérateurs') } });
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'q'.repeat(201)], ['reponse', 'Oui'], ['reponse', 'Non']])).toMatchObject({
+			status: 400,
+			data: { erreurs: { sondage: 'La question ne peut pas dépasser 200 caractères.' } }
+		});
 		expect(await agir('publier', locaux(base, alice), 'centre', [['type', 'message'], ['texte', 'x']])).toMatchObject({ status: 403, data: { cible: 'publier', message: 'Vous ne pouvez pas publier sur ce mur.' } });
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
@@ -133,12 +137,38 @@ describe('modération', () => {
 		expect(await base.select().from(journal).where(eq(journal.action, 'supprimer_publication'))).toHaveLength(1);
 	});
 
-	it('une publication d’un autre mur, ou inconnue, est refusée', async () => {
-		const { base, alice, bruno, e2 } = await preparer();
+	it('une publication d’un autre mur que celui de l’adresse, ou inconnue : 404', async () => {
+		const { base, chef, alice, bruno, e2 } = await preparer();
 		const id = String(await publier(base, bruno, `equipe:${e2.id}`, { type: 'message', texte: 'Équipe 2' }, maintenantParis()));
-		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', id]])).toMatchObject({ status: 403 });
-		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', '999']])).toMatchObject({ status: 400 });
+		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', id]])).toMatchObject({ status: 404 });
+		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', '999']])).toMatchObject({ status: 404 });
+		// Le chef peut supprimer partout, mais seulement depuis le mur de la publication.
+		const vie = String(await publier(base, bruno, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
+		expect(await agir('supprimer', locaux(base, chef), 'centre', [['id', vie]])).toMatchObject({ status: 404, data: { message: 'Cette publication n’existe plus.' } });
+		expect(await agir('epingler', locaux(base, chef), `equipe:${e2.id}`, [['id', vie], ['oui', '1']])).toMatchObject({ status: 404 });
 		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', 'abc']])).toMatchObject({ status: 400 });
-		expect(await base.select().from(publication)).toHaveLength(1);
+		expect(await base.select().from(publication)).toHaveLength(2);
+	});
+});
+
+describe('taille des envois', () => {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const publierAvec = (locals: unknown, request: Request) => (actions.publier as any)({ locals, params: { mur: 'vie' }, url: new URL('http://x/echanges/vie'), request });
+
+	it('refuse avant lecture un envoi sans longueur ou de plus de 1,7 Mo', async () => {
+		const { base, alice } = await preparer();
+		const sansLongueur = new Request('http://x', { method: 'POST', body: new URLSearchParams({ type: 'message', texte: 'x' }) });
+		sansLongueur.headers.delete('content-length');
+		expect(await publierAvec(locaux(base, alice), sansLongueur)).toMatchObject({ status: 413, data: { cible: 'publier', message: expect.stringContaining('trop lourd') } });
+		const enorme = new Request('http://x', { method: 'POST', body: 'x', headers: { 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(50 * 1024 * 1024) } });
+		expect(await publierAvec(locaux(base, alice), enorme)).toMatchObject({ status: 413 });
+		expect(await base.select().from(publication)).toHaveLength(0);
+	});
+
+	it('accepte 4 photos de 400 Ko et le texte', async () => {
+		const { base, alice } = await preparer();
+		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
+		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...photos]);
+		expect(r).toMatchObject({ succes: 'Publication envoyée.' });
 	});
 });
