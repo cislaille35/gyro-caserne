@@ -1,19 +1,30 @@
 <script lang="ts">
-	import type { ANePasManquer, ItemANePasManquer } from '@gyro-caserne/socle';
+	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { regrouper } from '../a-faire.ts';
-	import Bouton from './Bouton.svelte';
-	import Carte from './Carte.svelte';
+	import ListeRangees from './ListeRangees.svelte';
 	import Pastille from './Pastille.svelte';
+	import PastilleMur from './PastilleMur.svelte';
+	import Rangee from './Rangee.svelte';
+	import TuileDate from './TuileDate.svelte';
 
-	let { a, casquette, form = null }: { a: ANePasManquer; casquette: string; form?: { cible: string; message?: string } | null } = $props();
+	// Les nouveautés portent, si on les a, l'identité de leur mur (icône, couleur, numéro d'équipe).
+	type Identite = Partial<Pick<ApercuMur, 'icone' | 'couleur' | 'numero'>>;
+	let { a, casquette, form = null }: { a: ANePasManquer & { nouveautes: (ANePasManquer['nouveautes'][number] & Identite)[] }; casquette: string; form?: { cible: string; message?: string } | null } = $props();
 
 	const REPONSES = [
 		['present', 'Présent'],
 		['absent', 'Absent'],
 		['incertain', 'Incertain']
 	] as const;
+	const DESSINS = {
+		annonce: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7',
+		sondage: 'M5 20V11 M12 20V4 M19 20v-6',
+		epinglee: 'M9 3h6l-1 6 4 4H6l4-4z M12 13v8',
+		ok: 'M5 12.5l4.5 4.5L19 7'
+	};
 	const lien = (i: ItemANePasManquer) => `/echanges/${i.cle}/${i.id}`;
+	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const debut = (iso: string) =>
 		new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
@@ -33,174 +44,101 @@
 	};
 </script>
 
-{#snippet titreDe(i: ItemANePasManquer)}
-	<a class="titre" href={lien(i)}>{i.titre}</a>
-	<span class="doux">{i.nomMur}</span>
+{#snippet echec(id: number)}
+	{#if refus(id)}<p class="echec">{refus(id)}</p>{/if}
 {/snippet}
 
-{#if !rien}
-	<Carte titre="À ne pas manquer" ancre="a-ne-pas-manquer">
-		<div class="groupes">
-			{#if r.annonces.length > 0}
-				<section aria-labelledby="anm-annonces">
-					<h3 id="anm-annonces">Annonces à prendre en compte</h3>
-					<ul role="list">
-						{#each r.annonces as i (i.id)}
-							<li class="element">
-								{@render titreDe(i)}
-								<form method="POST" action={action('prendreConnaissance')} use:enhance={garderFocus}>
-									<input type="hidden" name="id" value={i.id} />
-									<Bouton type="submit">Pris connaissance<span class="masque">{` : ${i.titre}`}</span></Bouton>
-								</form>
-								{#if refus(i.id)}<p class="echec">{refus(i.id)}</p>{/if}
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
+{#if rien}
+	<Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." />
+{:else}
+	<ListeRangees titre="À ne pas manquer" ancre="a-ne-pas-manquer">
+		{#each r.evenements as e (e.id)}
+			<li>
+				<Rangee href={lien(e)} titre={e.titre} sous="{debut(e.debut)} · {e.nomMur}">
+					{#snippet tete()}<TuileDate iso={e.debut} />{/snippet}
+					{#if e.demain}<span class="demain"><Pastille ton="alerte">Demain</Pastille></span>{/if}
+					<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
+						<input type="hidden" name="id" value={e.id} />
+						<p id="reponse-{e.id}" class="masque">Votre réponse{` : ${e.titre}`}</p>
+						<div role="group" aria-labelledby="reponse-{e.id}" class="boutons">
+							{#each REPONSES as [valeur, libelle] (valeur)}
+								<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
+							{/each}
+						</div>
+					</form>
+					{#if e.sondage}<a class="lien" href={lien(e)}
+							><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d={DESSINS.sondage} /></svg>Sondage ouvert : votez sur la publication<span class="masque">{` : ${e.titre}`}</span></a>{/if}
+					{@render echec(e.id)}
+				</Rangee>
+			</li>
+		{/each}
 
-			{#if r.evenements.length > 0}
-				<section aria-labelledby="anm-evenements">
-					<h3 id="anm-evenements">Événements</h3>
-					<ul role="list">
-						{#each r.evenements as e (e.id)}
-							<li class="element">
-								{@render titreDe(e)}
-								<span class="quand">{#if e.demain}<Pastille ton="alerte">Demain</Pastille>{/if}<span>{debut(e.debut)}</span></span>
-								<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
-									<input type="hidden" name="id" value={e.id} />
-									<p id="reponse-{e.id}" class="question">Votre réponse<span class="masque">{` : ${e.titre}`}</span></p>
-									<div role="group" aria-labelledby="reponse-{e.id}" class="boutons">
-										{#each REPONSES as [valeur, libelle] (valeur)}
-											<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
-										{/each}
-									</div>
-								</form>
-								{#if e.sondage}<a class="lien" href={lien(e)}>Sondage ouvert : votez sur la publication<span class="masque">{` : ${e.titre}`}</span></a>{/if}
-								{#if refus(e.id)}<p class="echec">{refus(e.id)}</p>{/if}
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
+		{#each r.annonces as i (i.id)}
+			<li>
+				<Rangee href={lien(i)} titre={i.titre} sous="Annonce à prendre en compte · {i.nomMur}" icone="etoile" dessin={DESSINS.annonce}>
+					<form method="POST" action={action('prendreConnaissance')} use:enhance={garderFocus}>
+						<input type="hidden" name="id" value={i.id} />
+						<button type="submit" class="geste">Pris connaissance<span class="masque">{` : ${i.titre}`}</span></button>
+					</form>
+					{@render echec(i.id)}
+				</Rangee>
+			</li>
+		{/each}
 
-			{#if r.sondages.length > 0}
-				<section aria-labelledby="anm-sondages">
-					<h3 id="anm-sondages">Sondages ouverts</h3>
-					<ul role="list">
-						{#each r.sondages as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
-					</ul>
-				</section>
-			{/if}
+		{#each r.sondages as i (i.id)}
+			<li><Rangee href={lien(i)} titre={i.titre} sous="Sondage ouvert · {i.nomMur}" icone="camion" dessin={DESSINS.sondage} /></li>
+		{/each}
 
-			{#if r.epinglees.length > 0}
-				<section aria-labelledby="anm-epinglees">
-					<h3 id="anm-epinglees">Épinglées</h3>
-					<ul role="list">
-						{#each r.epinglees as i (i.id)}<li class="element">{@render titreDe(i)}</li>{/each}
-					</ul>
-				</section>
-			{/if}
+		{#each r.epinglees as i (i.id)}
+			<li><Rangee href={lien(i)} titre={i.titre} sous="Épinglée · {i.nomMur}" icone="livre" dessin={DESSINS.epinglee} /></li>
+		{/each}
 
-			{#if r.nouveautes.length > 0}
-				<section aria-labelledby="anm-nouveautes">
-					<h3 id="anm-nouveautes">Nouveautés</h3>
-					<ul role="list">
-						{#each r.nouveautes as n (n.cle)}
-							<li><a class="ligne" href="/echanges/{n.cle}">{n.nom} : {n.nombre} {n.nombre > 1 ? 'nouveautés' : 'nouveauté'}</a></li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-		</div>
-	</Carte>
+		{#each r.nouveautes as n (n.cle)}
+			<li>
+				<Rangee href="/echanges/{n.cle}" titre={n.nom} sous={pluriel(n.nombre, 'nouveauté')}>
+					{#snippet tete()}<PastilleMur icone={n.icone ?? null} couleur={n.couleur ?? null} numero={n.numero ?? null} taille={48} />{/snippet}
+					{#snippet droite()}<span class="compte" aria-hidden="true">{n.nombre}</span>{/snippet}
+				</Rangee>
+			</li>
+		{/each}
+	</ListeRangees>
 {/if}
 
 <style>
-	.groupes,
-	section,
-	ul {
-		display: flex;
-		flex-direction: column;
-	}
-	.groupes {
-		gap: 20px;
-	}
-	section {
-		gap: 8px;
-	}
-	h3 {
-		margin: 0;
-		font: 700 1.125rem var(--police-titre);
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		gap: 8px;
-	}
-	.element {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 10px 14px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 12px;
-	}
-	.titre,
-	.ligne {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		color: var(--encre);
-		font-weight: 700;
-		overflow-wrap: anywhere;
-	}
-	.doux {
-		color: var(--doux);
-	}
-	.lien {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		color: var(--encre);
-		font-weight: 600;
-	}
-	.quand {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px;
-	}
 	form {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 6px;
+		margin-top: 6px;
 	}
-	.question {
-		margin: 0;
-		font-weight: 600;
+	.demain {
+		margin-top: 4px;
 	}
 	.boutons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 6px;
 	}
-	/* Bouton à bascule : l'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
-	.bascule {
+	.bascule,
+	.geste {
 		min-height: var(--cible);
 		min-width: var(--cible);
-		padding: 0 16px;
-		border: 2px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		background: transparent;
+		padding: 0 12px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		background: var(--surface);
 		color: var(--encre);
-		font: 600 1rem var(--police);
+		font: 600 0.9375rem var(--police);
 		cursor: pointer;
 	}
-	.bascule[aria-pressed='true'] {
+	.bascule:hover,
+	.geste:hover {
 		border-color: var(--encre);
+	}
+	/* Bouton à bascule : l'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
+	.bascule[aria-pressed='true'] {
+		border: 2px solid var(--encre);
 		background: var(--fond);
 		font-weight: 700;
 	}
@@ -208,17 +146,36 @@
 		content: '✓ ';
 		content: '✓ ' / '';
 	}
+	.lien {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		align-self: flex-start;
+		gap: 6px;
+		color: var(--statut-info-texte);
+		font-weight: 600;
+		font-size: 0.9375rem;
+		text-decoration: none;
+	}
+	.lien:hover {
+		text-decoration: underline;
+	}
 	.echec {
-		margin: 0;
+		margin: 4px 0 0;
 		font-weight: 600;
 		color: var(--statut-danger-texte);
 	}
-	.masque {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
+	.compte {
+		min-width: 24px;
+		height: 24px;
+		padding: 0 7px;
+		border-radius: 12px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--rouge);
+		color: var(--sur-rouge);
+		font-size: 0.8125rem;
+		font-weight: 700;
 	}
 </style>

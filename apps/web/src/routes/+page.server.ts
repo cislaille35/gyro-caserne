@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { accueilDe, prenomDe } from '@gyro-caserne/socle';
+import { accueilDe, apercusDesMurs, prenomDe } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
@@ -13,7 +13,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		prenomDe(base, acteur),
 		aNePasManquerDe(base, acteur)
 	]);
-	return { prenom, ...accueil, aNePasManquer };
+	// Les nouveautés montrent la pastille de leur mur : lue seulement s'il y en a.
+	const apercus = aNePasManquer.nouveautes.length > 0 ? await apercusDesMurs(base, acteur, aujourdhuiParis()) : [];
+	const nouveautes = aNePasManquer.nouveautes.map((n) => {
+		const m = apercus.find((x) => x.cle === n.cle);
+		return { ...n, icone: m?.icone ?? null, couleur: m?.couleur ?? null, numero: m?.numero ?? null };
+	});
+	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes } };
 };
 
 // « À ne pas manquer » : prise de connaissance et réponse à un événement sur place. Le socle vérifie les droits.

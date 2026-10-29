@@ -161,14 +161,6 @@
 		top: -8px;
 		right: -14px;
 	}
-	.masque {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
 	.moi {
 		padding-right: 0.25rem;
 		font-weight: 600;
@@ -235,6 +227,8 @@
 			grid-template-areas:
 				'menu entete'
 				'menu contenu';
+			/* Le fond et le trait du menu descendent jusqu'en bas, même sur une page plus haute que l'écran. */
+			background: linear-gradient(to right, var(--surface) calc(16rem - 1px), var(--trait) calc(16rem - 1px) 16rem, transparent 16rem);
 		}
 		header {
 			grid-area: entete;
@@ -253,7 +247,7 @@
 			gap: 0.25rem;
 			padding: 1.5rem 1rem;
 			border-top: 0;
-			border-right: 1px solid var(--trait);
+			margin-right: 1px;
 		}
 		nav a {
 			flex: none;

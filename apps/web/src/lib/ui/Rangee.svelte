@@ -45,11 +45,11 @@
 			></span
 		>
 	{/if}
-	<span class="corps">
+	<div class="corps">
 		{#if href && !lien}<a class="titre" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
 		{#if sous}<span class="sous">{sous}</span>{/if}
 		{#if children}{@render children()}{/if}
-	</span>
+	</div>
 	{#if droite}
 		<span class="droite">{@render droite()}</span>
 	{:else if valeur}

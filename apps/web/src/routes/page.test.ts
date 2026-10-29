@@ -45,7 +45,10 @@ describe('accueil', () => {
 			contenu: { type: 'centre', aDecider: [{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' }] }
 		});
 		expect(html).toContain('À décider');
-		expect(html.match(/<ul[^>]*class="liste[^"]*"[^>]*>/g)!.every((ul) => ul.includes('role="list"'))).toBe(true);
+		expect(html.match(/<ul[^>]*>/g)!.every((ul) => ul.includes('role="list"'))).toBe(true);
+		// À décider : une alerte, pas seulement une couleur.
+		expect(html).toMatch(/<a[^>]*class="rangee[^"]*alerte[^"]*"[^>]*href="\/nominations"/);
+		expect(html).toContain('class="signe');
 		expect(html).toMatch(/<a[^>]*href="\/nominations"[^>]*>[\s\S]*?Équipe 2 sans chef d’équipe/);
 		for (const [href, titre] of [['/agents', 'Agents'], ['/nominations', 'Nominations'], ['/reglages', 'Réglages']]) {
 			expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>[\\s\\S]*?${titre}`));
@@ -56,6 +59,24 @@ describe('accueil', () => {
 		const html = page({ casquettes: [centre, astreinte], choisie: 'centre', contenu: { type: 'centre', aDecider: [] } });
 		expect(html).toContain('Rien à décider pour le moment.');
 		expect(html).not.toContain('href="/reglages"');
+	});
+
+	it('« À décider » : trois visibles, le reste derrière « Voir les autres »', () => {
+		const aDecider = ['Équipe 2', 'Équipe 3', 'Pharmacie', 'Engins', 'Fiches'].map((t) => ({ texte: `${t} à pourvoir`, lien: '/nominations' }));
+		const html = page({ casquettes: [centre, astreinte], choisie: 'centre', contenu: { type: 'centre', aDecider } });
+		const visibles = html.slice(0, html.indexOf('<details'));
+		expect(visibles).toContain('Pharmacie à pourvoir');
+		expect(visibles).not.toContain('Engins à pourvoir');
+		expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*>Voir les 2 autres<\/summary>[\s\S]*?Engins à pourvoir[\s\S]*?Fiches à pourvoir/);
+	});
+
+	it('un agent : ses raccourcis et une phrase qui dit ce qui l’attend', () => {
+		const html = page({ estPersonne: true, casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
+		for (const href of ['/echanges', '/agents', '/profil']) expect(html).toContain(`href="${href}"`);
+		expect(html).toContain('Rien ne vous attend : tout est à jour.');
+		expect(html).toContain('Tout est à jour');
+		const occupe = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...vide, sondages: [{ id: 4, cle: 'vie', nomMur: 'Vie du centre', titre: 'Repas ?' }] } });
+		expect(occupe).toContain('1 publication attend votre réponse.');
 	});
 
 	it('chef d’équipe : vide avec une phrase vraie', () => {
@@ -103,7 +124,7 @@ describe('accueil', () => {
 		it('en tête de la casquette, sous la rangée des casquettes', () => {
 			for (const casquette of ['astreinte', 'centre']) {
 				const h = html(casquette);
-				expect(h).toMatch(/<h2[^>]*>À ne pas manquer<\/h2>/);
+				expect(h).toMatch(/<h2[^>]*>À ne pas manquer/);
 				expect(h.indexOf('aria-label="Casquettes"')).toBeLessThan(h.indexOf('À ne pas manquer'));
 			}
 			expect(html('centre').indexOf('À ne pas manquer')).toBeLessThan(html('centre').indexOf('À décider'));
@@ -127,7 +148,7 @@ describe('accueil', () => {
 			expect(h).toMatch(/role="group"[^>]*aria-labelledby="reponse-2"/);
 			// L'événement porte son sondage : une seule fois, sous « Événements ».
 			expect(h.match(/href="\/echanges\/centre\/3"/g)).toHaveLength(2);
-			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/3"[^>]*>Sondage ouvert : votez sur la publication<span class="masque[^"]*"> : Repas<\/span>/);
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/3"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Sondage ouvert : votez sur la publication<span class="masque[^"]*"> : Repas<\/span>/);
 			const sondages = h.slice(h.indexOf('Sondages ouverts'));
 			expect(sondages).not.toContain('/echanges/centre/3');
 		});
@@ -135,8 +156,8 @@ describe('accueil', () => {
 		it('sondage et nouveautés : des liens', () => {
 			const h = html();
 			expect(h).toMatch(/<a[^>]*href="\/echanges\/vie\/4"[^>]*>[\s\S]*?Repas \?/);
-			expect(h).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Amicale : 3 nouveautés/);
-			expect(h).toContain('Vie du centre : 1 nouveauté<');
+			expect(h).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Amicale[\s\S]*?3 nouveautés/);
+			expect(h).toMatch(/Vie du centre<[\s\S]*?>1 nouveauté</);
 		});
 
 		it('sans JavaScript, la casquette choisie est gardée après un geste', () => {
