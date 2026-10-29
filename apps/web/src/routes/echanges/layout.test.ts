@@ -181,7 +181,7 @@ describe('liste des murs', () => {
 		const colonne = page.slice(page.indexOf('<aside'));
 		expect(page.indexOf('<aside')).toBeGreaterThan(page.indexOf('<h1'));
 		expect(colonne).toMatch(/<aside[^>]*aria-label="Aujourd’hui"/);
-		expect(texte(colonne)).toContain('Aujourd’hui au centre Thomas Aubry fête son anniversaire Souhaiter à Thomas');
+		expect(texte(colonne)).toContain('Aujourd’hui au centre TA Thomas Aubry fête son anniversaire Souhaiter à Thomas');
 		expect(texte(colonne)).toContain('À venir');
 		expect(colonne).toContain('href="/echanges/centre/7"');
 		expect(texte(colonne)).toContain('Jeu. 5 nov., 19 h Manœuvre désincarcération');

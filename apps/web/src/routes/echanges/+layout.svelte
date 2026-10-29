@@ -18,6 +18,8 @@
 	const actif = $derived(page.params.mur);
 	const s = $derived(data.sections);
 	const jour = $derived(data.aujourdhui);
+	// Sur un mur, à l'ordinateur : la colonne « Aujourd'hui », si elle a quelque chose à dire.
+	const journee = $derived(actif !== undefined && (jour.anniversaires.length > 0 || data.aVenir.length > 0));
 	// Au premier rendu seulement : ensuite, la personne ouvre et ferme les sections repliées à son gré.
 	const ouvrir = untrack(() => ({
 		autres: data.sections.autres.some((t) => t.cle === page.params.mur),
@@ -41,6 +43,10 @@
 	const souhaiter = (prenom: string) => `/echanges/publier?mur=vie&texte=${encodeURIComponent(`Joyeux anniversaire ${prenom} !`)}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const jourCourt = (iso: string) => {
+		const d = date(iso, { weekday: 'short', day: 'numeric', month: 'short' });
+		return d.charAt(0).toUpperCase() + d.slice(1);
+	};
 	const heure = (iso: string) => (iso.slice(14, 16) === '00' ? `${Number(iso.slice(11, 13))} h` : `${Number(iso.slice(11, 13))} h ${iso.slice(14, 16)}`);
 </script>
 
@@ -70,11 +76,19 @@
 	</li>
 {/snippet}
 
+{#snippet anniversaire(a: { prenom: string; nom: string })}
+	<div class="ligne-jour">
+		<span class="visage" aria-hidden="true">{`${a.prenom.charAt(0)}${a.nom.charAt(0)}`.toUpperCase()}</span>
+		<strong class="quoi">{a.prenom} {a.nom} fête son anniversaire</strong>
+		<a class="souhaiter" href={souhaiter(a.prenom)}>Souhaiter<span class="masque">{` à ${a.prenom}`}</span></a>
+	</div>
+{/snippet}
+
 {#snippet titre(id: string, texte: string)}
 	<svelte:element this={actif ? 'p' : 'h2'} {id} class="rubrique">{texte}</svelte:element>
 {/snippet}
 
-<div class="echanges" class:sur-un-mur={actif !== undefined}>
+<div class="echanges" class:sur-un-mur={actif !== undefined} class:avec-journee={journee}>
 	<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
 	<nav class="murs" aria-label="Murs">
 		{#if !actif}
@@ -96,13 +110,7 @@
 				{#if !actif && (jour.anniversaires.length > 0 || jour.evenement)}
 					<section class="jour" aria-labelledby="t-jour">
 						<h2 id="t-jour" class="rubrique">Aujourd’hui au centre</h2>
-						{#each jour.anniversaires as a, i (i)}
-							<div class="ligne-jour">
-								<span class="visage" aria-hidden="true">{`${a.prenom.charAt(0)}${a.nom.charAt(0)}`.toUpperCase()}</span>
-								<strong class="quoi">{a.prenom} {a.nom} fête son anniversaire</strong>
-								<a class="souhaiter" href={souhaiter(a.prenom)}>Souhaiter<span class="masque">{` à ${a.prenom}`}</span></a>
-							</div>
-						{/each}
+						{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
 						{#if jour.evenement}
 							{@const e = jour.evenement}
 							<a class="ligne-jour evenement" href="/echanges/{e.cle}/{e.id}">
@@ -182,6 +190,32 @@
 		</div>
 	</nav>
 	<div class="mur">{@render children()}</div>
+	<!-- Après le mur dans la page, pour que son titre vienne en premier ; affichée à côté ou au-dessus selon la largeur. -->
+	{#if journee}
+		<aside class="journee" aria-label="Aujourd’hui">
+			{#if jour.anniversaires.length > 0}
+				<section class="jour" aria-labelledby="t-jour-mur">
+					<h2 id="t-jour-mur" class="rubrique">Aujourd’hui au centre</h2>
+					{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
+				</section>
+			{/if}
+			{#if data.aVenir.length > 0}
+				<section class="a-venir" aria-labelledby="t-a-venir">
+					<h2 id="t-a-venir" class="rubrique">À venir</h2>
+					<ul>
+						{#each data.aVenir as e (e.id)}
+							<li>
+								<a class="venir" href="/echanges/{e.cle}/{e.id}">
+									<strong>{jourCourt(e.debut)}, {heure(e.debut)}</strong>
+									<span class="doux">{e.titre}{e.cle === 'centre' ? '' : ` (${e.nomMur})`}</span>
+								</a>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+		</aside>
+	{/if}
 </div>
 
 <style>
@@ -348,6 +382,43 @@
 	}
 	.calendrier .numero {
 		font: 700 1.125rem var(--police-titre);
+	}
+
+	/* À venir, sur un mur à l'ordinateur */
+	.journee {
+		display: none;
+	}
+	.a-venir {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 16px;
+		border: 1px solid var(--trait-doux);
+		border-radius: 20px;
+		background: var(--surface);
+	}
+	.a-venir ul {
+		gap: 2px;
+	}
+	.venir {
+		min-height: 44px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		color: var(--encre);
+		text-decoration: none;
+	}
+	.venir:hover strong {
+		text-decoration: underline;
+	}
+	.journee .ligne-jour {
+		flex-wrap: wrap;
+	}
+	.journee .ligne-jour .quoi {
+		flex-basis: calc(100% - 56px);
+	}
+	.journee .souhaiter {
+		margin-left: 56px;
 	}
 
 	/* Le centre */
@@ -567,9 +638,50 @@
 		.sur-un-mur ul {
 			gap: 6px;
 		}
-		.sur-un-mur .rubrique {
+		.sur-un-mur .murs .rubrique {
 			font-size: 1rem;
 			color: var(--doux);
+		}
+		/* Entre 1024 et 1279 px : « Aujourd'hui » au-dessus du mur. */
+		.avec-journee .murs {
+			grid-row: 1 / span 2;
+		}
+		.journee {
+			grid-column: 2;
+			grid-row: 1;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: start;
+			gap: 16px;
+		}
+		.journee > section {
+			flex: 1 1 16rem;
+		}
+		.avec-journee .mur {
+			grid-column: 2;
+			grid-row: 2;
+		}
+	}
+	/* À partir de 1280 px : trois colonnes, la liste, le mur, puis « Aujourd'hui ». */
+	@media (min-width: 1280px) {
+		.sur-un-mur {
+			grid-template-columns: 16rem minmax(0, 1fr) 16rem;
+			gap: 1.25rem;
+		}
+		.avec-journee .murs,
+		.avec-journee .mur {
+			grid-row: 1;
+		}
+		.journee {
+			grid-column: 3;
+			flex-direction: column;
+			flex-wrap: nowrap;
+			align-items: stretch;
+			position: sticky;
+			top: 1rem;
+		}
+		.journee > section {
+			flex: none;
 		}
 	}
 </style>

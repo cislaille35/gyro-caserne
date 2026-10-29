@@ -5,7 +5,7 @@ import type { LayoutServerLoad } from './$types';
 
 export type TuileMur = ApercuMur & Pick<Mur, 'nom' | 'type' | 'lectureSeule'> & { nouveautes: number; aConfirmer: number };
 
-// La liste des murs rangée en sections, avec ce qui se passe aujourd'hui au centre.
+// La liste des murs rangée en sections, avec ce qui se passe aujourd'hui au centre et ce qui vient.
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	// Lire l'adresse fait relancer ce chargement à chaque navigation : la pastille d'un mur qu'on vient de quitter disparaît.
 	void url.pathname;
@@ -49,6 +49,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		aujourdhui: {
 			anniversaires,
 			evenement: evenement ? { id: evenement.id, cle: evenement.cle, titre: evenement.titre, debut: evenement.debut } : null
-		}
+		},
+		// Les 3 prochains événements où la personne est convoquée, pour la colonne de droite d'un mur.
+		aVenir: evenements.slice(0, 3).map((e) => ({ id: e.id, cle: e.cle, nomMur: e.nomMur, titre: e.titre, debut: e.debut }))
 	};
 };
