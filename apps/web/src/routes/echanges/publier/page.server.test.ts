@@ -117,6 +117,18 @@ describe('publier', () => {
 		expect(await derniere(base)).toMatchObject({ type: 'bravo', debut: null, lieu: null, priseDeConnaissance: 0 });
 	});
 
+	it('photo trop lourde : le conseil « sans JavaScript » seulement à qui envoie sans JavaScript', async () => {
+		const { base, alice } = await preparer();
+		const corps: [string, string | File][] = [['mur', 'vie'], ['type', 'message'], ['texte', 'x'], ['photos', jpeg(200 * 1024 + 1)]];
+		const sans = await envoyer(locaux(base, alice), await requeteFormulaire(corps));
+		expect(sans.data.erreurs.photos).toBe('Photo trop lourde : 200 Ko au plus. Sans JavaScript, les photos ne sont pas réduites : réduisez-les avant de les envoyer.');
+		const avec = await envoyer(locaux(base, alice), await requeteFormulaire(corps, { 'x-sveltekit-action': 'true' }));
+		expect(avec.data.erreurs.photos).toBe('Photo trop lourde : 200 Ko au plus.');
+		const lourd = (enTetes: Record<string, string>) => new Request('http://x', { method: 'POST', body: 'x', headers: { ...enTetes, 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(2 * 1024 * 1024) } });
+		expect((await envoyer(locaux(base, alice), lourd({}))).data.message).toContain('Sans JavaScript');
+		expect((await envoyer(locaux(base, alice), lourd({ 'x-sveltekit-action': 'true' }))).data.message).toBe('Envoi trop lourd : 4 photos de 200 Ko au plus.');
+	});
+
 	it('refus affichés sur le formulaire, saisie et mur gardés', async () => {
 		const { base, alice } = await preparer();
 		const vie = (corps: [string, string | File][]) => agir(locaux(base, alice), [['mur', 'vie'], ...corps]);

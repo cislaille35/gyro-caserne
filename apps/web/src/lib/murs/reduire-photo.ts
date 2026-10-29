@@ -1,10 +1,11 @@
-const COTE_MAX = 1600;
+// Côté long : 1600 px, puis 1200 et 1000 px pour une photo très détaillée qui reste trop lourde.
+const COTES = [1600, 1200, 1000];
 // Comme TAILLE_PHOTO_MAX du socle (refus au-delà côté serveur).
 const TAILLE_MAX = 200 * 1024;
-// Qualité ≈ 0,8 ; une photo très détaillée qui dépasse encore 200 Ko est refaite un peu moins fine.
+// Qualité ≈ 0,8 ; une photo qui dépasse encore 200 Ko est refaite un peu moins fine.
 const QUALITES = [0.8, 0.6, 0.4];
 
-// Réduit une photo dans le navigateur avant l'envoi : côté long à 1600 px au plus, en JPEG.
+// Réduit une photo dans le navigateur avant l'envoi, en JPEG de 200 Ko au plus : côté long à 1600 px au plus, moins si besoin.
 export async function reduirePhoto(fichier: File): Promise<Blob> {
 	if (!fichier.type.startsWith('image/')) throw new Error(`« ${fichier.name} » n’est pas une image`);
 	let image: ImageBitmap;
@@ -13,21 +14,26 @@ export async function reduirePhoto(fichier: File): Promise<Blob> {
 	} catch {
 		throw new Error(`« ${fichier.name} » est illisible`);
 	}
-	const echelle = Math.min(1, COTE_MAX / Math.max(image.width, image.height));
-	const largeur = Math.round(image.width * echelle);
-	const hauteur = Math.round(image.height * echelle);
-	const toile = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(largeur, hauteur) : null;
-	const contexte = toile?.getContext('2d');
-	if (!toile || !contexte) {
+	try {
+		let precedente = '';
+		for (const cote of COTES) {
+			const echelle = Math.min(1, cote / Math.max(image.width, image.height));
+			const largeur = Math.round(image.width * echelle);
+			const hauteur = Math.round(image.height * echelle);
+			// Une petite image garde sa taille : inutile de la refaire à l'identique.
+			if (`${largeur}x${hauteur}` === precedente) continue;
+			precedente = `${largeur}x${hauteur}`;
+			const toile = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(largeur, hauteur) : null;
+			const contexte = toile?.getContext('2d');
+			if (!toile || !contexte) throw new Error('Votre navigateur ne peut pas réduire cette photo ; essayez avec un autre navigateur');
+			contexte.drawImage(image, 0, 0, largeur, hauteur);
+			for (const quality of QUALITES) {
+				const blob = await toile.convertToBlob({ type: 'image/jpeg', quality });
+				if (blob.size <= TAILLE_MAX) return blob;
+			}
+		}
+		throw new Error('Photo trop détaillée, essayez-en une autre');
+	} finally {
 		image.close();
-		throw new Error('Votre navigateur ne peut pas réduire cette photo ; essayez avec un autre navigateur');
 	}
-	contexte.drawImage(image, 0, 0, largeur, hauteur);
-	image.close();
-	let blob!: Blob;
-	for (const quality of QUALITES) {
-		blob = await toile.convertToBlob({ type: 'image/jpeg', quality });
-		if (blob.size <= TAILLE_MAX) break;
-	}
-	return blob;
 }

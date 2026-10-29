@@ -3,7 +3,8 @@
 
 	let { data } = $props();
 
-	const MO = 1024 * 1024;
+	// En millions d'octets, comme la limite de la base (500 Mo).
+	const MO = 1000 * 1000;
 	// Sous 10 Mo, une décimale (« 2,3 Mo ») ; au-delà, des Mo entiers.
 	const enMo = (octets: number) => (octets < 10 * MO ? (octets / MO).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : String(Math.round(octets / MO)));
 </script>

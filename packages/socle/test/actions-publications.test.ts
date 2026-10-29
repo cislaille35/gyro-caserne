@@ -699,7 +699,8 @@ describe('photo', () => {
 });
 
 describe('remplissagePhotos', () => {
-	const MO = 1024 * 1024;
+	// Prudent : 500 Mo comptés en millions d'octets, un peu moins que 500 × 1024 × 1024.
+	const MO = 1000 * 1000;
 	const ajouter = (base: Awaited<ReturnType<typeof baseDeTest>>, taille: number) =>
 		base.photos.insert(photoOctets).values({ type: 'image/jpeg', donnees: jpeg(4).donnees, taille, creeLe: maintenant });
 

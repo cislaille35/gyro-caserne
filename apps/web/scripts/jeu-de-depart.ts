@@ -8,6 +8,7 @@ import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, creerBaseD
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
+import { configEnLigne } from './config-en-ligne.ts';
 
 const enLigne = process.argv.includes('--en-ligne');
 if (enLigne && !process.env.CENTRE) {
@@ -40,13 +41,7 @@ const { default: description } = await import(new URL('centre.ts', dossier).href
 // En ligne : copie de la config du centre où les deux bases (principale et photos) sont marquées « remote », effacée à la fin.
 let config = new URL('wrangler.jsonc', dossier);
 if (enLigne) {
-	const texte = readFileSync(config, 'utf8');
-	let copie = texte;
-	for (const liaison of ['BASE', 'PHOTOS']) {
-		const avant = copie;
-		copie = copie.replace(`"binding": "${liaison}",`, `"binding": "${liaison}", "remote": true,`);
-		if (copie === avant) throw new Error(`Base ${liaison} introuvable dans wrangler.jsonc`);
-	}
+	const copie = configEnLigne(readFileSync(config, 'utf8'));
 	config = new URL('wrangler.en-ligne.jsonc', dossier);
 	writeFileSync(config, copie);
 }

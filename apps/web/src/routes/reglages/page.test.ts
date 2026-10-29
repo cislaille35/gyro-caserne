@@ -93,7 +93,8 @@ describe('page Réglages', () => {
 	});
 
 	it('jauge des photos pour qui a le pouvoir : place prise sur 500 Mo, bandeau d’alerte à partir de 80 %', () => {
-		const MO = 1024 * 1024;
+		// Mo comptés en millions d'octets, comme la limite.
+		const MO = 1000 * 1000;
 		const jauge = (octets: number, alerte: boolean) => html(Page, { data: { ...data, photos: { octets, limite: 500 * MO, alerte } } });
 		const normale = jauge(120 * MO + 1000, false);
 		expect(normale).toContain('Photos : 120 Mo sur 500 Mo');

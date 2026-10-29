@@ -38,3 +38,10 @@ describe('CENTRE obligatoire en ligne', () => {
 		expect(existsSync(`${appli}../../centres/laille/wrangler.en-ligne.jsonc`)).toBe(false);
 	}, 30_000);
 });
+
+// Photos d'abord : si leur base ne se met pas à jour, la base principale n'est jamais migrée pour un code qui ne serait pas déployé.
+describe('migrations des deux bases', () => {
+	it.each(['base-locale', 'base-en-ligne'])('%s : PHOTOS, puis BASE, et arrêt au premier échec', (nom) => {
+		expect(scripts[nom]).toMatch(/^for base in PHOTOS BASE; do wrangler d1 migrations apply \$base .+ \|\| exit 1; done$/);
+	});
+});

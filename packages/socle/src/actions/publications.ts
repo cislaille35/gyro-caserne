@@ -482,7 +482,8 @@ export async function photo(base: Base, basePhotos: BasePhotos, acteur: Acteur, 
 }
 
 // Une base D1 gratuite tient 500 Mo : alerte à 80 %, pour choisir à temps entre l'offre payante et un stockage R2 (décision 0010).
-const LIMITE_PHOTOS = 500 * 1024 * 1024;
+// Prudent : 500 millions d'octets, un peu moins que 500 × 1024 × 1024.
+const LIMITE_PHOTOS = 500 * 1000 * 1000;
 const SEUIL_ALERTE = 0.8;
 
 export type RemplissagePhotos = { octets: number; limite: number; alerte: boolean };
