@@ -199,3 +199,25 @@ body {
 		transition: none !important;
 	}
 }
+
+/* Classes communes à tous les écrans. */
+/* Texte lu par les lecteurs d'écran, invisible à l'écran. */
+.masque {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+.doux {
+	color: var(--doux);
+}
+/* Titre de rubrique, en condensé, comme dans Échanges. */
+.rubrique {
+	margin: 0;
+	font: 700 1.25rem/1.2 var(--police-titre);
+}
