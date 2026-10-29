@@ -44,12 +44,14 @@ describe('page des notifications', () => {
 		expect(page).toContain('Seul le message signalé vous est transmis');
 		expect(page).toMatch(/<blockquote[^>]*>[\s\S]*Texte grave[\s\S]*<\/blockquote>/);
 		expect(page).toContain('Bruno Petit');
-		expect(page).toContain('jeudi 29 oct., 10 h');
+		expect(page).toContain('jeudi 29 oct., 10 h');
 		expect(page).toContain('Signalé par Alice Martin');
 		expect(page).toContain('src="/notifications/signalements/7/photo/41"');
 		expect(page).toContain('src="/notifications/signalements/7/photo/42"');
 		expect(page).toMatch(/alt="Photo 1 sur 2 du message signalé"/);
-		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/retirer"[\s\S]*?name="id" value="7"[\s\S]*?Retirer le message<span class="masque[^"]*"> de Bruno Petit<\/span>/);
+		// Sans JavaScript, « Retirer le message » est un lien qui ouvre la confirmation dans la carte.
+		expect(page).toMatch(/<a[^>]*href="\?retirer=7"[^>]*>Retirer le message<span class="masque[^"]*"> de Bruno Petit<\/span>/);
+		expect(page).not.toContain('action="?/retirer"');
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/classer"[\s\S]*?name="id" value="7"[\s\S]*?Classer<span class="masque[^"]*"> le signalement du message de Bruno Petit<\/span>/);
 	});
 
@@ -61,5 +63,16 @@ describe('page des notifications', () => {
 		expect(page).toContain('?/classer');
 		expect(page).toContain('Ce message n’est plus dans la conversation : il ne reste qu’à classer le signalement.');
 		expect(page).toContain('Sans texte');
+	});
+
+	it('?retirer=<id> : la confirmation dans la carte, « Annuler » d’abord, puis le formulaire qui retire', () => {
+		const signale = { id: 7, le: '2026-10-29T10:05', par: { id: 2, prenom: 'Alice', nom: 'Martin' }, auteur: { id: 3, prenom: 'Bruno', nom: 'Petit' }, envoye_le: '2026-10-29T10:00', texte: 'Texte grave', photos: [], retirable: true };
+		const page = html({ signalements: [signale], confirmer: 7 });
+		const carte = page.slice(page.indexOf('<li class="signalement'));
+		expect(carte).toMatch(/Retirer ce message \?/);
+		expect(carte).toMatch(/<a[^>]*href="\/notifications"[^>]*>Annuler<\/a>[\s\S]*?<form[^>]*method="POST"[^>]*action="\?\/retirer"[\s\S]*?name="id" value="7"[\s\S]*?>Retirer<\/button>/);
+		expect(carte).not.toContain('href="?retirer=7"');
+		// Un autre identifiant : rien ne s'ouvre.
+		expect(html({ signalements: [signale], confirmer: 9 })).not.toContain('Retirer ce message ?');
 	});
 });

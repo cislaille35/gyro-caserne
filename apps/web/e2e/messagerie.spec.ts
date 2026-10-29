@@ -220,7 +220,7 @@ test('modération : le message signalé arrive dans la cloche, « Retirer le mes
 	await axe(chef);
 
 	// Retirer : une confirmation (Annuler d'abord), puis le message disparaît de la liste.
-	await carte(`Grave ${marque}`).getByRole('button', { name: /^Retirer le message/ }).click();
+	await carte(`Grave ${marque}`).getByRole('link', { name: /^Retirer le message/ }).click();
 	const dialogue = chef.getByRole('dialog');
 	await expect(dialogue.getByRole('button', { name: 'Annuler' })).toBeFocused();
 	await axe(chef);
@@ -286,6 +286,41 @@ test('colonnes : liste, conversation et infos à 1280 px ; liste et conversation
 	expect(await x(liste)).toBeLessThan(await x(fil));
 	await axe(page);
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1100);
+});
+
+// À 1280 px, dans un groupe : après la saisie, Tab mène aux infos de droite (« Renommer »), sans rien sauter entre les deux.
+test('colonnes, au clavier : du fil aux infos à 1280 px', async ({ page }) => {
+	test.skip(test.info().project.name === 'telephone', 'à l’ordinateur seulement');
+	await page.goto('/echanges/messages/nouveau/groupe');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label.ligne').nth(0).click();
+	await page.locator('label.ligne').nth(1).click();
+	await page.getByRole('button', { name: 'Suivant' }).click();
+	await page.getByLabel('Nom du groupe').fill(`Clavier ${Date.now().toString(36)}`);
+	await page.getByRole('button', { name: 'Créer' }).click();
+	await page.waitForURL(/\/echanges\/messages\/\d+$/);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('textbox', { name: 'Votre message' }).focus();
+	const dansLesInfos = () => page.evaluate(() => document.activeElement?.closest('aside.infos') !== null);
+	const dansLaConversation = () => page.evaluate(() => document.activeElement?.closest('.conversation') !== null);
+	for (let i = 0; i < 6 && !(await dansLesInfos()); i++) {
+		expect(await dansLaConversation()).toBe(true);
+		await page.keyboard.press('Tab');
+	}
+	await expect(page.getByRole('complementary', { name: 'Infos du groupe' }).getByRole('link', { name: 'Renommer' })).toBeFocused();
+});
+
+// Juste à 1024 px : la liste à gauche, la conversation au centre, pas encore les infos ; rien ne déborde.
+test('colonnes à 1024 px : liste et conversation, sans les infos', async ({ page }) => {
+	test.skip(test.info().project.name === 'telephone', 'à l’ordinateur seulement');
+	await page.setViewportSize({ width: 1024, height: 800 });
+	await ouvrirConversation(page, `Étroit ${Date.now().toString(36)}`);
+	const liste = page.getByRole('navigation', { name: 'Conversations' });
+	await expect(liste).toBeVisible();
+	await expect(page.getByRole('complementary', { name: /^Infos/ })).toBeHidden();
+	expect((await liste.boundingBox())!.x).toBeLessThan((await page.getByRole('log').boundingBox())!.x);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1024);
+	await axe(page);
 });
 
 // Se déconnecter efface les brouillons de l'appareil (session à part : celle des autres tests reste ouverte).

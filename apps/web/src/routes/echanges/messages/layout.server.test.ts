@@ -29,4 +29,14 @@ describe('layout des messages', () => {
 		const { base } = await preparer();
 		expect(await charger(locaux(base, { type: 'super', email: 'a@b.fr' }), '/echanges/messages/3')).toEqual({ conversations: null });
 	});
+
+	it('ne lit que le chemin de l’adresse : un simple ?avant= (page plus ancienne) ne relit pas la liste', async () => {
+		const { base, alice } = await preparer();
+		const lus = new Set<string>();
+		const url = new URL('http://x/echanges/messages/3?avant=10');
+		const espion = new Proxy(url, { get: (cible, cle) => (lus.add(String(cle)), Reflect.get(cible, cle)) });
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await (load as any)({ locals: locaux(base, alice), url: espion, depends: () => {} });
+		expect([...lus]).toEqual(['pathname']);
+	});
 });

@@ -6,16 +6,18 @@ import { aFaire } from '#lib/a-faire.ts';
 import { aNePasManquerDe, signalementsDe } from '#lib/server/a-faire.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const acteur = exigerActeur(locals);
 	const [a, signalements] = await Promise.all([aNePasManquerDe(locals.base, acteur), signalementsDe(locals.base, acteur)]);
-	return { ...aFaire(a), signalements };
+	// Sans JavaScript, « Retirer le message » ouvre sa confirmation dans la carte (`?retirer=<id>`).
+	const brut = url.searchParams.get('retirer');
+	return { ...aFaire(a), signalements, confirmer: brut !== null && /^\d+$/.test(brut) ? Number(brut) : null };
 };
 
 // Les refus du socle, dits simplement.
 const PHRASES: Record<string, string> = {
 	'Signalement introuvable ou déjà classé': 'Ce signalement a déjà été traité.',
-	'Signalement invalide': 'Ce signalement a déjà été traité.',
+	'Signalement invalide': 'Ce signalement est introuvable.',
 	'Message déjà effacé : classez le signalement': 'Ce message n’est plus dans la conversation : classez le signalement.'
 };
 

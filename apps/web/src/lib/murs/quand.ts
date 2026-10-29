@@ -9,9 +9,9 @@ export function heure(iso: string): string {
 	return m === '00' ? `${Number(h)} h` : `${Number(h)} h ${m}`;
 }
 
-// « jeudi 5 nov., 19 h »
+// « jeudi 5 nov., 19 h », l'heure jamais coupée en fin de ligne (espaces insécables).
 export function jourEtHeure(iso: string): string {
-	return `${format({ weekday: 'long', day: 'numeric', month: 'short' }, iso)}, ${heure(iso)}`;
+	return `${format({ weekday: 'long', day: 'numeric', month: 'short' }, iso)}, ${heure(iso).replaceAll(' ', '\u00a0')}`;
 }
 
 // « Du 29 oct. au lundi 2 nov., 20 h »

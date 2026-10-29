@@ -5,7 +5,7 @@
 	import { jourEtHeure } from '#lib/murs/quand.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[] }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// « Événement demain, à répondre et sondage à voter », « Événement avec sondage, à voter »…
 	const quoiEvenement = (e: { demain: boolean; reponse: string | null; sondage: boolean }) =>
@@ -79,12 +79,22 @@
 					{/if}
 					<p class="doux">Signalé par {nom(s.par)}, {jourEtHeure(s.le)}</p>
 					{#if !s.retirable}<p class="note">Ce message n’est plus dans la conversation : il ne reste qu’à classer le signalement.</p>{/if}
+					{#if s.retirable && data.confirmer === s.id}
+						<div class="confirmer-ici">
+							<h3>Retirer ce message ?</h3>
+							<p>Il disparaît pour tous les membres : « Message retiré par la modération » reste à sa place. Le signalement est classé.</p>
+							<div class="choix">
+								<a class="bouton secondaire" href="/notifications">Annuler</a>
+								<form method="POST" action="?/retirer" use:enhance={apres}>
+									<input type="hidden" name="id" value={s.id} />
+									<button type="submit" class="danger">Retirer</button>
+								</form>
+							</div>
+						</div>
+					{/if}
 					<div class="actions">
-						{#if s.retirable}
-							<form method="POST" action="?/retirer" use:enhance={apres}>
-								<input type="hidden" name="id" value={s.id} />
-								<button type="submit" class="danger" id="retirer-{s.id}" onclick={(e) => demanderRetrait(e, s)}>Retirer le message<span class="masque">{` de ${nom(s.auteur)}`}</span></button>
-							</form>
+						{#if s.retirable && data.confirmer !== s.id}
+							<a class="bouton danger" href="?retirer={s.id}" id="retirer-{s.id}" onclick={(e) => demanderRetrait(e, s)}>Retirer le message<span class="masque">{` de ${nom(s.auteur)}`}</span></a>
 						{/if}
 						<form method="POST" action="?/classer" use:enhance={apres}>
 							<input type="hidden" name="id" value={s.id} />
@@ -239,8 +249,12 @@
 		flex-wrap: wrap;
 		gap: 8px;
 	}
-	button {
+	button,
+	.bouton {
 		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
 		padding: 0 18px;
 		border-radius: 999px;
 		font: inherit;
@@ -256,6 +270,26 @@
 		border: 0;
 		background: var(--rouge);
 		color: var(--sur-rouge);
+	}
+	a.danger:hover {
+		background: color-mix(in srgb, var(--rouge) 88%, black);
+		color: var(--sur-rouge);
+	}
+	a.secondaire:hover {
+		color: var(--encre);
+	}
+	.confirmer-ici {
+		padding: 12px 14px;
+		border-radius: 12px;
+		background: var(--statut-danger-fond);
+		color: var(--statut-danger-texte);
+	}
+	.confirmer-ici h3 {
+		margin: 0 0 6px;
+		font: 700 1.125rem var(--police-titre);
+	}
+	.confirmer-ici p {
+		margin: 0 0 12px;
 	}
 	.erreur {
 		margin: 0 0 12px;

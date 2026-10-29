@@ -157,7 +157,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		}
 		const n = await compter(async () => {
 			await (racine as any)({ locals: deLAgent });
-			await (notifications as any)({ locals: deLAgent });
+			await (notifications as any)({ locals: deLAgent, url: new URL('http://localhost/notifications') });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
@@ -174,7 +174,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		let liste: { id: number }[] = [];
 		const page = await compter(async () => {
 			expect((await (racine as any)({ locals })).cloche).toBe(30);
-			liste = (await (notifications as any)({ locals })).signalements;
+			liste = (await (notifications as any)({ locals, url: new URL('http://localhost/notifications') })).signalements;
 		});
 		expect(liste).toHaveLength(30);
 		expect(page).toBeLessThanOrEqual(BUDGET);
@@ -182,7 +182,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			const n = await compter(async () => {
 				expect(await (actionsNotifications as any)[nom]({ locals, request: await requeteFormulaire([['id', String(s.id)]]) })).toMatchObject({ succes: expect.any(String) });
 				await (racine as any)({ locals });
-				await (notifications as any)({ locals });
+				await (notifications as any)({ locals, url: new URL('http://localhost/notifications') });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}

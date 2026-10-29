@@ -8,7 +8,7 @@ import { actions, load } from './+page.server';
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const charger = (locals: unknown) => (load as any)({ locals });
+const charger = (locals: unknown, requete = '') => (load as any)({ locals, url: new URL(`http://x/notifications${requete}`) });
 const agir = async (nom: 'retirer' | 'classer', locals: unknown, id: number | string) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, request: await requeteFormulaire([['id', String(id)]]) });
@@ -57,6 +57,13 @@ describe('signalements dans /notifications', () => {
 		expect((await charger(locaux(base, alice))).signalements).toEqual([]);
 	});
 
+	it('?retirer=<id> : la confirmation à ouvrir sans JavaScript ; un identifiant illisible n’ouvre rien', async () => {
+		const { base, chef } = await signale();
+		expect((await charger(locaux(base, chef), '?retirer=7')).confirmer).toBe(7);
+		expect((await charger(locaux(base, chef), '?retirer=abc')).confirmer).toBeNull();
+		expect((await charger(locaux(base, chef))).confirmer).toBeNull();
+	});
+
 	it('« Retirer le message » : retiré pour tous, le signalement disparaît', async () => {
 		const { base, chef, alice, grave } = await signale();
 		const [s] = (await charger(locaux(base, chef))).signalements;
@@ -81,7 +88,8 @@ describe('signalements dans /notifications', () => {
 		expect(await agir('classer', locaux(base, alice), s.id)).toMatchObject({ status: 403, data: { message: 'Seule la modération peut traiter un signalement.' } });
 		await agir('classer', locaux(base, chef), s.id);
 		for (const nom of ['retirer', 'classer'] as const) expect(await agir(nom, locaux(base, chef), s.id)).toMatchObject({ status: 400, data: { message: 'Ce signalement a déjà été traité.' } });
-		expect(await agir('classer', locaux(base, chef), 'abc')).toMatchObject({ status: 400, data: { message: 'Ce signalement a déjà été traité.' } });
+		expect(await agir('classer', locaux(base, chef), 'abc')).toMatchObject({ status: 400, data: { message: 'Ce signalement est introuvable.' } });
+		expect(await agir('retirer', locaux(base, chef), 0)).toMatchObject({ status: 400, data: { message: 'Ce signalement est introuvable.' } });
 		await expect(agir('classer', { base, acteur: null }, s.id)).rejects.toMatchObject({ status: 303, location: '/connexion' });
 	});
 

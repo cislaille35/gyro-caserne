@@ -59,6 +59,8 @@
 	--rayon-petit: 6px;
 	--rayon-grand: 16px;
 	--cible: 44px;
+	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
+	--hauteur-entete: 69px;
 
 	color-scheme: light;
 }
