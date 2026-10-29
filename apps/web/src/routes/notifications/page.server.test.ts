@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { prendreConnaissance, publier, repondreEvenement } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { preparer } from '../echanges/de-test.ts';
 import { load } from './+page.server';
 
-const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const charger = (locals: unknown) => (load as any)({ locals });

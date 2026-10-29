@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { commentaire, commenter, fermerCommentaires, jaime, journal, personne, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
 import { envoyer, locaux, preparer } from '../de-test.ts';
 import { actions, load } from './+page.server';
 
-const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const charger = (locals: unknown, mur: string, recherche = '') => (load as any)({ locals, params: { mur }, url: new URL(`http://x/echanges/${mur}${recherche}`) });

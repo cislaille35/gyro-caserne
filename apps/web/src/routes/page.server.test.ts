@@ -4,10 +4,10 @@ import centreExemple from '../../../../centres/exemple/centre.ts';
 import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { actions, load } from './+page.server';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { requeteFormulaire, preparer } from './echanges/de-test.ts';
 
-const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const appeler = (locals: unknown, recherche = '') => (load as any)({ locals, url: new URL(`http://localhost/${recherche}`) });

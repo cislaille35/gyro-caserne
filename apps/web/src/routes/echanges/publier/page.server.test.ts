@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { photoPublication, publication } from '@gyro-caserne/socle';
 import { jpeg, locaux, preparer, requeteFormulaire } from '../de-test.ts';
 import { actions, load } from './+page.server';
 
-const septJoursPlusTard = (m: string) => new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16);
 const champsDates = (): [string, string][] => {
 	const m = maintenantParis();
 	return [
@@ -142,28 +141,37 @@ describe('publier', () => {
 		const { base, alice } = await preparer();
 		expect(await agir(locaux(base, alice), [['mur', 'vie'], ['type', 'annonce'], ['texte', 'x'], ['priseDeConnaissance', 'oui']])).toMatchObject({
 			status: 403,
-			data: { message: 'Seuls les modérateurs du mur demandent une prise de connaissance.', valeurs: { type: 'annonce', priseDeConnaissance: true } }
+			data: {
+				message: 'Seuls les modérateurs du mur demandent une prise de connaissance.',
+				erreurs: { priseDeConnaissance: 'Seuls les modérateurs du mur demandent une prise de connaissance.' },
+				valeurs: { type: 'annonce', priseDeConnaissance: true }
+			}
 		});
 		expect(await base.select().from(publication)).toHaveLength(0);
 		await reussir(locaux(base, alice), [['mur', 'vie'], ['type', 'annonce'], ['texte', 'À lire']]);
 		expect(await derniere(base)).toMatchObject({ type: 'annonce', priseDeConnaissance: 0 });
 	});
 
-	it('chaque refus du sondage a son message, sur le champ « sondage »', async () => {
+	it('chaque refus du sondage a son message, sur son champ : question et réponses, ouverture, clôture', async () => {
 		const { base, alice } = await preparer();
 		const m = maintenantParis().slice(0, 16);
 		const sondage = (dates: [string, string][], autre: [string, string][] = [['type', 'message']]) =>
 			agir(locaux(base, alice), [['mur', 'vie'], ...autre, ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui'], ['reponse', 'Non'], ...dates]);
-		const cas: [[string, string][], string, [string, string][]?][] = [
-			[[], 'Indiquez les dates d’ouverture et de clôture du sondage.'],
-			[[['ouverture', m], ['cloture', '']], 'Indiquez les dates d’ouverture et de clôture du sondage.'],
-			[[['ouverture', 'demain'], ['cloture', septJoursPlusTard(m)]], 'Indiquez une date et une heure d’ouverture valides.'],
-			[[['ouverture', m], ['cloture', '2026-11-01T25:00']], 'Indiquez une date et une heure de clôture valides.'],
-			[[['ouverture', m], ['cloture', m]], 'Le sondage doit se clore après son ouverture.'],
-			[[['ouverture', m], ['cloture', `${Number(m.slice(0, 4)) + 2}${m.slice(4)}`]], 'Le sondage ne peut pas durer plus d’un an.'],
-			[[['ouverture', m], ['cloture', septJoursPlusTard(demain())]], 'Le sondage doit se clore au plus tard au début de l’événement.', [['type', 'evenement'], ['debut', demain()], ['lieu', 'Ici']]]
+		// Chaque erreur de date sur sa date ; l'ordre des dates (et les dates manquantes) sur la clôture.
+		const cas: [[string, string][], 'ouverture' | 'cloture', string, [string, string][]?][] = [
+			[[], 'cloture', 'Indiquez les dates d’ouverture et de clôture du sondage.'],
+			[[['ouverture', m], ['cloture', '']], 'cloture', 'Indiquez les dates d’ouverture et de clôture du sondage.'],
+			[[['ouverture', 'demain'], ['cloture', septJoursPlusTard(m)]], 'ouverture', 'Indiquez une date et une heure d’ouverture valides.'],
+			[[['ouverture', m], ['cloture', '2026-11-01T25:00']], 'cloture', 'Indiquez une date et une heure de clôture valides.'],
+			[[['ouverture', m], ['cloture', m]], 'cloture', 'Le sondage doit se clore après son ouverture.'],
+			[[['ouverture', m], ['cloture', `${Number(m.slice(0, 4)) + 2}${m.slice(4)}`]], 'cloture', 'Le sondage ne peut pas durer plus d’un an.'],
+			[[['ouverture', m], ['cloture', septJoursPlusTard(demain())]], 'cloture', 'Le sondage doit se clore au plus tard au début de l’événement.', [['type', 'evenement'], ['debut', demain()], ['lieu', 'Ici']]]
 		];
-		for (const [dates, message, autre] of cas) expect(await sondage(dates, autre), message).toMatchObject({ status: 400, data: { erreurs: { sondage: message } } });
+		for (const [dates, champ, message, autre] of cas) {
+			const r = await sondage(dates, autre);
+			expect(r, message).toMatchObject({ status: 400, data: { erreurs: { [champ]: message } } });
+			expect(Object.keys(r.data.erreurs), message).toEqual([champ]);
+		}
 		const vie = (corps: [string, string][]) => agir(locaux(base, alice), [['mur', 'vie'], ['type', 'message'], ['texte', 'x'], ...champsDates(), ...corps]);
 		expect(await vie([['question', 'Q'], ['reponse', 'Oui']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Proposez de 2 à 6 réponses.' } } });
 		expect(await vie([['reponse', 'Oui'], ['reponse', 'Non']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez la question du sondage.' } } });

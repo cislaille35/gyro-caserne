@@ -78,12 +78,12 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Réponse trop longue': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },
 	'De 2 à 6 réponses': { champ: 'sondage', texte: 'Proposez de 2 à 6 réponses.' },
 	'Mur inconnu': { champ: 'mur', texte: 'Choisissez où publier.' },
-	'Ouverture invalide': { champ: 'sondage', texte: 'Indiquez une date et une heure d’ouverture valides.' },
-	'Clôture invalide': { champ: 'sondage', texte: 'Indiquez une date et une heure de clôture valides.' },
-	'Dates du sondage manquantes': { champ: 'sondage', texte: 'Indiquez les dates d’ouverture et de clôture du sondage.' },
-	'Clôture avant l’ouverture': { champ: 'sondage', texte: 'Le sondage doit se clore après son ouverture.' },
-	'Clôture dans plus d’un an': { champ: 'sondage', texte: 'Le sondage ne peut pas durer plus d’un an.' },
-	'Clôture après le début de l’événement': { champ: 'sondage', texte: 'Le sondage doit se clore au plus tard au début de l’événement.' },
+	'Ouverture invalide': { champ: 'ouverture', texte: 'Indiquez une date et une heure d’ouverture valides.' },
+	'Clôture invalide': { champ: 'cloture', texte: 'Indiquez une date et une heure de clôture valides.' },
+	'Dates du sondage manquantes': { champ: 'cloture', texte: 'Indiquez les dates d’ouverture et de clôture du sondage.' },
+	'Clôture avant l’ouverture': { champ: 'cloture', texte: 'Le sondage doit se clore après son ouverture.' },
+	'Clôture dans plus d’un an': { champ: 'cloture', texte: 'Le sondage ne peut pas durer plus d’un an.' },
+	'Clôture après le début de l’événement': { champ: 'cloture', texte: 'Le sondage doit se clore au plus tard au début de l’événement.' },
 	'Date et lieu de l’événement manquants': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },
 	'Début invalide': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },
 	'Événement passé': { champ: 'debut', texte: 'Cet événement est déjà passé.' },
@@ -116,7 +116,9 @@ export function echecMur(erreur: unknown, cible: string, valeurs?: Valeurs) {
 				: erreur.droit === 'MODERER_SALON'
 					? 'Seuls les modérateurs du mur demandent une prise de connaissance.'
 					: 'Vous ne pouvez pas publier sur ce mur.';
-		return fail<Reponse>(403, { cible, message, valeurs });
+		// Sur « Publier », le refus de la prise de connaissance s'affiche aussi sur sa case.
+		const erreurs = cible === 'publier' && erreur.droit === 'MODERER_SALON' ? { priseDeConnaissance: message } : undefined;
+		return fail<Reponse>(403, { cible, message, erreurs, valeurs });
 	}
 	if (erreur instanceof DonneeInvalide) {
 		const connu = DONNEES[erreur.message];

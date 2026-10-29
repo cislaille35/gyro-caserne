@@ -25,8 +25,9 @@ describe('page Publier', () => {
 		expect(page).toContain('Où publier ?');
 		expect(radio(page, 'mur', 'equipe:1')).toMatch(/type="radio"[^>]*required/);
 		expect(radio(page, 'mur', 'vie')).not.toContain('checked');
-		expect(page).toContain('Visible par les 9 membres de l’équipe 1, le chef et l’adjoint');
-		expect(page).toContain('Visible par tous les agents du centre (38)');
+		// Même phrase, point compris, qu'avec JavaScript.
+		expect(page).toContain('Visible par les 9 membres de l’équipe 1, le chef et l’adjoint.');
+		expect(page).toContain('Visible par tous les agents du centre (38).');
 		expect(page).toMatch(/<a[^>]*href="\/echanges"[^>]*>Annuler<\/a>/);
 	});
 
@@ -74,14 +75,30 @@ describe('page Publier', () => {
 		expect(radio(evenement, 'type', 'evenement')).toContain('checked');
 	});
 
-	it('refus : message du sondage affiché, sondage ouvert, saisie gardée', () => {
-		const page = html({}, { cible: 'publier', erreurs: { sondage: 'Le sondage doit se clore après son ouverture.' }, valeurs: { mur: 'vie', type: 'message', texte: 'Bonjour', question: 'Q ?', ouverture: '2026-10-29T12:00', cloture: '2026-10-29T12:00' } });
-		expect(page).toContain('La publication contient des erreurs.');
-		expect(page).toMatch(/<details[^>]*open/);
-		expect(page).toContain('Le sondage doit se clore après son ouverture.');
-		expect(page).toMatch(/<input[^>]*name="cloture"[^>]*value="2026-10-29T12:00"/);
-		expect(page).toMatch(/<textarea[^>]*>Bonjour<\/textarea>/);
-		expect(html({}, { cible: 'publier', erreurs: { mur: 'Choisissez où publier.' }, valeurs: {} })).toContain('Choisissez où publier.');
+	it('refus : chaque erreur reliée à son champ, sondage ouvert, saisie gardée', () => {
+		const relie = (page: string, nom: string, message: string) => {
+			const champ = page.match(new RegExp(`<input[^>]*name="${nom}"[^>]*>`))?.[0] ?? '';
+			expect(champ, nom).toContain('aria-invalid="true"');
+			const id = champ.match(/aria-describedby="([^"]+)"/)![1]!.split(' ').at(-1);
+			expect(page, nom).toMatch(new RegExp(`id="${id}"[^>]*>${message}<`));
+		};
+		const valeurs = { mur: 'vie', type: 'message', texte: 'Bonjour', question: 'Q ?', ouverture: '2026-10-29T12:00', cloture: '2026-10-29T12:00' };
+		const cloture = html({}, { cible: 'publier', erreurs: { cloture: 'Le sondage doit se clore après son ouverture.' }, valeurs });
+		expect(cloture).toContain('La publication contient des erreurs.');
+		expect(cloture).toMatch(/<details[^>]*open/);
+		relie(cloture, 'cloture', 'Le sondage doit se clore après son ouverture.');
+		expect(cloture).not.toMatch(/<input[^>]*name="(ouverture|question)"[^>]*aria-invalid/);
+		expect(cloture).toMatch(/<input[^>]*name="cloture"[^>]*value="2026-10-29T12:00"/);
+		expect(cloture).toMatch(/<textarea[^>]*>Bonjour<\/textarea>/);
+		relie(html({}, { cible: 'publier', erreurs: { ouverture: 'Indiquez une date et une heure d’ouverture valides.' }, valeurs }), 'ouverture', 'Indiquez une date et une heure d’ouverture valides.');
+		relie(html({}, { cible: 'publier', erreurs: { sondage: 'Proposez de 2 à 6 réponses.' }, valeurs }), 'question', 'Proposez de 2 à 6 réponses.');
+		relie(html({ murs: [centre, vie] }, { cible: 'publier', erreurs: { priseDeConnaissance: 'Seuls les modérateurs du mur demandent une prise de connaissance.' }, valeurs: { ...valeurs, type: 'annonce' } }), 'priseDeConnaissance', 'Seuls les modérateurs du mur demandent une prise de connaissance.');
+		const mur = html({}, { cible: 'publier', erreurs: { mur: 'Choisissez où publier.' }, valeurs: {} });
+		expect(mur).toMatch(/<fieldset[^>]*aria-describedby="publier-mur-erreur"/);
+		expect(mur).toMatch(/id="publier-mur-erreur"[^>]*>Choisissez où publier\.</);
+		const type = html({}, { cible: 'publier', erreurs: { type: 'Choisissez le type de publication.' }, valeurs: {} });
+		expect(type).toMatch(/<fieldset[^>]*aria-describedby="publier-type-erreur"/);
+		expect(type).toMatch(/id="publier-type-erreur"[^>]*>Choisissez le type de publication\.</);
 	});
 
 	it('aucun mur où publier : une phrase, pas de formulaire', () => {

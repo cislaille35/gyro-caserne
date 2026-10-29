@@ -108,7 +108,7 @@
 						required
 					/>
 					<span class="nom">{m.nom}</span>
-					<span class="qui" hidden={js}>{phraseAudience(m.type, m.nom, m.audience)}</span>
+					<span class="qui" hidden={js}>{phraseAudience(m.type, m.nom, m.audience)}.</span>
 				</label>
 			{/each}
 		</div>
@@ -121,7 +121,7 @@
 		{/if}
 	</fieldset>
 
-	<fieldset class="bloc">
+	<fieldset class="bloc" aria-describedby={erreurs.type ? 'publier-type-erreur' : undefined}>
 		<legend>Quel genre ?</legend>
 		<div class="genres">
 			{#each GENRES as g (g.valeur)}
@@ -131,15 +131,23 @@
 				</label>
 			{/each}
 		</div>
-		{#if erreurs.type}<p class="erreur">{erreurs.type}</p>{/if}
+		{#if erreurs.type}<p id="publier-type-erreur" class="erreur">{erreurs.type}</p>{/if}
 	</fieldset>
 
 	{#if unModere}
 		<!-- Sans JavaScript, la case reste visible avec sa mention ; avec, seulement pour une annonce sur un mur qu'on modère. -->
 		<label class="case" hidden={js && (type !== 'annonce' || !choix?.peutModerer)}>
-			<input type="checkbox" name="priseDeConnaissance" value="oui" checked={valeurs.priseDeConnaissance} />
+			<input
+				type="checkbox"
+				name="priseDeConnaissance"
+				value="oui"
+				checked={valeurs.priseDeConnaissance}
+				aria-invalid={erreurs.priseDeConnaissance ? 'true' : undefined}
+				aria-describedby={erreurs.priseDeConnaissance ? 'publier-prise-erreur' : undefined}
+			/>
 			<span>Demander une prise de connaissance (annonce){#if !js}<span class="aide mention">réservé aux modérateurs du mur</span>{/if}</span>
 		</label>
+		{#if erreurs.priseDeConnaissance}<p id="publier-prise-erreur" class="erreur">{erreurs.priseDeConnaissance}</p>{/if}
 	{/if}
 
 	<div class="champ">
@@ -191,7 +199,7 @@
 		{#if erreurPhoto}<p id="publier-photos-erreur" class="erreur">{erreurPhoto}</p>{/if}
 	</div>
 
-	<details class="sondage" open={Boolean(valeurs.question || erreurs.sondage)}>
+	<details class="sondage" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
 		<summary>Sondage</summary>
 		<div class="contenu-sondage">
 			<Champ id="publier-question" name="question" libelle="Question" maxlength={200} valeur={valeurs.question ?? ''} erreur={erreurs.sondage} />
@@ -208,7 +216,16 @@
 			<div class="dates">
 				<div class="champ">
 					<label for="publier-ouverture">Ouvre le</label>
-					<input class="saisie" id="publier-ouverture" name="ouverture" type="datetime-local" value={valeurs.ouverture ?? defauts.ouverture} />
+					<input
+						class="saisie"
+						id="publier-ouverture"
+						name="ouverture"
+						type="datetime-local"
+						value={valeurs.ouverture ?? defauts.ouverture}
+						aria-invalid={erreurs.ouverture ? 'true' : undefined}
+						aria-describedby={erreurs.ouverture ? 'publier-ouverture-erreur' : undefined}
+					/>
+					{#if erreurs.ouverture}<p id="publier-ouverture-erreur" class="erreur">{erreurs.ouverture}</p>{/if}
 				</div>
 				<div class="champ">
 					<label for="publier-cloture">Ferme le</label>
@@ -218,11 +235,14 @@
 						name="cloture"
 						type="datetime-local"
 						value={clotureAffichee}
+						aria-invalid={erreurs.cloture ? 'true' : undefined}
+						aria-describedby={erreurs.cloture ? 'publier-cloture-erreur' : undefined}
 						oninput={(e) => {
 							cloture = e.currentTarget.value;
 							clotureChoisie = true;
 						}}
 					/>
+					{#if erreurs.cloture}<p id="publier-cloture-erreur" class="erreur">{erreurs.cloture}</p>{/if}
 				</div>
 			</div>
 			<p class="aide">Ouvert dès la publication par défaut. Fermé, plus personne ne vote et les résultats s’affichent pour tous. Pour un événement, il ferme au plus tard à son début.</p>

@@ -1,11 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
 import { apercusDesMurs, audiences, equipe, mursDe, publier } from '@gyro-caserne/socle';
-import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { echecMur, envoiTropLourd, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
-
-const septJoursPlusTard = (m: string) => new Date(Date.parse(`${m}:00Z`) + 7 * 864e5).toISOString().slice(0, 16);
 
 // Les murs où l'on peut publier, avec qui les voit et leur identité (pastille, couleur).
 export const load: PageServerLoad = async ({ locals, url }) => {
