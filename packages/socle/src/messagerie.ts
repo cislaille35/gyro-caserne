@@ -1,8 +1,8 @@
 import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, max, ne, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { roleDe, texte } from './actions/publications.ts';
 import type { Base, BasePhotos } from './base.ts';
 import { requeteTenues } from './casquettes.ts';
+import { roleDe, texte } from './commun.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
@@ -585,6 +585,8 @@ export async function creerGroupe(base: Base, acteur: Acteur, donnees: { nom: st
 export async function ajouterMembres(base: Base, acteur: Acteur, id: number, ids: number[], maintenant: string): Promise<void> {
 	const cibles = idsDe(ids);
 	if (cibles.length === 0) throw new DonneeInvalide('Choisissez au moins une personne');
+	// L'acteur en est : au plus 59 de plus, contrôlé avant de lire (et de lier trop de paramètres).
+	if (cibles.length + 1 > TAILLE_GROUPE) throw new DonneeInvalide(`${TAILLE_GROUPE} membres au plus`);
 	const g = await lireGroupe(base, acteur, id, maintenant, cibles);
 	if (!g.animateur) throw reserveAuxAnimateurs();
 	if (cibles.some(g.estMembre)) throw new DonneeInvalide('Déjà membre du groupe');
@@ -646,7 +648,16 @@ export async function departDesGroupes(base: Base, personneId: number, maintenan
 }
 
 // Les infos d'une conversation (écran « Infos ») : membres triés par nom. Une requête (un batch). Membres seulement.
-export async function infosConversation(base: Base, acteur: Acteur, id: number, aujourdhui: string) {
+export type InfosConversation = {
+	type: TypeConversation;
+	nom: string;
+	icone: string | null;
+	creePar: number;
+	membres: { id: number; prenom: string; nom: string; animateur: boolean; equipe: { numero: number; couleur: string } | null; role: string | null }[];
+	moiAnimateur: boolean;
+};
+
+export async function infosConversation(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<InfosConversation> {
 	exigerDate(aujourdhui);
 	const moi = idDe(acteur);
 	exigerId(id, 'Conversation');

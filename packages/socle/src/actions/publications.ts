@@ -5,7 +5,7 @@ import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { tenuesValides } from '../casquettes.ts';
+import { roleDe, texte } from '../commun.ts';
 import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
@@ -53,14 +53,6 @@ export type PublicationVue = {
 	derniersCommentaires: CommentaireVue[];
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
-
-// `feminin` : accord du message (« Question trop longue »).
-export function texte(valeur: unknown, libelle: string, max: number, feminin = false): string {
-	const propre = typeof valeur === 'string' ? valeur.trim() : '';
-	if (!propre) throw new DonneeInvalide(`${libelle} vide`);
-	if (propre.length > max) throw new DonneeInvalide(`${libelle} trop long${feminin ? 'ue' : ''}`);
-	return propre;
-}
 
 // Le type déclaré ne suffit pas : on vérifie les premiers octets du fichier.
 function estDuType(type: string, o: Uint8Array): boolean {
@@ -285,18 +277,6 @@ export async function lirePublication(base: Base, acteur: Acteur, id: number, ma
 
 export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
 	auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
-
-const ROLES = [
-	['chef_centre', 'Chef de centre'],
-	['chef_centre_adjoint', 'Adjoint'],
-	['chef_equipe', 'Chef d’équipe']
-] as const;
-
-// Premier rôle tenu (Chef de centre, Adjoint, Chef d’équipe), parmi les rôles tenus du jour (requeteTenues).
-export function roleDe(tenues: { personneId: number; type: string; portee: string; systeme: string | null }[], personneId: number): string | null {
-	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
-	return ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null;
-}
 
 // Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
 function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {

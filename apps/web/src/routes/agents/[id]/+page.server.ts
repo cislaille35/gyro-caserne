@@ -17,6 +17,7 @@ import {
 	type Acteur,
 	type FicheAgent
 } from '@gyro-caserne/socle';
+import { maintenantParis } from '#lib/aujourdhui.ts';
 import { finir, nommer, terminer } from '#lib/server/actions-attribution.ts';
 import { echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -102,7 +103,7 @@ export const actions: Actions = {
 	},
 
 	statut: async ({ locals, params, request }) => {
-		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		const { acteur, id } = await lireFiche(locals, params.id);
 		const formulaire = await request.formData();
 		const statut = STATUTS_OPERATIONNELS.find((s) => s === formulaire.get('statut'));
 		const valeurs = { statut: String(formulaire.get('statut') ?? '') };
@@ -111,7 +112,7 @@ export const actions: Actions = {
 		if (statut === 'parti' && formulaire.get('confirmation') !== 'oui')
 			return fail<Reponse>(400, { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs });
 		try {
-			await changerStatut(locals.base, acteur, id, statut, aujourdhui);
+			await changerStatut(locals.base, acteur, id, statut, maintenantParis());
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}

@@ -541,6 +541,10 @@ describe('groupes', () => {
 		const autres: number[] = [];
 		for (let i = 0; i < 57; i++) autres.push(await nouvelle(`Agent${i}`, 'Nombreux'));
 		await expect(ajouterMembres(base, acteur(romain), id, autres, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
+		// Trop d'ids : refus avant toute lecture.
+		const avantCent = base.requetes;
+		await expect(ajouterMembres(base, acteur(romain), id, Array.from({ length: 100 }, (_, i) => 1000 + i), minute(4))).rejects.toThrow('60 membres au plus');
+		expect(base.requetes).toBe(avantCent);
 		base.parametresMax = 0;
 		await ajouterMembres(base, acteur(romain), id, autres.slice(0, 56), minute(4));
 		expect(base.parametresMax).toBeLessThanOrEqual(100);
@@ -572,6 +576,19 @@ describe('groupes', () => {
 		await expect(renommerGroupe(base, acteur(claire), id, 'Pirate', minute(3))).rejects.toBeInstanceOf(RefusDroit);
 		expect(await mesConversations(base, acteur(claire), minute(3))).toEqual([]);
 		expect(await nonLusTotal(base, acteur(claire), aujourdhui)).toBe(0);
+	});
+
+	it('un animateur peut retirer un autre animateur', async () => {
+		const { base, manon, romain, claire } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, claire] }, minute(0));
+		await nommerAnimateur(base, acteur(romain), id, manon, minute(1));
+		await retirerMembre(base, acteur(manon), id, romain, minute(2));
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 1],
+			[claire, 0]
+		]);
+		expect((await systemes(base, id)).at(-1)).toEqual({ type: 'retrait', par: manon, cibles: [romain] });
+		await expect(lireConversation(base, acteur(romain), id, {}, minute(3))).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('nommerAnimateur : réservé aux animateurs, pour un membre qui n’anime pas encore', async () => {
@@ -717,13 +734,13 @@ describe('groupes', () => {
 		const suspendue = await nouvelle('Suspendue', 'Test');
 		const autre = await creerGroupe(base, acteur(suspendue), { nom: 'Autre', membres: [manon] }, minute(4));
 
-		await changerStatut(base, superAdmin, suspendue, 'suspendu', aujourdhui);
+		await changerStatut(base, superAdmin, suspendue, 'suspendu', minute(5));
 		expect(await membresDuGroupe(base, autre)).toEqual([
 			[manon, 0],
 			[suspendue, 1]
 		]);
 
-		await changerStatut(base, superAdmin, romain, 'parti', aujourdhui);
+		await changerStatut(base, superAdmin, romain, 'parti', minute(6));
 		expect(await membresDuGroupe(base, garde)).toEqual([
 			[manon, 1],
 			[claire, 0]
@@ -732,6 +749,13 @@ describe('groupes', () => {
 			{ type: 'depart', par: romain },
 			{ type: 'animateur', cibles: [manon] }
 		]);
+		// Daté de l'heure du départ : le rafraîchissement (maj_le) le voit.
+		const derniers = (await base.select().from(message).where(eq(message.conversationId, garde)).orderBy(message.id)).slice(-2);
+		expect(derniers.map((m) => [m.creeLe, m.majLe])).toEqual([
+			[minute(6), minute(6)],
+			[minute(6), minute(6)]
+		]);
+		expect((await base.select().from(conversation).where(eq(conversation.id, garde)))[0]!.dernierLe).toBe(minute(6));
 		expect(await base.select().from(conversation).where(eq(conversation.id, seul))).toEqual([]);
 		const vue = await lireConversation(base, acteur(manon), aDeux, {}, minute(5));
 		expect(vue.lectureSeule).toBe(true);

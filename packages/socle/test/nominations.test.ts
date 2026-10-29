@@ -12,6 +12,7 @@ import { attribution, comite, equipe, journal, personne, profil, responsabilite 
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
+const midi = `${aujourdhui}T12:00`;
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
 const centre = { type: 'centre' as const };
 
@@ -126,7 +127,7 @@ describe('attribuer : refus du rapporteur et doublons', () => {
 describe('attribuer : personne partie', () => {
 	it('refuse une personne partie ; rien n’est écrit', async () => {
 		const { base, r, simpleId, ecritures } = await jeu();
-		await changerStatut(base, superAdmin, simpleId, 'parti', aujourdhui);
+		await changerStatut(base, superAdmin, simpleId, 'parti', midi);
 		const avant = await ecritures();
 		const refus = attribuer(base, superAdmin, { personneId: simpleId, responsabiliteId: r('Référent engins'), perimetre: centre, debut: aujourdhui }, aujourdhui);
 		await expect(refus).rejects.toBeInstanceOf(DonneeInvalide);
@@ -144,7 +145,7 @@ describe('changerStatut vers parti : attributions', () => {
 		const ceJour = await nommer(simpleId, 'Référent technique', centre, aujourdhui);
 		const aVenir = await nommer(simpleId, 'Rapporteur de comité', amicale, '2026-12-01');
 
-		await changerStatut(base, superAdmin, simpleId, 'parti', aujourdhui);
+		await changerStatut(base, superAdmin, simpleId, 'parti', midi);
 
 		const restantes = await base.select({ id: attribution.id, fin: attribution.fin }).from(attribution).where(eq(attribution.personneId, simpleId)).orderBy(attribution.id);
 		expect(restantes).toEqual([
@@ -160,7 +161,7 @@ describe('changerStatut vers parti : attributions', () => {
 		const { base, chef } = await jeu();
 		const id = chef.type === 'personne' ? chef.id : 0;
 		expect(await estChefDeCentre(base, id, aujourdhui)).toBe(true);
-		await changerStatut(base, superAdmin, id, 'parti', aujourdhui);
+		await changerStatut(base, superAdmin, id, 'parti', midi);
 		expect(await estChefDeCentre(base, id, aujourdhui)).toBe(false);
 	});
 });

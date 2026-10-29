@@ -3,7 +3,7 @@ import { attribuer, terminerAttribution } from './actions/attributions.ts';
 import { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, retirerEquipe } from './actions/personnes.ts';
 import type { Operation, RefPersonne } from './apercu-import.ts';
 import type { Base } from './base.ts';
-import { enCours, exigerDate } from './dates.ts';
+import { enCours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { estGestionnaire } from './effectif.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
@@ -104,10 +104,10 @@ export async function appliquerOperation(
 	acteur: Acteur,
 	brute: Operation,
 	nouvelles: Record<number, number>,
-	aujourdhui: string,
+	maintenant: string,
 	adressesReservees: string[]
 ): Promise<{ personneId: number | null }> {
-	exigerDate(aujourdhui);
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const op = lire(brute);
 	const creees = objet(nouvelles);
 	let vise: number | null = null;
@@ -131,7 +131,7 @@ export async function appliquerOperation(
 			else await affecterEquipe(base, acteur, op.personneId, op.equipeId, aujourdhui, aujourdhui);
 			break;
 		case 'statut':
-			await changerStatut(base, acteur, op.personneId, op.statut, aujourdhui);
+			await changerStatut(base, acteur, op.personneId, op.statut, maintenant);
 			break;
 		case 'attribuer': {
 			const [role] = await base.select({ systeme: responsabilite.systeme }).from(responsabilite).where(eq(responsabilite.id, op.responsabiliteId));

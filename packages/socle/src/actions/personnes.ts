@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
-import { enCours, exigerDate, veille } from '../dates.ts';
+import { enCours, exigerDate, exigerDateHeure, veille } from '../dates.ts';
 import { aLeDroit, couvre, droitsDe, estChefDeCentre, occupe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
@@ -143,8 +143,8 @@ export async function ajouterPersonne(
 	return lignes[0]!.id;
 }
 
-export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, aujourdhui: string): Promise<void> {
-	exigerDate(aujourdhui);
+export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, maintenant: string): Promise<void> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
 	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
@@ -171,8 +171,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	const retrait = statut === 'parti' ? retraitEquipe(base, acteur, personneId, affectations, aujourdhui) : [];
 	// Au départ, tous ses rôles prennent fin le même jour ; l'historique reste.
 	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
-	// Au départ, il quitte aussi ses groupes de messagerie (l'heure n'est pas connue ici : début de journée).
-	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, `${aujourdhui}T00:00`) : [];
+	// Au départ, il quitte aussi ses groupes de messagerie.
+	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, maintenant) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
