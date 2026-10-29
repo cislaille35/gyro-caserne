@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Échanges, la liste</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1d2733}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 1640px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column;">
+
+  <header style="padding: 18px 16px 8px; display: flex; align-items: center; gap: 12px;">
+    <svg role="img" aria-label="Gyro, en forme" width="56" height="56" viewBox="22 18 76 88">
+      <rect x="54" y="22" width="12" height="9" rx="3" fill="#f4c400"></rect>
+      <path d="M32 94 V62 Q32 30 60 30 Q88 30 88 62 V94 Z" fill="#e3262b"></path>
+      <path d="M40 62 Q40 42 54 37" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" fill="none" stroke-linecap="round"></path>
+      <circle cx="50" cy="66" r="4.5" fill="#1d2733"></circle><circle cx="70" cy="66" r="4.5" fill="#1d2733"></circle>
+      <path d="M52 78 Q60 85 68 78" stroke="#1d2733" stroke-width="3" fill="none" stroke-linecap="round"></path>
+      <rect x="26" y="92" width="68" height="10" rx="4" fill="#1d2733"></rect>
+    </svg>
+    <div style="flex: 1; display: flex; flex-direction: column;">
+      <h1 style="margin: 0; font: 700 30px 'Barlow Condensed', sans-serif;">Échanges</h1>
+      <span style="font-size: 15px; color: #4a5562;">5 nouveautés depuis hier. Le café est encore chaud.</span>
+    </div>
+    <a href="Publier.dc.html" aria-label="Écrire" style="width: 48px; height: 48px; border-radius: 50%; background: #b3121f; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(179, 18, 31, 0.3);">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+    </a>
+  </header>
+
+  <nav aria-label="Filtrer" style="padding: 8px 16px 4px; display: flex; gap: 8px;">
+    <a href="#" aria-current="page" style="min-height: 40px; padding: 0 16px; border-radius: 999px; background: #1d2733; color: #ffffff; display: flex; align-items: center; font-weight: 600; text-decoration: none;">Tout</a>
+    <a href="#" style="min-height: 40px; padding: 0 16px; border-radius: 999px; background: #ffffff; border: 1px solid #e3ddd5; display: flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;">Murs <span style="font-size: 13px; color: #4a5562;">4</span></a>
+    <a href="#" style="min-height: 40px; padding: 0 16px; border-radius: 999px; background: #ffffff; border: 1px solid #e3ddd5; display: flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;">Messages <span style="min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #b3121f; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">2</span></a>
+  </nav>
+
+  <div style="padding: 12px 16px 110px; display: flex; flex-direction: column; gap: 22px;">
+
+    <section aria-labelledby="t-jour" style="background: linear-gradient(135deg, #fff4e0 0%, #fde8ec 100%); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <h2 id="t-jour" style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Aujourd’hui au centre</h2>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #c2185b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700;">TA</span>
+        <span style="flex: 1; display: flex; flex-direction: column;"><strong>Thomas fête son anniversaire</strong><span style="font-size: 14px; color: #4a5562;">Équipe 1</span></span>
+        <button type="button" style="min-height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: #ffffff; color: #8a1f52; font: 600 15px 'Barlow', sans-serif;">Souhaiter</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;"><span style="font-size: 11px; font-weight: 700; color: #b3121f;">JEU</span><span style="font: 700 18px 'Barlow Condensed', sans-serif;">5</span></span>
+        <span style="flex: 1; display: flex; flex-direction: column;"><strong>Manœuvre désincarcération</strong><span style="font-size: 14px; color: #4a5562;">dans 7 jours, 19 h · vous n’avez pas répondu</span></span>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-centre" style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 id="t-centre" style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Le centre</h2>
+      <a href="Mur.dc.html" style="background: #ffffff; border-radius: 20px; border: 1px solid #e3ddd5; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; box-shadow: 0 2px 10px rgba(29, 39, 51, 0.06);">
+        <span style="background: #b3121f; color: #ffffff; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+          <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"></path><path d="M9 20v-6h6v6"></path></svg>
+          <span style="flex: 1; font-weight: 700; font-size: 18px;">Le centre</span>
+          <span style="font-size: 13px; font-weight: 600; background: rgba(255, 255, 255, 0.2); padding: 3px 8px; border-radius: 999px;">Officiel</span>
+        </span>
+        <span style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #7a4a00;">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v10M12 17v1"></path><circle cx="12" cy="12" r="10"></circle></svg>
+            1 annonce à lire et confirmer
+          </span>
+          <span style="font-size: 15px;"><strong>Claire Chef</strong> : Nouvelle consigne : vérification des ARI à chaque prise de garde…</span>
+          <span style="font-size: 13px; color: #4a5562;">il y a 2 h · visible par tous les agents</span>
+        </span>
+      </a>
+    </section>
+
+    <section aria-labelledby="t-groupes" style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 id="t-groupes" style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Mes groupes</h2>
+
+      <a href="#" style="background: #ffffff; border-radius: 18px; border: 1px solid #e3ddd5; padding: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 14px; background: #fbf1d3; color: #6b4a00; display: flex; align-items: center; justify-content: center; font: 700 22px 'Barlow Condensed', sans-serif; box-shadow: inset 0 -4px 0 #d4a017;">1</span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 17px;">Équipe 1</strong><span style="font-size: 13px; color: #4a5562;">· mon équipe, d’astreinte</span></span>
+          <span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Élodie : Semaine d’astreinte, pensez à vos dispos…</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span style="font-size: 13px; color: #4a5562;">9 h</span><span style="min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #b3121f; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">1</span></span>
+      </a>
+
+      <a href="#" style="background: #ffffff; border-radius: 18px; border: 1px solid #e3ddd5; padding: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 14px; background: #e3f2f1; color: #0f5e58; display: flex; align-items: center; justify-content: center;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M3.5 9h17M3.5 15h17M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path></svg>
+        </span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 17px;">Vie du centre</strong><span style="font-size: 13px; color: #4a5562;">· tout le monde</span></span>
+          <span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Thomas : Qui est partant pour un footing dimanche ?</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span style="font-size: 13px; color: #4a5562;">hier</span><span style="min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #b3121f; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">3</span></span>
+      </a>
+
+      <a href="#" style="background: #ffffff; border-radius: 18px; border: 1px solid #e3ddd5; padding: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 14px; background: #fbeaf1; color: #8a1f52; display: flex; align-items: center; justify-content: center;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg>
+        </span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 6px;"><strong style="font-size: 17px;">Amicale</strong><span style="font-size: 13px; color: #4a5562;">· comité</span></span>
+          <span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Romain : Repas de Sainte-Barbe, conjoints bienvenus</span>
+        </span>
+        <span style="font-size: 13px; color: #4a5562;">lun.</span>
+      </a>
+
+      <details style="background: #ffffff; border-radius: 18px; border: 1px solid #e3ddd5;">
+        <summary style="min-height: 48px; padding: 0 14px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer;">Autres comités <span style="font-size: 13px; color: #4a5562;">(2, rien de neuf)</span></summary>
+      </details>
+    </section>
+
+    <section aria-labelledby="t-messages" style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 id="t-messages" style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Messages</h2>
+      <div style="background: #ffffff; border-radius: 18px; border: 1px solid #e3ddd5; display: flex; flex-direction: column;">
+        <a href="Conversation.dc.html" style="padding: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none; border-bottom: 1px solid #efe9e1;">
+          <span aria-hidden="true" style="position: relative; width: 48px; height: 48px;">
+            <span style="position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%; background: #1565c0; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 2px solid #ffffff;">MM</span>
+            <span style="position: absolute; right: 0; bottom: 0; width: 32px; height: 32px; border-radius: 50%; background: #2e7a1f; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 2px solid #ffffff;">RR</span>
+          </span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <strong style="font-size: 17px;">Départ de Thomas</strong>
+            <span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Manon : J’ai trouvé le cadeau !</span>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;"><span style="font-size: 13px; color: #4a5562;">10 h</span><span style="min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #b3121f; color: #ffffff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">2</span></span>
+        </a>
+        <a href="#" style="padding: 12px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+          <span aria-hidden="true" style="width: 48px; height: 48px; border-radius: 50%; background: #d4a017; color: #1d2733; display: flex; align-items: center; justify-content: center; font-weight: 700;">EC</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <strong style="font-size: 17px;">Élodie Chef-Équipe</strong>
+            <span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Vous : Ok pour samedi, merci !</span>
+          </span>
+          <span style="font-size: 13px; color: #4a5562;">mar.</span>
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <nav aria-label="Navigation principale" style="position: sticky; bottom: 0; margin-top: auto; background: #ffffff; border-top: 1px solid #e3ddd5; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px 4px 10px;">
+    <a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Accueil</a>
+    <a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Planning</a>
+    <a href="#" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Caserne</a>
+    <a href="#" aria-current="page" style="min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 700; text-decoration: none; color: #b3121f;"><span aria-hidden="true" style="width: 28px; height: 4px; border-radius: 2px; background: #b3121f;"></span>Échanges</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1640}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
