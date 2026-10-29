@@ -243,7 +243,8 @@
 		};
 		const bas = (e: PointerEvent) => {
 			doigt = e.pointerType === 'touch';
-			if (!doigt || !actif) return;
+			// Le menu s'ouvre aussi en lecture seule (copier, supprimer, signaler) ; le glissement, non.
+			if (!doigt || exclu || message.supprime !== null) return;
 			depart = { x: e.clientX, y: e.clientY, pointeur: e.pointerId };
 			glisse = false;
 			ecart = 0;
@@ -258,7 +259,7 @@
 			const x = e.clientX - depart.x;
 			const y = e.clientY - depart.y;
 			if (Math.abs(x) > 8 || Math.abs(y) > 8) clearTimeout(minuteur);
-			if (!glisse && x > 12 && Math.abs(y) < x / 2 && !calme()) {
+			if (!glisse && actif && x > 12 && Math.abs(y) < x / 2 && !calme()) {
 				glisse = true;
 				noeud.classList.add('glisse');
 				noeud.setPointerCapture(e.pointerId);
