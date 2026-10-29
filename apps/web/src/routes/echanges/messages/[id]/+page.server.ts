@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { infosConversation, lireConversation, RefusDroit, type InfosConversation } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
-import { aPropos } from '#lib/messagerie/infos.ts';
+import { aPropos, debut } from '#lib/messagerie/infos.ts';
 import { actionEnvoyer, actionsDeGestes } from '#lib/server/formulaire-messagerie.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			// Pour une conversation à deux en lecture seule : « Manon n'est plus dans l'annuaire ».
 			autrePrenom: vue.type === 'deux' ? (vue.membres.find((m) => m.id !== moi)?.prenom ?? null) : null,
 			// « Répondre en privé » depuis un mur.
-			prerempli: aPropos(url.searchParams.get('apropos')?.slice(0, 200) ?? null)
+			prerempli: aPropos(debut(url.searchParams.get('apropos') ?? '', 200))
 		};
 	} catch (erreur) {
 		if (erreur instanceof RefusDroit) {

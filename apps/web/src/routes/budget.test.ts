@@ -332,6 +332,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(page).toBeLessThanOrEqual(BUDGET);
 		const geste = (nom: keyof typeof actionsInfos, corps: [string, string][]) => compter(async () => void (await (actionsInfos[nom] as any)({ locals, params, url, request: await requeteFormulaire(corps) }).catch(() => {})));
 		for (const n of [await geste('nommer', [['personne', String(ids[0])]]), await geste('retirer', [['personne', String(ids[1])]]), await geste('renommer', [['nom', 'Tous']])]) expect(n).toBeLessThanOrEqual(BUDGET);
+		// À deux : la fiche courte, et « Voir la fiche » pour le chef de centre.
+		const { conversation: aDeux } = await envoyer(base, base.photos, locals.acteur, { personne: ids[0]! }, { texte: 'Bonjour' }, maintenantParis());
+		const urlDeux = new URL(`http://localhost/echanges/messages/${aDeux}/infos`);
+		const deux = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url: urlDeux });
+			expect((await (infos as any)({ locals, params: { id: String(aDeux) }, url: urlDeux })).fiche).toBe(`/agents/${ids[0]}`);
+		});
+		expect(deux).toBeLessThanOrEqual(BUDGET);
 		const ajout = new URL(`http://localhost/echanges/messages/nouveau/groupe?ajouter=${id}`);
 		const selection = await compter(async () => {
 			await (racine as any)({ locals });

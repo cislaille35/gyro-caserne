@@ -21,6 +21,9 @@ describe('une conversation : chargement', () => {
 		const { base, alice, id } = await groupe();
 		expect((await charger(locaux(base, alice), id, `?apropos=${encodeURIComponent('Repas de Noël')}`)).prerempli).toBe('À propos de « Repas de Noël » : ');
 		expect((await charger(locaux(base, alice), id)).prerempli).toBe('');
+		// Coupée à 200 caractères côté serveur, jamais au milieu d'un emoji.
+		const long = `${'a'.repeat(199)}🚒`;
+		await expect(charger(locaux(base, alice), id, `?apropos=${encodeURIComponent(long)}`)).resolves.toMatchObject({ prerempli: `À propos de « ${'a'.repeat(80)}… » : ` });
 	});
 
 	it('demande la connexion', async () => {

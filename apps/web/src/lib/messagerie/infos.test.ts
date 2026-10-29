@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aPropos, avecBrouillon, gestesMembre, resumeGroupe } from './infos.ts';
+import { aPropos, avecBrouillon, debut, gestesMembre, resumeGroupe } from './infos.ts';
 
 describe('infos d’une conversation', () => {
 	it('« Groupe · N membres · créé par X », vous quand c’est soi', () => {
@@ -34,5 +34,13 @@ describe('infos d’une conversation', () => {
 		expect(avecBrouillon(debut, 'Je viens')).toBe(`${debut}\nJe viens`);
 		expect(avecBrouillon(debut, `${debut}je viens`)).toBe(`${debut}je viens`);
 		expect(avecBrouillon('', 'Je viens')).toBe('Je viens');
+	});
+
+	it('les coupes se font par caractère : jamais un emoji coupé en deux', () => {
+		expect(debut(`${'a'.repeat(119)}🚒🚒`, 120)).toBe(`${'a'.repeat(119)}🚒`);
+		expect(debut('abc', 120)).toBe('abc');
+		expect(() => encodeURIComponent(debut(`${'a'.repeat(119)}🚒`, 120))).not.toThrow();
+		expect(aPropos(`${'a'.repeat(79)}🚒 suite`)).toBe(`À propos de « ${'a'.repeat(79)}🚒… » : `);
+		expect(aPropos(`${'a'.repeat(79)}🚒`)).toBe(`À propos de « ${'a'.repeat(79)}🚒 » : `);
 	});
 });

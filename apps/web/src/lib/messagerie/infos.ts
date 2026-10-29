@@ -17,11 +17,15 @@ export function gestesMembre(m: { prenom: string; animateur: boolean }, moiAnima
 
 const EXTRAIT = 80;
 
+// Les n premiers caractères, sans jamais couper un emoji en deux.
+export const debut = (texte: string, n: number) => Array.from(texte).slice(0, n).join('');
+
 // « Répondre en privé » : le champ commence par le début de la publication.
 export function aPropos(brut: string | null): string {
 	const propre = (brut ?? '').replace(/\s+/g, ' ').trim();
 	if (!propre) return '';
-	const extrait = propre.length > EXTRAIT ? `${propre.slice(0, EXTRAIT).trimEnd()}…` : propre;
+	const coupe = debut(propre, EXTRAIT);
+	const extrait = coupe.length < propre.length ? `${coupe.trimEnd()}…` : propre;
 	return `À propos de « ${extrait} » : `;
 }
 

@@ -306,4 +306,11 @@ describe('cartes par type', () => {
 		expect(html({ messagerie: false, publications: [pub({ auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] })).not.toContain('Répondre en privé');
 		expect(html({ messagerie: true, publications: [pub()] })).not.toContain('Répondre en privé');
 	});
+
+	it('« Répondre en privé » : un emoji pile à la limite ne casse pas le mur', () => {
+		const texte = `${'a'.repeat(119)}🚒 et la suite`;
+		const page = html({ messagerie: true, publications: [pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] });
+		const lien = /<a[^>]*href="([^"]*)"[^>]*>Répondre en privé<\/a>/.exec(page)!;
+		expect(new URL(lien[1]!.replaceAll('&amp;', '&'), 'http://x').searchParams.get('apropos')).toBe(`${'a'.repeat(119)}🚒`);
+	});
 });

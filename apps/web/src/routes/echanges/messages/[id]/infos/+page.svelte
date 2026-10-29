@@ -96,7 +96,9 @@
 			// Refusé (par exemple, retiré entre-temps) : la phrase reste à l'écran, sans recharger la page.
 			await update({ invalidateAll: result.type !== 'failure' });
 			await tick();
-			if (!c || c.geste === 'quitter') return;
+			if (!c) return;
+			// Quitter refusé : le focus revient au lien.
+			if (c.geste === 'quitter') return document.getElementById('quitter')?.focus();
 			if (result.type === 'success' && c.geste === 'retirer') {
 				dire(`${c.m.prenom} ne fait plus partie du groupe.`);
 				document.getElementById('t-membres')?.focus();

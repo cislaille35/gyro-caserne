@@ -27,6 +27,9 @@ describe('écrire à quelqu’un pour la première fois', () => {
 		expect((await charger(locaux(base, alice), bruno.id, q)).prerempli).toBe('À propos de « Qui peut me remplacer ? » : ');
 		const { conversation: id } = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, '2026-10-28T09:00');
 		await expect(charger(locaux(base, alice), bruno.id, q)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
+		// Seul le début de la publication suit, rien d'autre de l'adresse.
+		await expect(charger(locaux(base, alice), bruno.id, `${q}&avant=3&x=1`)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
+		await expect(charger(locaux(base, alice), bruno.id, '?avant=3')).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}` });
 	});
 
 	it('soi-même, une personne partie ou inconnue : introuvable', async () => {

@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { annuaire, conversationAvec, RefusDroit } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
-import { aPropos } from '#lib/messagerie/infos.ts';
+import { aPropos, debut } from '#lib/messagerie/infos.ts';
 import { actionEnvoyer } from '#lib/server/formulaire-messagerie.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -23,14 +23,15 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		throw erreur;
 	}
 	// « Répondre en privé » : le début de la publication suit.
-	if (existante !== null) redirect(303, `/echanges/messages/${existante}${url.search}`);
+	const apropos = url.searchParams.get('apropos');
+	if (existante !== null) redirect(303, `/echanges/messages/${existante}${apropos ? `?apropos=${encodeURIComponent(apropos)}` : ''}`);
 	const p = agents.find((a) => a.id === id);
 	if (!p) error(404, 'Cette personne n’est pas dans l’annuaire');
 	return {
 		moiId: acteur.type === 'personne' ? acteur.id : 0,
 		personne: { id: p.id, prenom: p.prenom, nom: p.nom, couleur: p.equipe?.couleur ?? null },
 		sousTitre: p.role ?? (p.equipe ? `Équipe ${p.equipe.numero}` : ''),
-		prerempli: aPropos(url.searchParams.get('apropos')?.slice(0, 200) ?? null)
+		prerempli: aPropos(debut(url.searchParams.get('apropos') ?? '', 200))
 	};
 };
 
