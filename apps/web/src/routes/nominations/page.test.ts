@@ -37,6 +37,9 @@ describe('/nominations : cartes', () => {
 	it('une carte par rôle : icône, nom, périmètre', () => {
 		const page = html({ data, form: null });
 		expect(page).toContain('>Nominations</h1>');
+		// Un seul « Nommer » par rôle, en secondaire : pas de mur de boutons rouges.
+		expect(page).not.toContain('principal');
+		expect(page.match(/class="nommer/g)).toHaveLength(data.roles.length);
 		expect(carte(page, 'Référent engins')).toContain('Tout le centre');
 		expect(carte(page, 'Référent engins')).toContain('--icone-camion-fond');
 		expect(carte(page, 'Membre de comité')).toContain('Amicale');
@@ -54,7 +57,7 @@ describe('/nominations : cartes', () => {
 
 	it('signale « Aucun titulaire » en alerte', () => {
 		const vide = carte(html({ data, form: null }), 'Membre de comité');
-		expect(vide).toMatch(/--statut-alerte-fond[^>]*>(<!--[^>]*-->)*Aucun titulaire</);
+		expect(vide).toMatch(/--statut-alerte-fond[^>]*>(<!--[^>]*-->)*À pourvoir</);
 		expect(vide).not.toContain('Retirer');
 	});
 

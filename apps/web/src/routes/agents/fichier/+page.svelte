@@ -5,6 +5,7 @@
 	import { appliquerTout, ConnexionPerdue, type CompteRendu as TypeCompteRendu } from '#lib/fichier-effectif/appliquer.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Apercu from './Apercu.svelte';
 	import CompteRendu from './CompteRendu.svelte';
 	import { compter } from './textes.ts';
@@ -136,8 +137,7 @@
 </svelte:head>
 
 <div class="fichier">
-	<h1>Fichier de l'effectif</h1>
-	<p class="note">Pour charger ou changer l'effectif en masse, dans Excel ou LibreOffice. Pour un seul agent, passez par sa fiche.</p>
+	<EnTetePage titre="Fichier de l'effectif" phrase="Pour charger ou changer l'effectif en masse, dans Excel ou LibreOffice. Pour un seul agent, passez par sa fiche." />
 
 	<Carte titre="Télécharger">
 		<p class="note">Le modèle vierge sert au premier chargement ; l'export, aux mises à jour.</p>
@@ -177,9 +177,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
-	}
-	h1 {
-		margin: 0;
 	}
 	p {
 		margin: 0;
