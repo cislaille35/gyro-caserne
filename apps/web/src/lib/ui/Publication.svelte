@@ -1,8 +1,14 @@
 <script lang="ts">
 	import type { PublicationVue } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
+	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { heure, quand as quandBref } from '#lib/murs/quand.ts';
 	import Bouton from './Bouton.svelte';
 	import Pastille from './Pastille.svelte';
+	import Sondage from './Sondage.svelte';
+	import TuileDate from './TuileDate.svelte';
+	import Visage from './Visage.svelte';
 
 	let {
 		p,
@@ -10,7 +16,8 @@
 		retour,
 		agir = false,
 		lectureSeule = false,
-		seule = false
+		seule = false,
+		animer = false
 	}: {
 		p: PublicationVue;
 		equipes?: { id: number; nom: string }[];
@@ -20,28 +27,33 @@
 		lectureSeule?: boolean;
 		// Sur la page de la publication : ses commentaires y sont en entier, la modération reste sur le mur.
 		seule?: boolean;
+		// Gyro du bravo s'anime à l'arrivée : un seul par page.
+		animer?: boolean;
 	} = $props();
 
-	const TYPES = { message: null, annonce: 'Annonce', evenement: 'Événement', bravo: 'Bravo' } as const;
+	const affichage = lireAffichageContexte();
 	const REPONSES = [
-		['present', 'Présent'],
-		['absent', 'Absent'],
-		['incertain', 'Incertain']
+		['present', 'Présent', '✓'],
+		['absent', 'Absent', '✕'],
+		['incertain', 'Incertain', '?']
 	] as const;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const quand = (iso: string) => date(iso, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-	const debut = (iso: string) => date(iso, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
 	const auteur = $derived(nom(p.auteur));
 	const convoques = $derived(
 		!p.evenement || p.evenement.convoques === 'tous' ? 'tout le mur' : p.evenement.convoques.map((id) => equipes.find((e) => e.id === id)?.nom ?? 'équipe archivée').join(', ')
 	);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-	const total = $derived(p.sondage?.resultats ? p.sondage.resultats.reduce((a, b) => a + b, 0) : 0);
-	const pourcent = (n: number) => (total === 0 ? 0 : Math.round((n * 100) / total));
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);
+	const bravo = $derived(p.type === 'bravo');
+	const prise = $derived(p.priseDeConnaissance);
+	// « J'aime » devient « Applaudir » sur un bravo : même donnée.
+	const aimer = $derived(bravo ? 'Applaudir' : 'J’aime');
+	const aimes = $derived(bravo ? pluriel(p.jaime, 'applaudissement') : `${p.jaime} j’aime`);
+	const commentaires = $derived(`${pluriel(p.commentaires, 'commentaire')}${p.commentairesFermes ? ' · commentaires fermés' : ''}`);
 
 	// Après un geste, SvelteKit remet le focus en haut de la page : on le rend à son bouton ; si le bouton a disparu
 	// (vote, prise de connaissance), à la publication.
@@ -53,312 +65,418 @@
 	};
 </script>
 
-<article id="publication-{p.id}" class="publication" aria-labelledby="auteur-{p.id}" tabindex="-1" bind:this={carte}>
-	<p class="entete">
-		<span id="auteur-{p.id}" class="auteur">{auteur}</span>
-		<span class="doux">· le {quand(p.creeLe)}{p.modifieeLe ? ' · modifiée' : ''}</span>
-		{#if p.epinglee}<Pastille ton="info">Épinglée</Pastille>{/if}
-		{#if TYPES[p.type]}<Pastille ton={p.type === 'bravo' ? 'ok' : p.type === 'annonce' ? 'alerte' : 'neutre'}>{TYPES[p.type]}</Pastille>{/if}
-	</p>
+{#snippet signature()}
+	<span class="doux">{p.auteur.role ? `${p.auteur.role} · ` : ''}<time datetime={p.creeLe}>{quandBref(p.creeLe)}</time>{p.modifieeLe ? ' · modifiée' : ''}</span>
+{/snippet}
 
-	<p class="texte">{p.texte}</p>
-
-	{#if p.evenement}
-		<dl class="evenement">
-			<div><dt>Quand</dt><dd>{debut(p.evenement.debut)}</dd></div>
-			<div><dt>Où</dt><dd>{p.evenement.lieu}</dd></div>
-			<div><dt>Convoqués</dt><dd>{convoques}{p.evenement.convoque ? ' (vous l’êtes)' : ''}</dd></div>
-		</dl>
-		<p class="doux">
-			Réponses : {pluriel(p.evenement.compte.present, 'présent')}, {pluriel(p.evenement.compte.absent, 'absent')}, {pluriel(p.evenement.compte.incertain, 'incertain')}
+<article id="publication-{p.id}" class="publication {p.type}" class:a-confirmer={prise} aria-labelledby="auteur-{p.id}" tabindex="-1" bind:this={carte}>
+	{#if prise}
+		<p class="bandeau">
+			<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3l5 5-4 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z" /></svg>
+			{p.epinglee ? 'Épinglée · ' : ''}Annonce à lire et confirmer
 		</p>
-		{#if agir && p.evenement.convoque}
-			<form method="POST" action="?/repondre" class="choix" use:enhance={garderFocus}>
-				<input type="hidden" name="id" value={p.id} />
-				<p id="reponse-{p.id}" class="question">Votre réponse</p>
-				<div role="group" aria-labelledby="reponse-{p.id}" class="boutons">
-					{#each REPONSES as [valeur, libelle] (valeur)}
-						<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={p.evenement.reponse === valeur}>{libelle}</button>
-					{/each}
-				</div>
-			</form>
-		{/if}
+	{/if}
+	{#if bravo && affichage.niveau !== 'sobre'}
+		<svg class="confettis" aria-hidden="true" width="100%" height="120" viewBox="0 0 390 120" preserveAspectRatio="xMinYMin slice">
+			<circle cx="30" cy="20" r="4" fill="#e3262b" /><rect x="300" y="14" width="10" height="5" rx="2" fill="#1d9bd8" transform="rotate(30 305 16)" />
+			<circle cx="250" cy="30" r="3" fill="#62ad3f" /><rect x="120" y="8" width="10" height="5" rx="2" fill="#ec5fa6" transform="rotate(-20 125 10)" />
+			<circle cx="360" cy="52" r="3" fill="#f4c400" /><rect x="190" y="40" width="9" height="4" rx="2" fill="#f4c400" transform="rotate(15 194 42)" />
+		</svg>
 	{/if}
 
-	{#if p.sondage}
-		<div class="sondage">
-			<p class="question" id="question-{p.id}">Sondage : {p.sondage.question}</p>
-			{#if agir && p.sondage.vote === null}
-				<form method="POST" action="?/voter" use:enhance={garderFocus}>
+	<div class="contenu">
+		{#if bravo}
+			<div class="tete-bravo">
+				<GyroDuMoment tenue="victoire" taille={72} decoratif enMouvement={animer} />
+				<span class="colonne">
+					<span class="bravo-titre">Bravo !</span>
+					<span><strong id="auteur-{p.id}">{auteur}</strong> {@render signature()}</span>
+				</span>
+				{#if p.epinglee}<Pastille ton="info">Épinglée</Pastille>{/if}
+			</div>
+		{:else}
+			<p class="entete">
+				<Visage prenom={p.auteur.prenom} nom={p.auteur.nom} couleur={p.auteur.couleur} />
+				<span class="colonne">
+					<strong id="auteur-{p.id}">{auteur}</strong>
+					{@render signature()}
+				</span>
+				{#if p.epinglee && !prise}<Pastille ton="info">Épinglée</Pastille>{/if}
+				{#if p.type === 'evenement'}<Pastille ton="info">Événement</Pastille>{:else if p.type === 'annonce' && !prise}<Pastille ton="alerte">Annonce</Pastille>{/if}
+			</p>
+		{/if}
+
+		{#if p.evenement}
+			{@const e = p.evenement}
+			<div class="evenement">
+				<TuileDate iso={e.debut} />
+				<span class="colonne">
+					<strong class="texte titre-evenement">{p.texte}</strong>
+					<span class="doux">{heure(e.debut)} · {e.lieu}</span>
+					<span class="doux petit">Convoqués : {convoques}{e.convoque ? ' (vous l’êtes)' : ''}</span>
+				</span>
+			</div>
+			<p class="presents">
+				{#if e.presents.length > 0}
+					<span class="visages">{#each e.presents as v, i (i)}<Visage prenom={v.prenom} nom={v.nom} couleur={v.couleur} taille={30} />{/each}</span>
+				{/if}
+				<span class="doux">{pluriel(e.compte.present, 'présent')} · {pluriel(e.compte.absent, 'absent')} · {pluriel(e.compte.incertain, 'incertain')}</span>
+			</p>
+			{#if agir && e.convoque}
+				<form method="POST" action="?/repondre" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={p.id} />
-					<div role="group" aria-labelledby="question-{p.id}" class="boutons">
-						{#each p.sondage.reponses as reponse, i (i)}
-							<button type="submit" class="bascule" name="reponse" value={i}>{reponse}</button>
+					<div role="group" aria-label="Votre réponse" class="reponses">
+						{#each REPONSES as [valeur, libelle, signe] (valeur)}
+							<button type="submit" class="reponse {valeur}" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}><span aria-hidden="true">{signe}</span> {libelle}</button>
 						{/each}
 					</div>
 				</form>
-			{:else if !p.sondage.resultats}
-				<p class="doux">Les résultats sont réservés à ceux qui ont voté.</p>
-			{:else}
-				<ul class="resultats">
-					{#each p.sondage.reponses as reponse, i (i)}
-						{@const n = p.sondage.resultats[i] ?? 0}
-						<li>
-							<span>{reponse} : {n} voix, {pourcent(n)} %{p.sondage.vote === i ? ' (votre choix)' : ''}</span>
-							<span class="barre" class:choisie={p.sondage.vote === i} aria-hidden="true"><span style="width: {pourcent(n)}%"></span></span>
-						</li>
-					{/each}
-				</ul>
-				{#if agir}
-					<details>
-						<summary>Changer mon vote</summary>
-						<form method="POST" action="?/voter" use:enhance={garderFocus}>
-							<input type="hidden" name="id" value={p.id} />
-							<div role="group" aria-labelledby="question-{p.id}" class="boutons">
-								{#each p.sondage.reponses as reponse, i (i)}
-									<button type="submit" class="bascule" name="reponse" value={i} aria-pressed={p.sondage.vote === i}>{reponse}</button>
-								{/each}
-							</div>
-						</form>
-					</details>
-				{/if}
 			{/if}
-			{#if p.sondage.resultats}<p class="doux">{pluriel(total, 'réponse')}</p>{/if}
-		</div>
-	{/if}
-
-	{#if p.priseDeConnaissance}
-		{#if p.priseDeConnaissance.le}
-			<p class="fait">Vous avez pris connaissance le {quand(p.priseDeConnaissance.le)}.</p>
-		{:else if agir && !auteurDeLAnnonce}
-			<form method="POST" action="?/prendreConnaissance" class="choix" use:enhance={garderFocus}>
-				<input type="hidden" name="id" value={p.id} />
-				<p class="doux">Votre prise de connaissance est demandée.</p>
-				<Bouton type="submit">Pris connaissance</Bouton>
-			</form>
 		{:else}
-			<p class="doux">Prise de connaissance demandée.</p>
+			<p class="texte">{p.texte}</p>
 		{/if}
-	{/if}
+
+		{#if p.sondage}<Sondage id={p.id} sondage={p.sondage} {agir} {garderFocus} />{/if}
+
+		{#if prise}
+			{#if prise.attendues > 0}
+				<p class="lecture">
+					<span class="jauge" aria-hidden="true"><span style:width="{Math.round((prise.faites * 100) / prise.attendues)}%"></span></span>
+					<span class="doux">{prise.faites} sur {prise.attendues} {prise.faites > 1 ? 'ont' : 'a'} confirmé</span>
+				</p>
+			{/if}
+			{#if prise.le}
+				<p class="fait">Vous avez pris connaissance le {quand(prise.le)}.</p>
+			{:else if agir && !auteurDeLAnnonce}
+				<form method="POST" action="?/prendreConnaissance" use:enhance={garderFocus}>
+					<input type="hidden" name="id" value={p.id} />
+					<button type="submit" class="confirmer">J’ai pris connaissance</button>
+				</form>
+			{:else}
+				<p class="doux">Prise de connaissance demandée.</p>
+			{/if}
+		{/if}
+	</div>
 
 	{#if p.photos.length > 0}
-		<ul class="photos">
+		<ul class="photos" class:une={p.photos.length === 1}>
 			{#each p.photos as id, i (id)}
 				<li><img src="/echanges/photo/{id}" alt="Photo {i + 1} sur {p.photos.length}, publiée par {auteur}" loading="lazy" /></li>
 			{/each}
 		</ul>
 	{/if}
 
-	<div class="reactions">
-		{#if agir}
-			<form method="POST" action="?/aimer" use:enhance={garderFocus}>
-				<input type="hidden" name="id" value={p.id} />
-				<input type="hidden" name="oui" value={p.jaimeParMoi ? '0' : '1'} />
-				<button type="submit" class="bascule" aria-pressed={p.jaimeParMoi}>J’aime <span class="nombre">{p.jaime}</span></button>
-			</form>
-			<p class="doux">{pluriel(p.commentaires, 'commentaire')}{p.commentairesFermes ? ' · commentaires fermés' : ''}</p>
-		{:else}
-			<p class="doux">{p.jaime} j’aime · {pluriel(p.commentaires, 'commentaire')}{p.commentairesFermes ? ' · commentaires fermés' : ''}</p>
-		{/if}
-	</div>
+	<div class="pied">
+		<div class="reactions">
+			{#if agir}
+				<form method="POST" action="?/aimer" use:enhance={garderFocus}>
+					<input type="hidden" name="id" value={p.id} />
+					<input type="hidden" name="oui" value={p.jaimeParMoi ? '0' : '1'} />
+					<button type="submit" class="pilule aimer" aria-pressed={p.jaimeParMoi}>{aimer} · <span class="nombre">{p.jaime}</span></button>
+				</form>
+			{/if}
+			{#if !seule}
+				{#if p.commentaires > 2}
+					<a class="pilule" href={lien}>Voir les {p.commentaires} commentaires</a>
+				{:else if !p.commentairesFermes && !lectureSeule}
+					<a class="pilule" href="{lien}#commenter">Commenter</a>
+				{/if}
+				{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
+			{/if}
+			<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>
+		</div>
 
-	{#if !seule}
-		{#if p.derniersCommentaires.length > 0}
+		{#if !seule && p.derniersCommentaires.length > 0}
 			<ul class="commentaires" aria-label="Derniers commentaires">
 				{#each p.derniersCommentaires as c (c.id)}
 					<li><span class="auteur">{nom(c.auteur)}</span> <span class="doux">· le {quand(c.creeLe)}</span><p class="texte">{c.texte}</p></li>
 				{/each}
 			</ul>
 		{/if}
-		<p class="liens">
-			{#if p.commentaires > 2}
-				<a href={lien}>Voir les {p.commentaires} commentaires</a>
-			{:else if !p.commentairesFermes && !lectureSeule}
-				<a href="{lien}#commenter">Commenter</a>
-			{/if}
-			{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a href="{lien}#suivi">Voir le suivi</a>{/if}
-		</p>
-	{/if}
 
-	<!-- Annoncé par la zone unique de la page ; ici, seulement visible. -->
-	{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}
-	{#if retour?.message}<p class="echec">{retour.message}</p>{/if}
+		<!-- Annoncé par la zone unique de la page ; ici, seulement visible. -->
+		{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}
+		{#if retour?.message}<p class="echec">{retour.message}</p>{/if}
 
-	{#if p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
-		<div class="gestes">
-			{#if p.droits.fermer}
-				<form method="POST" action="?/fermerCommentaires" use:enhance={garderFocus}>
-					<input type="hidden" name="id" value={p.id} />
-					<input type="hidden" name="oui" value={p.commentairesFermes ? '0' : '1'} />
-					<Bouton type="submit" variante="secondaire">{p.commentairesFermes ? 'Rouvrir les commentaires' : 'Fermer les commentaires'}</Bouton>
-				</form>
-			{/if}
-			{#if !seule && p.droits.epingler}
-				<form method="POST" action="?/epingler">
-					<input type="hidden" name="id" value={p.id} />
-					<input type="hidden" name="oui" value={p.epinglee ? '0' : '1'} />
-					<Bouton type="submit" variante="secondaire">{p.epinglee ? 'Retirer l’épingle' : 'Épingler'}</Bouton>
-				</form>
-			{/if}
-			{#if !seule && p.droits.modifier}
-				<details>
-					<summary>Modifier</summary>
-					<form method="POST" action="?/modifier" class="formulaire">
+		{#if p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
+			<div class="gestes">
+				{#if p.droits.fermer}
+					<form method="POST" action="?/fermerCommentaires" use:enhance={garderFocus}>
 						<input type="hidden" name="id" value={p.id} />
-						<label for="modifier-{p.id}">Texte</label>
-						<textarea id="modifier-{p.id}" name="texte" rows="4" maxlength="4000" required value={p.texte}></textarea>
-						<Bouton type="submit">Enregistrer</Bouton>
+						<input type="hidden" name="oui" value={p.commentairesFermes ? '0' : '1'} />
+						<Bouton type="submit" variante="secondaire">{p.commentairesFermes ? 'Rouvrir les commentaires' : 'Fermer les commentaires'}</Bouton>
 					</form>
-				</details>
-			{/if}
-			{#if !seule && p.droits.supprimer}
-				<details>
-					<summary>Supprimer</summary>
-					<form method="POST" action="?/supprimer" class="formulaire">
+				{/if}
+				{#if !seule && p.droits.epingler}
+					<form method="POST" action="?/epingler">
 						<input type="hidden" name="id" value={p.id} />
-						<p>La publication, ses photos et ses commentaires seront supprimés.</p>
-						<Bouton type="submit" variante="secondaire">Confirmer la suppression</Bouton>
+						<input type="hidden" name="oui" value={p.epinglee ? '0' : '1'} />
+						<Bouton type="submit" variante="secondaire">{p.epinglee ? 'Retirer l’épingle' : 'Épingler'}</Bouton>
 					</form>
-				</details>
-			{/if}
-		</div>
-	{/if}
+				{/if}
+				{#if !seule && p.droits.modifier}
+					<details>
+						<summary>Modifier</summary>
+						<form method="POST" action="?/modifier" class="formulaire">
+							<input type="hidden" name="id" value={p.id} />
+							<label for="modifier-{p.id}">Texte</label>
+							<textarea id="modifier-{p.id}" name="texte" rows="4" maxlength="4000" required value={p.texte}></textarea>
+							<Bouton type="submit">Enregistrer</Bouton>
+						</form>
+					</details>
+				{/if}
+				{#if !seule && p.droits.supprimer}
+					<details>
+						<summary>Supprimer</summary>
+						<form method="POST" action="?/supprimer" class="formulaire">
+							<input type="hidden" name="id" value={p.id} />
+							<p>La publication, ses photos et ses commentaires seront supprimés.</p>
+							<Bouton type="submit" variante="secondaire">Confirmer la suppression</Bouton>
+						</form>
+					</details>
+				{/if}
+			</div>
+		{/if}
+	</div>
 </article>
 
 <style>
 	.publication {
+		position: relative;
+		overflow: hidden;
 		background: var(--surface);
 		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
-		padding: 14px;
+		border-radius: 20px;
+		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 5%, transparent);
+	}
+	.contenu,
+	.pied {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+		padding: 14px;
+	}
+	.pied {
+		padding-top: 0;
+	}
+	.photos + .pied {
+		padding-top: 10px;
 	}
 	p,
-	dl,
 	ul {
 		margin: 0;
+	}
+	.colonne {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 	}
 	.entete {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px;
-		font-size: 0.9375rem;
+		gap: 6px 10px;
+	}
+	.entete .colonne {
+		flex: 1;
 	}
 	.auteur {
 		font-weight: 700;
 	}
 	.doux {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: 0.875rem;
+	}
+	.entete .doux,
+	.tete-bravo .doux {
+		font-size: 0.8125rem;
 	}
 	/* Le texte reste du texte : ses retours à la ligne sont gardés, rien n'est interprété. */
 	.texte {
 		white-space: pre-line;
 		overflow-wrap: anywhere;
 		font-size: 1.0625rem;
+		line-height: 1.45;
 	}
-	.evenement {
-		display: grid;
-		gap: 4px;
-		padding: 10px 12px;
-		border-left: 4px solid var(--trait);
-		background: var(--fond);
-		border-radius: var(--rayon-petit);
+
+	/* Annonce à lire et confirmer */
+	.a-confirmer {
+		border: 2px solid var(--statut-alerte-trait);
 	}
-	.evenement div {
+	.bandeau {
 		display: flex;
+		align-items: center;
 		gap: 8px;
-	}
-	dt {
+		padding: 8px 14px;
+		background: var(--statut-alerte-fond);
+		color: var(--statut-alerte-texte);
+		font-size: 0.875rem;
 		font-weight: 700;
-		min-width: 6rem;
 	}
-	dd {
-		margin: 0;
-	}
-	.question {
-		font-weight: 600;
-	}
-	.sondage {
+	.lecture {
 		display: flex;
-		flex-direction: column;
-		gap: 6px;
+		align-items: center;
+		gap: 10px;
 	}
-	.resultats {
-		list-style: none;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	/* La barre double le texte, qui porte les nombres. */
-	.barre {
-		display: block;
+	/* La jauge double le texte, qui porte les nombres. */
+	.jauge {
+		flex: 1;
 		height: 8px;
-		margin-top: 2px;
 		border-radius: 4px;
 		background: var(--fond);
-		border: 1px solid var(--trait);
 		overflow: hidden;
 	}
-	.barre > span {
+	.jauge > span {
 		display: block;
 		height: 100%;
-		background: var(--doux);
+		background: var(--ok);
 	}
-	.barre.choisie > span {
+	.confirmer {
+		width: 100%;
+		min-height: 48px;
+		border: 0;
+		border-radius: 999px;
 		background: var(--encre);
-	}
-	.choix {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	.choix > :global(button) {
-		align-self: flex-start;
-	}
-	.boutons,
-	.reactions,
-	.liens {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px 12px;
-	}
-	/* Bouton à bascule : l'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
-	.bascule {
-		min-height: var(--cible);
-		min-width: var(--cible);
-		padding: 0 16px;
-		border: 2px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		background: transparent;
-		color: var(--encre);
+		color: var(--surface);
 		font: 600 1rem var(--police);
 		cursor: pointer;
 	}
-	.bascule[aria-pressed='true'] {
-		border-color: var(--encre);
-		background: var(--fond);
+	.fait {
+		font-weight: 600;
+	}
+
+	/* Événement */
+	.evenement {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	.titre-evenement {
+		font-size: 1.125rem;
+		line-height: 1.3;
+	}
+	.evenement .doux {
+		font-size: 0.9375rem;
+	}
+	.evenement .petit {
+		font-size: 0.875rem;
+	}
+	.presents {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+	.visages {
+		display: flex;
+	}
+	.visages > :global(* + *) {
+		margin-left: -8px;
+	}
+	.reponses {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.reponse {
+		min-height: 48px;
+		padding: 0 6px;
+		border: 2px solid var(--statut-neutre-trait);
+		border-radius: 14px;
+		background: var(--statut-neutre-fond);
+		color: var(--statut-neutre-texte);
+		font: 600 0.9375rem var(--police);
+		cursor: pointer;
+	}
+	.reponse.present {
+		border-color: var(--statut-ok-trait);
+		background: var(--statut-ok-fond);
+		color: var(--statut-ok-texte);
+	}
+	.reponse.absent {
+		border-color: var(--statut-danger-trait);
+		background: var(--statut-danger-fond);
+		color: var(--statut-danger-texte);
+	}
+	/* Appuyé : les couleurs s'inversent (clair sur foncé), pas seulement la teinte. */
+	.reponse[aria-pressed='true'] {
+		border-color: var(--statut-neutre-texte);
+		background: var(--statut-neutre-texte);
+		color: var(--statut-neutre-fond);
 		font-weight: 700;
 	}
-	/* La coche n'est pas lue : l'état « appuyé » l'est déjà. */
-	.bascule[aria-pressed='true']::before {
-		content: '✓ ';
-		content: '✓ ' / '';
+	.reponse.present[aria-pressed='true'] {
+		border-color: var(--statut-ok-texte);
+		background: var(--statut-ok-texte);
+		color: var(--statut-ok-fond);
 	}
-	.nombre {
-		margin-left: 4px;
+	.reponse.absent[aria-pressed='true'] {
+		border-color: var(--statut-danger-texte);
+		background: var(--statut-danger-texte);
+		color: var(--statut-danger-fond);
 	}
-	.liens a {
+
+	/* Bravo */
+	.bravo {
+		border-color: var(--statut-alerte-trait);
+		background: linear-gradient(160deg, color-mix(in srgb, var(--statut-alerte-fond) 55%, var(--surface)) 0%, var(--statut-alerte-fond) 100%);
+	}
+	.confettis {
+		position: absolute;
+		left: 0;
+		top: 0;
+	}
+	.tete-bravo {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	.tete-bravo .colonne {
+		flex: 1;
+	}
+	.bravo-titre {
+		font: 700 1.625rem/1.1 var(--police-titre);
+		color: var(--statut-alerte-texte);
+	}
+
+	/* Réactions */
+	.reactions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+	.pilule {
+		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		min-height: var(--cible);
+		padding: 0 14px;
+		border: 1px solid var(--trait-doux);
+		border-radius: 999px;
+		background: var(--surface);
 		color: var(--encre);
-		font-weight: 600;
+		font: 600 0.9375rem var(--police);
+		text-decoration: none;
+		cursor: pointer;
+	}
+	.pilule:hover {
+		border-color: var(--encre);
+	}
+	.bravo .pilule {
+		background: color-mix(in srgb, var(--surface) 70%, transparent);
+	}
+	.bravo .aimer {
+		border: 2px solid var(--statut-alerte-trait);
+		color: var(--statut-alerte-texte);
+	}
+	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
+	.aimer[aria-pressed='true'] {
+		border: 2px solid currentColor;
+	}
+	.aimer[aria-pressed='true']::before {
+		content: '✓ ';
+		content: '✓ ' / '';
 	}
 	.commentaires {
 		list-style: none;
@@ -371,28 +489,36 @@
 	.commentaires .texte {
 		font-size: 1rem;
 	}
-	.fait {
-		font-weight: 600;
-	}
 	.publication:focus-visible {
-		outline: 3px solid var(--encre);
+		outline: 3px solid var(--focus);
 		outline-offset: 2px;
 	}
+
+	/* Photos en grand : une seule prend toute la largeur. */
 	.photos {
 		list-style: none;
-		padding: 0;
+		padding: 0 14px 0;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 6px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 4px;
+	}
+	.photos.une {
+		padding: 0;
+		grid-template-columns: 1fr;
 	}
 	.photos img {
 		display: block;
 		width: 100%;
 		aspect-ratio: 4 / 3;
 		object-fit: cover;
-		border-radius: var(--rayon-petit);
+		border-radius: 10px;
 		background: var(--fond);
 	}
+	.photos.une img {
+		border-radius: 0;
+		max-height: 28rem;
+	}
+
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;

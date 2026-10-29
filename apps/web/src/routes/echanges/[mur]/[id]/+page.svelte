@@ -58,7 +58,7 @@
 <div class="annonce" role="status">{annonceSucces}</div>
 <div class="annonce" role="alert">{annonceEchec}</div>
 
-<Publication {p} equipes={data.equipes} {retour} {agir} lectureSeule={data.mur.lectureSeule} seule />
+<Publication {p} equipes={data.equipes} {retour} {agir} lectureSeule={data.mur.lectureSeule} seule animer />
 
 <section aria-labelledby="titre-commentaires" class="bloc">
 	<h2 id="titre-commentaires" tabindex="-1" bind:this={titre}>Commentaires ({data.commentaires.length})</h2>
