@@ -1,4 +1,4 @@
-import type { VueConversation, VueMessage } from '@gyro-caserne/socle';
+import type { InfosConversation, VueConversation, VueMessage } from '@gyro-caserne/socle';
 import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -28,10 +28,25 @@ const vue: VueConversation = {
 	majLe: `${aujourdhui}T10:20:00`
 };
 
-function html(data: Partial<{ vue: VueConversation; sousTitre: string; avant: number | null; autrePrenom: string | null; prerempli: string }> = {}, form: unknown = null) {
+const equipe2 = { numero: 2, couleur: '#1565c0' };
+const infos: InfosConversation = {
+	type: 'groupe',
+	nom: 'Départ de Thomas',
+	icone: 'coeur',
+	creePar: 2,
+	creeParPrenom: 'Romain',
+	membres: [
+		{ id: 3, prenom: 'Manon', nom: 'Test', animateur: false, equipe: equipe2, role: null, telephone: null },
+		{ id: 2, prenom: 'Romain', nom: 'Test', animateur: true, equipe: null, role: 'Rapporteur', telephone: null },
+		{ id: 1, prenom: 'Thomas', nom: 'Test', animateur: true, equipe: null, role: null, telephone: null }
+	],
+	moiAnimateur: true
+};
+
+function html(data: Partial<{ vue: VueConversation; sousTitre: string; avant: number | null; autrePrenom: string | null; prerempli: string; infos: InfosConversation }> = {}, form: unknown = null) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return render(Page as any, {
-		props: { data: { vue, moiId: 1, sousTitre: 'Manon, Romain, vous', avant: null, autrePrenom: null, ...data }, form },
+		props: { data: { vue, moiId: 1, sousTitre: 'Manon, Romain, vous', avant: null, autrePrenom: null, infos, ...data }, form },
 		context: new Map([['affichage', { niveau: 'vivant', theme: 'auto' }]])
 	}).body;
 }
@@ -109,5 +124,36 @@ describe('une conversation', () => {
 		expect(ancienne).toMatch(/<a[^>]*href="\/echanges\/messages\/7"[^>]*>Messages plus récents<\/a>/);
 		// Sur une page ancienne, pas de bandeau.
 		expect(texte(ancienne)).not.toContain('non lus');
+	});
+
+	it('à l’ordinateur, les infos du groupe à droite, après la conversation : résumé, membres, et les gestes vers les infos', () => {
+		const page = html();
+		const aside = page.slice(page.indexOf('<aside'));
+		expect(page.indexOf('<aside')).toBeGreaterThan(page.indexOf('role="log"'));
+		expect(aside).toMatch(/<aside[^>]*class="infos[^"]*"[^>]*aria-labelledby="t-infos"/);
+		expect(aside).toMatch(/<h2[^>]*id="t-infos"[^>]*>Infos du groupe<\/h2>/);
+		expect(texte(aside)).toContain('Groupe · 3 membres · créé par Romain');
+		expect(texte(aside)).toContain('Seuls les membres lisent ce groupe.');
+		expect(aside).toMatch(/href="\/echanges\/messages\/7\/infos\?renommer"[^>]*>Renommer/);
+		expect(aside).toMatch(/href="\/echanges\/messages\/nouveau\/groupe\?ajouter=7"/);
+		expect(aside).toMatch(/href="\/echanges\/messages\/7\/infos\?quitter"[^>]*>[\s\S]*Quitter le groupe/);
+		expect(aside).toMatch(/href="\/echanges\/messages\/7\/infos"[^>]*>[\s\S]*?Gérer les membres/);
+		// Dans l'ordre reçu (par nom), après les initiales du visage.
+		expect(texte(aside)).toMatch(/Manon Test Équipe 2 \S+ Romain Test Rapporteur Animateur \S+ Vous Animateur/);
+		// Simple membre : pas d'ajout.
+		expect(html({ infos: { ...infos, moiAnimateur: false } })).not.toContain('ajouter=7');
+	});
+
+	it('à deux, à droite : la fiche courte de l’autre, sans les gestes du groupe', () => {
+		const deux: InfosConversation = { type: 'deux', nom: 'Romain Test', icone: null, creePar: 1, creeParPrenom: 'Thomas', membres: [{ id: 2, prenom: 'Romain', nom: 'Test', animateur: false, equipe: equipe2, role: 'Rapporteur', telephone: '06 12 34 56 78' }, infos.membres[2]!], moiAnimateur: false };
+		const page = html({ vue: { ...vue, type: 'deux', nom: 'Romain Test', membres: [moi, romain] }, infos: deux });
+		const aside = page.slice(page.indexOf('<aside'));
+		expect(aside).toMatch(/<h2[^>]*id="t-infos"[^>]*>Infos<\/h2>/);
+		expect(texte(aside)).toContain('Seuls vous deux lisez cette conversation.');
+		expect(texte(aside)).toContain('Équipe 2');
+		expect(texte(aside)).toContain('Rapporteur');
+		expect(aside).toContain('href="tel:0612345678"');
+		expect(aside).not.toContain('?quitter');
+		expect(aside).not.toContain('?renommer');
 	});
 });

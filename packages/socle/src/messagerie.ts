@@ -1088,6 +1088,21 @@ export async function signalements(base: Base, acteur: Acteur, aujourdhui: strin
 	return lignes.map((l) => ({ id: l.id, le: l.le, par: qui(l.par), auteur: qui(l.auteur), envoye_le: l.envoyeLe, texte: l.texte, photos: JSON.parse(l.photos) as number[], retirable: l.retirable === 1 }));
 }
 
+// Une photo copiée par un signalement non classé, au modérateur seulement : l'accès se vérifie dans la base principale,
+// les octets se lisent ensuite dans PHOTOS. `idPhoto` : son identifiant dans PHOTOS.
+export async function photoSignalee(base: Base, basePhotos: BasePhotos, acteur: Acteur, idSignalement: number, idPhoto: number, aujourdhui: string): Promise<Photo> {
+	exigerDate(aujourdhui);
+	exigerId(idSignalement, 'Signalement');
+	exigerId(idPhoto, 'Photo');
+	await exigerModeration(base, acteur, aujourdhui);
+	const copiee = await base
+		.select({ id: signalementMessage.id })
+		.from(signalementMessage)
+		.where(and(eq(signalementMessage.id, idSignalement), isNull(signalementMessage.classeLe), sql`exists (select 1 from json_each(${signalementMessage.photosCopie}) where value = ${idPhoto})`));
+	if (!copiee[0]) throw new RefusDroit('MODERER_MESSAGERIE', MODERATION, 'Photo non accessible');
+	return lireOctets(basePhotos, idPhoto);
+}
+
 // Un signalement non classé, en une requête. `photos` : celles de sa copie et celles que le message montre encore.
 async function lireSignalement(base: Base, id: number) {
 	exigerId(id, 'Signalement');

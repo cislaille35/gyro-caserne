@@ -18,3 +18,5 @@ Format d'une page :
 - [Comment publier sur un mur ?](publier-sur-un-mur.md)
 - [Comment créer un sondage ?](comment-creer-un-sondage.md)
 - [Comment répondre à une convocation ?](repondre-a-une-convocation.md)
+- [Comment écrire à un collègue ?](comment-ecrire-a-un-collegue.md)
+- [Comment créer un groupe ?](comment-creer-un-groupe.md)

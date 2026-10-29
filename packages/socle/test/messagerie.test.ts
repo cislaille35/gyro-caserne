@@ -5,7 +5,7 @@ import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
-import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, pourVous, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
+import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, photoSignalee, pourVous, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
 import { modifierMonProfil } from '../src/actions/personnes.ts';
 import { REACTIONS } from '../src/listes.ts';
 import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, photoMessage as photoDeMessage, profil, profilDroit, reactionMessage, responsabilite, responsabiliteDroit, signalementMessage } from '../src/schema.ts';
@@ -1378,6 +1378,31 @@ describe('signalements', () => {
 		expect(tout).not.toContain('Effacé');
 		await expect(classerSignalement(base, base.photos, acteur(chef), s1!.id, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(classerSignalement(base, base.photos, acteur(chef), 9999, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('photoSignalee : la photo copiée, au modérateur seul, même message supprimé ; plus après le classement', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const envoyee = jpeg(14, 3);
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Texte grave', photos: [envoyee] }, minute(0));
+		const autre = await envoyer(base, base.photos, acteur(manon), { conversation: m.conversation }, { texte: 'Autre', photos: [webp()] }, minute(0));
+		await signaler(base, acteur(romain), m.message, minute(1));
+		await supprimerMessage(base, base.photos, acteur(manon), m.message, minute(2));
+		const [s] = await signalements(base, acteur(chef), aujourdhui);
+		const photo = s!.photos[0]!;
+		const avant = base.requetes;
+		const lue = await photoSignalee(base, base.photos, acteur(chef), s!.id, photo, aujourdhui);
+		expect(base.requetes - avant).toBeLessThanOrEqual(3);
+		expect(lue.type).toBe('image/jpeg');
+		expect([...lue.donnees]).toEqual([...envoyee.donnees]);
+		expect((await photoSignalee(base, base.photos, superAdmin, s!.id, photo, aujourdhui)).type).toBe('image/jpeg');
+		// Ni pour les membres, ni une photo hors de la copie (celle d'un autre message), ni un signalement inconnu.
+		for (const a of [manon, romain]) await expect(photoSignalee(base, base.photos, acteur(a), s!.id, photo, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		const [ref] = await base.select().from(photoDeMessage).where(eq(photoDeMessage.messageId, autre.message));
+		await expect(photoSignalee(base, base.photos, acteur(chef), s!.id, ref!.photoId, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(photoSignalee(base, base.photos, acteur(chef), s!.id + 1, photo, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(photoSignalee(base, base.photos, acteur(chef), s!.id, photo, 'hier')).rejects.toBeInstanceOf(DonneeInvalide);
+		await classerSignalement(base, base.photos, acteur(chef), s!.id, minute(3));
+		await expect(photoSignalee(base, base.photos, acteur(chef), s!.id, photo, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
 	it('groupe vidé : le signalement survit, avec sa copie et ses photos, jusqu’au classement', async () => {

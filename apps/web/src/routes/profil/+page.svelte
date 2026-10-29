@@ -49,6 +49,16 @@
 					<input type="checkbox" name="anniversaireVisible" checked={profil.anniversaireVisible} />
 					Afficher mon anniversaire
 				</label>
+				{#if data.messagerie}
+					<div class="case">
+						<input type="hidden" name="avecCoches" value="1" />
+						<label>
+							<input type="checkbox" name="cochesLecture" checked={profil.cochesLecture} aria-describedby="aide-coches" />
+							Montrer quand j’ai lu les messages
+						</label>
+						<p class="aide" id="aide-coches">Vos collègues voient ✓✓ quand vous avez lu. Sans cette case, vous ne voyez plus non plus celles des autres.</p>
+					</div>
+				{/if}
 				<Bouton type="submit">Enregistrer</Bouton>
 			</form>
 		</Carte>
@@ -85,6 +95,16 @@
 		gap: 12px;
 		min-height: var(--cible);
 		font-weight: 600;
+	}
+	.case {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.aide {
+		margin-left: calc(1.5rem + 12px);
+		color: var(--doux);
+		font-size: 0.875rem;
 	}
 	input[type='checkbox'] {
 		width: 1.5rem;

@@ -1,12 +1,22 @@
 import { redirect } from '@sveltejs/kit';
-import { modifierMonProfil, monProfil } from '@gyro-caserne/socle';
+import { exigerMessagerie, modifierMonProfil, monProfil, RefusDroit } from '@gyro-caserne/socle';
 import { echec } from '#lib/server/formulaire-agent.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.acteur) redirect(303, '/connexion');
-	return { profil: await monProfil(locals.base, locals.acteur) };
+	const acteur = locals.acteur;
+	// La case des coches de lecture n'est montrée qu'à qui a la messagerie.
+	const messagerie = exigerMessagerie(locals.base, acteur, aujourdhuiParis()).then(
+		() => true,
+		(erreur) => {
+			if (erreur instanceof RefusDroit) return false;
+			throw erreur;
+		}
+	);
+	const [profil, avecMessagerie] = await Promise.all([monProfil(locals.base, acteur), messagerie]);
+	return { profil, messagerie: avecMessagerie };
 };
 
 export const actions: Actions = {
@@ -20,7 +30,9 @@ export const actions: Actions = {
 			telephone: texte('telephone'),
 			contactUrgence: texte('contactUrgence'),
 			telephoneVisible: formulaire.has('telephoneVisible'),
-			anniversaireVisible: formulaire.has('anniversaireVisible')
+			anniversaireVisible: formulaire.has('anniversaireVisible'),
+			// La case n'est dans le formulaire (avec son repère) que pour qui a la messagerie.
+			...(formulaire.has('avecCoches') ? { cochesLecture: formulaire.has('cochesLecture') } : {})
 		};
 		try {
 			await modifierMonProfil(locals.base, locals.acteur, champs, aujourdhuiParis());

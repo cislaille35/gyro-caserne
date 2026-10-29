@@ -38,6 +38,9 @@ describe('une conversation : chargement', () => {
 		expect(d.vue).toMatchObject({ id, type: 'groupe', nom: 'Départ de Thomas', icone: 'coeur', lectureSeule: false, plusAnciens: false, premierNonLu: deuxieme });
 		expect(d.vue.messages.map((m: { texte: string; systeme: string | null }) => m.systeme ?? m.texte)).toEqual(['Chef a créé le groupe', 'Salut', 'On fait un pot ?']);
 		expect(d.moiId).toBe(alice.id);
+		// Les infos, pour la colonne de droite à l'ordinateur : sans requête de plus (déjà lues pour le sous-titre).
+		expect(d.infos).toMatchObject({ type: 'groupe', nom: 'Départ de Thomas', moiAnimateur: false });
+		expect(d.infos.membres).toHaveLength(3);
 		expect(d.sousTitre).toBe('Bruno, Chef, vous');
 		expect(d.avant).toBeNull();
 		// Ouvrir la conversation la marque comme lue.

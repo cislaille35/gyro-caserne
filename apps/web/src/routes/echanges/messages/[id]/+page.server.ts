@@ -34,6 +34,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			vue,
 			moiId: moi,
 			sousTitre: sousTitre(infos, moi),
+			// La colonne de droite, à l'ordinateur.
+			infos,
 			avant,
 			// Pour une conversation à deux en lecture seule : « Manon n'est plus dans l'annuaire ».
 			autrePrenom: vue.type === 'deux' ? (vue.membres.find((m) => m.id !== moi)?.prenom ?? null) : null,

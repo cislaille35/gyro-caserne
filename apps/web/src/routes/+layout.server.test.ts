@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, comite, envoyer, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribuer, chargerJeuDeDepart, comite, envoyer, personne, profil, publier, repondreEvenement, responsabilite, signaler } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -82,6 +82,16 @@ describe('load du layout', () => {
 		// Le super administrateur et le visiteur : rien.
 		expect((await appeler(super_, base)).cloche).toBe(0);
 		expect((await appeler(null, base)).cloche).toBe(0);
+	});
+
+	it('la cloche : les messages signalés, pour qui modère la messagerie (chef de centre, super administrateur) seulement', async () => {
+		const { base, chef, alice, bruno } = await preparer();
+		const m = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Texte grave' }, maintenantParis());
+		await signaler(base, alice, m.message, maintenantParis());
+		expect((await appeler(chef, base)).cloche).toBe(1);
+		expect((await appeler(super_, base)).cloche).toBe(1);
+		expect((await appeler(alice, base)).cloche).toBe(0);
+		expect((await appeler(bruno, base)).cloche).toBe(0);
 	});
 
 	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {

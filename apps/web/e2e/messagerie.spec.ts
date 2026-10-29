@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { connecter } from './connexion.ts';
-import { ETAT_CONNECTE } from './serveur.ts';
+import { ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
 test.use({ storageState: ETAT_CONNECTE });
 
@@ -167,6 +167,123 @@ test('infos du groupe : menu d’un membre au clavier et confirmation', async ({
 
 	await page.getByRole('link', { name: 'Ajouter des membres' }).click();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ajouter des membres');
+});
+
+const axe = async (page: Page) => {
+	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
+};
+
+// Alice écrit deux messages à l'agent connecté ; il signale les deux. Le super administrateur (il modère) les voit dans
+// la cloche, retire le premier, classe le second ; l'agent voit « Message retiré par la modération ».
+test('modération : le message signalé arrive dans la cloche, « Retirer le message » puis « Classer »', async ({ browser, page }) => {
+	const marque = Date.now().toString(36);
+	const alice = await (await browser.newContext()).newPage();
+	await connecter(alice, 'alice.martin@exemple.fr');
+	await alice.goto('/echanges/messages/nouveau');
+	await alice.waitForLoadState('networkidle');
+	await alice.getByRole('searchbox', { name: 'Écrire à' }).fill('Fictif');
+	await alice.getByRole('link', { name: /Test Fictif/ }).click();
+	await alice.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
+	await alice.waitForLoadState('networkidle');
+	for (const texte of [`Grave ${marque}`, `Limite ${marque}`]) {
+		await alice.getByRole('textbox', { name: 'Votre message' }).fill(texte);
+		await alice.getByRole('button', { name: 'Envoyer' }).click();
+		await expect(alice.getByRole('log').getByText(texte, { exact: true })).toBeVisible();
+	}
+	await alice.context().close();
+
+	await page.goto('/echanges/messages');
+	await page.getByRole('link', { name: /Alice Martin/ }).first().click();
+	await page.waitForURL(/\/echanges\/messages\/\d+$/);
+	await page.waitForLoadState('networkidle');
+	for (const texte of [`Grave ${marque}`, `Limite ${marque}`]) {
+		const rangee = page.locator('.rangee').filter({ hasText: texte });
+		const bouton = rangee.getByRole('button', { name: /^Gestes sur le message de Alice/ });
+		await expect(bouton).not.toHaveAttribute('hidden');
+		await bouton.focus();
+		await page.keyboard.press('Enter');
+		await page.getByRole('menu').getByRole('menuitem', { name: 'Signaler' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Signaler' }).click();
+		await expect(page.getByRole('status').filter({ hasText: 'transmis' })).toBeAttached();
+	}
+
+	const chef = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+	await chef.goto('/');
+	await expect(chef.getByRole('link', { name: /^Notifications, \d+ nouvelles?$/ })).toBeVisible();
+	await chef.goto('/notifications');
+	await chef.waitForLoadState('networkidle');
+	const section = chef.getByRole('region', { name: 'Messages signalés' });
+	const carte = (texte: string) => section.getByRole('listitem').filter({ hasText: texte });
+	await expect(carte(`Grave ${marque}`)).toContainText('Alice Martin');
+	await expect(carte(`Grave ${marque}`)).toContainText('Signalé par Test Fictif');
+	await axe(chef);
+
+	// Retirer : une confirmation (Annuler d'abord), puis le message disparaît de la liste.
+	await carte(`Grave ${marque}`).getByRole('button', { name: /^Retirer le message/ }).click();
+	const dialogue = chef.getByRole('dialog');
+	await expect(dialogue.getByRole('button', { name: 'Annuler' })).toBeFocused();
+	await axe(chef);
+	await dialogue.getByRole('button', { name: 'Retirer' }).click();
+	await expect(chef.getByRole('status').filter({ hasText: 'Message retiré pour tous.' })).toBeAttached();
+	await expect(carte(`Grave ${marque}`)).toHaveCount(0);
+	await carte(`Limite ${marque}`).getByRole('button', { name: /^Classer/ }).click();
+	await expect(chef.getByRole('status').filter({ hasText: 'Signalement classé.' })).toBeAttached();
+	await expect(carte(`Limite ${marque}`)).toHaveCount(0);
+	await chef.context().close();
+
+	await page.reload();
+	await expect(page.getByRole('log').getByText('Message retiré par la modération')).toBeVisible();
+	await expect(page.getByRole('log').getByText(`Limite ${marque}`, { exact: true })).toBeVisible();
+});
+
+test('Mon profil : « Montrer quand j’ai lu les messages », décochée puis recochée', async ({ page }) => {
+	await page.goto('/profil');
+	const caseCoches = page.getByRole('checkbox', { name: 'Montrer quand j’ai lu les messages' });
+	await expect(caseCoches).toBeChecked();
+	await expect(caseCoches).toHaveAccessibleDescription(/vous ne voyez plus non plus celles des autres/);
+	await axe(page);
+	for (const coche of [false, true]) {
+		await caseCoches.setChecked(coche);
+		await page.getByRole('button', { name: 'Enregistrer' }).click();
+		await expect(page.getByText('Profil enregistré')).toBeVisible();
+		await page.reload();
+		if (coche) await expect(caseCoches).toBeChecked();
+		else await expect(caseCoches).not.toBeChecked();
+	}
+});
+
+// À l'ordinateur : la liste à gauche à partir de 1024 px, les infos à droite à partir de 1280 px ; au téléphone, la conversation seule.
+test('colonnes : liste, conversation et infos à 1280 px ; liste et conversation à 1100 px ; conversation seule au téléphone', async ({ page }) => {
+	await ouvrirConversation(page, `Colonnes ${Date.now().toString(36)}`);
+	const liste = page.getByRole('navigation', { name: 'Conversations' });
+	const fil = page.getByRole('log');
+	const infos = page.getByRole('complementary', { name: /^Infos/ });
+	if (test.info().project.name === 'telephone') {
+		await expect(liste).toBeHidden();
+		await expect(infos).toBeHidden();
+		return;
+	}
+	await expect(liste).toBeVisible();
+	await expect(infos).toBeVisible();
+	const x = async (l: typeof fil) => (await l.boundingBox())!.x;
+	expect(await x(liste)).toBeLessThan(await x(fil));
+	expect(await x(fil)).toBeLessThan(await x(infos));
+	// La conversation ouverte est marquée dans la liste.
+	await expect(liste.locator('a[aria-current="page"]')).toHaveCount(1);
+	// Au clavier, la liste vient d'abord, puis la conversation.
+	await liste.getByRole('link').last().focus();
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('link', { name: 'Retour aux messages' })).toBeFocused();
+	await axe(page);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
+
+	await page.setViewportSize({ width: 1100, height: 900 });
+	await expect(liste).toBeVisible();
+	await expect(infos).toBeHidden();
+	expect(await x(liste)).toBeLessThan(await x(fil));
+	await axe(page);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1100);
 });
 
 // Se déconnecter efface les brouillons de l'appareil (session à part : celle des autres tests reste ouverte).

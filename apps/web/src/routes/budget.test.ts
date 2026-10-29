@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
-import { load as notifications } from './notifications/+page.server';
+import { actions as actionsNotifications, load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
 import { load as messages } from './echanges/messages/+page.server';
+import { load as layoutMessages } from './echanges/messages/+layout.server';
 import { GET as pastille } from './echanges/messages/pastille/+server';
 import { load as nouveauMessage } from './echanges/messages/nouveau/+page.server';
 import { actions as actionsConversation, load as conversationOuverte } from './echanges/messages/[id]/+page.server';
@@ -161,6 +162,32 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
+	it('/notifications du chef de centre : 30 messages signalés ; retirer et classer, puis le rechargement', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(31);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 30);
+		for (const [i, id] of ids.entries()) {
+			const auteur = ids[(i + 1) % ids.length]!;
+			const { message: m } = await envoyer(base, base.photos, { type: 'personne', id: auteur }, { personne: id }, { texte: `Grave ${i}` }, maintenantParis());
+			await signaler(base, { type: 'personne', id }, m, maintenantParis());
+		}
+		let liste: { id: number }[] = [];
+		const page = await compter(async () => {
+			expect((await (racine as any)({ locals })).cloche).toBe(30);
+			liste = (await (notifications as any)({ locals })).signalements;
+		});
+		expect(liste).toHaveLength(30);
+		expect(page).toBeLessThanOrEqual(BUDGET);
+		for (const [nom, s] of [['retirer', liste[0]!], ['classer', liste[1]!]] as const) {
+			const n = await compter(async () => {
+				expect(await (actionsNotifications as any)[nom]({ locals, request: await requeteFormulaire([['id', String(s.id)]]) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals });
+				await (notifications as any)({ locals });
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
+	});
+
 	it('/echanges : la liste rangée en sections', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const lignes = Array.from({ length: 100 }, (_, i) => ({ mur: i % 2 ? 'centre' : 'vie', auteur: 'personne:2', type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00' }));
@@ -301,9 +328,12 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const params = { id: String(id) };
 		const url = new URL(`http://localhost/echanges/messages/${id}`);
 		let vue: { messages: { id: number }[]; majLe: string } | undefined;
+		// Avec 30 autres conversations pour la colonne de gauche.
+		for (const autre of ids.slice(0, 30)) await envoyer(base, base.photos, { type: 'personne', id: autre }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
 		const n = await compter(async () => {
 			await (racine as any)({ locals });
 			await (echanges as any)({ locals, url });
+			expect((await (layoutMessages as any)({ locals, url, depends: () => {} })).conversations).toHaveLength(31);
 			vue = (await (conversationOuverte as any)({ locals, params, url })).vue;
 		});
 		expect(vue!.messages).toHaveLength(40);
