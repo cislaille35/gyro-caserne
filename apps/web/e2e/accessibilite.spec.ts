@@ -861,7 +861,7 @@ test.describe('nominations', () => {
 		// La recherche d'un agent ne garde que ses rôles.
 		await nommer(page, 'Référent pharmacie', nom);
 		await page.getByLabel('Rechercher un rôle ou un agent').fill(nom);
-		await expect(page.locator('section.carte h2')).toHaveText(['Référent pharmacie']);
+		await expect(page.locator('section.role h2')).toHaveText(['Référent pharmacie']);
 		await page.context().close();
 	});
 });
