@@ -3,6 +3,7 @@
 	import { enhance, type ActionResult, type SubmitFunction } from '$app/forms';
 	import { onMount, tick, untrack } from 'svelte';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
+	import { entreeEnvoie } from './fil.ts';
 
 	let {
 		cle,
@@ -10,7 +11,7 @@
 		erreurInitiale = '',
 		apres
 	}: {
-		// Le brouillon est gardé sur l'appareil, par conversation.
+		// La clé du brouillon sur l'appareil (cleBrouillon : par personne et par conversation).
 		cle: string;
 		texteInitial?: string;
 		erreurInitiale?: string;
@@ -19,7 +20,7 @@
 	} = $props();
 
 	const PHOTOS_MAX = 4;
-	const BROUILLON = `gyro:brouillon:${untrack(() => cle)}`;
+	const BROUILLON = untrack(() => cle);
 
 	let texte = $state(untrack(() => texteInitial));
 	let erreur = $state(untrack(() => erreurInitiale));
@@ -82,8 +83,7 @@
 
 	// À l'ordinateur, Entrée envoie et Maj + Entrée va à la ligne ; au téléphone, Entrée va à la ligne.
 	function touche(e: KeyboardEvent) {
-		if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
-		if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+		if (!entreeEnvoie(e, matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
 		e.preventDefault();
 		champ.form?.requestSubmit();
 	}

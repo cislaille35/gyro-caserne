@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { connecter } from './connexion.ts';
 import { ETAT_CONNECTE } from './serveur.ts';
 
 test.use({ storageState: ETAT_CONNECTE });
@@ -52,4 +53,86 @@ test('menu des gestes au clavier', async ({ page }) => {
 	await expect(page.getByText(`Réponse à vous`)).toBeVisible();
 	await page.getByRole('button', { name: 'Annuler la réponse' }).click();
 	await expect(page.getByText(`Réponse à vous`)).toBeHidden();
+});
+
+// Une conversation avec la première personne de l'annuaire, et un message envoyé : on est sur /echanges/messages/<id>.
+async function ouvrirConversation(page: Page, texte: string) {
+	await page.goto('/echanges/messages/nouveau');
+	await page.waitForLoadState('networkidle');
+	await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
+	await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('textbox', { name: 'Votre message' }).fill(texte);
+	await page.getByRole('button', { name: 'Envoyer' }).click();
+	await expect(page.getByRole('log').getByText(texte, { exact: true })).toBeVisible();
+	await page.waitForURL(/\/echanges\/messages\/\d+/);
+}
+
+test('le brouillon est gardé, à la clé de la personne, puis effacé après l’envoi', async ({ page }) => {
+	const marque = `Brouillon ${Date.now().toString(36)}`;
+	await ouvrirConversation(page, `Ouverture ${marque}`);
+	const champ = page.getByRole('textbox', { name: 'Votre message' });
+	await champ.fill(marque);
+	await page.reload();
+	await page.waitForLoadState('networkidle');
+	await expect(champ).toHaveValue(marque);
+	const cles = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('gyro:brouillon:')));
+	expect(cles).toHaveLength(1);
+	// Préfixée par la personne connectée (jamais 0), puis la conversation.
+	expect(cles[0]).toMatch(/^gyro:brouillon:[1-9]\d*:\d+$/);
+	await page.getByRole('button', { name: 'Envoyer' }).click();
+	await expect(page.getByRole('log').getByText(marque, { exact: true })).toBeVisible();
+	await expect(champ).toHaveValue('');
+	await page.reload();
+	await page.waitForLoadState('networkidle');
+	await expect(champ).toHaveValue('');
+});
+
+test('en lisant plus haut, le bouton « ↓ » ramène en bas', async ({ page }) => {
+	const long = Array.from({ length: 60 }, (_, i) => `Ligne ${i + 1}`).join('\n');
+	await ouvrirConversation(page, `Long ${Date.now().toString(36)}`);
+	await page.getByRole('textbox', { name: 'Votre message' }).fill(long);
+	await page.getByRole('button', { name: 'Envoyer' }).click();
+	await expect(page.getByRole('log').getByText('Ligne 60')).toBeVisible();
+	const bas = page.getByRole('button', { name: /Aller aux derniers messages|aller en bas/ });
+	await expect(bas).toBeHidden();
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await expect(bas).toBeVisible();
+	await bas.click();
+	await expect(bas).toBeHidden();
+	expect(await page.evaluate(() => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 96)).toBe(true);
+});
+
+// Au doigt (événements simulés) : glisser une bulle vers la droite répond, sauf avec « réduire les animations ».
+for (const mouvement of ['no-preference', 'reduce'] as const) {
+	test(`glisser pour répondre, animations ${mouvement}`, async ({ page }) => {
+		await page.emulateMedia({ reducedMotion: mouvement });
+		const marque = `Glisser ${Date.now().toString(36)}`;
+		await ouvrirConversation(page, marque);
+		const rangee = page.locator('.rangee').filter({ hasText: marque });
+		const b = (await rangee.boundingBox())!;
+		const geste = (type: string, dx: number) => rangee.dispatchEvent(type, { pointerType: 'touch', pointerId: 7, isPrimary: true, clientX: b.x + 20 + dx, clientY: b.y + 10, bubbles: true });
+		await geste('pointerdown', 0);
+		for (let dx = 10; dx <= 90; dx += 10) await geste('pointermove', dx);
+		await geste('pointerup', 90);
+		if (mouvement === 'reduce') await expect(page.getByText('Réponse à vous')).toBeHidden();
+		else await expect(page.getByText('Réponse à vous')).toBeVisible();
+	});
+}
+
+// Se déconnecter efface les brouillons de l'appareil (session à part : celle des autres tests reste ouverte).
+test.describe('déconnexion', () => {
+	test.use({ storageState: { cookies: [], origins: [] } });
+	test('les brouillons ne restent pas pour le compte suivant', async ({ page }) => {
+		await connecter(page, 'test@exemple.fr');
+		await page.evaluate(() => {
+			localStorage.setItem('gyro:brouillon:1:2', 'Secret');
+			localStorage.setItem('autre', 'garde');
+		});
+		await page.goto('/moi');
+		await page.waitForLoadState('networkidle');
+		await page.getByRole('button', { name: 'Se déconnecter' }).click();
+		await page.waitForURL(/\/connexion/);
+		expect(await page.evaluate(() => [localStorage.getItem('gyro:brouillon:1:2'), localStorage.getItem('autre')])).toEqual([null, 'garde']);
+	});
 });

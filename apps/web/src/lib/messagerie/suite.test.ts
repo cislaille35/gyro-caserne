@@ -52,6 +52,16 @@ describe('suivreConversation', () => {
 		expect(fetch).toHaveBeenCalledTimes(3);
 	});
 
+	it('chaque tour réussi est signalé, même sans rien de neuf (la date du jour se recalcule)', async () => {
+		vi.useFakeTimers();
+		scene([json({ nouveaux: [], modifies: [], majLe: '2026-10-29T10:00:05' })]);
+		let tours = 0;
+		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {}, tour: () => tours++ });
+		await vi.advanceTimersByTimeAsync(8000);
+		expect(tours).toBe(2);
+		suivi.arreter();
+	});
+
 	it('relancer : tout de suite, après un envoi', async () => {
 		vi.useFakeTimers();
 		const { fetch } = scene([json({ nouveaux: [message(11)], modifies: [], majLe: '2026-10-29T10:00:05' })]);

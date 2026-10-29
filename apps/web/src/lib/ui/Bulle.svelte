@@ -305,6 +305,8 @@
 		margin: 4px 0 -18px;
 	}
 	.reaction {
+		min-width: var(--cible);
+		justify-content: center;
 		min-height: 28px;
 		padding: 1px 8px;
 		display: inline-flex;

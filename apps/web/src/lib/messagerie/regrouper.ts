@@ -1,4 +1,5 @@
 import type { VueMessage } from '@gyro-caserne/socle';
+import { instant } from './fil.ts';
 
 export type Bandeau = { premier: number; nombre: number };
 
@@ -11,8 +12,6 @@ export type ElementDuFil =
 
 const CINQ_MINUTES = 5 * 60_000;
 
-// Les dates sont à l'heure de Paris : on les lit telles quelles.
-const instant = (iso: string) => Date.parse(`${iso.slice(0, 19).padEnd(19, ':00')}Z`);
 const jour = (iso: string) => iso.slice(0, 10);
 
 // « Aujourd’hui », « Hier », sinon « Lundi 26 octobre » (avec l'année si ce n'est pas celle d'aujourd'hui).

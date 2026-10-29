@@ -24,5 +24,5 @@
 </svelte:head>
 
 {#key data.personne.id}
-	<Conversation {vue} moiId={0} sousTitre={data.sousTitre} nouvelle={{ id: data.personne.id, prenom: data.personne.prenom }} {form} />
+	<Conversation {vue} moiId={data.moiId} sousTitre={data.sousTitre} nouvelle={{ id: data.personne.id, prenom: data.personne.prenom }} {form} />
 {/key}

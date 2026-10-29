@@ -658,8 +658,8 @@ export async function supprimerMessage(base: Base, basePhotos: BasePhotos, acteu
 }
 
 // Une photo de message, aux membres de sa conversation seulement : l'accès se vérifie dans la base principale (une requête),
-// les octets se lisent ensuite dans PHOTOS.
-export async function photoMessage(base: Base, basePhotos: BasePhotos, acteur: Acteur, idPhoto: number, aujourdhui: string): Promise<Photo> {
+// les octets se lisent ensuite dans PHOTOS. `conversation` : celle par laquelle on la demande, qui doit être la sienne.
+export async function photoMessage(base: Base, basePhotos: BasePhotos, acteur: Acteur, idPhoto: number, aujourdhui: string, conversation?: number): Promise<Photo> {
 	exigerDate(aujourdhui);
 	const moi = idDe(acteur);
 	exigerId(idPhoto, 'Photo');
@@ -670,7 +670,7 @@ export async function photoMessage(base: Base, basePhotos: BasePhotos, acteur: A
 			.from(photoDeMessage)
 			.innerJoin(message, eq(message.id, photoDeMessage.messageId))
 			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, message.conversationId), eq(membreConversation.personneId, moi)))
-			.where(eq(photoDeMessage.id, idPhoto))
+			.where(and(eq(photoDeMessage.id, idPhoto), conversation === undefined ? undefined : eq(message.conversationId, conversation)))
 	]);
 	if (acces.length === 0) throw refus();
 	if (!lignes[0]) throw refus('Photo non accessible');

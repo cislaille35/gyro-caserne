@@ -10,9 +10,11 @@
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import MenuGestes, { type Geste } from './MenuGestes.svelte';
+	import { apresArrivee, cleBrouillon, instant } from './fil.ts';
 	import { bandeauNonLus, fusionner, regrouper } from './regrouper.ts';
 	import Saisie from './Saisie.svelte';
 	import { suivreConversation } from './suite.ts';
+	import { toucher } from './toucher.ts';
 
 	type Reponse = { cible?: string; message?: string; succes?: string; valeurs?: { texte: string; reponseA: string } } | null | undefined;
 
@@ -41,7 +43,9 @@
 	let plusAnciens = $state(untrack(() => vue.plusAnciens));
 	// Le bandeau reste à sa place tant que la conversation est ouverte.
 	const bandeau = untrack(() => (avant === null ? bandeauNonLus(vue.messages, vue.premierNonLu) : null));
-	const elements = $derived(regrouper(messages, { aujourdhui: aujourdhuiParis(), bandeau }));
+	// Recalculée à chaque rafraîchissement : après minuit, « Aujourd’hui » devient « Hier ».
+	let aujourdhui = $state(aujourdhuiParis());
+	const elements = $derived(regrouper(messages, { aujourdhui, bandeau }));
 	const groupe = $derived(vue.type === 'groupe');
 	const autre = $derived(vue.membres.find((m) => m.id !== moiId) ?? null);
 	type Icone = keyof typeof ICONES_ROLES;
@@ -74,7 +78,7 @@
 		window.addEventListener('scroll', surDefilement, { passive: true });
 		if (!nouvelle && avant === null) {
 			const dernier = messages.at(-1)?.id ?? 0;
-			suivi = suivreConversation(id, { dernierId: dernier, majLe: vue.majLe }, { recu, exclu: (m) => (exclu = m) });
+			suivi = suivreConversation(id, { dernierId: dernier, majLe: vue.majLe }, { recu, exclu: (m) => (exclu = m), tour: () => (aujourdhui = aujourdhuiParis()) });
 		}
 		return () => {
 			window.removeEventListener('scroll', surDefilement);
@@ -97,11 +101,12 @@
 		const arrives = nouveaux.filter((n) => !messages.some((m) => m.id === n.id));
 		const etaitEnBas = enBas();
 		messages = fusionner(messages, [...modifies, ...nouveaux]);
+		const suite = apresArrivee({ forcerBas, etaitEnBas, compteur: nouveauxEnDessous }, arrives);
+		forcerBas = suite.forcerBas;
+		nouveauxEnDessous = suite.compteur;
 		if (arrives.length === 0) return;
 		await tick();
-		if (forcerBas || etaitEnBas) allerEnBas();
-		else nouveauxEnDessous += arrives.filter((m) => !m.moi).length;
-		forcerBas = false;
+		if (suite.descendre) allerEnBas();
 		surDefilement();
 	}
 
@@ -129,6 +134,8 @@
 		if (avant !== null) return goto(`/echanges/messages/${id}`);
 		forcerBas = true;
 		await suivi?.relancer();
+		// Rien n'est arrivé (déjà reçu) : la demande tombe quand même.
+		forcerBas = false;
 	}
 
 	// Un geste envoyé sans recharger la page ; la phrase de réussite ou de refus est annoncée.
@@ -175,7 +182,6 @@
 		return () => document.removeEventListener('pointerdown', dehors, true);
 	});
 
-	const instant = (iso: string) => Date.parse(`${iso.slice(0, 19).padEnd(19, ':00')}Z`);
 	const modifiable = (m: VueMessage) => instant(maintenantParis()) - instant(m.cree_le) <= 15 * 60_000;
 	function gestesDe(m: VueMessage): Geste[] {
 		const g: Geste[] = [];
@@ -227,86 +233,6 @@
 		noeud.focus({ preventScroll: true });
 	}
 
-	// Au doigt : un appui long ouvre le menu ; glisser la bulle vers la droite répond (jamais seul : le menu le propose aussi).
-	// « Réduire les animations » coupe le glissement.
-	function toucher(noeud: HTMLElement, m: VueMessage) {
-		let message = m;
-		let depart: { x: number; y: number; pointeur: number } | null = null;
-		let minuteur: ReturnType<typeof setTimeout> | undefined;
-		let glisse = false;
-		let ecart = 0;
-		let appuiLong = false;
-		let doigt = false;
-		const remettre = () => {
-			noeud.style.transform = '';
-			noeud.classList.remove('glisse');
-		};
-		const bas = (e: PointerEvent) => {
-			doigt = e.pointerType === 'touch';
-			// Le menu s'ouvre aussi en lecture seule (copier, supprimer, signaler) ; le glissement, non.
-			if (!doigt || exclu || message.supprime !== null) return;
-			depart = { x: e.clientX, y: e.clientY, pointeur: e.pointerId };
-			glisse = false;
-			ecart = 0;
-			minuteur = setTimeout(() => {
-				depart = null;
-				appuiLong = true;
-				menuOuvert = message.id;
-			}, 500);
-		};
-		const bouge = (e: PointerEvent) => {
-			if (!depart || e.pointerId !== depart.pointeur) return;
-			const x = e.clientX - depart.x;
-			const y = e.clientY - depart.y;
-			if (Math.abs(x) > 8 || Math.abs(y) > 8) clearTimeout(minuteur);
-			if (!glisse && actif && x > 12 && Math.abs(y) < x / 2 && !calme()) {
-				glisse = true;
-				noeud.classList.add('glisse');
-				noeud.setPointerCapture(e.pointerId);
-			}
-			if (glisse) {
-				ecart = Math.max(0, Math.min(x, 80));
-				noeud.style.transform = `translateX(${ecart}px)`;
-			}
-		};
-		const haut = () => {
-			clearTimeout(minuteur);
-			if (glisse && ecart >= 56) saisie?.repondre(message);
-			depart = null;
-			glisse = false;
-			remettre();
-		};
-		const menuContextuel = (e: Event) => {
-			if (doigt) e.preventDefault();
-		};
-		// Après un appui long, le doigt levé ne doit pas ouvrir la photo ou la citation.
-		const clic = (e: Event) => {
-			if (!appuiLong) return;
-			appuiLong = false;
-			e.preventDefault();
-			e.stopPropagation();
-		};
-		noeud.addEventListener('pointerdown', bas);
-		noeud.addEventListener('pointermove', bouge);
-		noeud.addEventListener('pointerup', haut);
-		noeud.addEventListener('pointercancel', haut);
-		noeud.addEventListener('contextmenu', menuContextuel);
-		noeud.addEventListener('click', clic, true);
-		return {
-			update(nouveau: VueMessage) {
-				message = nouveau;
-			},
-			destroy() {
-				clearTimeout(minuteur);
-				noeud.removeEventListener('pointerdown', bas);
-				noeud.removeEventListener('pointermove', bouge);
-				noeud.removeEventListener('pointerup', haut);
-				noeud.removeEventListener('pointercancel', haut);
-				noeud.removeEventListener('contextmenu', menuContextuel);
-				noeud.removeEventListener('click', clic, true);
-			}
-		};
-	}
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 </script>
 
@@ -347,7 +273,7 @@
 			{:else}
 				<div class="bloc" class:moi={e.moi}>
 					{#each e.messages as m, i (m.id)}
-						<div class="rangee" class:moi={m.moi} use:toucher={m}>
+						<div class="rangee" class:moi={m.moi} use:toucher={{ message: m, menu: m.supprime === null && !exclu, repondreAutorise: actif, ouvrirMenu: (n) => (menuOuvert = n.id), repondre: (n) => saisie?.repondre(n) }}>
 							<Bulle message={m} conversation={id} {moiId} {groupe} premiere={i === 0} {actif} {allerA} reagir={(n, emoji) => void poster('reagir', { id: String(n), emoji })} />
 							{#if m.supprime === null && !exclu}
 								<button
@@ -401,7 +327,7 @@
 		{:else}
 			<Saisie
 				bind:this={saisie}
-				cle={nouvelle ? `a-${nouvelle.id}` : String(id)}
+				cle={cleBrouillon(moiId, nouvelle ? `a-${nouvelle.id}` : String(id))}
 				texteInitial={form?.cible === 'envoyer' ? (form.valeurs?.texte ?? '') : ''}
 				erreurInitiale={form?.cible === 'envoyer' ? (form.message ?? '') : ''}
 				apres={apresEnvoi}

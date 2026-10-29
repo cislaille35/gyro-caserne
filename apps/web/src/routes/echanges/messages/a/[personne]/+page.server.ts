@@ -25,6 +25,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const p = agents.find((a) => a.id === id);
 	if (!p) error(404, 'Cette personne n’est pas dans l’annuaire');
 	return {
+		moiId: acteur.type === 'personne' ? acteur.id : 0,
 		personne: { id: p.id, prenom: p.prenom, nom: p.nom, couleur: p.equipe?.couleur ?? null },
 		sousTitre: p.role ?? (p.equipe ? `Équipe ${p.equipe.numero}` : '')
 	};

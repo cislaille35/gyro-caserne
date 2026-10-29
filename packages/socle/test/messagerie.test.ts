@@ -933,6 +933,9 @@ describe('photos', () => {
 		for (const a of [acteur(chef), superAdmin]) await expect(photoMessage(base, base.photos, a, ref!.id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(photoMessage(base, base.photos, acteur(romain), 9999, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(photoMessage(base, base.photos, acteur(romain), ref!.id, 'hier')).rejects.toBeInstanceOf(DonneeInvalide);
+		// Demandée par une autre conversation que la sienne : refusée.
+		expect((await photoMessage(base, base.photos, acteur(romain), ref!.id, aujourdhui, m.conversation)).type).toBe('image/jpeg');
+		await expect(photoMessage(base, base.photos, acteur(romain), ref!.id, aujourdhui, m.conversation + 1)).rejects.toBeInstanceOf(RefusDroit);
 		await base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, romain));
 		await expect(photoMessage(base, base.photos, acteur(romain), ref!.id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		expect(m).toBeTruthy();

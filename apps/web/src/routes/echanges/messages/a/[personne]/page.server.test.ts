@@ -11,7 +11,7 @@ const ecrire = async (locals: unknown, p: number, corps: [string, string][]) => 
 describe('écrire à quelqu’un pour la première fois', () => {
 	it('la personne, son sous-titre, et pas encore de conversation', async () => {
 		const { base, alice, bruno, e2 } = await preparer();
-		expect(await charger(locaux(base, alice), bruno.id)).toMatchObject({ personne: { id: bruno.id, prenom: 'Bruno', nom: 'Test' }, sousTitre: `Équipe ${e2.ordreRotation}` });
+		expect(await charger(locaux(base, alice), bruno.id)).toMatchObject({ moiId: alice.id, personne: { id: bruno.id, prenom: 'Bruno', nom: 'Test' }, sousTitre: `Équipe ${e2.ordreRotation}` });
 		expect(await base.select().from(conversation)).toHaveLength(0);
 	});
 

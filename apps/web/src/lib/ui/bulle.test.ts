@@ -1,4 +1,5 @@
 import type { VueMessage } from '@gyro-caserne/socle';
+import { readFileSync } from 'node:fs';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Bulle, { contraste, teinteNom } from './Bulle.svelte';
@@ -111,6 +112,13 @@ describe('Bulle', () => {
 		const page = html(message({ auteur: null, systeme: 'Romain a créé le groupe', texte: '' }));
 		expect(page).toMatch(/<p class="systeme[^"]*"[^>]*id="message-40"[^>]*>Romain a créé le groupe<\/p>/);
 		expect(page).not.toContain('<time');
+	});
+});
+
+describe('Bulle : cibles', () => {
+	it('une pastille de réaction fait au moins 44 px de large', () => {
+		const css = readFileSync(new URL('./Bulle.svelte', import.meta.url), 'utf8');
+		expect(css).toMatch(/\.reaction \{[^}]*min-width: var\(--cible\)/);
 	});
 });
 
