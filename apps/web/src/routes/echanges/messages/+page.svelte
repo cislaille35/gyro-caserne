@@ -50,8 +50,8 @@
 			<input id="recherche" type="search" name="q" bind:value={recherche} placeholder="Rechercher une conversation" autocomplete="off" />
 		</form>
 
-		<!-- Toujours présent, pour que le lecteur d'écran annonce une recherche sans résultat. -->
-		<p class="aucune" role="status">{visibles.length === 0 ? 'Aucune conversation à ce nom.' : ''}</p>
+		<!-- Toujours présent (masqué quand la recherche trouve), pour que le lecteur d'écran annonce une recherche sans résultat. -->
+		<p class="aucune" class:masque={visibles.length > 0} role="status">{visibles.length === 0 ? 'Aucune conversation à ce nom.' : ''}</p>
 		{#if visibles.length > 0}
 			<ul>
 				{#each visibles as c (c.id)}
@@ -240,9 +240,6 @@
 		font-weight: 700;
 	}
 
-	.aucune:empty {
-		display: contents;
-	}
 	.aucune,
 	.confidentialite {
 		margin: 8px 16px 0;

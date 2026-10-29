@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { creerGroupe, envoyer } from '@gyro-caserne/socle';
+import { eq } from 'drizzle-orm';
+import { creerGroupe, envoyer, personne, profil } from '@gyro-caserne/socle';
 import { locaux, preparer } from '../../de-test.ts';
 import { GET } from './+server';
 
@@ -29,5 +30,12 @@ describe('pastille des messages', () => {
 	it('0 pour le super administrateur', async () => {
 		const { base } = await preparer();
 		expect(await (await appeler(locaux(base, { type: 'super', email: 'a@b.fr' }))).json()).toEqual({ nonLus: 0 });
+	});
+
+	it('0 pour un extérieur', async () => {
+		const { base } = await preparer();
+		const [ext] = await base.select().from(profil).where(eq(profil.typePersonne, 'exterieur'));
+		const [p] = await base.insert(personne).values({ email: 'ext@exemple.fr', prenom: 'Ext', nom: 'Rieur', profilId: ext!.id }).returning();
+		expect(await (await appeler(locaux(base, { type: 'personne', id: p!.id }))).json()).toEqual({ nonLus: 0 });
 	});
 });

@@ -3,8 +3,9 @@
 	import centre from '$centre';
 	import { afterNavigate, invalidate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { definirAffichage } from '#lib/gyro/niveau.ts';
-	import { definirNonLus, lirePastille, suivreNonLus } from '#lib/messagerie/pastille.ts';
+	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
 	import Coquille from '#lib/ui/Coquille.svelte';
 
 	let { data, children } = $props();
@@ -25,17 +26,21 @@
 			return nonLus;
 		}
 	});
-	const recevoir = (n: number) => {
-		if (n !== nonLus) void invalidate('messagerie:liste');
-		nonLus = n;
-	};
+	let suivi: ReturnType<typeof suivreNonLus> | null = null;
 	$effect(() => {
-		if (data.estPersonne) return suivreNonLus(recevoir);
+		if (!data.estPersonne) return;
+		const s = suivreNonLus(
+			untrack(() => nonLus),
+			(n) => (nonLus = n),
+			() => void invalidate('messagerie:liste')
+		);
+		suivi = s;
+		return () => {
+			s.arreter();
+			suivi = null;
+		};
 	});
-	// En sortant d'une conversation (lue), la pastille se met à jour sans attendre le prochain tour.
-	afterNavigate(({ from }) => {
-		if (data.estPersonne && from?.url.pathname.startsWith('/echanges/messages/')) void lirePastille().then((n) => n !== null && recevoir(n));
-	});
+	afterNavigate(({ from, to }) => suivi?.apresNavigation(from?.url.pathname, to?.url.pathname));
 </script>
 
 <Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} {nonLus} nomCentre={centre.nom}>

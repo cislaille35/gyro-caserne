@@ -89,6 +89,8 @@ describe('liste des messages', () => {
 		expect(page).toMatch(/<label[^>]*for="recherche"[^>]*>Rechercher une conversation/);
 		expect(liens(page)).toEqual(['/echanges/messages/5']);
 		expect(html({ q: 'zzz' })).toMatch(/<p[^>]*role="status"[^>]*>Aucune conversation à ce nom\.<\/p>/);
+		// La zone d'annonce reste présente, masquée, quand la recherche trouve.
+		expect(page).toMatch(/<p class="aucune[^"]*\bmasque\b[^"]*" role="status"><\/p>/);
 	});
 
 	it('le bouton crayon « Nouveau message » et la phrase de confidentialité', () => {
