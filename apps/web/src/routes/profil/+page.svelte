@@ -2,6 +2,8 @@
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Carte from '#lib/ui/Carte.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
 
@@ -16,7 +18,7 @@
 </svelte:head>
 
 <div class="page">
-	<h1>Mon profil</h1>
+	<EnTetePage titre="Mon profil" phrase={profil === null ? undefined : 'Ce que le centre voit de vous, et qui prévenir.'} retour={{ href: '/moi', libelle: 'Moi' }} />
 
 	<div role="status">
 		{#if form?.succes}<p class="succes">{form.message}</p>{/if}
@@ -26,7 +28,11 @@
 	</div>
 
 	{#if profil === null}
-		<p>Le super administrateur n'a pas de fiche.</p>
+		<Vide
+			titre="Le super administrateur n’a pas de fiche."
+			texte="Il règle le centre sans en être un agent : ni téléphone ni contact d’urgence à renseigner ici."
+			action={{ href: '/affichage', libelle: 'Régler l’affichage' }}
+		/>
 	{:else}
 		<Carte titre="Mes informations">
 			<form method="POST">
@@ -72,7 +78,13 @@
 		flex-direction: column;
 		gap: 16px;
 	}
-	h1,
+	.page {
+		max-width: 40rem;
+	}
+	/* Zones d'annonce vides : présentes pour les lecteurs d'écran, sans creuser d'espace. */
+	.page > [role]:empty {
+		position: absolute;
+	}
 	p {
 		margin: 0;
 	}
@@ -81,13 +93,21 @@
 	}
 	.succes,
 	.echec {
-		padding: 12px 16px;
-		border-radius: var(--rayon-petit);
-		border: 2px solid var(--trait);
+		padding: 12px 14px;
+		border: 1px solid var(--statut-ok-trait);
+		border-radius: var(--rayon-grand);
+		background: var(--statut-ok-fond);
+		color: var(--statut-ok-texte);
 		font-weight: 600;
 	}
+	.succes::before {
+		content: '✓ ';
+		content: '✓ ' / '';
+	}
 	.echec {
-		border-color: var(--accent);
+		border-color: var(--statut-danger-trait);
+		background: var(--statut-danger-fond);
+		color: var(--statut-danger-texte);
 	}
 	label {
 		display: flex;
