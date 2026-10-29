@@ -71,6 +71,11 @@ describe('page Publier', () => {
 		expect(page).toMatch(/<input[^>]*type="datetime-local"[^>]*name="cloture"|<input[^>]*name="cloture"[^>]*type="datetime-local"/);
 		const evenement = html({}, { cible: 'publier', erreurs: { lieu: 'Indiquez le lieu.' }, valeurs: { mur: 'vie', type: 'evenement', debut: '2026-11-01T19:30' } });
 		expect(evenement).toMatch(/<input[^>]*name="cloture"[^>]*value="2026-11-01T19:30"/);
+		// Un événement lointain : la clôture s'arrête un an après l'ouverture.
+		const lointain = html({}, { cible: 'publier', erreurs: { lieu: 'Indiquez le lieu.' }, valeurs: { mur: 'vie', type: 'evenement', debut: '2099-06-01T18:30', ouverture: '2026-10-29T12:00' } });
+		expect(lointain).toMatch(/<input[^>]*name="cloture"[^>]*value="2027-10-29T12:00"/);
+		const illisible = html({}, { cible: 'publier', erreurs: { ouverture: 'Indiquez une date et une heure d’ouverture valides.' }, valeurs: { mur: 'vie', ouverture: 'demain' } });
+		expect(illisible).toMatch(/<input[^>]*name="cloture"[^>]*value="2026-11-05T12:00"/);
 		expect(radio(evenement, 'mur', 'vie')).toContain('checked');
 		expect(radio(evenement, 'type', 'evenement')).toContain('checked');
 	});

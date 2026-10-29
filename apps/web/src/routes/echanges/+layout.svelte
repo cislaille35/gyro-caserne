@@ -190,7 +190,7 @@
 		</div>
 	</nav>
 	<div class="mur">{@render children()}</div>
-	<!-- Après le mur dans la page, pour que son titre vienne en premier ; affichée à côté ou au-dessus selon la largeur. -->
+	<!-- Après le mur, à l'écran comme au clavier : à côté à partir de 1280 px, dessous en deçà. -->
 	{#if journee}
 		<aside class="journee" aria-label="Aujourd’hui">
 			{#if jour.anniversaires.length > 0}
@@ -642,13 +642,13 @@
 			font-size: 1rem;
 			color: var(--doux);
 		}
-		/* Entre 1024 et 1279 px : « Aujourd'hui » au-dessus du mur. */
+		/* Entre 1024 et 1279 px : « Aujourd'hui » sous le mur, dans l'ordre du clavier. */
 		.avec-journee .murs {
 			grid-row: 1 / span 2;
 		}
 		.journee {
 			grid-column: 2;
-			grid-row: 1;
+			grid-row: 2;
 			display: flex;
 			flex-wrap: wrap;
 			align-items: start;
@@ -659,7 +659,7 @@
 		}
 		.avec-journee .mur {
 			grid-column: 2;
-			grid-row: 2;
+			grid-row: 1;
 		}
 	}
 	/* À partir de 1280 px : trois colonnes, la liste, le mur, puis « Aujourd'hui ». */
@@ -668,12 +668,12 @@
 			grid-template-columns: 16rem minmax(0, 1fr) 16rem;
 			gap: 1.25rem;
 		}
-		.avec-journee .murs,
-		.avec-journee .mur {
+		.avec-journee .murs {
 			grid-row: 1;
 		}
 		.journee {
 			grid-column: 3;
+			grid-row: 1;
 			flex-direction: column;
 			flex-wrap: nowrap;
 			align-items: stretch;

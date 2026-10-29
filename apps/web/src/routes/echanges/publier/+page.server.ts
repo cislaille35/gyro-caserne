@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
 import { apercusDesMurs, audiences, equipe, mursDe, publier } from '@gyro-caserne/socle';
-import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, clotureParDefaut, maintenantParis } from '#lib/aujourdhui.ts';
 import { echecMur, envoiTropLourd, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		choisi: proposes.find((m) => m.cle === demande)?.cle ?? null,
 		texte: (url.searchParams.get('texte') ?? '').slice(0, 4000),
 		ouverture,
-		cloture: septJoursPlusTard(ouverture),
+		cloture: clotureParDefaut(ouverture),
 		equipes
 	};
 };

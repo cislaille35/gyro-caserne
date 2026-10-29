@@ -32,7 +32,7 @@ Rangée en sections, dans un ordre fixe (voir la [spec du lot 2](../superpowers/
 
 Chaque mur a sa **couleur** et son **icône** : rouge et maison pour Le centre, turquoise et ballon pour Vie du centre, la couleur et le numéro de l'équipe, l'icône du comité (choisie dans Réglages › Comités, sinon tirée de son thème). Son nom est toujours écrit : la couleur ne porte jamais seule l'information. Chaque ligne montre la dernière publication, son heure et le nombre de nouveautés.
 
-**À l'ordinateur**, sur un mur : la liste à gauche, le mur au milieu, et à droite « Aujourd'hui au centre » et **« À venir »** (les 3 prochains événements où la personne est convoquée). Sur un écran moins large (1024 à 1279 px), cette colonne passe au-dessus du mur.
+**À l'ordinateur**, sur un mur : la liste à gauche, le mur au milieu, et à droite « Aujourd'hui au centre » et **« À venir »** (les 3 prochains événements où la personne est convoquée). Sur un écran moins large (1024 à 1279 px), cette colonne passe sous le mur, pour qu'on la lise et l'atteigne au clavier dans le même ordre.
 
 ## Qui voit
 
@@ -49,13 +49,13 @@ Elle se prépare sur sa propre page (« Écrire », ou « Publier dans … » de
 
 Chaque publication montre le **visage** de son auteur (ses initiales sur la couleur de son équipe, gris s'il n'en a pas ou s'il est parti) et son rôle (« Chef de centre », « Adjoint », « Chef d'équipe »). Chaque type a sa carte : l'annonce à confirmer, bordée d'ambre, avec « 12 sur 38 ont confirmé » (le nombre est visible de tous, les noms restent réservés à l'auteur et aux modérateurs) ; l'événement, avec une tuile calendrier, les présents et trois boutons qui portent chacun un signe et un mot ; le bravo, doré, avec des confettis et Gyro en tenue de victoire (« J'aime » y devient « Applaudir »).
 
-En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne, une date d'**ouverture** (maintenant, par défaut) et de **clôture** (dans 7 jours par défaut ; pour un événement, à son début au plus tard). Avant l'ouverture, il s'affiche « Ouvre le … » et refuse les votes. Pendant qu'il est ouvert, les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; l'auteur et les modérateurs les voient toujours, et ils ne sont même pas envoyés au téléphone de qui n'a pas voté. On peut changer son vote. Fermé, il refuse les votes et montre les résultats **à tous**. Les dates ne se changent pas après la publication. Un sondage publié avant les dates reste ouvert. Voir [Comment créer un sondage ?](../utilisation/comment-creer-un-sondage.md).
+En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne, une date d'**ouverture** (maintenant, par défaut) et de **clôture** (préremplie dans 7 jours ; pour un événement, à son début, sans dépasser un an après l'ouverture). La clôture tombe après l'ouverture, moins d'un an après, et pour un événement au plus tard à son début. Avant l'ouverture, il s'affiche « Ouvre le … » et refuse les votes. Pendant qu'il est ouvert, les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; l'auteur et les modérateurs les voient toujours, et ils ne sont même pas envoyés au téléphone de qui n'a pas voté. On peut changer son vote. Fermé, il refuse les votes et montre les résultats **à tous**. Les dates ne se changent pas après la publication. Un sondage publié avant les dates reste ouvert. Voir [Comment créer un sondage ?](../utilisation/comment-creer-un-sondage.md).
+
+Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
 
 ### Selon le niveau de vie
 
 Couleurs, visages et cartes restent à tous les niveaux. Gyro (en-tête, bravo) n'apparaît pas en Sobre, reste immobile en Équilibré et s'anime une fois à l'arrivée en Vivant ; « Réduire les animations » l'arrête. La phrase d'en-tête prend une pointe d'humour en Vivant.
-
-Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
 
 ## La prise de connaissance
 

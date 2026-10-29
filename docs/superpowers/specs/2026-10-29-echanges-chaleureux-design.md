@@ -98,7 +98,7 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 
 ## Les sondages datés (maquette 3)
 
-- Deux dates par sondage : **ouverture** (préremplie avec maintenant) et **clôture** (obligatoire, préremplie à 7 jours, ou au début de l'événement s'il s'agit d'un événement). La clôture tombe après l'ouverture et dans moins d'un an (choix de Claude).
+- Deux dates par sondage : **ouverture** (préremplie avec maintenant) et **clôture** (obligatoire, préremplie à 7 jours, ou au début de l'événement s'il s'agit d'un événement, sans dépasser un an après l'ouverture). La clôture tombe après l'ouverture et dans moins d'un an (choix de Claude).
 - Avant l'ouverture, le sondage s'affiche « Ouvre le … » et refuse les votes. Après la clôture, il s'affiche « Fermé », refuse les votes et montre les **résultats à tous**. Pendant qu'il est ouvert, on garde la règle du lot 1 : on voit les résultats une fois qu'on a voté.
 - Dans « À ne pas manquer », un sondage n'apparaît qu'une fois ouvert, et sort de la liste à sa clôture.
 - Les dates ne se modifient pas après la publication, comme le reste hors du texte (choix de Claude ; prolonger ou fermer plus tôt pourra venir plus tard).
@@ -118,7 +118,7 @@ Elle n'a pas encore d'onglet « Mur » (maquette 10, non construite). Quand il v
 ## À l'ordinateur (maquette 5)
 
 - À partir de 1280 px, trois colonnes : la liste des murs en sections, le mur ouvert, puis « Aujourd'hui au centre » et « À venir » (les 3 prochains événements où la personne est convoquée).
-- Entre 1024 et 1279 px, deux colonnes comme aujourd'hui : la colonne de droite passe au-dessus du mur.
+- Entre 1024 et 1279 px, deux colonnes comme aujourd'hui : la colonne de droite passe sous le mur, pour que l'ordre à l'écran suive l'ordre du clavier (décision de la relecture, 2026-10-29).
 
 ## Contraintes
 

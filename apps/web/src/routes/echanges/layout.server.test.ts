@@ -109,11 +109,12 @@ describe('liste des murs', () => {
 		const { base, chef, alice, e2 } = await preparer();
 		const evenement = (texte: string, debut: string, convoques: 'tous' | number[] = 'tous') =>
 			publier(base, chef, 'centre', { type: 'evenement', texte, evenement: { debut, lieu: 'Caserne', convoques } }, maintenantParis());
-		const repas = await evenement('Repas', '2099-01-01T12:00');
-		await evenement('Pour l’équipe 2', '2099-01-01T18:00', [e2.id]);
-		const manoeuvre = await evenement('Manœuvre', '2099-01-02T19:00');
+		// Publiés dans le désordre : « À venir » les trie par date.
 		const sport = await evenement('Sport', '2099-01-03T19:00');
 		await evenement('Plus tard', '2099-01-04T19:00');
+		const manoeuvre = await evenement('Manœuvre', '2099-01-02T19:00');
+		await evenement('Pour l’équipe 2', '2099-01-01T18:00', [e2.id]);
+		const repas = await evenement('Repas', '2099-01-01T12:00');
 		await repondreEvenement(base, alice, repas, 'present', maintenantParis());
 		const { aVenir } = await charger(locaux(base, alice));
 		expect(aVenir).toEqual([

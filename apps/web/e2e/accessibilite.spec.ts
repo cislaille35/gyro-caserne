@@ -52,7 +52,8 @@ for (const theme of ['auto', 'sombre']) {
 				const marque = nouvelleMarque();
 				await gestion.goto('/echanges/centre');
 				const annonce = await publier(gestion, { type: 'Annonce', texte: `Consigne ${marque}`, prise: true });
-				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], cloture: dansUneSemaine() });
+				// Événement lointain avec sondage : la clôture préremplie s'arrête un an après l'ouverture.
+				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] });
 				// L'auteur voit le suivi de son annonce.
 				await gestion.goto(`/echanges/centre/${annonce}`);
 				await expect(gestion.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
@@ -344,10 +345,7 @@ async function formulairePret(page: Page): Promise<Locator> {
 	return formulaire;
 }
 
-type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; cloture?: string; photo?: Buffer };
-
-// Un sondage ferme moins d'un an après son ouverture : pour un événement lointain, on choisit sa clôture.
-const dansUneSemaine = () => new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 16);
+type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; photo?: Buffer };
 
 // Publie depuis le mur ouvert (lien « Publier dans … ») ; de retour sur le mur, renvoie l'identifiant de la publication, lu dans l'adresse.
 async function publier(page: Page, s: Saisie): Promise<number> {
@@ -367,7 +365,6 @@ async function publier(page: Page, s: Saisie): Promise<number> {
 			if (!(await champ.isVisible())) await formulaire.getByRole('button', { name: '+ Ajouter une réponse' }).click();
 			await champ.fill(r);
 		}
-		if (s.cloture) await formulaire.getByLabel('Ferme le').fill(s.cloture);
 	}
 	if (s.photo) await formulaire.getByLabel('Photos').setInputFiles({ name: 'essai.jpg', mimeType: 'image/jpeg', buffer: s.photo });
 	await formulaire.getByRole('button', { name: /^Publier/ }).click();
@@ -501,7 +498,7 @@ test.describe('échanges', () => {
 test.describe('échanges à l’ordinateur', () => {
 	test.use({ storageState: ETAT_CONNECTE });
 
-	test('sur un mur, « À venir » : à droite à 1280 px, au-dessus du mur à 1100 px, absent au téléphone', async ({ browser, page }) => {
+	test('sur un mur, « À venir » : à droite à 1280 px, sous le mur à 1100 px (ordre du clavier), absent au téléphone', async ({ browser, page }) => {
 		const aVenir = page.getByRole('heading', { level: 2, name: 'À venir' });
 		const titre = page.getByRole('heading', { level: 1, name: 'Vie du centre' });
 		if (test.info().project.name === 'telephone') {
@@ -521,7 +518,8 @@ test.describe('échanges à l’ordinateur', () => {
 		await expect(page.getByRole('complementary', { name: 'Aujourd’hui' }).getByRole('link', { name: new RegExp(`Manœuvre ${marque}`) })).toBeVisible();
 		expect((await aVenir.boundingBox())!.x).toBeGreaterThan((await titre.boundingBox())!.x + 200);
 		await page.setViewportSize({ width: 1100, height: 900 });
-		expect((await aVenir.boundingBox())!.y).toBeLessThan((await titre.boundingBox())!.y);
+		const bas = await page.locator('.mur').boundingBox();
+		expect((await aVenir.boundingBox())!.y).toBeGreaterThan(bas!.y + bas!.height);
 		await sansViolation(page);
 	});
 });

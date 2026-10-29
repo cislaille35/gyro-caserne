@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { clotureParDefaut, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { photoPublication, publication } from '@gyro-caserne/socle';
 import { jpeg, locaux, preparer, requeteFormulaire } from '../de-test.ts';
 import { actions, load } from './+page.server';
@@ -61,12 +61,13 @@ describe('page Publier', () => {
 		expect((await charger(locaux(base, alice))).texte).toBe('');
 	});
 
-	it('sondage : ouverture maintenant, clôture 7 jours plus tard', async () => {
+	it('sondage : ouverture maintenant, clôture préremplie 7 jours plus tard (moins d’un an)', async () => {
 		const { base, alice } = await preparer();
 		const avant = maintenantParis().slice(0, 16);
 		const data = await charger(locaux(base, alice));
 		expect(data.ouverture >= avant && data.ouverture <= maintenantParis().slice(0, 16)).toBe(true);
 		expect(data.cloture).toBe(septJoursPlusTard(data.ouverture));
+		expect(data.cloture).toBe(clotureParDefaut(data.ouverture));
 	});
 });
 

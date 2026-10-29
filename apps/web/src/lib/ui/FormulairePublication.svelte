@@ -7,6 +7,7 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { onMount, tick } from 'svelte';
+	import { clotureParDefaut } from '#lib/aujourdhui.ts';
 	import { phraseAudience } from '#lib/murs/phrases.ts';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import { teinteDuMur } from '#lib/murs/teinte.ts';
@@ -47,12 +48,17 @@
 	let type = $state(valeurs.type || 'message');
 	// svelte-ignore state_referenced_locally
 	let debut = $state(valeurs.debut ?? '');
-	// La clôture suit le début de l'événement, tant qu'on ne l'a pas changée soi-même.
+	// svelte-ignore state_referenced_locally
+	let ouverture = $state(valeurs.ouverture ?? defauts.ouverture);
+	// La clôture suit l'ouverture et le début de l'événement (un an au plus), tant qu'on ne l'a pas changée soi-même.
 	// svelte-ignore state_referenced_locally
 	let cloture = $state(valeurs.cloture ?? '');
 	// svelte-ignore state_referenced_locally
 	let clotureChoisie = $state(Boolean(valeurs.cloture));
-	const clotureAffichee = $derived(clotureChoisie ? cloture : type === 'evenement' && debut ? debut : defauts.cloture);
+	const dateHeure = (x: string) => /^\d{4}-\d\d-\d\dT\d\d:\d\d/.test(x);
+	const clotureAffichee = $derived(
+		clotureChoisie ? cloture : dateHeure(ouverture) ? clotureParDefaut(ouverture, type === 'evenement' && dateHeure(debut) ? debut : undefined) : defauts.cloture
+	);
 	// svelte-ignore state_referenced_locally
 	let nombreReponses = $state(Math.max(2, (valeurs.reponses ?? []).filter((r) => r.trim()).length));
 
@@ -221,7 +227,8 @@
 						id="publier-ouverture"
 						name="ouverture"
 						type="datetime-local"
-						value={valeurs.ouverture ?? defauts.ouverture}
+						value={ouverture}
+						oninput={(e) => (ouverture = e.currentTarget.value)}
 						aria-invalid={erreurs.ouverture ? 'true' : undefined}
 						aria-describedby={erreurs.ouverture ? 'publier-ouverture-erreur' : undefined}
 					/>
