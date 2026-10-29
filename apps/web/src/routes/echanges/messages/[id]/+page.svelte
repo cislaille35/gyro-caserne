@@ -32,6 +32,8 @@
 			position: sticky;
 			top: 0;
 			align-self: start;
+			/* La colonne va jusqu'en bas, même courte (sous l'en-tête de l'appli : 69 px). */
+			min-height: calc(100dvh - 69px);
 			max-height: 100dvh;
 			overflow-y: auto;
 			border-left: 1px solid var(--trait-doux);
