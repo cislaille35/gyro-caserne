@@ -151,7 +151,7 @@
 	}
 
 	h2 {
-		margin: 12px 8px 4px;
+		margin: 12px 0 4px;
 		color: var(--doux);
 		font-size: 0.875rem;
 		font-weight: 700;
