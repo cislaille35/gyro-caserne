@@ -25,13 +25,15 @@ describe('/moi', () => {
 
 	it('la carte du super administrateur', () => {
 		expect(html({ estPersonne: false, identite: null })).toContain('Super administrateur');
+		// Sans grade ni équipe : son rôle.
+		expect(html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: null, role: 'Chef de centre', equipe: null } })).toContain('Chef de centre');
 	});
 
 	it('la carte vient de l’effectif ; rien pour le super administrateur', async () => {
 		const { base, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		expect(await charger(alice)).toEqual({ identite: { prenom: 'Alice', nom: 'Test', grade: null, equipe: { nom: expect.any(String), couleur: expect.stringMatching(/^#/) } } });
+		expect(await charger(alice)).toEqual({ identite: { prenom: 'Alice', nom: 'Test', grade: null, role: null, equipe: { nom: expect.any(String), couleur: expect.stringMatching(/^#/) } } });
 		expect(await charger({ type: 'super', email: 'a@b.fr' })).toEqual({ identite: null });
 	});
 

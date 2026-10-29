@@ -104,8 +104,10 @@
 		color: inherit;
 		overflow-wrap: anywhere;
 	}
+	/* Cible de 44 px, sans écarter la sous-ligne. */
 	a.titre {
 		min-height: var(--cible);
+		margin: -10px 0;
 		display: inline-flex;
 		align-items: center;
 		align-self: flex-start;

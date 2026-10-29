@@ -11,7 +11,7 @@
 	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
 		...(data.peutNominations
-			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle, et ce qui est à pourvoir', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
+			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
 			: []),
 		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les comités et les responsabilités du centre', icone: 'outil' as const }] : [])
 	]);
