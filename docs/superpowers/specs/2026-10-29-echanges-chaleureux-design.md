@@ -34,7 +34,7 @@ Anti-objectifs : une page qui clignote, une gamification, de la couleur qui port
 
 Dans l'ordre :
 
-1. **En-tête** : titre, Gyro et une phrase selon le niveau de vie (Vivant : « 5 nouveautés depuis hier. Le café est encore chaud. » ; Équilibré : « 5 nouveautés depuis hier. » ; Sobre : pas de Gyro, la phrase d'Équilibré). Un bouton **« Écrire »** ouvre le formulaire avec le choix du mur (voir « Publier »).
+1. **En-tête** : titre, Gyro et une phrase selon le niveau de vie (Vivant : « 5 nouveautés depuis votre dernière visite. Le café est encore chaud. » ; Équilibré : « 5 nouveautés depuis votre dernière visite. » ; Sobre : pas de Gyro, la phrase d'Équilibré). Un bouton **« Écrire »** ouvre le formulaire avec le choix du mur (voir « Publier »).
 2. **« Aujourd'hui au centre »**, si au moins une ligne existe : les anniversaires du jour (règle du lot 1) et le prochain événement où la personne est convoquée et n'a pas répondu. « Souhaiter » ouvre le formulaire de Vie du centre, prérempli de « Joyeux anniversaire <prénom> ! » (choix de Claude).
 3. **« Le centre »** : une grande carte rouge avec le badge « Officiel », le nombre d'annonces à confirmer et un aperçu de la dernière publication.
 4. **« Mes groupes »** : mon équipe d'abord, puis Vie du centre, puis mes comités. Les comités sans nouveauté sont repliés sous « Autres comités (n, rien de neuf) » dès qu'il y en a plus de deux (choix de Claude). Les équipes et comités supervisés par le chef, l'adjoint ou le super admin sans en être membres vont dans une section **« Supervision »**, repliée (choix de Claude).
@@ -76,7 +76,7 @@ Chaque ligne de mur montre :
 ## Les publications (maquette 2)
 
 - **Visage** de l'auteur : sa photo si elle est en base (`personne.photo`), sinon ses initiales sur la couleur de son équipe, ou sur du gris s'il n'a pas d'équipe. Son rôle principal (« Chef de centre », « Adjoint », « Chef d'équipe ») apparaît sous son nom, s'il en a un (choix de Claude).
-- **Annonce à confirmer** : bordure et bandeau ambre « Annonce à lire et confirmer » (« Épinglée · … » si elle est épinglée), barre de progression et « 12 sur 38 ont confirmé ». Le compte est **visible de tous** (choix de Claude), les noms restent réservés à l'auteur et aux modérateurs, comme au lot 1. Bouton pleine largeur « J'ai pris connaissance ».
+- **Annonce à confirmer** : bordure et bandeau ambre « Annonce à lire et confirmer » (« Épinglée · … » si elle est épinglée), barre de progression et « 12 sur 38 ont confirmé ». Le compte est **visible de tous** (choix de Claude), les noms restent réservés à l'auteur et aux modérateurs, comme au lot 1. Le total compte les membres naturels du mur **au moment de la lecture**, comme le suivi du lot 1 : les superviseurs non membres n'y sont pas. Bouton pleine largeur « J'ai pris connaissance ».
 - **Événement** :
   - une tuile calendrier (jour, date, mois) avec le titre, l'heure, le lieu et les convoqués ;
   - les visages des présents (3 au plus, puis le nombre) et le compte « 14 présents · 3 absents · 2 incertains » ;
@@ -101,6 +101,8 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 - Deux dates par sondage : **ouverture** (préremplie avec maintenant) et **clôture** (obligatoire, préremplie à 7 jours, ou au début de l'événement s'il s'agit d'un événement). La clôture tombe après l'ouverture et dans moins d'un an (choix de Claude).
 - Avant l'ouverture, le sondage s'affiche « Ouvre le … » et refuse les votes. Après la clôture, il s'affiche « Fermé », refuse les votes et montre les **résultats à tous**. Pendant qu'il est ouvert, on garde la règle du lot 1 : on voit les résultats une fois qu'on a voté.
 - Dans « À ne pas manquer », un sondage n'apparaît qu'une fois ouvert, et sort de la liste à sa clôture.
+- Les dates ne se modifient pas après la publication, comme le reste hors du texte (choix de Claude ; prolonger ou fermer plus tôt pourra venir plus tard).
+- Sur un événement, les réponses présent / absent / incertain s'arrêtent au début de l'événement, comme au lot 1 ; la clôture du sondage, par défaut à la même heure, peut être plus tôt mais pas après le début.
 - Migration **additive** : colonnes `publication.sondage_ouverture` et `publication.sondage_cloture`, facultatives. Les sondages déjà publiés n'ont pas de dates et restent ouverts, comme aujourd'hui. Aucune donnée n'est transformée.
 
 ## Publier (maquette 3)
@@ -108,6 +110,10 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 - Le formulaire s'ouvre depuis un mur (le mur est alors choisi d'avance) ou depuis « Écrire ». On y choisit le mur parmi ceux où la personne peut publier, puis le genre en 4 tuiles (Message, Événement, Bravo, Annonce). « Annonce » n'apparaît que pour les modérateurs, comme au lot 1.
 - Sous le choix du mur : la phrase « Visible par … ».
 - Au téléphone, le formulaire tient sur une page à part, et non plus en bas du mur (choix de Claude : il a pris de la place avec le choix du mur et du genre).
+
+## La page d'un comité
+
+Son onglet « Mur » reprend tout ce qui précède : la bande « Visible par », les cartes et le formulaire.
 
 ## À l'ordinateur (maquette 5)
 
