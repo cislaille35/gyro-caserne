@@ -16,9 +16,11 @@ describe('quand', () => {
 
 describe('dates d’un sondage', () => {
 	it('« Du 29 oct. au lundi 2 nov., 20 h » et « Ouvre le … »', () => {
-		expect(periodeSondage('2026-10-29T08:00', '2026-11-02T20:00')).toBe('Du 29 oct. au lundi 2 nov., 20 h');
-		expect(periodeSondage('2026-10-29T08:00', '2026-11-02T20:30')).toBe('Du 29 oct. au lundi 2 nov., 20 h 30');
-		expect(jourEtHeure('2026-11-05T19:00')).toBe('jeudi 5 nov., 19 h');
+		expect(periodeSondage('2026-10-29T08:00', '2026-11-02T20:00')).toBe('Du 29 oct. au lundi 2 nov., 20 h');
+		expect(periodeSondage('2026-10-29T08:00', '2026-11-02T20:30')).toBe('Du 29 oct. au lundi 2 nov., 20 h 30');
+		// L'heure ne se coupe jamais en fin de ligne (« 18 h » / « 43 ») : espaces insécables.
+		expect(jourEtHeure('2026-11-05T19:00')).toBe('jeudi 5 nov., 19 h');
+		expect(jourEtHeure('2026-10-29T18:43')).toBe('jeudi 29 oct., 18 h 43');
 	});
 	it('l’heure seule', () => {
 		expect(heure('2026-11-05T19:00')).toBe('19 h');

@@ -6,7 +6,7 @@ import Page from './+page.svelte';
 const pub = (p: Partial<PublicationVue> = {}): PublicationVue => ({
 	id: 1,
 	cle: 'vie',
-	auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null },
+	auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: null },
 	type: 'message',
 	texte: 'Bonjour',
 	creeLe: '2026-10-28T14:05:00',
@@ -121,10 +121,10 @@ describe('page d’un mur', () => {
 	});
 
 	it('l’auteur : visage, nom et rôle ; le super administrateur s’affiche sans planter', () => {
-		const chef = html({ publications: [pub({ auteur: { prenom: 'Claire', nom: 'Chef', couleur: '#0f4c8a', role: 'Chef de centre' } })] });
+		const chef = html({ publications: [pub({ auteur: { prenom: 'Claire', nom: 'Chef', couleur: '#0f4c8a', role: 'Chef de centre', ecrireA: null } })] });
 		expect(chef).toMatch(/aria-hidden="true"[^>]*>CC</);
 		expect(chef).toContain('Chef de centre');
-		const sup = html({ publications: [pub({ auteur: { prenom: 'Super', nom: 'administrateur', couleur: null, role: null } })] });
+		const sup = html({ publications: [pub({ auteur: { prenom: 'Super', nom: 'administrateur', couleur: null, role: null, ecrireA: null } })] });
 		expect(sup).toContain('>SA<');
 		expect(sup).toContain('Super administrateur');
 	});
@@ -292,5 +292,19 @@ describe('cartes par type', () => {
 		expect(deux.indexOf('a-saute')).toBeGreaterThan(-1);
 		expect(deux.indexOf('a-saute')).toBeLessThan(deux.indexOf('id="publication-2"'));
 		expect(agir(pub({ type: 'bravo' }), 'equilibre')).not.toContain('a-saute');
+	});
+
+	it('« Répondre en privé » à l’auteur, avec la publication (son identifiant, pas son texte) ; seulement si l’on a la messagerie et qu’on peut lui écrire', () => {
+		const texte = `Qui peut me remplacer samedi ? ${'x'.repeat(200)}`;
+		const publication = pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } });
+		const avec = html({ messagerie: true, publications: [publication] });
+		const lien = /<a[^>]*href="([^"]*)"[^>]*>Répondre en privé<\/a>/.exec(avec);
+		expect(lien).not.toBeNull();
+		expect(lien![0]).toContain('aria-label="Répondre en privé à Alice Martin"');
+		const url = new URL(lien![1]!.replaceAll('&amp;', '&'), 'http://x');
+		expect(url.pathname).toBe('/echanges/messages/a/5');
+		expect(url.search).toBe(`?publication=${publication.id}`);
+		expect(html({ messagerie: false, publications: [pub({ auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] })).not.toContain('Répondre en privé');
+		expect(html({ messagerie: true, publications: [pub()] })).not.toContain('Répondre en privé');
 	});
 });

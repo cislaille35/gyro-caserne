@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
-import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication } from '../src/actions/publications.ts';
+import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, photoPublication, priseConnaissance, profil, publication, reponseEvenement, responsabilite, visiteMur, voteSondage } from '../src/schema.ts';
@@ -407,7 +407,7 @@ describe('lireMur', () => {
 		expect(publications[0]).toEqual({
 			id,
 			cle: 'vie',
-			auteur: { prenom: 'Chef', nom: 'Test', couleur: null, role: 'Chef de centre' },
+			auteur: { prenom: 'Chef', nom: 'Test', couleur: null, role: 'Chef de centre', ecrireA: chef },
 			type: 'evenement',
 			texte: 'Repas',
 			creeLe: maintenant,
@@ -514,7 +514,7 @@ describe('lireMur', () => {
 		await base.insert(priseConnaissance).values({ publicationId: id, personneId: agent, le: maintenant });
 		const vue = (await lireMur(base, acteur(agent), 'centre', {}, maintenant)).publications[0]!;
 		expect(vue.priseDeConnaissance).toEqual({ le: maintenant, faites: 1, attendues: 3 });
-		expect(vue.auteur).toEqual({ prenom: 'Super', nom: 'administrateur', couleur: null, role: null });
+		expect(vue.auteur).toEqual({ prenom: 'Super', nom: 'administrateur', couleur: null, role: null, ecrireA: null });
 		expect((await lireMur(base, acteur(autre), 'centre', {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ le: null, faites: 1, attendues: 3 });
 		const duSuper = (await lireMur(base, superAdmin, 'centre', {}, maintenant)).publications[0]!;
 		expect(duSuper.droits).toEqual({ modifier: true, supprimer: true, epingler: true, fermer: true });
@@ -582,12 +582,13 @@ describe('lireMur', () => {
 		for (const qui of [chef, adjoint, chefEquipe, agent, autre]) await publier(base, base.photos, acteur(qui), 'vie', message(), maintenant);
 		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, autre));
 		const auteurs = (await lireMur(base, acteur(agent), 'vie', {}, maintenant)).publications.map((p) => p.auteur).reverse();
+		// `ecrireA` : à qui répondre en privé ; ni soi-même, ni un agent parti.
 		expect(auteurs).toEqual([
-			{ prenom: 'Chef', nom: 'Test', couleur: e1.couleur, role: 'Chef de centre' },
-			{ prenom: 'Adjoint', nom: 'Test', couleur: null, role: 'Adjoint' },
-			{ prenom: 'Chefequipe', nom: 'Test', couleur: null, role: 'Chef d’équipe' },
-			{ prenom: 'Agent', nom: 'Test', couleur: null, role: null },
-			{ prenom: 'Autre', nom: 'Test', couleur: null, role: null }
+			{ prenom: 'Chef', nom: 'Test', couleur: e1.couleur, role: 'Chef de centre', ecrireA: chef },
+			{ prenom: 'Adjoint', nom: 'Test', couleur: null, role: 'Adjoint', ecrireA: adjoint },
+			{ prenom: 'Chefequipe', nom: 'Test', couleur: null, role: 'Chef d’équipe', ecrireA: chefEquipe },
+			{ prenom: 'Agent', nom: 'Test', couleur: null, role: null, ecrireA: null },
+			{ prenom: 'Autre', nom: 'Test', couleur: null, role: null, ecrireA: null }
 		]);
 	});
 
@@ -671,6 +672,19 @@ describe('lirePublication', () => {
 		await expect(lirePublication(base, acteur(agent), id, maintenant)).rejects.toThrow(RefusDroit);
 		await expect(lirePublication(base, acteur(agent), 999, maintenant)).rejects.toThrow(DonneeInvalide);
 		expect((await lirePublication(base, superAdmin, id, maintenant)).publication.droits.epingler).toBe(true);
+	});
+});
+
+describe('textePublication', () => {
+	it('le texte d’une publication dont l’acteur lit le mur, en 2 requêtes ; refus sinon', async () => {
+		const { base, agent, chef, e1 } = await jeu();
+		const vie = await publier(base, base.photos, acteur(chef), 'vie', message('Repas de Noël'), maintenant);
+		const equipe = await publier(base, base.photos, acteur(chef), `equipe:${e1.id}`, message('Réservé à l’équipe'), maintenant);
+		const avant = base.requetes;
+		expect(await textePublication(base, acteur(agent), vie, aujourdhui)).toBe('Repas de Noël');
+		expect(base.requetes - avant).toBeLessThanOrEqual(2);
+		await expect(textePublication(base, acteur(agent), equipe, aujourdhui)).rejects.toThrow(RefusDroit);
+		await expect(textePublication(base, acteur(agent), 999, aujourdhui)).rejects.toThrow(DonneeInvalide);
 	});
 });
 

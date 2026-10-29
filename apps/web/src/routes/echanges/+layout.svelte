@@ -4,7 +4,9 @@
 	import { untrack } from 'svelte';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { lireNonLus } from '#lib/messagerie/pastille.ts';
 	import { quand } from '#lib/murs/quand.ts';
+	import FiltresEchanges from '#lib/ui/FiltresEchanges.svelte';
 	import { ICONE_MAISON } from '#lib/ui/icones-roles.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import PastilleMur from '#lib/ui/PastilleMur.svelte';
@@ -13,6 +15,9 @@
 	let { data, children } = $props();
 
 	const affichage = lireAffichageContexte();
+	const nonLus = lireNonLus();
+	// Les messages ont leur propre page : la liste des murs s'efface.
+	const surMessages = $derived(page.url.pathname === '/echanges/messages' || page.url.pathname.startsWith('/echanges/messages/'));
 
 	// Sur un mur : au téléphone, la liste laisse la place au mur ; à l'ordinateur, elle reste à gauche, en bref.
 	const actif = $derived(page.params.mur);
@@ -91,137 +96,143 @@
 	<svelte:element this={actif ? 'p' : 'h2'} {id} class="rubrique">{texte}</svelte:element>
 {/snippet}
 
-<div class="echanges" class:sur-un-mur={actif !== undefined} class:avec-journee={journee}>
-	<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
-	<nav class="murs" aria-label="Murs">
-		{#if !actif}
-			<header class="entete">
-				{#if gyroSelonNiveau(affichage.niveau).visible}<span class="mascotte"><GyroDuMoment tenue="normal" taille={72} decoratif /></span>{/if}
-				<div class="titres">
-					<h1>Échanges</h1>
-					<p class="phrase">{phrase}</p>
-				</div>
-				<a class="ecrire" href="/echanges/publier">
-					<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
-					<span class="libelle">Écrire</span>
-				</a>
-			</header>
-		{/if}
-
-		<div class="colonnes">
-			<div class="colonne">
-				{#if !actif && (jour.anniversaires.length > 0 || jour.evenement)}
-					<section class="jour" aria-labelledby="t-jour">
-						<h2 id="t-jour" class="rubrique">Aujourd’hui au centre</h2>
-						{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
-						{#if jour.evenement}
-							{@const e = jour.evenement}
-							<a class="ligne-jour evenement" href="/echanges/{e.cle}/{e.id}">
-								<span class="calendrier" aria-hidden="true"
-									><span class="jour-semaine">{date(e.debut, { weekday: 'short' }).replace('.', '').toUpperCase()}</span><span class="numero">{Number(e.debut.slice(8, 10))}</span></span
-								>
-								<span class="quoi">
-									<strong>{e.titre}</strong>
-									<span class="doux">{date(e.debut, { weekday: 'long', day: 'numeric', month: 'long' })}, {heure(e.debut)} · vous n’avez pas répondu</span>
-								</span>
-							</a>
-						{/if}
-					</section>
-				{/if}
-
-				{#if s.centre}
-					{@const c = s.centre}
-					<section class="section" aria-labelledby="t-centre">
-						{@render titre('t-centre', 'Le centre')}
-						{#if actif}
-							<ul>{@render tuile(c)}</ul>
-						{:else}
-							<a class="centre" href="/echanges/centre">
-								<span class="bandeau">
-									<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d={ICONE_MAISON} /></svg>
-									<span class="nom">Le centre</span>
-									<span class="officiel">Officiel</span>
-									{@render compte(c)}
-								</span>
-								<span class="contenu">
-									{#if c.aConfirmer > 0}
-										<span class="a-confirmer">
-											<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 7v6M12 17v.5" /><circle cx="12" cy="12" r="10" /></svg>
-											{pluriel(c.aConfirmer, 'annonce')} à lire et confirmer
-										</span>
-									{/if}
-									{#if c.derniere}
-										<span class="extrait"><strong>{c.derniere.auteur}</strong> : {c.derniere.texte}</span>
-										<span class="doux">{quand(c.derniere.creeLe)} · visible par tous les agents</span>
-									{:else}
-										<span class="doux">Rien de publié pour l’instant</span>
-									{/if}
-								</span>
-							</a>
-						{/if}
-					</section>
-				{/if}
-			</div>
-
-			<div class="colonne">
-				{#if s.groupes.length > 0}
-					<section class="section" aria-labelledby="t-groupes">
-						{@render titre('t-groupes', 'Mes groupes')}
-						<ul>
-							{#each s.groupes as t (t.cle)}{@render tuile(t)}{/each}
-						</ul>
-						{#if s.autres.length > 0}
-							<details class="repli" open={ouvrir.autres}>
-								<summary>Autres comités <span class="doux">({s.autres.length}, rien de neuf)</span></summary>
-								<ul>
-									{#each s.autres as t (t.cle)}{@render tuile(t)}{/each}
-								</ul>
-							</details>
-						{/if}
-					</section>
-				{/if}
-
-				{#if s.supervision.length > 0}
-					<details class="repli" open={ouvrir.supervision}>
-						<summary
-							>Supervision {#if totalSupervision > 0}· {pluriel(totalSupervision, 'nouveauté')}{:else}<span class="doux">({s.supervision.length})</span>{/if}</summary
-						>
-						<ul>
-							{#each s.supervision as t (t.cle)}{@render tuile(t)}{/each}
-						</ul>
-					</details>
-				{/if}
-			</div>
-		</div>
-	</nav>
-	<div class="mur">{@render children()}</div>
-	<!-- Après le mur, à l'écran comme au clavier : à côté à partir de 1280 px, dessous en deçà. -->
-	{#if journee}
-		<aside class="journee" aria-label="Aujourd’hui">
-			{#if jour.anniversaires.length > 0}
-				<section class="jour" aria-labelledby="t-jour-mur">
-					<h2 id="t-jour-mur" class="rubrique">Aujourd’hui au centre</h2>
-					{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
-				</section>
+{#if surMessages}
+	{@render children()}
+{:else}
+	<div class="echanges" class:sur-un-mur={actif !== undefined} class:avec-journee={journee}>
+		<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
+		<nav class="murs" aria-label="Murs">
+			{#if !actif}
+				<header class="entete">
+					{#if gyroSelonNiveau(affichage.niveau).visible}<span class="mascotte"><GyroDuMoment tenue="normal" taille={72} decoratif /></span>{/if}
+					<div class="titres">
+						<h1>Échanges</h1>
+						<p class="phrase">{phrase}</p>
+					</div>
+					<a class="ecrire" href="/echanges/publier">
+						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+						<span class="libelle">Écrire</span>
+					</a>
+				</header>
+				{#if data.avis}<p class="avis" role="status">{data.avis}</p>{/if}
+				{#if data.messagerie}<FiltresEchanges actif="murs" nonLus={nonLus.nombre} />{/if}
 			{/if}
-			{#if data.aVenir.length > 0}
-				<section class="a-venir" aria-labelledby="t-a-venir">
-					<h2 id="t-a-venir" class="rubrique">À venir</h2>
-					<ul>
-						{#each data.aVenir as e (e.id)}
-							<li>
-								<a class="venir" href="/echanges/{e.cle}/{e.id}">
-									<strong>{jourCourt(e.debut)}, {heure(e.debut)}</strong>
-									<span class="doux">{e.titre}{e.cle === 'centre' ? '' : ` (${e.nomMur})`}</span>
+
+			<div class="colonnes">
+				<div class="colonne">
+					{#if !actif && (jour.anniversaires.length > 0 || jour.evenement)}
+						<section class="jour" aria-labelledby="t-jour">
+							<h2 id="t-jour" class="rubrique">Aujourd’hui au centre</h2>
+							{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
+							{#if jour.evenement}
+								{@const e = jour.evenement}
+								<a class="ligne-jour evenement" href="/echanges/{e.cle}/{e.id}">
+									<span class="calendrier" aria-hidden="true"
+										><span class="jour-semaine">{date(e.debut, { weekday: 'short' }).replace('.', '').toUpperCase()}</span><span class="numero">{Number(e.debut.slice(8, 10))}</span></span
+									>
+									<span class="quoi">
+										<strong>{e.titre}</strong>
+										<span class="doux">{date(e.debut, { weekday: 'long', day: 'numeric', month: 'long' })}, {heure(e.debut)} · vous n’avez pas répondu</span>
+									</span>
 								</a>
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-		</aside>
-	{/if}
-</div>
+							{/if}
+						</section>
+					{/if}
+
+					{#if s.centre}
+						{@const c = s.centre}
+						<section class="section" aria-labelledby="t-centre">
+							{@render titre('t-centre', 'Le centre')}
+							{#if actif}
+								<ul>{@render tuile(c)}</ul>
+							{:else}
+								<a class="centre" href="/echanges/centre">
+									<span class="bandeau">
+										<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d={ICONE_MAISON} /></svg>
+										<span class="nom">Le centre</span>
+										<span class="officiel">Officiel</span>
+										{@render compte(c)}
+									</span>
+									<span class="contenu">
+										{#if c.aConfirmer > 0}
+											<span class="a-confirmer">
+												<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 7v6M12 17v.5" /><circle cx="12" cy="12" r="10" /></svg>
+												{pluriel(c.aConfirmer, 'annonce')} à lire et confirmer
+											</span>
+										{/if}
+										{#if c.derniere}
+											<span class="extrait"><strong>{c.derniere.auteur}</strong> : {c.derniere.texte}</span>
+											<span class="doux">{quand(c.derniere.creeLe)} · visible par tous les agents</span>
+										{:else}
+											<span class="doux">Rien de publié pour l’instant</span>
+										{/if}
+									</span>
+								</a>
+							{/if}
+						</section>
+					{/if}
+				</div>
+
+				<div class="colonne">
+					{#if s.groupes.length > 0}
+						<section class="section" aria-labelledby="t-groupes">
+							{@render titre('t-groupes', 'Mes groupes')}
+							<ul>
+								{#each s.groupes as t (t.cle)}{@render tuile(t)}{/each}
+							</ul>
+							{#if s.autres.length > 0}
+								<details class="repli" open={ouvrir.autres}>
+									<summary>Autres comités <span class="doux">({s.autres.length}, rien de neuf)</span></summary>
+									<ul>
+										{#each s.autres as t (t.cle)}{@render tuile(t)}{/each}
+									</ul>
+								</details>
+							{/if}
+						</section>
+					{/if}
+
+					{#if s.supervision.length > 0}
+						<details class="repli" open={ouvrir.supervision}>
+							<summary
+								>Supervision {#if totalSupervision > 0}· {pluriel(totalSupervision, 'nouveauté')}{:else}<span class="doux">({s.supervision.length})</span>{/if}</summary
+							>
+							<ul>
+								{#each s.supervision as t (t.cle)}{@render tuile(t)}{/each}
+							</ul>
+						</details>
+					{/if}
+				</div>
+			</div>
+		</nav>
+		<div class="mur">{@render children()}</div>
+		<!-- Après le mur, à l'écran comme au clavier : à côté à partir de 1280 px, dessous en deçà. -->
+		{#if journee}
+			<aside class="journee" aria-label="Aujourd’hui">
+				{#if jour.anniversaires.length > 0}
+					<section class="jour" aria-labelledby="t-jour-mur">
+						<h2 id="t-jour-mur" class="rubrique">Aujourd’hui au centre</h2>
+						{#each jour.anniversaires as a, i (i)}{@render anniversaire(a)}{/each}
+					</section>
+				{/if}
+				{#if data.aVenir.length > 0}
+					<section class="a-venir" aria-labelledby="t-a-venir">
+						<h2 id="t-a-venir" class="rubrique">À venir</h2>
+						<ul>
+							{#each data.aVenir as e (e.id)}
+								<li>
+									<a class="venir" href="/echanges/{e.cle}/{e.id}">
+										<strong>{jourCourt(e.debut)}, {heure(e.debut)}</strong>
+										<span class="doux">{e.titre}{e.cle === 'centre' ? '' : ` (${e.nomMur})`}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{/if}
+			</aside>
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.echanges {
@@ -233,6 +244,16 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+	}
+
+	.avis {
+		margin: 0;
+		padding: 12px 14px;
+		border: 1px solid var(--statut-info-trait);
+		border-radius: var(--rayon-grand);
+		background: var(--statut-info-fond);
+		color: var(--statut-info-texte);
+		font-weight: 600;
 	}
 
 	/* En-tête */

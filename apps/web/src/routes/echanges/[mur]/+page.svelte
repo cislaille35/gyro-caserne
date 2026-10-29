@@ -54,14 +54,14 @@
 {#if data.epinglees.length > 0}
 	<section aria-labelledby="titre-epinglees" class="liste">
 		<h2 id="titre-epinglees">Épinglées</h2>
-		{#each data.epinglees as p (p.id)}<Publication {p} equipes={data.equipes} retour={retour(p.id)} {agir} lectureSeule={data.mur.lectureSeule} animer={p.id === premierBravo} />{/each}
+		{#each data.epinglees as p (p.id)}<Publication {p} equipes={data.equipes} retour={retour(p.id)} {agir} lectureSeule={data.mur.lectureSeule} messagerie={data.messagerie} animer={p.id === premierBravo} />{/each}
 	</section>
 {/if}
 
 <section aria-labelledby="titre-publications" class="liste">
 	<h2 id="titre-publications">{suite ? 'Publications plus anciennes' : 'Publications'}</h2>
 	{#each data.publications as p (p.id)}
-		<Publication {p} equipes={data.equipes} retour={retour(p.id)} {agir} lectureSeule={data.mur.lectureSeule} animer={p.id === premierBravo} />
+		<Publication {p} equipes={data.equipes} retour={retour(p.id)} {agir} lectureSeule={data.mur.lectureSeule} messagerie={data.messagerie} animer={p.id === premierBravo} />
 	{:else}
 		<Vide texte={suite ? 'Aucune publication plus ancienne.' : 'Rien n’a encore été publié ici.'} />
 	{/each}

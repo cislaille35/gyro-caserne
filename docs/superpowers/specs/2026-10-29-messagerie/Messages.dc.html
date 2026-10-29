@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Messages, la liste</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1d2733}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 1000px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <header style="background: #ffffff; border-bottom: 1px solid #e3ddd5; padding: 10px 16px; display: flex; align-items: center; gap: 10px;">
+    <span style="flex: 1; display: flex; flex-direction: column;"><strong style="font: 700 20px 'Barlow Condensed', sans-serif;">GYRO CASERNE</strong><span style="font-size: 14px; color: #4a5562;">CIS Exemple</span></span>
+    <a href="#" aria-label="Notifications, 2 nouvelles" style="position: relative; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #e3ddd5; display: flex; align-items: center; justify-content: center;">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"></path></svg>
+      <span style="position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 9px; background: #b3121f; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;">2</span>
+    </a>
+    <a href="#" style="min-height: 44px; display: flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 600;"><span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e3ddd5; display: flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4 4-6 8-6s7 2 8 6"></path></svg></span>Moi</a>
+  </header>
+
+  <div style="padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px;">
+    <h1 style="margin: 0; font: 700 30px 'Barlow Condensed', sans-serif;">Échanges</h1>
+    <nav aria-label="Filtrer" style="display: flex; gap: 8px;">
+      <a href="Main.dc.html" style="min-height: 40px; padding: 0 16px; border-radius: 999px; background: #ffffff; border: 1px solid #e3ddd5; display: flex; align-items: center; font-weight: 600; text-decoration: none;">Murs</a>
+      <a href="#" aria-current="page" style="min-height: 40px; padding: 0 16px; border-radius: 999px; background: #1d2733; color: #ffffff; display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: none;">Messages <span style="min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #b3121f; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">3</span></a>
+    </nav>
+    <label style="position: relative; display: flex;">
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Rechercher une conversation</span>
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5562" stroke-width="2" style="position: absolute; left: 14px; top: 13px;"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <input placeholder="Rechercher une conversation" style="flex: 1; min-height: 44px; border-radius: 999px; border: 1px solid #e3ddd5; background: #ffffff; padding: 0 16px 0 40px; font: 400 16px 'Barlow', sans-serif;">
+    </label>
+  </div>
+
+  <ul style="list-style: none; margin: 12px 0 0; padding: 0 8px; display: flex; flex-direction: column;">
+    <li>
+      <a href="Discussion.dc.html" style="min-height: 72px; padding: 8px; border-radius: 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 52px; height: 52px; flex: none; border-radius: 50%; background: #fbeaf1; color: #8a1f52; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="3.5"></circle><circle cx="16.5" cy="10" r="2.8"></circle><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M14.5 14.4c2.6-.3 5 1.2 5.8 4.6"></path></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><strong style="flex: 1; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Départ de Thomas</strong><span style="font-size: 13px; font-weight: 700; color: #b3121f;">10 h 12</span></span>
+          <span style="display: flex; align-items: center; gap: 8px;"><span style="flex: 1; font-size: 15px; color: #1d2733; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Manon : J’ai trouvé le cadeau !</span><span style="min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: #b3121f; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">non lus : </span>2</span></span>
+        </span>
+      </a>
+    </li>
+    <li>
+      <a href="#" style="min-height: 72px; padding: 8px; border-radius: 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 52px; height: 52px; flex: none; border-radius: 50%; background: #d4a017; color: #1d2733; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">EC</span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><strong style="flex: 1; font-size: 17px;">Élodie Chef-Équipe</strong><span style="font-size: 13px; font-weight: 700; color: #b3121f;">9 h 40</span></span>
+          <span style="display: flex; align-items: center; gap: 8px;"><span style="flex: 1; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tu peux prendre ma place samedi ?</span><span style="min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: #b3121f; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">1</span></span>
+        </span>
+      </a>
+    </li>
+    <li>
+      <a href="#" style="min-height: 72px; padding: 8px; border-radius: 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 52px; height: 52px; flex: none; border-radius: 50%; background: #e7f0fa; color: #0f4c8a; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 6h16v10H8l-4 4z"></path></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><strong style="flex: 1; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Formation COD2 – novembre</strong><span style="font-size: 13px; color: #4a5562;">hier</span></span>
+          <span style="font-size: 15px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Vous : Rendez-vous 8 h au centre</span>
+        </span>
+      </a>
+    </li>
+    <li>
+      <a href="#" style="min-height: 72px; padding: 8px; border-radius: 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+        <span aria-hidden="true" style="width: 52px; height: 52px; flex: none; border-radius: 50%; background: #c2185b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">RR</span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; align-items: baseline; gap: 8px;"><strong style="flex: 1; font-size: 17px;">Romain Rapporteur</strong><span style="font-size: 13px; color: #4a5562;">lun.</span></span>
+          <span style="font-size: 15px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><span aria-label="lu">✓✓</span> Vous : Merci pour les tickets !</span>
+        </span>
+      </a>
+    </li>
+  </ul>
+
+  <p style="margin: 16px 24px 0; font-size: 14px; color: #4a5562; text-align: center;">Seuls les membres d’une conversation la lisent.</p>
+
+  <a href="NouveauMessage.dc.html" aria-label="Nouveau message" style="position: absolute; right: 16px; bottom: 92px; width: 60px; height: 60px; border-radius: 20px; background: #b3121f; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(179, 18, 31, 0.35);">
+    <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg>
+  </a>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; background: #ffffff; border-top: 1px solid #e3ddd5; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 6px 4px 10px;">
+    <a href="#" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Accueil</a>
+    <a href="#" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Planning</a>
+    <a href="#" style="min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; text-decoration: none; color: #4a5562;">Caserne</a>
+    <a href="#" aria-current="page" style="position: relative; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 700; text-decoration: none; color: #b3121f;"><span aria-hidden="true" style="width: 28px; height: 4px; border-radius: 2px; background: #b3121f;"></span>Échanges<span style="position: absolute; top: 4px; right: 22px; min-width: 18px; height: 18px; border-radius: 9px; background: #b3121f; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;">3</span></a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

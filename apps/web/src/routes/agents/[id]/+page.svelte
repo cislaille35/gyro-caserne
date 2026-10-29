@@ -162,8 +162,9 @@
 				{/each}
 			</ul>
 			<div class="contact">
+				{#if data.ecrire}<a class="ecrire" href="/echanges/messages/a/{fiche.id}">Écrire</a>{/if}
 				{#if fiche.telephone}<a href="tel:{chiffres(fiche.telephone)}">Appeler</a>{/if}
-				<a href="mailto:{fiche.email}">Écrire</a>
+				<a href="mailto:{fiche.email}">Courriel</a>
 			</div>
 		</header>
 
@@ -447,6 +448,12 @@
 	}
 	.contact a:hover {
 		text-decoration: underline;
+	}
+	/* Écrire dans l'appli : le contact le plus direct. */
+	.contact .ecrire {
+		border: 2px solid var(--encre);
+		background: var(--rouge);
+		color: var(--sur-rouge);
 	}
 	p {
 		margin: 0;

@@ -35,6 +35,7 @@ export function oublierDroits(base: Base): void {
 }
 
 // Seule définition des droits d'un acteur : tout le reste (aLeDroit, affichage) s'y appuie.
+// Exception : aLaMessagerie (messagerie.ts) refait en SQL le calcul pour UTILISER_MESSAGERIE ; toute modification ici s'y reporte, son test d'équivalence (messagerie.test.ts) le vérifie.
 export function droitsDe(base: Base, acteur: Acteur, date: string): Promise<DroitAccorde[]> {
 	if (acteur.type === 'super') return Promise.resolve(DROITS.map((droit) => ({ droit, perimetre: { type: 'centre' } })));
 	const parActeur = droitsLus.get(base) ?? new Map<string, Promise<DroitAccorde[]>>();

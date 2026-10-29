@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
 import {
 	affecterEquipe,
+	annuaire,
 	attributionsDe,
 	ceQueJePeuxAttribuer,
 	changerStatut,
@@ -12,11 +13,13 @@ import {
 	grade,
 	modifierFiche,
 	profil,
+	RefusDroit,
 	retirerEquipe,
 	STATUTS_OPERATIONNELS,
 	type Acteur,
 	type FicheAgent
 } from '@gyro-caserne/socle';
+import { maintenantParis } from '#lib/aujourdhui.ts';
 import { finir, nommer, terminer } from '#lib/server/actions-attribution.ts';
 import { echec, exigerGestion, lireFormulaire, type Reponse } from '#lib/server/formulaire-agent.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -41,6 +44,16 @@ async function raisonDeProtection(locals: App.Locals, acteur: Acteur, fiche: Fic
 	return 'Seuls le chef de centre ou un super administrateur modifient la fiche d’un adjoint.';
 }
 
+// « Écrire » par la messagerie : si l'on y a accès, et que la personne y est (ce n'est donc pas soi).
+async function peutEcrire(locals: App.Locals, acteur: Acteur, id: number, aujourdhui: string): Promise<boolean> {
+	try {
+		return (await annuaire(locals.base, acteur, aujourdhui)).some((a) => a.id === id);
+	} catch (erreur) {
+		if (erreur instanceof RefusDroit) return false;
+		throw erreur;
+	}
+}
+
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { acteur, aujourdhui, fiche } = await lireFiche(locals, params.id);
 	const { base } = locals;
@@ -48,6 +61,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		aujourdhui,
 		fiche,
 		raison: await raisonDeProtection(locals, acteur, fiche, aujourdhui),
+		ecrire: await peutEcrire(locals, acteur, fiche.id, aujourdhui),
 		grades: await base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
 		profils: await base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
 		equipes: await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
@@ -102,7 +116,7 @@ export const actions: Actions = {
 	},
 
 	statut: async ({ locals, params, request }) => {
-		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
+		const { acteur, id } = await lireFiche(locals, params.id);
 		const formulaire = await request.formData();
 		const statut = STATUTS_OPERATIONNELS.find((s) => s === formulaire.get('statut'));
 		const valeurs = { statut: String(formulaire.get('statut') ?? '') };
@@ -111,7 +125,7 @@ export const actions: Actions = {
 		if (statut === 'parti' && formulaire.get('confirmation') !== 'oui')
 			return fail<Reponse>(400, { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs });
 		try {
-			await changerStatut(locals.base, acteur, id, statut, aujourdhui);
+			await changerStatut(locals.base, locals.basePhotos, acteur, id, statut, maintenantParis());
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}

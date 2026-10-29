@@ -7,6 +7,8 @@
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
+	// Chaque nuit à 3 h 30 (UTC), les messages plus vieux que la durée de conservation du centre sont effacés.
+	"triggers": { "crons": ["30 3 * * *"] },
 	// database_id : remplissage, le vrai identifiant sera posé avec le déploiement.
 	"d1_databases": [
 		{

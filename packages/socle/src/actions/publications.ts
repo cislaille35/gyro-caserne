@@ -4,16 +4,15 @@ import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
-import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { tenuesValides } from '../casquettes.ts';
+import { REPONSES_EVENEMENT, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
+import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from '../commun.ts';
 import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
+import { aLaMessagerie } from '../messagerie.ts';
 import { nomActeur } from './personnes.ts';
 
-const PHOTOS_MAX = 4;
-export const TAILLE_PHOTO_MAX = 200 * 1024;
 // D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
 const EPINGLEES_MAX = 10;
 const PAGE_MAX = 30;
@@ -26,14 +25,15 @@ export type DonneesPublication = {
 	priseDeConnaissance?: boolean;
 	evenement?: { debut: string; lieu: string; convoques: Convoques };
 	sondage?: { question: string; reponses: string[]; ouverture: string; cloture: string };
-	photos?: { type: string; donnees: Uint8Array }[];
+	photos?: Photo[];
 };
 
 export type PublicationVue = {
 	id: number;
 	cle: CleMur;
 	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef d’équipe. Null pour un auteur parti ou le super administrateur.
-	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null };
+	// `ecrireA` : l'auteur, à qui l'acteur peut répondre en privé (il a la messagerie, et ce n'est pas l'acteur) ; null sinon.
+	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null; ecrireA: number | null };
 	type: TypePublication;
 	texte: string;
 	creeLe: string;
@@ -53,33 +53,6 @@ export type PublicationVue = {
 	derniersCommentaires: CommentaireVue[];
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
-
-// `feminin` : accord du message (« Question trop longue »).
-export function texte(valeur: unknown, libelle: string, max: number, feminin = false): string {
-	const propre = typeof valeur === 'string' ? valeur.trim() : '';
-	if (!propre) throw new DonneeInvalide(`${libelle} vide`);
-	if (propre.length > max) throw new DonneeInvalide(`${libelle} trop long${feminin ? 'ue' : ''}`);
-	return propre;
-}
-
-// Le type déclaré ne suffit pas : on vérifie les premiers octets du fichier.
-function estDuType(type: string, o: Uint8Array): boolean {
-	const ascii = (debut: number, fin: number) => String.fromCharCode(...o.subarray(debut, fin));
-	if (type === 'image/jpeg') return o[0] === 0xff && o[1] === 0xd8 && o[2] === 0xff;
-	if (type === 'image/webp') return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
-	return false;
-}
-
-function exigerPhotos(valeur: DonneesPublication['photos']) {
-	const photos = valeur ?? [];
-	if (!Array.isArray(photos)) throw new DonneeInvalide('Photos invalides');
-	if (photos.length > PHOTOS_MAX) throw new DonneeInvalide(`${PHOTOS_MAX} photos au plus`);
-	for (const p of photos) {
-		if (!p || !(TYPES_PHOTO as readonly string[]).includes(p.type) || !(p.donnees instanceof Uint8Array) || !estDuType(p.type, p.donnees)) throw new DonneeInvalide('Photo JPEG ou WebP seulement');
-		if (p.donnees.length > TAILLE_PHOTO_MAX) throw new DonneeInvalide('Photo trop lourde (200 Ko au plus)');
-	}
-	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
-}
 
 export type EtatSondage = 'avenir' | 'ouvert' | 'ferme';
 
@@ -156,25 +129,10 @@ export async function publier(base: Base, basePhotos: BasePhotos, acteur: Acteur
 	] as const;
 	// Le batch est une transaction : aucune autre écriture ne s'intercale, et AUTOINCREMENT donne le plus grand id à la publication qui vient d'être insérée.
 	const derniere = sql`(select max(${publication.id}) from ${publication})`;
-	if (photos.length === 0) {
-		const [lignes] = await base.batch(ecritures);
+	return avecPhotos(basePhotos, photos, maintenant, async (ids) => {
+		const [lignes] = await base.batch(ids.length === 0 ? ecritures : [...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, photoId: ids[ordre]! })))]);
 		return lignes[0]!.id;
-	}
-	const [premiere, ...autres] = photos.map((p) =>
-		basePhotos.insert(octetsPhoto).values({ type: p.type, donnees: p.donnees, taille: p.donnees.length, creeLe: maintenant }).returning({ id: octetsPhoto.id })
-	);
-	const ids = (await basePhotos.batch([premiere!, ...autres])).map(([ligne]) => ligne!.id);
-	try {
-		const [lignes] = await base.batch([...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, photoId: ids[ordre]! })))]);
-		return lignes[0]!.id;
-	} catch (erreur) {
-		// Publication non enregistrée : ses photos sont effacées. Si cet effacement échoue aussi, elles restent orphelines ; on signale la première erreur.
-		await basePhotos
-			.delete(octetsPhoto)
-			.where(inArray(octetsPhoto.id, ids))
-			.catch(() => {});
-		throw erreur;
-	}
+	});
 }
 
 // « fermer » : fermer les commentaires s'ils sont ouverts (auteur ou modérateur), les rouvrir sinon (modérateur seulement).
@@ -189,6 +147,12 @@ export async function cible(base: Base, acteur: Acteur, id: number, aujourdhui: 
 	if (!ligne) throw new DonneeInvalide('Publication inconnue');
 	const { mur, appartenances } = await accesMur(base, acteur, ligne.mur, aujourdhui, 'lire');
 	return { ligne, mur, appartenances, cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
+}
+
+// Le texte d'une publication, si l'acteur peut lire son mur (« Répondre en privé »). Deux requêtes.
+export async function textePublication(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<string> {
+	exigerDate(aujourdhui);
+	return (await cible(base, acteur, id, aujourdhui)).ligne.texte;
 }
 
 const journalPublication = (base: Base, acteur: Acteur, action: string, id: number, maintenant: string, details?: object) =>
@@ -210,12 +174,7 @@ export async function supprimerPublication(base: Base, basePhotos: BasePhotos, a
 		base.delete(publication).where(eq(publication.id, id)),
 		journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })
 	]);
-	if (photos.length === 0) return;
-	// La publication est déjà supprimée : si l'effacement des octets échoue, ils restent orphelins (place perdue, rien de visible), sans gêner l'agent.
-	await basePhotos
-		.delete(octetsPhoto)
-		.where(inArray(octetsPhoto.id, photos.map((p) => p.photoId)))
-		.catch(() => {});
+	await effacerPhotos(basePhotos, photos.map((p) => p.photoId));
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
@@ -286,21 +245,11 @@ export async function lirePublication(base: Base, acteur: Acteur, id: number, ma
 export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
 	auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
 
-const ROLES = [
-	['chef_centre', 'Chef de centre'],
-	['chef_centre_adjoint', 'Adjoint'],
-	['chef_equipe', 'Chef d’équipe']
-] as const;
-
 // Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
 function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {
 	if (personneId === null || !agents.some((a) => a.id === personneId)) return { couleur: null, role: null };
 	const affectation = affectations.find((x) => x.personneId === personneId);
-	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
-	return {
-		couleur: equipes.find((e) => e.id === affectation?.equipeId)?.couleur ?? null,
-		role: ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null
-	};
+	return { couleur: equipes.find((e) => e.id === affectation?.equipeId)?.couleur ?? null, role: roleDe(tenues, personneId) };
 }
 
 const PRESENTS_MAX = 3;
@@ -362,7 +311,10 @@ async function vuesDe(
 			.orderBy(sql`${reponseEvenement}.rowid`),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
+		base
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, messagerie: sql<number>`${aLaMessagerie(personne.id, aujourdhui)}` })
+			.from(personne)
+			.where(inArray(personne.id, idsAuteurs)),
 		base
 			.select({ id: commentaire.id, publicationId: commentaire.publicationId, auteur: commentaire.auteur, texte: commentaire.texte, creeLe: commentaire.creeLe, prenom: personne.prenom, nom: personne.nom })
 			.from(commentaire)
@@ -410,10 +362,11 @@ async function vuesDe(
 		const droits = droitsSur(acteur, mur, p);
 		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
 		const etat = etatSondage(p.sondageOuverture, p.sondageCloture, maintenant);
+		const fiche = auteurs.find((a) => `personne:${a.id}` === p.auteur);
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
-			auteur: { ...auteurVu(p.auteur, auteurs.find((a) => `personne:${a.id}` === p.auteur)), ...visage(lus, equipes, idPersonne(p.auteur)) },
+			auteur: { ...auteurVu(p.auteur, fiche), ...visage(lus, equipes, idPersonne(p.auteur)), ecrireA: fiche?.messagerie === 1 && fiche.id !== moi ? fiche.id : null },
 			type: p.type,
 			texte: p.texte,
 			creeLe: p.creeLe,
@@ -476,9 +429,7 @@ export async function photo(base: Base, basePhotos: BasePhotos, acteur: Acteur, 
 		.where(eq(photoPublication.id, idPhoto));
 	if (!ligne) throw new DonneeInvalide('Photo inconnue');
 	await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	const [octets] = await basePhotos.select({ type: octetsPhoto.type, donnees: octetsPhoto.donnees }).from(octetsPhoto).where(eq(octetsPhoto.id, ligne.photoId));
-	if (!octets) throw new DonneeInvalide('Photo inconnue');
-	return octets;
+	return lireOctets(basePhotos, ligne.photoId);
 }
 
 // Une base D1 gratuite tient 500 Mo : alerte à 80 %, pour choisir à temps entre l'offre payante et un stockage R2 (décision 0010).

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { attribution, comite, lireMur, personne, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribution, comite, lireMur, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { locaux, preparer } from './de-test.ts';
 import { load } from './+layout.server';
@@ -130,6 +130,7 @@ describe('liste des murs', () => {
 		// SvelteKit ne relance ce chargement que s'il a lu l'adresse.
 		let lue = false;
 		const url = {
+			searchParams: new URLSearchParams(),
 			get pathname() {
 				lue = true;
 				return '/echanges/centre';
@@ -140,5 +141,29 @@ describe('liste des murs', () => {
 		await lireMur(base, alice, 'vie', {}, maintenantParis());
 		const apres = await charger(locaux(base, alice), new URL('http://x/echanges/centre'));
 		expect(apres.sections.groupes.find((m: { cle: string }) => m.cle === 'vie').nouveautes).toBe(0);
+	});
+
+	it('dit si la messagerie est ouverte : oui pour un agent, non pour un extérieur ou le super administrateur', async () => {
+		const { base, alice } = await preparer();
+		expect((await charger(locaux(base, alice))).messagerie).toBe(true);
+		const [ext] = await base.select().from(profil).where(eq(profil.typePersonne, 'exterieur'));
+		const [p] = await base.insert(personne).values({ email: 'ext@exemple.fr', prenom: 'Ext', nom: 'Rieur', profilId: ext!.id }).returning();
+		expect((await charger(locaux(base, { type: 'personne', id: p!.id }))).messagerie).toBe(false);
+		expect((await charger(locaux(base, { type: 'super', email: 'a@b.fr' }))).messagerie).toBe(false);
+	});
+
+	it('au retour d’un refus de la messagerie, la raison est dite', async () => {
+		const { base, alice } = await preparer();
+		expect((await charger(locaux(base, alice))).avis).toBeNull();
+		expect((await charger(locaux(base, alice), new URL('http://x/echanges?refus=messagerie'))).avis).toBe('La messagerie n’est pas ouverte à votre profil.');
+	});
+
+	it('sous /echanges/messages : les murs ne sont pas lus', async () => {
+		const { base, alice } = await preparer();
+		const avant = base.requetes;
+		const data = await charger(locaux(base, alice), new URL('http://x/echanges/messages'));
+		expect(base.requetes - avant).toBe(0);
+		expect(data.sections).toEqual({ centre: null, groupes: [], autres: [], supervision: [] });
+		expect(data.aVenir).toEqual([]);
 	});
 });

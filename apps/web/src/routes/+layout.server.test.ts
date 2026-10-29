@@ -1,11 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, comite, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribuer, chargerJeuDeDepart, comite, envoyer, personne, profil, publier, repondreEvenement, responsabilite, signaler } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { load } from './+layout.server';
+
+// Pour vérifier que la cloche compte les signalements sans les lire.
+const socle = vi.hoisted(() => ({ signalements: undefined as unknown as ReturnType<typeof vi.fn> }));
+vi.mock('@gyro-caserne/socle', async (importer) => {
+	const vrai = await importer<typeof import('@gyro-caserne/socle')>();
+	socle.signalements = vi.fn(vrai.signalements);
+	return { ...vrai, signalements: socle.signalements };
+});
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -84,12 +92,46 @@ describe('load du layout', () => {
 		expect((await appeler(null, base)).cloche).toBe(0);
 	});
 
+	it('la cloche : les messages signalés, pour qui modère la messagerie (chef de centre, super administrateur) seulement', async () => {
+		const { base, chef, alice, bruno } = await preparer();
+		const m = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Texte grave' }, maintenantParis());
+		await signaler(base, alice, m.message, maintenantParis());
+		expect((await appeler(chef, base)).cloche).toBe(1);
+		expect((await appeler(super_, base)).cloche).toBe(1);
+		expect((await appeler(alice, base)).cloche).toBe(0);
+		expect((await appeler(bruno, base)).cloche).toBe(0);
+		// Un simple compte : les copies des messages signalés ne sont pas lues.
+		expect(socle.signalements).not.toHaveBeenCalled();
+	});
+
 	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {
 		const { base, alice } = await preparer();
 		const enPanne = new Proxy(base, { get: (cible, cle) => (cle === 'batch' ? () => Promise.reject(new Error('D1 indisponible')) : Reflect.get(cible, cle)) });
 		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
 		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, cloche: 0 });
 		expect(erreur).toHaveBeenCalled();
+		erreur.mockRestore();
+	});
+
+	it('compte les messages non lus pour la pastille d’Échanges ; 0 pour le super administrateur, le visiteur, ou si la lecture échoue', async () => {
+		const { base, alice, bruno } = await preparer();
+		await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, maintenantParis());
+		expect((await appeler(alice, base)).nonLus).toBe(1);
+		expect((await appeler(super_, base)).nonLus).toBe(0);
+		expect((await appeler(null, base)).nonLus).toBe(0);
+		// Seul le compte des non-lus (une sélection de « n ») tombe en panne.
+		const select = base.select.bind(base) as (champs?: object) => unknown;
+		const enPanne = new Proxy(base, {
+			get: (cible, cle) =>
+				cle === 'select'
+					? (champs?: object) => {
+							if (champs && 'n' in champs) throw new Error('D1 indisponible');
+							return select(champs);
+						}
+					: Reflect.get(cible, cle)
+		});
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, nonLus: 0 });
 		erreur.mockRestore();
 	});
 });

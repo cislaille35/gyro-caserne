@@ -1,4 +1,4 @@
-import { aNePasManquer, anniversairesDuJour, apercusDesMurs, mursDe, type ApercuMur, type Mur } from '@gyro-caserne/socle';
+import { aNePasManquer, anniversairesDuJour, apercusDesMurs, exigerMessagerie, mursDe, RefusDroit, type ApercuMur, type Mur } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { LayoutServerLoad } from './$types';
@@ -8,14 +8,23 @@ export type TuileMur = ApercuMur & Pick<Mur, 'nom' | 'type' | 'lectureSeule'> & 
 // La liste des murs rangée en sections, avec ce qui se passe aujourd'hui au centre et ce qui vient.
 export const load: LayoutServerLoad = async ({ locals, url }) => {
 	// Lire l'adresse fait relancer ce chargement à chaque navigation : la pastille d'un mur qu'on vient de quitter disparaît.
-	void url.pathname;
+	const surMessages = url.pathname === '/echanges/messages' || url.pathname.startsWith('/echanges/messages/');
 	const acteur = exigerActeur(locals);
+	// Les messages ont leur propre chargement : les murs ne sont pas lus.
+	if (surMessages) return { messagerie: true, avis: null, sections: { centre: null, groupes: [], autres: [], supervision: [] }, aujourdhui: { anniversaires: [], evenement: null }, aVenir: [] };
 	const aujourdhui = aujourdhuiParis();
-	const [murs, apercus, { annonces, evenements, nouveautes }, anniversaires] = await Promise.all([
+	const [murs, apercus, { annonces, evenements, nouveautes }, anniversaires, messagerie] = await Promise.all([
 		mursDe(locals.base, acteur, aujourdhui),
 		apercusDesMurs(locals.base, acteur, aujourdhui),
 		aNePasManquer(locals.base, acteur, aujourdhui, maintenantParis()),
-		anniversairesDuJour(locals.base, aujourdhui)
+		anniversairesDuJour(locals.base, aujourdhui),
+		exigerMessagerie(locals.base, acteur, aujourdhui).then(
+			() => true,
+			(erreur) => {
+				if (erreur instanceof RefusDroit) return false;
+				throw erreur;
+			}
+		)
 	]);
 
 	const tuiles: TuileMur[] = murs.map((m) => ({
@@ -33,6 +42,9 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const evenement = evenements.find((e) => e.reponse === null);
 
 	return {
+		// Les filtres « Murs » | « Messages » ne s'affichent qu'à qui a la messagerie.
+		messagerie,
+		avis: url.searchParams.get('refus') === 'messagerie' ? 'La messagerie n’est pas ouverte à votre profil.' : null,
 		sections: {
 			centre: tuiles.find((t) => t.type === 'centre') ?? null,
 			// Mon équipe, puis Vie du centre, puis mes comités, ceux qui ont du neuf d'abord.

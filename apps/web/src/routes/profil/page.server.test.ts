@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { personne } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
+import { preparer as avecLeCentre } from '../echanges/de-test.ts';
 import { actions, load } from './+page.server';
 
 const super_ = { type: 'super', email: 'admin@exemple.fr' } as const;
@@ -27,13 +28,15 @@ describe('/profil : load', () => {
 
 	it('donne un profil nul au super administrateur', async () => {
 		const { base } = await preparer();
-		expect(await charger({ base, acteur: super_ })).toEqual({ profil: null });
+		expect(await charger({ base, acteur: super_ })).toEqual({ profil: null, messagerie: false });
 	});
 
 	it('charge les valeurs de l\'agent', async () => {
 		const { base, acteur } = await preparer();
 		expect(await charger({ base, acteur })).toEqual({
-			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, anniversaireVisible: true }
+			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, anniversaireVisible: true, cochesLecture: true },
+			// Sans profil, pas de messagerie : pas de case pour les coches.
+			messagerie: false
 		});
 	});
 });
@@ -63,5 +66,18 @@ describe('/profil : envoi', () => {
 		expect(await envoyer({ base, acteur }, { surnom: 'x'.repeat(61) })).toMatchObject({ status: 400, data: { erreurs: { surnom: 'Surnom trop long' } } });
 		expect(await envoyer({ base, acteur }, { contactUrgence: 'x'.repeat(201) })).toMatchObject({ status: 400, data: { erreurs: { contactUrgence: 'Contact d’urgence trop long' } } });
 		expect((await lire(base, acteur.id)).surnom).toBe('Ali');
+	});
+
+	it('les coches de lecture : la case est envoyée avec son repère ; décochée, elles sont coupées ; sans repère, rien ne change', async () => {
+		const { base, alice } = await avecLeCentre();
+		expect((await charger({ base, acteur: alice })).messagerie).toBe(true);
+		await envoyer({ base, acteur: alice }, { surnom: '', telephone: '', contactUrgence: '', avecCoches: '1' });
+		expect((await lire(base, alice.id)).cochesLecture).toBe(0);
+		// Un formulaire sans la case (pas de messagerie) ne touche pas aux coches.
+		await envoyer({ base, acteur: alice }, { surnom: '', telephone: '', contactUrgence: '', cochesLecture: 'on' });
+		expect((await lire(base, alice.id)).cochesLecture).toBe(0);
+		await envoyer({ base, acteur: alice }, { surnom: '', telephone: '', contactUrgence: '', avecCoches: '1', cochesLecture: 'on' });
+		expect((await lire(base, alice.id)).cochesLecture).toBe(1);
+		expect((await charger({ base, acteur: alice })).profil.cochesLecture).toBe(true);
 	});
 });

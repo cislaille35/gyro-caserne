@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 
 	let { data } = $props();
@@ -26,7 +27,8 @@
 			</li>
 		{/each}
 	</ul>
-	<form method="POST" action="?/deconnecter">
+	<!-- En partant, les brouillons de messages ne restent pas sur l'appareil pour le compte suivant. -->
+	<form method="POST" action="?/deconnecter" onsubmit={oublierBrouillons}>
 		<Bouton type="submit" variante="secondaire">Se déconnecter</Bouton>
 	</form>
 </div>

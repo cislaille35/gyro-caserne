@@ -30,7 +30,12 @@ export interface Centre {
 		/** Une date de prise d'astreinte connue (AAAA-MM-JJ) et l'équipe qui l'a prise */
 		reference: { date: string; equipe: number };
 	};
+	/** Durée de conservation des messages de la messagerie, en mois (12 si omise) ; ensuite, ils sont effacés */
+	conservationMessagesMois?: number;
 }
+
+/** Un centre déclaré par defineCentre : les valeurs par défaut sont posées. */
+export type CentreDeclare = Centre & { conservationMessagesMois: number };
 
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -72,12 +77,14 @@ export function erreursCentre(centre: Centre): string[] {
 	if (!centre.equipes.some((e) => e.numero === reference.equipe)) {
 		erreurs.push(`astreinte, référence : équipe ${reference.equipe} inconnue`);
 	}
+	const mois = centre.conservationMessagesMois;
+	if (mois !== undefined && !(Number.isInteger(mois) && mois >= 1)) erreurs.push(`conservation des messages : ${mois} mois, un nombre entier de 1 au moins attendu`);
 	return erreurs;
 }
 
 /** Déclare un centre : refuse une description incorrecte dès la compilation de l'appli. */
-export function defineCentre(centre: Centre): Centre {
+export function defineCentre(centre: Centre): CentreDeclare {
 	const erreurs = erreursCentre(centre);
 	if (erreurs.length) throw new Error(`Centre « ${centre.id} » mal décrit :\n- ${erreurs.join('\n- ')}`);
-	return centre;
+	return { ...centre, conservationMessagesMois: centre.conservationMessagesMois ?? 12 };
 }

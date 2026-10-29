@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -99,6 +99,29 @@ for (const theme of ['auto', 'sombre']) {
 						await toutOuvrir(page);
 						await sansViolation(page);
 						if (mouvement === 'reduce') expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+					}
+				});
+			});
+		}
+
+		// La messagerie, remplie : la liste, nouveau message, un groupe et ses infos, une conversation à deux, au niveau Vivant.
+		for (const mouvement of ['no-preference', 'reduce'] as const) {
+			test.describe(`messagerie, niveau vivant, mouvement ${mouvement}`, () => {
+				test.use({ storageState: ETAT_CONNECTE, reducedMotion: mouvement });
+
+				test('la liste, nouveau message, une conversation et ses infos sans violation, sans débord', async ({ page, context }) => {
+					await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
+					const groupe = await groupeAvecMessages(page, `Groupe ${nouvelleMarque()}`);
+					await page.goto('/echanges/messages/nouveau');
+					await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
+					await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
+					const aDeux = new URL(page.url()).pathname;
+					for (const chemin of ['/echanges/messages', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', groupe, `${groupe}/infos`, aDeux]) {
+						await page.goto(chemin);
+						await page.waitForLoadState('networkidle');
+						await sansViolation(page);
+						expect(await page.evaluate(() => document.documentElement.scrollWidth), chemin).toBeLessThanOrEqual(page.viewportSize()!.width);
+						if (mouvement === 'reduce') expect(await page.evaluate(() => document.getAnimations().length), chemin).toBe(0);
 					}
 				});
 			});
@@ -196,6 +219,25 @@ for (const theme of ['auto', 'sombre']) {
 			});
 		});
 	});
+}
+
+// Un groupe avec les deux premières personnes de l'annuaire, et deux messages (dont une réponse) : son adresse.
+async function groupeAvecMessages(page: Page, nom: string): Promise<string> {
+	await page.goto('/echanges/messages/nouveau/groupe');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label.ligne').nth(0).click();
+	await page.locator('label.ligne').nth(1).click();
+	await page.getByRole('button', { name: 'Suivant' }).click();
+	await page.getByLabel('Nom du groupe').fill(nom);
+	await page.getByRole('button', { name: 'Créer' }).click();
+	await page.waitForURL(/\/echanges\/messages\/\d+$/);
+	await page.waitForLoadState('networkidle');
+	for (const texte of ['Qui vient samedi ?', 'Moi, avec le gâteau.']) {
+		await page.getByRole('textbox', { name: 'Votre message' }).fill(texte);
+		await page.getByRole('button', { name: 'Envoyer' }).click();
+		await expect(page.getByRole('log').getByText(texte, { exact: true })).toBeVisible();
+	}
+	return new URL(page.url()).pathname;
 }
 
 // Ouvre les groupes repliés et les blocs <details> de la page.

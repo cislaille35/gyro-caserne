@@ -9,6 +9,7 @@ import { comite, equipe, grade, personne, profil, profilDroit, responsabilite, r
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
+const midi = `${aujourdhui}T12:00`;
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
 
 describe('chargerJeuDeDepart', () => {
@@ -127,8 +128,8 @@ describe('chargerJeuDeDepart', () => {
 		await attribuer(base, superAdmin, { personneId: chef, responsabiliteId: respChef!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
 		await attribuer(base, { type: 'personne', id: chef }, { personneId: adjoint, responsabiliteId: respAdjoint!.id, perimetre: { type: 'centre' }, debut: '2026-01-01' }, aujourdhui);
 
-		await changerStatut(base, superAdmin, suspendu, 'suspendu', aujourdhui);
-		await changerStatut(base, { type: 'personne', id: adjoint }, suspendu, 'operationnel', aujourdhui);
+		await changerStatut(base, base.photos, superAdmin, suspendu, 'suspendu', midi);
+		await changerStatut(base, base.photos, { type: 'personne', id: adjoint }, suspendu, 'operationnel', midi);
 		const [fiche] = await base.select().from(personne).where(eq(personne.id, suspendu));
 		expect(fiche!.statut).toBe('operationnel');
 	});

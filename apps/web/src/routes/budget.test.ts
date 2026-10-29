@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, commentaire, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
-import { load as notifications } from './notifications/+page.server';
+import { actions as actionsNotifications, load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
+import { load as messages } from './echanges/messages/+page.server';
+import { load as layoutMessages } from './echanges/messages/+layout.server';
+import { GET as pastille } from './echanges/messages/pastille/+server';
+import { load as nouveauMessage } from './echanges/messages/nouveau/+page.server';
+import { actions as actionsConversation, load as conversationOuverte } from './echanges/messages/[id]/+page.server';
+import { GET as suite } from './echanges/messages/[id]/suite/+server';
+import { actions as actionsGroupe, load as nouveauGroupe } from './echanges/messages/nouveau/groupe/+page.server';
+import { actions as actionsInfos, load as infos } from './echanges/messages/[id]/infos/+page.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { actions as actionsPublier, load as pagePublier } from './echanges/publier/+page.server';
 import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
@@ -149,9 +157,37 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		}
 		const n = await compter(async () => {
 			await (racine as any)({ locals: deLAgent });
-			await (notifications as any)({ locals: deLAgent });
+			await (notifications as any)({ locals: deLAgent, url: new URL('http://localhost/notifications') });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/notifications du chef de centre : 30 messages signalés ; retirer et classer, puis le rechargement', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(31);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 30);
+		for (const [i, id] of ids.entries()) {
+			const auteur = ids[(i + 1) % ids.length]!;
+			const { message: m } = await envoyer(base, base.photos, { type: 'personne', id: auteur }, { personne: id }, { texte: `Grave ${i}` }, maintenantParis());
+			await signaler(base, { type: 'personne', id }, m, maintenantParis());
+		}
+		// La racine, sur chaque page : la cloche n'y ajoute qu'un compte, sans lire les 30 copies.
+		expect(await compter(() => (racine as any)({ locals }))).toBeLessThanOrEqual(11);
+		let liste: { id: number }[] = [];
+		const page = await compter(async () => {
+			expect((await (racine as any)({ locals })).cloche).toBe(30);
+			liste = (await (notifications as any)({ locals, url: new URL('http://localhost/notifications') })).signalements;
+		});
+		expect(liste).toHaveLength(30);
+		expect(page).toBeLessThanOrEqual(BUDGET);
+		for (const [nom, s] of [['retirer', liste[0]!], ['classer', liste[1]!]] as const) {
+			const n = await compter(async () => {
+				expect(await (actionsNotifications as any)[nom]({ locals, request: await requeteFormulaire([['id', String(s.id)]]) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals });
+				await (notifications as any)({ locals, url: new URL('http://localhost/notifications') });
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
 	});
 
 	it('/echanges : la liste rangée en sections', async () => {
@@ -242,5 +278,116 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n2, nom).toBeLessThanOrEqual(BUDGET);
 		}
+	});
+
+	it('/echanges/messages : 30 conversations, dont un groupe de 60 ; la pastille en 2 requêtes au plus', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id);
+		for (const id of ids.slice(0, 29)) await envoyer(base, base.photos, { type: 'personne', id }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
+		await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids.slice(0, 59) }, maintenantParis());
+		const url = new URL('http://localhost/echanges/messages');
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			const { conversations } = await (messages as any)({ locals, url, depends: () => {} });
+			expect(conversations).toHaveLength(30);
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(() => (pastille as any)({ locals }))).toBeLessThanOrEqual(2);
+	});
+
+	it('/echanges/messages/nouveau, puis un groupe de 60 : chaque étape et la création', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 59);
+		for (const id of ids.slice(0, 30)) await envoyer(base, base.photos, { type: 'personne', id }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
+		const page = async (chemin: string, charger: () => Promise<unknown>) =>
+			compter(async () => {
+				await (racine as any)({ locals });
+				await (echanges as any)({ locals, url: new URL(`http://localhost${chemin}`) });
+				await charger();
+			});
+		const url = (q: string) => new URL(`http://localhost/echanges/messages/nouveau/groupe${q}`);
+		const n = [
+			await page('/echanges/messages/nouveau', async () => expect((await (nouveauMessage as any)({ locals, url: new URL('http://localhost/echanges/messages/nouveau') })).personnes).toHaveLength(150)),
+			await page('/echanges/messages/nouveau/groupe', () => (nouveauGroupe as any)({ locals, url: url('?equipe=1') })),
+			await page('/echanges/messages/nouveau/groupe', () => (nouveauGroupe as any)({ locals, url: url(`?etape=nom&nom=Tous${ids.map((id) => `&membres=${id}`).join('')}`) })),
+			await compter(async () => {
+				const request = await requeteFormulaire([['nom', 'Tous'], ...ids.map((id): [string, string] => ['membres', String(id)])]);
+				await expect((actionsGroupe.creer as any)({ locals, request })).rejects.toMatchObject({ status: 303 });
+			})
+		];
+		for (const x of n) expect(x).toBeLessThanOrEqual(BUDGET);
+	});
+	it('/echanges/messages/[id] : un groupe de 60 et 2 000 messages, par « Répondre en privé » ; l’envoi ; la suite en 3 requêtes au plus', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 59);
+		const id = await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids }, '2026-10-01T09:00');
+		const lignes = Array.from({ length: 2000 }, (_, i) => ({ conversationId: id, auteur: ids[i % 59]!, texte: `Message ${i}`, creeLe: '2026-10-02T10:00:00', majLe: '2026-10-02T10:00:00' }));
+		for (let i = 0; i < lignes.length; i += 10) await base.insert(message).values(lignes.slice(i, i + 10));
+		const params = { id: String(id) };
+		const url = new URL(`http://localhost/echanges/messages/${id}`);
+		let vue: { messages: { id: number }[]; majLe: string } | undefined;
+		// Avec 30 autres conversations pour la colonne de gauche.
+		for (const autre of ids.slice(0, 30)) await envoyer(base, base.photos, { type: 'personne', id: autre }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
+		// Arrivée par « Répondre en privé » : la publication est lue par le serveur.
+		const pub = await publier(base, base.photos, { type: 'personne', id: ids[0]! }, 'vie', { type: 'message', texte: 'Repas de Noël' }, maintenantParis());
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			expect((await (layoutMessages as any)({ locals, url, depends: () => {} })).conversations).toHaveLength(31);
+			const page = await (conversationOuverte as any)({ locals, params, url: new URL(`${url}?publication=${pub}`) });
+			expect(page.prerempli).toBe('À propos de « Repas de Noël » : ');
+			vue = page.vue;
+		});
+		expect(vue!.messages).toHaveLength(40);
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		const envoi = await compter(async () => {
+			await expect((actionsConversation.envoyer as any)({ locals, params, url, request: await requeteFormulaire([['texte', 'Bonjour à tous']]) })).rejects.toMatchObject({ status: 303 });
+		});
+		expect(envoi).toBeLessThanOrEqual(BUDGET);
+		const dernier = vue!.messages.at(-1)!.id;
+		const tour = await compter(() => (suite as any)({ locals, params, url: new URL(`http://localhost/echanges/messages/${id}/suite?dernier=${dernier}&maj=${encodeURIComponent(vue!.majLe)}`) }));
+		expect(tour).toBeLessThanOrEqual(3);
+	});
+
+	it('/echanges/messages/[id]/infos : un groupe de 60 ; chaque geste ; l’ajout de membres', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(62);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id);
+		const id = await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids.slice(0, 58) }, '2026-10-01T09:00');
+		const params = { id: String(id) };
+		const url = new URL(`http://localhost/echanges/messages/${id}/infos`);
+		const page = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			expect((await (infos as any)({ locals, params, url })).infos.membres).toHaveLength(59);
+		});
+		expect(page).toBeLessThanOrEqual(BUDGET);
+		const geste = (nom: keyof typeof actionsInfos, corps: [string, string][]) => compter(async () => void (await (actionsInfos[nom] as any)({ locals, params, url, request: await requeteFormulaire(corps) }).catch(() => {})));
+		for (const n of [await geste('nommer', [['personne', String(ids[0])]]), await geste('retirer', [['personne', String(ids[1])]]), await geste('renommer', [['nom', 'Tous']])]) expect(n).toBeLessThanOrEqual(BUDGET);
+		// À deux : la fiche courte, et « Voir la fiche » pour le chef de centre.
+		const { conversation: aDeux } = await envoyer(base, base.photos, locals.acteur, { personne: ids[0]! }, { texte: 'Bonjour' }, maintenantParis());
+		const urlDeux = new URL(`http://localhost/echanges/messages/${aDeux}/infos`);
+		const deux = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url: urlDeux });
+			expect((await (infos as any)({ locals, params: { id: String(aDeux) }, url: urlDeux })).fiche).toBe(`/agents/${ids[0]}`);
+		});
+		expect(deux).toBeLessThanOrEqual(BUDGET);
+		const ajout = new URL(`http://localhost/echanges/messages/nouveau/groupe?ajouter=${id}`);
+		const selection = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url: ajout });
+			await (nouveauGroupe as any)({ locals, url: ajout });
+		});
+		expect(selection).toBeLessThanOrEqual(BUDGET);
+		const envoi = await compter(async () => {
+			const request = await requeteFormulaire([['membres', String(ids[1])], ['membres', String(ids[60])]]);
+			await expect((actionsGroupe.ajouter as any)({ locals, url: ajout, request })).rejects.toMatchObject({ status: 303 });
+		});
+		expect(envoi).toBeLessThanOrEqual(BUDGET);
 	});
 });

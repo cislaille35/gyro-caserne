@@ -193,7 +193,7 @@ describe('connexion par le lien', () => {
 		expect(await auth.api.getSession({ headers: cookie })).not.toBeNull();
 
 		const [agent] = await base.select().from(personne);
-		await changerStatut(base, { type: 'super', email: 'admin@exemple.fr' }, agent!.id, 'suspendu', '2026-10-25');
+		await changerStatut(base, base.photos, { type: 'super', email: 'admin@exemple.fr' }, agent!.id, 'suspendu', '2026-10-25T10:00');
 		expect(await auth.api.getSession({ headers: cookie })).toBeNull();
 		expect(await acteurDe(base, 'agent@exemple.fr', [])).toBeNull();
 	});

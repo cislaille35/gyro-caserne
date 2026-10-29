@@ -277,6 +277,12 @@ describe('Visage', () => {
 		expect(html(Visage, { prenom: '', nom: 'Personne inconnue', couleur: null })).toContain('>P<');
 		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: 'rouge' })).toContain('var(--statut-neutre-fond)');
 	});
+	it('les tailles de « Nouveau message » : 48 et 44', () => {
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 48 })).toMatch(/class="visage[^"]*\bt48\b/);
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 44 })).toMatch(/class="visage[^"]*\bt44\b/);
+		// Les infos d'une conversation à deux.
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 88 })).toMatch(/class="visage[^"]*\bt88\b/);
+	});
 });
 
 describe('TuileDate', () => {
@@ -295,19 +301,19 @@ describe('Sondage', () => {
 	it('ouvert : son état, ses dates et les choix', () => {
 		const page = sondage();
 		expect(page).toContain('Ouvert');
-		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
+		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
 		expect(page).toMatch(/<button[^>]*name="reponse" value="0"[^>]*>Oui</);
 		expect(page).toContain('Résultats visibles après votre vote.');
 	});
 	it('à venir : « Ouvre le … », sans bouton de vote', () => {
 		const page = sondage({ ouverture: '2026-11-01T08:00', etat: 'avenir' });
-		expect(page).toContain('Ouvre le dimanche 1 nov., 8 h');
+		expect(page).toContain('Ouvre le dimanche 1 nov., 8 h');
 		expect(page).not.toContain('?/voter');
 	});
 	it('fermé : les résultats pour tous, aucun bouton de vote', () => {
 		const page = sondage({ etat: 'ferme', resultats: [3, 1] });
 		expect(page).toContain('Fermé');
-		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
+		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
 		expect(page).toContain('Oui : 3 voix, 75 %');
 		expect(page).toContain('4 réponses');
 		expect(page).not.toContain('?/voter');

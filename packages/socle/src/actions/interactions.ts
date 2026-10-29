@@ -1,5 +1,6 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
+import { texte } from '../commun.ts';
 import { exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
@@ -8,7 +9,7 @@ import { REPONSES_EVENEMENT, type ReponseEvenement } from '../listes.ts';
 import { agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur } from '../murs.ts';
 import { commentaire, jaime, personne, priseConnaissance, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
-import { cible, commentaireVu, etatSondage, texte, type Convoques } from './publications.ts';
+import { cible, commentaireVu, etatSondage, type Convoques } from './publications.ts';
 
 export type Personne = { id: number; prenom: string; nom: string };
 export type CommentaireVue = { id: number; auteur: { prenom: string; nom: string }; texte: string; creeLe: string; supprimable: boolean };

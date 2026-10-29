@@ -17,7 +17,8 @@
 		agir = false,
 		lectureSeule = false,
 		seule = false,
-		animer = false
+		animer = false,
+		messagerie = false
 	}: {
 		p: PublicationVue;
 		equipes?: { id: number; nom: string }[];
@@ -29,6 +30,8 @@
 		seule?: boolean;
 		// Gyro du bravo s'anime à l'arrivée : un seul par page.
 		animer?: boolean;
+		// La personne a la messagerie : « Répondre en privé » à l'auteur.
+		messagerie?: boolean;
 	} = $props();
 
 	const affichage = lireAffichageContexte();
@@ -47,6 +50,7 @@
 	);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
+	const prive = $derived(messagerie && p.auteur.ecrireA !== null ? `/echanges/messages/a/${p.auteur.ecrireA}?publication=${p.id}` : null);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);
 	const bravo = $derived(p.type === 'bravo');
 	const prise = $derived(p.priseDeConnaissance);
@@ -185,6 +189,7 @@
 				{/if}
 				{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
 			{/if}
+			{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
 			<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>
 		</div>
 

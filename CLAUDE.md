@@ -50,6 +50,7 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
 - Rien de propre à un centre dans le code : tout va dans `centres/<id>/`.
 - Dépendances : le moins possible, versions fixées, chaque ajout justifié dans la PR et reporté dans `docs/technique/`.
 - Téléphone et ordinateur comptent autant : on conçoit d'abord pour le téléphone, et un écran n'est fini que soigné aux deux tailles. Toutes les fonctions marchent partout.
+- Chaque écran est soigné et son point d'entrée pensé pour être fluide : c'est l'interface qui fait adopter l'appli.
 - Accessible dès le départ : RGAA (niveau AA des WCAG), utilisable au clavier, jamais une information portée par la seule couleur, « réduire les animations » respecté. Vérifié par des tests automatiques.
 - Ni humour ni animation sur les écrans d'urgence.
 

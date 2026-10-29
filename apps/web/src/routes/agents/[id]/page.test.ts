@@ -54,11 +54,17 @@ describe('page fiche agent', () => {
 			expect(page.match(/<h1/g)).toHaveLength(1);
 		});
 
-		it('« Écrire » ouvre la messagerie de l’appareil ; pas de lien « Appeler » sans téléphone', () => {
+		it('« Courriel » ouvre la messagerie de l’appareil ; pas de lien « Appeler » sans téléphone ; « Écrire » seulement par la messagerie', () => {
 			const page = html({ data, form: null });
-			expect(page).toMatch(/<a[^>]*href="mailto:alice@exemple\.fr"[^>]*>(<!--[^>]*-->)*Écrire/);
+			expect(page).toMatch(/<a[^>]*href="mailto:alice@exemple\.fr"[^>]*>(<!--[^>]*-->)*Courriel/);
 			expect(page).not.toContain('tel:');
 			expect(page).not.toContain('Appeler');
+			expect(page).not.toContain('Écrire');
+		});
+
+		it('« Écrire » ouvre la conversation dans l’appli', () => {
+			const page = html({ data: { ...data, ecrire: true }, form: null });
+			expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/a\/3"[^>]*>(<!--[^>]*-->)*Écrire/);
 		});
 
 		it('« Appeler » compose le numéro quand il existe', () => {

@@ -51,12 +51,16 @@
 	--icone-coeur-texte: #8a1f52;
 	--icone-outil-fond: #e6eef0;
 	--icone-outil-texte: #2f5560;
+	/* Mes bulles de message : une teinte chaude. */
+	--bulle-moi: #fbe1e4;
 
 	--police: 'Barlow', system-ui, sans-serif;
 	--police-titre: 'Barlow Condensed', 'Arial Narrow', sans-serif;
 	--rayon-petit: 6px;
 	--rayon-grand: 16px;
 	--cible: 44px;
+	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
+	--hauteur-entete: 69px;
 
 	color-scheme: light;
 }
@@ -108,6 +112,7 @@
 	--icone-coeur-texte: #f5a9cb;
 	--icone-outil-fond: #1c2c31;
 	--icone-outil-texte: #a9cdd6;
+	--bulle-moi: #4a2228;
 
 	color-scheme: dark;
 }
@@ -160,6 +165,7 @@
 	--icone-coeur-texte: #f5a9cb;
 	--icone-outil-fond: #1c2c31;
 	--icone-outil-texte: #a9cdd6;
+	--bulle-moi: #4a2228;
 
 		color-scheme: dark;
 	}

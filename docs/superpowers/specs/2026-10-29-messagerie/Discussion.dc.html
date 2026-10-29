@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Une conversation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0f4c8a}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 1000px; box-sizing: border-box; background: #f3eee7; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+  <header style="background: #ffffff; border-bottom: 1px solid #e3ddd5; padding: 8px 8px 8px 4px; display: flex; align-items: center; gap: 6px;">
+    <a href="Messages.dc.html" aria-label="Retour aux messages" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #1d2733; text-decoration: none;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+    <a href="InfosGroupe.dc.html" style="flex: 1; min-height: 48px; display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1d2733;">
+      <span aria-hidden="true" style="width: 42px; height: 42px; border-radius: 50%; background: #fbeaf1; color: #8a1f52; display: flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="3.5"></circle><circle cx="16.5" cy="10" r="2.8"></circle><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M14.5 14.4c2.6-.3 5 1.2 5.8 4.6"></path></svg></span>
+      <span style="display: flex; flex-direction: column; min-width: 0;">
+        <h1 style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Départ de Thomas</h1>
+        <span style="font-size: 13px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Claire, Manon, Romain, vous</span>
+      </span>
+    </a>
+  </header>
+
+  <div role="log" aria-label="Messages de Départ de Thomas" style="flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 3px; overflow: hidden;">
+    <p style="margin: 4px auto 8px; font-size: 13px; font-weight: 600; color: #4a5562; background: #e9e2d8; padding: 4px 12px; border-radius: 999px;">Hier</p>
+    <p style="margin: 0 auto 8px; font-size: 13px; color: #4a5562; text-align: center;">Romain a créé le groupe et ajouté Claire, Manon et vous</p>
+
+    <div style="align-self: flex-start; max-width: 80%; background: #ffffff; padding: 7px 10px 6px; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 1px rgba(29,39,51,.08);">
+      <strong style="display: block; font-size: 13px; color: #a3195b;">Romain</strong>
+      <span>Thomas part fin novembre. On lui fait une surprise ?</span>
+      <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">18 h 01</span>
+    </div>
+    <div style="align-self: flex-start; max-width: 80%; background: #ffffff; padding: 7px 10px 6px; border-radius: 16px; box-shadow: 0 1px 1px rgba(29,39,51,.08);">
+      <span>Pot au centre après la manœuvre du 5 ?</span>
+      <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">18 h 01</span>
+    </div>
+
+    <div style="align-self: flex-end; max-width: 80%; margin-top: 8px; background: #fbe1e4; padding: 7px 10px 6px; border-radius: 16px 4px 16px 16px; box-shadow: 0 1px 1px rgba(29,39,51,.08);">
+      <span>Carrément, je m’occupe de la carte.</span>
+      <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562; display: inline-flex; gap: 4px; align-items: center;">18 h 03 <span style="color: #0f4c8a; font-weight: 700;">✓✓</span><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">lu</span></span>
+    </div>
+
+    <p style="margin: 10px auto 8px; font-size: 13px; font-weight: 600; color: #4a5562; background: #e9e2d8; padding: 4px 12px; border-radius: 999px;">Aujourd’hui</p>
+    <p style="margin: 0 -10px 8px; padding: 6px; background: #fff4e0; color: #7a4a00; font-size: 13px; font-weight: 700; text-align: center;">2 messages non lus</p>
+
+    <div style="align-self: flex-start; max-width: 80%; background: #ffffff; padding: 7px 10px 6px; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 1px rgba(29,39,51,.08);">
+      <strong style="display: block; font-size: 13px; color: #0f4c8a;">Manon</strong>
+      <span style="display: block; margin: 2px 0 6px; padding: 5px 8px; border-left: 3px solid #a3195b; background: #f6f3ef; border-radius: 6px; font-size: 14px;"><strong style="color: #a3195b; font-size: 13px;">Vous</strong><br>Carrément, je m’occupe de la carte.</span>
+      <span>Super. Et j’ai trouvé le cadeau !</span>
+      <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">10 h 11</span>
+    </div>
+    <div style="align-self: flex-start; position: relative; max-width: 80%; margin-bottom: 14px;">
+      <div role="img" aria-label="Photo : le casque dédicacé" style="width: 230px; height: 150px; border-radius: 16px; background: linear-gradient(135deg, #d5dbe1, #eef1f4); display: flex; align-items: center; justify-content: center; color: #4a5562; font-size: 14px;">[Photo]</div>
+      <span style="position: absolute; left: 10px; bottom: -14px; background: #ffffff; border: 1px solid #e3ddd5; border-radius: 999px; padding: 1px 8px; font-size: 13px;">👏 2</span>
+    </div>
+  </div>
+
+  <div style="background: #ffffff; border-top: 1px solid #e3ddd5;">
+    <p style="margin: 0; padding: 8px 12px 0; display: flex; align-items: center; gap: 8px;">
+      <span style="flex: 1; padding: 5px 8px; border-left: 3px solid #0f4c8a; background: #f6f3ef; border-radius: 6px; font-size: 14px;"><strong style="color: #0f4c8a; font-size: 13px;">Réponse à Manon</strong><br>Super. Et j’ai trouvé le cadeau !</span>
+      <button type="button" aria-label="Annuler la réponse" style="width: 44px; height: 44px; border: 0; background: none; font-size: 20px; color: #4a5562;">✕</button>
+    </p>
+    <form style="padding: 8px 10px 12px; display: flex; align-items: flex-end; gap: 8px;">
+      <button type="button" aria-label="Ajouter une photo" style="width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: #f6f3ef; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></button>
+      <label style="flex: 1; display: flex;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Votre message</span>
+        <textarea rows="1" placeholder="Message" style="flex: 1; min-height: 44px; box-sizing: border-box; border-radius: 22px; border: 1px solid #c3ccd5; padding: 11px 16px; font: 400 16px 'Barlow', sans-serif; resize: none;">Trop bien, montre !</textarea>
+      </label>
+      <button type="submit" aria-label="Envoyer" style="width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: #b3121f; color: #ffffff; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-7z"></path></svg></button>
+    </form>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,14 @@
 	import type { Snippet } from 'svelte';
 	import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
-	let { chemin, connecte, nomCentre, cloche = 0, children }: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; children: Snippet } = $props();
+	let {
+		chemin,
+		connecte,
+		nomCentre,
+		cloche = 0,
+		nonLus = 0,
+		children
+	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; children: Snippet } = $props();
 
 	const entrees = $derived(entreesNavigation(connecte));
 	// Sans connexion, seule la page elle-même est marquée.
@@ -53,9 +60,13 @@
 
 	<nav aria-label="Navigation principale">
 		{#each entrees as entree (entree.href)}
+			{@const pastille = entree.href === '/echanges' && nonLus > 0}
 			<a href={entree.href} aria-current={courant(entree.href)}>
-				{@render icone(entree.icone)}
-				<span>{entree.libelle}</span>
+				<span class="dessin">
+					{@render icone(entree.icone)}
+					{#if pastille}<span class="nombre" aria-hidden="true">{nonLus > 99 ? '99+' : nonLus}</span>{/if}
+				</span>
+				<span>{entree.libelle}{#if pastille}<span class="masque">, {nonLus} {nonLus > 1 ? 'messages non lus' : 'message non lu'}</span>{/if}</span>
 			</a>
 		{/each}
 	</nav>
@@ -141,6 +152,22 @@
 		font-size: 0.75rem;
 		font-weight: 700;
 		line-height: 1;
+	}
+	.dessin {
+		position: relative;
+		display: inline-flex;
+	}
+	.dessin .nombre {
+		top: -8px;
+		right: -14px;
+	}
+	.masque {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 	.moi {
 		padding-right: 0.25rem;

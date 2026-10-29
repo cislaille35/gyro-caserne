@@ -110,4 +110,14 @@ describe('defineCentre', () => {
 	it('refuse un centre mal décrit', () => {
 		expect(() => defineCentre({ ...exemple, id: 'Mauvais Id' })).toThrow(/minuscules/);
 	});
+
+	it('garde les messages 12 mois par défaut, ou la durée choisie', () => {
+		expect(defineCentre(exemple).conservationMessagesMois).toBe(12);
+		expect(defineCentre({ ...exemple, conservationMessagesMois: 24 }).conservationMessagesMois).toBe(24);
+	});
+
+	it('refuse une durée de conservation qui n’est pas un nombre entier de mois, 1 au moins', () => {
+		for (const mois of [0, 1.5, -3])
+			expect(erreursCentre({ ...exemple, conservationMessagesMois: mois })).toEqual([`conservation des messages : ${mois} mois, un nombre entier de 1 au moins attendu`]);
+	});
 });

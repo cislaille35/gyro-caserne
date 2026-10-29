@@ -20,7 +20,7 @@ async function preparer() {
 	return { base, alice: alice!, profilAgent: profilAgent! };
 }
 
-const locaux = (base: unknown, acteur: unknown) => ({ base, acteur, superAdmins });
+const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur, superAdmins });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lire = (locals: unknown, requete = '') => (GET as any)({ locals, url: new URL(`http://x/agents/fichier/donnees${requete}`) });
 const envoyer = (route: unknown, locals: unknown, corps: string, type = 'application/json') =>
