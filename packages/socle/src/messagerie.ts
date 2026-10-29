@@ -7,11 +7,11 @@ import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, typ
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import { aLeDroit, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
-import { NOMS_ICONES } from './icones.ts';
+import { iconeDuComite, NOMS_ICONES, type NomIcone } from './icones.ts';
 import { ligneJournal } from './journal.ts';
 import { REACTIONS, STATUTS_AVEC_ACCES, type Reaction, type TypeConversation } from './listes.ts';
-import { agentsDuJour, lecturesAgents, membresDe } from './murs.ts';
-import { affectationEquipe, conversation, equipe, membreConversation, message, personne, photoMessage as photoDeMessage, reactionMessage, signalementMessage } from './schema.ts';
+import { agentsDuJour, lecturesAgents, membresDe, type AgentDuJour } from './murs.ts';
+import { affectationEquipe, comite, conversation, equipe, membreConversation, message, personne, photoMessage as photoDeMessage, reactionMessage, signalementMessage } from './schema.ts';
 
 const PAGE = 40;
 const EXTRAIT = 100;
@@ -951,10 +951,51 @@ export async function membresPourGroupe(base: Base, acteur: Acteur, source: { eq
 		...lecturesAgents(base, aujourdhui)
 	]);
 	if (acces.length === 0) throw refus();
+	return autresMembres(agentsDuJour([agents, affectations, tenues], aujourdhui), cle, moi, avecMessagerie);
+}
+
+const autresMembres = (agents: AgentDuJour[], cle: string, moi: number, avecMessagerie: { id: number }[]) => {
 	const ouverts = new Set(avecMessagerie.map((p) => p.id));
-	return membresDe(agentsDuJour([agents, affectations, tenues], aujourdhui), cle)
+	return membresDe(agents, cle)
 		.map((a) => a.id)
 		.filter((pid) => pid !== moi && ouverts.has(pid));
+};
+
+export type PourVous = {
+	chefs: number[];
+	equipes: { id: number; numero: number; nom: string; couleur: string; membres: number }[];
+	comites: { id: number; nom: string; icone: NomIcone; membres: number }[];
+};
+
+// Raccourcis de « Nouveau message » : les chefs de mes équipes, mes équipes actives et mes comités en cours, chacun seulement
+// s'il y a quelqu'un d'autre à qui écrire (mêmes membres que membresPourGroupe). Une requête (un batch).
+export async function pourVous(base: Base, acteur: Acteur, aujourdhui: string): Promise<PourVous> {
+	exigerDate(aujourdhui);
+	const moi = idDe(acteur);
+	const [acces, avecMessagerie, agents, affectations, tenues, equipes, comites] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base.select({ id: personne.id }).from(personne).where(aLaMessagerie(personne.id, aujourdhui)),
+		...lecturesAgents(base, aujourdhui),
+		base.select({ id: equipe.id, numero: equipe.ordreRotation, nom: equipe.nom, couleur: equipe.couleur }).from(equipe).where(eq(equipe.active, 1)).orderBy(equipe.ordreRotation),
+		base.select({ id: comite.id, nom: comite.nom, theme: comite.theme, icone: comite.icone }).from(comite).where(isNull(comite.dissousLe)).orderBy(comite.nom)
+	]);
+	if (acces.length === 0) throw refus();
+	const tous = agentsDuJour([agents, affectations, tenues], aujourdhui);
+	const a = tous.find((x) => x.id === moi)?.a;
+	if (!a) return { chefs: [], equipes: [], comites: [] };
+	const ouverts = new Set(avecMessagerie.map((p) => p.id));
+	const compter = (cle: string) => autresMembres(tous, cle, moi, avecMessagerie).length;
+	return {
+		chefs: tous.filter((x) => x.id !== moi && ouverts.has(x.id) && [...a.membreEquipe].some((e) => x.a.chefEquipe.has(e))).map((x) => x.id),
+		equipes: equipes
+			.filter((e) => a.membreEquipe.has(e.id) || a.chefEquipe.has(e.id))
+			.map((e) => ({ ...e, membres: compter(`equipe:${e.id}`) }))
+			.filter((e) => e.membres > 0),
+		comites: comites
+			.filter((c) => a.membreComite.has(c.id))
+			.map((c) => ({ id: c.id, nom: c.nom, icone: iconeDuComite(c), membres: compter(`comite:${c.id}`) }))
+			.filter((c) => c.membres > 0)
+	};
 }
 
 // Signalements

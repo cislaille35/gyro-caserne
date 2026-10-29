@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ApercuConversation } from '@gyro-caserne/socle';
 	import { untrack } from 'svelte';
+	import { plat } from '#lib/messagerie/recherche.ts';
 	import { quand } from '#lib/murs/quand.ts';
 	import FiltresEchanges from '#lib/ui/FiltresEchanges.svelte';
 	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
@@ -11,7 +12,6 @@
 
 	// La recherche part de celle reçue sans JavaScript, puis filtre à chaque frappe.
 	let recherche = $state(untrack(() => data.q));
-	const plat = (t: string) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
 	const visibles = $derived(data.conversations.filter((c) => plat(c.nom).includes(plat(recherche))));
 	const total = $derived(data.conversations.reduce((n, c) => n + c.nonLus, 0));
 

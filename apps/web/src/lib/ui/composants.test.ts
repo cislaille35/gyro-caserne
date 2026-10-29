@@ -277,6 +277,10 @@ describe('Visage', () => {
 		expect(html(Visage, { prenom: '', nom: 'Personne inconnue', couleur: null })).toContain('>P<');
 		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: 'rouge' })).toContain('var(--statut-neutre-fond)');
 	});
+	it('les tailles de « Nouveau message » : 48 et 44', () => {
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 48 })).toMatch(/class="visage[^"]*\bt48\b/);
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 44 })).toMatch(/class="visage[^"]*\bt44\b/);
+	});
 });
 
 describe('TuileDate', () => {

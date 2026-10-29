@@ -17,7 +17,7 @@
 
 <script lang="ts">
 	// Le nom est toujours écrit à côté : le visage est décoratif. Sans couleur d'équipe, il est gris.
-	let { prenom, nom, couleur, taille = 40 }: { prenom: string; nom: string; couleur: string | null; taille?: 52 | 40 | 30 } = $props();
+	let { prenom, nom, couleur, taille = 40 }: { prenom: string; nom: string; couleur: string | null; taille?: 52 | 48 | 44 | 40 | 30 } = $props();
 
 	const initiales = $derived(`${prenom.trim().charAt(0)}${nom.trim().charAt(0)}`.toUpperCase());
 	const teinte = $derived(couleur && /^#[0-9a-f]{6}$/i.test(couleur) ? couleur : null);
@@ -27,6 +27,8 @@
 	class="visage"
 	class:petit={taille === 30}
 	class:grand={taille === 52}
+	class:t48={taille === 48}
+	class:t44={taille === 44}
 	aria-hidden="true"
 	style:background={teinte ?? 'var(--statut-neutre-fond)'}
 	style:color={teinte ? encreSur(teinte) : 'var(--statut-neutre-texte)'}>{initiales}</span
@@ -49,6 +51,16 @@
 		width: 52px;
 		height: 52px;
 		font-size: 1.125rem;
+	}
+	.t48 {
+		width: 48px;
+		height: 48px;
+		font-size: 1.0625rem;
+	}
+	.t44 {
+		width: 44px;
+		height: 44px;
+		font-size: 1rem;
 	}
 	.petit {
 		width: 30px;

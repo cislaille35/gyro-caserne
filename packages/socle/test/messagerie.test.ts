@@ -5,7 +5,7 @@ import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
-import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
+import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, pourVous, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
 import { modifierMonProfil } from '../src/actions/personnes.ts';
 import { REACTIONS } from '../src/listes.ts';
 import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, photoMessage as photoDeMessage, profil, profilDroit, reactionMessage, responsabilite, responsabiliteDroit, signalementMessage } from '../src/schema.ts';
@@ -785,6 +785,37 @@ describe('groupes', () => {
 		expect((await membresPourGroupe(base, acteur(romain), { comite: amicale!.id }, aujourdhui)).sort()).toEqual([claire, lea].sort());
 		expect(await membresPourGroupe(base, acteur(lea), { comite: amicale!.id }, aujourdhui)).toEqual([claire]);
 		await expect(membresPourGroupe(base, superAdmin, { equipe: e1.id }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('pourVous : mon chef d’équipe, mon équipe et mes comités en cours, seulement s’ils ont du sens ; en 1 requête', async () => {
+		const { base, nouvelle, nommer, affecter, manon, romain, claire, lea, e1, e2 } = await jeuGroupe();
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const [dissous] = await base.insert(comite).values({ nom: 'Ancien', theme: 'centre', dissousLe: '2026-01-01' }).returning();
+		const [seul] = await base.insert(comite).values({ nom: 'Seul', theme: 'centre' }).returning();
+		const suspendu = await nouvelle('Suspendu', 'Test', { statut: 'suspendu' });
+		await affecter(manon, e1.id);
+		await affecter(claire, e1.id);
+		await affecter(lea, e2.id);
+		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(suspendu, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		for (const p of [manon, lea]) await nommer(p, 'Membre de comité', { type: 'comite', id: amicale!.id });
+		await nommer(manon, 'Membre de comité', { type: 'comite', id: dissous!.id });
+		await nommer(lea, 'Membre de comité', { type: 'comite', id: dissous!.id });
+		await nommer(manon, 'Membre de comité', { type: 'comite', id: seul!.id });
+
+		const avant = base.requetes;
+		const vus = await pourVous(base, acteur(manon), aujourdhui);
+		expect(base.requetes - avant).toBe(1);
+		expect(vus).toEqual({
+			chefs: [romain],
+			equipes: [{ id: e1.id, numero: e1.ordreRotation, nom: e1.nom, couleur: e1.couleur, membres: 2 }],
+			comites: [{ id: amicale!.id, nom: 'Amicale', icone: 'coeur', membres: 1 }]
+		});
+		// Le chef d'équipe : son équipe, sans chef au-dessus de lui.
+		expect(await pourVous(base, acteur(romain), aujourdhui)).toMatchObject({ chefs: [], equipes: [{ id: e1.id, membres: 2 }], comites: [] });
+		// Seul dans son équipe : rien.
+		expect(await pourVous(base, acteur(lea), aujourdhui)).toMatchObject({ chefs: [], equipes: [], comites: [{ id: amicale!.id, membres: 1 }] });
+		await expect(pourVous(base, superAdmin, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 });
 
