@@ -138,14 +138,15 @@ describe('publier', () => {
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 
-	it('« Annonce » sur un mur qu’on ne modère pas : refus clair', async () => {
+	it('une annonce pour tout publieur ; la prise de connaissance, refusée hors modération avec un message clair', async () => {
 		const { base, alice } = await preparer();
-		for (const corps of [[], [['priseDeConnaissance', 'oui']]] as [string, string][][])
-			expect(await agir(locaux(base, alice), [['mur', 'vie'], ['type', 'annonce'], ['texte', 'x'], ...corps])).toMatchObject({
-				status: 403,
-				data: { message: 'Seuls les modérateurs du mur publient une annonce.', valeurs: { type: 'annonce' } }
-			});
+		expect(await agir(locaux(base, alice), [['mur', 'vie'], ['type', 'annonce'], ['texte', 'x'], ['priseDeConnaissance', 'oui']])).toMatchObject({
+			status: 403,
+			data: { message: 'Seuls les modérateurs du mur demandent une prise de connaissance.', valeurs: { type: 'annonce', priseDeConnaissance: true } }
+		});
 		expect(await base.select().from(publication)).toHaveLength(0);
+		await reussir(locaux(base, alice), [['mur', 'vie'], ['type', 'annonce'], ['texte', 'À lire']]);
+		expect(await derniere(base)).toMatchObject({ type: 'annonce', priseDeConnaissance: 0 });
 	});
 
 	it('chaque refus du sondage a son message, sur le champ « sondage »', async () => {

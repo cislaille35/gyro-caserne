@@ -107,7 +107,7 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 
 ## Publier (maquette 3)
 
-- Le formulaire s'ouvre depuis un mur (le mur est alors choisi d'avance) ou depuis « Écrire ». On y choisit le mur parmi ceux où la personne peut publier, puis le genre en 4 tuiles (Message, Événement, Bravo, Annonce). « Annonce » n'apparaît que pour les modérateurs, comme au lot 1.
+- Le formulaire s'ouvre depuis un mur (le mur est alors choisi d'avance) ou depuis « Écrire ». On y choisit le mur parmi ceux où la personne peut publier, puis le genre en 4 tuiles (Message, Événement, Bravo, Annonce). La tuile Annonce est proposée à tous ; la prise de connaissance reste réservée aux modérateurs, comme au lot 1.
 - Sous le choix du mur : la phrase « Visible par … ».
 - Au téléphone, le formulaire tient sur une page à part, et non plus en bas du mur (choix de Claude : il a pris de la place avec le choix du mur et du genre).
 

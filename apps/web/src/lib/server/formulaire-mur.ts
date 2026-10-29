@@ -114,7 +114,7 @@ export function echecMur(erreur: unknown, cible: string, valeurs?: Valeurs) {
 			: cible !== 'publier'
 				? 'Vous n’avez pas le droit de faire cela.'
 				: erreur.droit === 'MODERER_SALON'
-					? 'Seuls les modérateurs du mur publient une annonce.'
+					? 'Seuls les modérateurs du mur demandent une prise de connaissance.'
 					: 'Vous ne pouvez pas publier sur ce mur.';
 		return fail<Reponse>(403, { cible, message, valeurs });
 	}

@@ -31,7 +31,7 @@
 		{ valeur: 'message', libelle: 'Message', sous: 'pour discuter' },
 		{ valeur: 'evenement', libelle: 'Événement', sous: 'qui vient ?' },
 		{ valeur: 'bravo', libelle: 'Bravo', sous: 'une réussite' },
-		{ valeur: 'annonce', libelle: 'Annonce', sous: 'réservé aux modérateurs du mur' }
+		{ valeur: 'annonce', libelle: 'Annonce', sous: 'à lire' }
 	];
 	const concerne = $derived(form?.cible === 'publier');
 	const valeurs = $derived<Valeurs>(concerne ? (form?.valeurs ?? {}) : {});
@@ -59,10 +59,6 @@
 	const choix = $derived(murs.find((m) => m.cle === mur));
 	const unModere = $derived(murs.some((m) => m.peutModerer));
 	const convoquables = $derived(equipes.filter((e) => e.active === 1));
-	// Changer pour un mur qu'on ne modère pas retire « Annonce ».
-	$effect(() => {
-		if (js && type === 'annonce' && !choix?.peutModerer) type = 'message';
-	});
 
 	let erreurPhotos = $state('');
 	let envoi = $state(false);
@@ -128,8 +124,8 @@
 	<fieldset class="bloc">
 		<legend>Quel genre ?</legend>
 		<div class="genres">
-			{#each GENRES.filter((g) => g.valeur !== 'annonce' || unModere) as g (g.valeur)}
-				<label class="genre" hidden={js && g.valeur === 'annonce' && !choix?.peutModerer}>
+			{#each GENRES as g (g.valeur)}
+				<label class="genre">
 					<input type="radio" name="type" value={g.valeur} bind:group={type} />
 					<span class="textes"><strong>{g.libelle}</strong><span class="sous">{g.sous}</span></span>
 				</label>
@@ -139,9 +135,10 @@
 	</fieldset>
 
 	{#if unModere}
-		<label class="case" hidden={js && type !== 'annonce'}>
+		<!-- Sans JavaScript, la case reste visible avec sa mention ; avec, seulement pour une annonce sur un mur qu'on modère. -->
+		<label class="case" hidden={js && (type !== 'annonce' || !choix?.peutModerer)}>
 			<input type="checkbox" name="priseDeConnaissance" value="oui" checked={valeurs.priseDeConnaissance} />
-			Demander une prise de connaissance (annonce)
+			<span>Demander une prise de connaissance (annonce){#if !js}<span class="aide mention">réservé aux modérateurs du mur</span>{/if}</span>
 		</label>
 	{/if}
 
@@ -350,9 +347,6 @@
 	.genre:has(input:checked) {
 		border: 2px solid var(--encre);
 	}
-	.genre[hidden] {
-		display: none;
-	}
 	.textes {
 		display: flex;
 		flex-direction: column;
@@ -487,6 +481,9 @@
 	}
 	.case[hidden] {
 		display: none;
+	}
+	.mention {
+		display: block;
 	}
 	.case input {
 		width: 24px;

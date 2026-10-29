@@ -37,16 +37,17 @@ describe('page Publier', () => {
 		expect(page).toMatch(/<textarea[^>]*name="texte"[^>]*>Joyeux anniversaire Alice !<\/textarea>/);
 	});
 
-	it('le genre en tuiles : Message, Événement, Bravo ; Annonce seulement si l’on modère un des murs', () => {
+	it('le genre en 4 tuiles pour tous ; la prise de connaissance seulement si l’on modère un des murs', () => {
 		const sans = html();
 		const genres = (page: string) => [...page.matchAll(/name="type"[^>]*value="(\w+)"/g)].map((m) => m[1]);
-		expect(genres(sans)).toEqual(['message', 'evenement', 'bravo']);
+		expect(genres(sans)).toEqual(['message', 'evenement', 'bravo', 'annonce']);
 		expect(radio(sans, 'type', 'message')).toContain('checked');
 		expect(sans).not.toContain('priseDeConnaissance');
+		expect(sans).not.toContain('réservé aux modérateurs du mur');
 		const avec = html({ murs: [centre, vie] });
-		expect(genres(avec)).toEqual(['message', 'evenement', 'bravo', 'annonce']);
-		expect(avec).toContain('réservé aux modérateurs du mur');
 		expect(avec).toContain('name="priseDeConnaissance"');
+		// Sans JavaScript, la case reste visible avec sa mention.
+		expect(avec).toMatch(/Demander une prise de connaissance[\s\S]*réservé aux modérateurs du mur/);
 	});
 
 	it('envoi en plusieurs parties (photos) ; seules les équipes actives se convoquent', () => {
