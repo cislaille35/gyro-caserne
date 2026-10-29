@@ -30,7 +30,7 @@ describe('un mur', () => {
 	it('épinglées puis publications, « Voir plus » par ?avant=', async () => {
 		const { base, chef, alice } = await preparer();
 		const ids: number[] = [];
-		for (let i = 0; i < 22; i++) ids.push(await publier(base, chef, 'vie', { type: 'message', texte: `n°${i}` }, maintenantParis()));
+		for (let i = 0; i < 22; i++) ids.push(await publier(base, base.photos, chef, 'vie', { type: 'message', texte: `n°${i}` }, maintenantParis()));
 		await base.update(publication).set({ epinglee: 1 }).where(eq(publication.id, ids[0]!));
 		const data = await charger(locaux(base, alice), 'vie');
 		expect(data.mur).toMatchObject({ cle: 'vie', nom: 'Vie du centre', peutPublier: true, peutModerer: false });
@@ -63,7 +63,7 @@ describe('un mur', () => {
 describe('modération', () => {
 	it('l’auteur modifie ; un autre agent ne supprime pas ; le chef épingle et supprime', async () => {
 		const { base, chef, alice, bruno } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Avant' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Avant' }, maintenantParis()));
 		expect(await agir('modifier', locaux(base, alice), 'vie', [['id', id], ['texte', 'Après']])).toMatchObject({ cible: `publication:${id}`, succes: 'Publication modifiée.' });
 		expect(await agir('modifier', locaux(base, alice), 'vie', [['id', id], ['texte', '']])).toMatchObject({ status: 400, data: { cible: `publication:${id}`, message: 'Écrivez le texte de la publication.' } });
 		expect(await agir('supprimer', locaux(base, bruno), 'vie', [['id', id]])).toMatchObject({ status: 403, data: { cible: `publication:${id}` } });
@@ -78,9 +78,9 @@ describe('modération', () => {
 
 	it('onzième épingle refusée, message sous la publication', async () => {
 		const { base, chef } = await preparer();
-		for (let i = 0; i < 10; i++) await publier(base, chef, 'vie', { type: 'message', texte: `n°${i}` }, maintenantParis());
+		for (let i = 0; i < 10; i++) await publier(base, base.photos, chef, 'vie', { type: 'message', texte: `n°${i}` }, maintenantParis());
 		await base.update(publication).set({ epinglee: 1 });
-		const id = String(await publier(base, chef, 'vie', { type: 'message', texte: 'Onzième' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Onzième' }, maintenantParis()));
 		expect(await agir('epingler', locaux(base, chef), 'vie', [['id', id], ['oui', '1']])).toMatchObject({
 			status: 400,
 			data: { cible: `publication:${id}`, message: 'Dix publications sont déjà épinglées : désépinglez-en une d’abord' }
@@ -89,11 +89,11 @@ describe('modération', () => {
 
 	it('une publication d’un autre mur que celui de l’adresse, ou inconnue : 404', async () => {
 		const { base, chef, alice, bruno, e2 } = await preparer();
-		const id = String(await publier(base, bruno, `equipe:${e2.id}`, { type: 'message', texte: 'Équipe 2' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, bruno, `equipe:${e2.id}`, { type: 'message', texte: 'Équipe 2' }, maintenantParis()));
 		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', id]])).toMatchObject({ status: 404 });
 		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', '999']])).toMatchObject({ status: 404 });
 		// Le chef peut supprimer partout, mais seulement depuis le mur de la publication.
-		const vie = String(await publier(base, bruno, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
+		const vie = String(await publier(base, base.photos, bruno, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
 		expect(await agir('supprimer', locaux(base, chef), 'centre', [['id', vie]])).toMatchObject({ status: 404, data: { message: 'Cette publication n’existe plus.' } });
 		expect(await agir('epingler', locaux(base, chef), `equipe:${e2.id}`, [['id', vie], ['oui', '1']])).toMatchObject({ status: 404 });
 		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', 'abc']])).toMatchObject({ status: 400 });
@@ -106,7 +106,7 @@ describe('interactions', () => {
 
 	it('commenter : publié, texte contrôlé et gardé, refusé si les commentaires sont fermés', async () => {
 		const { base, alice, bruno } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
 		expect(await agir('commenter', locaux(base, bruno), 'vie', [['id', id], ['texte', 'Salut']])).toMatchObject({ cible: `publication:${id}`, succes: 'Commentaire publié.' });
 		const [nouveau] = await base.select().from(commentaire);
 		expect(nouveau).toMatchObject({ texte: 'Salut', auteur: `personne:${bruno.id}` });
@@ -119,8 +119,8 @@ describe('interactions', () => {
 
 	it('supprimer un commentaire : son auteur ou un modérateur, pas un autre agent ; jamais celui d’une autre publication', async () => {
 		const { base, chef, alice, bruno } = await preparer();
-		const id = await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
-		const autre = await publier(base, alice, 'vie', { type: 'message', texte: 'Autre' }, maintenantParis());
+		const id = await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
+		const autre = await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Autre' }, maintenantParis());
 		const c1 = String(await commenter(base, alice, id, 'Un', maintenantParis()));
 		const c2 = String(await commenter(base, alice, id, 'Deux', maintenantParis()));
 		expect(await agir('supprimerCommentaire', locaux(base, bruno), 'vie', [['id', String(id)], ['commentaire', c1]])).toMatchObject({ status: 403 });
@@ -132,7 +132,7 @@ describe('interactions', () => {
 
 	it('j’aime, puis plus ; refusé au super administrateur, qui n’a pas de fiche', async () => {
 		const { base, alice, bruno } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
 		expect(await agir('aimer', locaux(base, bruno), 'vie', [['id', id], ['oui', '1']])).toMatchObject({ succes: 'Vous aimez cette publication.' });
 		expect(await base.select().from(jaime)).toHaveLength(1);
 		expect(await agir('aimer', locaux(base, bruno), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ succes: 'J’aime retiré.' });
@@ -142,7 +142,7 @@ describe('interactions', () => {
 
 	it('répondre à un événement : les convoqués seulement, réponse changeable', async () => {
 		const { base, chef, alice, bruno, e1 } = await preparer();
-		const id = String(await publier(base, chef, 'centre', evenement([e1.id]), maintenantParis()));
+		const id = String(await publier(base, base.photos, chef, 'centre', evenement([e1.id]), maintenantParis()));
 		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'present']])).toMatchObject({ succes: 'Réponse enregistrée : présent.' });
 		expect(await agir('repondre', locaux(base, alice), 'centre', [['id', id], ['reponse', 'incertain']])).toMatchObject({ succes: 'Réponse enregistrée : incertain.' });
 		expect(await base.select().from(reponseEvenement)).toMatchObject([{ personneId: alice.id, reponse: 'incertain' }]);
@@ -155,7 +155,7 @@ describe('interactions', () => {
 
 	it('voter : un choix par personne, qu’on peut changer', async () => {
 		const { base, alice, bruno } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Samedi', sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenantParis()) } }, maintenantParis()));
+		const id = String(await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Samedi', sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenantParis()) } }, maintenantParis()));
 		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '1']])).toMatchObject({ succes: 'Vote enregistré.' });
 		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '0']])).toMatchObject({ succes: 'Vote enregistré.' });
 		expect(await base.select().from(voteSondage)).toMatchObject([{ personneId: bruno.id, reponse: 0 }]);
@@ -164,7 +164,7 @@ describe('interactions', () => {
 
 	it('prendre connaissance d’une annonce, une fois', async () => {
 		const { base, chef, alice } = await preparer();
-		const id = String(await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenantParis()));
+		const id = String(await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenantParis()));
 		expect(await agir('prendreConnaissance', locaux(base, alice), 'centre', [['id', id]])).toMatchObject({ succes: 'Prise de connaissance enregistrée.' });
 		expect(await agir('prendreConnaissance', locaux(base, alice), 'centre', [['id', id]])).toMatchObject({ succes: expect.any(String) });
 		expect(await base.select().from(priseConnaissance)).toHaveLength(1);
@@ -172,7 +172,7 @@ describe('interactions', () => {
 
 	it('fermer les commentaires : l’auteur ferme, seul un modérateur rouvre', async () => {
 		const { base, chef, alice } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis()));
 		expect(await agir('fermerCommentaires', locaux(base, alice), 'vie', [['id', id], ['oui', '1']])).toMatchObject({ succes: 'Commentaires fermés.' });
 		expect(await agir('fermerCommentaires', locaux(base, alice), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ status: 403 });
 		expect(await agir('fermerCommentaires', locaux(base, chef), 'vie', [['id', id], ['oui', '0']])).toMatchObject({ succes: 'Commentaires rouverts.' });
@@ -181,7 +181,7 @@ describe('interactions', () => {
 
 	it('une publication d’un autre mur que celui de l’adresse : 404 pour chaque geste', async () => {
 		const { base, chef } = await preparer();
-		const id = String(await publier(base, chef, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
+		const id = String(await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Vie' }, maintenantParis()));
 		for (const nom of ['commenter', 'supprimerCommentaire', 'aimer', 'repondre', 'voter', 'prendreConnaissance', 'fermerCommentaires'])
 			expect(await agir(nom, locaux(base, chef), 'centre', [['id', id]]), nom).toMatchObject({ status: 404 });
 	});

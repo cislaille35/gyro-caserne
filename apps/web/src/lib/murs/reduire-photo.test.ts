@@ -46,7 +46,7 @@ describe('reduirePhoto', () => {
 		expect(grand.taille).toEqual([500, 1600]);
 	});
 
-	it('baisse la qualité tant que la photo dépasse 400 Ko', async () => {
+	it('baisse la qualité tant que la photo dépasse 200 Ko', async () => {
 		const qualites: number[] = [];
 		simuler(1600, 1200);
 		vi.stubGlobal(
@@ -57,13 +57,13 @@ describe('reduirePhoto', () => {
 				}
 				async convertToBlob({ quality }: { quality: number }) {
 					qualites.push(quality);
-					return new Blob([new Uint8Array(quality > 0.5 ? 500 * 1024 : 300 * 1024)], { type: 'image/jpeg' });
+					return new Blob([new Uint8Array(quality > 0.5 ? 250 * 1024 : 150 * 1024)], { type: 'image/jpeg' });
 				}
 			}
 		);
 		const blob = await reduirePhoto(new File([new Uint8Array(10)], 'dense.jpg', { type: 'image/jpeg' }));
 		expect(qualites).toEqual([0.8, 0.6, 0.4]);
-		expect(blob.size).toBe(300 * 1024);
+		expect(blob.size).toBe(150 * 1024);
 	});
 
 	it('refuse un fichier qui n’est pas une image', async () => {

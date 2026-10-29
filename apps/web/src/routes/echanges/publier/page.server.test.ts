@@ -121,9 +121,9 @@ describe('publier', () => {
 		const { base, alice } = await preparer();
 		const vie = (corps: [string, string | File][]) => agir(locaux(base, alice), [['mur', 'vie'], ...corps]);
 		expect(await vie([['type', 'message'], ['texte', '  ']])).toMatchObject({ status: 400, data: { cible: 'publier', erreurs: { texte: 'Écrivez le texte de la publication.' }, valeurs: { mur: 'vie', type: 'message' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', jpeg(401 * 1024)]])).toMatchObject({
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', jpeg(200 * 1024 + 1)]])).toMatchObject({
 			status: 400,
-			data: { erreurs: { photos: expect.stringContaining('400 Ko') }, valeurs: { texte: 'x', mur: 'vie' } }
+			data: { erreurs: { photos: expect.stringContaining('200 Ko') }, valeurs: { texte: 'x', mur: 'vie' } }
 		});
 		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', new File([new Uint8Array([0x89, 0x50])], 'a.png', { type: 'image/png' })]])).toMatchObject({
 			status: 400,
@@ -201,9 +201,15 @@ describe('taille des envois', () => {
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 
-	it('accepte 4 photos de 400 Ko et le texte', async () => {
+	it('refuse en 413 un envoi au-delà de 4 photos de 200 Ko et 100 Ko pour le reste', async () => {
 		const { base, alice } = await preparer();
-		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
+		const longueur = (n: number) => new Request('http://x', { method: 'POST', body: 'x', headers: { 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(n) } });
+		expect(await envoyer(locaux(base, alice), longueur(4 * 200 * 1024 + 100 * 1024 + 1))).toMatchObject({ status: 413, data: { message: expect.stringContaining('4 photos de 200 Ko') } });
+	});
+
+	it('accepte 4 photos de 200 Ko et le texte', async () => {
+		const { base, alice } = await preparer();
+		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(200 * 1024, `p${i}.jpg`)]);
 		const r = await reussir(locaux(base, alice), [['mur', 'vie'], ['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...champsDates(), ...photos]);
 		expect(r.status).toBe(303);
 	});

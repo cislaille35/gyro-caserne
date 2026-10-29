@@ -37,12 +37,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 export const actions: Actions = {
 	publier: async ({ locals, request }) => {
 		const acteur = exigerActeur(locals);
-		if (envoiTropLourd(request)) return fail<Reponse>(413, { cible: 'publier', message: 'Envoi trop lourd : 4 photos de 400 Ko au plus. Sans JavaScript, réduisez vos photos avant de les envoyer.' });
+		if (envoiTropLourd(request)) return fail<Reponse>(413, { cible: 'publier', message: 'Envoi trop lourd : 4 photos de 200 Ko au plus. Sans JavaScript, réduisez vos photos avant de les envoyer.' });
 		const { donnees, valeurs, erreurs } = await lirePublication(await request.formData());
 		if (!donnees) return fail<Reponse>(400, { cible: 'publier', erreurs, valeurs });
 		let id: number;
 		try {
-			id = await publier(locals.base, acteur, valeurs.mur!, donnees, maintenantParis());
+			id = await publier(locals.base, locals.basePhotos, acteur, valeurs.mur!, donnees, maintenantParis());
 		} catch (erreur) {
 			return echecMur(erreur, 'publier', valeurs);
 		}

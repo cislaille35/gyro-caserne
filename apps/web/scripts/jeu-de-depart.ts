@@ -4,7 +4,7 @@
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, creerBaseD1, equipe, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
@@ -37,18 +37,22 @@ const FICTIFS = [
 const dossier = new URL(`../../../centres/${centre}/`, import.meta.url);
 const { default: description } = await import(new URL('centre.ts', dossier).href);
 
-// En ligne : copie de la config du centre où la base est marquée « remote », effacée à la fin.
+// En ligne : copie de la config du centre où les deux bases (principale et photos) sont marquées « remote », effacée à la fin.
 let config = new URL('wrangler.jsonc', dossier);
 if (enLigne) {
 	const texte = readFileSync(config, 'utf8');
-	const copie = texte.replace('"binding": "BASE",', '"binding": "BASE", "remote": true,');
-	if (copie === texte) throw new Error('Base BASE introuvable dans wrangler.jsonc');
+	let copie = texte;
+	for (const liaison of ['BASE', 'PHOTOS']) {
+		const avant = copie;
+		copie = copie.replace(`"binding": "${liaison}",`, `"binding": "${liaison}", "remote": true,`);
+		if (copie === avant) throw new Error(`Base ${liaison} introuvable dans wrangler.jsonc`);
+	}
 	config = new URL('wrangler.en-ligne.jsonc', dossier);
 	writeFileSync(config, copie);
 }
 
 try {
-	const { env, dispose } = await getPlatformProxy<{ BASE: D1Database }>({
+	const { env, dispose } = await getPlatformProxy<{ BASE: D1Database; PHOTOS: D1Database }>({
 		configPath: config.pathname,
 		persist: { path: new URL('.wrangler/state/v3', dossier).pathname },
 		remoteBindings: enLigne
@@ -70,7 +74,7 @@ try {
 			}
 		}
 		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
-		if (boite !== undefined) await chargerComptesDeTest(base, boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
+		if (boite !== undefined) await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
 		const lieu = enLigne ? 'en ligne' : 'locale';
 		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}${boite !== undefined ? ', avec les comptes de test' : ''}.`);
 	} finally {

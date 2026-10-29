@@ -14,7 +14,14 @@
 			"database_name": "gyro-caserne-laille",
 			"database_id": "00000000-0000-0000-0000-000000000000",
 			"migrations_dir": "../../packages/socle/migrations"
+		},
+		// Base des photos (décision 0010) : remplissage aussi, le vrai identifiant sera posé avec le déploiement.
+		{
+			"binding": "PHOTOS",
+			"database_name": "gyro-caserne-laille-photos",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "../../packages/socle/migrations-photos"
 		}
 	]
-	// Le stockage R2 des photos s'ajoutera ici avec les premières fonctions.
+	// Les photos sont dans une base D1 à part, pas dans R2 : voir docs/decisions/0010-photos-dans-leur-base.md.
 }

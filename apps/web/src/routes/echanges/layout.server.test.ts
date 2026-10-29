@@ -29,8 +29,8 @@ describe('liste des murs', () => {
 
 	it('montre les murs de la personne, leur aperçu et leurs nouveautés', async () => {
 		const { base, chef, alice, e1 } = await preparer();
-		await publier(base, chef, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
-		await publier(base, chef, 'vie', { type: 'message', texte: 'Encore' }, maintenantParis());
+		await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
+		await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Encore' }, maintenantParis());
 		const { sections } = await charger(locaux(base, alice));
 		expect(sections.centre).toMatchObject({ cle: 'centre', nom: 'Le centre', type: 'centre', lectureSeule: false, nouveautes: 0, aConfirmer: 0, icone: 'maison', derniere: null });
 		expect(sections.groupes.map((t: Tuile) => t.cle)).toEqual([`equipe:${e1.id}`, 'vie']);
@@ -43,7 +43,7 @@ describe('liste des murs', () => {
 	it('comités : ceux qui ont du neuf dans Mes groupes ; plus de deux sans nouveauté vont dans « Autres comités »', async () => {
 		const { base, chef, alice, e1 } = await preparer();
 		const ids = await comites(base, alice, ['Comité A', 'Comité B', 'Comité C', 'Comité D']);
-		await publier(base, chef, `comite:${ids[2]}`, { type: 'message', texte: 'Du neuf' }, maintenantParis());
+		await publier(base, base.photos, chef, `comite:${ids[2]}`, { type: 'message', texte: 'Du neuf' }, maintenantParis());
 		const { sections } = await charger(locaux(base, alice));
 		expect(sections.groupes.map((t: Tuile) => t.cle)).toEqual([`equipe:${e1.id}`, 'vie', `comite:${ids[2]}`]);
 		expect(sections.autres.map((t: Tuile) => t.cle)).toEqual([`comite:${ids[0]}`, `comite:${ids[1]}`, `comite:${ids[3]}`]);
@@ -71,7 +71,7 @@ describe('liste des murs', () => {
 
 	it('super administrateur : Mes groupes vide, tout ce qu’il voit dans Supervision, Aujourd’hui sans événement', async () => {
 		const { base, chef, alice } = await preparer();
-		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
+		await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
 		await base.update(personne).set({ naissance: `1990-${aujourdhuiParis().slice(5)}` }).where(eq(personne.id, alice.id));
 		const data = await charger(locaux(base, { type: 'super', email: 'admin@exemple.fr' }));
 		expect(data.sections.centre.cle).toBe('centre');
@@ -84,9 +84,9 @@ describe('liste des murs', () => {
 
 	it('Le centre : le nombre d’annonces à confirmer, sans celles des autres murs', async () => {
 		const { base, chef, alice } = await preparer();
-		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Consigne', priseDeConnaissance: true }, maintenantParis());
-		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Autre', priseDeConnaissance: true }, maintenantParis());
-		await publier(base, chef, 'vie', { type: 'annonce', texte: 'Sur Vie', priseDeConnaissance: true }, maintenantParis());
+		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Consigne', priseDeConnaissance: true }, maintenantParis());
+		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Autre', priseDeConnaissance: true }, maintenantParis());
+		await publier(base, base.photos, chef, 'vie', { type: 'annonce', texte: 'Sur Vie', priseDeConnaissance: true }, maintenantParis());
 		const { sections } = await charger(locaux(base, alice));
 		expect(sections.centre.aConfirmer).toBe(2);
 		expect(sections.groupes.find((t: Tuile) => t.cle === 'vie').aConfirmer).toBe(1);
@@ -94,7 +94,7 @@ describe('liste des murs', () => {
 
 	it('Aujourd’hui : les anniversaires et le premier événement convoqué sans réponse', async () => {
 		const { base, chef, alice } = await preparer();
-		const evenement = (texte: string, debut: string) => publier(base, chef, 'centre', { type: 'evenement', texte, evenement: { debut, lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
+		const evenement = (texte: string, debut: string) => publier(base, base.photos, chef, 'centre', { type: 'evenement', texte, evenement: { debut, lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
 		const repondu = await evenement('Repas', '2099-01-01T12:00');
 		const attendu = await evenement('Manœuvre', '2099-01-02T19:00');
 		await evenement('Plus tard', '2099-01-03T19:00');
@@ -108,7 +108,7 @@ describe('liste des murs', () => {
 	it('À venir : les 3 prochains événements où la personne est convoquée, répondus ou non', async () => {
 		const { base, chef, alice, e2 } = await preparer();
 		const evenement = (texte: string, debut: string, convoques: 'tous' | number[] = 'tous') =>
-			publier(base, chef, 'centre', { type: 'evenement', texte, evenement: { debut, lieu: 'Caserne', convoques } }, maintenantParis());
+			publier(base, base.photos, chef, 'centre', { type: 'evenement', texte, evenement: { debut, lieu: 'Caserne', convoques } }, maintenantParis());
 		// Publiés dans le désordre : « À venir » les trie par date.
 		const sport = await evenement('Sport', '2099-01-03T19:00');
 		await evenement('Plus tard', '2099-01-04T19:00');
@@ -126,7 +126,7 @@ describe('liste des murs', () => {
 
 	it('se recharge à chaque changement d’adresse : la pastille d’un mur visité disparaît', async () => {
 		const { base, chef, alice } = await preparer();
-		await publier(base, chef, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
+		await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Bonjour' }, maintenantParis());
 		// SvelteKit ne relance ce chargement que s'il a lu l'adresse.
 		let lue = false;
 		const url = {

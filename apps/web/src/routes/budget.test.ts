@@ -16,6 +16,7 @@ import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
 import { load as reglages } from './reglages/+layout.server';
+import { load as pageReglages } from './reglages/+page.server';
 import { load as role } from './reglages/roles/[id]/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
@@ -33,7 +34,7 @@ async function centreDe150() {
 	await base.insert(attribution).values({ personneId: chef!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 	for (let i = 0; i < 150; i++) await base.insert(personne).values({ email: `agent${i}@exemple.fr`, prenom: `Agent${i}`, nom: 'Test', profilId: p!.id });
 	const [agent] = await base.select().from(personne).where(eq(personne.email, 'agent0@exemple.fr'));
-	const locals = { base, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {} };
+	const locals = { base, basePhotos: base.photos, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {} };
 	const compter = async (etapes: () => Promise<unknown>) => {
 		const avant = base.requetes;
 		await etapes();
@@ -96,6 +97,18 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
+	it('/reglages : la liste et la jauge des photos', async () => {
+		const { locals, compter } = await centreDe150();
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			// SvelteKit charge la liste une fois et la passe à la page (parent).
+			const liste = await (reglages as any)({ locals });
+			const data = await (pageReglages as any)({ locals, parent: async () => liste });
+			expect(data.photos).toMatchObject({ octets: 0 });
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
 	it('/nominations', async () => {
 		const { locals, compter } = await centreDe150();
 		const n = await compter(async () => {
@@ -109,8 +122,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const { base, locals, agent, compter } = await centreDe150();
 		const maintenant = maintenantParis();
 		const ids: number[] = [];
-		for (let i = 0; i < 20; i++) ids.push(await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: `Note ${i}`, priseDeConnaissance: true }, maintenant));
-		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant));
+		for (let i = 0; i < 20; i++) ids.push(await publier(base, base.photos, locals.acteur, 'centre', { type: 'annonce', texte: `Note ${i}`, priseDeConnaissance: true }, maintenant));
+		for (let i = 0; i < 10; i++) ids.push(await publier(base, base.photos, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant));
 		await base.update(publication).set({ epinglee: 1 });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
 		const url = new URL('http://localhost/');
@@ -172,7 +185,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			expect(data.choisi).toBe('centre');
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
-		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(350 * 1024, `p${i}.jpg`)]);
+		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(200 * 1024, `p${i}.jpg`)]);
 		const request = await requeteFormulaire([['mur', 'centre'], ['type', 'message'], ['texte', 'Nouvelle'], ...photos]);
 		const n2 = await compter(async () => {
 			await expect((actionsPublier.publier as any)({ locals, params: {}, url: new URL('http://localhost/echanges/publier'), request })).rejects.toMatchObject({ status: 303 });
@@ -184,8 +197,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/echanges/[mur]/[id] : annonce suivie, 50 commentaires ; chaque geste puis le rechargement', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const maintenant = '2026-10-28T10:00:00';
-		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
-		const evenement = await publier(base, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		const annonce = await publier(base, base.photos, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
+		const evenement = await publier(base, base.photos, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
 		const agents = await base.select({ id: personne.id }).from(personne);
 		for (const a of agents.slice(0, 100)) await prendreConnaissance(base, { type: 'personne', id: a.id }, annonce, maintenant);
 		await base.insert(commentaire).values(Array.from({ length: 50 }, (_, i) => ({ publicationId: annonce, auteur: `personne:${agents[i]!.id}`, texte: `Commentaire ${i}`, creeLe: maintenant })));

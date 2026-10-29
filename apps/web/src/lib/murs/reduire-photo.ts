@@ -1,6 +1,7 @@
 const COTE_MAX = 1600;
-const TAILLE_MAX = 400 * 1024;
-// Qualité ≈ 0,8 ; une photo très détaillée qui dépasse encore 400 Ko est refaite un peu moins fine.
+// Comme TAILLE_PHOTO_MAX du socle (refus au-delà côté serveur).
+const TAILLE_MAX = 200 * 1024;
+// Qualité ≈ 0,8 ; une photo très détaillée qui dépasse encore 200 Ko est refaite un peu moins fine.
 const QUALITES = [0.8, 0.6, 0.4];
 
 // Réduit une photo dans le navigateur avant l'envoi : côté long à 1600 px au plus, en JPEG.

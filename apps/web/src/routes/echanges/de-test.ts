@@ -24,7 +24,7 @@ export async function preparer() {
 	return { base, chef, alice, bruno, e1, e2 };
 }
 
-export const locaux = (base: unknown, acteur: unknown) => ({ base, acteur });
+export const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
 
 // Un envoi de formulaire tel que le navigateur le fait : plusieurs parties (photos comprises), avec sa longueur.
 export async function requeteFormulaire(corps: [string, string | File][]) {

@@ -1,4 +1,4 @@
-// Avant les tests : base locale neuve avec les personnes fictives, serveur de développement,
+// Avant les tests : bases locales neuves (principale et photos, par `pnpm base-locale`) avec les personnes fictives, serveur de développement,
 // puis connexion de test@exemple.fr (agent) et du super administrateur fictif, gardées pour les tests « connecté ».
 import { chromium, type FullConfig } from '@playwright/test';
 import { execSync, spawn } from 'node:child_process';

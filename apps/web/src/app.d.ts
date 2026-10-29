@@ -1,4 +1,4 @@
-import type { Acteur, Base } from '@gyro-caserne/socle';
+import type { Acteur, Base, BasePhotos } from '@gyro-caserne/socle';
 import type { Affichage } from '#lib/affichage.ts';
 import type { Auth, EnvAuth } from '#lib/server/auth.ts';
 
@@ -6,6 +6,8 @@ declare global {
 	namespace App {
 		interface Locals {
 			base: Base;
+			// Les octets des photos, à part de la base principale (décision 0010).
+			basePhotos: BasePhotos;
 			auth: Auth;
 			// Null : personne n'est connecté, ou l'adresse n'a plus accès.
 			acteur: Acteur | null;
@@ -18,6 +20,7 @@ declare global {
 	namespace Cloudflare {
 		interface Env extends EnvAuth {
 			BASE: D1Database;
+			PHOTOS: D1Database;
 		}
 	}
 }
