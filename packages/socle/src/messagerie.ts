@@ -939,19 +939,27 @@ export async function infosConversation(base: Base, acteur: Acteur, id: number, 
 	};
 }
 
-// Raccourcis « Groupe avec l'équipe N » et « Groupe avec <comité> » : leurs membres du jour (règle des murs), qui ont la
-// messagerie, sans l'acteur. Une requête (un batch).
-export async function membresPourGroupe(base: Base, acteur: Acteur, source: { equipe: number } | { comite: number }, aujourdhui: string): Promise<number[]> {
+// Raccourcis « Groupe avec l'équipe N » et « Groupe avec <comité> » : le nom et l'icône à proposer, et les membres du jour
+// (règle des murs) qui ont la messagerie, sans l'acteur. Une équipe inactive ou un comité dissous ne se proposent plus. L'acteur
+// n'a pas à en être membre : l'annuaire est public. Une requête (un batch).
+export async function membresPourGroupe(base: Base, acteur: Acteur, source: { equipe: number } | { comite: number }, aujourdhui: string): Promise<{ nom: string; icone: NomIcone; membres: number[] }> {
 	exigerDate(aujourdhui);
 	const moi = idDe(acteur);
-	const cle = 'equipe' in source ? `equipe:${exigerId(source.equipe, 'Équipe')}` : `comite:${exigerId(source.comite, 'Comité')}`;
-	const [acces, avecMessagerie, agents, affectations, tenues] = await base.batch([
+	const pourEquipe = 'equipe' in source;
+	const id = pourEquipe ? exigerId(source.equipe, 'Équipe') : exigerId(source.comite, 'Comité');
+	const [acces, avecMessagerie, agents, affectations, tenues, lignes] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base.select({ id: personne.id }).from(personne).where(aLaMessagerie(personne.id, aujourdhui)),
-		...lecturesAgents(base, aujourdhui)
+		...lecturesAgents(base, aujourdhui),
+		pourEquipe
+			? base.select({ nom: equipe.nom }).from(equipe).where(and(eq(equipe.id, id), eq(equipe.active, 1)))
+			: base.select({ nom: comite.nom, theme: comite.theme, icone: comite.icone }).from(comite).where(and(eq(comite.id, id), isNull(comite.dissousLe)))
 	]);
 	if (acces.length === 0) throw refus();
-	return autresMembres(agentsDuJour([agents, affectations, tenues], aujourdhui), cle, moi, avecMessagerie);
+	const trouve = lignes[0];
+	if (!trouve) throw new DonneeInvalide(pourEquipe ? 'Équipe inconnue' : 'Comité inconnu');
+	const membres = autresMembres(agentsDuJour([agents, affectations, tenues], aujourdhui), `${pourEquipe ? 'equipe' : 'comite'}:${id}`, moi, avecMessagerie);
+	return { nom: trouve.nom, icone: 'theme' in trouve ? iconeDuComite(trouve) : 'groupe', membres };
 }
 
 const autresMembres = (agents: AgentDuJour[], cle: string, moi: number, avecMessagerie: { id: number }[]) => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { tick, untrack } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { plat } from '#lib/messagerie/recherche.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -22,7 +22,11 @@
 	const erreurMembres = $derived(erreurLocale ?? data.erreur);
 	const trouve = (a: { prenom: string; nom: string; surnom: string | null }) => plat(`${a.prenom} ${a.nom} ${a.surnom ?? ''}`).includes(plat(recherche));
 	const aucune = $derived(recherche.trim() !== '' && !data.personnes.some(trouve));
-	const personnesEnTexte = (n: number) => (n === 0 ? 'Personne de choisi' : `${n} ${n > 1 ? 'personnes choisies' : 'personne choisie'}`);
+	const personnesEnTexte = (n: number) => (n === 0 ? 'Aucune personne choisie' : `${n} ${n > 1 ? 'personnes choisies' : 'personne choisie'}`);
+
+	// Sans JavaScript, la recherche ne filtrerait rien : elle n'apparaît qu'avec lui.
+	let js = $state(false);
+	onMount(() => (js = true));
 
 	let liste = $state<HTMLElement>();
 	const verifier = async (e: SubmitEvent) => {
@@ -44,7 +48,13 @@
 			await update({ reset: false });
 			envoi = false;
 			await tick();
-			if (result.type === 'failure') formElement.querySelector<HTMLElement>('[aria-invalid="true"], .icones input:checked, .icones input, .modifier')?.focus();
+			if (result.type !== 'failure') return;
+			// Le premier champ en erreur, dans l'ordre de la page ; pour les membres, le lien qui permet de les corriger.
+			const selecteurs = [erreurs.nom && '[aria-invalid="true"]', erreurs.icone && '.icones input:checked', erreurs.icone && '.icones input', erreurs.membres && '.modifier'];
+			for (const selecteur of selecteurs) {
+				const cible = selecteur ? formElement.querySelector<HTMLElement>(selecteur) : null;
+				if (cible) return cible.focus();
+			}
 		};
 	};
 	const annonce = $derived(form ? 'Le groupe n’a pas été créé : corrigez les erreurs.' : '');
@@ -63,7 +73,7 @@
 	<div class="masque" role="alert">{annonce}</div>
 
 	{#if etape === 'membres'}
-		<div class="recherche" role="search">
+		<div class="recherche" role="search" hidden={!js}>
 			<label for="recherche" class="masque">Chercher un collègue</label>
 			<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
 			<input id="recherche" type="search" bind:value={recherche} placeholder="Nom, prénom ou surnom" autocomplete="off" />
@@ -101,17 +111,18 @@
 			<Champ id="groupe-nom" name="nom" libelle="Nom du groupe" valeur={valeurs.nom} erreur={erreurs.nom} requis maxlength={60} aide="60 caractères au plus." />
 			<ChoixIcone valeur={valeurs.icone as IconeRole} erreur={erreurs.icone} legende="Icône du groupe" />
 
-			<section class="rappel" aria-labelledby="rappel-titre" aria-describedby={erreurs.membres ? 'rappel-erreur' : undefined}>
+			<section class="rappel" aria-labelledby="rappel-titre">
 				<h2 id="rappel-titre">{valeurs.membres.length + 1} membres, vous compris</h2>
 				<div class="visages" aria-hidden="true">
 					{#each membres.slice(0, 8) as a (a.id)}<Visage prenom={a.prenom} nom={a.nom} couleur={a.couleur} taille={30} />{/each}
 				</div>
 				<p class="noms">{membres.map((a) => `${a.prenom} ${a.nom}`).join(', ')}</p>
 				{#if erreurs.membres}<p class="erreur" id="rappel-erreur">{erreurs.membres}</p>{/if}
-				<a class="modifier" href={modifier}>Modifier les membres</a>
+				<a class="modifier" href={modifier} aria-describedby={erreurs.membres ? 'rappel-erreur' : undefined}>Modifier les membres</a>
 			</section>
 
-			<div class="actions">
+			<div class="barre">
+				<span class="compte">{valeurs.membres.length + 1} membres</span>
 				<Bouton type="submit" desactive={envoi}>Créer</Bouton>
 			</div>
 		</form>
@@ -201,7 +212,8 @@
 		display: flex;
 		flex-direction: column;
 	}
-	li[hidden] {
+	li[hidden],
+	.recherche[hidden] {
 		display: none;
 	}
 	.ligne {
@@ -325,10 +337,6 @@
 		align-items: center;
 		color: var(--encre);
 		font-weight: 600;
-	}
-	.actions {
-		display: flex;
-		justify-content: flex-end;
 	}
 
 	.erreur {

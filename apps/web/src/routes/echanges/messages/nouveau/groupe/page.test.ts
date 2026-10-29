@@ -43,8 +43,14 @@ describe('nouveau groupe : les membres', () => {
 		expect(page).toMatch(new RegExp(`<p[^>]*id="${id}"[^>]*>Choisissez au moins une personne\\.</p>`));
 	});
 
-	it('une recherche par nom au-dessus de la liste', () => {
-		expect(html()).toMatch(/<input[^>]*type="search"[^>]*placeholder="Nom, prénom ou surnom"/);
+	it('une recherche par nom au-dessus de la liste, masquée sans JavaScript (elle ne filtre qu’avec lui)', () => {
+		const page = html();
+		expect(page).toMatch(/<input[^>]*type="search"[^>]*placeholder="Nom, prénom ou surnom"/);
+		expect(page).toMatch(/<div class="recherche[^"]*"[^>]*role="search"[^>]*hidden/);
+	});
+
+	it('personne de coché : « Aucune personne choisie »', () => {
+		expect(texte(html())).toContain('Aucune personne choisie');
 	});
 });
 
@@ -61,12 +67,15 @@ describe('nouveau groupe : le nom et l’icône', () => {
 		expect(form).toMatch(/<input[^>]*type="radio"[^>]*name="icone"[^>]*value="coeur"[^>]*checked/);
 		expect([...form.matchAll(/<input[^>]*type="hidden"[^>]*name="membres"[^>]*value="(\d+)"/g)].map((m) => m[1])).toEqual(['4', '6']);
 		expect(form).toMatch(/<button[^>]*type="submit"[^>]*>(?:<!---->)*Créer/);
+		// Dans la même barre collante qu'à l'étape 1.
+		expect(form).toMatch(/<div class="barre[^"]*">[\s\S]*Créer/);
 	});
 
 	it('les membres choisis sont rappelés, avec un lien pour les modifier qui garde tout', () => {
 		const page = html(etapeNom);
 		expect(texte(page)).toContain('3 membres, vous compris');
 		expect(texte(page)).toContain('Élodie Chef-Équipe');
+		expect(page).not.toMatch(/<a[^>]*class="modifier[^"]*"[^>]*aria-describedby/);
 		expect(page).toContain(`href="/echanges/messages/nouveau/groupe?membres=4&amp;membres=6&amp;nom=%C3%89quipe+1&amp;icone=coeur"`);
 	});
 
@@ -79,8 +88,9 @@ describe('nouveau groupe : le nom et l’icône', () => {
 		expect(page).toMatch(/id="groupe-nom-erreur"[^>]*>Donnez un nom au groupe\./);
 		expect(page).toMatch(/<input[^>]*type="radio"[^>]*value="livre"[^>]*checked/);
 		expect(texte(page)).toContain('Choisissez une icône de la liste.');
-		const idMembres = /<section[^>]*aria-describedby="([^"]+)"/.exec(page)![1];
-		expect(page).toMatch(new RegExp(`id="${idMembres}"[^>]*>60 membres au plus, vous compris\\.`));
+		expect(page).toMatch(/id="rappel-erreur"[^>]*>60 membres au plus, vous compris\./);
+		// Le lien qui permet de corriger porte l'erreur, et c'est lui qui prend le focus.
+		expect(page).toMatch(/<a[^>]*class="modifier[^"]*"[^>]*aria-describedby="rappel-erreur"|<a[^>]*aria-describedby="rappel-erreur"[^>]*class="modifier[^"]*"/);
 		expect([...page.matchAll(/<input[^>]*type="hidden"[^>]*name="membres"[^>]*value="(\d+)"/g)].map((m) => m[1])).toEqual(['6']);
 		expect(page).toMatch(/role="alert"[^>]*>Le groupe n’a pas été créé : corrigez les erreurs\./);
 	});

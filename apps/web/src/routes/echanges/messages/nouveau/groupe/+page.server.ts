@@ -1,6 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { annuaire, comite, creerGroupe, DonneeInvalide, equipe, iconeDuComite, membresPourGroupe, NOMS_ICONES, RefusDroit } from '@gyro-caserne/socle';
+import { annuaire, creerGroupe, DonneeInvalide, membresPourGroupe, NOMS_ICONES, RefusDroit } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -18,19 +17,18 @@ const refus = (erreur: unknown) => {
 };
 
 // Le raccourci « Groupe avec l'équipe N » ou « Groupe avec <comité> » : ses membres du jour, son nom et son icône.
+// Inconnu, inactif ou dissous : rien n'est prérempli.
 async function raccourci(locals: App.Locals, url: URL, aujourdhui: string) {
-	const acteur = exigerActeur(locals);
-	const idEquipe = idDe(url.searchParams.get('equipe'));
-	const idComite = idDe(url.searchParams.get('comite'));
-	if (idEquipe !== null) {
-		const [membres, [e]] = await Promise.all([membresPourGroupe(locals.base, acteur, { equipe: idEquipe }, aujourdhui), locals.base.select({ nom: equipe.nom }).from(equipe).where(eq(equipe.id, idEquipe))]);
-		return e ? { membres, nom: e.nom, icone: 'groupe' } : null;
+	const equipe = idDe(url.searchParams.get('equipe'));
+	const comite = idDe(url.searchParams.get('comite'));
+	const source = equipe !== null ? { equipe } : comite !== null ? { comite } : null;
+	if (!source) return null;
+	try {
+		return await membresPourGroupe(locals.base, exigerActeur(locals), source, aujourdhui);
+	} catch (erreur) {
+		if (erreur instanceof DonneeInvalide) return null;
+		throw erreur;
 	}
-	if (idComite !== null) {
-		const [membres, [c]] = await Promise.all([membresPourGroupe(locals.base, acteur, { comite: idComite }, aujourdhui), locals.base.select({ nom: comite.nom, theme: comite.theme, icone: comite.icone }).from(comite).where(eq(comite.id, idComite))]);
-		return c ? { membres, nom: c.nom, icone: iconeDuComite(c) } : null;
-	}
-	return null;
 }
 
 // Deux étapes, qui marchent aussi sans JavaScript : les membres (formulaire GET), puis le nom et l'icône.

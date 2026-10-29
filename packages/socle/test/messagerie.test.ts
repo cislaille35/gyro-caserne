@@ -780,11 +780,25 @@ describe('groupes', () => {
 			id: amicale!.id
 		});
 		const avant = base.requetes;
-		expect((await membresPourGroupe(base, acteur(manon), { equipe: e1.id }, aujourdhui)).sort()).toEqual([romain, claire].sort());
+		const equipe1 = await membresPourGroupe(base, acteur(manon), { equipe: e1.id }, aujourdhui);
 		expect(base.requetes - avant).toBe(1);
-		expect((await membresPourGroupe(base, acteur(romain), { comite: amicale!.id }, aujourdhui)).sort()).toEqual([claire, lea].sort());
-		expect(await membresPourGroupe(base, acteur(lea), { comite: amicale!.id }, aujourdhui)).toEqual([claire]);
+		expect({ ...equipe1, membres: equipe1.membres.sort() }).toEqual({ nom: e1.nom, icone: 'groupe', membres: [romain, claire].sort() });
+		const deRomain = await membresPourGroupe(base, acteur(romain), { comite: amicale!.id }, aujourdhui);
+		expect({ ...deRomain, membres: deRomain.membres.sort() }).toEqual({ nom: 'Amicale', icone: 'coeur', membres: [claire, lea].sort() });
+		expect((await membresPourGroupe(base, acteur(lea), { comite: amicale!.id }, aujourdhui)).membres).toEqual([claire]);
 		await expect(membresPourGroupe(base, superAdmin, { equipe: e1.id }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('membresPourGroupe : sans en être membre, on préremplit quand même (l’annuaire est public) ; équipe inconnue ou inactive, comité inconnu ou dissous refusés', async () => {
+		const { base, affecter, manon, claire, e1, e2 } = await jeuGroupe();
+		await affecter(claire, e2.id);
+		expect(await membresPourGroupe(base, acteur(manon), { equipe: e2.id }, aujourdhui)).toEqual({ nom: e2.nom, icone: 'groupe', membres: [claire] });
+		const [dissous] = await base.insert(comite).values({ nom: 'Ancien', theme: 'centre', dissousLe: '2026-01-01' }).returning();
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
+		for (const source of [{ equipe: 9999 }, { equipe: e1.id }, { comite: 9999 }, { comite: dissous!.id }]) {
+			const refus = await membresPourGroupe(base, acteur(manon), source, aujourdhui).catch((e) => e);
+			expect(refus, JSON.stringify(source)).toBeInstanceOf(DonneeInvalide);
+		}
 	});
 
 	it('pourVous : mon chef d’équipe, mon équipe et mes comités en cours, seulement s’ils ont du sens ; en 1 requête', async () => {

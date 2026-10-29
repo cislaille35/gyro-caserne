@@ -41,9 +41,10 @@ describe('nouveau groupe : les membres', () => {
 		expect(d.icone).toBe('coeur');
 	});
 
-	it('un raccourci illisible ou inconnu ne coche rien', async () => {
+	it('un raccourci illisible, inconnu ou dissous ne coche rien', async () => {
 		const { base, alice } = await preparer();
-		for (const q of ['?equipe=abc', '?equipe=9999', '?comite=-1']) {
+		const [dissous] = await base.insert(comite).values({ nom: 'Ancien', theme: 'centre', dissousLe: '2026-01-01' }).returning();
+		for (const q of ['?equipe=abc', '?equipe=9999', '?comite=-1', `?comite=${dissous!.id}`]) {
 			const d = await charger(locaux(base, alice), q);
 			expect(d.coches, q).toEqual([]);
 			expect(d.nom, q).toBe('');
@@ -106,6 +107,14 @@ describe('nouveau groupe : créer', () => {
 			expect(r.data.valeurs.nom).toBe(corps.find(([c]) => c === 'nom')![1]);
 		}
 		expect(await base.select().from(conversation)).toHaveLength(0);
+	});
+
+	it('une personne partie entre-temps : l’erreur est sur les membres', async () => {
+		const { base, alice, bruno } = await preparer();
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, bruno.id));
+		const r = await creer(locaux(base, alice), [['nom', 'Garde'], ['membres', String(bruno.id)]]);
+		expect(r.status).toBe(400);
+		expect(r.data.erreurs).toEqual({ membres: 'Une personne choisie n’est plus dans l’annuaire.' });
 	});
 
 	it('les membres choisis reviennent avec l’erreur', async () => {
