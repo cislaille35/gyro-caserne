@@ -1,16 +1,22 @@
 import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, max, ne, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
 import { roleDe, texte } from './actions/publications.ts';
 import type { Base, BasePhotos } from './base.ts';
 import { requeteTenues } from './casquettes.ts';
-import { exigerDateHeure } from './dates.ts';
+import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
+import { NOMS_ICONES } from './icones.ts';
 import { ligneJournal } from './journal.ts';
 import { STATUTS_AVEC_ACCES, type TypeConversation } from './listes.ts';
+import { agentsDuJour, lecturesAgents, membresDe } from './murs.ts';
 import { affectationEquipe, conversation, equipe, membreConversation, message, personne } from './schema.ts';
 
 const PAGE = 40;
 const EXTRAIT = 100;
+const TAILLE_GROUPE = 60;
+
+type Ecriture = BatchItem<'sqlite'>;
 
 type Visage = { id: number; prenom: string; nom: string; couleur: string | null };
 
@@ -23,6 +29,7 @@ export type VueMessage = {
 	cree_le: string;
 	modifie: boolean;
 	supprime: 'auteur' | 'moderation' | null;
+	// La phrase d'un message système (« Romain a ajouté Manon »).
 	systeme: string | null;
 	reponse: { id: number; auteur: Visage | null; extrait: string } | null;
 	photos: number[];
@@ -63,6 +70,47 @@ function idDe(acteur: Acteur): number {
 	if (acteur.type !== 'personne') throw refus('Le super administrateur n’a pas de messagerie');
 	return acteur.id;
 }
+
+// Contenu d'un message système, en JSON dans `message.systeme`. Sans `par`, le relais d'animation est automatique.
+type Systeme =
+	| { type: 'creation'; par: number; membres: number[] }
+	| { type: 'ajout' | 'retrait'; par: number; cibles: number[] }
+	| { type: 'animateur'; par?: number; cibles: number[] }
+	| { type: 'depart'; par: number }
+	| { type: 'renommage'; par: number; nom: string };
+
+const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+// « Manon », « Manon et Claire », « Manon, Claire et Léa », puis « Manon, Claire et 2 autres personnes ».
+function enumerer(noms: string[]): string {
+	if (noms.length > 3) return `${noms.slice(0, 2).join(', ')} et ${noms.length - 2} autres personnes`;
+	return noms.length > 1 ? `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}` : (noms[0] ?? '');
+}
+
+// La phrase d'un message système. `noms` : prénom de chaque personne citée.
+export function phraseSysteme(systeme: string, noms: Map<number, string>): string {
+	const s = JSON.parse(systeme) as Systeme;
+	const nom = (id: number) => noms.get(id) ?? 'un ancien membre';
+	const qui = s.par === undefined ? '' : majuscule(nom(s.par));
+	const cibles = 'cibles' in s ? enumerer(s.cibles.map(nom)) : '';
+	switch (s.type) {
+		case 'creation':
+			return `${qui} a créé le groupe`;
+		case 'ajout':
+			return `${qui} a ajouté ${cibles}`;
+		case 'retrait':
+			return `${qui} a retiré ${cibles}`;
+		case 'depart':
+			return `${qui} a quitté le groupe`;
+		case 'renommage':
+			return `${qui} a renommé le groupe en « ${s.nom} »`;
+		case 'animateur':
+			return s.par === undefined ? `${majuscule(cibles)} anime désormais le groupe` : `${qui} a confié l’animation du groupe à ${cibles}`;
+	}
+}
+
+// Les personnes citées par les messages système retenus par `filtre`.
+const citesParSysteme = (filtre: SQL | undefined) => sql`(select j.value from ${message}, json_tree(${message.systeme}) j where ${and(isNotNull(message.systeme), filtre)} and j.type = 'integer')`;
 
 const STATUTS = sql.raw(STATUTS_AVEC_ACCES.map((s) => `'${s}'`).join(', '));
 
@@ -263,7 +311,8 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 			.where(
 				or(
 					inArray(personne.id, base.select({ id: membreConversation.personneId }).from(membreConversation).where(eq(membreConversation.conversationId, id))),
-					inArray(personne.id, base.selectDistinct({ id: message.auteur }).from(message).where(and(eq(message.conversationId, id), isNotNull(message.auteur))))
+					inArray(personne.id, base.selectDistinct({ id: message.auteur }).from(message).where(and(eq(message.conversationId, id), isNotNull(message.auteur)))),
+					inArray(personne.id, citesParSysteme(eq(message.conversationId, id)))
 				)
 			),
 		affectationsDuJour(base, aujourdhui),
@@ -279,6 +328,7 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 	const equipes = equipesDe(affectations);
 	const visages = new Map(auteurs.map((a) => [a.id, { id: a.id, prenom: a.prenom, nom: a.nom, couleur: equipes.get(a.id)?.couleur ?? null }]));
 	const visage = (pid: number | null) => (pid === null ? null : (visages.get(pid) ?? null));
+	const prenoms = new Map(auteurs.map((a) => [a.id, a.prenom]));
 	const autres = membres.filter((m) => m.id !== moi);
 	const mesCoches = membres.find((m) => m.id === moi)?.coches === 1;
 	const citesParId = new Map(cites.map((c) => [c.id, { id: c.id, auteur: visage(c.auteur), extrait: c.extrait }]));
@@ -298,7 +348,7 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 		cree_le: m.creeLe,
 		modifie: m.modifie === 1,
 		supprime: m.supprime,
-		systeme: m.systeme,
+		systeme: m.systeme === null ? null : phraseSysteme(m.systeme, prenoms),
 		reponse: m.reponseA === null ? null : (citesParId.get(m.reponseA) ?? null),
 		photos: [],
 		reactions: [],
@@ -344,8 +394,9 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
 	const miennes = base.select({ id: membreConversation.conversationId }).from(membreConversation).where(eq(membreConversation.personneId, moi));
+	const derniersIds = base.select({ id: max(message.id) }).from(message).where(inArray(message.conversationId, miennes)).groupBy(message.conversationId);
 
-	const [acces, conversations, derniers, nonLus, autres, affectations] = await base.batch([
+	const [acces, conversations, derniers, nonLus, autres, affectations, cites] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base
 			.select({ id: conversation.id, type: conversation.type, nom: conversation.nom, icone: conversation.icone, dernierLe: conversation.dernierLe })
@@ -356,7 +407,7 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 			.select({ conversationId: message.conversationId, auteur: message.auteur, systeme: message.systeme, supprime: message.supprime, extrait, prenom: personne.prenom })
 			.from(message)
 			.leftJoin(personne, eq(personne.id, message.auteur))
-			.where(inArray(message.id, base.select({ id: max(message.id) }).from(message).where(inArray(message.conversationId, miennes)).groupBy(message.conversationId))),
+			.where(inArray(message.id, derniersIds)),
 		base.select({ conversationId: message.conversationId, n: count() }).from(message).innerJoin(membreConversation, nonLusDe(moi)).groupBy(message.conversationId),
 		base
 			.select({ conversationId: membreConversation.conversationId, id: personne.id, prenom: personne.prenom, nom: personne.nom })
@@ -364,17 +415,22 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 			.innerJoin(personne, eq(personne.id, membreConversation.personneId))
 			.innerJoin(conversation, eq(conversation.id, membreConversation.conversationId))
 			.where(and(inArray(membreConversation.conversationId, miennes), ne(membreConversation.personneId, moi), eq(conversation.type, 'deux'))),
-		affectationsDuJour(base, aujourdhui)
+		affectationsDuJour(base, aujourdhui),
+		base
+			.select({ id: personne.id, prenom: personne.prenom })
+			.from(personne)
+			.where(inArray(personne.id, citesParSysteme(inArray(message.id, derniersIds))))
 	]);
 	if (acces.length === 0) throw refus();
 	const equipes = equipesDe(affectations);
+	const prenoms = new Map(cites.map((c) => [c.id, c.prenom]));
 
 	return conversations.map((c) => {
 		const d = derniers.find((x) => x.conversationId === c.id);
 		const l = autres.find((x) => x.conversationId === c.id);
 		const personneVue = c.type === 'deux' && l ? { id: l.id, prenom: l.prenom, nom: l.nom, couleur: equipes.get(l.id)?.couleur ?? null } : null;
 		let apercu = '';
-		if (d?.systeme) apercu = d.systeme;
+		if (d?.systeme) apercu = phraseSysteme(d.systeme, prenoms);
 		else if (d?.supprime) apercu = 'Message supprimé';
 		else if (d) apercu = `${d.auteur === moi ? 'Vous' : (d.prenom ?? '')} : ${d.extrait}`;
 		return {
@@ -399,4 +455,247 @@ export async function nonLusTotal(base: Base, acteur: Acteur, aujourdhui: string
 		.innerJoin(membreConversation, nonLusDe(acteur.id))
 		.where(aLaMessagerie(acteur.id, aujourdhui));
 	return ligne?.n ?? 0;
+}
+
+// Groupes
+
+const nouveauxMembres = (base: Base, id: number | SQL, ids: number[], animateur: number | null, maintenant: string) =>
+	base.insert(membreConversation).select(
+		base
+			.select({
+				conversationId: sql`${id}`.as('conversation_id'),
+				personneId: personne.id,
+				animateur: sql`case when ${personne.id} = ${animateur ?? 0} then 1 else 0 end`.as('animateur'),
+				entreLe: sql`${maintenant}`.as('entre_le'),
+				// L'historique se lit, mais ne compte pas comme non lu.
+				luJusquA: sql`(select coalesce(max(${message.id}), 0) from ${message} where ${message.conversationId} = ${id})`.as('lu_jusqu_a')
+			})
+			.from(personne)
+			.where(inArray(personne.id, ids))
+	);
+
+function ecrireSysteme(base: Base, id: number, contenu: Systeme, maintenant: string): Ecriture[] {
+	return [
+		base.insert(message).values({ conversationId: id, auteur: null, texte: '', systeme: JSON.stringify(contenu), creeLe: maintenant, majLe: maintenant }),
+		base
+			.update(conversation)
+			.set({ dernierLe: sql`max(${conversation.dernierLe}, ${maintenant})` })
+			.where(eq(conversation.id, id))
+	];
+}
+
+type MembreGroupe = { id: number; animateur: number; entreLe: string };
+
+// Un membre s'en va (départ ou retrait). Sans membre, le groupe est effacé avec ses messages ; sans animateur, le plus ancien
+// membre (puis le plus petit id) le devient.
+function sortie(base: Base, id: number, personneId: number, membres: MembreGroupe[], contenu: Systeme, maintenant: string): Ecriture[] {
+	const restants = membres.filter((m) => m.id !== personneId).sort((a, b) => a.entreLe.localeCompare(b.entreLe) || a.id - b.id);
+	if (restants.length === 0)
+		return [
+			base.delete(message).where(eq(message.conversationId, id)),
+			base.delete(membreConversation).where(eq(membreConversation.conversationId, id)),
+			base.delete(conversation).where(eq(conversation.id, id))
+		];
+	const relais = restants.some((m) => m.animateur === 1) ? null : restants[0]!;
+	return [
+		base.delete(membreConversation).where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, personneId))),
+		...ecrireSysteme(base, id, contenu, maintenant),
+		...(relais === null
+			? []
+			: [
+					base
+						.update(membreConversation)
+						.set({ animateur: 1 })
+						.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, relais.id))),
+					...ecrireSysteme(base, id, { type: 'animateur', cibles: [relais.id] }, maintenant)
+				])
+	];
+}
+
+const executer = (base: Base, ecritures: Ecriture[]) => base.batch(ecritures as [Ecriture, ...Ecriture[]]);
+
+function idsDe(ids: unknown): number[] {
+	if (!Array.isArray(ids)) throw new DonneeInvalide('Membres invalides');
+	return [...new Set(ids.map((id) => exigerId(id, 'Membre')))];
+}
+
+// Contrôles d'un geste sur un groupe, en une requête : l'acteur en est membre ; `cibles` : celles qui ont la messagerie.
+async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: string, cibles: number[] = []) {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const moi = idDe(acteur);
+	exigerId(id, 'Conversation');
+	const [acces, place, membres, joignables] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base.select({ type: conversation.type }).from(conversation).where(eq(conversation.id, id)),
+		base
+			.select({ id: membreConversation.personneId, animateur: membreConversation.animateur, entreLe: membreConversation.entreLe })
+			.from(membreConversation)
+			.where(eq(membreConversation.conversationId, id)),
+		base
+			.select({ id: personne.id })
+			.from(personne)
+			.where(and(inArray(personne.id, cibles), aLaMessagerie(personne.id, aujourdhui)))
+	]);
+	if (acces.length === 0) throw refus();
+	const mien = membres.find((m) => m.id === moi);
+	if (!place[0] || !mien) throw refus('Conversation non accessible');
+	if (place[0].type !== 'groupe') throw new DonneeInvalide('Ce n’est pas un groupe');
+	const estMembre = (pid: number) => membres.some((m) => m.id === pid);
+	return { moi, membres, animateur: mien.animateur === 1, estMembre, joignables: new Set(joignables.map((j) => j.id)) };
+}
+
+const reserveAuxAnimateurs = () => refus('Réservé aux animateurs du groupe');
+
+// Crée un groupe de 2 à 60 membres, créateur compris, qui l'anime. Deux requêtes.
+export async function creerGroupe(base: Base, acteur: Acteur, donnees: { nom: string; icone?: string; membres: number[] }, maintenant: string): Promise<number> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const moi = idDe(acteur);
+	const nom = texte(donnees.nom, 'Nom du groupe', 60);
+	const icone = donnees.icone ?? 'groupe';
+	if (!(NOMS_ICONES as readonly string[]).includes(icone)) throw new DonneeInvalide('Icône inconnue');
+	const autres = idsDe(donnees.membres).filter((id) => id !== moi);
+	if (autres.length === 0) throw new DonneeInvalide('Choisissez au moins une personne');
+	if (autres.length + 1 > TAILLE_GROUPE) throw new DonneeInvalide(`${TAILLE_GROUPE} membres au plus`);
+
+	const [acces, joignables] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base
+			.select({ id: personne.id })
+			.from(personne)
+			.where(and(inArray(personne.id, autres), aLaMessagerie(personne.id, aujourdhui)))
+	]);
+	if (acces.length === 0) throw refus();
+	if (joignables.length !== autres.length) throw new DonneeInvalide('Une personne n’est pas dans l’annuaire');
+
+	// Le batch est une transaction : la plus grande conversation est celle qu'on vient de créer.
+	const id = sql`(select max(${conversation.id}) from ${conversation})`;
+	const contenu: Systeme = { type: 'creation', par: moi, membres: autres };
+	const [, , , lignes] = await base.batch([
+		base.insert(conversation).values({ type: 'groupe', nom, icone, creePar: moi, creeLe: maintenant, dernierLe: maintenant }),
+		ligneJournal(base, { acteur: `personne:${moi}`, action: 'creer_conversation', cibleType: 'conversation', cibleId: id, details: { type: 'groupe' } }, maintenant),
+		nouveauxMembres(base, id, [moi, ...autres], moi, maintenant),
+		base
+			.insert(message)
+			.values({ conversationId: id, auteur: null, texte: '', systeme: JSON.stringify(contenu), creeLe: maintenant, majLe: maintenant })
+			.returning({ conversation: message.conversationId })
+	]);
+	return lignes[0]!.conversation;
+}
+
+export async function ajouterMembres(base: Base, acteur: Acteur, id: number, ids: number[], maintenant: string): Promise<void> {
+	const cibles = idsDe(ids);
+	if (cibles.length === 0) throw new DonneeInvalide('Choisissez au moins une personne');
+	const g = await lireGroupe(base, acteur, id, maintenant, cibles);
+	if (!g.animateur) throw reserveAuxAnimateurs();
+	if (cibles.some(g.estMembre)) throw new DonneeInvalide('Déjà membre du groupe');
+	if (cibles.some((c) => !g.joignables.has(c))) throw new DonneeInvalide('Une personne n’est pas dans l’annuaire');
+	if (g.membres.length + cibles.length > TAILLE_GROUPE) throw new DonneeInvalide(`${TAILLE_GROUPE} membres au plus`);
+	await executer(base, [nouveauxMembres(base, id, cibles, null, maintenant), ...ecrireSysteme(base, id, { type: 'ajout', par: g.moi, cibles }, maintenant)]);
+}
+
+// Le membre retiré perd tout l'accès, historique compris.
+export async function retirerMembre(base: Base, acteur: Acteur, id: number, personneId: number, maintenant: string): Promise<void> {
+	const cible = exigerId(personneId, 'Membre');
+	const g = await lireGroupe(base, acteur, id, maintenant);
+	if (!g.animateur) throw reserveAuxAnimateurs();
+	if (cible === g.moi) throw new DonneeInvalide('Pour partir, quittez le groupe');
+	if (!g.estMembre(cible)) throw new DonneeInvalide('Pas membre du groupe');
+	await executer(base, sortie(base, id, cible, g.membres, { type: 'retrait', par: g.moi, cibles: [cible] }, maintenant));
+}
+
+export async function nommerAnimateur(base: Base, acteur: Acteur, id: number, personneId: number, maintenant: string): Promise<void> {
+	const cible = exigerId(personneId, 'Membre');
+	const g = await lireGroupe(base, acteur, id, maintenant);
+	if (!g.animateur) throw reserveAuxAnimateurs();
+	if (!g.estMembre(cible)) throw new DonneeInvalide('Pas membre du groupe');
+	if (g.membres.some((m) => m.id === cible && m.animateur === 1)) throw new DonneeInvalide('Anime déjà le groupe');
+	await executer(base, [
+		base
+			.update(membreConversation)
+			.set({ animateur: 1 })
+			.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, cible))),
+		...ecrireSysteme(base, id, { type: 'animateur', par: g.moi, cibles: [cible] }, maintenant)
+	]);
+}
+
+export async function renommerGroupe(base: Base, acteur: Acteur, id: number, nom: string, maintenant: string): Promise<void> {
+	const propre = texte(nom, 'Nom du groupe', 60);
+	const g = await lireGroupe(base, acteur, id, maintenant);
+	await executer(base, [base.update(conversation).set({ nom: propre }).where(eq(conversation.id, id)), ...ecrireSysteme(base, id, { type: 'renommage', par: g.moi, nom: propre }, maintenant)]);
+}
+
+export async function quitterGroupe(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
+	const g = await lireGroupe(base, acteur, id, maintenant);
+	await executer(base, sortie(base, id, g.moi, g.membres, { type: 'depart', par: g.moi }, maintenant));
+}
+
+// Écritures du départ d'un agent qui quitte le centre : il quitte tous ses groupes. Une requête.
+export async function departDesGroupes(base: Base, personneId: number, maintenant: string): Promise<Ecriture[]> {
+	const sesGroupes = base
+		.select({ id: membreConversation.conversationId })
+		.from(membreConversation)
+		.innerJoin(conversation, eq(conversation.id, membreConversation.conversationId))
+		.where(and(eq(membreConversation.personneId, personneId), eq(conversation.type, 'groupe')));
+	const lignes = await base
+		.select({ conversationId: membreConversation.conversationId, id: membreConversation.personneId, animateur: membreConversation.animateur, entreLe: membreConversation.entreLe })
+		.from(membreConversation)
+		.where(inArray(membreConversation.conversationId, sesGroupes));
+	const parGroupe = new Map<number, MembreGroupe[]>();
+	for (const l of lignes) parGroupe.set(l.conversationId, [...(parGroupe.get(l.conversationId) ?? []), l]);
+	return [...parGroupe].flatMap(([id, membres]) => sortie(base, id, personneId, membres, { type: 'depart', par: personneId }, maintenant));
+}
+
+// Les infos d'une conversation (écran « Infos ») : membres triés par nom. Une requête (un batch). Membres seulement.
+export async function infosConversation(base: Base, acteur: Acteur, id: number, aujourdhui: string) {
+	exigerDate(aujourdhui);
+	const moi = idDe(acteur);
+	exigerId(id, 'Conversation');
+	const [acces, place, membres, affectations, tenues] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base
+			.select({ type: conversation.type, nom: conversation.nom, icone: conversation.icone, creePar: conversation.creePar })
+			.from(conversation)
+			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, conversation.id), eq(membreConversation.personneId, moi)))
+			.where(eq(conversation.id, id)),
+		base
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, animateur: membreConversation.animateur })
+			.from(membreConversation)
+			.innerJoin(personne, eq(personne.id, membreConversation.personneId))
+			.where(eq(membreConversation.conversationId, id)),
+		affectationsDuJour(base, aujourdhui),
+		requeteTenues(base, null, aujourdhui)
+	]);
+	if (acces.length === 0) throw refus();
+	const conv = place[0];
+	if (!conv) throw refus('Conversation non accessible');
+	const equipes = equipesDe(affectations);
+	const autre = membres.find((m) => m.id !== moi);
+	return {
+		type: conv.type,
+		nom: conv.type === 'deux' ? (autre ? `${autre.prenom} ${autre.nom}` : '') : (conv.nom ?? ''),
+		icone: conv.icone,
+		creePar: conv.creePar,
+		membres: membres
+			.map((m) => ({ id: m.id, prenom: m.prenom, nom: m.nom, animateur: m.animateur === 1, equipe: equipes.get(m.id) ?? null, role: roleDe(tenues, m.id) }))
+			.sort(parNom),
+		moiAnimateur: membres.some((m) => m.id === moi && m.animateur === 1)
+	};
+}
+
+// Raccourcis « Groupe avec l'équipe N » et « Groupe avec <comité> » : leurs membres du jour (règle des murs), qui ont la
+// messagerie, sans l'acteur. Une requête (un batch).
+export async function membresPourGroupe(base: Base, acteur: Acteur, source: { equipe: number } | { comite: number }, aujourdhui: string): Promise<number[]> {
+	exigerDate(aujourdhui);
+	const moi = idDe(acteur);
+	const cle = 'equipe' in source ? `equipe:${exigerId(source.equipe, 'Équipe')}` : `comite:${exigerId(source.comite, 'Comité')}`;
+	const [acces, avecMessagerie, agents, affectations, tenues] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base.select({ id: personne.id }).from(personne).where(aLaMessagerie(personne.id, aujourdhui)),
+		...lecturesAgents(base, aujourdhui)
+	]);
+	if (acces.length === 0) throw refus();
+	const ouverts = new Set(avecMessagerie.map((p) => p.id));
+	return membresDe(agentsDuJour([agents, affectations, tenues], aujourdhui), cle)
+		.map((a) => a.id)
+		.filter((pid) => pid !== moi && ouverts.has(pid));
 }

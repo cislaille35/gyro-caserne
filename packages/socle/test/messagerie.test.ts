@@ -4,8 +4,9 @@ import centreExemple from '../../../centres/exemple/centre.ts';
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { annuaire, conversationAvec, envoyer, exigerMessagerie, lireConversation, mesConversations, nonLusTotal } from '../src/messagerie.ts';
-import { affectationEquipe, attribution, conversation, equipe, journal, membreConversation, message, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
+import { ajouterMembres, annuaire, conversationAvec, creerGroupe, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, nommerAnimateur, nonLusTotal, phraseSysteme, quitterGroupe, renommerGroupe, retirerMembre } from '../src/messagerie.ts';
+import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -29,7 +30,7 @@ async function jeu() {
 			.returning();
 		return p!.id;
 	};
-	const nommer = async (personneId: number, nom: string, perimetre: { type: 'centre' | 'equipe'; id?: number }) => {
+	const nommer = async (personneId: number, nom: string, perimetre: { type: 'centre' | 'equipe' | 'comite'; id?: number }) => {
 		const r = responsabilites.find((x) => x.nom === nom)!.id;
 		await base.insert(attribution).values({ personneId, responsabiliteId: r, perimetreType: perimetre.type, perimetreId: perimetre.id ?? null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 	};
@@ -366,8 +367,8 @@ describe('non-lus et liste des conversations', () => {
 		const m = await envoyer(base, base.photos, acteur(romain), { personne: manon }, { texte: 'Secret' }, minute(0));
 		await base.update(message).set({ supprime: 'auteur' }).where(eq(message.id, m.message));
 		expect((await mesConversations(base, acteur(manon), minute(1)))[0]!.apercu).toBe('Message supprimé');
-		await base.insert(message).values({ conversationId: m.conversation, auteur: null, texte: '', systeme: 'Romain a renommé le groupe', creeLe: minute(2), majLe: minute(2) });
-		expect((await mesConversations(base, acteur(manon), minute(3)))[0]!.apercu).toBe('Romain a renommé le groupe');
+		await base.insert(message).values({ conversationId: m.conversation, auteur: null, texte: '', systeme: JSON.stringify({ type: 'renommage', par: romain, nom: 'Garde' }), creeLe: minute(2), majLe: minute(2) });
+		expect((await mesConversations(base, acteur(manon), minute(3)))[0]!.apercu).toBe('Romain a renommé le groupe en « Garde »');
 	});
 
 	it('envoyer marque la conversation comme lue, messages reçus avant compris (voulu, comme WhatsApp)', async () => {
@@ -386,5 +387,377 @@ describe('non-lus et liste des conversations', () => {
 		await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Privé' }, minute(0));
 		expect(await mesConversations(base, acteur(chef), minute(1))).toEqual([]);
 		await expect(mesConversations(base, superAdmin, minute(1))).rejects.toBeInstanceOf(RefusDroit);
+	});
+});
+
+describe('phraseSysteme', () => {
+	const noms = new Map([
+		[1, 'Romain'],
+		[2, 'Manon'],
+		[3, 'Claire'],
+		[4, 'Léa'],
+		[5, 'Hugo']
+	]);
+	const phrase = (contenu: object) => phraseSysteme(JSON.stringify(contenu), noms);
+
+	it('une phrase lisible par type de message', () => {
+		expect(phrase({ type: 'creation', par: 1, membres: [2, 3] })).toBe('Romain a créé le groupe');
+		expect(phrase({ type: 'ajout', par: 1, cibles: [2] })).toBe('Romain a ajouté Manon');
+		expect(phrase({ type: 'retrait', par: 1, cibles: [2] })).toBe('Romain a retiré Manon');
+		expect(phrase({ type: 'depart', par: 2 })).toBe('Manon a quitté le groupe');
+		expect(phrase({ type: 'renommage', par: 3, nom: 'Garde de nuit' })).toBe('Claire a renommé le groupe en « Garde de nuit »');
+		expect(phrase({ type: 'animateur', par: 1, cibles: [2] })).toBe('Romain a confié l’animation du groupe à Manon');
+		// Sans `par` : le plus ancien membre prend le relais.
+		expect(phrase({ type: 'animateur', cibles: [2] })).toBe('Manon anime désormais le groupe');
+	});
+
+	it('liste les personnes, trois au plus, et nomme « un ancien membre » qu’on ne connaît plus', () => {
+		expect(phrase({ type: 'ajout', par: 1, cibles: [2, 3] })).toBe('Romain a ajouté Manon et Claire');
+		expect(phrase({ type: 'ajout', par: 1, cibles: [2, 3, 4] })).toBe('Romain a ajouté Manon, Claire et Léa');
+		expect(phrase({ type: 'ajout', par: 1, cibles: [2, 3, 4, 5] })).toBe('Romain a ajouté Manon, Claire et 2 autres personnes');
+		expect(phrase({ type: 'depart', par: 99 })).toBe('Un ancien membre a quitté le groupe');
+		expect(phrase({ type: 'retrait', par: 1, cibles: [99] })).toBe('Romain a retiré un ancien membre');
+	});
+});
+
+describe('groupes', () => {
+	async function jeuGroupe() {
+		const j = await jeu();
+		const claire = await j.nouvelle('Claire', 'Martin');
+		const lea = await j.nouvelle('Léa', 'Petit');
+		return { ...j, claire, lea };
+	}
+	const systemes = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) =>
+		(await base.select().from(message).where(eq(message.conversationId, id)).orderBy(message.id)).filter((m) => m.systeme !== null).map((m) => JSON.parse(m.systeme!));
+	const membresDuGroupe = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) =>
+		(await base.select().from(membreConversation).where(eq(membreConversation.conversationId, id)).orderBy(membreConversation.personneId)).map((m) => [m.personneId, m.animateur]);
+
+	it('creerGroupe : le créateur anime, message de création, journal ; en 2 requêtes', async () => {
+		const { base, manon, romain, claire } = await jeuGroupe();
+		const avant = base.requetes;
+		const id = await creerGroupe(base, acteur(romain), { nom: '  Garde de nuit  ', membres: [manon, claire, manon, romain] }, minute(0));
+		expect(base.requetes - avant).toBe(2);
+		const [c] = await base.select().from(conversation).where(eq(conversation.id, id));
+		expect(c).toMatchObject({
+			type: 'groupe',
+			nom: 'Garde de nuit',
+			icone: 'groupe',
+			clePaire: null,
+			creePar: romain,
+			creeLe: minute(0),
+			dernierLe: minute(0)
+		});
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 0],
+			[romain, 1],
+			[claire, 0]
+		]);
+		expect(await systemes(base, id)).toEqual([{ type: 'creation', par: romain, membres: [manon, claire] }]);
+		expect(await base.select().from(journal).where(eq(journal.action, 'creer_conversation'))).toMatchObject([
+			{
+				acteur: `personne:${romain}`,
+				cibleId: id,
+				details: JSON.stringify({ type: 'groupe' })
+			}
+		]);
+
+		const liste = await mesConversations(base, acteur(manon), minute(1));
+		expect(liste).toMatchObject([
+			{
+				id,
+				type: 'groupe',
+				nom: 'Garde de nuit',
+				icone: 'groupe',
+				personne: null,
+				apercu: 'Romain a créé le groupe',
+				nonLus: 0
+			}
+		]);
+		const vue = await lireConversation(base, acteur(claire), id, {}, minute(1));
+		expect(vue).toMatchObject({
+			type: 'groupe',
+			nom: 'Garde de nuit',
+			lectureSeule: false
+		});
+		expect(vue.messages).toMatchObject([{ auteur: null, systeme: 'Romain a créé le groupe', coche: null }]);
+		expect(await creerGroupe(base, acteur(manon), { nom: 'Camion', icone: 'camion', membres: [romain] }, minute(2))).toBeGreaterThan(id);
+		expect((await base.select().from(conversation).where(eq(conversation.nom, 'Camion')))[0]!.icone).toBe('camion');
+	});
+
+	it('creerGroupe : nom de 1 à 60 caractères, icône connue, 2 à 60 membres de l’annuaire', async () => {
+		const { base, nouvelle, manon, romain } = await jeuGroupe();
+		const parti = await nouvelle('Parti', 'Test', { statut: 'parti' });
+		const autres: number[] = [];
+		for (let i = 0; i < 60; i++) autres.push(await nouvelle(`Agent${i}`, 'Nombreux'));
+		const essais = [
+			creerGroupe(base, acteur(romain), { nom: '  ', membres: [manon] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'x'.repeat(61), membres: [manon] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', icone: 'fusee', membres: [manon] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [romain] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: autres }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, parti] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, 9999] }, minute(0)),
+			creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, 0] }, minute(0))
+		];
+		for (const essai of essais) await expect(essai).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(creerGroupe(base, superAdmin, { nom: 'Garde', membres: [manon] }, minute(0))).rejects.toBeInstanceOf(RefusDroit);
+		expect(await base.select().from(conversation)).toHaveLength(0);
+		base.parametresMax = 0;
+		const id = await creerGroupe(base, acteur(romain), { nom: 'x'.repeat(60), membres: autres.slice(0, 59) }, minute(0));
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
+		expect(await membresDuGroupe(base, id)).toHaveLength(60);
+	});
+
+	it('ajouterMembres : réservé aux animateurs, 60 au plus ; le nouvel arrivant voit l’historique, sans non-lus', async () => {
+		const { base, nouvelle, manon, romain, claire, lea } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(0));
+		await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Avant Claire' }, minute(1));
+		await expect(ajouterMembres(base, acteur(manon), id, [claire], minute(2))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(ajouterMembres(base, acteur(claire), id, [lea], minute(2))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(ajouterMembres(base, acteur(romain), id, [manon], minute(2))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterMembres(base, acteur(romain), id, [], minute(2))).rejects.toBeInstanceOf(DonneeInvalide);
+
+		await ajouterMembres(base, acteur(romain), id, [claire, lea], minute(2));
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 0],
+			[romain, 1],
+			[claire, 0],
+			[lea, 0]
+		]);
+		expect((await systemes(base, id)).at(-1)).toEqual({
+			type: 'ajout',
+			par: romain,
+			cibles: [claire, lea]
+		});
+		expect(await nonLusTotal(base, acteur(claire), aujourdhui)).toBe(0);
+		const vue = await lireConversation(base, acteur(claire), id, {}, minute(3));
+		expect(vue.messages.map((m) => m.systeme ?? m.texte)).toEqual(['Romain a créé le groupe', 'Avant Claire', 'Romain a ajouté Claire et Léa']);
+		expect((await mesConversations(base, acteur(lea), minute(3)))[0]).toMatchObject({
+			apercu: 'Romain a ajouté Claire et Léa',
+			dernier_le: minute(2)
+		});
+
+		const autres: number[] = [];
+		for (let i = 0; i < 57; i++) autres.push(await nouvelle(`Agent${i}`, 'Nombreux'));
+		await expect(ajouterMembres(base, acteur(romain), id, autres, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
+		base.parametresMax = 0;
+		await ajouterMembres(base, acteur(romain), id, autres.slice(0, 56), minute(4));
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
+		expect(await membresDuGroupe(base, id)).toHaveLength(60);
+	});
+
+	it('retirerMembre : réservé aux animateurs ; le membre retiré perd tout l’accès, historique compris', async () => {
+		const { base, manon, romain, claire, lea } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, claire] }, minute(0));
+		await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Bonjour' }, minute(1));
+		await expect(retirerMembre(base, acteur(manon), id, claire, minute(2))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(retirerMembre(base, acteur(romain), id, lea, minute(2))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(retirerMembre(base, acteur(romain), id, romain, minute(2))).rejects.toBeInstanceOf(DonneeInvalide);
+
+		await retirerMembre(base, acteur(romain), id, claire, minute(2));
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 0],
+			[romain, 1]
+		]);
+		expect((await systemes(base, id)).at(-1)).toEqual({
+			type: 'retrait',
+			par: romain,
+			cibles: [claire]
+		});
+		expect((await lireConversation(base, acteur(manon), id, {}, minute(3))).messages.at(-1)!.systeme).toBe('Romain a retiré Claire');
+		await expect(lireConversation(base, acteur(claire), id, {}, minute(3))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(envoyer(base, base.photos, acteur(claire), { conversation: id }, { texte: 'Encore là ?' }, minute(3))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(infosConversation(base, acteur(claire), id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		await expect(renommerGroupe(base, acteur(claire), id, 'Pirate', minute(3))).rejects.toBeInstanceOf(RefusDroit);
+		expect(await mesConversations(base, acteur(claire), minute(3))).toEqual([]);
+		expect(await nonLusTotal(base, acteur(claire), aujourdhui)).toBe(0);
+	});
+
+	it('nommerAnimateur : réservé aux animateurs, pour un membre qui n’anime pas encore', async () => {
+		const { base, manon, romain, claire, lea } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, claire] }, minute(0));
+		await expect(nommerAnimateur(base, acteur(manon), id, claire, minute(1))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(nommerAnimateur(base, acteur(romain), id, lea, minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(nommerAnimateur(base, acteur(romain), id, romain, minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		await nommerAnimateur(base, acteur(romain), id, manon, minute(1));
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 1],
+			[romain, 1],
+			[claire, 0]
+		]);
+		expect((await systemes(base, id)).at(-1)).toEqual({
+			type: 'animateur',
+			par: romain,
+			cibles: [manon]
+		});
+		// Le nouvel animateur peut à son tour ajouter.
+		await ajouterMembres(base, acteur(manon), id, [lea], minute(2));
+		expect(await membresDuGroupe(base, id)).toHaveLength(4);
+	});
+
+	it('renommerGroupe : par tout membre, nom de 1 à 60 caractères, pas pour une conversation à deux', async () => {
+		const { base, manon, romain, claire } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(0));
+		await expect(renommerGroupe(base, acteur(manon), id, ' ', minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(renommerGroupe(base, acteur(manon), id, 'x'.repeat(61), minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(renommerGroupe(base, acteur(claire), id, 'Intrus', minute(1))).rejects.toBeInstanceOf(RefusDroit);
+		await renommerGroupe(base, acteur(manon), id, ' Garde de nuit ', minute(1));
+		expect((await base.select().from(conversation).where(eq(conversation.id, id)))[0]).toMatchObject({ nom: 'Garde de nuit', dernierLe: minute(1) });
+		expect((await systemes(base, id)).at(-1)).toEqual({
+			type: 'renommage',
+			par: manon,
+			nom: 'Garde de nuit'
+		});
+		expect((await mesConversations(base, acteur(romain), minute(2)))[0]!.apercu).toBe('Manon a renommé le groupe en « Garde de nuit »');
+
+		const { conversation: aDeux } = await envoyer(base, base.photos, acteur(manon), { personne: claire }, { texte: 'Salut' }, minute(2));
+		await expect(renommerGroupe(base, acteur(manon), aDeux, 'Nous deux', minute(3))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(quitterGroupe(base, acteur(manon), aDeux, minute(3))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(ajouterMembres(base, acteur(manon), aDeux, [romain], minute(3))).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('quitterGroupe : message de départ ; le dernier animateur parti, le plus ancien membre prend le relais', async () => {
+		const { base, manon, romain, claire, lea } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [claire] }, minute(0));
+		await ajouterMembres(base, acteur(romain), id, [lea], minute(1));
+		await ajouterMembres(base, acteur(romain), id, [manon], minute(2));
+		await quitterGroupe(base, acteur(lea), id, minute(3));
+		expect((await systemes(base, id)).at(-1)).toEqual({
+			type: 'depart',
+			par: lea
+		});
+		await expect(lireConversation(base, acteur(lea), id, {}, minute(4))).rejects.toBeInstanceOf(RefusDroit);
+
+		// Claire est la plus ancienne (entrée à la création), devant Manon, dont l'id est plus petit.
+		await quitterGroupe(base, acteur(romain), id, minute(4));
+		expect(await membresDuGroupe(base, id)).toEqual([
+			[manon, 0],
+			[claire, 1]
+		]);
+		expect((await systemes(base, id)).slice(-2)).toEqual([
+			{ type: 'depart', par: romain },
+			{ type: 'animateur', cibles: [claire] }
+		]);
+		expect((await lireConversation(base, acteur(manon), id, {}, minute(5))).messages.at(-1)!.systeme).toBe('Claire anime désormais le groupe');
+		expect((await infosConversation(base, acteur(claire), id, aujourdhui)).moiAnimateur).toBe(true);
+	});
+
+	it('le groupe reste utilisable avec un membre, puis est effacé, messages compris, quand le dernier s’en va', async () => {
+		const { base, manon, romain, claire } = await jeuGroupe();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(0));
+		await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Bonjour' }, minute(1));
+		await quitterGroupe(base, acteur(manon), id, minute(2));
+		await ajouterMembres(base, acteur(romain), id, [claire], minute(3));
+		await quitterGroupe(base, acteur(claire), id, minute(4));
+		await quitterGroupe(base, acteur(romain), id, minute(5));
+		expect(await base.select().from(conversation)).toEqual([]);
+		expect(await base.select().from(membreConversation)).toEqual([]);
+		expect(await base.select().from(message)).toEqual([]);
+	});
+
+	it('infosConversation : membres avec équipe, rôle et animation ; en une requête ; membres seulement', async () => {
+		const { base, nommer, affecter, manon, romain, claire, chef, e1 } = await jeuGroupe();
+		await affecter(manon, e1.id);
+		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', icone: 'camion', membres: [manon, claire] }, minute(0));
+		const avant = base.requetes;
+		const infos = await infosConversation(base, acteur(manon), id, aujourdhui);
+		expect(base.requetes - avant).toBe(1);
+		expect(infos).toEqual({
+			type: 'groupe',
+			nom: 'Garde',
+			icone: 'camion',
+			creePar: romain,
+			membres: [
+				{
+					id: romain,
+					prenom: 'Romain',
+					nom: 'Bernard',
+					animateur: true,
+					equipe: null,
+					role: 'Chef d’équipe'
+				},
+				{
+					id: manon,
+					prenom: 'Manon',
+					nom: 'Durand',
+					animateur: false,
+					equipe: { numero: e1.ordreRotation, couleur: e1.couleur },
+					role: null
+				},
+				{
+					id: claire,
+					prenom: 'Claire',
+					nom: 'Martin',
+					animateur: false,
+					equipe: null,
+					role: null
+				}
+			],
+			moiAnimateur: false
+		});
+		expect((await infosConversation(base, acteur(romain), id, aujourdhui)).moiAnimateur).toBe(true);
+		for (const a of [acteur(chef), superAdmin]) await expect(infosConversation(base, a, id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+		const { conversation: aDeux } = await envoyer(base, base.photos, acteur(manon), { personne: claire }, { texte: 'Salut' }, minute(1));
+		expect(await infosConversation(base, acteur(manon), aDeux, aujourdhui)).toMatchObject({
+			type: 'deux',
+			nom: 'Claire Martin',
+			icone: null,
+			moiAnimateur: false
+		});
+	});
+
+	it('un agent qui part quitte ses groupes (message, relais d’animation, groupe vide effacé) ; sa conversation à deux passe en lecture seule', async () => {
+		const { base, nouvelle, manon, romain, claire } = await jeuGroupe();
+		const garde = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon, claire] }, minute(0));
+		const seul = await creerGroupe(base, acteur(romain), { nom: 'Seul', membres: [manon] }, minute(1));
+		await quitterGroupe(base, acteur(manon), seul, minute(2));
+		const { conversation: aDeux } = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Salut' }, minute(3));
+		const suspendue = await nouvelle('Suspendue', 'Test');
+		const autre = await creerGroupe(base, acteur(suspendue), { nom: 'Autre', membres: [manon] }, minute(4));
+
+		await changerStatut(base, superAdmin, suspendue, 'suspendu', aujourdhui);
+		expect(await membresDuGroupe(base, autre)).toEqual([
+			[manon, 0],
+			[suspendue, 1]
+		]);
+
+		await changerStatut(base, superAdmin, romain, 'parti', aujourdhui);
+		expect(await membresDuGroupe(base, garde)).toEqual([
+			[manon, 1],
+			[claire, 0]
+		]);
+		expect((await systemes(base, garde)).slice(-2)).toEqual([
+			{ type: 'depart', par: romain },
+			{ type: 'animateur', cibles: [manon] }
+		]);
+		expect(await base.select().from(conversation).where(eq(conversation.id, seul))).toEqual([]);
+		const vue = await lireConversation(base, acteur(manon), aDeux, {}, minute(5));
+		expect(vue.lectureSeule).toBe(true);
+		expect(vue.messages.map((m) => m.texte)).toEqual(['Salut']);
+		expect((await lireConversation(base, acteur(manon), garde, {}, minute(5))).lectureSeule).toBe(false);
+	});
+
+	it('membresPourGroupe : les membres du jour d’une équipe ou d’un comité, sans l’acteur ni ceux qui n’ont pas la messagerie', async () => {
+		const { base, nouvelle, nommer, affecter, manon, romain, claire, lea, e1, e2 } = await jeuGroupe();
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const partie = await nouvelle('Partie', 'Test', { statut: 'parti' });
+		await affecter(manon, e1.id);
+		await affecter(claire, e1.id);
+		await affecter(partie, e1.id);
+		await affecter(lea, e2.id);
+		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(lea, 'Membre de comité', { type: 'comite', id: amicale!.id });
+		await nommer(claire, 'Rapporteur de comité', {
+			type: 'comite',
+			id: amicale!.id
+		});
+		const avant = base.requetes;
+		expect((await membresPourGroupe(base, acteur(manon), { equipe: e1.id }, aujourdhui)).sort()).toEqual([romain, claire].sort());
+		expect(base.requetes - avant).toBe(1);
+		expect((await membresPourGroupe(base, acteur(romain), { comite: amicale!.id }, aujourdhui)).sort()).toEqual([claire, lea].sort());
+		expect(await membresPourGroupe(base, acteur(lea), { comite: amicale!.id }, aujourdhui)).toEqual([claire]);
+		await expect(membresPourGroupe(base, superAdmin, { equipe: e1.id }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 });

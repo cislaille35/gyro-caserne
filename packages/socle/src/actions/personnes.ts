@@ -7,6 +7,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { ligneJournal } from '../journal.ts';
 import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
+import { departDesGroupes } from '../messagerie.ts';
 import { affectationEquipe, attribution, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
@@ -170,6 +171,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	const retrait = statut === 'parti' ? retraitEquipe(base, acteur, personneId, affectations, aujourdhui) : [];
 	// Au départ, tous ses rôles prennent fin le même jour ; l'historique reste.
 	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
+	// Au départ, il quitte aussi ses groupes de messagerie (l'heure n'est pas connue ici : début de journée).
+	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, `${aujourdhui}T00:00`) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
@@ -178,7 +181,8 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 			.where(eq(personne.id, personneId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui),
 		...retrait,
-		...roles
+		...roles,
+		...groupes
 	] as const;
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
 		await base.batch(ecritures);
