@@ -38,9 +38,9 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const pasDeMoi = ne(publication.auteur, nomActeur(acteur));
 	const recent = gte(publication.creeLe, ajouterJours(aujourdhui, -RECENT));
-	// Sondage sans dates : toujours ouvert.
+	// Même règle qu'etatSondage : sans ses deux dates, un sondage est toujours ouvert.
 	const m = maintenant.slice(0, 16);
-	const ouvert = or(isNull(publication.sondageOuverture), and(lte(publication.sondageOuverture, m), gt(publication.sondageCloture, m)));
+	const ouvert = or(isNull(publication.sondageOuverture), isNull(publication.sondageCloture), and(lte(publication.sondageOuverture, m), gt(publication.sondageCloture, m)));
 	// Le début du texte suffit au titre.
 	const champs = { id: publication.id, mur: publication.mur, texte: sql<string>`substr(${publication.texte}, 1, 200)`.as('debut_texte') };
 	// Murs où l'acteur a quelque chose à faire : membre, et mur ouvert. Quelques clés seulement (centre, vie, son équipe, ses comités).

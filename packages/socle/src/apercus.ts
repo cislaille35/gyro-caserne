@@ -18,9 +18,10 @@ export type Apercu = {
 
 const LONGUEUR_MAX = 80;
 
+// Compté en caractères (un emoji compte pour un, et n'est jamais coupé).
 function surUneLigne(texte: string): string {
-	const ligne = texte.replace(/\s+/g, ' ').trim();
-	return ligne.length > LONGUEUR_MAX ? `${ligne.slice(0, LONGUEUR_MAX - 1)}…` : ligne;
+	const caracteres = Array.from(texte.replace(/\s+/g, ' ').trim());
+	return caracteres.length > LONGUEUR_MAX ? `${caracteres.slice(0, LONGUEUR_MAX - 1).join('').trimEnd()}…` : caracteres.join('');
 }
 
 // Pour la liste des murs : identité de chaque mur et dernière publication. Deux requêtes au plus.

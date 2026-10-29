@@ -4,7 +4,7 @@ import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
 import { aNePasManquer, anniversairesDuJour } from '../src/a-ne-pas-manquer.ts';
 import { prendreConnaissance, repondreEvenement, voter } from '../src/actions/interactions.ts';
-import { epingler, lireMur, publier } from '../src/actions/publications.ts';
+import { epingler, etatSondage, lireMur, publier } from '../src/actions/publications.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { affectationEquipe, attribution, equipe, personne, profil, publication, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -123,13 +123,17 @@ describe('à ne pas manquer', () => {
 		]);
 	});
 
-	it('sondages pas encore ouverts ou fermés : non listés', async () => {
+	it('sondages pas encore ouverts ou fermés : non listés ; même règle qu’etatSondage (sans dates, une seule date)', async () => {
 		const { base, chef, agent } = await jeu();
 		const ouvert = await publier(base, acteur(chef), 'vie', sondage('Ouvert', maintenant, '2026-11-30T00:00'), maintenant);
 		await publier(base, acteur(chef), 'vie', sondage('À venir', '2026-10-29T00:00', '2026-11-30T00:00'), maintenant);
 		await publier(base, acteur(chef), 'vie', sondage('Fermé', '2026-10-01T00:00', maintenant), '2026-10-01T10:00');
 		const [{ id: ancien }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Sans dates', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]' }).returning({ id: publication.id });
-		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).sondages).sort()).toEqual([ouvert, ancien].sort());
+		// Une seule des deux dates : ouvert, comme etatSondage.
+		const [{ id: ouvertureSeule }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Ouverture seule', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]', sondageOuverture: '2026-11-15T00:00' }).returning({ id: publication.id });
+		const [{ id: clotureSeule }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Clôture seule', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]', sondageCloture: '2026-10-01T00:00' }).returning({ id: publication.id });
+		expect(etatSondage('2026-11-15T00:00', null, maintenant)).toBe('ouvert');
+		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).sondages).sort()).toEqual([ouvert, ancien, ouvertureSeule, clotureSeule].sort());
 	});
 
 	it('sondages ouverts (moins de 30 jours) et pas encore votés', async () => {

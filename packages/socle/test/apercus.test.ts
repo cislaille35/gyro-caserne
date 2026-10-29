@@ -67,6 +67,17 @@ describe('apercusDesMurs', () => {
 		expect(a[1]!.derniere!.texte).toBe('a'.repeat(80));
 	});
 
+	it('tronque par caractères : jamais un emoji coupé, pas d’espace avant « … »', async () => {
+		const { base, chef, publier } = await jeu();
+		await publier('centre', 'super:a@b.fr', '🚒'.repeat(100), '2026-10-03T08:00:00Z');
+		await publier('vie', 'super:a@b.fr', '🎂'.repeat(80), '2026-10-03T08:00:00Z');
+		const a = await apercusDesMurs(base, { type: 'personne', id: chef }, aujourdhui);
+		expect(a[0]!.derniere!.texte).toBe(`${'🚒'.repeat(79)}…`);
+		expect(a[1]!.derniere!.texte).toBe('🎂'.repeat(80));
+		await publier('centre', 'super:a@b.fr', `${'a'.repeat(78)} ${'b'.repeat(10)}`, '2026-10-04T08:00:00Z');
+		expect((await apercusDesMurs(base, { type: 'personne', id: chef }, aujourdhui))[0]!.derniere!.texte).toBe(`${'a'.repeat(78)}…`);
+	});
+
 	it('super administrateur : membre faux partout', async () => {
 		const { base } = await jeu();
 		const a = await apercusDesMurs(base, superAdmin, aujourdhui);
