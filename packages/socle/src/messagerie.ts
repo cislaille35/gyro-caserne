@@ -2,15 +2,15 @@ import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, max
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { Base, BasePhotos } from './base.ts';
 import { requeteTenues } from './casquettes.ts';
-import { roleDe, texte } from './commun.ts';
+import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from './commun.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { NOMS_ICONES } from './icones.ts';
 import { ligneJournal } from './journal.ts';
-import { STATUTS_AVEC_ACCES, type TypeConversation } from './listes.ts';
+import { REACTIONS, STATUTS_AVEC_ACCES, type Reaction, type TypeConversation } from './listes.ts';
 import { agentsDuJour, lecturesAgents, membresDe } from './murs.ts';
-import { affectationEquipe, conversation, equipe, membreConversation, message, personne } from './schema.ts';
+import { affectationEquipe, conversation, equipe, membreConversation, message, personne, photoMessage as photoDeMessage, reactionMessage } from './schema.ts';
 
 const PAGE = 40;
 const EXTRAIT = 100;
@@ -19,8 +19,6 @@ const TAILLE_GROUPE = 60;
 type Ecriture = BatchItem<'sqlite'>;
 
 type Visage = { id: number; prenom: string; nom: string; couleur: string | null };
-
-export type Photo = { type: string; donnees: Uint8Array };
 
 export type VueMessage = {
 	id: number;
@@ -33,7 +31,7 @@ export type VueMessage = {
 	systeme: string | null;
 	reponse: { id: number; auteur: Visage | null; extrait: string } | null;
 	photos: number[];
-	reactions: { emoji: string; nombre: number; deMoi: boolean }[];
+	reactions: { emoji: Reaction; nombre: number; deMoi: boolean }[];
 	moi: boolean;
 	coche: 'envoye' | 'lu' | null;
 };
@@ -168,6 +166,17 @@ export async function annuaire(base: Base, acteur: Acteur, aujourdhui: string) {
 	return agents.map((a) => ({ ...a, equipe: equipes.get(a.id) ?? null, role: roleDe(tenues, a.id) })).sort(parNom);
 }
 
+// Une conversation à deux dont l'autre n'a plus la messagerie (parti, suspendu) ne sert plus qu'à relire.
+const enLectureSeule = (type: TypeConversation, autres: { acces: number }[]) => type === 'deux' && (autres.length === 0 || autres.some((a) => !a.acces));
+
+// Sans texte, au moins une photo.
+function corpsDe(valeur: unknown, photos: number): string {
+	if (photos > 0 && (typeof valeur !== 'string' || !valeur.trim())) return '';
+	return texte(valeur, 'Message', 4000);
+}
+
+const dernierMessage = sql`(select max(${message.id}) from ${message})`;
+
 const clePaire = (a: number, b: number) => `${Math.min(a, b)}:${Math.max(a, b)}`;
 
 function exigerId(valeur: unknown, libelle: string): number {
@@ -184,7 +193,8 @@ export async function conversationAvec(base: Base, acteur: Acteur, personneId: n
 }
 
 // Envoie un message à une conversation, ou à une personne : la conversation à deux est alors créée au premier envoi.
-// Deux requêtes : les contrôles, puis l'écriture. Le texte n'est jamais écrit au journal.
+// Deux requêtes : les contrôles, puis l'écriture ; une de plus pour les photos, écrites d'abord dans PHOTOS.
+// Le texte n'est jamais écrit au journal.
 export async function envoyer(
 	base: Base,
 	basePhotos: BasePhotos,
@@ -195,9 +205,8 @@ export async function envoyer(
 ): Promise<{ conversation: number; message: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
-	// Les photos des messages arrivent avec la tâche 3.
-	if (donnees.photos && donnees.photos.length > 0) throw new DonneeInvalide('Photos pas encore disponibles dans la messagerie');
-	const corps = texte(donnees.texte, 'Message', 4000);
+	const photos = exigerPhotos(donnees.photos);
+	const corps = corpsDe(donnees.texte, photos.length);
 	const reponseA = donnees.reponseA === undefined ? null : exigerId(donnees.reponseA, 'Réponse');
 
 	const aDeux = 'personne' in cible;
@@ -227,7 +236,7 @@ export async function envoyer(
 	const existante = place[0];
 	if (autre !== null && !autres[0]?.acces) throw new DonneeInvalide('Cette personne n’est pas dans l’annuaire');
 	if (autre === null && !existante) throw refus('Conversation non accessible');
-	if (existante?.type === 'deux' && autres.some((a) => !a.acces)) throw new DonneeInvalide('Conversation en lecture seule');
+	if (existante && enLectureSeule(existante.type, autres)) throw new DonneeInvalide('Conversation en lecture seule');
 	if (reponseA !== null && cite.length === 0) throw new DonneeInvalide('Message cité introuvable');
 
 	const id = existante ? sql`${existante.id}` : laConversation;
@@ -241,21 +250,28 @@ export async function envoyer(
 		.set({ luJusquA: sql`(select max(${message.id}) from ${message} where ${message.conversationId} = ${id})` })
 		.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, moi)));
 
-	if (existante) {
-		const [lignes] = await base.batch([nouveau, base.update(conversation).set({ dernierLe: maintenant }).where(eq(conversation.id, id)), lu]);
-		return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
-	}
+	// Après l'insertion du message : dans le batch, le plus grand id de message est le sien.
+	const references = (ids: number[]) => (ids.length === 0 ? [] : [base.insert(photoDeMessage).values(photos.map((p, ordre) => ({ messageId: dernierMessage, ordre, type: p.type, photoId: ids[ordre]! })))]);
+
+	if (existante)
+		return avecPhotos(basePhotos, photos, maintenant, async (ids) => {
+			const [lignes] = await base.batch([nouveau, base.update(conversation).set({ dernierLe: maintenant }).where(eq(conversation.id, id)), lu, ...references(ids)]);
+			return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
+		});
 	try {
-		const [, , , lignes] = await base.batch([
-			base.insert(conversation).values({ type: 'deux', clePaire: cle, creePar: moi, creeLe: maintenant, dernierLe: maintenant }),
-			ligneJournal(base, { acteur: `personne:${moi}`, action: 'creer_conversation', cibleType: 'conversation', cibleId: id, details: { type: 'deux' } }, maintenant),
-			base.insert(membreConversation).values([moi, autre!].map((personneId) => ({ conversationId: id, personneId, entreLe: maintenant }))),
-			nouveau,
-			lu
-		]);
-		return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
+		return await avecPhotos(basePhotos, photos, maintenant, async (ids) => {
+			const [, , , lignes] = await base.batch([
+				base.insert(conversation).values({ type: 'deux', clePaire: cle, creePar: moi, creeLe: maintenant, dernierLe: maintenant }),
+				ligneJournal(base, { acteur: `personne:${moi}`, action: 'creer_conversation', cibleType: 'conversation', cibleId: id, details: { type: 'deux' } }, maintenant),
+				base.insert(membreConversation).values([moi, autre!].map((personneId) => ({ conversationId: id, personneId, entreLe: maintenant }))),
+				nouveau,
+				lu,
+				...references(ids)
+			]);
+			return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
+		});
 	} catch (erreur) {
-		// Créée entre-temps par l’autre : on la rejoint.
+		// Créée entre-temps par l’autre : on la rejoint (les photos, effacées, sont réécrites).
 		for (let e: unknown = erreur; e instanceof Error; e = e.cause)
 			if (/UNIQUE constraint failed: conversation\.cle_paire/.test(e.message)) {
 				const [trouvee] = await base.select({ id: conversation.id }).from(conversation).where(eq(conversation.clePaire, cle!));
@@ -268,16 +284,17 @@ export async function envoyer(
 const extrait = sql<string>`case when ${message.supprime} is null then substr(${message.texte}, 1, ${EXTRAIT}) else '' end`;
 
 // Une page de 40 messages au plus (les plus récents, ou ceux d'avant `page.avant`). Sur la dernière page, l'acteur a lu
-// jusqu'au dernier message. Deux requêtes au plus. Seuls les membres lisent, chef de centre compris.
+// jusqu'au dernier message. Deux requêtes au plus, réactions et photos comprises. Seuls les membres lisent, chef de centre compris.
 export async function lireConversation(base: Base, acteur: Acteur, id: number, page: { avant?: number }, maintenant: string): Promise<VueConversation> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
 	exigerId(id, 'Conversation');
 	const avant = page.avant === undefined ? null : exigerId(page.avant, 'Page');
 	const dansLaPage = and(eq(message.conversationId, id), avant === null ? undefined : lt(message.id, avant));
+	const idsDeLaPage = base.select({ id: message.id }).from(message).where(dansLaPage).orderBy(desc(message.id)).limit(PAGE + 1);
 	const luParMoi = sql`(select ${membreConversation.luJusquA} from ${membreConversation} where ${membreConversation.conversationId} = ${id} and ${membreConversation.personneId} = ${moi})`;
 
-	const [acces, place, membres, messages, cites, auteurs, affectations, nonLu] = await base.batch([
+	const [acces, place, membres, messages, cites, auteurs, affectations, nonLu, reactions, photos] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base
 			.select({ id: conversation.id, type: conversation.type, nom: conversation.nom, icone: conversation.icone })
@@ -319,7 +336,13 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 		base
 			.select({ premier: sql<number | null>`min(${message.id})`.as('premier') })
 			.from(message)
-			.where(and(eq(message.conversationId, id), gt(message.id, luParMoi), ne(message.auteur, moi), isNull(message.supprime)))
+			.where(and(eq(message.conversationId, id), gt(message.id, luParMoi), ne(message.auteur, moi), isNull(message.supprime))),
+		base
+			.select({ messageId: reactionMessage.messageId, emoji: reactionMessage.emoji, nombre: count(), deMoi: sql<number>`max(${reactionMessage.personneId} = ${moi})`.as('de_moi') })
+			.from(reactionMessage)
+			.where(inArray(reactionMessage.messageId, idsDeLaPage))
+			.groupBy(reactionMessage.messageId, reactionMessage.emoji),
+		base.select({ id: photoDeMessage.id, messageId: photoDeMessage.messageId }).from(photoDeMessage).where(inArray(photoDeMessage.messageId, idsDeLaPage)).orderBy(photoDeMessage.messageId, photoDeMessage.ordre)
 	]);
 	if (acces.length === 0) throw refus();
 	const conv = place[0];
@@ -333,12 +356,17 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 	const mesCoches = membres.find((m) => m.id === moi)?.coches === 1;
 	const citesParId = new Map(cites.map((c) => [c.id, { id: c.id, auteur: visage(c.auteur), extrait: c.extrait }]));
 
-	// « lu » quand tous les autres présents à l'envoi, coches ouvertes, l'ont lu ; jamais si l'acteur a coupé les siennes.
+	// « lu » quand tous les autres présents à l'envoi, coches ouvertes, l'ont lu ; aucune coche si l'acteur a coupé les siennes.
 	const coche = (m: (typeof messages)[number]): VueMessage['coche'] => {
-		if (m.auteur !== moi || m.systeme !== null) return null;
+		if (m.auteur !== moi || m.systeme !== null || !mesCoches) return null;
 		const lecteurs = autres.filter((a) => a.coches === 1 && a.entreLe <= m.creeLe);
-		return mesCoches && lecteurs.length > 0 && lecteurs.every((a) => a.luJusquA >= m.id) ? 'lu' : 'envoye';
+		return lecteurs.length > 0 && lecteurs.every((a) => a.luJusquA >= m.id) ? 'lu' : 'envoye';
 	};
+	const reactionsDe = (idMessage: number) =>
+		reactions
+			.filter((r) => r.messageId === idMessage)
+			.sort((a, b) => REACTIONS.indexOf(a.emoji) - REACTIONS.indexOf(b.emoji))
+			.map((r) => ({ emoji: r.emoji, nombre: r.nombre, deMoi: r.deMoi === 1 }));
 
 	const vus = messages.slice(0, PAGE).reverse();
 	const vues: VueMessage[] = vus.map((m) => ({
@@ -350,8 +378,8 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 		supprime: m.supprime,
 		systeme: m.systeme === null ? null : phraseSysteme(m.systeme, prenoms),
 		reponse: m.reponseA === null ? null : (citesParId.get(m.reponseA) ?? null),
-		photos: [],
-		reactions: [],
+		photos: m.supprime === null ? photos.filter((p) => p.messageId === m.id).map((p) => p.id) : [],
+		reactions: m.supprime === null ? reactionsDe(m.id) : [],
 		moi: m.auteur === moi,
 		coche: coche(m)
 	}));
@@ -373,7 +401,7 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 		membres: membres.map((m) => visage(m.id)).filter((v) => v !== null),
 		messages: vues,
 		premierNonLu: nonLu[0]?.premier ?? null,
-		lectureSeule: conv.type === 'deux' && (autres.length === 0 || autres.some((a) => !a.acces)),
+		lectureSeule: enLectureSeule(conv.type, autres),
 		plusAnciens: messages.length > PAGE
 	};
 }
@@ -432,7 +460,7 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 		let apercu = '';
 		if (d?.systeme) apercu = phraseSysteme(d.systeme, prenoms);
 		else if (d?.supprime) apercu = 'Message supprimé';
-		else if (d) apercu = `${d.auteur === moi ? 'Vous' : (d.prenom ?? '')} : ${d.extrait}`;
+		else if (d) apercu = `${d.auteur === moi ? 'Vous' : (d.prenom ?? '')} : ${d.extrait || 'Photo'}`;
 		return {
 			id: c.id,
 			type: c.type,
@@ -455,6 +483,108 @@ export async function nonLusTotal(base: Base, acteur: Acteur, aujourdhui: string
 		.innerJoin(membreConversation, nonLusDe(acteur.id))
 		.where(aLaMessagerie(acteur.id, aujourdhui));
 	return ligne?.n ?? 0;
+}
+
+// Gestes sur un message
+
+const MODIFIABLE_MINUTES = 15;
+
+const plusMinutes = (dateHeure: string, minutes: number) => new Date(new Date(`${dateHeure.slice(0, 16)}:00Z`).getTime() + minutes * 60_000).toISOString().slice(0, 16);
+
+// Contrôles d'un geste sur un message, en une requête : l'acteur est membre de sa conversation (sinon refus, que le message
+// existe ou non). `photos` : ses photos dans PHOTOS ; `maReaction` : celle de l'acteur.
+async function lireMessage(base: Base, acteur: Acteur, id: number, maintenant: string) {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const moi = idDe(acteur);
+	exigerId(id, 'Message');
+	const saConversation = base.select({ id: message.conversationId }).from(message).where(eq(message.id, id));
+	const [acces, lignes, autres, photos, reaction] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base
+			.select({ auteur: message.auteur, supprime: message.supprime, creeLe: message.creeLe, type: conversation.type })
+			.from(message)
+			.innerJoin(conversation, eq(conversation.id, message.conversationId))
+			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, message.conversationId), eq(membreConversation.personneId, moi)))
+			.where(eq(message.id, id)),
+		base
+			.select({ acces: sql<number>`${aLaMessagerie(membreConversation.personneId, aujourdhui)}`.as('acces') })
+			.from(membreConversation)
+			.where(and(inArray(membreConversation.conversationId, saConversation), ne(membreConversation.personneId, moi))),
+		base.select({ photoId: photoDeMessage.photoId }).from(photoDeMessage).where(eq(photoDeMessage.messageId, id)),
+		base
+			.select({ emoji: reactionMessage.emoji })
+			.from(reactionMessage)
+			.where(and(eq(reactionMessage.messageId, id), eq(reactionMessage.personneId, moi)))
+	]);
+	if (acces.length === 0) throw refus();
+	const m = lignes[0];
+	if (!m) throw refus('Conversation non accessible');
+	return { moi, ...m, lectureSeule: enLectureSeule(m.type, autres), photos: photos.map((p) => p.photoId), maReaction: reaction[0]?.emoji ?? null };
+}
+
+const reserveALAuteur = () => refus('Réservé à l’auteur du message');
+
+// Une réaction par personne : en choisir une autre la remplace, renvoyer la même ou null la retire. Deux requêtes.
+export async function reagir(base: Base, acteur: Acteur, idMessage: number, emoji: Reaction | null, maintenant: string): Promise<void> {
+	if (emoji !== null && !(REACTIONS as readonly string[]).includes(emoji)) throw new DonneeInvalide('Réaction inconnue');
+	const m = await lireMessage(base, acteur, idMessage, maintenant);
+	if (m.auteur === null || m.supprime !== null) throw new DonneeInvalide('Pas de réaction sur ce message');
+	if (m.lectureSeule) throw new DonneeInvalide('Conversation en lecture seule');
+	const sienne = and(eq(reactionMessage.messageId, idMessage), eq(reactionMessage.personneId, m.moi));
+	await base.batch([
+		emoji === null || emoji === m.maReaction
+			? base.delete(reactionMessage).where(sienne)
+			: base
+					.insert(reactionMessage)
+					.values({ messageId: idMessage, personneId: m.moi, emoji })
+					.onConflictDoUpdate({ target: [reactionMessage.messageId, reactionMessage.personneId], set: { emoji } }),
+		// Le rafraîchissement voit le changement.
+		base.update(message).set({ majLe: maintenant }).where(eq(message.id, idMessage))
+	]);
+}
+
+// Par l'auteur, dans les 15 minutes après l'envoi. Deux requêtes. Le texte n'est jamais écrit au journal.
+export async function modifierMessage(base: Base, acteur: Acteur, id: number, nouveau: string, maintenant: string): Promise<void> {
+	const m = await lireMessage(base, acteur, id, maintenant);
+	if (m.auteur !== m.moi) throw reserveALAuteur();
+	if (m.supprime !== null) throw new DonneeInvalide('Message supprimé');
+	if (m.lectureSeule) throw new DonneeInvalide('Conversation en lecture seule');
+	if (maintenant.slice(0, 16) > plusMinutes(m.creeLe, MODIFIABLE_MINUTES)) throw new DonneeInvalide(`Modifiable ${MODIFIABLE_MINUTES} minutes après l’envoi`);
+	const corps = corpsDe(nouveau, m.photos.length);
+	await base.update(message).set({ texte: corps, modifie: 1, majLe: maintenant }).where(eq(message.id, id));
+}
+
+// Par l'auteur : « Message supprimé » reste à sa place, sans texte, photos ni réactions. Les octets des photos sont effacés ensuite.
+export async function supprimerMessage(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
+	const m = await lireMessage(base, acteur, id, maintenant);
+	if (m.auteur !== m.moi) throw reserveALAuteur();
+	if (m.supprime !== null) throw new DonneeInvalide('Message déjà supprimé');
+	await base.batch([
+		base.delete(reactionMessage).where(eq(reactionMessage.messageId, id)),
+		base.delete(photoDeMessage).where(eq(photoDeMessage.messageId, id)),
+		base.update(message).set({ texte: '', supprime: 'auteur', majLe: maintenant }).where(eq(message.id, id))
+	]);
+	await effacerPhotos(basePhotos, m.photos);
+}
+
+// Une photo de message, aux membres de sa conversation seulement : l'accès se vérifie dans la base principale (une requête),
+// les octets se lisent ensuite dans PHOTOS.
+export async function photoMessage(base: Base, basePhotos: BasePhotos, acteur: Acteur, idPhoto: number, aujourdhui: string): Promise<Photo> {
+	exigerDate(aujourdhui);
+	const moi = idDe(acteur);
+	exigerId(idPhoto, 'Photo');
+	const [acces, lignes] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		base
+			.select({ photoId: photoDeMessage.photoId })
+			.from(photoDeMessage)
+			.innerJoin(message, eq(message.id, photoDeMessage.messageId))
+			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, message.conversationId), eq(membreConversation.personneId, moi)))
+			.where(eq(photoDeMessage.id, idPhoto))
+	]);
+	if (acces.length === 0) throw refus();
+	if (!lignes[0]) throw refus('Photo non accessible');
+	return lireOctets(basePhotos, lignes[0].photoId);
 }
 
 // Groupes
@@ -486,12 +616,16 @@ function ecrireSysteme(base: Base, id: number, contenu: Systeme, maintenant: str
 
 type MembreGroupe = { id: number; animateur: number; entreLe: string };
 
-// Un membre s'en va (départ ou retrait). Sans membre, le groupe est effacé avec ses messages ; sans animateur, le plus ancien
-// membre (puis le plus petit id) le devient.
+// Un membre s'en va (départ ou retrait). Sans membre, le groupe est effacé avec ses messages, réactions et références de photos
+// (les octets, dans PHOTOS, sont effacés ensuite par l'appelant : photosDesDerniers) ; sans animateur, le plus ancien membre
+// (puis le plus petit id) le devient.
 function sortie(base: Base, id: number, personneId: number, membres: MembreGroupe[], contenu: Systeme, maintenant: string): Ecriture[] {
 	const restants = membres.filter((m) => m.id !== personneId).sort((a, b) => a.entreLe.localeCompare(b.entreLe) || a.id - b.id);
+	const sesMessages = base.select({ id: message.id }).from(message).where(eq(message.conversationId, id));
 	if (restants.length === 0)
 		return [
+			base.delete(reactionMessage).where(inArray(reactionMessage.messageId, sesMessages)),
+			base.delete(photoDeMessage).where(inArray(photoDeMessage.messageId, sesMessages)),
 			base.delete(message).where(eq(message.conversationId, id)),
 			base.delete(membreConversation).where(eq(membreConversation.conversationId, id)),
 			base.delete(conversation).where(eq(conversation.id, id))
@@ -512,6 +646,14 @@ function sortie(base: Base, id: number, personneId: number, membres: MembreGroup
 	];
 }
 
+// Les photos des groupes retenus qui n'ont plus qu'un membre : si celui-ci s'en va, elles partent avec le groupe.
+const photosDesDerniers = (base: Base, groupes: SQL | undefined) =>
+	base
+		.select({ photoId: photoDeMessage.photoId })
+		.from(photoDeMessage)
+		.innerJoin(message, eq(message.id, photoDeMessage.messageId))
+		.where(and(groupes, sql`(select count(*) from ${membreConversation} where ${membreConversation.conversationId} = ${message.conversationId}) = 1`));
+
 const executer = (base: Base, ecritures: Ecriture[]) => base.batch(ecritures as [Ecriture, ...Ecriture[]]);
 
 function idsDe(ids: unknown): number[] {
@@ -519,12 +661,13 @@ function idsDe(ids: unknown): number[] {
 	return [...new Set(ids.map((id) => exigerId(id, 'Membre')))];
 }
 
-// Contrôles d'un geste sur un groupe, en une requête : l'acteur en est membre ; `cibles` : celles qui ont la messagerie.
+// Contrôles d'un geste sur un groupe, en une requête : l'acteur en est membre ; `cibles` : celles qui ont la messagerie ;
+// `photos` : celles du groupe si l'acteur en est le dernier membre.
 async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: string, cibles: number[] = []) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
 	exigerId(id, 'Conversation');
-	const [acces, place, membres, joignables] = await base.batch([
+	const [acces, place, membres, joignables, photos] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base.select({ type: conversation.type }).from(conversation).where(eq(conversation.id, id)),
 		base
@@ -534,14 +677,15 @@ async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: st
 		base
 			.select({ id: personne.id })
 			.from(personne)
-			.where(and(inArray(personne.id, cibles), aLaMessagerie(personne.id, aujourdhui)))
+			.where(and(inArray(personne.id, cibles), aLaMessagerie(personne.id, aujourdhui))),
+		photosDesDerniers(base, eq(message.conversationId, id))
 	]);
 	if (acces.length === 0) throw refus();
 	const mien = membres.find((m) => m.id === moi);
 	if (!place[0] || !mien) throw refus('Conversation non accessible');
 	if (place[0].type !== 'groupe') throw new DonneeInvalide('Ce n’est pas un groupe');
 	const estMembre = (pid: number) => membres.some((m) => m.id === pid);
-	return { moi, membres, animateur: mien.animateur === 1, estMembre, joignables: new Set(joignables.map((j) => j.id)) };
+	return { moi, membres, animateur: mien.animateur === 1, estMembre, joignables: new Set(joignables.map((j) => j.id)), photos: photos.map((p) => p.photoId) };
 }
 
 const reserveAuxAnimateurs = () => refus('Réservé aux animateurs du groupe');
@@ -626,25 +770,34 @@ export async function renommerGroupe(base: Base, acteur: Acteur, id: number, nom
 	await executer(base, [base.update(conversation).set({ nom: propre }).where(eq(conversation.id, id)), ...ecrireSysteme(base, id, { type: 'renommage', par: g.moi, nom: propre }, maintenant)]);
 }
 
-export async function quitterGroupe(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
+// Le dernier membre qui s'en va efface le groupe, et ses photos dans PHOTOS.
+export async function quitterGroupe(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
 	const g = await lireGroupe(base, acteur, id, maintenant);
 	await executer(base, sortie(base, id, g.moi, g.membres, { type: 'depart', par: g.moi }, maintenant));
+	await effacerPhotos(basePhotos, g.photos);
 }
 
-// Écritures du départ d'un agent qui quitte le centre : il quitte tous ses groupes. Une requête.
-export async function departDesGroupes(base: Base, personneId: number, maintenant: string): Promise<Ecriture[]> {
+// Départ d'un agent qui quitte le centre : il quitte tous ses groupes. Une requête. `ecritures` : à passer dans le batch du
+// départ ; `photos` : à effacer ensuite dans PHOTOS, celles des groupes dont il était le dernier membre.
+export async function departDesGroupes(base: Base, personneId: number, maintenant: string): Promise<{ ecritures: Ecriture[]; photos: number[] }> {
 	const sesGroupes = base
 		.select({ id: membreConversation.conversationId })
 		.from(membreConversation)
 		.innerJoin(conversation, eq(conversation.id, membreConversation.conversationId))
 		.where(and(eq(membreConversation.personneId, personneId), eq(conversation.type, 'groupe')));
-	const lignes = await base
-		.select({ conversationId: membreConversation.conversationId, id: membreConversation.personneId, animateur: membreConversation.animateur, entreLe: membreConversation.entreLe })
-		.from(membreConversation)
-		.where(inArray(membreConversation.conversationId, sesGroupes));
+	const [lignes, photos] = await base.batch([
+		base
+			.select({ conversationId: membreConversation.conversationId, id: membreConversation.personneId, animateur: membreConversation.animateur, entreLe: membreConversation.entreLe })
+			.from(membreConversation)
+			.where(inArray(membreConversation.conversationId, sesGroupes)),
+		photosDesDerniers(base, inArray(message.conversationId, sesGroupes))
+	]);
 	const parGroupe = new Map<number, MembreGroupe[]>();
 	for (const l of lignes) parGroupe.set(l.conversationId, [...(parGroupe.get(l.conversationId) ?? []), l]);
-	return [...parGroupe].flatMap(([id, membres]) => sortie(base, id, personneId, membres, { type: 'depart', par: personneId }, maintenant));
+	return {
+		ecritures: [...parGroupe].flatMap(([id, membres]) => sortie(base, id, personneId, membres, { type: 'depart', par: personneId }, maintenant)),
+		photos: photos.map((p) => p.photoId)
+	};
 }
 
 // Les infos d'une conversation (écran « Infos ») : membres triés par nom. Une requête (un batch). Membres seulement.

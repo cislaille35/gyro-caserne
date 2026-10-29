@@ -33,7 +33,7 @@ describe('/profil : load', () => {
 	it('charge les valeurs de l\'agent', async () => {
 		const { base, acteur } = await preparer();
 		expect(await charger({ base, acteur })).toEqual({
-			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, anniversaireVisible: true }
+			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, anniversaireVisible: true, cochesLecture: true }
 		});
 	});
 });

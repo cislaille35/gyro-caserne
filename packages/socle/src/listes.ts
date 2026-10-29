@@ -65,6 +65,9 @@ export type TypeConversation = (typeof TYPES_CONVERSATION)[number];
 
 export const SUPPRESSIONS_MESSAGE = ['auteur', 'moderation'] as const;
 
+export const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '👏'] as const;
+export type Reaction = (typeof REACTIONS)[number];
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 

@@ -112,7 +112,7 @@ export const actions: Actions = {
 		if (statut === 'parti' && formulaire.get('confirmation') !== 'oui')
 			return fail<Reponse>(400, { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs });
 		try {
-			await changerStatut(locals.base, acteur, id, statut, maintenantParis());
+			await changerStatut(locals.base, locals.basePhotos, acteur, id, statut, maintenantParis());
 		} catch (erreur) {
 			return echec(erreur, { valeurs });
 		}

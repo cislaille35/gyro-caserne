@@ -2,7 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { attribuer, terminerAttribution } from './actions/attributions.ts';
 import { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, retirerEquipe } from './actions/personnes.ts';
 import type { Operation, RefPersonne } from './apercu-import.ts';
-import type { Base } from './base.ts';
+import type { Base, BasePhotos } from './base.ts';
 import { enCours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { estGestionnaire } from './effectif.ts';
@@ -101,6 +101,7 @@ function exigerRoleOrdinaire(systeme: string | null | undefined) {
 // Applique une opération de l'aperçu ; `nouvelles` : n° de ligne → id de l'agent créé par cette ligne.
 export async function appliquerOperation(
 	base: Base,
+	basePhotos: BasePhotos,
 	acteur: Acteur,
 	brute: Operation,
 	nouvelles: Record<number, number>,
@@ -131,7 +132,7 @@ export async function appliquerOperation(
 			else await affecterEquipe(base, acteur, op.personneId, op.equipeId, aujourdhui, aujourdhui);
 			break;
 		case 'statut':
-			await changerStatut(base, acteur, op.personneId, op.statut, maintenant);
+			await changerStatut(base, basePhotos, acteur, op.personneId, op.statut, maintenant);
 			break;
 		case 'attribuer': {
 			const [role] = await base.select({ systeme: responsabilite.systeme }).from(responsabilite).where(eq(responsabilite.id, op.responsabiliteId));

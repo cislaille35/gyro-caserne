@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { checkDans, DROITS, NATURES_RESPONSABILITE, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { checkDans, DROITS, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -348,6 +348,28 @@ export const message = sqliteTable(
 		index('message_conversation').on(t.conversationId, t.id),
 		index('message_conversation_maj').on(t.conversationId, t.majLe)
 	]
+);
+
+const versMessage = () => integer('message_id').notNull().references(() => message.id, { onDelete: 'cascade' });
+
+// Une réaction par personne et par message.
+export const reactionMessage = sqliteTable(
+	'reaction_message',
+	{ messageId: versMessage(), personneId: versPersonne(), emoji: text('emoji', { enum: REACTIONS }).notNull() },
+	(t) => [primaryKey({ columns: [t.messageId, t.personneId] }), check('reaction_message_emoji', checkDans('emoji', REACTIONS))]
+);
+
+// `photo_id` : la photo dans la base des photos (PHOTOS).
+export const photoMessage = sqliteTable(
+	'photo_message',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		messageId: versMessage(),
+		ordre: integer('ordre').notNull(),
+		type: text('type', { enum: TYPES_PHOTO }).notNull(),
+		photoId: integer('photo_id').notNull()
+	},
+	(t) => [check('photo_message_type', checkDans('type', TYPES_PHOTO)), index('photo_message_message').on(t.messageId)]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

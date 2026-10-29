@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import type { Base } from '../base.ts';
+import type { Base, BasePhotos } from '../base.ts';
+import { effacerPhotos } from '../commun.ts';
 import { effacerLiensVers, normaliserAdresse } from '../connexion.ts';
 import { enCours, exigerDate, exigerDateHeure, veille } from '../dates.ts';
 import { aLeDroit, couvre, droitsDe, estChefDeCentre, occupe, perimetreDe, type Acteur, type Perimetre } from '../droits.ts';
@@ -143,7 +144,7 @@ export async function ajouterPersonne(
 	return lignes[0]!.id;
 }
 
-export async function changerStatut(base: Base, acteur: Acteur, personneId: number, statut: StatutOperationnel, maintenant: string): Promise<void> {
+export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: Acteur, personneId: number, statut: StatutOperationnel, maintenant: string): Promise<void> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
 	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
@@ -172,7 +173,7 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 	// Au départ, tous ses rôles prennent fin le même jour ; l'historique reste.
 	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
 	// Au départ, il quitte aussi ses groupes de messagerie.
-	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, maintenant) : [];
+	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, maintenant) : { ecritures: [], photos: [] };
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
@@ -182,14 +183,12 @@ export async function changerStatut(base: Base, acteur: Acteur, personneId: numb
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui),
 		...retrait,
 		...roles,
-		...groupes
+		...groupes.ecritures
 	] as const;
-	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) {
-		await base.batch(ecritures);
-		return;
-	}
 	// Sans accès, la personne est déconnectée tout de suite, et ses liens en attente ne valent plus rien.
-	await base.batch([...ecritures, ...deconnecter(base, fiche.email)]);
+	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) await base.batch(ecritures);
+	else await base.batch([...ecritures, ...deconnecter(base, fiche.email)]);
+	await effacerPhotos(basePhotos, groupes.photos);
 }
 
 // Requêtes à passer dans un batch : sessions et liens en attente de cette adresse.
@@ -294,9 +293,10 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 	]);
 }
 
-export type MonProfil = { surnom: string | null; telephone: string | null; telephoneVisible: boolean; contactUrgence: string | null; anniversaireVisible: boolean };
+// `cochesLecture` : faux, l'agent ne montre plus ses lectures dans la messagerie et ne voit plus celles des autres.
+export type MonProfil = { surnom: string | null; telephone: string | null; telephoneVisible: boolean; contactUrgence: string | null; anniversaireVisible: boolean; cochesLecture: boolean };
 const TEXTES_PROFIL = ['surnom', 'telephone', 'contactUrgence'] as const;
-const BOOLEENS_PROFIL = ['telephoneVisible', 'anniversaireVisible'] as const;
+const BOOLEENS_PROFIL = ['telephoneVisible', 'anniversaireVisible', 'cochesLecture'] as const;
 
 function exigerPersonne(acteur: Acteur): number {
 	if (acteur.type === 'super') throw new DonneeInvalide('Pas de fiche pour le super administrateur');
@@ -307,7 +307,7 @@ export async function monProfil(base: Base, acteur: Acteur): Promise<MonProfil |
 	if (acteur.type === 'super') return null;
 	const [fiche] = await base.select().from(personne).where(eq(personne.id, acteur.id));
 	if (!fiche) return null;
-	return { surnom: fiche.surnom, telephone: fiche.telephone, telephoneVisible: fiche.telephoneVisible === 1, contactUrgence: fiche.contactUrgence, anniversaireVisible: fiche.anniversaireVisible === 1 };
+	return { surnom: fiche.surnom, telephone: fiche.telephone, telephoneVisible: fiche.telephoneVisible === 1, contactUrgence: fiche.contactUrgence, anniversaireVisible: fiche.anniversaireVisible === 1, cochesLecture: fiche.cochesLecture === 1 };
 }
 
 export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Partial<MonProfil>, aujourdhui: string): Promise<void> {

@@ -4,16 +4,14 @@ import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
-import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { roleDe, texte } from '../commun.ts';
+import { REPONSES_EVENEMENT, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
+import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from '../commun.ts';
 import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
 import { nomActeur } from './personnes.ts';
 
-const PHOTOS_MAX = 4;
-export const TAILLE_PHOTO_MAX = 200 * 1024;
 // D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
 const EPINGLEES_MAX = 10;
 const PAGE_MAX = 30;
@@ -26,7 +24,7 @@ export type DonneesPublication = {
 	priseDeConnaissance?: boolean;
 	evenement?: { debut: string; lieu: string; convoques: Convoques };
 	sondage?: { question: string; reponses: string[]; ouverture: string; cloture: string };
-	photos?: { type: string; donnees: Uint8Array }[];
+	photos?: Photo[];
 };
 
 export type PublicationVue = {
@@ -53,25 +51,6 @@ export type PublicationVue = {
 	derniersCommentaires: CommentaireVue[];
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
 };
-
-// Le type déclaré ne suffit pas : on vérifie les premiers octets du fichier.
-function estDuType(type: string, o: Uint8Array): boolean {
-	const ascii = (debut: number, fin: number) => String.fromCharCode(...o.subarray(debut, fin));
-	if (type === 'image/jpeg') return o[0] === 0xff && o[1] === 0xd8 && o[2] === 0xff;
-	if (type === 'image/webp') return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
-	return false;
-}
-
-function exigerPhotos(valeur: DonneesPublication['photos']) {
-	const photos = valeur ?? [];
-	if (!Array.isArray(photos)) throw new DonneeInvalide('Photos invalides');
-	if (photos.length > PHOTOS_MAX) throw new DonneeInvalide(`${PHOTOS_MAX} photos au plus`);
-	for (const p of photos) {
-		if (!p || !(TYPES_PHOTO as readonly string[]).includes(p.type) || !(p.donnees instanceof Uint8Array) || !estDuType(p.type, p.donnees)) throw new DonneeInvalide('Photo JPEG ou WebP seulement');
-		if (p.donnees.length > TAILLE_PHOTO_MAX) throw new DonneeInvalide('Photo trop lourde (200 Ko au plus)');
-	}
-	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
-}
 
 export type EtatSondage = 'avenir' | 'ouvert' | 'ferme';
 
@@ -148,25 +127,10 @@ export async function publier(base: Base, basePhotos: BasePhotos, acteur: Acteur
 	] as const;
 	// Le batch est une transaction : aucune autre écriture ne s'intercale, et AUTOINCREMENT donne le plus grand id à la publication qui vient d'être insérée.
 	const derniere = sql`(select max(${publication.id}) from ${publication})`;
-	if (photos.length === 0) {
-		const [lignes] = await base.batch(ecritures);
+	return avecPhotos(basePhotos, photos, maintenant, async (ids) => {
+		const [lignes] = await base.batch(ids.length === 0 ? ecritures : [...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, photoId: ids[ordre]! })))]);
 		return lignes[0]!.id;
-	}
-	const [premiere, ...autres] = photos.map((p) =>
-		basePhotos.insert(octetsPhoto).values({ type: p.type, donnees: p.donnees, taille: p.donnees.length, creeLe: maintenant }).returning({ id: octetsPhoto.id })
-	);
-	const ids = (await basePhotos.batch([premiere!, ...autres])).map(([ligne]) => ligne!.id);
-	try {
-		const [lignes] = await base.batch([...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, photoId: ids[ordre]! })))]);
-		return lignes[0]!.id;
-	} catch (erreur) {
-		// Publication non enregistrée : ses photos sont effacées. Si cet effacement échoue aussi, elles restent orphelines ; on signale la première erreur.
-		await basePhotos
-			.delete(octetsPhoto)
-			.where(inArray(octetsPhoto.id, ids))
-			.catch(() => {});
-		throw erreur;
-	}
+	});
 }
 
 // « fermer » : fermer les commentaires s'ils sont ouverts (auteur ou modérateur), les rouvrir sinon (modérateur seulement).
@@ -202,12 +166,7 @@ export async function supprimerPublication(base: Base, basePhotos: BasePhotos, a
 		base.delete(publication).where(eq(publication.id, id)),
 		journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })
 	]);
-	if (photos.length === 0) return;
-	// La publication est déjà supprimée : si l'effacement des octets échoue, ils restent orphelins (place perdue, rien de visible), sans gêner l'agent.
-	await basePhotos
-		.delete(octetsPhoto)
-		.where(inArray(octetsPhoto.id, photos.map((p) => p.photoId)))
-		.catch(() => {});
+	await effacerPhotos(basePhotos, photos.map((p) => p.photoId));
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
@@ -458,9 +417,7 @@ export async function photo(base: Base, basePhotos: BasePhotos, acteur: Acteur, 
 		.where(eq(photoPublication.id, idPhoto));
 	if (!ligne) throw new DonneeInvalide('Photo inconnue');
 	await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	const [octets] = await basePhotos.select({ type: octetsPhoto.type, donnees: octetsPhoto.donnees }).from(octetsPhoto).where(eq(octetsPhoto.id, ligne.photoId));
-	if (!octets) throw new DonneeInvalide('Photo inconnue');
-	return octets;
+	return lireOctets(basePhotos, ligne.photoId);
 }
 
 // Une base D1 gratuite tient 500 Mo : alerte à 80 %, pour choisir à temps entre l'offre payante et un stockage R2 (décision 0010).

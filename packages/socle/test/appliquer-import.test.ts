@@ -43,7 +43,7 @@ async function jeu() {
 	const adjoint = await nouvelle('Alain', 'Adjoint');
 	await nommer(adjoint, resp('Chef de centre adjoint'), { type: 'centre' });
 	const acteur: Acteur = { type: 'personne', id: chef };
-	const appliquer = (op: Operation, nouvelles: Record<number, number> = {}, qui: Acteur = acteur) => appliquerOperation(base, qui, op, nouvelles, midi, reservees);
+	const appliquer = (op: Operation, nouvelles: Record<number, number> = {}, qui: Acteur = acteur) => appliquerOperation(base, base.photos, qui, op, nouvelles, midi, reservees);
 	const journalDe = async (cibleType: string, cibleId: number) => (await base.select().from(journal).where(and(eq(journal.cibleType, cibleType), eq(journal.cibleId, cibleId)))).map((j) => j.action);
 	return { base, acteur, profilAgent, resp, amicale: amicale!, e1, e2, e3, nouvelle, nommer, chef, roleChef, adjoint, appliquer, journalDe };
 }
@@ -217,7 +217,7 @@ describe('appliquerOperation : opérations mal formées', () => {
 		const { base, acteur } = await jeu();
 		const avant = await base.select().from(journal);
 		const requetes = base.requetes;
-		const erreur = await appliquerOperation(base, acteur, op as Operation, nouvelles as Record<number, number>, midi, reservees).catch((e: unknown) => e);
+		const erreur = await appliquerOperation(base, base.photos, acteur, op as Operation, nouvelles as Record<number, number>, midi, reservees).catch((e: unknown) => e);
 		expect(erreur).toBeInstanceOf(DonneeInvalide);
 		expect(base.requetes).toBe(requetes);
 		expect(await base.select().from(journal)).toEqual(avant);

@@ -33,7 +33,7 @@ async function preparer() {
 	return { base, chef, adjoint, agent, equipe1: equipe1!, profilAgent: profilAgent! };
 }
 
-const locaux = (base: unknown, acteur: unknown) => ({ base, acteur, superAdmins });
+const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur, superAdmins });
 const lire = (locals: unknown, id: number) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(load as any)({ locals, params: { id: String(id) } });

@@ -12,7 +12,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	if (corps === undefined) return pasDuJson();
 	const { operation, nouvelles } = (typeof corps === 'object' && corps !== null ? corps : {}) as { operation?: Operation; nouvelles?: Record<number, number> };
 	try {
-		return json(await appliquerOperation(locals.base, acteur, operation as Operation, nouvelles as Record<number, number>, maintenantParis(), locals.superAdmins));
+		return json(await appliquerOperation(locals.base, locals.basePhotos, acteur, operation as Operation, nouvelles as Record<number, number>, maintenantParis(), locals.superAdmins));
 	} catch (erreur) {
 		return refus(erreur);
 	}
