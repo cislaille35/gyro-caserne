@@ -191,7 +191,7 @@ describe('publier', () => {
 });
 
 describe('taille des envois', () => {
-	it('refuse avant lecture un envoi sans longueur ou de plus de 1,7 Mo', async () => {
+	it('refuse avant lecture un envoi sans longueur ou de plus de 0,9 Mo', async () => {
 		const { base, alice } = await preparer();
 		const sansLongueur = new Request('http://x', { method: 'POST', body: new URLSearchParams({ mur: 'vie', type: 'message', texte: 'x' }) });
 		sansLongueur.headers.delete('content-length');

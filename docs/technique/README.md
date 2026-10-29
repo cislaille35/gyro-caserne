@@ -6,14 +6,15 @@
 flowchart LR
   tel[Téléphone de l'agent<br>appli installée] --> worker[Cloudflare Worker<br>SvelteKit]
   worker --> d1[(D1<br>base)]
-  worker -. à venir .-> r2[(R2<br>photos)]
+  worker --> photos[(D1<br>photos)]
   centre[centres/id/centre.ts] -- compilation --> worker
 ```
 
 - Une installation par centre, sur son propre compte Cloudflare.
 - Le centre est choisi à la compilation : `CENTRE=<id>` (par défaut `exemple`, un centre fictif). Une description incorrecte arrête la compilation.
 - Les tests vérifient tous les centres de `centres/`, et `pnpm check` les vérifie aussi côté types.
-- La config Cloudflare (nom de l'appli, base) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
+- Deux bases D1 par centre : la base principale (liaison `BASE`) et la base des photos (liaison `PHOTOS`), qui ne contient que leurs octets. Une base gratuite tient 500 Mo : voir [0010](../decisions/0010-photos-dans-leur-base.md).
+- La config Cloudflare (nom de l'appli, bases) est celle du centre : `centres/<id>/wrangler.jsonc`. Sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod, démo) et `gyro-caserne-laille` (production).
 - Connexion par lien magique (Better Auth), réservée aux adresses autorisées : une personne du centre avec un statut qui donne accès, ou un super administrateur (`SUPER_ADMINS`). Une adresse inconnue reçoit le même message, sans lien.
 - Option Cloudflare `nodejs_compat` : Better Auth utilise des modules de Node (`node:async_hooks` notamment).
 - Le lien de connexion part en arrière-plan (`waitUntil`), au plus un par minute et par adresse (table `envoi_lien`, réservée en une seule requête) ; en base, seule l'empreinte du jeton est gardée.

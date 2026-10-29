@@ -78,7 +78,7 @@ La cloche (« Notifications ») reprend 1 à 3 en liste. Les **notifications sur
 ## Les photos
 
 - Jusqu'à 4 photos par publication, **réduites dans le navigateur** avant l'envoi (environ 100 à 300 Ko chacune, JPEG ou WebP ; refus au-delà d'une taille maximale côté serveur).
-- **Rangées dans la base D1**, comme dans le MVP (décision du porteur : pas de R2, donc ni moyen de paiement ni réglage Cloudflare). Calcul : 5 Go gratuits, environ 300 Ko par photo et une cinquantaine de photos par mois, soit environ 180 Mo par an.
+- **Rangées dans D1** (décision du porteur : pas de R2, donc ni moyen de paiement ni réglage Cloudflare). Correction du 2026-10-29 : la formule gratuite donne **500 Mo par base** (5 Go pour tout le compte), pas 5 Go. Les photos ont donc leur propre base, à 200 Ko au plus, avec une jauge : voir la décision [0010](../../decisions/0010-photos-dans-leur-base.md).
 - **Privées** : servies par l'appli après vérification que la personne peut lire le mur ; jamais d'adresse publique.
 - Supprimer une publication supprime ses photos.
 

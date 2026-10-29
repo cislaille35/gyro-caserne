@@ -79,8 +79,8 @@ La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le 
 
 ## Photos
 
-- Réduites dans le navigateur avant l'envoi (côté long 1 600 px), en JPEG ou WebP, **400 Ko au plus** chacune.
-- Rangées **dans la base** de l'appli, sans service à part ni coût (environ 180 Mo par an).
+- Réduites dans le navigateur avant l'envoi (côté long 1 600 px), en JPEG ou WebP, **200 Ko au plus** chacune.
+- Rangées dans **une base à part**, réservée aux photos, sans coût : elle tient 500 Mo, environ 2 500 photos. La page Réglages montre la place prise (« Photos : 120 Mo sur 500 Mo ») au chef de centre, à l'adjoint et au super administrateur, avec une alerte à partir de 80 %. Voir [0010](../decisions/0010-photos-dans-leur-base.md).
 - **Privées** : servies seulement à qui peut lire le mur, jamais par une adresse publique.
 - Supprimer une publication supprime ses photos.
 

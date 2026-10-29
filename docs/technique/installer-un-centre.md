@@ -19,8 +19,10 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.
 6. Se connecter à Cloudflare : `pnpm --filter @gyro-caserne/web exec wrangler login`.
 7. Créer le sous-domaine `workers.dev` du compte, s'il n'existe pas : ouvrir une fois « Workers & Pages » dans le tableau de bord Cloudflare (ou le choisir dans Workers › « Change subdomain »). Il entre dans l'adresse de l'appli : `gyro-caserne-<id>.<sous-domaine>.workers.dev`. Pour Laillé : `cis-laille`. Compter quelques minutes avant de l'utiliser (le temps de son certificat).
-8. Créer la base : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, puis reporter le `database_id` affiché dans `centres/<id>/wrangler.jsonc` (et `database_name` : `gyro-caserne-<id>`).
-9. Créer les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
+8. Créer les deux bases (voir [0010](../decisions/0010-photos-dans-leur-base.md)) et reporter chaque `database_id` affiché dans `centres/<id>/wrangler.jsonc` :
+   - la base principale : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>`, liaison `BASE`, `database_name` : `gyro-caserne-<id>` ;
+   - la base des photos : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>-photos`, liaison `PHOTOS`, `database_name` : `gyro-caserne-<id>-photos`.
+9. Créer les tables en ligne, dans les deux bases : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
 10. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
 11. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
 12. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.
@@ -43,13 +45,13 @@ Pour que GitHub déploie tout seul :
    - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
 3. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
 
-`centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : son `database_id` est celui de Laillé. En le copiant (étape 3 de l'installation), remplacer ce `database_id` par celui de la nouvelle base (étape 8).
+`centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : ses `database_id` sont ceux de Laillé. En le copiant (étape 3 de l'installation), remplacer les deux `database_id` par ceux des nouvelles bases (étape 8).
 
 ## Mettre à jour
 
 1. Sur GitHub, dans le fork : « Sync fork ». Seul `centres/<id>/` a été modifié, donc il n'y a pas de conflit.
 2. En local : `git pull`, puis `pnpm install && pnpm test`. Si un test signale un réglage technique différent de `centres/exemple`, recopier ce réglage dans `centres/<id>/wrangler.jsonc`.
-3. Mettre à jour les tables en ligne : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`.
+3. Mettre à jour les tables en ligne (les deux bases) : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Si la mise à jour ajoute la base des photos (décision 0010), la créer d'abord comme à l'étape 8.
 4. `CENTRE=<id> pnpm deployer`.
 
 ## Règle
