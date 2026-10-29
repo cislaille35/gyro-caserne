@@ -98,12 +98,11 @@ describe('publier', () => {
 		await expect(publier(base, acteur(agent), `equipe:${e1.id}`, message(), maintenant)).rejects.toThrow(RefusDroit);
 	});
 
-	it('annonce, avec ou sans prise de connaissance : modérateurs seulement ; prise de connaissance : annonce seulement', async () => {
+	it('annonce avec prise de connaissance : modérateurs seulement, annonce seulement', async () => {
 		const { base, agent, chef } = await jeu();
 		const annonce = { type: 'annonce' as const, texte: 'Lire', priseDeConnaissance: true };
 		await expect(publier(base, acteur(agent), 'vie', annonce, maintenant)).rejects.toThrow(RefusDroit);
-		await expect(publier(base, acteur(agent), 'vie', { type: 'annonce', texte: 'Lire' }, maintenant)).rejects.toMatchObject({ droit: 'MODERER_SALON' });
-		await expect(publier(base, acteur(chef), 'vie', { type: 'annonce', texte: 'Lire' }, maintenant)).resolves.toBeGreaterThan(0);
+		await expect(publier(base, acteur(agent), 'vie', { type: 'annonce', texte: 'Lire' }, maintenant)).resolves.toBeGreaterThan(0);
 		const id = await publier(base, acteur(chef), 'vie', annonce, maintenant);
 		const [ligne] = await base.select().from(publication).where(eq(publication.id, id));
 		expect(ligne!.priseDeConnaissance).toBe(1);
@@ -610,7 +609,7 @@ describe('lireMur', () => {
 describe('lirePublication', () => {
 	it('la publication vue par l’acteur, tous ses commentaires, sans marquer la visite', async () => {
 		const { base, agent, autre } = await jeu();
-		const id = await publier(base, acteur(agent), 'vie', { type: 'message', texte: 'Lire' }, maintenant);
+		const id = await publier(base, acteur(agent), 'vie', { type: 'annonce', texte: 'Lire' }, maintenant);
 		for (const texte of ['un', 'deux', 'trois']) await base.insert(commentaire).values({ publicationId: id, auteur: `personne:${autre}`, texte, creeLe: maintenant });
 		await base.insert(jaime).values({ publicationId: id, personneId: agent });
 		const avant = base.requetes;

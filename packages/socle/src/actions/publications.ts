@@ -135,9 +135,10 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 	const mur = await exigerMur(base, acteur, cle, aujourdhui, 'publier');
 	if (!(TYPES_PUBLICATION as readonly string[]).includes(donnees.type)) throw new DonneeInvalide('Type inconnu');
 	const corps = texte(donnees.texte, 'Texte', 4000);
-	if (donnees.priseDeConnaissance && donnees.type !== 'annonce') throw new DonneeInvalide('Prise de connaissance réservée aux annonces');
-	// L'annonce, avec ou sans prise de connaissance, est réservée aux modérateurs du mur.
-	if (donnees.type === 'annonce' && !mur.peutModerer) throw refusMur(cle, 'moderer');
+	if (donnees.priseDeConnaissance) {
+		if (donnees.type !== 'annonce') throw new DonneeInvalide('Prise de connaissance réservée aux annonces');
+		if (!mur.peutModerer) throw refusMur(cle, 'moderer');
+	}
 	const photos = exigerPhotos(donnees.photos);
 	const sondage = exigerSondage(donnees.sondage, donnees.type === 'evenement' ? donnees.evenement?.debut : undefined);
 	const evenement = await exigerEvenement(base, mur, donnees, maintenant);
