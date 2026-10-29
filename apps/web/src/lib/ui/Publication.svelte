@@ -108,7 +108,7 @@
 
 		{#if p.evenement}
 			{@const e = p.evenement}
-			<div class="evenement">
+			<div class="rdv">
 				<TuileDate iso={e.debut} />
 				<span class="colonne">
 					<strong class="texte titre-evenement">{p.texte}</strong>
@@ -347,7 +347,7 @@
 	}
 
 	/* Événement */
-	.evenement {
+	.rdv {
 		display: flex;
 		align-items: center;
 		gap: 12px;
@@ -356,10 +356,10 @@
 		font-size: 1.125rem;
 		line-height: 1.3;
 	}
-	.evenement .doux {
+	.rdv .doux {
 		font-size: 0.9375rem;
 	}
-	.evenement .petit {
+	.rdv .petit {
 		font-size: 0.875rem;
 	}
 	.presents {
