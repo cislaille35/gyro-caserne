@@ -25,7 +25,7 @@ Diffuser l'information du centre et organiser les événements, avec **peu de mu
 Un texte, jusqu'à 4 photos, et un **type** :
 
 - **Message** (par défaut) ;
-- **Annonce** : peut demander une **prise de connaissance**, réservée aux modérateurs du mur ;
+- **Annonce** : réservée aux modérateurs du mur ; elle peut demander une **prise de connaissance** ;
 - **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement ;
 - **Bravo** : une réussite (examen, compétition).
 

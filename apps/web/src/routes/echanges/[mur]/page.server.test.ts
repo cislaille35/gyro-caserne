@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
-import { commentaire, commenter, fermerCommentaires, jaime, journal, personne, photoPublication, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
-import { envoyer, jpeg, locaux, preparer } from '../de-test.ts';
+import { commentaire, commenter, fermerCommentaires, jaime, journal, personne, priseConnaissance, publication, publier, reponseEvenement, voteSondage } from '@gyro-caserne/socle';
+import { envoyer, locaux, preparer } from '../de-test.ts';
 import { actions, load } from './+page.server';
 
-const champsDates = (): [string, string][] => {
-	const { ouverture, cloture } = datesSondage(maintenantParis());
-	return [['ouverture', ouverture], ['cloture', cloture]];
-};
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,80 +60,6 @@ describe('un mur', () => {
 	});
 });
 
-describe('publier', () => {
-	const derniere = async (base: Awaited<ReturnType<typeof preparer>>['base']) => (await base.select().from(publication).orderBy(publication.id)).at(-1)!;
-
-	it('un message, avec un sondage et des photos', async () => {
-		const { base, alice } = await preparer();
-		const r = await agir('publier', locaux(base, alice), 'vie', [
-			['type', 'message'],
-			['texte', 'Petit déjeuner samedi ?'],
-			['question', 'Vous venez ?'],
-			['reponse', 'Oui'],
-			['reponse', 'Non'],
-			['reponse', ''],
-			...champsDates(),
-			['photos', jpeg()],
-			['photos', jpeg(2000, 'deux.jpg')],
-			['photos', new File([], '')]
-		]);
-		const p = await derniere(base);
-		// L'identifiant sert à y mettre le focus.
-		expect(r).toMatchObject({ cible: 'publier', succes: 'Publication envoyée.', id: p.id });
-		expect(p).toMatchObject({ type: 'message', texte: 'Petit déjeuner samedi ?', sondageQuestion: 'Vous venez ?', sondageReponses: '["Oui","Non"]', sondageOuverture: expect.any(String), sondageCloture: expect.any(String) });
-		expect(await base.select({ id: photoPublication.id }).from(photoPublication).where(eq(photoPublication.publicationId, p.id))).toHaveLength(2);
-	});
-
-	it('une annonce avec prise de connaissance (modérateur)', async () => {
-		const { base, chef } = await preparer();
-		expect(await agir('publier', locaux(base, chef), 'centre', [['type', 'annonce'], ['texte', 'Exercice'], ['priseDeConnaissance', 'oui']])).toMatchObject({ succes: expect.any(String) });
-		expect(await derniere(base)).toMatchObject({ mur: 'centre', type: 'annonce', priseDeConnaissance: 1 });
-	});
-
-	it('un événement qui convoque des équipes, ou tout le mur', async () => {
-		const { base, alice, e1, e2 } = await preparer();
-		const debut = demain();
-		await agir('publier', locaux(base, alice), 'vie', [['type', 'evenement'], ['texte', 'Manœuvre'], ['debut', debut], ['lieu', 'Caserne'], ['equipe', String(e1.id)], ['equipe', String(e2.id)]]);
-		expect(await derniere(base)).toMatchObject({ type: 'evenement', debut, lieu: 'Caserne', convoques: JSON.stringify([e1.id, e2.id]) });
-		await agir('publier', locaux(base, alice), 'vie', [['type', 'evenement'], ['texte', 'Repas'], ['debut', debut], ['lieu', 'Salle']]);
-		expect(await derniere(base)).toMatchObject({ texte: 'Repas', convoques: '"tous"' });
-	});
-
-	it('un bravo ; les champs d’événement et la prise de connaissance restés remplis sont ignorés', async () => {
-		const { base, alice } = await preparer();
-		await agir('publier', locaux(base, alice), 'vie', [['type', 'bravo'], ['texte', 'Bravo Chloé pour le FDF1 !'], ['debut', demain()], ['lieu', 'X'], ['priseDeConnaissance', 'oui']]);
-		expect(await derniere(base)).toMatchObject({ type: 'bravo', debut: null, lieu: null, priseDeConnaissance: 0 });
-	});
-
-	it('refus affichés sur le formulaire, saisie gardée', async () => {
-		const { base, alice } = await preparer();
-		const vie = (corps: [string, string | File][]) => agir('publier', locaux(base, alice), 'vie', corps);
-		expect(await vie([['type', 'message'], ['texte', '  ']])).toMatchObject({ status: 400, data: { cible: 'publier', erreurs: { texte: 'Écrivez le texte de la publication.' }, valeurs: { type: 'message' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', jpeg(401 * 1024)]])).toMatchObject({
-			status: 400,
-			data: { erreurs: { photos: expect.stringContaining('400 Ko') }, valeurs: { texte: 'x' } }
-		});
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', new File([new Uint8Array([0x89, 0x50])], 'a.png', { type: 'image/png' })]])).toMatchObject({
-			status: 400,
-			data: { erreurs: { photos: 'Les photos doivent être en JPEG ou WebP.' } }
-		});
-		const cinq = Array.from({ length: 5 }, (): [string, File] => ['photos', jpeg()]);
-		expect(await vie([['type', 'message'], ['texte', 'x'], ...cinq])).toMatchObject({ status: 400, data: { erreurs: { photos: '4 photos au plus.' } } });
-		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', demain()], ['lieu', '']])).toMatchObject({ status: 400, data: { erreurs: { lieu: 'Indiquez le lieu.' } } });
-		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', ''], ['lieu', 'Ici']])).toMatchObject({ status: 400, data: { erreurs: { debut: 'Indiquez la date et l’heure.' } } });
-		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', '2020-01-01T10:00'], ['lieu', 'Ici']])).toMatchObject({ status: 400, data: { erreurs: { debut: 'Cet événement est déjà passé.' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui'], ...champsDates()])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Proposez de 2 à 6 réponses.' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['reponse', 'Oui'], ['reponse', 'Non'], ...champsDates()])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez la question du sondage.' } } });
-		expect(await vie([['type', 'annonce'], ['texte', 'x'], ['priseDeConnaissance', 'oui']])).toMatchObject({ status: 403, data: { message: expect.stringContaining('modérateurs') } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'q'.repeat(201)], ['reponse', 'Oui'], ['reponse', 'Non'], ...champsDates()])).toMatchObject({
-			status: 400,
-			data: { erreurs: { sondage: 'La question ne peut pas dépasser 200 caractères.' } }
-		});
-		expect(await agir('publier', locaux(base, alice), 'centre', [['type', 'message'], ['texte', 'x']])).toMatchObject({ status: 403, data: { cible: 'publier', message: 'Vous ne pouvez pas publier sur ce mur.' } });
-		expect(await base.select().from(publication)).toHaveLength(0);
-	});
-});
-
 describe('modération', () => {
 	it('l’auteur modifie ; un autre agent ne supprime pas ; le chef épingle et supprime', async () => {
 		const { base, chef, alice, bruno } = await preparer();
@@ -176,34 +98,6 @@ describe('modération', () => {
 		expect(await agir('epingler', locaux(base, chef), `equipe:${e2.id}`, [['id', vie], ['oui', '1']])).toMatchObject({ status: 404 });
 		expect(await agir('supprimer', locaux(base, alice), 'vie', [['id', 'abc']])).toMatchObject({ status: 400 });
 		expect(await base.select().from(publication)).toHaveLength(2);
-	});
-});
-
-describe('taille des envois', () => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const publierAvec = (locals: unknown, request: Request) => (actions.publier as any)({ locals, params: { mur: 'vie' }, url: new URL('http://x/echanges/vie'), request });
-
-	it('refuse avant lecture un envoi sans longueur ou de plus de 1,7 Mo', async () => {
-		const { base, alice } = await preparer();
-		const sansLongueur = new Request('http://x', { method: 'POST', body: new URLSearchParams({ type: 'message', texte: 'x' }) });
-		sansLongueur.headers.delete('content-length');
-		expect(await publierAvec(locaux(base, alice), sansLongueur)).toMatchObject({ status: 413, data: { cible: 'publier', message: expect.stringContaining('trop lourd') } });
-		const enorme = new Request('http://x', { method: 'POST', body: 'x', headers: { 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(50 * 1024 * 1024) } });
-		expect(await publierAvec(locaux(base, alice), enorme)).toMatchObject({ status: 413 });
-		expect(await base.select().from(publication)).toHaveLength(0);
-	});
-
-	it('sondage sans dates : refusé avec une phrase claire', async () => {
-		const { base, alice } = await preparer();
-		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui'], ['reponse', 'Non']]);
-		expect(r).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez les dates d’ouverture et de clôture du sondage.' } } });
-	});
-
-	it('accepte 4 photos de 400 Ko et le texte', async () => {
-		const { base, alice } = await preparer();
-		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
-		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...champsDates(), ...photos]);
-		expect(r).toMatchObject({ succes: 'Publication envoyée.' });
 	});
 });
 

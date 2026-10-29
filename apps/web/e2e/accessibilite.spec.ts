@@ -33,11 +33,19 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('publier, sondage ouvert, sans violation', async ({ page }) => {
+				await page.goto('/echanges/publier?mur=vie');
+				await formulairePret(page);
+				await page.locator('summary', { hasText: 'Sondage' }).click();
+				await expect(page.getByLabel('Ferme le')).toBeVisible();
+				await sansViolation(page);
+			});
 
 			test('échanges remplis : accueil, notifications, mur et publication sans violation', async ({ browser, page }) => {
 				const gestion = await pageSuper(browser, theme);
@@ -70,7 +78,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -302,34 +310,39 @@ async function pageAgent(browser: Browser, email: string): Promise<Page> {
 	return page;
 }
 
-// Le formulaire « Publier » du mur ouvert, une fois la page prête : avec JavaScript, les champs d'événement se cachent.
+// La page Publier, une fois prête : avec JavaScript, les champs d'événement se cachent.
 async function formulairePret(page: Page): Promise<Locator> {
-	const formulaire = page.locator('#publier');
+	const formulaire = page.locator('form[action="?/publier"]');
 	await expect(formulaire.getByRole('group', { name: 'Pour un événement' })).toBeHidden();
 	return formulaire;
 }
 
 type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; photo?: Buffer };
 
-// Publie sur le mur ouvert et renvoie l'identifiant de la publication, lu dans son lien « Commenter ».
+// Publie depuis le mur ouvert (lien « Publier dans … ») ; de retour sur le mur, renvoie l'identifiant de la publication, lu dans l'adresse.
 async function publier(page: Page, s: Saisie): Promise<number> {
+	await page.getByRole('link', { name: /^Publier dans / }).click();
 	const formulaire = await formulairePret(page);
-	if (s.type) await formulaire.getByLabel('Type', { exact: true }).selectOption({ label: s.type });
-	await formulaire.getByLabel('Texte', { exact: true }).fill(s.texte);
+	if (s.type) await formulaire.getByRole('radio', { name: new RegExp(`^${s.type}`) }).check();
+	await formulaire.getByLabel('Votre message', { exact: true }).fill(s.texte);
 	if (s.prise) await formulaire.getByLabel('Demander une prise de connaissance (annonce)').check();
 	if (s.debut) await formulaire.getByLabel('Date et heure').fill(s.debut);
 	if (s.lieu) await formulaire.getByLabel('Lieu', { exact: true }).fill(s.lieu);
 	for (const equipe of s.equipes ?? []) await formulaire.getByRole('checkbox', { name: equipe, exact: true }).check();
 	if (s.question) {
-		await formulaire.locator('summary', { hasText: 'Ajouter un sondage' }).click();
+		await formulaire.locator('summary', { hasText: 'Sondage' }).click();
 		await formulaire.getByLabel('Question', { exact: true }).fill(s.question);
-		for (const [i, r] of (s.reponses ?? []).entries()) await formulaire.getByLabel(`Réponse ${i + 1}`, { exact: true }).fill(r);
+		for (const [i, r] of (s.reponses ?? []).entries()) {
+			const champ = formulaire.getByLabel(`Réponse ${i + 1}`, { exact: true });
+			if (!(await champ.isVisible())) await formulaire.getByRole('button', { name: '+ Ajouter une réponse' }).click();
+			await champ.fill(r);
+		}
 	}
 	if (s.photo) await formulaire.getByLabel('Photos').setInputFiles({ name: 'essai.jpg', mimeType: 'image/jpeg', buffer: s.photo });
-	await formulaire.getByRole('button', { name: 'Publier' }).click();
-	await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
-	const lien = await publicationDe(page, s.texte).getByRole('link', { name: 'Commenter' }).getAttribute('href');
-	return Number(lien!.split('#')[0]!.split('/').pop());
+	await formulaire.getByRole('button', { name: /^Publier/ }).click();
+	await page.waitForURL(/\/echanges\/[^/]+#publication-\d+$/);
+	await expect(publicationDe(page, s.texte)).toBeVisible();
+	return Number(new URL(page.url()).hash.split('-').pop());
 }
 
 const publicationDe = (page: Page, texte: string) => page.locator('article').filter({ hasText: texte });
@@ -449,7 +462,7 @@ test.describe('échanges', () => {
 		await connecter(page, email);
 		await page.goto('/echanges/vie');
 		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
-		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/vie?/publier']));
+		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/publier?/publier']));
 		for (const r of envois) expect((await r.allHeaders())['content-length'], r.url()).toMatch(/^[1-9]\d*$/);
 	});
 });
@@ -459,15 +472,17 @@ test.describe('échanges au clavier', () => {
 
 	test('publier : un refus met le focus sur le champ fautif, puis « J’aime » se bascule au clavier', async ({ page }) => {
 		const texte = `Sortie vélo ${nouvelleMarque()}`;
-		await page.goto('/echanges/vie');
+		await page.goto('/echanges/publier?mur=vie');
 		const formulaire = await formulairePret(page);
-		const type = formulaire.getByLabel('Type', { exact: true });
-		await type.focus();
-		await type.selectOption({ label: 'Événement' });
-		await page.keyboard.press('Tab');
-		await expect(formulaire.getByLabel('Texte', { exact: true })).toBeFocused();
+		const genre = formulaire.getByRole('radio', { name: /^Message/ });
+		await genre.focus();
+		// Les flèches passent d'un genre à l'autre.
+		await page.keyboard.press('ArrowRight');
+		await expect(formulaire.getByRole('radio', { name: /^Événement/ })).toBeChecked();
+		await expect(formulaire.getByRole('button', { name: 'Publier dans Vie du centre' })).toBeVisible();
+		await formulaire.getByLabel('Votre message', { exact: true }).focus();
 		await page.keyboard.type(texte);
-		const envoyer = formulaire.getByRole('button', { name: 'Publier' });
+		const envoyer = formulaire.getByRole('button', { name: 'Publier dans Vie du centre' });
 		await envoyer.focus();
 		await page.keyboard.press('Enter');
 		await expect(formulaire.getByText('Indiquez la date et l’heure.')).toBeVisible();
@@ -479,8 +494,8 @@ test.describe('échanges au clavier', () => {
 		await page.keyboard.type('Parc des sports');
 		await envoyer.focus();
 		await page.keyboard.press('Enter');
-		await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
-		// Publiée : le focus va sur la nouvelle publication.
+		// Publiée : retour sur le mur, le focus sur la nouvelle publication.
+		await page.waitForURL(/\/echanges\/vie#publication-\d+$/);
 		await expect(publicationDe(page, texte)).toBeFocused();
 
 		const jaime = publicationDe(page, texte).getByRole('button', { name: /^J’aime/ });

@@ -1,8 +1,7 @@
-import { fail } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
-import { anniversairesDuJour, epingler, equipe, lireMur, modifierPublication, publier, supprimerPublication } from '@gyro-caserne/socle';
+import { anniversairesDuJour, epingler, equipe, lireMur, modifierPublication, supprimerPublication } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
-import { echecMur, envoiTropLourd, erreurLecture, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
+import { erreurLecture, exigerActeur } from '#lib/server/formulaire-mur.ts';
 import { gestes, surPublication } from '#lib/server/gestes-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,19 +21,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 };
 
 export const actions: Actions = {
-	publier: async ({ locals, params, request }) => {
-		const acteur = exigerActeur(locals);
-		if (envoiTropLourd(request)) return fail<Reponse>(413, { cible: 'publier', message: 'Envoi trop lourd : 4 photos de 400 Ko au plus. Sans JavaScript, réduisez vos photos avant de les envoyer.' });
-		const { donnees, valeurs, erreurs } = await lirePublication(await request.formData());
-		if (!donnees) return fail<Reponse>(400, { cible: 'publier', erreurs, valeurs });
-		let id: number;
-		try {
-			id = await publier(locals.base, acteur, params.mur, donnees, maintenantParis());
-		} catch (erreur) {
-			return echecMur(erreur, 'publier', valeurs);
-		}
-		return { cible: 'publier', succes: 'Publication envoyée.', id } satisfies Reponse;
-	},
 	modifier: ({ locals, params, request }) =>
 		surPublication({ locals, params, request }, async (acteur, id, f) => {
 			const texte = f.get('texte');

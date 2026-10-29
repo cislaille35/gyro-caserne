@@ -18,7 +18,7 @@ export function erreurLecture(erreur: unknown): never {
 }
 
 // Saisie à réafficher après un refus (les photos ne reviennent pas : il faut les choisir à nouveau).
-export type Valeurs = { type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; ouverture?: string; cloture?: string };
+export type Valeurs = { mur?: string; type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; ouverture?: string; cloture?: string };
 // `id` : ce qui vient d'être créé (publication, commentaire), pour y mettre le focus.
 export type Reponse = { cible: string; succes?: string; id?: number; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
 
@@ -37,6 +37,7 @@ export function envoiTropLourd(request: Request): boolean {
 // donc sans réduction) est refusée avant d'être copiée pour le socle.
 export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesPublication; valeurs: Valeurs; erreurs?: Record<string, string> }> {
 	const valeurs: Valeurs = {
+		mur: texte(f, 'mur'),
 		type: texte(f, 'type'),
 		texte: texte(f, 'texte'),
 		priseDeConnaissance: f.get('priseDeConnaissance') === 'oui',
@@ -76,6 +77,9 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Question trop longue': { champ: 'sondage', texte: 'La question ne peut pas dépasser 200 caractères.' },
 	'Réponse trop longue': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },
 	'De 2 à 6 réponses': { champ: 'sondage', texte: 'Proposez de 2 à 6 réponses.' },
+	'Mur inconnu': { champ: 'mur', texte: 'Choisissez où publier.' },
+	'Ouverture invalide': { champ: 'sondage', texte: 'Indiquez une date et une heure d’ouverture valides.' },
+	'Clôture invalide': { champ: 'sondage', texte: 'Indiquez une date et une heure de clôture valides.' },
 	'Dates du sondage manquantes': { champ: 'sondage', texte: 'Indiquez les dates d’ouverture et de clôture du sondage.' },
 	'Clôture avant l’ouverture': { champ: 'sondage', texte: 'Le sondage doit se clore après son ouverture.' },
 	'Clôture dans plus d’un an': { champ: 'sondage', texte: 'Le sondage ne peut pas durer plus d’un an.' },
@@ -110,7 +114,7 @@ export function echecMur(erreur: unknown, cible: string, valeurs?: Valeurs) {
 			: cible !== 'publier'
 				? 'Vous n’avez pas le droit de faire cela.'
 				: erreur.droit === 'MODERER_SALON'
-					? 'Seuls les modérateurs du mur demandent une prise de connaissance.'
+					? 'Seuls les modérateurs du mur publient une annonce.'
 					: 'Vous ne pouvez pas publier sur ce mur.';
 		return fail<Reponse>(403, { cible, message, valeurs });
 	}

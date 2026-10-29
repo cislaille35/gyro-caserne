@@ -90,7 +90,8 @@ export const membresDe = (agents: AgentDuJour[], cle: string) => agents.filter((
 
 // Nombre de membres naturels de chaque mur demandé. Une seule requête (un batch).
 export async function audiences(base: Base, cles: CleMur[], aujourdhui: string): Promise<Map<CleMur, number>> {
-	const agents = agentsDuJour(await base.batch(lecturesAgents(base, aujourdhui)), aujourdhui);
+	const [personnes, affectations, tenues] = await base.batch(lecturesAgents(base, aujourdhui));
+	const agents = agentsDuJour([personnes, affectations, tenues], aujourdhui);
 	return new Map(cles.map((cle) => [cle, membresDe(agents, cle).length]));
 }
 

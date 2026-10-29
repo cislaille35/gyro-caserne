@@ -16,7 +16,6 @@ import PastilleEquipe from './PastilleEquipe.svelte';
 import PastilleMur from './PastilleMur.svelte';
 import Statut from './Statut.svelte';
 import Tableau from './Tableau.svelte';
-import FormulairePublication from './FormulairePublication.svelte';
 import Sondage from './Sondage.svelte';
 import TuileDate from './TuileDate.svelte';
 import Visage from './Visage.svelte';
@@ -321,30 +320,3 @@ describe('Sondage', () => {
 	});
 });
 
-describe('FormulairePublication', () => {
-	const mur = { cle: 'vie', nom: 'Vie du centre', type: 'vie', peutModerer: false };
-	const equipes = [
-		{ id: 1, nom: 'Équipe 1', active: 1 },
-		{ id: 2, nom: 'Équipe 2', active: 1 },
-		{ id: 3, nom: 'Équipe 3', active: 0 }
-	];
-	it('tous les types, photos en plusieurs parties ; prise de connaissance pour les modérateurs', () => {
-		const page = html(FormulairePublication, { mur, equipes, form: null });
-		expect(page).toMatch(/action="\?\/publier" enctype="multipart\/form-data"/);
-		for (const type of ['Message', 'Annonce', 'Événement', 'Bravo']) expect(page).toContain(`>${type}</option>`);
-		expect(page).toContain('name="debut"');
-		expect(page).toContain('name="equipe" value="2"');
-		expect(page).not.toContain('name="equipe" value="3"');
-		expect(page).toContain('name="photos"');
-		expect(page).not.toContain('priseDeConnaissance');
-		expect(html(FormulairePublication, { mur: { ...mur, type: 'centre', peutModerer: true }, equipes, form: null })).toContain('name="priseDeConnaissance"');
-	});
-	it('refus affichés, saisie gardée', () => {
-		const erreurs = { texte: 'Écrivez le texte de la publication.', photos: 'Photo trop lourde : 400 Ko au plus.' };
-		const page = html(FormulairePublication, { mur, equipes, form: { cible: 'publier', erreurs, valeurs: { type: 'message', lieu: 'Salle' } } });
-		expect(page).toContain('La publication contient des erreurs.');
-		expect(page).toContain('Écrivez le texte de la publication.');
-		expect(page).toContain('Photo trop lourde : 400 Ko au plus.');
-		expect(page).toContain('value="Salle"');
-	});
-});

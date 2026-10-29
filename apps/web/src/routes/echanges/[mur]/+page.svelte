@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { phraseAudience, phraseDuMur } from '#lib/murs/phrases.ts';
+	import { teinteDuMur } from '#lib/murs/teinte.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import PastilleMur from '#lib/ui/PastilleMur.svelte';
 	import Publication from '#lib/ui/Publication.svelte';
@@ -20,15 +21,7 @@
 	// La tuile du mur dans la liste donne son icône et sa couleur, avec les mêmes règles.
 	const s = $derived(data.sections);
 	const tuile = $derived([s.centre, ...s.groupes, ...s.autres, ...s.supervision].find((t) => t?.cle === data.mur.cle) ?? { icone: null, couleur: null, numero: null });
-	const teinte = $derived(
-		data.mur.type === 'centre'
-			? { fond: 'var(--rouge)', encre: 'var(--sur-rouge)', trait: 'transparent' }
-			: tuile.icone && tuile.icone !== 'maison'
-				? { fond: `var(--icone-${tuile.icone}-fond)`, encre: `var(--icone-${tuile.icone}-texte)`, trait: 'transparent' }
-				: tuile.couleur
-					? { fond: `color-mix(in srgb, ${tuile.couleur} 30%, var(--surface))`, encre: 'var(--encre)', trait: tuile.couleur }
-					: { fond: 'var(--statut-neutre-fond)', encre: 'var(--encre)', trait: 'transparent' }
-	);
+	const teinte = $derived(teinteDuMur(data.mur.type, tuile));
 	// Gyro du bravo s'anime une fois, sur le premier bravo seulement.
 	const premierBravo = $derived([...data.epinglees, ...data.publications].find((p) => p.type === 'bravo')?.id);
 </script>
