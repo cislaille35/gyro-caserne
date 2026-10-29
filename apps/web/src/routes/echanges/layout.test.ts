@@ -75,7 +75,7 @@ describe('liste des murs', () => {
 	it('Aujourd’hui : anniversaire avec « Souhaiter », et l’événement sans réponse', () => {
 		etat.page.params = {};
 		const page = html();
-		expect(texte(page)).toContain('Thomas fête son anniversaire');
+		expect(texte(page)).toContain('Thomas Aubry fête son anniversaire');
 		expect(page).toContain('href="/echanges/publier?mur=vie&amp;texte=Joyeux%20anniversaire%20Thomas%20!"');
 		expect(page).toContain('href="/echanges/centre/7"');
 		expect(texte(page)).toContain('vous n’avez pas répondu');

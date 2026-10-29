@@ -74,7 +74,7 @@
 	<nav class="murs" aria-label="Murs">
 		{#if !actif}
 			<header class="entete">
-				{#if gyro.visible}<Gyro tenue="normal" taille={56} anime={gyro.anime} decoratif />{/if}
+				{#if gyro.visible}<span class="mascotte"><Gyro tenue="normal" taille={72} anime={gyro.anime} decoratif /></span>{/if}
 				<div class="titres">
 					<h1>Échanges</h1>
 					<p class="phrase">{phrase}</p>
@@ -91,10 +91,10 @@
 				{#if !actif && (jour.anniversaires.length > 0 || jour.evenement)}
 					<section class="jour" aria-labelledby="t-jour">
 						<h2 id="t-jour" class="rubrique">Aujourd’hui au centre</h2>
-						{#each jour.anniversaires as a (`${a.prenom} ${a.nom}`)}
+						{#each jour.anniversaires as a, i (i)}
 							<div class="ligne-jour">
 								<span class="visage" aria-hidden="true">{`${a.prenom.charAt(0)}${a.nom.charAt(0)}`.toUpperCase()}</span>
-								<strong class="quoi">{a.prenom} fête son anniversaire</strong>
+								<strong class="quoi">{a.prenom} {a.nom} fête son anniversaire</strong>
 								<a class="souhaiter" href={souhaiter(a.prenom)}>Souhaiter<span class="masque">{` à ${a.prenom}`}</span></a>
 							</div>
 						{/each}
@@ -182,6 +182,7 @@
 <style>
 	.echanges {
 		display: grid;
+		grid-template-columns: minmax(0, 1fr);
 		gap: 1rem;
 	}
 	.murs {
@@ -195,6 +196,10 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
+	}
+	.mascotte {
+		flex: none;
+		margin: -10px -8px -10px -12px;
 	}
 	.titres {
 		flex: 1;
