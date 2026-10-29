@@ -33,6 +33,15 @@ describe('page d’un comité', () => {
 		expect(await agir('modifier', locaux(base, referent), centreCom.id, [['nom', 'Autre'], ['theme', 'centre']])).toMatchObject({ status: 400, data: { erreurs: { nom: expect.stringContaining('centre') } } });
 	});
 
+	it('enregistre l’icône choisie et la montre ; refuse une icône inconnue', async () => {
+		const { base, referent, com } = await preparer();
+		const amicale = await com('Amicale');
+		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', 'amicale'], ['icone', 'ballon']])).toMatchObject({ succes: expect.any(String) });
+		expect((await charger(load, locaux(base, referent), { id: String(amicale.id) })).comite.icone).toBe('ballon');
+		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', 'amicale'], ['icone', 'licorne']])).toMatchObject({ status: 400, data: { erreurs: { icone: expect.any(String) } } });
+		expect((await com('Amicale')).icone).toBe('ballon');
+	});
+
 	it('dissout seulement avec confirmation ; jamais le comité du centre', async () => {
 		const { base, referent, com } = await preparer();
 		const amicale = await com('Amicale');

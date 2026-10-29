@@ -1,0 +1,1 @@
+ALTER TABLE `comite` ADD `icone` text;

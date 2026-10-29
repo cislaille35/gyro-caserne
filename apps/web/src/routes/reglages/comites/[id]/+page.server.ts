@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { dissoudreComite, listerComites, modifierComite } from '@gyro-caserne/socle';
+import { dissoudreComite, iconeDuComite, listerComites, modifierComite, type NomIcone } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { accesReglages, echec, manque, numero, texte, type Reponse } from '#lib/server/formulaire-reglages.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -23,10 +23,12 @@ export const actions: Actions = {
 	modifier: async ({ locals, params, request }) => {
 		const { acteur, base, aujourdhui, comite } = await lireComite(locals, params.id);
 		const formulaire = await request.formData();
-		const valeurs = { nom: texte(formulaire, 'nom') ?? '', theme: texte(formulaire, 'theme') ?? '' };
+		const valeurs = { nom: texte(formulaire, 'nom') ?? '', theme: texte(formulaire, 'theme') ?? '', icone: texte(formulaire, 'icone') ?? '' };
 		const cible = 'comite';
+		// Tant que l'agent ne change pas l'icône affichée, on n'en enregistre pas : elle suit le thème.
+		const choisie = valeurs.icone === '' || (comite.icone === null && valeurs.icone === iconeDuComite(comite)) ? undefined : (valeurs.icone as NomIcone);
 		try {
-			await modifierComite(base, acteur, comite.id, valeurs, aujourdhui);
+			await modifierComite(base, acteur, comite.id, { nom: valeurs.nom, theme: valeurs.theme, icone: choisie }, aujourdhui);
 		} catch (erreur) {
 			return echec(erreur, cible, valeurs);
 		}

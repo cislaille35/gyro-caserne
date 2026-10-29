@@ -115,7 +115,9 @@ export const comite = sqliteTable('comite', {
 	nom: text('nom').notNull(),
 	theme: text('theme').notNull(),
 	// Date ISO de dissolution ; nul tant que le comité existe.
-	dissousLe: text('dissous_le')
+	dissousLe: text('dissous_le'),
+	// Icône du mur du comité ; nulle, elle découle du thème.
+	icone: text('icone')
 });
 
 export const responsabilite = sqliteTable(

@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { iconeDuComite } from '@gyro-caserne/socle';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
+	import ChoixIcone from '../../ChoixIcone.svelte';
 
 	let { data, form } = $props();
 
@@ -12,6 +14,7 @@
 	const ouvert = (cible: string) => (concerne(cible) && !form?.succes ? { open: true } : {});
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
 	const saisie = (champ: 'nom' | 'theme', defaut: string) => (concerne('comite') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
+	const iconeSaisie = $derived((concerne('comite') ? form?.valeurs?.icone : undefined) as ReturnType<typeof iconeDuComite> | undefined);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
 	const SUITE = 'les nominations à venir sont annulées. Les responsabilités qu’il attribuait seront attribuées par le chef de centre.';
@@ -37,7 +40,7 @@
 {/snippet}
 
 <header class="titre">
-	<IconeRole icone="groupe" taille={48} />
+	<IconeRole icone={iconeDuComite(c)} taille={48} />
 	<div>
 		<h1>{c.nom}</h1>
 		<p class="sous-titre">
@@ -59,6 +62,7 @@
 				<Champ id="comite-nom" name="nom" libelle="Nom" requis maxlength={60} valeur={saisie('nom', c.nom)} erreur={erreurs('comite').nom} />
 			{/if}
 			<Champ id="comite-theme" name="theme" libelle="Thème" requis maxlength={60} valeur={saisie('theme', c.theme)} erreur={erreurs('comite').theme} />
+			<ChoixIcone legende="Icône du mur" valeur={iconeSaisie ?? iconeDuComite(c)} erreur={erreurs('comite').icone} />
 			<Bouton type="submit">Enregistrer</Bouton>
 		</form>
 	</section>
