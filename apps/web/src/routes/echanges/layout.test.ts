@@ -34,9 +34,14 @@ const sections = {
 const aujourdhui = { anniversaires: [{ prenom: 'Thomas', nom: 'Aubry' }], evenement: { id: 7, cle: 'centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00' } };
 const contenu = createRawSnippet(() => ({ render: () => '<h1>Vie du centre</h1>' }));
 
+const aVenir = [
+	{ id: 7, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00' },
+	{ id: 9, cle: 'comite:2', nomMur: 'Amicale', titre: 'Repas de Sainte-Barbe', debut: '2026-11-28T12:30' }
+];
+
 function html(data: object = {}, niveau = 'vivant') {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return render(Layout as any, { props: { data: { sections, aujourdhui, ...data }, children: contenu }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
+	return render(Layout as any, { props: { data: { sections, aujourdhui, aVenir, ...data }, children: contenu }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
 }
 const texte = (page: string) => page.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
@@ -164,10 +169,34 @@ describe('liste des murs', () => {
 		etat.page.params = { mur: 'vie' };
 		const page = html();
 		expect(page).not.toMatch(/<h[1-6][^>]*>Échanges/);
-		expect(page.match(/<h[1-6]/g)).toEqual(['<h1']);
-		expect(page).not.toContain('Aujourd’hui au centre');
+		expect(page.match(/<h[1-6]/g)?.[0]).toBe('<h1');
 		expect(page).toMatch(/href="\/echanges\/vie" aria-current="page"/);
 		expect(texte(page)).not.toContain('3 nouveautés');
 		expect(texte(page)).toContain('1 nouveauté');
+	});
+
+	it('sur un mur : la colonne Aujourd’hui après le mur, anniversaires et 3 prochains événements', () => {
+		etat.page.params = { mur: 'vie' };
+		const page = html();
+		const colonne = page.slice(page.indexOf('<aside'));
+		expect(page.indexOf('<aside')).toBeGreaterThan(page.indexOf('<h1'));
+		expect(colonne).toMatch(/<aside[^>]*aria-label="Aujourd’hui"/);
+		expect(texte(colonne)).toContain('Aujourd’hui au centre Thomas Aubry fête son anniversaire Souhaiter à Thomas');
+		expect(texte(colonne)).toContain('À venir');
+		expect(colonne).toContain('href="/echanges/centre/7"');
+		expect(texte(colonne)).toContain('Jeu. 5 nov., 19 h Manœuvre désincarcération');
+		expect(texte(colonne)).toContain('Sam. 28 nov., 12 h 30 Repas de Sainte-Barbe (Amicale)');
+		// L'événement sans réponse est déjà dans « À venir » : pas en double.
+		expect(texte(colonne)).not.toContain('vous n’avez pas répondu');
+	});
+
+	it('sur un mur, rien aujourd’hui ni à venir : pas de colonne', () => {
+		etat.page.params = { mur: 'vie' };
+		expect(html({ aujourdhui: { anniversaires: [], evenement: null }, aVenir: [] })).not.toContain('<aside');
+	});
+
+	it('sur /echanges : pas de colonne Aujourd’hui à part', () => {
+		etat.page.params = {};
+		expect(html()).not.toContain('<aside');
 	});
 });

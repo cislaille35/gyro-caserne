@@ -76,6 +76,33 @@ for (const theme of ['auto', 'sombre']) {
 			});
 		});
 
+		// Le super administrateur voit tous les murs : un de chaque sorte, remplis, au niveau Vivant.
+		for (const mouvement of ['no-preference', 'reduce'] as const) {
+			test.describe(`échanges, niveau vivant, mouvement ${mouvement}`, () => {
+				test.use({ storageState: ETAT_SUPER, reducedMotion: mouvement });
+
+				test('la liste, un mur de chaque sorte et Publier sans violation', async ({ page, context }) => {
+					await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
+					const marque = nouvelleMarque();
+					await page.goto('/echanges');
+					const lien = async (debut: string) => (await page.locator(`a[href^="/echanges/${debut}"]`).first().getAttribute('href'))!;
+					const murs = ['/echanges/centre', '/echanges/vie', await lien('equipe:'), await lien('comite:')];
+					await page.goto('/echanges/vie');
+					await publier(page, { texte: `Sortie ${marque}`, question: 'Quel jour ?', reponses: ['Samedi', 'Dimanche'] });
+					for (const mur of murs.slice(2)) {
+						await page.goto(mur);
+						await publier(page, { texte: `Nouvelle ${marque}` });
+					}
+					for (const chemin of ['/echanges', ...murs, '/echanges/publier']) {
+						await page.goto(chemin);
+						await toutOuvrir(page);
+						await sansViolation(page);
+						if (mouvement === 'reduce') expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+					}
+				});
+			});
+		}
+
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
 			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier']) {
@@ -464,6 +491,34 @@ test.describe('échanges', () => {
 		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
 		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/publier?/publier']));
 		for (const r of envois) expect((await r.allHeaders())['content-length'], r.url()).toMatch(/^[1-9]\d*$/);
+	});
+});
+
+test.describe('échanges à l’ordinateur', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('sur un mur, « À venir » : à droite à 1280 px, au-dessus du mur à 1100 px, absent au téléphone', async ({ browser, page }) => {
+		const aVenir = page.getByRole('heading', { level: 2, name: 'À venir' });
+		const titre = page.getByRole('heading', { level: 1, name: 'Vie du centre' });
+		if (test.info().project.name === 'telephone') {
+			await page.goto('/echanges/vie');
+			await expect(titre).toBeVisible();
+			await expect(aVenir).toBeHidden();
+			return;
+		}
+		// Plus tôt que les événements des autres tests (2099) : il fait partie des 3 prochains.
+		const gestion = await pageSuper(browser);
+		const marque = nouvelleMarque();
+		await gestion.goto('/echanges/centre');
+		await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2098-06-01T18:30', lieu: 'Caserne' });
+		await gestion.context().close();
+
+		await page.goto('/echanges/vie');
+		await expect(page.getByRole('complementary', { name: 'Aujourd’hui' }).getByRole('link', { name: new RegExp(`Manœuvre ${marque}`) })).toBeVisible();
+		expect((await aVenir.boundingBox())!.x).toBeGreaterThan((await titre.boundingBox())!.x + 200);
+		await page.setViewportSize({ width: 1100, height: 900 });
+		expect((await aVenir.boundingBox())!.y).toBeLessThan((await titre.boundingBox())!.y);
+		await sansViolation(page);
 	});
 });
 
