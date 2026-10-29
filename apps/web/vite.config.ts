@@ -4,6 +4,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { avecEntreePlanifiee } from './src/entree-du-worker.ts';
 
 // Centre pour lequel l'appli est construite : CENTRE=<id> lit centres/<id>/centre.ts (centre fictif par défaut)
 const centre = process.env.CENTRE || 'exemple';
@@ -20,10 +21,15 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 			// La config Cloudflare (nom de l'appli, base, stockage) est celle du centre
 			// La base locale de développement est rangée avec le centre, comme pour `pnpm base-locale`
-			adapter: adapter({
-				config: fileURLToPath(new URL(`../../centres/${centre}/wrangler.jsonc`, import.meta.url)),
-				platformProxy: { persist: { path: fileURLToPath(new URL(`../../centres/${centre}/.wrangler/state/v3`, import.meta.url)) } }
-			}),
+			// Le worker reçoit aussi un gestionnaire planifié : l'effacement des vieux messages (src/entree-du-worker.ts)
+			adapter: avecEntreePlanifiee(
+				adapter({
+					config: fileURLToPath(new URL(`../../centres/${centre}/wrangler.jsonc`, import.meta.url)),
+					platformProxy: { persist: { path: fileURLToPath(new URL(`../../centres/${centre}/.wrangler/state/v3`, import.meta.url)) } }
+				}),
+				fichierCentre,
+				fileURLToPath(new URL('src/planifie.ts', import.meta.url))
+			),
 			// En-tête Content-Security-Policy : seuls les scripts de l'appli peuvent s'exécuter
 			csp: {
 				mode: 'auto',

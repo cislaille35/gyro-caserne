@@ -1,14 +1,14 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
-import { ajouterMembres, annuaire, conversationAvec, creerGroupe, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, quitterGroupe, reagir, renommerGroupe, retirerMembre, supprimerMessage } from '../src/messagerie.ts';
+import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
 import { modifierMonProfil } from '../src/actions/personnes.ts';
 import { REACTIONS } from '../src/listes.ts';
-import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, photoMessage as photoDeMessage, profil, profilDroit, reactionMessage, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, photoMessage as photoDeMessage, profil, profilDroit, reactionMessage, responsabilite, responsabiliteDroit, signalementMessage } from '../src/schema.ts';
 import { photo as octetsPhoto } from '../src/schema-photos.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -1105,5 +1105,272 @@ describe('groupe effacé et départ', () => {
 		expect(await base.select().from(reactionMessage)).toEqual([]);
 		expect(await base.select().from(photoDeMessage)).toHaveLength(1);
 		expect((await base.photos.select().from(octetsPhoto)).map((o) => o.type)).toEqual(['image/webp']);
+	});
+});
+
+describe('suiteConversation', () => {
+	it('renvoie les nouveaux et les modifiés depuis le dernier passage, en 3 requêtes au plus ; l’acteur a lu', async () => {
+		const { base, manon, romain } = await jeu();
+		const m1 = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Salut' }, minute(0));
+		const id = m1.conversation;
+		const vue = await lireConversation(base, acteur(romain), id, {}, minute(1));
+		// Le repère part 10 secondes avant : une écriture en cours au même instant n'est pas perdue.
+		expect(vue.majLe).toBe('2026-10-29T10:00:50');
+		await modifierMessage(base, acteur(manon), m1.message, 'Salut Romain', minute(2));
+		const m2 = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Tu es là ?' }, minute(3));
+		const groupe = await creerGroupe(base, acteur(manon), { nom: 'Garde', membres: [romain] }, minute(3));
+		await envoyer(base, base.photos, acteur(manon), { conversation: groupe }, { texte: 'Ailleurs' }, minute(3));
+
+		base.parametresMax = 0;
+		const avant = base.requetes;
+		const suite = await suiteConversation(base, acteur(romain), id, { dernierId: m1.message, majLe: vue.majLe }, minute(4));
+		expect(base.requetes - avant).toBeLessThanOrEqual(3);
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
+		expect(suite.nouveaux.map((m) => [m.id, m.texte, m.moi])).toEqual([[m2.message, 'Tu es là ?', false]]);
+		expect(suite.modifies.map((m) => [m.id, m.texte, m.modifie])).toEqual([[m1.message, 'Salut Romain', true]]);
+		expect(suite.majLe).toBe('2026-10-29T10:03:50');
+		// Lu jusqu'au dernier : seul le message du groupe reste à lire.
+		expect(suite.nonLusTotal).toBe(1);
+		const [lu] = await base
+			.select()
+			.from(membreConversation)
+			.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, romain)));
+		expect(lu!.luJusquA).toBe(m2.message);
+
+		// Rien de neuf : rien ne revient, rien n'est écrit, une requête.
+		const avantVide = base.requetes;
+		const vide = await suiteConversation(base, acteur(romain), id, { dernierId: m2.message, majLe: suite.majLe }, minute(5));
+		expect(base.requetes - avantVide).toBe(1);
+		expect(vide).toMatchObject({ nouveaux: [], modifies: [], nonLusTotal: 1 });
+
+		// Supprimé pendant que Romain lit (vigilance 3).
+		await supprimerMessage(base, base.photos, acteur(manon), m2.message, minute(6));
+		const apres = await suiteConversation(base, acteur(romain), id, { dernierId: m2.message, majLe: vide.majLe }, minute(7));
+		expect(apres.modifies).toEqual([expect.objectContaining({ id: m2.message, texte: '', supprime: 'auteur' })]);
+	});
+
+	it('la coche passe à « lu » chez l’auteur au passage suivant, que l’autre ouvre la conversation ou réponde', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Salut' }, minute(0));
+		const id = m.conversation;
+		const vue = await lireConversation(base, acteur(manon), id, {}, minute(1));
+		expect(vue.messages[0]!.coche).toBe('envoye');
+		await lireConversation(base, acteur(romain), id, {}, minute(2));
+		const suite = await suiteConversation(base, acteur(manon), id, { dernierId: m.message, majLe: vue.majLe }, minute(3));
+		expect(suite.modifies.map((x) => [x.id, x.coche])).toEqual([[m.message, 'lu']]);
+
+		const m2 = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Tu viens ?' }, minute(4));
+		const reponse = await envoyer(base, base.photos, acteur(romain), { conversation: id }, { texte: 'Oui' }, minute(5));
+		const apres = await suiteConversation(base, acteur(manon), id, { dernierId: m2.message, majLe: suite.majLe }, minute(6));
+		expect(apres.nouveaux.map((x) => x.id)).toEqual([reponse.message]);
+		expect(apres.modifies.map((x) => [x.id, x.coche])).toEqual([[m2.message, 'lu']]);
+	});
+
+	it('plus de 40 nouveaux : les 40 plus anciens, puis la suite au passage suivant', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Premier' }, minute(0));
+		const vue = await lireConversation(base, acteur(romain), m.conversation, {}, minute(1));
+		await remplir(base, m.conversation, manon, 50);
+		const suite = await suiteConversation(base, acteur(romain), m.conversation, { dernierId: m.message, majLe: vue.majLe }, minute(2));
+		expect(suite.nouveaux.map((x) => x.texte)).toEqual(Array.from({ length: 40 }, (_, i) => `Message ${i + 1}`));
+		expect(suite.nonLusTotal).toBe(10);
+		const fin = await suiteConversation(base, acteur(romain), m.conversation, { dernierId: suite.nouveaux.at(-1)!.id, majLe: suite.majLe }, minute(3));
+		expect(fin.nouveaux.map((x) => x.texte)).toEqual(Array.from({ length: 10 }, (_, i) => `Message ${i + 41}`));
+		expect(fin.nonLusTotal).toBe(0);
+	});
+
+	it('refuse un membre retiré, un non-membre, le super administrateur et un repère invalide', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(0));
+		const vue = await lireConversation(base, acteur(manon), id, {}, minute(1));
+		const depuis = { dernierId: vue.messages.at(-1)!.id, majLe: vue.majLe };
+		await suiteConversation(base, acteur(manon), id, depuis, minute(2));
+		await retirerMembre(base, acteur(romain), id, manon, minute(3));
+		for (const a of [acteur(manon), acteur(chef), superAdmin]) await expect(suiteConversation(base, a, id, depuis, minute(4))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(suiteConversation(base, acteur(romain), id, { dernierId: -1, majLe: vue.majLe }, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(suiteConversation(base, acteur(romain), id, { dernierId: 1, majLe: 'hier' }, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+});
+
+describe('signalements', () => {
+	it('signaler : un membre, une fois, ni son propre message, ni un message système ou supprimé ; journal sans texte ; en 2 requêtes', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Texte grave', photos: [jpeg()] }, minute(0));
+		const supprime = await envoyer(base, base.photos, acteur(manon), { conversation: m.conversation }, { texte: 'Oups' }, minute(0));
+		await supprimerMessage(base, base.photos, acteur(manon), supprime.message, minute(0));
+		await expect(signaler(base, acteur(manon), m.message, minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(signaler(base, acteur(chef), m.message, minute(1))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(signaler(base, acteur(romain), supprime.message, minute(1))).rejects.toBeInstanceOf(DonneeInvalide);
+		const avant = base.requetes;
+		await signaler(base, acteur(romain), m.message, minute(1));
+		expect(base.requetes - avant).toBe(2);
+		await expect(signaler(base, acteur(romain), m.message, minute(2))).rejects.toBeInstanceOf(DonneeInvalide);
+		const groupe = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(2));
+		const [systeme] = await base.select().from(message).where(eq(message.conversationId, groupe));
+		await expect(signaler(base, acteur(manon), systeme!.id, minute(3))).rejects.toBeInstanceOf(DonneeInvalide);
+
+		const [photoId] = (await base.select().from(photoDeMessage)).map((p) => p.photoId);
+		expect(await base.select().from(signalementMessage)).toEqual([
+			expect.objectContaining({ messageId: m.message, par: romain, le: minute(1), auteur: manon, envoyeLe: minute(0), texteCopie: 'Texte grave', photosCopie: JSON.stringify([photoId]), classeLe: null })
+		]);
+		const lignes = await base.select().from(journal).where(eq(journal.action, 'signaler_message'));
+		expect(lignes).toEqual([expect.objectContaining({ acteur: `personne:${romain}`, cibleType: 'message', cibleId: m.message })]);
+		expect(JSON.stringify(await base.select().from(journal))).not.toContain('grave');
+	});
+
+	it('la copie survit à la suppression par l’auteur, photos comprises ; seul le modérateur la voit', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Texte grave', photos: [jpeg()] }, minute(0));
+		await signaler(base, acteur(romain), m.message, minute(1));
+		await supprimerMessage(base, base.photos, acteur(manon), m.message, minute(2));
+		expect(await base.photos.select().from(octetsPhoto)).toHaveLength(1);
+		const [ligne] = await base.select().from(signalementMessage);
+		expect(await signalements(base, acteur(chef), aujourdhui)).toEqual([
+			{
+				id: ligne!.id,
+				le: minute(1),
+				par: { id: romain, prenom: 'Romain', nom: 'Bernard' },
+				auteur: { id: manon, prenom: 'Manon', nom: 'Durand' },
+				envoye_le: minute(0),
+				texte: 'Texte grave',
+				photos: JSON.parse(ligne!.photosCopie),
+				retirable: false
+			}
+		]);
+		for (const a of [manon, romain]) await expect(signalements(base, acteur(a), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('un modérateur non membre n’obtient que le message signalé', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const bonjour = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Bonjour Romain' }, minute(0));
+		const id = bonjour.conversation;
+		const m = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Texte grave', photos: [jpeg()] }, minute(1));
+		await envoyer(base, base.photos, acteur(romain), { conversation: id }, { texte: 'Réponse privée' }, minute(2));
+		await signaler(base, acteur(romain), m.message, minute(3));
+		const tout = JSON.stringify(await signalements(base, acteur(chef), aujourdhui));
+		expect(tout).toContain('Texte grave');
+		expect(tout).toContain('"retirable":true');
+		expect(tout).not.toContain('Bonjour');
+		expect(tout).not.toContain('privée');
+		await expect(lireConversation(base, acteur(chef), id, {}, minute(4))).rejects.toBeInstanceOf(RefusDroit);
+		await expect(suiteConversation(base, acteur(chef), id, { dernierId: m.message, majLe: minute(0) }, minute(4))).rejects.toBeInstanceOf(RefusDroit);
+		const [p] = await base.select().from(photoDeMessage);
+		await expect(photoMessage(base, base.photos, acteur(chef), p!.id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('retirerParModeration : « retiré par la modération », signalements du message classés, copie et photos effacées ; journal sans texte', async () => {
+		const { base, nouvelle, chef, manon, romain } = await jeu();
+		const claire = await nouvelle('Claire', 'Martin');
+		const id = await creerGroupe(base, acteur(manon), { nom: 'Garde', membres: [romain, claire] }, minute(0));
+		const m = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Texte grave', photos: [jpeg()] }, minute(1));
+		await reagir(base, acteur(romain), m.message, '😮', minute(1));
+		const garde = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Autre', photos: [webp()] }, minute(1));
+		await signaler(base, acteur(romain), m.message, minute(2));
+		await signaler(base, acteur(claire), m.message, minute(2));
+		const [s1, s2] = await signalements(base, acteur(chef), aujourdhui);
+		expect(s2!.par.id).toBe(claire);
+		await expect(retirerParModeration(base, base.photos, acteur(romain), s1!.id, minute(3))).rejects.toBeInstanceOf(RefusDroit);
+
+		await retirerParModeration(base, base.photos, acteur(chef), s1!.id, minute(3));
+		const [ligne] = await base.select().from(message).where(eq(message.id, m.message));
+		expect(ligne).toMatchObject({ texte: '', supprime: 'moderation', majLe: minute(3) });
+		expect(await base.select().from(reactionMessage)).toEqual([]);
+		expect((await base.select().from(photoDeMessage)).map((p) => p.messageId)).toEqual([garde.message]);
+		expect((await base.photos.select().from(octetsPhoto)).map((o) => o.type)).toEqual(['image/webp']);
+		expect((await base.select().from(signalementMessage)).map((s) => [s.classeLe, s.texteCopie, s.photosCopie])).toEqual([
+			[minute(3), '', '[]'],
+			[minute(3), '', '[]']
+		]);
+		expect(await signalements(base, acteur(chef), aujourdhui)).toEqual([]);
+		const vue = await lireConversation(base, acteur(romain), id, {}, minute(4));
+		expect(vue.messages.find((x) => x.id === m.message)).toMatchObject({ texte: '', supprime: 'moderation', photos: [], reactions: [] });
+		const lignes = await base.select().from(journal).where(eq(journal.action, 'retirer_message'));
+		expect(lignes).toEqual([expect.objectContaining({ acteur: `personne:${chef}`, cibleType: 'message', cibleId: m.message })]);
+		expect(JSON.stringify(await base.select().from(journal))).not.toContain('grave');
+		await expect(retirerParModeration(base, base.photos, acteur(chef), s1!.id, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('classerSignalement : copie effacée ; les photos restent tant que le message les montre, sinon elles partent', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const garde = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Gardé', photos: [jpeg()] }, minute(0));
+		const efface = await envoyer(base, base.photos, acteur(manon), { conversation: garde.conversation }, { texte: 'Effacé', photos: [webp()] }, minute(1));
+		await signaler(base, acteur(romain), garde.message, minute(2));
+		await signaler(base, acteur(romain), efface.message, minute(2));
+		await supprimerMessage(base, base.photos, acteur(manon), efface.message, minute(3));
+		expect(await base.photos.select().from(octetsPhoto)).toHaveLength(2);
+		const [s1, s2] = await signalements(base, acteur(chef), aujourdhui);
+		await expect(classerSignalement(base, base.photos, acteur(manon), s1!.id, minute(4))).rejects.toBeInstanceOf(RefusDroit);
+
+		await classerSignalement(base, base.photos, acteur(chef), s1!.id, minute(4));
+		await classerSignalement(base, base.photos, acteur(chef), s2!.id, minute(4));
+		expect((await base.photos.select().from(octetsPhoto)).map((o) => o.type)).toEqual(['image/jpeg']);
+		expect((await base.select().from(signalementMessage)).map((s) => [s.classeLe, s.texteCopie, s.photosCopie])).toEqual([
+			[minute(4), '', '[]'],
+			[minute(4), '', '[]']
+		]);
+		expect((await base.select().from(message).where(eq(message.id, garde.message)))[0]).toMatchObject({ texte: 'Gardé', supprime: null });
+		expect(await signalements(base, acteur(chef), aujourdhui)).toEqual([]);
+		const lignes = await base.select().from(journal).where(eq(journal.action, 'classer_signalement'));
+		expect(lignes.map((l) => [l.acteur, l.cibleType, l.cibleId])).toEqual([
+			[`personne:${chef}`, 'signalement', s1!.id],
+			[`personne:${chef}`, 'signalement', s2!.id]
+		]);
+		const tout = JSON.stringify(await base.select().from(journal));
+		expect(tout).not.toContain('Gardé');
+		expect(tout).not.toContain('Effacé');
+		await expect(classerSignalement(base, base.photos, acteur(chef), s1!.id, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(classerSignalement(base, base.photos, acteur(chef), 9999, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('groupe vidé : le signalement survit, avec sa copie et ses photos, jusqu’au classement', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', membres: [manon] }, minute(0));
+		const m = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Texte grave', photos: [jpeg()] }, minute(1));
+		await signaler(base, acteur(romain), m.message, minute(2));
+		await quitterGroupe(base, base.photos, acteur(manon), id, minute(3));
+		await quitterGroupe(base, base.photos, acteur(romain), id, minute(4));
+		expect(await base.select().from(conversation)).toEqual([]);
+		expect(await base.photos.select().from(octetsPhoto)).toHaveLength(1);
+		expect((await base.select().from(signalementMessage))[0]!.messageId).toBeNull();
+		const [s] = await signalements(base, acteur(chef), aujourdhui);
+		expect(s).toMatchObject({ texte: 'Texte grave', retirable: false, photos: [expect.any(Number)] });
+		await expect(retirerParModeration(base, base.photos, acteur(chef), s!.id, minute(5))).rejects.toBeInstanceOf(DonneeInvalide);
+		await classerSignalement(base, base.photos, acteur(chef), s!.id, minute(5));
+		expect(await base.photos.select().from(octetsPhoto)).toEqual([]);
+	});
+});
+
+describe('effacerAnciens', () => {
+	it('efface messages, réactions et photos d’avant la date, sauf les signalements non classés ; la conversation reste', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const vieux = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Vieux', photos: [jpeg()] }, '2026-10-28T23:59');
+		const id = vieux.conversation;
+		await reagir(base, acteur(romain), vieux.message, '👍', '2026-10-29T08:00');
+		const signale = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Vieux signalé', photos: [webp()] }, '2026-10-28T10:00');
+		await signaler(base, acteur(romain), signale.message, '2026-10-28T11:00');
+		// Un vieux signalement classé part aussi.
+		const classe = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Classé' }, '2026-10-01T10:00');
+		await signaler(base, acteur(romain), classe.message, '2026-10-01T11:00');
+		const aClasser = (await signalements(base, acteur(chef), aujourdhui)).find((s) => s.texte === 'Classé')!;
+		await classerSignalement(base, base.photos, acteur(chef), aClasser.id, '2026-10-02T10:00');
+		const recent = await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Récent', photos: [jpeg(12)] }, '2026-10-29T00:00');
+
+		await expect(effacerAnciens(base, base.photos, 'hier')).rejects.toBeInstanceOf(DonneeInvalide);
+		await effacerAnciens(base, base.photos, '2026-10-29');
+		expect((await base.select().from(message)).map((m) => m.texte)).toEqual(['Récent']);
+		expect(await base.select().from(reactionMessage)).toEqual([]);
+		expect((await base.select().from(photoDeMessage)).map((p) => p.messageId)).toEqual([recent.message]);
+		expect((await base.photos.select().from(octetsPhoto)).map((o) => [o.type, o.taille]).sort()).toEqual([
+			['image/jpeg', 12],
+			['image/webp', 16]
+		]);
+		expect((await base.select().from(signalementMessage)).map((s) => s.texteCopie)).toEqual(['Vieux signalé']);
+		expect((await signalements(base, acteur(chef), aujourdhui)).map((s) => s.texte)).toEqual(['Vieux signalé']);
+		expect((await lireConversation(base, acteur(manon), id, {}, maintenant)).messages.map((m) => m.texte)).toEqual(['Récent']);
+
+		// Une conversation vidée reste.
+		await effacerAnciens(base, base.photos, '2026-12-01');
+		expect((await mesConversations(base, acteur(manon), maintenant)).map((c) => c.id)).toEqual([id]);
+		expect((await lireConversation(base, acteur(manon), id, {}, maintenant)).messages).toEqual([]);
 	});
 });

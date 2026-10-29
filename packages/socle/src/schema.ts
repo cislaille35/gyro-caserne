@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { checkDans, DROITS, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
@@ -325,7 +325,8 @@ export const membreConversation = sqliteTable(
 	(t) => [primaryKey({ columns: [t.conversationId, t.personneId] }), check('membre_conversation_animateur', sql`${sql.identifier('animateur')} IN (0, 1)`), index('membre_conversation_personne').on(t.personneId)]
 );
 
-// `auteur` nul : message système (`systeme`). `maj_le` : dernière création ou modification, pour le rafraîchissement.
+// `auteur` nul : message système (`systeme`). Pour le rafraîchissement : `maj_le`, dernière création ou modification ;
+// `lu_le`, dernière lecture par un autre membre (la coche de l'auteur peut changer).
 export const message = sqliteTable(
 	'message',
 	{
@@ -340,7 +341,8 @@ export const message = sqliteTable(
 		creeLe: text('cree_le').notNull(),
 		majLe: text('maj_le').notNull(),
 		modifie: integer('modifie').notNull().default(0),
-		supprime: text('supprime', { enum: SUPPRESSIONS_MESSAGE })
+		supprime: text('supprime', { enum: SUPPRESSIONS_MESSAGE }),
+		luLe: text('lu_le')
 	},
 	(t) => [
 		check('message_modifie', sql`${sql.identifier('modifie')} IN (0, 1)`),
@@ -370,6 +372,28 @@ export const photoMessage = sqliteTable(
 		photoId: integer('photo_id').notNull()
 	},
 	(t) => [check('photo_message_type', checkDans('type', TYPES_PHOTO)), index('photo_message_message').on(t.messageId)]
+);
+
+// Un message signalé aux modérateurs. La copie (texte, identifiants des photos dans PHOTOS) survit au message et protège
+// ses photos jusqu'au classement, qui l'efface. `message_id` devient nul quand le message est effacé.
+export const signalementMessage = sqliteTable(
+	'signalement_message',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		messageId: integer('message_id').references(() => message.id, { onDelete: 'set null' }),
+		par: integer('par')
+			.notNull()
+			.references(() => personne.id),
+		le: text('le').notNull(),
+		auteur: integer('auteur')
+			.notNull()
+			.references(() => personne.id),
+		envoyeLe: text('envoye_le').notNull(),
+		texteCopie: text('texte_copie').notNull(),
+		photosCopie: text('photos_copie').notNull().default('[]'),
+		classeLe: text('classe_le')
+	},
+	(t) => [uniqueIndex('signalement_message_par').on(t.messageId, t.par), index('signalement_message_classe').on(t.classeLe)]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

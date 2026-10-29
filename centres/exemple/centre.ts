@@ -18,4 +18,5 @@ export default defineCentre({
 		// Le lundi 5 janvier 2026, c'est l'équipe 1
 		reference: { date: '2026-01-05', equipe: 1 }
 	}
+	// Messages gardés 12 mois, puis effacés ; pour une autre durée : conservationMessagesMois: 24
 });

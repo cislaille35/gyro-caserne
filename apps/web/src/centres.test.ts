@@ -18,6 +18,10 @@ describe('centres du dépôt', () => {
 		expect(Object.keys(fichiers).length).toBeGreaterThan(0);
 	});
 
+	it('centres/exemple efface les vieux messages chaque nuit, à 3 h 30 (UTC)', () => {
+		expect(configCloudflare('../../../centres/exemple/centre.ts').config.triggers.crons).toEqual(['30 3 * * *']);
+	});
+
 	for (const [chemin, charger] of Object.entries(fichiers)) {
 		const dossier = chemin.split('/').at(-2);
 
@@ -40,6 +44,7 @@ describe('centres du dépôt', () => {
 			const { config: modele } = configCloudflare('../../../centres/exemple/centre.ts');
 			expect(config.compatibility_date, 'compatibility_date').toBe(modele.compatibility_date);
 			expect(config.compatibility_flags, 'compatibility_flags').toEqual(modele.compatibility_flags);
+			expect(config.triggers, 'triggers').toEqual(modele.triggers);
 			const base = config.d1_databases.find((d: { binding: string }) => d.binding === 'BASE');
 			const baseModele = modele.d1_databases.find((d: { binding: string }) => d.binding === 'BASE');
 			expect(base, 'base D1 « BASE »').toBeDefined();

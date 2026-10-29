@@ -1,16 +1,17 @@
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, max, ne, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, max, ne, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import type { Base, BasePhotos } from './base.ts';
 import { requeteTenues } from './casquettes.ts';
+import { nomActeur } from './actions/personnes.ts';
 import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from './commun.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
-import type { Acteur } from './droits.ts';
+import { aLeDroit, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { NOMS_ICONES } from './icones.ts';
 import { ligneJournal } from './journal.ts';
 import { REACTIONS, STATUTS_AVEC_ACCES, type Reaction, type TypeConversation } from './listes.ts';
 import { agentsDuJour, lecturesAgents, membresDe } from './murs.ts';
-import { affectationEquipe, conversation, equipe, membreConversation, message, personne, photoMessage as photoDeMessage, reactionMessage } from './schema.ts';
+import { affectationEquipe, conversation, equipe, membreConversation, message, personne, photoMessage as photoDeMessage, reactionMessage, signalementMessage } from './schema.ts';
 
 const PAGE = 40;
 const EXTRAIT = 100;
@@ -47,6 +48,8 @@ export type VueConversation = {
 	premierNonLu: number | null;
 	lectureSeule: boolean;
 	plusAnciens: boolean;
+	// Repère à rendre à suiteConversation.
+	majLe: string;
 };
 
 // `personne` : l'autre, pour une conversation à deux.
@@ -245,17 +248,14 @@ export async function envoyer(
 		.values({ conversationId: id, auteur: moi, texte: corps, reponseA, creeLe: maintenant, majLe: maintenant })
 		.returning({ id: message.id, conversation: message.conversationId });
 	// Voulu, comme WhatsApp : envoyer marque la conversation comme lue, messages reçus avant compris.
-	const lu = base
-		.update(membreConversation)
-		.set({ luJusquA: sql`(select max(${message.id}) from ${message} where ${message.conversationId} = ${id})` })
-		.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, moi)));
+	const lu = marquerLu(base, id, moi, sql`(select max(${message.id}) from ${message} where ${message.conversationId} = ${id})`, maintenant);
 
 	// Après l'insertion du message : dans le batch, le plus grand id de message est le sien.
 	const references = (ids: number[]) => (ids.length === 0 ? [] : [base.insert(photoDeMessage).values(photos.map((p, ordre) => ({ messageId: dernierMessage, ordre, type: p.type, photoId: ids[ordre]! })))]);
 
 	if (existante)
 		return avecPhotos(basePhotos, photos, maintenant, async (ids) => {
-			const [lignes] = await base.batch([nouveau, base.update(conversation).set({ dernierLe: maintenant }).where(eq(conversation.id, id)), lu, ...references(ids)]);
+			const [lignes] = await base.batch([nouveau, base.update(conversation).set({ dernierLe: maintenant }).where(eq(conversation.id, id)), ...lu, ...references(ids)]);
 			return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
 		});
 	try {
@@ -265,7 +265,7 @@ export async function envoyer(
 				ligneJournal(base, { acteur: `personne:${moi}`, action: 'creer_conversation', cibleType: 'conversation', cibleId: id, details: { type: 'deux' } }, maintenant),
 				base.insert(membreConversation).values([moi, autre!].map((personneId) => ({ conversationId: id, personneId, entreLe: maintenant }))),
 				nouveau,
-				lu,
+				...lu,
 				...references(ids)
 			]);
 			return { conversation: lignes[0]!.conversation, message: lignes[0]!.id };
@@ -283,24 +283,25 @@ export async function envoyer(
 
 const extrait = sql<string>`case when ${message.supprime} is null then substr(${message.texte}, 1, ${EXTRAIT}) else '' end`;
 
-// Une page de 40 messages au plus (les plus récents, ou ceux d'avant `page.avant`). Sur la dernière page, l'acteur a lu
-// jusqu'au dernier message. Deux requêtes au plus, réactions et photos comprises. Seuls les membres lisent, chef de centre compris.
-export async function lireConversation(base: Base, acteur: Acteur, id: number, page: { avant?: number }, maintenant: string): Promise<VueConversation> {
-	const aujourdhui = exigerDateHeure(maintenant, 'Date');
-	const moi = idDe(acteur);
-	exigerId(id, 'Conversation');
-	const avant = page.avant === undefined ? null : exigerId(page.avant, 'Page');
-	const dansLaPage = and(eq(message.conversationId, id), avant === null ? undefined : lt(message.id, avant));
-	const idsDeLaPage = base.select({ id: message.id }).from(message).where(dansLaPage).orderBy(desc(message.id)).limit(PAGE + 1);
-	const luParMoi = sql`(select ${membreConversation.luJusquA} from ${membreConversation} where ${membreConversation.conversationId} = ${id} and ${membreConversation.personneId} = ${moi})`;
+// Repère du rafraîchissement : 10 secondes avant maintenant, pour ne pas perdre une écriture finie juste après la lecture
+// (un message déjà vu peut alors revenir une fois de plus, sans gêne).
+function repere(maintenant: string): string {
+	return new Date(Date.parse(`${maintenant.length === 16 ? `${maintenant}:00` : maintenant}Z`) - 10_000).toISOString().slice(0, 19);
+}
 
-	const [acces, place, membres, messages, cites, auteurs, affectations, nonLu, reactions, photos] = await base.batch([
-		lireAcces(base, moi, aujourdhui),
-		base
-			.select({ id: conversation.id, type: conversation.type, nom: conversation.nom, icone: conversation.icone })
-			.from(conversation)
-			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, conversation.id), eq(membreConversation.personneId, moi)))
-			.where(eq(conversation.id, id)),
+// La conversation, si l'acteur en est membre.
+const placeDe = (base: Base, id: number, moi: number) =>
+	base
+		.select({ id: conversation.id, type: conversation.type, nom: conversation.nom, icone: conversation.icone })
+		.from(conversation)
+		.innerJoin(membreConversation, and(eq(membreConversation.conversationId, conversation.id), eq(membreConversation.personneId, moi)))
+		.where(eq(conversation.id, id));
+
+// Lectures, à placer dans un batch, pour montrer les messages retenus par `choisis` (une condition sur `message`) :
+// membres, messages (du plus récent au plus ancien), messages cités, personnes, équipes, réactions et photos.
+function lecturesDuFil(base: Base, id: number, moi: number, aujourdhui: string, choisis: SQL) {
+	const idsChoisis = base.select({ id: message.id }).from(message).where(choisis);
+	return [
 		base
 			.select({
 				id: membreConversation.personneId,
@@ -312,16 +313,11 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 			.from(membreConversation)
 			.innerJoin(personne, eq(personne.id, membreConversation.personneId))
 			.where(eq(membreConversation.conversationId, id)),
-		base
-			.select()
-			.from(message)
-			.where(dansLaPage)
-			.orderBy(desc(message.id))
-			.limit(PAGE + 1),
+		base.select().from(message).where(choisis).orderBy(desc(message.id)),
 		base
 			.select({ id: message.id, auteur: message.auteur, extrait })
 			.from(message)
-			.where(and(eq(message.conversationId, id), inArray(message.id, base.select({ id: message.reponseA }).from(message).where(dansLaPage).orderBy(desc(message.id)).limit(PAGE + 1)))),
+			.where(and(eq(message.conversationId, id), inArray(message.id, base.select({ id: message.reponseA }).from(message).where(choisis)))),
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
 			.from(personne)
@@ -334,20 +330,19 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 			),
 		affectationsDuJour(base, aujourdhui),
 		base
-			.select({ premier: sql<number | null>`min(${message.id})`.as('premier') })
-			.from(message)
-			.where(and(eq(message.conversationId, id), gt(message.id, luParMoi), ne(message.auteur, moi), isNull(message.supprime))),
-		base
 			.select({ messageId: reactionMessage.messageId, emoji: reactionMessage.emoji, nombre: count(), deMoi: sql<number>`max(${reactionMessage.personneId} = ${moi})`.as('de_moi') })
 			.from(reactionMessage)
-			.where(inArray(reactionMessage.messageId, idsDeLaPage))
+			.where(inArray(reactionMessage.messageId, idsChoisis))
 			.groupBy(reactionMessage.messageId, reactionMessage.emoji),
-		base.select({ id: photoDeMessage.id, messageId: photoDeMessage.messageId }).from(photoDeMessage).where(inArray(photoDeMessage.messageId, idsDeLaPage)).orderBy(photoDeMessage.messageId, photoDeMessage.ordre)
-	]);
-	if (acces.length === 0) throw refus();
-	const conv = place[0];
-	if (!conv) throw refus('Conversation non accessible');
+		base.select({ id: photoDeMessage.id, messageId: photoDeMessage.messageId }).from(photoDeMessage).where(inArray(photoDeMessage.messageId, idsChoisis)).orderBy(photoDeMessage.messageId, photoDeMessage.ordre)
+	] as const;
+}
 
+type Resultats<T extends readonly unknown[]> = { -readonly [K in keyof T]: Awaited<T[K]> };
+type LuDuFil = Resultats<ReturnType<typeof lecturesDuFil>>;
+
+// Ce que lecturesDuFil a lu, mis en forme pour l'acteur.
+function filDe(moi: number, [membres, messages, cites, auteurs, affectations, reactions, photos]: LuDuFil) {
 	const equipes = equipesDe(affectations);
 	const visages = new Map(auteurs.map((a) => [a.id, { id: a.id, prenom: a.prenom, nom: a.nom, couleur: equipes.get(a.id)?.couleur ?? null }]));
 	const visage = (pid: number | null) => (pid === null ? null : (visages.get(pid) ?? null));
@@ -367,9 +362,7 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 			.filter((r) => r.messageId === idMessage)
 			.sort((a, b) => REACTIONS.indexOf(a.emoji) - REACTIONS.indexOf(b.emoji))
 			.map((r) => ({ emoji: r.emoji, nombre: r.nombre, deMoi: r.deMoi === 1 }));
-
-	const vus = messages.slice(0, PAGE).reverse();
-	const vues: VueMessage[] = vus.map((m) => ({
+	const vue = (m: (typeof messages)[number]): VueMessage => ({
 		id: m.id,
 		auteur: visage(m.auteur),
 		texte: m.supprime === null ? m.texte : '',
@@ -382,28 +375,118 @@ export async function lireConversation(base: Base, acteur: Acteur, id: number, p
 		reactions: m.supprime === null ? reactionsDe(m.id) : [],
 		moi: m.auteur === moi,
 		coche: coche(m)
-	}));
+	});
+	return { membres, messages, autres, visage, vue, monLu: membres.find((m) => m.id === moi)?.luJusquA ?? 0 };
+}
 
-	const dernier = vus.at(-1)?.id;
-	const monLu = membres.find((m) => m.id === moi)?.luJusquA ?? 0;
-	if (avant === null && dernier !== undefined && dernier > monLu)
-		await base
+// L'acteur a lu jusqu'au message `jusqua`. Chez les auteurs des messages qu'il découvre, la coche peut changer : `lu_le` avance,
+// sauf s'il a coupé ses coches. À placer dans un batch.
+function marquerLu(base: Base, id: number | SQL, moi: number, jusqua: number | SQL, maintenant: string): [Ecriture, Ecriture] {
+	const monLu = sql`(select ${membreConversation.luJusquA} from ${membreConversation} where ${membreConversation.conversationId} = ${id} and ${membreConversation.personneId} = ${moi})`;
+	return [
+		base
+			.update(message)
+			.set({ luLe: maintenant })
+			.where(
+				and(
+					eq(message.conversationId, id),
+					isNotNull(message.auteur),
+					ne(message.auteur, moi),
+					gt(message.id, monLu),
+					lte(message.id, jusqua),
+					sql`exists (select 1 from ${personne} where ${personne.id} = ${moi} and ${personne.cochesLecture} = 1)`
+				)
+			),
+		base
 			.update(membreConversation)
-			.set({ luJusquA: sql`max(${membreConversation.luJusquA}, ${dernier})` })
-			.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, moi)));
+			.set({ luJusquA: sql`max(${membreConversation.luJusquA}, ${jusqua})` })
+			.where(and(eq(membreConversation.conversationId, id), eq(membreConversation.personneId, moi)))
+	];
+}
 
-	const nomDeux = autres[0] ? `${visages.get(autres[0].id)?.prenom ?? ''} ${visages.get(autres[0].id)?.nom ?? ''}`.trim() : '';
+// Une page de 40 messages au plus (les plus récents, ou ceux d'avant `page.avant`). Sur la dernière page, l'acteur a lu
+// jusqu'au dernier message. Deux requêtes au plus, réactions et photos comprises. Seuls les membres lisent, chef de centre compris.
+export async function lireConversation(base: Base, acteur: Acteur, id: number, page: { avant?: number }, maintenant: string): Promise<VueConversation> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const moi = idDe(acteur);
+	exigerId(id, 'Conversation');
+	const avant = page.avant === undefined ? null : exigerId(page.avant, 'Page');
+	const dansLaPage = and(eq(message.conversationId, id), avant === null ? undefined : lt(message.id, avant));
+	const idsDeLaPage = base.select({ id: message.id }).from(message).where(dansLaPage).orderBy(desc(message.id)).limit(PAGE + 1);
+	const luParMoi = sql`(select ${membreConversation.luJusquA} from ${membreConversation} where ${membreConversation.conversationId} = ${id} and ${membreConversation.personneId} = ${moi})`;
+
+	const [acces, place, nonLu, ...lus] = await base.batch([
+		lireAcces(base, moi, aujourdhui),
+		placeDe(base, id, moi),
+		base
+			.select({ premier: sql<number | null>`min(${message.id})`.as('premier') })
+			.from(message)
+			.where(and(eq(message.conversationId, id), gt(message.id, luParMoi), ne(message.auteur, moi), isNull(message.supprime))),
+		...lecturesDuFil(base, id, moi, aujourdhui, inArray(message.id, idsDeLaPage))
+	]);
+	if (acces.length === 0) throw refus();
+	const conv = place[0];
+	if (!conv) throw refus('Conversation non accessible');
+
+	const fil = filDe(moi, lus);
+	const vues = fil.messages.slice(0, PAGE).reverse().map(fil.vue);
+	const dernier = vues.at(-1)?.id;
+	if (avant === null && dernier !== undefined && dernier > fil.monLu) await base.batch(marquerLu(base, id, moi, dernier, maintenant));
+
+	const autre = fil.visage(fil.autres[0]?.id ?? null);
 	return {
 		id: conv.id,
 		type: conv.type,
-		nom: conv.type === 'deux' ? nomDeux : (conv.nom ?? ''),
+		nom: conv.type === 'deux' ? (autre ? `${autre.prenom} ${autre.nom}` : '') : (conv.nom ?? ''),
 		icone: conv.icone,
-		membres: membres.map((m) => visage(m.id)).filter((v) => v !== null),
+		membres: fil.membres.map((m) => fil.visage(m.id)).filter((v) => v !== null),
 		messages: vues,
 		premierNonLu: nonLu[0]?.premier ?? null,
-		lectureSeule: enLectureSeule(conv.type, autres),
-		plusAnciens: messages.length > PAGE
+		lectureSeule: enLectureSeule(conv.type, fil.autres),
+		plusAnciens: fil.messages.length > PAGE,
+		majLe: repere(maintenant)
 	};
+}
+
+// Rafraîchissement d'une conversation ouverte : les messages arrivés après `depuis.dernierId` (40 au plus, les plus anciens
+// d'abord ; le reste au passage suivant) et ceux d'avant qui ont changé depuis `depuis.majLe` (modifiés, supprimés, réactions,
+// ou coche de l'acteur). L'acteur a lu les nouveaux. Deux requêtes au plus, une s'il n'y a rien de nouveau.
+export async function suiteConversation(
+	base: Base,
+	acteur: Acteur,
+	id: number,
+	depuis: { dernierId: number; majLe: string },
+	maintenant: string
+): Promise<{ nouveaux: VueMessage[]; modifies: VueMessage[]; majLe: string; nonLusTotal: number }> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const moi = idDe(acteur);
+	exigerId(id, 'Conversation');
+	const dernierId = depuis.dernierId;
+	if (!Number.isInteger(dernierId) || dernierId < 0) throw new DonneeInvalide('Repère invalide');
+	exigerDateHeure(depuis.majLe, 'Repère');
+	const nouveauxIds = base
+		.select({ id: message.id })
+		.from(message)
+		.where(and(eq(message.conversationId, id), gt(message.id, dernierId)))
+		.orderBy(message.id)
+		.limit(PAGE);
+	const changes = and(lte(message.id, dernierId), or(gt(message.majLe, depuis.majLe), and(eq(message.auteur, moi), gt(message.luLe, depuis.majLe))));
+	const choisis = and(eq(message.conversationId, id), or(inArray(message.id, nouveauxIds), changes))!;
+
+	const [acces, place, total, ...lus] = await base.batch([lireAcces(base, moi, aujourdhui), placeDe(base, id, moi), totalNonLus(base, moi), ...lecturesDuFil(base, id, moi, aujourdhui, choisis)]);
+	if (acces.length === 0) throw refus();
+	if (!place[0]) throw refus('Conversation non accessible');
+
+	const fil = filDe(moi, lus);
+	const vues = fil.messages.toReversed().map(fil.vue);
+	const nouveaux = vues.filter((m) => m.id > dernierId);
+	let nonLus = total[0]?.n ?? 0;
+	const dernier = nouveaux.at(-1)?.id;
+	if (dernier !== undefined && dernier > fil.monLu) {
+		const [, , recompte] = await base.batch([...marquerLu(base, id, moi, dernier, maintenant), totalNonLus(base, moi)]);
+		nonLus = recompte[0]?.n ?? 0;
+	}
+	return { nouveaux, modifies: vues.filter((m) => m.id <= dernierId), majLe: repere(maintenant), nonLusTotal: nonLus };
 }
 
 // Messages non lus de l'acteur dans ses conversations : ni les siens, ni les messages système ou supprimés.
@@ -474,14 +557,12 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 	});
 }
 
+const totalNonLus = (base: Base, moi: number) => base.select({ n: count() }).from(message).innerJoin(membreConversation, nonLusDe(moi));
+
 // Total des non-lus de l'acteur (pastille d'Échanges), en une requête ; 0 sans messagerie.
 export async function nonLusTotal(base: Base, acteur: Acteur, aujourdhui: string): Promise<number> {
 	if (acteur.type !== 'personne') return 0;
-	const [ligne] = await base
-		.select({ n: count() })
-		.from(message)
-		.innerJoin(membreConversation, nonLusDe(acteur.id))
-		.where(aLaMessagerie(acteur.id, aujourdhui));
+	const [ligne] = await totalNonLus(base, acteur.id).where(aLaMessagerie(acteur.id, aujourdhui));
 	return ligne?.n ?? 0;
 }
 
@@ -491,8 +572,12 @@ const MODIFIABLE_MINUTES = 15;
 
 const plusMinutes = (dateHeure: string, minutes: number) => new Date(new Date(`${dateHeure.slice(0, 16)}:00Z`).getTime() + minutes * 60_000).toISOString().slice(0, 16);
 
+// Les photos copiées par un signalement non classé : elles restent dans PHOTOS jusqu'au classement.
+const photosSignalees = sql`(select j.value from ${signalementMessage}, json_each(${signalementMessage.photosCopie}) j where ${signalementMessage.classeLe} is null)`;
+
 // Contrôles d'un geste sur un message, en une requête : l'acteur est membre de sa conversation (sinon refus, que le message
-// existe ou non). `photos` : ses photos dans PHOTOS ; `maReaction` : celle de l'acteur.
+// existe ou non). `photos` : ses photos dans PHOTOS, dans l'ordre ; `libres` : celles qu'aucun signalement ne garde ;
+// `maReaction` : celle de l'acteur.
 async function lireMessage(base: Base, acteur: Acteur, id: number, maintenant: string) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
@@ -501,7 +586,7 @@ async function lireMessage(base: Base, acteur: Acteur, id: number, maintenant: s
 	const [acces, lignes, autres, photos, reaction] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base
-			.select({ auteur: message.auteur, supprime: message.supprime, creeLe: message.creeLe, type: conversation.type })
+			.select({ auteur: message.auteur, texte: message.texte, supprime: message.supprime, creeLe: message.creeLe, type: conversation.type })
 			.from(message)
 			.innerJoin(conversation, eq(conversation.id, message.conversationId))
 			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, message.conversationId), eq(membreConversation.personneId, moi)))
@@ -510,7 +595,11 @@ async function lireMessage(base: Base, acteur: Acteur, id: number, maintenant: s
 			.select({ acces: sql<number>`${aLaMessagerie(membreConversation.personneId, aujourdhui)}`.as('acces') })
 			.from(membreConversation)
 			.where(and(inArray(membreConversation.conversationId, saConversation), ne(membreConversation.personneId, moi))),
-		base.select({ photoId: photoDeMessage.photoId }).from(photoDeMessage).where(eq(photoDeMessage.messageId, id)),
+		base
+			.select({ photoId: photoDeMessage.photoId, signalee: sql<number>`${photoDeMessage.photoId} in ${photosSignalees}`.as('signalee') })
+			.from(photoDeMessage)
+			.where(eq(photoDeMessage.messageId, id))
+			.orderBy(photoDeMessage.ordre),
 		base
 			.select({ emoji: reactionMessage.emoji })
 			.from(reactionMessage)
@@ -519,7 +608,7 @@ async function lireMessage(base: Base, acteur: Acteur, id: number, maintenant: s
 	if (acces.length === 0) throw refus();
 	const m = lignes[0];
 	if (!m) throw refus('Conversation non accessible');
-	return { moi, ...m, lectureSeule: enLectureSeule(m.type, autres), photos: photos.map((p) => p.photoId), maReaction: reaction[0]?.emoji ?? null };
+	return { moi, ...m, lectureSeule: enLectureSeule(m.type, autres), photos: photos.map((p) => p.photoId), libres: photos.filter((p) => !p.signalee).map((p) => p.photoId), maReaction: reaction[0]?.emoji ?? null };
 }
 
 const reserveALAuteur = () => refus('Réservé à l’auteur du message');
@@ -554,7 +643,8 @@ export async function modifierMessage(base: Base, acteur: Acteur, id: number, no
 	await base.update(message).set({ texte: corps, modifie: 1, majLe: maintenant }).where(eq(message.id, id));
 }
 
-// Par l'auteur : « Message supprimé » reste à sa place, sans texte, photos ni réactions. Les octets des photos sont effacés ensuite.
+// Par l'auteur : « Message supprimé » reste à sa place, sans texte, photos ni réactions. Les octets des photos sont effacés
+// ensuite, sauf ceux qu'un signalement garde.
 export async function supprimerMessage(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
 	const m = await lireMessage(base, acteur, id, maintenant);
 	if (m.auteur !== m.moi) throw reserveALAuteur();
@@ -564,7 +654,7 @@ export async function supprimerMessage(base: Base, basePhotos: BasePhotos, acteu
 		base.delete(photoDeMessage).where(eq(photoDeMessage.messageId, id)),
 		base.update(message).set({ texte: '', supprime: 'auteur', majLe: maintenant }).where(eq(message.id, id))
 	]);
-	await effacerPhotos(basePhotos, m.photos);
+	await effacerPhotos(basePhotos, m.libres);
 }
 
 // Une photo de message, aux membres de sa conversation seulement : l'accès se vérifie dans la base principale (une requête),
@@ -646,13 +736,16 @@ function sortie(base: Base, id: number, personneId: number, membres: MembreGroup
 	];
 }
 
-// Les photos des groupes retenus qui n'ont plus qu'un membre : si celui-ci s'en va, elles partent avec le groupe.
+// Les photos des groupes retenus qui n'ont plus qu'un membre : si celui-ci s'en va, elles partent avec le groupe, sauf celles
+// qu'un signalement garde.
 const photosDesDerniers = (base: Base, groupes: SQL | undefined) =>
 	base
 		.select({ photoId: photoDeMessage.photoId })
 		.from(photoDeMessage)
 		.innerJoin(message, eq(message.id, photoDeMessage.messageId))
-		.where(and(groupes, sql`(select count(*) from ${membreConversation} where ${membreConversation.conversationId} = ${message.conversationId}) = 1`));
+		.where(
+			and(groupes, sql`(select count(*) from ${membreConversation} where ${membreConversation.conversationId} = ${message.conversationId}) = 1`, notInArray(photoDeMessage.photoId, photosSignalees))
+		);
 
 const executer = (base: Base, ecritures: Ecriture[]) => base.batch(ecritures as [Ecriture, ...Ecriture[]]);
 
@@ -862,4 +955,156 @@ export async function membresPourGroupe(base: Base, acteur: Acteur, source: { eq
 	return membresDe(agentsDuJour([agents, affectations, tenues], aujourdhui), cle)
 		.map((a) => a.id)
 		.filter((pid) => pid !== moi && ouverts.has(pid));
+}
+
+// Signalements
+
+const MODERATION = { type: 'centre' } as const;
+
+async function exigerModeration(base: Base, acteur: Acteur, aujourdhui: string): Promise<void> {
+	if (!(await aLeDroit(base, acteur, 'MODERER_MESSAGERIE', MODERATION, aujourdhui))) throw new RefusDroit('MODERER_MESSAGERIE', MODERATION);
+}
+
+// Un membre signale le message d'un autre, une fois. Le signalement en garde une copie (texte et photos), au cas où l'auteur
+// le supprime. Deux requêtes. Le texte n'est jamais écrit au journal.
+export async function signaler(base: Base, acteur: Acteur, idMessage: number, maintenant: string): Promise<void> {
+	const m = await lireMessage(base, acteur, idMessage, maintenant);
+	if (m.auteur === null || m.supprime !== null) throw new DonneeInvalide('Ce message ne peut pas être signalé');
+	if (m.auteur === m.moi) throw new DonneeInvalide('Vous ne pouvez pas signaler votre propre message');
+	try {
+		await base.batch([
+			base.insert(signalementMessage).values({ messageId: idMessage, par: m.moi, le: maintenant, auteur: m.auteur, envoyeLe: m.creeLe, texteCopie: m.texte, photosCopie: JSON.stringify(m.photos) }),
+			ligneJournal(base, { acteur: `personne:${m.moi}`, action: 'signaler_message', cibleType: 'message', cibleId: idMessage }, maintenant)
+		]);
+	} catch (erreur) {
+		for (let e: unknown = erreur; e instanceof Error; e = e.cause) if (/UNIQUE constraint failed: signalement_message/.test(e.message)) throw new DonneeInvalide('Message déjà signalé');
+		throw erreur;
+	}
+}
+
+type Personne = { id: number; prenom: string; nom: string };
+
+// `photos` : identifiants dans PHOTOS. `retirable` : le message est encore là, non supprimé.
+export type Signalement = { id: number; le: string; par: Personne; auteur: Personne; envoye_le: string; texte: string; photos: number[]; retirable: boolean };
+
+// Les signalements non classés, du plus ancien au plus récent, pour qui a MODERER_MESSAGERIE : le message signalé seul,
+// jamais le reste de la conversation.
+export async function signalements(base: Base, acteur: Acteur, aujourdhui: string): Promise<Signalement[]> {
+	exigerDate(aujourdhui);
+	await exigerModeration(base, acteur, aujourdhui);
+	const enCours = isNull(signalementMessage.classeLe);
+	const [lignes, personnes] = await base.batch([
+		base
+			.select({
+				id: signalementMessage.id,
+				le: signalementMessage.le,
+				par: signalementMessage.par,
+				auteur: signalementMessage.auteur,
+				envoyeLe: signalementMessage.envoyeLe,
+				texte: signalementMessage.texteCopie,
+				photos: signalementMessage.photosCopie,
+				retirable: sql<number>`${message.id} is not null and ${message.supprime} is null`.as('retirable')
+			})
+			.from(signalementMessage)
+			.leftJoin(message, eq(message.id, signalementMessage.messageId))
+			.where(enCours)
+			.orderBy(signalementMessage.le, signalementMessage.id),
+		base
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
+			.from(personne)
+			.where(
+				or(
+					inArray(personne.id, base.select({ id: signalementMessage.par }).from(signalementMessage).where(enCours)),
+					inArray(personne.id, base.select({ id: signalementMessage.auteur }).from(signalementMessage).where(enCours))
+				)
+			)
+	]);
+	const qui = (id: number) => personnes.find((p) => p.id === id) ?? { id, prenom: '', nom: '' };
+	return lignes.map((l) => ({ id: l.id, le: l.le, par: qui(l.par), auteur: qui(l.auteur), envoye_le: l.envoyeLe, texte: l.texte, photos: JSON.parse(l.photos) as number[], retirable: l.retirable === 1 }));
+}
+
+// Un signalement non classé, en une requête. `photos` : celles de sa copie et celles que le message montre encore.
+async function lireSignalement(base: Base, id: number) {
+	exigerId(id, 'Signalement');
+	const [lignes, montrees] = await base.batch([
+		base
+			.select({ messageId: signalementMessage.messageId, photos: signalementMessage.photosCopie, classeLe: signalementMessage.classeLe, supprime: message.supprime })
+			.from(signalementMessage)
+			.leftJoin(message, eq(message.id, signalementMessage.messageId))
+			.where(eq(signalementMessage.id, id)),
+		base
+			.select({ photoId: photoDeMessage.photoId })
+			.from(photoDeMessage)
+			.where(inArray(photoDeMessage.messageId, base.select({ id: signalementMessage.messageId }).from(signalementMessage).where(eq(signalementMessage.id, id))))
+	]);
+	const s = lignes[0];
+	if (!s || s.classeLe !== null) throw new DonneeInvalide('Signalement introuvable ou déjà classé');
+	const photos = [...new Set([...(JSON.parse(s.photos) as number[]), ...montrees.map((p) => p.photoId)])];
+	return { messageId: s.messageId !== null && s.supprime === null ? s.messageId : null, photos };
+}
+
+// Classer : la copie est effacée.
+const classer = (base: Base, quels: SQL | undefined, maintenant: string) => base.update(signalementMessage).set({ classeLe: maintenant, texteCopie: '', photosCopie: '[]' }).where(quels);
+
+// Lectures, à placer en fin de batch (après les effacements) : parmi `ids`, les photos encore montrées par un message, et
+// les copies des signalements non classés. `orphelines` en déduit les photos à effacer de PHOTOS.
+const copiesEnCours = (base: Base) => base.select({ photos: signalementMessage.photosCopie }).from(signalementMessage).where(isNull(signalementMessage.classeLe));
+const photosEnUsage = (base: Base, ids: number[]) => [base.select({ id: photoDeMessage.photoId }).from(photoDeMessage).where(inArray(photoDeMessage.photoId, ids)), copiesEnCours(base)] as const;
+
+function orphelines(ids: number[], montrees: { id: number }[], copies: { photos: string }[]): number[] {
+	const gardees = new Set([...montrees.map((m) => m.id), ...copies.flatMap((c) => JSON.parse(c.photos) as number[])]);
+	return ids.filter((id) => !gardees.has(id));
+}
+
+// Le modérateur retire le message pour tous (« Message retiré par la modération ») : ses signalements sont classés, ses
+// photos effacées. Journal sans le texte.
+export async function retirerParModeration(base: Base, basePhotos: BasePhotos, acteur: Acteur, idSignalement: number, maintenant: string): Promise<void> {
+	await exigerModeration(base, acteur, exigerDateHeure(maintenant, 'Date'));
+	const s = await lireSignalement(base, idSignalement);
+	if (s.messageId === null) throw new DonneeInvalide('Message déjà effacé : classez le signalement');
+	const id = s.messageId;
+	const [, , , , , montrees, copies] = await base.batch([
+		base.delete(reactionMessage).where(eq(reactionMessage.messageId, id)),
+		base.delete(photoDeMessage).where(eq(photoDeMessage.messageId, id)),
+		base.update(message).set({ texte: '', supprime: 'moderation', majLe: maintenant }).where(eq(message.id, id)),
+		classer(base, and(eq(signalementMessage.messageId, id), isNull(signalementMessage.classeLe)), maintenant),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'retirer_message', cibleType: 'message', cibleId: id }, maintenant),
+		...photosEnUsage(base, s.photos)
+	]);
+	await effacerPhotos(basePhotos, orphelines(s.photos, montrees, copies));
+}
+
+// Le modérateur classe le signalement : la copie est effacée, et ses photos aussi si plus rien ne les montre. Journal sans le texte.
+export async function classerSignalement(base: Base, basePhotos: BasePhotos, acteur: Acteur, idSignalement: number, maintenant: string): Promise<void> {
+	await exigerModeration(base, acteur, exigerDateHeure(maintenant, 'Date'));
+	const s = await lireSignalement(base, idSignalement);
+	const [, , montrees, copies] = await base.batch([
+		classer(base, eq(signalementMessage.id, idSignalement), maintenant),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'classer_signalement', cibleType: 'signalement', cibleId: idSignalement }, maintenant),
+		...photosEnUsage(base, s.photos)
+	]);
+	await effacerPhotos(basePhotos, orphelines(s.photos, montrees, copies));
+}
+
+// Conservation (déclencheur planifié) : efface les messages créés avant `avant` (AAAA-MM-JJ), avec leurs réactions et leurs
+// photos, et les signalements classés d'avant cette date. Un signalement non classé garde sa copie et ses photos.
+// Les conversations restent, même vides.
+export async function effacerAnciens(base: Base, basePhotos: BasePhotos, avant: string): Promise<void> {
+	exigerDate(avant);
+	const anciens = base.select({ id: message.id }).from(message).where(lt(message.creeLe, avant));
+	const [, references, , , copies] = await base.batch([
+		base.delete(reactionMessage).where(inArray(reactionMessage.messageId, anciens)),
+		base.delete(photoDeMessage).where(inArray(photoDeMessage.messageId, anciens)).returning({ id: photoDeMessage.photoId }),
+		base.delete(message).where(lt(message.creeLe, avant)),
+		base.delete(signalementMessage).where(and(isNotNull(signalementMessage.classeLe), lt(signalementMessage.le, avant))),
+		copiesEnCours(base)
+	]);
+	await effacerPhotos(
+		basePhotos,
+		orphelines(
+			references.map((r) => r.id),
+			[],
+			copies
+		)
+	);
 }
