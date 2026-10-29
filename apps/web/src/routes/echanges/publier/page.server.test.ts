@@ -54,7 +54,7 @@ describe('page Publier', () => {
 		for (const mur of ['centre', `equipe:${e2.id}`, 'inconnu', '']) expect((await charger(locaux(base, alice), `?mur=${mur}`)).choisi).toBeNull();
 	});
 
-	it('?texte= préremplit le texte du mur Vie de caserne seulement (lien « Souhaiter »), coupé à 4 000 caractères', async () => {
+	it('?texte= préremplit le texte du mur Vie du centre seulement (lien « Souhaiter »), coupé à 4 000 caractères', async () => {
 		const { base, alice, e1 } = await preparer();
 		expect((await charger(locaux(base, alice), `?mur=vie&texte=${encodeURIComponent('Joyeux anniversaire Alice !')}`)).texte).toBe('Joyeux anniversaire Alice !');
 		expect((await charger(locaux(base, alice), `?mur=vie&texte=${'x'.repeat(5000)}`)).texte).toHaveLength(4000);

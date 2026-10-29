@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		murs: proposes,
 		choisi,
-		// Texte prérempli : seulement le lien « Souhaiter », vers Vie de caserne.
+		// Texte prérempli : seulement pour le lien « Souhaiter », vers Vie du centre.
 		texte: choisi === 'vie' ? (url.searchParams.get('texte') ?? '').slice(0, 4000) : '',
 		ouverture,
 		cloture: clotureParDefaut(ouverture),
