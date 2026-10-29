@@ -6,7 +6,7 @@ import Page from './+page.svelte';
 const publication: PublicationVue = {
 	id: 7,
 	cle: 'centre',
-	auteur: { prenom: 'Chef', nom: 'Martin' },
+	auteur: { prenom: 'Chef', nom: 'Martin', couleur: null, role: 'Chef de centre' },
 	type: 'annonce',
 	texte: 'Note de service',
 	creeLe: '2026-10-28T14:05:00',
@@ -19,7 +19,7 @@ const publication: PublicationVue = {
 	jaimeParMoi: false,
 	evenement: null,
 	sondage: null,
-	priseDeConnaissance: { le: null },
+	priseDeConnaissance: { le: null, faites: 0, attendues: 3 },
 	derniersCommentaires: [],
 	droits: { modifier: true, supprimer: true, epingler: true, fermer: true }
 };

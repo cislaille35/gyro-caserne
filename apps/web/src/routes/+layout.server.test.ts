@@ -4,8 +4,10 @@ import { attribuer, chargerJeuDeDepart, comite, personne, profil, publier, repon
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
-import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { load } from './+layout.server';
+
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const appeler = (acteur: unknown, base: unknown = null) => (load as any)({ locals: { acteur, base, affichage: { niveau: 1, theme: 'clair' } } });
@@ -70,12 +72,12 @@ describe('load du layout', () => {
 		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenant);
 		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Sans demande', priseDeConnaissance: false }, maintenant);
 		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		await publier(base, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		await publier(base, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(3);
 		await repondreEvenement(base, alice, evenement, 'incertain', maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(2);
 		// Un événement avec sondage compte une fois, tant que la réponse ou le vote manque.
-		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(3);
 		// Le super administrateur et le visiteur : rien.
 		expect((await appeler(super_, base)).cloche).toBe(0);

@@ -1,11 +1,12 @@
 import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDate, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
-import { accesMur, estConvoque, exigerMur, refusMur, type Appartenances, type CleMur, type Mur } from '../murs.ts';
+import { tenuesValides } from '../casquettes.ts';
+import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import type { CommentaireVue } from './interactions.ts';
 import { nomActeur } from './personnes.ts';
@@ -23,14 +24,15 @@ export type DonneesPublication = {
 	texte: string;
 	priseDeConnaissance?: boolean;
 	evenement?: { debut: string; lieu: string; convoques: Convoques };
-	sondage?: { question: string; reponses: string[] };
+	sondage?: { question: string; reponses: string[]; ouverture: string; cloture: string };
 	photos?: { type: string; donnees: Uint8Array }[];
 };
 
 export type PublicationVue = {
 	id: number;
 	cle: CleMur;
-	auteur: { prenom: string; nom: string };
+	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef d’équipe. Null pour un auteur parti ou le super administrateur.
+	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null };
 	type: TypePublication;
 	texte: string;
 	creeLe: string;
@@ -41,11 +43,11 @@ export type PublicationVue = {
 	jaime: number;
 	commentaires: number;
 	jaimeParMoi: boolean;
-	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
-	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs.
-	sondage: { question: string; reponses: string[]; resultats: number[] | null; vote: number | null } | null;
-	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait.
-	priseDeConnaissance: { le: string | null } | null;
+	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number>; presents: { prenom: string; nom: string; couleur: string | null }[] } | null;
+	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs ; donnés à tous une fois le sondage fermé, jamais avant l'ouverture.
+	sondage: { question: string; reponses: string[]; ouverture: string | null; cloture: string | null; etat: EtatSondage; resultats: number[] | null; vote: number | null } | null;
+	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait. `faites` sur `attendues` : parmi les membres naturels du mur, sans l'auteur.
+	priseDeConnaissance: { le: string | null; faites: number; attendues: number } | null;
 	// Les 2 derniers, du plus ancien au plus récent.
 	derniersCommentaires: CommentaireVue[];
 	droits: { modifier: boolean; supprimer: boolean; epingler: boolean; fermer: boolean };
@@ -78,12 +80,31 @@ function exigerPhotos(valeur: DonneesPublication['photos']) {
 	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
 }
 
-function exigerSondage(sondage: DonneesPublication['sondage']) {
-	if (!sondage) return { sondageQuestion: null, sondageReponses: null };
+export type EtatSondage = 'avenir' | 'ouvert' | 'ferme';
+
+// Comparaison à la minute. Sans dates (sondage publié avant les dates) : toujours ouvert.
+export function etatSondage(ouverture: string | null, cloture: string | null, maintenant: string): EtatSondage {
+	const m = maintenant.slice(0, 16);
+	if (ouverture === null || cloture === null) return 'ouvert';
+	if (m < ouverture) return 'avenir';
+	return m >= cloture ? 'ferme' : 'ouvert';
+}
+
+function exigerSondage(sondage: DonneesPublication['sondage'], debutEvenement: string | undefined, maintenant: string) {
+	if (!sondage) return { sondageQuestion: null, sondageReponses: null, sondageOuverture: null, sondageCloture: null };
 	const question = texte(sondage.question, 'Question', 200, true);
 	const reponses = Array.isArray(sondage.reponses) ? sondage.reponses.map((r) => texte(r, 'Réponse', 100, true)) : [];
 	if (reponses.length < 2 || reponses.length > 6) throw new DonneeInvalide('De 2 à 6 réponses');
-	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses) };
+	if (!sondage.ouverture || !sondage.cloture) throw new DonneeInvalide('Dates du sondage manquantes');
+	exigerDateHeure(sondage.ouverture, 'Ouverture');
+	exigerDateHeure(sondage.cloture, 'Clôture');
+	const ouverture = sondage.ouverture.slice(0, 16);
+	const cloture = sondage.cloture.slice(0, 16);
+	if (cloture <= ouverture) throw new DonneeInvalide('Clôture avant l’ouverture');
+	if (cloture <= maintenant.slice(0, 16)) throw new DonneeInvalide('Clôture déjà passée');
+	if (cloture > `${ajouterJours(ouverture.slice(0, 10), 365)}${ouverture.slice(10)}`) throw new DonneeInvalide('Clôture dans plus d’un an');
+	if (debutEvenement && cloture > debutEvenement.slice(0, 16)) throw new DonneeInvalide('Clôture après le début de l’événement');
+	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses), sondageOuverture: ouverture, sondageCloture: cloture };
 }
 
 async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication, maintenant: string) {
@@ -120,7 +141,7 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 		if (!mur.peutModerer) throw refusMur(cle, 'moderer');
 	}
 	const photos = exigerPhotos(donnees.photos);
-	const sondage = exigerSondage(donnees.sondage);
+	const sondage = exigerSondage(donnees.sondage, donnees.type === 'evenement' ? donnees.evenement?.debut : undefined, maintenant);
 	const evenement = await exigerEvenement(base, mur, donnees, maintenant);
 
 	const ecritures = [
@@ -199,7 +220,7 @@ export async function lireMur(
 	cle: string,
 	page: { avant?: number; nombre?: number },
 	maintenant: string
-): Promise<{ mur: Mur; epinglees: PublicationVue[]; publications: PublicationVue[]; suite: number | null }> {
+): Promise<{ mur: Mur; audience: number; epinglees: PublicationVue[]; publications: PublicationVue[]; suite: number | null }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const { avant, nombre = 20 } = page;
 	if (avant !== undefined && !(Number.isInteger(avant) && avant > 0)) throw new DonneeInvalide('Page invalide');
@@ -221,23 +242,50 @@ export async function lireMur(
 	const enTete = avant === undefined ? epinglees : [];
 	const publications = suivantes.slice(0, taille);
 	const lignes = [...enTete, ...publications];
-	const vues = await vuesDe(base, acteur, mur, appartenances, lignes, { visite: maintenant });
+	const { vues, audience } = await vuesDe(base, acteur, mur, appartenances, lignes, { maintenant, visite: true });
 	const vue = (p: (typeof lignes)[number]) => vues.find((v) => v.id === p.id)!;
-	return { mur, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
+	return { mur, audience, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
 }
 
 // Une publication seule, avec tous ses commentaires (la visite du mur n'est pas marquée). Trois requêtes.
 export async function lirePublication(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<{ mur: Mur; publication: PublicationVue; commentaires: CommentaireVue[] }> {
 	const { ligne, mur, appartenances } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	const tous: CommentaireVue[] = [];
-	const [vue] = await vuesDe(base, acteur, mur, appartenances, [ligne], { tous });
+	const {
+		vues: [vue]
+	} = await vuesDe(base, acteur, mur, appartenances, [ligne], { maintenant, tous });
 	return { mur, publication: vue!, commentaires: tous };
 }
 
 export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
 	auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
 
-// Tout ce qui accompagne des publications, en une requête : comptes, gestes de l'acteur, photos, auteurs, derniers commentaires.
+const ROLES = [
+	['chef_centre', 'Chef de centre'],
+	['chef_centre_adjoint', 'Adjoint'],
+	['chef_equipe', 'Chef d’équipe']
+] as const;
+
+// Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
+function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {
+	if (personneId === null || !agents.some((a) => a.id === personneId)) return { couleur: null, role: null };
+	const affectation = affectations.find((x) => x.personneId === personneId);
+	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
+	return {
+		couleur: equipes.find((e) => e.id === affectation?.equipeId)?.couleur ?? null,
+		role: ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null
+	};
+}
+
+const PRESENTS_MAX = 3;
+
+const idPersonne = (auteur: string) => {
+	const id = /^personne:(\d+)$/.exec(auteur)?.[1];
+	return id === undefined ? null : Number(id);
+};
+
+// Tout ce qui accompagne des publications, en une requête : comptes, gestes de l'acteur, photos, auteurs, derniers commentaires,
+// membres naturels du mur (audience, prises de connaissance attendues) et visages (couleur, rôle).
 // `visite` : marque la visite du mur ; `tous` : reçoit tous les commentaires (d'une seule publication) au lieu des 2 derniers.
 async function vuesDe(
 	base: Base,
@@ -245,15 +293,18 @@ async function vuesDe(
 	mur: Mur,
 	appartenances: Appartenances,
 	lignes: (typeof publication.$inferSelect)[],
-	options: { visite?: string; tous?: CommentaireVue[] }
-): Promise<PublicationVue[]> {
+	options: { maintenant: string; visite?: boolean; tous?: CommentaireVue[] }
+): Promise<{ vues: PublicationVue[]; audience: number }> {
 	const cle = mur.cle;
 	const ids = lignes.map((p) => p.id);
-	const idsAuteurs = [...new Set(lignes.map((p) => /^personne:(\d+)$/.exec(p.auteur)?.[1]).filter((x) => x !== undefined).map(Number))];
+	const idsAuteurs = [...new Set(lignes.map((p) => idPersonne(p.auteur)).filter((x) => x !== null))];
 
 	// Le super administrateur n'a pas de fiche : 0 ne désigne personne.
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
+	const aujourdhui = options.maintenant.slice(0, 10);
 	const lectures = [
+		...lecturesAgents(base, aujourdhui),
+		base.select({ id: equipe.id, couleur: equipe.couleur }).from(equipe),
 		base
 			.select({ publicationId: jaime.publicationId, n: count(), deMoi: sql<number>`max(${jaime.personneId} = ${moi})` })
 			.from(jaime)
@@ -270,10 +321,19 @@ async function vuesDe(
 			.from(voteSondage)
 			.where(inArray(voteSondage.publicationId, ids))
 			.groupBy(voteSondage.publicationId, voteSondage.reponse),
+		base.select({ publicationId: priseConnaissance.publicationId, personneId: priseConnaissance.personneId, le: priseConnaissance.le }).from(priseConnaissance).where(inArray(priseConnaissance.publicationId, ids)),
+		// Les 3 premiers présents de chaque événement, dans l'ordre des réponses.
 		base
-			.select({ publicationId: priseConnaissance.publicationId, le: priseConnaissance.le })
-			.from(priseConnaissance)
-			.where(and(inArray(priseConnaissance.publicationId, ids), eq(priseConnaissance.personneId, moi))),
+			.select({ publicationId: reponseEvenement.publicationId, personneId: reponseEvenement.personneId, prenom: personne.prenom, nom: personne.nom })
+			.from(reponseEvenement)
+			.innerJoin(personne, eq(personne.id, reponseEvenement.personneId))
+			.where(
+				and(
+					inArray(reponseEvenement.publicationId, ids),
+					sql`${reponseEvenement}.rowid in (select r.rowid from ${reponseEvenement} r where r.publication_id = ${reponseEvenement.publicationId} and r.reponse = 'present' order by r.rowid limit ${PRESENTS_MAX})`
+				)
+			)
+			.orderBy(sql`${reponseEvenement}.rowid`),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
 		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
@@ -289,9 +349,9 @@ async function vuesDe(
 			)
 			.orderBy(asc(commentaire.id))
 	] as const;
-	const maintenant = options.visite;
-	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs, derniers] =
-		acteur.type === 'personne' && maintenant
+	const { maintenant } = options;
+	const [agents, affectations, tenues, equipes, jaimes, commentaires, reponses, votes, prises, presents, photos, auteurs, derniers] =
+		acteur.type === 'personne' && options.visite
 			? await base.batch([
 					...lectures,
 					base
@@ -300,9 +360,21 @@ async function vuesDe(
 						.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } })
 				])
 			: await base.batch(lectures);
+	const lus: AgentsLus = [agents, affectations, tenues];
+	const membres = membresDe(agentsDuJour(lus, aujourdhui), cle);
 	const vusCommentaires = derniers.map((c) => ({ ...commentaireVu(acteur, mur, c), publicationId: c.publicationId }));
 	options.tous?.push(...vusCommentaires.map(({ publicationId: _, ...c }) => c));
 
+	// L'auteur n'a pas à prendre connaissance de sa propre annonce (comme dans suiviPublication).
+	const priseVue = (p: (typeof lignes)[number]) => {
+		const siennes = prises.filter((x) => x.publicationId === p.id);
+		const attendus = membres.filter((m) => `personne:${m.id}` !== p.auteur);
+		return {
+			le: siennes.find((x) => x.personneId === moi)?.le ?? null,
+			faites: attendus.filter((m) => siennes.some((x) => x.personneId === m.id)).length,
+			attendues: attendus.length
+		};
+	};
 	const vue = (p: (typeof lignes)[number]): PublicationVue => {
 		const j = jaimes.find((x) => x.publicationId === p.id);
 		const sesReponses = reponses.filter((r) => r.publicationId === p.id);
@@ -311,10 +383,11 @@ async function vuesDe(
 		const convoques: Convoques = JSON.parse(p.convoques ?? '"tous"');
 		const droits = droitsSur(acteur, mur, p);
 		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
+		const etat = etatSondage(p.sondageOuverture, p.sondageCloture, maintenant);
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
-			auteur: auteurVu(p.auteur, auteurs.find((a) => `personne:${a.id}` === p.auteur)),
+			auteur: { ...auteurVu(p.auteur, auteurs.find((a) => `personne:${a.id}` === p.auteur)), ...visage(lus, equipes, idPersonne(p.auteur)) },
 			type: p.type,
 			texte: p.texte,
 			creeLe: p.creeLe,
@@ -334,7 +407,10 @@ async function vuesDe(
 							convoques,
 							convoque: estConvoque(appartenances, cle, convoques),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
-							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>
+							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>,
+							presents: presents
+								.filter((x) => x.publicationId === p.id)
+								.map((x) => ({ prenom: x.prenom, nom: x.nom, couleur: visage(lus, equipes, x.personneId).couleur }))
 						},
 			sondage:
 				p.sondageQuestion === null
@@ -342,10 +418,13 @@ async function vuesDe(
 					: {
 							question: p.sondageQuestion,
 							reponses: choix,
-							resultats: monVote !== null || droits.supprimer ? choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0) : null,
+							ouverture: p.sondageOuverture,
+							cloture: p.sondageCloture,
+							etat,
+							resultats: etat !== 'avenir' && (etat === 'ferme' || monVote !== null || droits.supprimer) ? choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0) : null,
 							vote: monVote
 						},
-			priseDeConnaissance: p.priseDeConnaissance === 1 ? { le: prises.find((x) => x.publicationId === p.id)?.le ?? null } : null,
+			priseDeConnaissance: p.priseDeConnaissance === 1 ? priseVue(p) : null,
 			derniersCommentaires: vusCommentaires
 				.filter((c) => c.publicationId === p.id)
 				.slice(-2)
@@ -353,7 +432,7 @@ async function vuesDe(
 			droits
 		};
 	};
-	return lignes.map(vue);
+	return { vues: lignes.map(vue), audience: membres.length };
 }
 
 // Un commentaire tel que l'acteur le voit : supprimable par son auteur ou un modérateur du mur.

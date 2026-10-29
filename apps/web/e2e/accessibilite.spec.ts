@@ -33,17 +33,26 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/notifications', '/moi', '/affichage', '/agents', '/profil']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('publier, sondage ouvert, sans violation', async ({ page }) => {
+				await page.goto('/echanges/publier?mur=vie');
+				await formulairePret(page);
+				await page.locator('summary', { hasText: 'Sondage' }).click();
+				await expect(page.getByLabel('Ferme le')).toBeVisible();
+				await sansViolation(page);
+			});
 
 			test('échanges remplis : accueil, notifications, mur et publication sans violation', async ({ browser, page }) => {
 				const gestion = await pageSuper(browser, theme);
 				const marque = nouvelleMarque();
 				await gestion.goto('/echanges/centre');
 				const annonce = await publier(gestion, { type: 'Annonce', texte: `Consigne ${marque}`, prise: true });
+				// Événement lointain avec sondage : la clôture préremplie s'arrête un an après l'ouverture.
 				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] });
 				// L'auteur voit le suivi de son annonce.
 				await gestion.goto(`/echanges/centre/${annonce}`);
@@ -68,9 +77,36 @@ for (const theme of ['auto', 'sombre']) {
 			});
 		});
 
+		// Le super administrateur voit tous les murs : un de chaque sorte, remplis, au niveau Vivant.
+		for (const mouvement of ['no-preference', 'reduce'] as const) {
+			test.describe(`échanges, niveau vivant, mouvement ${mouvement}`, () => {
+				test.use({ storageState: ETAT_SUPER, reducedMotion: mouvement });
+
+				test('la liste, un mur de chaque sorte et Publier sans violation', async ({ page, context }) => {
+					await context.addCookies([{ name: 'niveau', value: 'vivant', url: ADRESSE }]);
+					const marque = nouvelleMarque();
+					await page.goto('/echanges');
+					const lien = async (debut: string) => (await page.locator(`a[href^="/echanges/${debut}"]`).first().getAttribute('href'))!;
+					const murs = ['/echanges/centre', '/echanges/vie', await lien('equipe:'), await lien('comite:')];
+					await page.goto('/echanges/vie');
+					await publier(page, { texte: `Sortie ${marque}`, question: 'Quel jour ?', reponses: ['Samedi', 'Dimanche'] });
+					for (const mur of murs.slice(2)) {
+						await page.goto(mur);
+						await publier(page, { texte: `Nouvelle ${marque}` });
+					}
+					for (const chemin of ['/echanges', ...murs, '/echanges/publier']) {
+						await page.goto(chemin);
+						await toutOuvrir(page);
+						await sansViolation(page);
+						if (mouvement === 'reduce') expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+					}
+				});
+			});
+		}
+
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -302,34 +338,39 @@ async function pageAgent(browser: Browser, email: string): Promise<Page> {
 	return page;
 }
 
-// Le formulaire « Publier » du mur ouvert, une fois la page prête : avec JavaScript, les champs d'événement se cachent.
+// La page Publier, une fois prête : avec JavaScript, les champs d'événement se cachent.
 async function formulairePret(page: Page): Promise<Locator> {
-	const formulaire = page.locator('#publier');
+	const formulaire = page.locator('form[action="?/publier"]');
 	await expect(formulaire.getByRole('group', { name: 'Pour un événement' })).toBeHidden();
 	return formulaire;
 }
 
 type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; photo?: Buffer };
 
-// Publie sur le mur ouvert et renvoie l'identifiant de la publication, lu dans son lien « Commenter ».
+// Publie depuis le mur ouvert (lien « Publier dans … ») ; de retour sur le mur, renvoie l'identifiant de la publication, lu dans l'adresse.
 async function publier(page: Page, s: Saisie): Promise<number> {
+	await page.getByRole('link', { name: /^Publier dans / }).click();
 	const formulaire = await formulairePret(page);
-	if (s.type) await formulaire.getByLabel('Type', { exact: true }).selectOption({ label: s.type });
-	await formulaire.getByLabel('Texte', { exact: true }).fill(s.texte);
+	if (s.type) await formulaire.getByRole('radio', { name: new RegExp(`^${s.type}`) }).check();
+	await formulaire.getByLabel('Votre message', { exact: true }).fill(s.texte);
 	if (s.prise) await formulaire.getByLabel('Demander une prise de connaissance (annonce)').check();
 	if (s.debut) await formulaire.getByLabel('Date et heure').fill(s.debut);
 	if (s.lieu) await formulaire.getByLabel('Lieu', { exact: true }).fill(s.lieu);
 	for (const equipe of s.equipes ?? []) await formulaire.getByRole('checkbox', { name: equipe, exact: true }).check();
 	if (s.question) {
-		await formulaire.locator('summary', { hasText: 'Ajouter un sondage' }).click();
+		await formulaire.locator('summary', { hasText: 'Sondage' }).click();
 		await formulaire.getByLabel('Question', { exact: true }).fill(s.question);
-		for (const [i, r] of (s.reponses ?? []).entries()) await formulaire.getByLabel(`Réponse ${i + 1}`, { exact: true }).fill(r);
+		for (const [i, r] of (s.reponses ?? []).entries()) {
+			const champ = formulaire.getByLabel(`Réponse ${i + 1}`, { exact: true });
+			if (!(await champ.isVisible())) await formulaire.getByRole('button', { name: '+ Ajouter une réponse' }).click();
+			await champ.fill(r);
+		}
 	}
 	if (s.photo) await formulaire.getByLabel('Photos').setInputFiles({ name: 'essai.jpg', mimeType: 'image/jpeg', buffer: s.photo });
-	await formulaire.getByRole('button', { name: 'Publier' }).click();
-	await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
-	const lien = await publicationDe(page, s.texte).getByRole('link', { name: 'Commenter' }).getAttribute('href');
-	return Number(lien!.split('#')[0]!.split('/').pop());
+	await formulaire.getByRole('button', { name: /^Publier/ }).click();
+	await page.waitForURL(/\/echanges\/[^/]+#publication-\d+$/);
+	await expect(publicationDe(page, s.texte)).toBeVisible();
+	return Number(new URL(page.url()).hash.split('-').pop());
 }
 
 const publicationDe = (page: Page, texte: string) => page.locator('article').filter({ hasText: texte });
@@ -438,6 +479,38 @@ test.describe('échanges', () => {
 		await autre.context().close();
 	});
 
+	test('prise de connaissance cochée puis changement de mur : la case masquée ne part pas, l’annonce est publiée', async ({ browser, page }) => {
+		const gestion = await pageSuper(browser);
+		const { email } = await nouvelAgent(gestion);
+		// Chef de l'équipe 1 : il modère son mur d'équipe, pas Vie du centre.
+		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action^="?/attribuer"]'));
+		const attribuer = carte.locator('form[action^="?/attribuer"]');
+		await attribuer.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
+		await attribuer.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
+		await attribuer.getByRole('button', { name: 'Attribuer' }).click();
+		await expect(attribuer.getByRole('status')).toHaveText('Rôle attribué');
+
+		await connecter(page, email);
+		await page.goto('/echanges/publier?mur=equipe:1');
+		const formulaire = await formulairePret(page);
+		await formulaire.getByRole('radio', { name: /^Annonce/ }).check();
+		const casePrise = formulaire.getByLabel('Demander une prise de connaissance (annonce)');
+		await casePrise.check();
+		await formulaire.getByRole('radio', { name: /^Vie du centre/ }).check();
+		await expect(casePrise).toBeHidden();
+		await expect(casePrise).toBeDisabled();
+		const texte = `Annonce ${nouvelleMarque()}`;
+		await formulaire.getByLabel('Votre message', { exact: true }).fill(texte);
+		await formulaire.getByRole('button', { name: 'Publier dans Vie du centre' }).click();
+		await page.waitForURL(/\/echanges\/vie#publication-\d+$/);
+		await expect(publicationDe(page, texte)).toBeVisible();
+
+		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef d’équipe — Équipe 1' }).check();
+		await carte.getByRole('button', { name: 'Terminer' }).click();
+		await expect(carte.getByRole('status').first()).toHaveText('Rôle terminé');
+		await gestion.context().close();
+	});
+
 	test('les envois du navigateur annoncent leur longueur : la garde de taille les laisse passer', async ({ browser, page }) => {
 		const gestion = await pageSuper(browser);
 		const { email } = await nouvelAgent(gestion);
@@ -449,8 +522,37 @@ test.describe('échanges', () => {
 		await connecter(page, email);
 		await page.goto('/echanges/vie');
 		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
-		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/vie?/publier']));
+		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/publier?/publier']));
 		for (const r of envois) expect((await r.allHeaders())['content-length'], r.url()).toMatch(/^[1-9]\d*$/);
+	});
+});
+
+test.describe('échanges à l’ordinateur', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('sur un mur, « À venir » : à droite à 1280 px, sous le mur à 1100 px (ordre du clavier), absent au téléphone', async ({ browser, page }) => {
+		const aVenir = page.getByRole('heading', { level: 2, name: 'À venir' });
+		const titre = page.getByRole('heading', { level: 1, name: 'Vie du centre' });
+		if (test.info().project.name === 'telephone') {
+			await page.goto('/echanges/vie');
+			await expect(titre).toBeVisible();
+			await expect(aVenir).toBeHidden();
+			return;
+		}
+		// Plus tôt que les événements des autres tests (2099) : il fait partie des 3 prochains.
+		const gestion = await pageSuper(browser);
+		const marque = nouvelleMarque();
+		await gestion.goto('/echanges/centre');
+		await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2098-06-01T18:30', lieu: 'Caserne' });
+		await gestion.context().close();
+
+		await page.goto('/echanges/vie');
+		await expect(page.getByRole('complementary', { name: 'Aujourd’hui' }).getByRole('link', { name: new RegExp(`Manœuvre ${marque}`) })).toBeVisible();
+		expect((await aVenir.boundingBox())!.x).toBeGreaterThan((await titre.boundingBox())!.x + 200);
+		await page.setViewportSize({ width: 1100, height: 900 });
+		const bas = await page.locator('.mur').boundingBox();
+		expect((await aVenir.boundingBox())!.y).toBeGreaterThan(bas!.y + bas!.height);
+		await sansViolation(page);
 	});
 });
 
@@ -459,15 +561,17 @@ test.describe('échanges au clavier', () => {
 
 	test('publier : un refus met le focus sur le champ fautif, puis « J’aime » se bascule au clavier', async ({ page }) => {
 		const texte = `Sortie vélo ${nouvelleMarque()}`;
-		await page.goto('/echanges/vie');
+		await page.goto('/echanges/publier?mur=vie');
 		const formulaire = await formulairePret(page);
-		const type = formulaire.getByLabel('Type', { exact: true });
-		await type.focus();
-		await type.selectOption({ label: 'Événement' });
-		await page.keyboard.press('Tab');
-		await expect(formulaire.getByLabel('Texte', { exact: true })).toBeFocused();
+		const genre = formulaire.getByRole('radio', { name: /^Message/ });
+		await genre.focus();
+		// Les flèches passent d'un genre à l'autre.
+		await page.keyboard.press('ArrowRight');
+		await expect(formulaire.getByRole('radio', { name: /^Événement/ })).toBeChecked();
+		await expect(formulaire.getByRole('button', { name: 'Publier dans Vie du centre' })).toBeVisible();
+		await formulaire.getByLabel('Votre message', { exact: true }).focus();
 		await page.keyboard.type(texte);
-		const envoyer = formulaire.getByRole('button', { name: 'Publier' });
+		const envoyer = formulaire.getByRole('button', { name: 'Publier dans Vie du centre' });
 		await envoyer.focus();
 		await page.keyboard.press('Enter');
 		await expect(formulaire.getByText('Indiquez la date et l’heure.')).toBeVisible();
@@ -479,8 +583,8 @@ test.describe('échanges au clavier', () => {
 		await page.keyboard.type('Parc des sports');
 		await envoyer.focus();
 		await page.keyboard.press('Enter');
-		await expect(formulaire.getByText('Publication envoyée.')).toBeVisible();
-		// Publiée : le focus va sur la nouvelle publication.
+		// Publiée : retour sur le mur, le focus sur la nouvelle publication.
+		await page.waitForURL(/\/echanges\/vie#publication-\d+$/);
 		await expect(publicationDe(page, texte)).toBeFocused();
 
 		const jaime = publicationDe(page, texte).getByRole('button', { name: /^J’aime/ });

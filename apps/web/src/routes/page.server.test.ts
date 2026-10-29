@@ -4,8 +4,10 @@ import centreExemple from '../../../../centres/exemple/centre.ts';
 import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { actions, load } from './+page.server';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { requeteFormulaire, preparer } from './echanges/de-test.ts';
+
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const appeler = (locals: unknown, recherche = '') => (load as any)({ locals, url: new URL(`http://localhost/${recherche}`) });
@@ -85,7 +87,7 @@ describe('« À ne pas manquer » sur l’accueil', () => {
 		const maintenant = maintenantParis();
 		const annonce = await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
 		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		const sondage = await publier(base, chef, 'vie', { type: 'message', texte: 'Repas ?', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const sondage = await publier(base, chef, 'vie', { type: 'message', texte: 'Repas ?', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		const locals = { base, acteur: alice };
 		const data = await appeler(locals);
 		expect(data.aNePasManquer.annonces.map((a: { id: number }) => a.id)).toEqual([annonce]);

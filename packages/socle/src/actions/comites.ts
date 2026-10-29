@@ -5,6 +5,7 @@ import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { NOM_COMITE_CENTRE } from '../jeu-de-depart.ts';
+import { NOMS_ICONES, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
 import { attribution, comite, personne, responsabilite, responsabiliteDroit } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
@@ -21,6 +22,11 @@ function texte(valeur: unknown, libelle: string): string {
 	if (!propre) throw new DonneeInvalide(`${libelle} vide`);
 	if (propre.length > LONGUEUR_MAX) throw new DonneeInvalide(`${libelle} trop long`);
 	return propre;
+}
+
+function iconeValide(valeur: string): NomIcone {
+	if (!(NOMS_ICONES as readonly string[]).includes(valeur)) throw new DonneeInvalide('Icône inconnue');
+	return valeur as NomIcone;
 }
 
 // Unicité parmi tous les comités (dissous compris), sans tenir compte de la casse ni des espaces de bord.
@@ -66,6 +72,7 @@ export async function listerComites(base: Base, acteur: Acteur, aujourdhui: stri
 		id: c.id,
 		nom: c.nom,
 		theme: c.theme,
+		icone: c.icone,
 		dissousLe: c.dissousLe,
 		estCentre: c.nom === NOM_COMITE_CENTRE,
 		membresEnCours: enCours.find((e) => e.id === c.id)?.membres ?? 0,
@@ -73,24 +80,25 @@ export async function listerComites(base: Base, acteur: Acteur, aujourdhui: stri
 	}));
 }
 
-export async function creerComite(base: Base, acteur: Acteur, donnees: { nom: string; theme: string }, aujourdhui: string): Promise<number> {
+export async function creerComite(base: Base, acteur: Acteur, donnees: { nom: string; theme: string; icone?: NomIcone }, aujourdhui: string): Promise<number> {
 	await exiger(base, acteur, aujourdhui);
 	const nom = texte(donnees.nom, 'Nom');
 	const theme = texte(donnees.theme, 'Thème');
+	const icone = donnees.icone === undefined ? null : iconeValide(donnees.icone);
 	await exigerNomLibre(base, nom);
 	const [lignes] = await base.batch([
-		base.insert(comite).values({ nom, theme }).returning({ id: comite.id }),
+		base.insert(comite).values({ nom, theme, icone }).returning({ id: comite.id }),
 		// L'ordre compte : le journal suit l'insertion, last_insert_rowid() est l'id du comité.
-		ligneJournal(base, { acteur: nomActeur(acteur), action: 'creer_comite', cibleType: 'comite', cibleId: sql`last_insert_rowid()`, details: { nom, theme } }, aujourdhui)
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'creer_comite', cibleType: 'comite', cibleId: sql`last_insert_rowid()`, details: { nom, theme, icone } }, aujourdhui)
 	]);
 	return lignes[0]!.id;
 }
 
-export async function modifierComite(base: Base, acteur: Acteur, id: number, champs: { nom?: string; theme?: string }, aujourdhui: string): Promise<void> {
+export async function modifierComite(base: Base, acteur: Acteur, id: number, champs: { nom?: string; theme?: string; icone?: NomIcone | null }, aujourdhui: string): Promise<void> {
 	await exiger(base, acteur, aujourdhui);
 	const ligne = await comiteConnu(base, id);
 	if (ligne.dissousLe !== null) throw new DonneeInvalide('Comité dissous');
-	const changes: { nom?: string; theme?: string } = {};
+	const changes: { nom?: string; theme?: string; icone?: NomIcone | null } = {};
 	if (champs.nom !== undefined) {
 		const nom = texte(champs.nom, 'Nom');
 		if (ligne.nom === NOM_COMITE_CENTRE && nom !== ligne.nom) throw new DonneeInvalide('Le comité du centre ne se renomme pas');
@@ -100,6 +108,10 @@ export async function modifierComite(base: Base, acteur: Acteur, id: number, cha
 	if (champs.theme !== undefined) {
 		const theme = texte(champs.theme, 'Thème');
 		if (theme !== ligne.theme) changes.theme = theme;
+	}
+	if (champs.icone !== undefined) {
+		const icone = champs.icone === null ? null : iconeValide(champs.icone);
+		if (icone !== ligne.icone) changes.icone = icone;
 	}
 	if (Object.keys(changes).length === 0) return;
 	await base.batch([

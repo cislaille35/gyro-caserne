@@ -4,12 +4,12 @@
 	import { NOMS_ICONES } from './roles.ts';
 
 	// L'icône d'un rôle, choisie dans la petite liste fixe.
-	let { valeur, erreur }: { valeur: Icone; erreur?: string } = $props();
+	let { valeur, erreur, legende = 'Icône' }: { valeur?: Icone; erreur?: string; legende?: string } = $props();
 	const id = $props.id();
 </script>
 
 <fieldset class="icones" aria-describedby={erreur ? `${id}-erreur` : undefined}>
-	<legend>Icône</legend>
+	<legend>{legende}</legend>
 	<div class="tuiles">
 		{#each Object.keys(ICONES_ROLES) as Icone[] as icone (icone)}
 			<label class="tuile">

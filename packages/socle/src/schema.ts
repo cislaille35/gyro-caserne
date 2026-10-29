@@ -115,7 +115,9 @@ export const comite = sqliteTable('comite', {
 	nom: text('nom').notNull(),
 	theme: text('theme').notNull(),
 	// Date ISO de dissolution ; nul tant que le comité existe.
-	dissousLe: text('dissous_le')
+	dissousLe: text('dissous_le'),
+	// Icône du mur du comité ; nulle, elle découle du thème.
+	icone: text('icone')
 });
 
 export const responsabilite = sqliteTable(
@@ -220,7 +222,10 @@ export const publication = sqliteTable(
 		convoques: text('convoques'),
 		// Sondage : question et réponses (JSON, liste de textes).
 		sondageQuestion: text('sondage_question'),
-		sondageReponses: text('sondage_reponses')
+		sondageReponses: text('sondage_reponses'),
+		// Dates du sondage (« AAAA-MM-JJTHH:MM », heure de Paris) ; vides pour un sondage publié sans dates.
+		sondageOuverture: text('sondage_ouverture'),
+		sondageCloture: text('sondage_cloture')
 	},
 	(t) => [
 		check('publication_type', checkDans('type', TYPES_PUBLICATION)),

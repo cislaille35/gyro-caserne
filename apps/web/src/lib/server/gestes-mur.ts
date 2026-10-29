@@ -85,7 +85,7 @@ export const gestes = {
 		}),
 	voter: (r: Requete) =>
 		surPublication(r, async (acteur, id, f) => {
-			await voter(r.locals.base, acteur, id, entier(f, 'reponse') ?? -1, maintenantParis().slice(0, 10));
+			await voter(r.locals.base, acteur, id, entier(f, 'reponse') ?? -1, maintenantParis());
 			return 'Vote enregistré.';
 		}),
 	prendreConnaissance: (r: Requete) =>

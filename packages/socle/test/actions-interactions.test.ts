@@ -6,13 +6,14 @@ import { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenem
 import { fermerCommentaires, lireMur, publier } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, priseConnaissance, profil, reponseEvenement, responsabilite, voteSondage } from '../src/schema.ts';
+import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, priseConnaissance, profil, publication, reponseEvenement, responsabilite, voteSondage } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-28T14:30';
 const aujourdhui = '2026-10-28';
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
 const acteur = (id: number): Acteur => ({ type: 'personne', id });
+const dates = { ouverture: maintenant, cloture: '2026-11-04T14:30' };
 
 async function jeu() {
 	const base = await baseDeTest();
@@ -204,27 +205,59 @@ describe('réponses aux événements', () => {
 describe('sondages', () => {
 	it('un vote par personne, qu’on peut changer ; rang contrôlé', async () => {
 		const { base, agent, autre } = await jeu();
-		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non', 'Peut-être'] } }, maintenant);
-		await voter(base, acteur(autre), id, 0, aujourdhui);
-		await voter(base, acteur(autre), id, 2, aujourdhui);
+		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non', 'Peut-être'], ...dates } }, maintenant);
+		await voter(base, acteur(autre), id, 0, maintenant);
+		await voter(base, acteur(autre), id, 2, maintenant);
 		expect(await base.select().from(voteSondage)).toEqual([{ publicationId: id, personneId: autre, reponse: 2 }]);
-		await expect(voter(base, acteur(autre), id, 3, aujourdhui)).rejects.toThrow(DonneeInvalide);
-		await expect(voter(base, acteur(autre), id, -1, aujourdhui)).rejects.toThrow(DonneeInvalide);
-		await expect(voter(base, acteur(autre), id, 1.5, aujourdhui)).rejects.toThrow(DonneeInvalide);
+		await expect(voter(base, acteur(autre), id, 3, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(voter(base, acteur(autre), id, -1, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(voter(base, acteur(autre), id, 1.5, maintenant)).rejects.toThrow(DonneeInvalide);
 		const sans = await publier(base, acteur(agent), 'vie', message(), maintenant);
-		await expect(voter(base, acteur(autre), sans, 0, aujourdhui)).rejects.toThrow(DonneeInvalide);
+		await expect(voter(base, acteur(autre), sans, 0, maintenant)).rejects.toThrow(DonneeInvalide);
 	});
 
 	it('refusé : non-lecteur, lecture seule, super administrateur', async () => {
 		const { base, agent, chef, affecter, e1 } = await jeu();
-		const sondage = { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'] } };
+		const sondage = { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'], ...dates } };
 		const id = await publier(base, acteur(chef), `equipe:${e1.id}`, sondage, maintenant);
-		await expect(voter(base, acteur(agent), id, 0, aujourdhui)).rejects.toThrow(RefusDroit);
+		await expect(voter(base, acteur(agent), id, 0, maintenant)).rejects.toThrow(RefusDroit);
 		await affecter(agent, e1.id);
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
-		await expect(voter(base, acteur(agent), id, 0, aujourdhui)).rejects.toThrow(RefusDroit);
+		await expect(voter(base, acteur(agent), id, 0, maintenant)).rejects.toThrow(RefusDroit);
 		const vie = await publier(base, acteur(chef), 'vie', sondage, maintenant);
-		await expect(voter(base, superAdmin, vie, 0, aujourdhui)).rejects.toThrow(DonneeInvalide);
+		await expect(voter(base, superAdmin, vie, 0, maintenant)).rejects.toThrow(DonneeInvalide);
+	});
+});
+
+describe('sondages datés', () => {
+	const ligne = (agent: number, dates: { sondageOuverture: string | null; sondageCloture: string | null }) => ({
+		mur: 'vie',
+		auteur: `personne:${agent}`,
+		type: 'message' as const,
+		texte: 'Sondage',
+		creeLe: maintenant,
+		sondageQuestion: 'Pizza ?',
+		sondageReponses: '["Oui","Non"]',
+		...dates
+	});
+
+	it('refusé avant l’ouverture, dès la minute de clôture ; accepté entre les deux', async () => {
+		const { base, agent, autre } = await jeu();
+		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'], ouverture: '2026-10-30T08:00', cloture: '2026-11-04T14:30' } }, maintenant);
+		await expect(voter(base, acteur(autre), id, 0, maintenant)).rejects.toThrow('Sondage pas encore ouvert');
+		await expect(voter(base, acteur(autre), id, 0, '2026-10-30T07:59:59')).rejects.toThrow('Sondage pas encore ouvert');
+		await voter(base, acteur(autre), id, 0, '2026-10-30T08:00');
+		await voter(base, acteur(autre), id, 1, '2026-11-04T14:29:59');
+		await expect(voter(base, acteur(autre), id, 0, '2026-11-04T14:30:00')).rejects.toThrow('Sondage fermé');
+		await expect(voter(base, acteur(autre), id, 0, '2026-11-05T09:00')).rejects.toThrow('Sondage fermé');
+		expect(await base.select().from(voteSondage)).toEqual([{ publicationId: id, personneId: autre, reponse: 1 }]);
+	});
+
+	it('sondage sans dates : vote accepté, même longtemps après', async () => {
+		const { base, agent, autre } = await jeu();
+		const [{ id }] = await base.insert(publication).values(ligne(agent, { sondageOuverture: null, sondageCloture: null })).returning({ id: publication.id });
+		await voter(base, acteur(autre), id, 0, '2030-01-01T10:00');
+		expect(await base.select().from(voteSondage)).toHaveLength(1);
 	});
 });
 
@@ -354,7 +387,7 @@ describe('budget de requêtes', () => {
 	it('publication, mur (droits), écriture : 3 requêtes par geste', async () => {
 		const { base, agent, autre, chef, affecter, e1 } = await jeu();
 		await affecter(autre, e1.id);
-		const sondage = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const sondage = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'], ...dates } }, maintenant);
 		const tous = await publier(base, acteur(chef), 'vie', evenement(), maintenant);
 		const equipes = await publier(base, acteur(chef), 'centre', evenement([e1.id]), maintenant);
 		const note = await publier(base, acteur(chef), 'centre', annonce, maintenant);
@@ -366,7 +399,7 @@ describe('budget de requêtes', () => {
 		};
 		expect(await requetes(() => aimer(base, acteur(autre), sondage, true, aujourdhui))).toBe(3);
 		expect(await requetes(() => aimer(base, acteur(autre), sondage, false, aujourdhui))).toBe(3);
-		expect(await requetes(() => voter(base, acteur(autre), sondage, 1, aujourdhui))).toBe(3);
+		expect(await requetes(() => voter(base, acteur(autre), sondage, 1, maintenant))).toBe(3);
 		expect(await requetes(() => prendreConnaissance(base, acteur(autre), note, maintenant))).toBe(3);
 		expect(await requetes(() => repondreEvenement(base, acteur(autre), tous, 'present', maintenant))).toBe(3);
 		expect(await requetes(() => repondreEvenement(base, acteur(autre), equipes, 'present', maintenant))).toBe(3);

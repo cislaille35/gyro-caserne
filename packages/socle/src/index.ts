@@ -16,11 +16,12 @@ export { dateFichier, dateIso, donneesFichier, ENTETES, LIBELLES_STATUT, type Do
 export { estGestionnaire, ficheAgent, FILTRES_GESTION, listeGestion, vueEffectif, type FicheAgent, type FiltreGestion, type GroupeAgents, type LigneGestion, type ListeGestion } from './effectif.ts';
 export { creerComite, dissoudreComite, listerComites, modifierComite } from './actions/comites.ts';
 export { archiverResponsabilite, creerResponsabilite, listerResponsabilites, modifierResponsabilite, type Attributeur } from './actions/responsabilites.ts';
-export { iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
+export { iconeDuComite, iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
 export { MODELES, type Modele } from './modeles.ts';
 export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
-export { exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
+export { apercusDesMurs, type Apercu as ApercuMur } from './apercus.ts';
+export { audiences, exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
 export { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, supprimerPublication, type DonneesPublication, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
 export { aNePasManquer, anniversairesDuJour, type ANePasManquer, type ItemANePasManquer } from './a-ne-pas-manquer.ts';

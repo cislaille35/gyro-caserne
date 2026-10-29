@@ -83,7 +83,7 @@ describe('creerComite', () => {
 		const { base } = await jeu();
 		const id = await creerComite(base, superAdmin, { nom: '  Sport  ', theme: ' sport ' }, aujourdhui);
 		const liste = await listerComites(base, superAdmin, aujourdhui);
-		expect(liste.find((c) => c.id === id)).toEqual({ id, nom: 'Sport', theme: 'sport', dissousLe: null, estCentre: false, membresEnCours: 0, rapporteurs: [] });
+		expect(liste.find((c) => c.id === id)).toEqual({ id, nom: 'Sport', theme: 'sport', icone: null, dissousLe: null, estCentre: false, membresEnCours: 0, rapporteurs: [] });
 		expect(liste.filter((c) => c.estCentre).map((c) => c.nom)).toEqual([NOM_COMITE_CENTRE]);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'creer_comite'));
 		expect(ligne).toMatchObject({ cibleType: 'comite', cibleId: id, acteur: 'super:admin@exemple.fr' });
@@ -113,6 +113,28 @@ describe('modifierComite', () => {
 		expect(apres).toMatchObject({ nom: 'Amicale des pompiers', theme: 'vie' });
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_comite'));
 		expect(JSON.parse(ligne!.details)).toEqual({ champs: ['nom', 'theme'] });
+	});
+
+	it('enregistre l’icône, la retire avec null, refuse une icône inconnue', async () => {
+		const { base, comite_ } = await jeu();
+		const amicale = await comite_('Amicale');
+		await modifierComite(base, superAdmin, amicale.id, { icone: 'ballon' }, aujourdhui);
+		expect((await comite_('Amicale')).icone).toBe('ballon');
+		expect((await listerComites(base, superAdmin, aujourdhui)).find((c) => c.id === amicale.id)?.icone).toBe('ballon');
+		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_comite'));
+		expect(JSON.parse(ligne!.details)).toEqual({ champs: ['icone'] });
+		await expect(modifierComite(base, superAdmin, amicale.id, { icone: 'licorne' as never }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Icône inconnue'));
+		await modifierComite(base, superAdmin, amicale.id, { icone: null }, aujourdhui);
+		expect((await comite_('Amicale')).icone).toBeNull();
+	});
+
+	it('crée un comité avec une icône, ou sans', async () => {
+		const { base, comite_ } = await jeu();
+		await creerComite(base, superAdmin, { nom: 'Sport', theme: 'sport', icone: 'ballon' }, aujourdhui);
+		await creerComite(base, superAdmin, { nom: 'Fêtes', theme: 'fêtes' }, aujourdhui);
+		expect((await comite_('Sport')).icone).toBe('ballon');
+		expect((await comite_('Fêtes')).icone).toBeNull();
+		await expect(creerComite(base, superAdmin, { nom: 'Autre', theme: 'x', icone: 'licorne' as never }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Icône inconnue'));
 	});
 
 	it('refuse le nom d’un autre comité mais pas le sien en changeant la casse', async () => {

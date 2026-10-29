@@ -13,9 +13,13 @@ import IconeRole from './IconeRole.svelte';
 import Initiales from './Initiales.svelte';
 import Pastille from './Pastille.svelte';
 import PastilleEquipe from './PastilleEquipe.svelte';
+import PastilleMur from './PastilleMur.svelte';
 import Statut from './Statut.svelte';
 import Tableau from './Tableau.svelte';
-import { ICONES_ROLES } from './icones-roles.ts';
+import Sondage from './Sondage.svelte';
+import TuileDate from './TuileDate.svelte';
+import Visage from './Visage.svelte';
+import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,6 +58,30 @@ describe('Champ', () => {
 		const page = html(Champ, { ...base, aide: 'Aide', erreur: 'Erreur' });
 		const refs = page.match(/aria-describedby="([^"]+)"/)![1].split(' ');
 		expect(refs).toHaveLength(2);
+	});
+});
+
+describe('PastilleMur', () => {
+	const vide = { icone: null, couleur: null, numero: null };
+	it('un comité : son icône sur sa teinte, décorative', () => {
+		const page = html(PastilleMur, { ...vide, icone: 'coeur' });
+		expect(page).toContain('aria-hidden="true"');
+		expect(page).toContain('var(--icone-coeur-fond)');
+		expect(page).toContain('var(--icone-coeur-texte)');
+		expect(page).toContain(`d="${ICONES_ROLES.coeur}"`);
+		expect(page).toContain('width: 48px');
+	});
+	it('Le centre : la maison sur le rouge', () => {
+		const page = html(PastilleMur, { ...vide, icone: 'maison' });
+		expect(page).toContain(`d="${ICONE_MAISON}"`);
+		expect(page).toContain('var(--rouge)');
+	});
+	it('une équipe : son numéro sur sa couleur, en 28 px', () => {
+		const page = html(PastilleMur, { icone: null, couleur: '#d4a017', numero: 3, taille: 28 });
+		expect(page).toMatch(/>3<\/span>/);
+		expect(page).toContain('#d4a017');
+		expect(page).toContain('width: 28px');
+		expect(page).not.toContain('<svg');
 	});
 });
 
@@ -232,3 +260,63 @@ describe('IconeRole', () => {
 		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil']);
 	});
 });
+
+describe('Visage', () => {
+	it('les initiales, décoratives : le nom est écrit à côté', () => {
+		const page = html(Visage, { prenom: 'Claire', nom: 'Chef', couleur: null });
+		expect(page).toContain('aria-hidden="true"');
+		expect(page).toContain('>CC<');
+		expect(page).toContain('var(--statut-neutre-fond)');
+	});
+	it('sur la couleur de l’équipe : texte foncé sur une couleur claire, blanc sur une couleur sombre', () => {
+		expect(html(Visage, { prenom: 'Tom', nom: 'Agent', couleur: '#d4a017' })).toMatch(/background: #d4a017;[^"]*color: #1d2733/);
+		expect(html(Visage, { prenom: 'Tom', nom: 'Agent', couleur: '#0f4c8a' })).toMatch(/background: #0f4c8a;[^"]*color: #ffffff/);
+	});
+	it('super administrateur ou personne inconnue : gris, sans planter', () => {
+		expect(html(Visage, { prenom: 'Super', nom: 'administrateur', couleur: null })).toContain('>SA<');
+		expect(html(Visage, { prenom: '', nom: 'Personne inconnue', couleur: null })).toContain('>P<');
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: 'rouge' })).toContain('var(--statut-neutre-fond)');
+	});
+});
+
+describe('TuileDate', () => {
+	it('jour, date et mois dessinés ; la date lue en entier', () => {
+		const page = html(TuileDate, { iso: '2026-11-05T19:00' });
+		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 5 novembre"/);
+		expect(page).toContain('>JEU.<');
+		expect(page).toContain('>5<');
+		expect(page).toContain('>nov.<');
+	});
+});
+
+describe('Sondage', () => {
+	const base = { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ouverture: '2026-10-29T08:00', cloture: '2026-11-02T20:00', etat: 'ouvert', resultats: null, vote: null };
+	const sondage = (s: Record<string, unknown> = {}, agir = true) => html(Sondage, { id: 4, sondage: { ...base, ...s }, agir });
+	it('ouvert : son état, ses dates et les choix', () => {
+		const page = sondage();
+		expect(page).toContain('Ouvert');
+		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
+		expect(page).toMatch(/<button[^>]*name="reponse" value="0"[^>]*>Oui</);
+		expect(page).toContain('Résultats visibles après votre vote.');
+	});
+	it('à venir : « Ouvre le … », sans bouton de vote', () => {
+		const page = sondage({ ouverture: '2026-11-01T08:00', etat: 'avenir' });
+		expect(page).toContain('Ouvre le dimanche 1 nov., 8 h');
+		expect(page).not.toContain('?/voter');
+	});
+	it('fermé : les résultats pour tous, aucun bouton de vote', () => {
+		const page = sondage({ etat: 'ferme', resultats: [3, 1] });
+		expect(page).toContain('Fermé');
+		expect(page).toContain('Du 29 oct. au lundi 2 nov., 20 h');
+		expect(page).toContain('Oui : 3 voix, 75 %');
+		expect(page).toContain('4 réponses');
+		expect(page).not.toContain('?/voter');
+		expect(page).not.toContain('Changer mon vote');
+	});
+	it('sans dates (publié avant les dates) : ouvert, sans ligne de dates', () => {
+		const page = sondage({ ouverture: null, cloture: null });
+		expect(page).toContain('Ouvert');
+		expect(page).not.toContain('Du ');
+	});
+});
+

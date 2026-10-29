@@ -1,5 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
-import { creerComite } from '@gyro-caserne/socle';
+import { creerComite, type NomIcone } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { accesReglages, echec, texte } from '#lib/server/formulaire-reglages.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -16,10 +16,10 @@ export const actions: Actions = {
 		const aujourdhui = aujourdhuiParis();
 		const { acteur, base } = await accesReglages(locals, aujourdhui);
 		const formulaire = await request.formData();
-		const valeurs = { nom: texte(formulaire, 'nom') ?? '', theme: texte(formulaire, 'theme') ?? '' };
+		const valeurs = { nom: texte(formulaire, 'nom') ?? '', theme: texte(formulaire, 'theme') ?? '', icone: texte(formulaire, 'icone') ?? '' };
 		let id: number;
 		try {
-			id = await creerComite(base, acteur, valeurs, aujourdhui);
+			id = await creerComite(base, acteur, { nom: valeurs.nom, theme: valeurs.theme, icone: (valeurs.icone || undefined) as NomIcone | undefined }, aujourdhui);
 		} catch (erreur) {
 			return echec(erreur, 'comite-nouveau', valeurs);
 		}

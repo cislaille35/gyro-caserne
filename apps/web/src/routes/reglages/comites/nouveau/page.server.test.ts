@@ -26,6 +26,20 @@ describe('nouveau comité', () => {
 		expect(await base.select().from(comite).where(eq(comite.nom, 'Sport'))).toHaveLength(1);
 	});
 
+	it('crée un comité avec l’icône choisie', async () => {
+		const { base, referent } = await preparer();
+		await expect(creer(locaux(base, referent), [['nom', 'Sport'], ['theme', 'sport'], ['icone', 'ballon']])).rejects.toMatchObject({ status: 303 });
+		expect((await base.select().from(comite).where(eq(comite.nom, 'Sport')))[0]!.icone).toBe('ballon');
+	});
+
+	it('sans icône choisie, enregistre une icône nulle', async () => {
+		const { base, referent } = await preparer();
+		await expect(creer(locaux(base, referent), [['nom', 'Sport'], ['theme', 'amicale']])).rejects.toMatchObject({ status: 303 });
+		expect((await base.select().from(comite).where(eq(comite.nom, 'Sport')))[0]!.icone).toBeNull();
+		await expect(creer(locaux(base, referent), [['nom', 'Fêtes'], ['theme', 'fêtes'], ['icone', '']])).rejects.toMatchObject({ status: 303 });
+		expect((await base.select().from(comite).where(eq(comite.nom, 'Fêtes')))[0]!.icone).toBeNull();
+	});
+
 	it('met l’erreur du nom ou du thème sur le bon champ, avec la saisie', async () => {
 		const { base, referent } = await preparer();
 		expect(await creer(locaux(base, referent), [['nom', 'amicale '], ['theme', 'x']])).toMatchObject({ status: 400, data: { erreurs: { nom: expect.stringContaining('déjà') }, valeurs: { theme: 'x' } } });

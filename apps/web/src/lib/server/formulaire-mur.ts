@@ -18,7 +18,7 @@ export function erreurLecture(erreur: unknown): never {
 }
 
 // Saisie à réafficher après un refus (les photos ne reviennent pas : il faut les choisir à nouveau).
-export type Valeurs = { type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[] };
+export type Valeurs = { mur?: string; type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; ouverture?: string; cloture?: string };
 // `id` : ce qui vient d'être créé (publication, commentaire), pour y mettre le focus.
 export type Reponse = { cible: string; succes?: string; id?: number; message?: string; erreurs?: Record<string, string>; valeurs?: Valeurs };
 
@@ -37,6 +37,7 @@ export function envoiTropLourd(request: Request): boolean {
 // donc sans réduction) est refusée avant d'être copiée pour le socle.
 export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesPublication; valeurs: Valeurs; erreurs?: Record<string, string> }> {
 	const valeurs: Valeurs = {
+		mur: texte(f, 'mur'),
 		type: texte(f, 'type'),
 		texte: texte(f, 'texte'),
 		priseDeConnaissance: f.get('priseDeConnaissance') === 'oui',
@@ -44,7 +45,9 @@ export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesP
 		lieu: texte(f, 'lieu'),
 		equipes: f.getAll('equipe').filter((v) => typeof v === 'string'),
 		question: texte(f, 'question'),
-		reponses: f.getAll('reponse').filter((v) => typeof v === 'string')
+		reponses: f.getAll('reponse').filter((v) => typeof v === 'string'),
+		ouverture: texte(f, 'ouverture'),
+		cloture: texte(f, 'cloture')
 	};
 	const fichiers = f.getAll('photos').filter((v): v is File => typeof v !== 'string' && v.size > 0);
 	if (fichiers.some((p) => p.size > TAILLE_PHOTO_MAX))
@@ -54,7 +57,7 @@ export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesP
 	const type = valeurs.type as DonneesPublication['type'];
 	const reponses = valeurs.reponses!.map((r) => r.trim()).filter(Boolean);
 	const donnees: DonneesPublication = { type, texte: valeurs.texte!, priseDeConnaissance: type === 'annonce' && valeurs.priseDeConnaissance };
-	if (valeurs.question!.trim() || reponses.length > 0) donnees.sondage = { question: valeurs.question!, reponses };
+	if (valeurs.question!.trim() || reponses.length > 0) donnees.sondage = { question: valeurs.question!, reponses, ouverture: valeurs.ouverture!, cloture: valeurs.cloture! };
 	// Les champs d'un événement ne comptent que pour un événement (la case de prise de connaissance, que pour une annonce) ; aucune équipe cochée : tout le mur.
 	if (type === 'evenement') donnees.evenement = { debut: valeurs.debut!, lieu: valeurs.lieu!, convoques: valeurs.equipes!.length > 0 ? valeurs.equipes!.map(Number) : 'tous' };
 	if (fichiers.length > 0) donnees.photos = await Promise.all(fichiers.map(async (p) => ({ type: p.type, donnees: new Uint8Array(await p.arrayBuffer()) })));
@@ -74,6 +77,14 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Question trop longue': { champ: 'sondage', texte: 'La question ne peut pas dépasser 200 caractères.' },
 	'Réponse trop longue': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },
 	'De 2 à 6 réponses': { champ: 'sondage', texte: 'Proposez de 2 à 6 réponses.' },
+	'Mur inconnu': { champ: 'mur', texte: 'Choisissez où publier.' },
+	'Ouverture invalide': { champ: 'ouverture', texte: 'Indiquez une date et une heure d’ouverture valides.' },
+	'Clôture invalide': { champ: 'cloture', texte: 'Indiquez une date et une heure de clôture valides.' },
+	'Dates du sondage manquantes': { champ: 'cloture', texte: 'Indiquez les dates d’ouverture et de clôture du sondage.' },
+	'Clôture avant l’ouverture': { champ: 'cloture', texte: 'Le sondage doit se clore après son ouverture.' },
+	'Clôture déjà passée': { champ: 'cloture', texte: 'Cette date de clôture est déjà passée : choisissez-en une à venir.' },
+	'Clôture dans plus d’un an': { champ: 'cloture', texte: 'Le sondage ne peut pas durer plus d’un an.' },
+	'Clôture après le début de l’événement': { champ: 'cloture', texte: 'Le sondage doit se clore au plus tard au début de l’événement.' },
 	'Date et lieu de l’événement manquants': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },
 	'Début invalide': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },
 	'Événement passé': { champ: 'debut', texte: 'Cet événement est déjà passé.' },
@@ -87,6 +98,8 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Commentaires fermés': { texte: 'Les commentaires sont fermés.' },
 	'Commentaire inconnu': { texte: 'Ce commentaire n’existe plus.' },
 	'Réponse inconnue': { texte: 'Choisissez une réponse.' },
+	'Sondage pas encore ouvert': { texte: 'Ce sondage n’est pas encore ouvert.' },
+	'Sondage fermé': { texte: 'Ce sondage est fermé.' },
 	'Cet événement est passé': { texte: 'Cet événement est passé : vous ne pouvez plus répondre.' },
 	'Réservé aux personnes ayant une fiche': { texte: 'Le super administrateur n’a pas de fiche : ce geste est réservé aux agents.' }
 };
@@ -104,7 +117,9 @@ export function echecMur(erreur: unknown, cible: string, valeurs?: Valeurs) {
 				: erreur.droit === 'MODERER_SALON'
 					? 'Seuls les modérateurs du mur demandent une prise de connaissance.'
 					: 'Vous ne pouvez pas publier sur ce mur.';
-		return fail<Reponse>(403, { cible, message, valeurs });
+		// Sur « Publier », le refus de la prise de connaissance s'affiche aussi sur sa case.
+		const erreurs = cible === 'publier' && erreur.droit === 'MODERER_SALON' ? { priseDeConnaissance: message } : undefined;
+		return fail<Reponse>(403, { cible, message, erreurs, valeurs });
 	}
 	if (erreur instanceof DonneeInvalide) {
 		const connu = DONNEES[erreur.message];

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gt, gte, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { nomActeur } from './actions/personnes.ts';
 import type { Base } from './base.ts';
 import { ajouterJours, exigerDate, exigerDateHeure } from './dates.ts';
@@ -38,6 +38,9 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const pasDeMoi = ne(publication.auteur, nomActeur(acteur));
 	const recent = gte(publication.creeLe, ajouterJours(aujourdhui, -RECENT));
+	// Même règle qu'etatSondage : sans ses deux dates, un sondage est toujours ouvert.
+	const m = maintenant.slice(0, 16);
+	const ouvert = or(isNull(publication.sondageOuverture), isNull(publication.sondageCloture), and(lte(publication.sondageOuverture, m), gt(publication.sondageCloture, m)));
 	// Le début du texte suffit au titre.
 	const champs = { id: publication.id, mur: publication.mur, texte: sql<string>`substr(${publication.texte}, 1, 200)`.as('debut_texte') };
 	// Murs où l'acteur a quelque chose à faire : membre, et mur ouvert. Quelques clés seulement (centre, vie, son équipe, ses comités).
@@ -61,7 +64,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.select(champs)
 			.from(publication)
 			.leftJoin(voteSondage, and(eq(voteSondage.publicationId, publication.id), eq(voteSondage.personneId, moi)))
-			.where(and(surSesMurs, sql`${publication.sondageQuestion} is not null`, recent, isNull(voteSondage.publicationId)))
+			.where(and(surSesMurs, sql`${publication.sondageQuestion} is not null`, ouvert, recent, isNull(voteSondage.publicationId)))
 			.orderBy(desc(publication.creeLe), desc(publication.id)),
 		base
 			.select(champs)

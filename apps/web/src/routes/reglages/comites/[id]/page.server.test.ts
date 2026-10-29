@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
-import { attribution, journal, responsabilite } from '@gyro-caserne/socle';
+import { attribution, iconeDuComite, journal, responsabilite } from '@gyro-caserne/socle';
 import { charger, envoyer, locaux, preparer } from '../../de-test.ts';
 import { actions, load } from './+page.server';
 
@@ -31,6 +31,26 @@ describe('page d’un comité', () => {
 		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale 2'], ['theme', 'fêtes']])).toMatchObject({ cible: 'comite', succes: expect.any(String) });
 		const centreCom = await com('Comité du centre');
 		expect(await agir('modifier', locaux(base, referent), centreCom.id, [['nom', 'Autre'], ['theme', 'centre']])).toMatchObject({ status: 400, data: { erreurs: { nom: expect.stringContaining('centre') } } });
+	});
+
+	it('enregistre l’icône choisie et la montre ; refuse une icône inconnue', async () => {
+		const { base, referent, com } = await preparer();
+		const amicale = await com('Amicale');
+		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', 'amicale'], ['icone', 'ballon']])).toMatchObject({ succes: expect.any(String) });
+		expect((await charger(load, locaux(base, referent), { id: String(amicale.id) })).comite.icone).toBe('ballon');
+		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', 'amicale'], ['icone', 'licorne']])).toMatchObject({ status: 400, data: { erreurs: { icone: expect.any(String) } } });
+		expect((await com('Amicale')).icone).toBe('ballon');
+	});
+
+	it('n’enregistre pas l’icône par défaut ni une valeur vide : l’icône reste nulle', async () => {
+		const { base, referent, com } = await preparer();
+		const amicale = await com('Amicale');
+		const { comite } = await charger(load, locaux(base, referent), { id: String(amicale.id) });
+		expect(comite.icone).toBeNull();
+		await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', comite.theme], ['icone', iconeDuComite(comite)]]);
+		expect((await com('Amicale')).icone).toBeNull();
+		expect(await agir('modifier', locaux(base, referent), amicale.id, [['nom', 'Amicale'], ['theme', comite.theme], ['icone', '']])).toMatchObject({ succes: expect.any(String) });
+		expect((await com('Amicale')).icone).toBeNull();
 	});
 
 	it('dissout seulement avec confirmation ; jamais le comité du centre', async () => {

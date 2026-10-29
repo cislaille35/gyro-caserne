@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
+	import type { IconeRole } from '#lib/ui/icones-roles.ts';
+	import ChoixIcone from '../../ChoixIcone.svelte';
 
 	let { form } = $props();
 	const erreurs = $derived<Record<string, string>>(form?.erreurs ?? {});
@@ -18,6 +20,7 @@
 <form method="POST" class="formulaire">
 	<Champ id="comite-nom" name="nom" libelle="Nom" requis maxlength={60} valeur={form?.valeurs?.nom ?? ''} erreur={erreurs.nom} />
 	<Champ id="comite-theme" name="theme" libelle="Thème" requis maxlength={60} valeur={form?.valeurs?.theme ?? ''} erreur={erreurs.theme} />
+	<ChoixIcone legende="Icône du mur" valeur={(form?.valeurs?.icone || undefined) as IconeRole | undefined} erreur={erreurs.icone} />
 	<Bouton type="submit">Créer le comité</Bouton>
 </form>
 

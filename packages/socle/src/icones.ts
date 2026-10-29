@@ -16,3 +16,9 @@ export function iconeDuRole(r: { nom: string; icone: string | null; modele: stri
 	if (r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint') return 'etoile';
 	return r.portee === 'equipe' ? 'casque' : r.portee === 'comite' ? 'groupe' : 'outil';
 }
+
+// L'icône choisie, sinon celle du thème : cœur pour l'amicale, étoile pour le centre, groupe pour les autres.
+export function iconeDuComite(c: { icone: string | null; theme: string }): NomIcone {
+	if (c.icone && (NOMS_ICONES as readonly string[]).includes(c.icone)) return c.icone as NomIcone;
+	return c.theme === 'amicale' ? 'coeur' : c.theme === 'centre' ? 'etoile' : 'groupe';
+}

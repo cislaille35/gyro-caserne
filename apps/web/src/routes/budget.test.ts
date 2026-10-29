@@ -3,19 +3,22 @@ import { eq } from 'drizzle-orm';
 import centre from '$centre';
 import { attribution, chargerJeuDeDepart, commentaire, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
 import { load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
+import { actions as actionsPublier, load as pagePublier } from './echanges/publier/+page.server';
 import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
 import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
 import { load as reglages } from './reglages/+layout.server';
 import { load as role } from './reglages/roles/[id]/+page.server';
+
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // D1 gratuit : 50 requêtes par appel du Worker. 45 au plus pour les pages, la session des hooks en prend quelques-unes.
 const BUDGET = 45;
@@ -40,6 +43,22 @@ async function centreDe150() {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// Le chef de centre et 300 publications sur « Le centre », dont 12 épinglées.
+async function centreDe300Publications() {
+	const c = await centreDe150();
+	const lignes = Array.from({ length: 300 }, (_, i) => ({ mur: 'centre', auteur: `personne:${c.locals.acteur.id}`, type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00', epinglee: i < 12 ? 1 : 0 }));
+	for (let i = 0; i < lignes.length; i += 50) await c.base.insert(publication).values(lignes.slice(i, i + 50));
+	return c;
+}
+
+// Le mur « Le centre » tel que SvelteKit le charge : la racine, la liste, puis le mur.
+async function pageDuMur(locals: unknown) {
+	const url = new URL('http://localhost/echanges/centre');
+	await (racine as any)({ locals });
+	await (echanges as any)({ locals, url });
+	return (mur as any)({ locals, params: { mur: 'centre' }, url });
+}
+
 describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/agents/[id] : layouts et fiche', async () => {
 		const { locals, agent, compter } = await centreDe150();
@@ -91,7 +110,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const maintenant = maintenantParis();
 		const ids: number[] = [];
 		for (let i = 0; i < 20; i++) ids.push(await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: `Note ${i}`, priseDeConnaissance: true }, maintenant));
-		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant));
+		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant));
 		await base.update(publication).set({ epinglee: 1 });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
 		const url = new URL('http://localhost/');
@@ -122,29 +141,42 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
-	it('/echanges/[mur] : 300 publications, puis une publication avec 4 photos et le rechargement', async () => {
+	it('/echanges : la liste rangée en sections', async () => {
 		const { base, locals, compter } = await centreDe150();
-		const lignes = Array.from({ length: 300 }, (_, i) => ({ mur: 'centre', auteur: `personne:${locals.acteur.id}`, type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00', epinglee: i < 12 ? 1 : 0 }));
-		for (let i = 0; i < lignes.length; i += 50) await base.insert(publication).values(lignes.slice(i, i + 50));
-		const params = { mur: 'centre' };
-		const url = new URL('http://localhost/echanges/centre');
-		const page = async () => {
-			await (racine as any)({ locals });
-			await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
-			return (mur as any)({ locals, params, url });
-		};
+		const lignes = Array.from({ length: 100 }, (_, i) => ({ mur: i % 2 ? 'centre' : 'vie', auteur: 'personne:2', type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00' }));
+		await base.insert(publication).values(lignes.slice(0, 50));
+		await base.insert(publication).values(lignes.slice(50));
 		const n = await compter(async () => {
-			const data = await page();
+			await (racine as any)({ locals });
+			const data = await (echanges as any)({ locals, url: new URL('http://localhost/echanges') });
+			expect(data.sections.centre.derniere).not.toBeNull();
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/echanges/[mur] : 300 publications', async () => {
+		const { locals, compter } = await centreDe300Publications();
+		const n = await compter(async () => {
+			const data = await pageDuMur(locals);
 			expect(data.publications).toHaveLength(20);
 			expect(data.epinglees).toHaveLength(10);
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
-		// Publication avec 4 photos, puis rechargement.
+	});
+
+	it('/echanges/publier : la page, puis une publication avec 4 photos et le mur rechargé', async () => {
+		const { locals, compter } = await centreDe300Publications();
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			const data = await (pagePublier as any)({ locals, url: new URL('http://localhost/echanges/publier?mur=centre') });
+			expect(data.choisi).toBe('centre');
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
 		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(350 * 1024, `p${i}.jpg`)]);
-		const request = await requeteFormulaire([['type', 'message'], ['texte', 'Nouvelle'], ...photos]);
+		const request = await requeteFormulaire([['mur', 'centre'], ['type', 'message'], ['texte', 'Nouvelle'], ...photos]);
 		const n2 = await compter(async () => {
-			expect(await (actionsMur.publier as any)({ locals, params, url, request })).toMatchObject({ succes: expect.any(String) });
-			await page();
+			await expect((actionsPublier.publier as any)({ locals, params: {}, url: new URL('http://localhost/echanges/publier'), request })).rejects.toMatchObject({ status: 303 });
+			await pageDuMur(locals);
 		});
 		expect(n2).toBeLessThanOrEqual(BUDGET);
 	});
@@ -152,7 +184,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/echanges/[mur]/[id] : annonce suivie, 50 commentaires ; chaque geste puis le rechargement', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const maintenant = '2026-10-28T10:00:00';
-		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		const evenement = await publier(base, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
 		const agents = await base.select({ id: personne.id }).from(personne);
 		for (const a of agents.slice(0, 100)) await prendreConnaissance(base, { type: 'personne', id: a.id }, annonce, maintenant);
