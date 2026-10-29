@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -95,7 +97,7 @@ describe('liste des murs', () => {
 		expect(html()).toMatch(/<a[^>]*href="\/echanges\/publier"[^>]*>/);
 	});
 
-	it('Vivant : Gyro animé, nouveautés puis une variante choisie par le jour de l’année', () => {
+	it('Vivant : Gyro animé à l’arrivée, nouveautés puis une variante choisie par le jour de l’année', () => {
 		etat.page.params = {};
 		vi.useFakeTimers({ toFake: ['Date'] });
 		vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
@@ -108,6 +110,37 @@ describe('liste des murs', () => {
 		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. La caserne bavarde, voici l’essentiel.');
 		vi.setSystemTime(new Date('2026-01-03T12:00:00Z'));
 		expect(texte(html())).toContain('depuis votre dernière visite. Le café est encore chaud.');
+	});
+
+	it('Vivant : Gyro s’immobilise après 5 s et ne repart pas seul (RGAA 13.8)', () => {
+		// Le minuteur d'arrêt (arreterApres, DUREE_DECOR) est éprouvé dans lib/gyro/mouvement.test.ts : la liste doit passer par GyroDuMoment, qui l'utilise.
+		const code = (fichier: URL) => compile(readFileSync(fichier, 'utf8'), { generate: 'client' }).js.code;
+		const liste = code(new URL('./+layout.svelte', import.meta.url));
+		expect(liste).toContain('GyroDuMoment');
+		expect(liste).not.toMatch(/from '#lib\/gyro\/Gyro\.svelte'/);
+		const gyro = code(new URL('../../lib/gyro/GyroDuMoment.svelte', import.meta.url));
+		expect(gyro).toContain('arreterApres(duree');
+		expect(gyro).toMatch(/duree = DUREE_DECOR|DUREE_DECOR\)/);
+	});
+
+	it('deux anniversaires d’homonymes : deux lignes, deux liens « Souhaiter »', () => {
+		etat.page.params = {};
+		const page = html({ aujourdhui: { anniversaires: [{ prenom: 'Thomas', nom: 'Agent' }, { prenom: 'Thomas', nom: 'Agent' }], evenement: null } });
+		expect(texte(page).match(/Thomas Agent fête son anniversaire/g)).toHaveLength(2);
+		expect(page.match(/texte=Joyeux%20anniversaire%20Thomas%20!/g)).toHaveLength(2);
+		// Une clé tirée du nom ferait planter la page dans le navigateur (each_key_duplicate) : la boucle est indexée.
+		const liste = compile(readFileSync(new URL('./+layout.svelte', import.meta.url), 'utf8'), { generate: 'client' }).js.code;
+		expect(liste).not.toMatch(/a\.prenom\} \$\{a\.nom/);
+	});
+
+	it('les sections repliées : ouvertes au premier rendu si le mur courant y est, puis laissées à la personne', () => {
+		etat.page.params = { mur: 'comite:2' };
+		expect(html()).toMatch(/<details class="repli[^"]*" open/);
+		etat.page.params = {};
+		expect(html()).not.toMatch(/<details[^>]* open/);
+		// Pas d'attribut suivi : changer de mur ne referme pas une section ouverte.
+		const source = readFileSync(new URL('./+layout.svelte', import.meta.url), 'utf8');
+		expect(source).not.toMatch(/open=\{s\./);
 	});
 
 	it('Équilibré : Gyro immobile et la première phrase seule ; rien de neuf', () => {

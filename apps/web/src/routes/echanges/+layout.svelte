@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
-	import Gyro from '#lib/gyro/Gyro.svelte';
+	import { untrack } from 'svelte';
+	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { quand } from '#lib/murs/quand.ts';
 	import { ICONE_MAISON } from '#lib/ui/icones-roles.ts';
@@ -12,12 +13,16 @@
 	let { data, children } = $props();
 
 	const affichage = lireAffichageContexte();
-	const gyro = $derived(gyroSelonNiveau(affichage.niveau));
 
 	// Sur un mur : au téléphone, la liste laisse la place au mur ; à l'ordinateur, elle reste à gauche, en bref.
 	const actif = $derived(page.params.mur);
 	const s = $derived(data.sections);
 	const jour = $derived(data.aujourdhui);
+	// Au premier rendu seulement : ensuite, la personne ouvre et ferme les sections repliées à son gré.
+	const ouvrir = untrack(() => ({
+		autres: data.sections.autres.some((t) => t.cle === page.params.mur),
+		supervision: data.sections.supervision.some((t) => t.cle === page.params.mur)
+	}));
 
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const total = $derived([s.centre, ...s.groupes, ...s.autres, ...s.supervision].reduce((n, t) => n + (t?.nouveautes ?? 0), 0));
@@ -74,7 +79,7 @@
 	<nav class="murs" aria-label="Murs">
 		{#if !actif}
 			<header class="entete">
-				{#if gyro.visible}<span class="mascotte"><Gyro tenue="normal" taille={72} anime={gyro.anime} decoratif /></span>{/if}
+				{#if gyroSelonNiveau(affichage.niveau).visible}<span class="mascotte"><GyroDuMoment tenue="normal" taille={72} decoratif /></span>{/if}
 				<div class="titres">
 					<h1>Échanges</h1>
 					<p class="phrase">{phrase}</p>
@@ -155,7 +160,7 @@
 							{#each s.groupes as t (t.cle)}{@render tuile(t)}{/each}
 						</ul>
 						{#if s.autres.length > 0}
-							<details class="repli" open={s.autres.some((t) => t.cle === actif)}>
+							<details class="repli" open={ouvrir.autres}>
 								<summary>Autres comités <span class="doux">({s.autres.length}, rien de neuf)</span></summary>
 								<ul>
 									{#each s.autres as t (t.cle)}{@render tuile(t)}{/each}
@@ -166,7 +171,7 @@
 				{/if}
 
 				{#if s.supervision.length > 0}
-					<details class="repli" open={s.supervision.some((t) => t.cle === actif)}>
+					<details class="repli" open={ouvrir.supervision}>
 						<summary>Supervision <span class="doux">({s.supervision.length})</span></summary>
 						<ul>
 							{#each s.supervision as t (t.cle)}{@render tuile(t)}{/each}
