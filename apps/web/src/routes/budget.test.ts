@@ -124,6 +124,19 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
+	it('/echanges : la liste rangée en sections', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const lignes = Array.from({ length: 100 }, (_, i) => ({ mur: i % 2 ? 'centre' : 'vie', auteur: 'personne:2', type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00' }));
+		await base.insert(publication).values(lignes.slice(0, 50));
+		await base.insert(publication).values(lignes.slice(50));
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			const data = await (echanges as any)({ locals, url: new URL('http://localhost/echanges') });
+			expect(data.sections.centre.derniere).not.toBeNull();
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
 	it('/echanges/[mur] : 300 publications, puis une publication avec 4 photos et le rechargement', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const lignes = Array.from({ length: 300 }, (_, i) => ({ mur: 'centre', auteur: `personne:${locals.acteur.id}`, type: 'message' as const, texte: `Publication ${i}`, creeLe: '2026-10-01T10:00:00', epinglee: i < 12 ? 1 : 0 }));

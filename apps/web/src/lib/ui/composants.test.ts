@@ -13,9 +13,10 @@ import IconeRole from './IconeRole.svelte';
 import Initiales from './Initiales.svelte';
 import Pastille from './Pastille.svelte';
 import PastilleEquipe from './PastilleEquipe.svelte';
+import PastilleMur from './PastilleMur.svelte';
 import Statut from './Statut.svelte';
 import Tableau from './Tableau.svelte';
-import { ICONES_ROLES } from './icones-roles.ts';
+import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,6 +55,30 @@ describe('Champ', () => {
 		const page = html(Champ, { ...base, aide: 'Aide', erreur: 'Erreur' });
 		const refs = page.match(/aria-describedby="([^"]+)"/)![1].split(' ');
 		expect(refs).toHaveLength(2);
+	});
+});
+
+describe('PastilleMur', () => {
+	const vide = { icone: null, couleur: null, numero: null };
+	it('un comité : son icône sur sa teinte, décorative', () => {
+		const page = html(PastilleMur, { ...vide, icone: 'coeur' });
+		expect(page).toContain('aria-hidden="true"');
+		expect(page).toContain('var(--icone-coeur-fond)');
+		expect(page).toContain('var(--icone-coeur-texte)');
+		expect(page).toContain(`d="${ICONES_ROLES.coeur}"`);
+		expect(page).toContain('width: 48px');
+	});
+	it('Le centre : la maison sur le rouge', () => {
+		const page = html(PastilleMur, { ...vide, icone: 'maison' });
+		expect(page).toContain(`d="${ICONE_MAISON}"`);
+		expect(page).toContain('var(--rouge)');
+	});
+	it('une équipe : son numéro sur sa couleur, en 28 px', () => {
+		const page = html(PastilleMur, { icone: null, couleur: '#d4a017', numero: 3, taille: 28 });
+		expect(page).toMatch(/>3<\/span>/);
+		expect(page).toContain('#d4a017');
+		expect(page).toContain('width: 28px');
+		expect(page).not.toContain('<svg');
 	});
 });
 

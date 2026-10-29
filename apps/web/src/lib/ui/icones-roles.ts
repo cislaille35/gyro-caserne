@@ -13,3 +13,6 @@ export const ICONES_ROLES = {
 } as const;
 
 export type IconeRole = keyof typeof ICONES_ROLES;
+
+// Le centre : une maison. Hors de la liste des icônes à choisir.
+export const ICONE_MAISON = 'M3 11l9-7 9 7v9H3zM9 20v-6h6v6';
