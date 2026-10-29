@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import GyroDuMoment from '../gyro/GyroDuMoment.svelte';
+	import Retour from './Retour.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
 	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rond rouge).
@@ -27,12 +28,7 @@
 </script>
 
 <header class="entete">
-	{#if retour}
-		<a class="retour" href={retour.href}
-			><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6" /></svg
-			><span class="masque">{'Retour : '}</span>{retour.libelle}</a
-		>
-	{/if}
+	{#if retour}<Retour href={retour.href} libelle={retour.libelle} />{/if}
 	<div class="ligne">
 		{#if tete}
 			<span class="tete">{@render tete()}</span>
@@ -61,22 +57,6 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 4px;
-	}
-	.retour {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		margin: -6px 0 -4px -6px;
-		padding: 0 10px 0 4px;
-		border-radius: 999px;
-		color: var(--doux);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.retour:hover {
-		color: var(--encre);
-		background: var(--surface);
 	}
 	.ligne {
 		align-self: stretch;

@@ -202,7 +202,12 @@ describe('Groupe', () => {
 	it('titre et résumé dans le bouton, au niveau de titre demandé, chevron décoratif', () => {
 		expect(html(Groupe, base)).toMatch(/<h2[^>]*>\s*<button[\s\S]*Référents[\s\S]*4 rôles[\s\S]*<\/button>(\s|<!---->)*<\/h2>/);
 		expect(html(Groupe, { ...base, niveauTitre: 3 })).toMatch(/<h3[^>]*>\s*<button/);
-		expect(html(Groupe, base)).toMatch(/<span[^>]*aria-hidden="true"[^>]*>›<\/span>/);
+		expect(html(Groupe, base)).toMatch(/<svg class="chevron[^"]*"[^>]*aria-hidden="true"/);
+	});
+
+	it('une icône en tête, sur demande seulement', () => {
+		expect(html(Groupe, { ...base, icone: 'etoile' })).toMatch(/<button[^>]*>(\s|<!--[^>]*-->)*<span class="tuile[^"]*" aria-hidden="true"/);
+		expect(html(Groupe, base)).not.toContain('class="tuile');
 	});
 
 	it('liseré de couleur et résumé en alerte, sur demande seulement', () => {

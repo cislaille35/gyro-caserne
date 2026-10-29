@@ -691,12 +691,12 @@ test.describe('agents', () => {
 		await expect(page.getByText('Fiche enregistrée')).toBeVisible();
 		await expect(page).toHaveURL(/filtre=a-completer/);
 		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
-		// Sur téléphone, la liste est derrière la fiche : « Retour à la liste » la rend, filtrée.
+		// Sur téléphone, la liste est derrière la fiche : « ‹ Agents » la rend, filtrée.
 		if (testInfo.project.name === 'telephone') {
-			await page.getByRole('link', { name: 'Retour à la liste' }).click();
+			await page.getByRole('link', { name: 'Retour : Agents' }).click();
 			await expect(page).toHaveURL(/\/agents\?filtre=a-completer$/);
 		} else {
-			await expect(page.getByRole('link', { name: 'Retour à la liste' })).toBeHidden();
+			await expect(page.getByRole('link', { name: 'Retour : Agents' })).toBeHidden();
 		}
 		await expect(page.getByRole('button', { name: /^À compléter/ })).toHaveAttribute('aria-pressed', 'true');
 		await page.getByRole('link', { name: second.nom, exact: true }).click();
