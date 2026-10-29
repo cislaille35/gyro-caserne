@@ -5,7 +5,7 @@ import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
-import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, photoSignalee, pourVous, quitterGroupe, reagir, renommerGroupe, retirerMembre, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
+import { ajouterMembres, annuaire, classerSignalement, conversationAvec, creerGroupe, effacerAnciens, envoyer, exigerMessagerie, infosConversation, lireConversation, membresPourGroupe, mesConversations, modifierMessage, nommerAnimateur, nonLusTotal, phraseSysteme, photoMessage, photoSignalee, pourVous, quitterGroupe, reagir, renommerGroupe, retirerMembre, nombreSignalements, retirerParModeration, signalements, signaler, suiteConversation, supprimerMessage } from '../src/messagerie.ts';
 import { modifierMonProfil } from '../src/actions/personnes.ts';
 import { REACTIONS } from '../src/listes.ts';
 import { affectationEquipe, attribution, comite, conversation, equipe, journal, membreConversation, message, personne, photoMessage as photoDeMessage, profil, profilDroit, reactionMessage, responsabilite, responsabiliteDroit, signalementMessage } from '../src/schema.ts';
@@ -267,7 +267,7 @@ describe('lireConversation', () => {
 				modifie: false,
 				supprime: null,
 				systeme: null,
-				reponse: { id: m1.message, auteur: { id: manon, prenom: 'Manon', nom: 'Durand', couleur: null }, extrait: 'Salut' },
+				reponse: { id: m1.message, auteur: { id: manon, prenom: 'Manon', nom: 'Durand', couleur: null }, extrait: 'Salut', supprime: null },
 				photos: [],
 				reactions: [],
 				moi: false,
@@ -302,7 +302,15 @@ describe('lireConversation', () => {
 		await base.update(message).set({ supprime: 'auteur' }).where(eq(message.id, m.message));
 		const vue = await lireConversation(base, acteur(romain), m.conversation, {}, minute(2));
 		expect(vue.messages[0]).toMatchObject({ texte: '', supprime: 'auteur' });
-		expect(vue.messages[1]!.reponse).toMatchObject({ id: m.message, extrait: '' });
+		expect(vue.messages[1]!.reponse).toMatchObject({ id: m.message, extrait: '', supprime: 'auteur' });
+	});
+
+	it('la citation d’une photo seule : ni texte ni suppression', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: '', photos: [jpeg()] }, minute(0));
+		await envoyer(base, base.photos, acteur(romain), { conversation: m.conversation }, { texte: 'Belle photo', reponseA: m.message }, minute(1));
+		const vue = await lireConversation(base, acteur(romain), m.conversation, {}, minute(2));
+		expect(vue.messages[1]!.reponse).toMatchObject({ id: m.message, extrait: '', supprime: null });
 	});
 
 	it('2 000 messages : pages de 40, `avant` remonte, budget et paramètres tenus', async () => {
@@ -1108,6 +1116,22 @@ describe('coches', () => {
 	});
 });
 
+describe('coches coupées chez le lecteur', () => {
+	it('un lecteur qui a coupé ses coches n’avance pas lu_le', async () => {
+		const { base, manon, romain } = await jeu();
+		await modifierMonProfil(base, acteur(romain), { cochesLecture: false }, aujourdhui);
+		const m1 = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Salut' }, minute(0));
+		await lireConversation(base, acteur(romain), m1.conversation, {}, minute(1));
+		const m2 = await envoyer(base, base.photos, acteur(manon), { conversation: m1.conversation }, { texte: 'Tu es là ?' }, minute(2));
+		await suiteConversation(base, acteur(romain), m1.conversation, { dernierId: m1.message, majLe: '2026-10-29T10:00:50' }, minute(3));
+		const lignes = await base.select({ luLe: message.luLe }).from(message).where(eq(message.conversationId, m1.conversation));
+		expect(lignes.map((l) => l.luLe)).toEqual([null, null]);
+		// Il a pourtant tout lu : seule la coche de Manon ne bouge pas.
+		const [lu] = await base.select().from(membreConversation).where(and(eq(membreConversation.conversationId, m1.conversation), eq(membreConversation.personneId, romain)));
+		expect(lu!.luJusquA).toBe(m2.message);
+	});
+});
+
 describe('lireConversation avec réactions et photos', () => {
 	it('tout dans la même page, sans requête de plus ; paramètres tenus', async () => {
 		const { base, manon, romain } = await jeu();
@@ -1248,6 +1272,20 @@ describe('suiteConversation', () => {
 		await expect(suiteConversation(base, acteur(romain), id, { dernierId: -1, majLe: vue.majLe }, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(suiteConversation(base, acteur(romain), id, { dernierId: 1, majLe: 'hier' }, minute(4))).rejects.toBeInstanceOf(DonneeInvalide);
 	});
+
+	it('refuse un repère de plus d’une heure : « Repère trop ancien », sans requête', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Salut' }, minute(0));
+		const vue = await lireConversation(base, acteur(romain), m.conversation, {}, minute(1));
+		const depuis = { dernierId: m.message, majLe: vue.majLe };
+		// 10:00:50 : encore bon à 11:00, plus à 11:01.
+		await expect(suiteConversation(base, acteur(romain), m.conversation, depuis, minute(60))).resolves.toMatchObject({ nouveaux: [] });
+		const avant = base.requetes;
+		const refus = suiteConversation(base, acteur(romain), m.conversation, depuis, minute(61));
+		await expect(refus).rejects.toBeInstanceOf(DonneeInvalide);
+		await expect(refus).rejects.toThrow('Repère trop ancien');
+		expect(base.requetes - avant).toBe(0);
+	});
 });
 
 describe('signalements', () => {
@@ -1274,6 +1312,22 @@ describe('signalements', () => {
 		const lignes = await base.select().from(journal).where(eq(journal.action, 'signaler_message'));
 		expect(lignes).toEqual([expect.objectContaining({ acteur: `personne:${romain}`, cibleType: 'message', cibleId: m.message })]);
 		expect(JSON.stringify(await base.select().from(journal))).not.toContain('grave');
+	});
+
+	it('nombreSignalements : les signalements en cours, sans lire les copies, en une requête (droits gardés) ; 0 pour qui ne modère pas', async () => {
+		const { base, chef, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Texte grave' }, minute(0));
+		const m2 = await envoyer(base, base.photos, acteur(manon), { conversation: m.conversation }, { texte: 'Encore' }, minute(0));
+		expect(await nombreSignalements(base, acteur(chef), aujourdhui)).toBe(0);
+		await signaler(base, acteur(romain), m.message, minute(1));
+		await signaler(base, acteur(romain), m2.message, minute(1));
+		expect(await nombreSignalements(base, acteur(chef), aujourdhui)).toBe(2);
+		// Les droits, déjà lus pour la page, sont gardés : il ne reste que le compte.
+		const avant = base.requetes;
+		expect(await nombreSignalements(base, acteur(chef), aujourdhui)).toBe(2);
+		expect(base.requetes - avant).toBe(1);
+		expect(await nombreSignalements(base, superAdmin, aujourdhui)).toBe(2);
+		for (const a of [manon, romain]) expect(await nombreSignalements(base, acteur(a), aujourdhui)).toBe(0);
 	});
 
 	it('la copie survit à la suppression par l’auteur, photos comprises ; seul le modérateur la voit', async () => {
@@ -1340,6 +1394,7 @@ describe('signalements', () => {
 			[minute(3), '', '[]']
 		]);
 		expect(await signalements(base, acteur(chef), aujourdhui)).toEqual([]);
+		expect(await nombreSignalements(base, acteur(chef), aujourdhui)).toBe(0);
 		const vue = await lireConversation(base, acteur(romain), id, {}, minute(4));
 		expect(vue.messages.find((x) => x.id === m.message)).toMatchObject({ texte: '', supprime: 'moderation', photos: [], reactions: [] });
 		const lignes = await base.select().from(journal).where(eq(journal.action, 'retirer_message'));

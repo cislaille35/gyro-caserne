@@ -2,7 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
-import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication } from '../src/actions/publications.ts';
+import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, photoPublication, priseConnaissance, profil, publication, reponseEvenement, responsabilite, visiteMur, voteSondage } from '../src/schema.ts';
@@ -672,6 +672,19 @@ describe('lirePublication', () => {
 		await expect(lirePublication(base, acteur(agent), id, maintenant)).rejects.toThrow(RefusDroit);
 		await expect(lirePublication(base, acteur(agent), 999, maintenant)).rejects.toThrow(DonneeInvalide);
 		expect((await lirePublication(base, superAdmin, id, maintenant)).publication.droits.epingler).toBe(true);
+	});
+});
+
+describe('textePublication', () => {
+	it('le texte d’une publication dont l’acteur lit le mur, en 2 requêtes ; refus sinon', async () => {
+		const { base, agent, chef, e1 } = await jeu();
+		const vie = await publier(base, base.photos, acteur(chef), 'vie', message('Repas de Noël'), maintenant);
+		const equipe = await publier(base, base.photos, acteur(chef), `equipe:${e1.id}`, message('Réservé à l’équipe'), maintenant);
+		const avant = base.requetes;
+		expect(await textePublication(base, acteur(agent), vie, aujourdhui)).toBe('Repas de Noël');
+		expect(base.requetes - avant).toBeLessThanOrEqual(2);
+		await expect(textePublication(base, acteur(agent), equipe, aujourdhui)).rejects.toThrow(RefusDroit);
+		await expect(textePublication(base, acteur(agent), 999, aujourdhui)).rejects.toThrow(DonneeInvalide);
 	});
 });
 

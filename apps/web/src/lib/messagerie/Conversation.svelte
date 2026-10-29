@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { VueConversation, VueMessage } from '@gyro-caserne/socle';
 	import { applyAction, deserialize, type ActionResult } from '$app/forms';
-	import { afterNavigate, goto } from '$app/navigation';
+	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
 	import { onMount, tick, untrack } from 'svelte';
 	import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 	import { heure } from '#lib/murs/quand.ts';
@@ -13,6 +13,7 @@
 	import { apresArrivee, cleBrouillon, instant } from './fil.ts';
 	import { bandeauNonLus, fusionner, regrouper } from './regrouper.ts';
 	import Saisie from './Saisie.svelte';
+	import { lireNonLus } from './pastille.ts';
 	import { suivreConversation } from './suite.ts';
 	import { toucher } from './toucher.ts';
 
@@ -75,15 +76,31 @@
 		if (!loinDuBas) nouveauxEnDessous = 0;
 	}
 
+	const pastille = lireNonLus();
 	let suivi: ReturnType<typeof suivreConversation> | null = null;
+	let ferme = false;
+	function suivre() {
+		const dernier = messages.at(-1)?.id ?? 0;
+		suivi = suivreConversation(
+			id,
+			{ dernierId: dernier, majLe: vue.majLe },
+			{ recu, exclu: (m) => (exclu = m), perime: recharger, nonLus: (n) => pastille.recu?.(n), tour: () => (aujourdhui = aujourdhuiParis()) }
+		);
+	}
+	// Repère trop ancien (onglet longtemps masqué) : la conversation est relue, et le suivi repart de la page reçue.
+	async function recharger() {
+		await invalidateAll();
+		if (ferme) return;
+		messages = vue.messages;
+		plusAnciens = vue.plusAnciens;
+		suivre();
+	}
 	onMount(() => {
 		js = true;
 		window.addEventListener('scroll', surDefilement, { passive: true });
-		if (!nouvelle && avant === null) {
-			const dernier = messages.at(-1)?.id ?? 0;
-			suivi = suivreConversation(id, { dernierId: dernier, majLe: vue.majLe }, { recu, exclu: (m) => (exclu = m), tour: () => (aujourdhui = aujourdhuiParis()) });
-		}
+		if (!nouvelle && avant === null) suivre();
 		return () => {
+			ferme = true;
 			window.removeEventListener('scroll', surDefilement);
 			suivi?.arreter();
 		};
@@ -347,7 +364,7 @@
 			<p id="confirmation-texte">Il disparaît pour tout le monde. « Message supprimé » reste à sa place.</p>
 		{:else}
 			<h2 id="confirmation-titre">Signaler ce message ?</h2>
-			<p id="confirmation-texte">Seul ce message est transmis au chef de centre, sans le reste de la conversation.</p>
+			<p id="confirmation-texte">Seul ce message est transmis à la modération, sans le reste de la conversation.</p>
 		{/if}
 		<div class="choix">
 			<!-- svelte-ignore a11y_autofocus -->

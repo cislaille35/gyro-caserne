@@ -187,7 +187,7 @@ describe('une conversation : gestes', () => {
 	it('signaler le message d’un autre, une fois', async () => {
 		const { base, chef, alice, id } = await groupe();
 		const { message: m } = await envoyer(base, base.photos, chef, { conversation: id }, { texte: 'Grave' }, '2026-10-28T09:01');
-		expect(await agir('signaler', locaux(base, alice), id, [['id', String(m)]])).toMatchObject({ succes: 'Le message a été transmis au chef de centre.' });
+		expect(await agir('signaler', locaux(base, alice), id, [['id', String(m)]])).toMatchObject({ succes: 'Le message a été transmis à la modération.' });
 		expect(await base.select().from(signalementMessage)).toHaveLength(1);
 		expect(await agir('signaler', locaux(base, alice), id, [['id', String(m)]])).toMatchObject({ status: 400, data: { message: 'Vous avez déjà signalé ce message.' } });
 	});

@@ -30,7 +30,8 @@ export type VueMessage = {
 	supprime: 'auteur' | 'moderation' | null;
 	// La phrase d'un message système (« Romain a ajouté Manon »).
 	systeme: string | null;
-	reponse: { id: number; auteur: Visage | null; extrait: string } | null;
+	// Le message cité : `extrait` est vide pour une photo seule comme pour un message supprimé (alors `supprime` le dit).
+	reponse: { id: number; auteur: Visage | null; extrait: string; supprime: 'auteur' | 'moderation' | null } | null;
 	photos: number[];
 	reactions: { emoji: Reaction; nombre: number; deMoi: boolean }[];
 	moi: boolean;
@@ -283,10 +284,13 @@ export async function envoyer(
 
 const extrait = sql<string>`case when ${message.supprime} is null then substr(${message.texte}, 1, ${EXTRAIT}) else '' end`;
 
+const instant = (dateHeure: string) => Date.parse(`${dateHeure.length === 16 ? `${dateHeure}:00` : dateHeure}Z`);
+const REPERE_MAX = 3600_000;
+
 // Repère du rafraîchissement : 10 secondes avant maintenant, pour ne pas perdre une écriture finie juste après la lecture
 // (un message déjà vu peut alors revenir une fois de plus, sans gêne).
 function repere(maintenant: string): string {
-	return new Date(Date.parse(`${maintenant.length === 16 ? `${maintenant}:00` : maintenant}Z`) - 10_000).toISOString().slice(0, 19);
+	return new Date(instant(maintenant) - 10_000).toISOString().slice(0, 19);
 }
 
 // La conversation, si l'acteur en est membre.
@@ -315,7 +319,7 @@ function lecturesDuFil(base: Base, id: number, moi: number, aujourdhui: string, 
 			.where(eq(membreConversation.conversationId, id)),
 		base.select().from(message).where(choisis).orderBy(desc(message.id)),
 		base
-			.select({ id: message.id, auteur: message.auteur, extrait })
+			.select({ id: message.id, auteur: message.auteur, extrait, supprime: message.supprime })
 			.from(message)
 			.where(and(eq(message.conversationId, id), inArray(message.id, base.select({ id: message.reponseA }).from(message).where(choisis)))),
 		base
@@ -349,7 +353,7 @@ function filDe(moi: number, [membres, messages, cites, auteurs, affectations, re
 	const prenoms = new Map(auteurs.map((a) => [a.id, a.prenom]));
 	const autres = membres.filter((m) => m.id !== moi);
 	const mesCoches = membres.find((m) => m.id === moi)?.coches === 1;
-	const citesParId = new Map(cites.map((c) => [c.id, { id: c.id, auteur: visage(c.auteur), extrait: c.extrait }]));
+	const citesParId = new Map(cites.map((c) => [c.id, { id: c.id, auteur: visage(c.auteur), extrait: c.extrait, supprime: c.supprime }]));
 
 	// « lu » quand tous les autres présents à l'envoi, coches ouvertes, l'ont lu ; aucune coche si l'acteur a coupé les siennes.
 	const coche = (m: (typeof messages)[number]): VueMessage['coche'] => {
@@ -464,6 +468,8 @@ export async function suiteConversation(
 	const dernierId = depuis.dernierId;
 	if (!Number.isInteger(dernierId) || dernierId < 0) throw new DonneeInvalide('Repère invalide');
 	exigerDateHeure(depuis.majLe, 'Repère');
+	// Au-delà d'une heure (onglet longtemps masqué), la page recharge plutôt que de tout relire ici.
+	if (instant(maintenant) - instant(depuis.majLe) > REPERE_MAX) throw new DonneeInvalide('Repère trop ancien');
 	const nouveauxIds = base
 		.select({ id: message.id })
 		.from(message)
@@ -1086,6 +1092,14 @@ export async function signalements(base: Base, acteur: Acteur, aujourdhui: strin
 	]);
 	const qui = (id: number) => personnes.find((p) => p.id === id) ?? { id, prenom: '', nom: '' };
 	return lignes.map((l) => ({ id: l.id, le: l.le, par: qui(l.par), auteur: qui(l.auteur), envoye_le: l.envoyeLe, texte: l.texte, photos: JSON.parse(l.photos) as number[], retirable: l.retirable === 1 }));
+}
+
+// Le nombre de signalements en cours, pour la cloche : 0 pour qui ne modère pas. Les droits, puis une requête, sans lire les copies.
+export async function nombreSignalements(base: Base, acteur: Acteur, aujourdhui: string): Promise<number> {
+	exigerDate(aujourdhui);
+	if (!(await aLeDroit(base, acteur, 'MODERER_MESSAGERIE', MODERATION, aujourdhui))) return 0;
+	const [ligne] = await base.select({ n: count() }).from(signalementMessage).where(isNull(signalementMessage.classeLe));
+	return ligne?.n ?? 0;
 }
 
 // Une photo copiée par un signalement non classé, au modérateur seulement : l'accès se vérifie dans la base principale,

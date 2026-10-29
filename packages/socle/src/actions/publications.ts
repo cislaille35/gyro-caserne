@@ -149,6 +149,12 @@ export async function cible(base: Base, acteur: Acteur, id: number, aujourdhui: 
 	return { ligne, mur, appartenances, cle: ligne.mur, droits: droitsSur(acteur, mur, ligne) };
 }
 
+// Le texte d'une publication, si l'acteur peut lire son mur (« Répondre en privé »). Deux requêtes.
+export async function textePublication(base: Base, acteur: Acteur, id: number, aujourdhui: string): Promise<string> {
+	exigerDate(aujourdhui);
+	return (await cible(base, acteur, id, aujourdhui)).ligne.texte;
+}
+
 const journalPublication = (base: Base, acteur: Acteur, action: string, id: number, maintenant: string, details?: object) =>
 	ligneJournal(base, { acteur: nomActeur(acteur), action, cibleType: 'publication', cibleId: id, details }, maintenant);
 

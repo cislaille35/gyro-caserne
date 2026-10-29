@@ -12,4 +12,4 @@ Si vous avez déjà écrit à ce collègue, la même conversation se rouvre. Vou
 
 Sous votre message, ✓ veut dire envoyé et ✓✓ lu. Pour ne plus montrer quand vous avez lu, décochez « Montrer quand j’ai lu les messages » dans « Mon profil ».
 
-Pour répondre à un message, le modifier (dans les 15 minutes), le supprimer ou le signaler : appui long sur le message, ou bouton « ⋯ » à côté de lui.
+Pour répondre à un message, le modifier (dans les 15 minutes), le supprimer ou le signaler : appui long sur le message, ou bouton « ⋯ » à côté de lui. Un message signalé est transmis à la modération, sans le reste de la conversation.

@@ -92,7 +92,7 @@
 					if (!allerA) return;
 					e.preventDefault();
 					allerA(r.id);
-				}}><span class="masque">En réponse à</span> <strong>{cite}</strong> <span class="extrait" class:vide={!r.extrait}>{r.extrait || 'Message supprimé'}</span></a
+				}}><span class="masque">En réponse à</span> <strong>{cite}</strong> <span class="extrait" class:vide={!r.extrait}>{r.supprime !== null ? 'Message supprimé' : r.extrait || 'Photo'}</span></a
 			>
 		{/if}
 		{#if m.photos.length > 0}

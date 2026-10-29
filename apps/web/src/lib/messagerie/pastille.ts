@@ -3,12 +3,15 @@ import { getContext, setContext } from 'svelte';
 const CLE = 'non-lus';
 
 // Le nombre de messages non lus, tenu à jour par le layout racine. L'objet peut porter un accesseur.
-export function definirNonLus(o: { readonly nombre: number }): void {
+// `recu` : le nombre recompté par une conversation ouverte, qui le fait suivre pendant la lecture.
+type NonLus = { readonly nombre: number; recu?: (n: number) => void };
+
+export function definirNonLus(o: NonLus): void {
 	setContext(CLE, o);
 }
 
-export function lireNonLus(): { readonly nombre: number } {
-	return getContext<{ nombre: number } | undefined>(CLE) ?? { nombre: 0 };
+export function lireNonLus(): NonLus {
+	return getContext<NonLus | undefined>(CLE) ?? { nombre: 0 };
 }
 
 // Le nombre de messages non lus, demandé au serveur ; null en cas d'erreur (hors ligne, déconnecté).
@@ -46,6 +49,13 @@ export function suivreNonLus(initial: number, rappel: (nonLus: number) => void, 
 		arreter() {
 			clearInterval(minuteur);
 			document.removeEventListener('visibilitychange', auRetour);
+		},
+		// Le nombre recompté par la conversation ouverte : la pastille suit tout de suite. La liste, à côté, montre déjà la
+		// conversation ouverte sans pastille : elle n'est pas relue.
+		recu(n: number) {
+			if (n === connu) return;
+			connu = n;
+			rappel(n);
 		},
 		// En sortant d'une conversation (lue), la pastille est relue sans attendre ; vers la liste, qui vient d'être chargée,
 		// sans relancer sa lecture.

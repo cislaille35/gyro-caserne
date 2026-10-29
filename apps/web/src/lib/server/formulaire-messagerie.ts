@@ -105,6 +105,6 @@ export const actionsDeGestes = {
 	signaler: ({ locals, request }: Requete) =>
 		geste(locals, request, async (acteur, id) => {
 			await signaler(locals.base, acteur, id, maintenantParis());
-			return 'Le message a été transmis au chef de centre.';
+			return 'Le message a été transmis à la modération.';
 		})
 };

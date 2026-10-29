@@ -31,7 +31,7 @@ describe('suivreConversation', () => {
 		vi.useFakeTimers();
 		const { fetch, montrer } = scene([json({ nouveaux: [message(11), message(12)], modifies: [message(4)], majLe: '2026-10-29T10:00:05' }), json({ nouveaux: [], modifies: [], majLe: '2026-10-29T10:00:09' })]);
 		const recus: unknown[] = [];
-		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: (n, m) => recus.push([n.map((x) => x.id), m.map((x) => x.id)]), exclu: () => {} });
+		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: (n, m) => recus.push([n.map((x) => x.id), m.map((x) => x.id)]), exclu: () => {}, perime: () => {} });
 		expect(fetch).not.toHaveBeenCalled();
 		await vi.advanceTimersByTimeAsync(4000);
 		expect(fetch).toHaveBeenLastCalledWith('/echanges/messages/7/suite?dernier=10&maj=2026-10-29T10%3A00%3A00');
@@ -56,7 +56,7 @@ describe('suivreConversation', () => {
 		vi.useFakeTimers();
 		scene([json({ nouveaux: [], modifies: [], majLe: '2026-10-29T10:00:05' })]);
 		let tours = 0;
-		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {}, tour: () => tours++ });
+		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {}, perime: () => {}, tour: () => tours++ });
 		await vi.advanceTimersByTimeAsync(8000);
 		expect(tours).toBe(2);
 		suivi.arreter();
@@ -65,7 +65,7 @@ describe('suivreConversation', () => {
 	it('relancer : tout de suite, après un envoi', async () => {
 		vi.useFakeTimers();
 		const { fetch } = scene([json({ nouveaux: [message(11)], modifies: [], majLe: '2026-10-29T10:00:05' })]);
-		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {} });
+		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {}, perime: () => {} });
 		await suivi.relancer();
 		expect(fetch).toHaveBeenCalledTimes(1);
 		suivi.arreter();
@@ -75,9 +75,29 @@ describe('suivreConversation', () => {
 		vi.useFakeTimers();
 		const { fetch } = scene([json({ message: 'Vous ne faites plus partie de ce groupe.' }, 403)]);
 		const exclus: string[] = [];
-		suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: (m) => exclus.push(m) });
+		suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: (m) => exclus.push(m), perime: () => {} });
 		await vi.advanceTimersByTimeAsync(12_000);
 		expect(exclus).toEqual(['Vous ne faites plus partie de ce groupe.']);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('chaque tour transmet le nombre de non-lus, pour la pastille', async () => {
+		vi.useFakeTimers();
+		scene([json({ nouveaux: [message(11)], modifies: [], majLe: '2026-10-29T10:00:05', nonLusTotal: 2 }), json({ nouveaux: [], modifies: [], majLe: '2026-10-29T10:00:09', nonLusTotal: 1 })]);
+		const vus: number[] = [];
+		const suivi = suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: () => {}, exclu: () => {}, perime: () => {}, nonLus: (n) => vus.push(n) });
+		await vi.advanceTimersByTimeAsync(8000);
+		expect(vus).toEqual([2, 1]);
+		suivi.arreter();
+	});
+
+	it('409 : le repère est trop ancien, le suivi s’arrête et la conversation est rechargée', async () => {
+		vi.useFakeTimers();
+		const { fetch } = scene([json({ message: 'Repère trop ancien' }, 409)]);
+		let rechargements = 0;
+		suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T08:00:00' }, { recu: () => {}, exclu: () => {}, perime: () => rechargements++ });
+		await vi.advanceTimersByTimeAsync(12_000);
+		expect(rechargements).toBe(1);
 		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 
@@ -91,7 +111,7 @@ describe('suivreConversation', () => {
 			json({ nouveaux: [message(11)], modifies: [], majLe: '2026-10-29T10:00:09' })
 		]);
 		const recus: number[] = [];
-		suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: (n) => recus.push(...n.map((x) => x.id)), exclu: () => {} });
+		suivreConversation(7, { dernierId: 10, majLe: '2026-10-29T10:00:00' }, { recu: (n) => recus.push(...n.map((x) => x.id)), exclu: () => {}, perime: () => {} });
 		await vi.advanceTimersByTimeAsync(12_000);
 		expect(fetch).toHaveBeenCalledTimes(3);
 		expect(fetch).toHaveBeenLastCalledWith('/echanges/messages/7/suite?dernier=10&maj=2026-10-29T10%3A00%3A00');

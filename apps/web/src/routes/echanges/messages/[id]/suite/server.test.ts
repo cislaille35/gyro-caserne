@@ -43,7 +43,7 @@ describe('suite d’une conversation', () => {
 		const { base, alice, id } = await groupe();
 		const vue = await lireConversation(base, alice, id, {}, '2026-10-28T09:10');
 		const avant = base.requetes;
-		const corps = await (await appeler(locaux(base, alice), id, `?dernier=${vue.messages.at(-1)!.id}&maj=2026-10-28T09:30:00`)).json();
+		const corps = await (await appeler(locaux(base, alice), id, `?dernier=${vue.messages.at(-1)!.id}&maj=${encodeURIComponent(maintenantParis())}`)).json();
 		expect(base.requetes - avant).toBe(1);
 		expect(corps).toMatchObject({ nouveaux: [], modifies: [] });
 	});
@@ -51,9 +51,17 @@ describe('suite d’une conversation', () => {
 	it('un membre retiré pendant qu’il lit : 403 et la phrase à afficher', async () => {
 		const { base, chef, alice, id } = await groupe();
 		await retirerMembre(base, chef, id, alice.id, '2026-10-28T09:05');
-		const reponse: Response = await appeler(locaux(base, alice), id, '?dernier=0&maj=2026-10-28T09:00:00');
+		const reponse: Response = await appeler(locaux(base, alice), id, `?dernier=0&maj=${encodeURIComponent(maintenantParis())}`);
 		expect(reponse.status).toBe(403);
 		expect(await reponse.json()).toEqual({ message: 'Vous ne faites plus partie de ce groupe.' });
+	});
+
+	it('un repère de plus d’une heure : 409, la page recharge la conversation', async () => {
+		const { base, alice, id } = await groupe();
+		const ilYA = maintenantParis(new Date(Date.now() - 3601_000));
+		const reponse: Response = await appeler(locaux(base, alice), id, `?dernier=0&maj=${encodeURIComponent(ilYA)}`);
+		expect(reponse.status).toBe(409);
+		expect(await reponse.json()).toEqual({ message: 'Repère trop ancien' });
 	});
 
 	it('un repère illisible : 400', async () => {

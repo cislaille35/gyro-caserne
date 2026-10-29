@@ -7,7 +7,7 @@ const entier = (brut: string | null) => (brut !== null && /^\d+$/.test(brut) ? N
 const repondre = (corps: object, status = 200) => json(corps, { status, headers: { 'cache-control': 'no-store' } });
 
 // Le rafraîchissement d'une conversation ouverte, toutes les 4 s : ce qui a changé depuis le repère (`dernier`, `maj`).
-// Avec `avant` : la page de messages plus anciens. Trois requêtes au plus. Un membre retiré reçoit 403.
+// Avec `avant` : la page de messages plus anciens. Trois requêtes au plus. Un membre retiré reçoit 403 ; un repère trop ancien, 409.
 export const GET: RequestHandler = async ({ locals, params, url }) => {
 	if (!locals.acteur) error(401, 'Connexion requise');
 	const id = entier(params.id);
@@ -23,7 +23,8 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 		return repondre(await suiteConversation(locals.base, locals.acteur, id, { dernierId: dernier!, majLe: maj! }, maintenantParis()));
 	} catch (erreur) {
 		if (erreur instanceof RefusDroit) return repondre({ message: erreur.message === 'Conversation non accessible' ? 'Vous ne faites plus partie de ce groupe.' : 'La messagerie n’est pas ouverte à votre profil.' }, 403);
-		if (erreur instanceof DonneeInvalide) return repondre({ message: erreur.message }, 400);
+		// Repère de plus d'une heure (onglet longtemps masqué) : la page recharge la conversation.
+		if (erreur instanceof DonneeInvalide) return repondre({ message: erreur.message }, erreur.message === 'Repère trop ancien' ? 409 : 400);
 		throw erreur;
 	}
 };

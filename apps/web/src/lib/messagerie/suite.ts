@@ -6,12 +6,17 @@ type Rappels = {
 	recu: (nouveaux: VueMessage[], modifies: VueMessage[]) => void;
 	// La personne ne fait plus partie de la conversation : la phrase à afficher.
 	exclu: (message: string) => void;
+	// Le repère a plus d'une heure (onglet longtemps masqué) : la conversation est à recharger.
+	perime: () => void;
+	// Le nombre de messages non lus, recompté à chaque tour : pour la pastille d'Échanges.
+	nonLus?: (n: number) => void;
 	// Chaque tour réussi, même sans rien de neuf.
 	tour?: () => void;
 };
 
 // Suit une conversation ouverte : toutes les 4 s tant que la page est visible, tout de suite au retour sur l'onglet et après un
-// envoi (`relancer`). Une panne passe sans bruit : le tour suivant réessaie avec le même repère. Un 403 arrête le suivi.
+// envoi (`relancer`). Une panne passe sans bruit : le tour suivant réessaie avec le même repère. Un 403 arrête le suivi ;
+// un 409 aussi, et la conversation est rechargée.
 export function suivreConversation(id: number, depart: Repere, rappels: Rappels, intervalle = 4000) {
 	const repere = { ...depart };
 	let arrete = false;
@@ -26,10 +31,16 @@ export function suivreConversation(id: number, depart: Repere, rappels: Rappels,
 				rappels.exclu(((await reponse.json()) as { message: string }).message);
 				return;
 			}
+			if (reponse.status === 409) {
+				arreter();
+				rappels.perime();
+				return;
+			}
 			if (!reponse.ok) return;
-			const { nouveaux, modifies, majLe } = (await reponse.json()) as { nouveaux: VueMessage[]; modifies: VueMessage[]; majLe: string };
+			const { nouveaux, modifies, majLe, nonLusTotal } = (await reponse.json()) as { nouveaux: VueMessage[]; modifies: VueMessage[]; majLe: string; nonLusTotal: number };
 			repere.majLe = majLe;
 			repere.dernierId = Math.max(repere.dernierId, ...nouveaux.map((m) => m.id));
+			rappels.nonLus?.(nonLusTotal);
 			rappels.tour?.();
 			if (nouveaux.length > 0 || modifies.length > 0) rappels.recu(nouveaux, modifies);
 		} catch {

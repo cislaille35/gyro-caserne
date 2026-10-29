@@ -24,7 +24,9 @@
 	definirNonLus({
 		get nombre() {
 			return nonLus;
-		}
+		},
+		// Pendant la lecture d'une conversation, le nombre qu'elle recompte à chaque rafraîchissement.
+		recu: (n) => suivi?.recu(n)
 	});
 	let suivi: ReturnType<typeof suivreNonLus> | null = null;
 	$effect(() => {

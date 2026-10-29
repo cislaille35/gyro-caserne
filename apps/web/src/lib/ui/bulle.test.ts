@@ -65,11 +65,14 @@ describe('Bulle', () => {
 	});
 
 	it('la citation : un lien vers le message cité, « Vous » quand c’est le mien', () => {
-		const page = html(message({ reponse: { id: 12, auteur: moi, extrait: 'Carrément, je m’occupe de la carte.' } }));
+		const page = html(message({ reponse: { id: 12, auteur: moi, extrait: 'Carrément, je m’occupe de la carte.', supprime: null } }));
 		const citation = page.match(/<a class="citation[^"]*"[^>]*href="#message-12"[^>]*>[\s\S]*?<\/a>/)![0];
 		expect(texte(citation)).toBe('En réponse à Vous Carrément, je m’occupe de la carte.');
-		const autre = html(message({ reponse: { id: 12, auteur: romain, extrait: '' } }));
+		const autre = html(message({ reponse: { id: 12, auteur: romain, extrait: '', supprime: 'auteur' } }));
 		expect(texte(autre.match(/<a class="citation[^"]*"[\s\S]*?<\/a>/)![0])).toBe('En réponse à Romain Message supprimé');
+		// Une photo seule : ni texte, ni suppression.
+		const photo = html(message({ reponse: { id: 12, auteur: romain, extrait: '', supprime: null } }));
+		expect(texte(photo.match(/<a class="citation[^"]*"[\s\S]*?<\/a>/)![0])).toBe('En réponse à Romain Photo');
 	});
 
 	it('les photos, servies par la conversation, avec un texte', () => {

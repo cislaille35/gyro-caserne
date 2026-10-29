@@ -97,6 +97,23 @@ describe('suivreNonLus', () => {
 		expect(relire).toHaveBeenCalledTimes(1);
 	});
 
+	it('le nombre reçu pendant la lecture d’une conversation suit tout de suite, sans relire la liste ni le serveur', async () => {
+		vi.useFakeTimers();
+		const { fetch } = scene(3);
+		const vus: number[] = [];
+		let relues = 0;
+		const suivi = suivreNonLus(5, (n) => vus.push(n), () => relues++);
+		suivi.recu(3);
+		suivi.recu(3);
+		expect(vus).toEqual([3]);
+		expect(fetch).not.toHaveBeenCalled();
+		// Le tour suivant trouve le même nombre : rien ne bouge.
+		await vi.advanceTimersByTimeAsync(30_000);
+		expect(vus).toEqual([3]);
+		expect(relues).toBe(0);
+		suivi.arreter();
+	});
+
 	it('une réponse en erreur ou une panne réseau est ignorée', async () => {
 		vi.useFakeTimers();
 		const { fetch } = scene();
