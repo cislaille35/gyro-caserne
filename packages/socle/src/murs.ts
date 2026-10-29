@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte, ne, or } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { requeteTenues, tenuesValides } from './casquettes.ts';
 import { enCours } from './dates.ts';
@@ -52,6 +52,41 @@ export function estMembre(a: Appartenances, cle: string): boolean {
 	if (type === 'equipe') return a.membreEquipe.has(id) || a.chefEquipe.has(id);
 	return type === 'comite' && a.membreComite.has(id);
 }
+
+// Lectures à placer dans un batch : les agents qui ont accès (ni partis, ni suspendus, ni extérieurs, comme mursDe),
+// toutes les affectations en cours et tous les rôles tenus ce jour-là.
+export function lecturesAgents(base: Base, aujourdhui: string) {
+	return [
+		base
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
+			.from(personne)
+			.leftJoin(profil, eq(profil.id, personne.profilId))
+			.where(and(inArray(personne.statut, STATUTS_AVEC_ACCES), or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur')))),
+		base
+			.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin })
+			.from(affectationEquipe)
+			.where(and(lte(affectationEquipe.debut, aujourdhui), or(isNull(affectationEquipe.fin), gte(affectationEquipe.fin, aujourdhui)))),
+		requeteTenues(base, null, aujourdhui)
+	] as const;
+}
+
+type Lu<T> = T extends PromiseLike<infer R> ? R : never;
+export type AgentsLus = [Lu<ReturnType<typeof lecturesAgents>[0]>, Lu<ReturnType<typeof lecturesAgents>[1]>, Lu<ReturnType<typeof lecturesAgents>[2]>];
+export type AgentDuJour = AgentsLus[0][number] & { a: Appartenances };
+
+// Chaque agent avec ses appartenances du jour, à partir des résultats de lecturesAgents.
+export function agentsDuJour([agents, affectations, tenues]: AgentsLus, aujourdhui: string): AgentDuJour[] {
+	return agents.map((ag) => ({
+		...ag,
+		a: appartenances(
+			affectations.filter((x) => x.personneId === ag.id),
+			tenues.filter((t) => t.personneId === ag.id),
+			aujourdhui
+		)
+	}));
+}
+
+export const membresDe = (agents: AgentDuJour[], cle: string) => agents.filter((x) => estMembre(x.a, cle));
 
 // Convoqué : membre du mur et, si des équipes sont convoquées, membre en cours ou chef de l'une d'elles.
 export function estConvoque(a: Appartenances, cle: string, convoques: 'tous' | number[]): boolean {

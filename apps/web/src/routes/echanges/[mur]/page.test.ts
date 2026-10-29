@@ -6,7 +6,7 @@ import Page from './+page.svelte';
 const pub = (p: Partial<PublicationVue> = {}): PublicationVue => ({
 	id: 1,
 	cle: 'vie',
-	auteur: { prenom: 'Alice', nom: 'Martin' },
+	auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null },
 	type: 'message',
 	texte: 'Bonjour',
 	creeLe: '2026-10-28T14:05:00',
@@ -63,7 +63,7 @@ describe('page d’un mur', () => {
 			publications: [
 				pub({
 					type: 'evenement',
-					evenement: { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 } },
+					evenement: { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] },
 					sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ouverture: null, cloture: null, etat: 'ouvert', resultats: [3, 1], vote: 0 },
 					photos: [7, 8],
 					jaime: 2,
@@ -162,7 +162,7 @@ describe('gestes sur une publication', () => {
 	});
 
 	it('réponse à l’événement : trois boutons à bascule, pour les convoqués seulement ; comptes en texte', () => {
-		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, reponse: 'incertain' as const, compte: { present: 2, absent: 0, incertain: 1 } };
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, reponse: 'incertain' as const, compte: { present: 2, absent: 0, incertain: 1 }, presents: [] };
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toContain('action="?/repondre"');
 		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
@@ -195,14 +195,14 @@ describe('gestes sur une publication', () => {
 	});
 
 	it('prise de connaissance : bouton, puis la date', () => {
-		const avant = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null } }));
+		const avant = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null, faites: 0, attendues: 3 } }));
 		expect(avant).toContain('action="?/prendreConnaissance"');
 		expect(avant).toContain('>Pris connaissance<');
-		const apres = agir(pub({ type: 'annonce', priseDeConnaissance: { le: '2026-10-28T14:30:00' } }));
+		const apres = agir(pub({ type: 'annonce', priseDeConnaissance: { le: '2026-10-28T14:30:00', faites: 1, attendues: 3 } }));
 		expect(apres).not.toContain('?/prendreConnaissance');
 		expect(apres).toContain('Vous avez pris connaissance le 28 octobre à 14:30.');
 		// L’auteur n’a pas à prendre connaissance de son annonce ; il en voit le suivi.
-		const auteur = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null }, droits: { modifier: true, supprimer: true, epingler: false, fermer: true } }));
+		const auteur = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null, faites: 0, attendues: 3 }, droits: { modifier: true, supprimer: true, epingler: false, fermer: true } }));
 		expect(auteur).not.toContain('?/prendreConnaissance');
 		expect(auteur).toMatch(/href="\/echanges\/vie\/1#suivi"[^>]*>Voir le suivi/);
 	});

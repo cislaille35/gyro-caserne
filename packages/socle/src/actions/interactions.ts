@@ -1,13 +1,12 @@
-import { and, asc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
-import { requeteTenues } from '../casquettes.ts';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
-import { REPONSES_EVENEMENT, STATUTS_AVEC_ACCES, type ReponseEvenement } from '../listes.ts';
-import { appartenances, estConvoque, estMembre, exigerMur, refusMur } from '../murs.ts';
-import { affectationEquipe, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, voteSondage } from '../schema.ts';
+import { REPONSES_EVENEMENT, type ReponseEvenement } from '../listes.ts';
+import { agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur } from '../murs.ts';
+import { commentaire, jaime, personne, priseConnaissance, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
 import { cible, commentaireVu, etatSondage, texte, type Convoques } from './publications.ts';
 
@@ -107,20 +106,9 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 	const { ligne, cle, droits } = await cible(base, acteur, id, aujourdhui);
 	if (!droits.supprimer) throw refusMur(cle, 'moderer');
 	const convoques: Convoques | null = ligne.debut === null ? null : JSON.parse(ligne.convoques ?? '"tous"');
-	const equipes = [...new Set([...(cle.startsWith('equipe:') ? [Number(cle.slice('equipe:'.length))] : []), ...(Array.isArray(convoques) ? convoques : [])])];
 
-	// Agents (ni partis, ni suspendus, ni extérieurs, comme mursDe), affectations en cours des équipes utiles, rôles tenus par chacun.
 	const [agents, affectations, tenues, prises, reponses] = await base.batch([
-		base
-			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
-			.from(personne)
-			.leftJoin(profil, eq(profil.id, personne.profilId))
-			.where(and(inArray(personne.statut, STATUTS_AVEC_ACCES), or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur')))),
-		base
-			.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin })
-			.from(affectationEquipe)
-			.where(and(inArray(affectationEquipe.equipeId, equipes), lte(affectationEquipe.debut, aujourdhui), or(isNull(affectationEquipe.fin), gte(affectationEquipe.fin, aujourdhui)))),
-		requeteTenues(base, null, aujourdhui),
+		...lecturesAgents(base, aujourdhui),
 		base
 			.select({ personneId: priseConnaissance.personneId, prenom: personne.prenom, nom: personne.nom })
 			.from(priseConnaissance)
@@ -133,14 +121,8 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 			.where(eq(reponseEvenement.publicationId, id))
 	]);
 
-	const de = (p: number) =>
-		appartenances(
-			affectations.filter((x) => x.personneId === p),
-			tenues.filter((t) => t.personneId === p),
-			aujourdhui
-		);
-	const parAgent = agents.map((ag) => ({ ...ag, a: de(ag.id) }));
-	const membres = parAgent.filter((x) => estMembre(x.a, cle));
+	const parAgent = agentsDuJour([agents, affectations, tenues], aujourdhui);
+	const membres = membresDe(parAgent, cle);
 	const personneDe = (p: { personneId: number; prenom: string; nom: string }): Personne => ({ id: p.personneId, prenom: p.prenom, nom: p.nom });
 	const seule = (x: Personne): Personne => ({ id: x.id, prenom: x.prenom, nom: x.nom });
 

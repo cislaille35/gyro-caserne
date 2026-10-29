@@ -364,7 +364,7 @@ describe('lireMur', () => {
 		expect(publications[0]).toEqual({
 			id,
 			cle: 'vie',
-			auteur: { prenom: 'Chef', nom: 'Test' },
+			auteur: { prenom: 'Chef', nom: 'Test', couleur: null, role: 'Chef de centre' },
 			type: 'evenement',
 			texte: 'Repas',
 			creeLe: maintenant,
@@ -375,7 +375,18 @@ describe('lireMur', () => {
 			jaime: 2,
 			commentaires: 1,
 			jaimeParMoi: true,
-			evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous', convoque: true, reponse: 'present', compte: { present: 2, absent: 0, incertain: 1 } },
+			evenement: {
+				debut: '2026-11-02T19:00',
+				lieu: 'Caserne',
+				convoques: 'tous',
+				convoque: true,
+				reponse: 'present',
+				compte: { present: 2, absent: 0, incertain: 1 },
+				presents: [
+					{ prenom: 'Agent', nom: 'Test', couleur: null },
+					{ prenom: 'Autre', nom: 'Test', couleur: null }
+				]
+			},
 			sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], ouverture: maintenant, cloture: '2026-11-02T19:00', etat: 'ouvert', resultats: [1, 0, 1], vote: 2 },
 			priseDeConnaissance: null,
 			derniersCommentaires: [{ id: expect.any(Number), auteur: { prenom: 'Autre', nom: 'Test' }, texte: 'Super', creeLe: maintenant, supprimable: false }],
@@ -459,9 +470,9 @@ describe('lireMur', () => {
 		const id = await publier(base, superAdmin, 'centre', { type: 'annonce', texte: 'Lire', priseDeConnaissance: true }, maintenant);
 		await base.insert(priseConnaissance).values({ publicationId: id, personneId: agent, le: maintenant });
 		const vue = (await lireMur(base, acteur(agent), 'centre', {}, maintenant)).publications[0]!;
-		expect(vue.priseDeConnaissance).toEqual({ le: maintenant });
-		expect(vue.auteur).toEqual({ prenom: 'Super', nom: 'administrateur' });
-		expect((await lireMur(base, acteur(autre), 'centre', {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ le: null });
+		expect(vue.priseDeConnaissance).toEqual({ le: maintenant, faites: 1, attendues: 3 });
+		expect(vue.auteur).toEqual({ prenom: 'Super', nom: 'administrateur', couleur: null, role: null });
+		expect((await lireMur(base, acteur(autre), 'centre', {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ le: null, faites: 1, attendues: 3 });
 		const duSuper = (await lireMur(base, superAdmin, 'centre', {}, maintenant)).publications[0]!;
 		expect(duSuper.droits).toEqual({ modifier: true, supprimer: true, epingler: true, fermer: true });
 	});
@@ -498,6 +509,78 @@ describe('lireMur', () => {
 		expect(pb!.derniersCommentaires.map((c) => [c.texte, c.auteur])).toEqual([['seul', { prenom: 'Super', nom: 'administrateur' }]]);
 		// Le modérateur peut supprimer tout commentaire.
 		expect((await vue(acteur(chef)))[1]!.derniersCommentaires.map((c) => c.supprimable)).toEqual([true, true]);
+	});
+
+	it('audience : membres naturels du mur ce jour-là (équipe : membres et chef ; Le centre : agents avec accès, sans les extérieurs)', async () => {
+		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
+		const chefEquipe = await nouvelle('Chefequipe');
+		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await affecter(agent, e1.id);
+		await affecter(autre, e1.id);
+		const [reserve] = await base.select().from(profil).where(eq(profil.typePersonne, 'exterieur'));
+		const [exterieur] = await base.insert(personne).values({ email: 'ext@exemple.fr', prenom: 'Ext', nom: 'Test', profilId: reserve!.id, statut: 'operationnel' }).returning();
+		await affecter(exterieur!.id, e1.id);
+		const parti = await nouvelle('Parti');
+		await affecter(parti, e1.id);
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, parti));
+		expect((await lireMur(base, acteur(chef), `equipe:${e1.id}`, {}, maintenant)).audience).toBe(3);
+		expect((await lireMur(base, acteur(agent), 'centre', {}, maintenant)).audience).toBe(4);
+	});
+
+	it('auteur : couleur de son équipe en cours et premier rôle tenu ; auteur parti sans couleur ni rôle', async () => {
+		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
+		const adjoint = await nouvelle('Adjoint');
+		await nommer(adjoint, 'Chef de centre adjoint', { type: 'centre' });
+		const chefEquipe = await nouvelle('Chefequipe');
+		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(chef, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await affecter(chef, e1.id);
+		await affecter(autre, e1.id);
+		for (const qui of [chef, adjoint, chefEquipe, agent, autre]) await publier(base, acteur(qui), 'vie', message(), maintenant);
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, autre));
+		const auteurs = (await lireMur(base, acteur(agent), 'vie', {}, maintenant)).publications.map((p) => p.auteur).reverse();
+		expect(auteurs).toEqual([
+			{ prenom: 'Chef', nom: 'Test', couleur: e1.couleur, role: 'Chef de centre' },
+			{ prenom: 'Adjoint', nom: 'Test', couleur: null, role: 'Adjoint' },
+			{ prenom: 'Chefequipe', nom: 'Test', couleur: null, role: 'Chef d’équipe' },
+			{ prenom: 'Agent', nom: 'Test', couleur: null, role: null },
+			{ prenom: 'Autre', nom: 'Test', couleur: null, role: null }
+		]);
+	});
+
+	it('prise de connaissance : faites parmi les membres naturels, sur les attendus ; l’auteur n’est pas attendu', async () => {
+		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
+		const chefEquipe = await nouvelle('Chefequipe');
+		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await affecter(agent, e1.id);
+		await affecter(autre, e1.id);
+		const id = await publier(base, acteur(chef), `equipe:${e1.id}`, { type: 'annonce', texte: 'Lire', priseDeConnaissance: true }, maintenant);
+		await base.insert(priseConnaissance).values([
+			{ publicationId: id, personneId: agent, le: maintenant },
+			// Le chef de centre supervise l'équipe sans en être membre : il ne compte pas.
+			{ publicationId: id, personneId: chef, le: maintenant }
+		]);
+		expect((await lireMur(base, acteur(chef), `equipe:${e1.id}`, {}, maintenant)).publications[0]!.priseDeConnaissance).toEqual({ le: maintenant, faites: 1, attendues: 3 });
+		const parLeChefEquipe = await publier(base, acteur(chefEquipe), `equipe:${e1.id}`, { type: 'annonce', texte: 'Lire', priseDeConnaissance: true }, maintenant);
+		const vue = (await lireMur(base, acteur(agent), `equipe:${e1.id}`, {}, maintenant)).publications.find((p) => p.id === parLeChefEquipe)!;
+		expect(vue.priseDeConnaissance).toEqual({ le: null, faites: 0, attendues: 2 });
+	});
+
+	it('événement : les 3 premiers présents, avec la couleur de leur équipe', async () => {
+		const { base, agent, chef, nouvelle, affecter, e1 } = await jeu();
+		const id = await publier(base, acteur(chef), 'vie', { type: 'evenement', texte: 'Repas', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		const presents = [];
+		for (const prenom of ['Un', 'Deux', 'Trois', 'Quatre', 'Cinq']) presents.push(await nouvelle(prenom));
+		await affecter(presents[0]!, e1.id);
+		await base.insert(reponseEvenement).values({ publicationId: id, personneId: agent, reponse: 'absent' });
+		for (const p of presents) await base.insert(reponseEvenement).values({ publicationId: id, personneId: p, reponse: 'present' });
+		const ev = (await lireMur(base, acteur(agent), 'vie', {}, maintenant)).publications[0]!.evenement!;
+		expect(ev.compte.present).toBe(5);
+		expect(ev.presents).toEqual([
+			{ prenom: 'Un', nom: 'Test', couleur: e1.couleur },
+			{ prenom: 'Deux', nom: 'Test', couleur: null },
+			{ prenom: 'Trois', nom: 'Test', couleur: null }
+		]);
 	});
 
 	it('mur non lisible : refus', async () => {
