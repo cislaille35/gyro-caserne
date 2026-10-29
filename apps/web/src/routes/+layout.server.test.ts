@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, comite, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribuer, chargerJeuDeDepart, comite, envoyer, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -90,6 +90,28 @@ describe('load du layout', () => {
 		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
 		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, cloche: 0 });
 		expect(erreur).toHaveBeenCalled();
+		erreur.mockRestore();
+	});
+
+	it('compte les messages non lus pour la pastille d’Échanges ; 0 pour le super administrateur, le visiteur, ou si la lecture échoue', async () => {
+		const { base, alice, bruno } = await preparer();
+		await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, maintenantParis());
+		expect((await appeler(alice, base)).nonLus).toBe(1);
+		expect((await appeler(super_, base)).nonLus).toBe(0);
+		expect((await appeler(null, base)).nonLus).toBe(0);
+		// Seul le compte des non-lus (une sélection de « n ») tombe en panne.
+		const select = base.select.bind(base) as (champs?: object) => unknown;
+		const enPanne = new Proxy(base, {
+			get: (cible, cle) =>
+				cle === 'select'
+					? (champs?: object) => {
+							if (champs && 'n' in champs) throw new Error('D1 indisponible');
+							return select(champs);
+						}
+					: Reflect.get(cible, cle)
+		});
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, nonLus: 0 });
 		erreur.mockRestore();
 	});
 });

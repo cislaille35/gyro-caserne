@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, commentaire, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -9,6 +9,8 @@ import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
 import { load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
+import { load as messages } from './echanges/messages/+page.server';
+import { GET as pastille } from './echanges/messages/pastille/+server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { actions as actionsPublier, load as pagePublier } from './echanges/publier/+page.server';
 import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
@@ -242,5 +244,22 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n2, nom).toBeLessThanOrEqual(BUDGET);
 		}
+	});
+
+	it('/echanges/messages : 30 conversations, dont un groupe de 60 ; la pastille en 2 requêtes au plus', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id);
+		for (const id of ids.slice(0, 29)) await envoyer(base, base.photos, { type: 'personne', id }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
+		await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids.slice(0, 59) }, maintenantParis());
+		const url = new URL('http://localhost/echanges/messages');
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			const { conversations } = await (messages as any)({ locals, url, depends: () => {} });
+			expect(conversations).toHaveLength(30);
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(() => (pastille as any)({ locals }))).toBeLessThanOrEqual(2);
 	});
 });

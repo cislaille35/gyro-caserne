@@ -1,4 +1,4 @@
-import { aLeDroit, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
+import { aLeDroit, nonLusTotal, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { nombreAFaire } from '#lib/a-faire.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
@@ -12,13 +12,16 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const peutNominations = acteur === null ? false : await peutAttribuerQuelqueChose(base, acteur, aujourdhuiParis());
 	// La cloche : seule une personne a quelque chose à faire sur les murs.
 	const cloche = acteur?.type === 'personne' ? await compterCloche(base, acteur) : 0;
+	// La pastille d'Échanges : les messages non lus, ensuite suivis toutes les 30 s par la page.
+	const nonLus = acteur?.type === 'personne' ? await compterNonLus(base, acteur) : 0;
 	return {
 		affichage: locals.affichage,
 		connecte: acteur !== null,
 		estPersonne: acteur?.type === 'personne',
 		peutReglages,
 		peutNominations,
-		cloche
+		cloche,
+		nonLus
 	};
 };
 
@@ -34,6 +37,15 @@ async function compterCloche(base: App.Locals['base'], acteur: NonNullable<App.L
 		return nombreAFaire(await aNePasManquerDe(base, acteur));
 	} catch (erreur) {
 		console.error('Cloche illisible', erreur);
+		return 0;
+	}
+}
+
+async function compterNonLus(base: App.Locals['base'], acteur: NonNullable<App.Locals['acteur']>) {
+	try {
+		return await nonLusTotal(base, acteur, aujourdhuiParis());
+	} catch (erreur) {
+		console.error('Pastille des messages illisible', erreur);
 		return 0;
 	}
 }

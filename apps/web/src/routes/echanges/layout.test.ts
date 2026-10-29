@@ -4,7 +4,7 @@ import { render } from 'svelte/server';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const etat = vi.hoisted(() => ({ page: { params: {} as Record<string, string> } }));
+const etat = vi.hoisted(() => ({ page: { params: {} as Record<string, string>, url: new URL('http://x/echanges') } }));
 vi.mock('$app/state', () => etat);
 const { default: Layout } = await import('./+layout.svelte');
 
@@ -41,7 +41,7 @@ const aVenir = [
 
 function html(data: object = {}, niveau = 'vivant') {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return render(Layout as any, { props: { data: { sections, aujourdhui, aVenir, ...data }, children: contenu }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
+	return render(Layout as any, { props: { data: { sections, aujourdhui, aVenir, messagerie: true, avis: null, ...data }, children: contenu }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
 }
 const texte = (page: string) => page.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
@@ -209,5 +209,41 @@ describe('liste des murs', () => {
 	it('sur /echanges : pas de colonne Aujourd’hui à part', () => {
 		etat.page.params = {};
 		expect(html()).not.toContain('<aside');
+	});
+});
+
+describe('filtres « Murs » | « Messages »', () => {
+	const contexte = (nombre: number) => new Map<string, unknown>([['affichage', { niveau: 'vivant', theme: 'auto' }], ['non-lus', { nombre }]]);
+	const rendu = (data: object, ctx: Map<string, unknown>) =>
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		render(Layout as any, { props: { data: { sections, aujourdhui, aVenir, messagerie: true, avis: null, ...data }, children: contenu }, context: ctx }).body;
+
+	it('sur /echanges : Murs courant, Messages avec les non-lus du moment', () => {
+		etat.page.params = {};
+		const page = rendu({}, contexte(3));
+		const filtres = page.match(/<nav[^>]*aria-label="Filtrer les échanges"[\s\S]*?<\/nav>/)![0];
+		expect(filtres).toMatch(/<a[^>]*href="\/echanges"[^>]*aria-current="page"/);
+		expect(texte(filtres)).toContain('Messages 3 , 3 messages non lus');
+	});
+
+	it('sans messagerie (extérieur) : pas de filtres', () => {
+		etat.page.params = {};
+		expect(rendu({ messagerie: false }, contexte(0))).not.toContain('Filtrer les échanges');
+	});
+
+	it('au retour d’un refus : la raison, annoncée poliment', () => {
+		etat.page.params = {};
+		const page = rendu({ avis: 'La messagerie n’est pas ouverte à votre profil.' }, contexte(0));
+		expect(page).toMatch(/<p[^>]*role="status"[^>]*>La messagerie n’est pas ouverte à votre profil\.<\/p>/);
+	});
+
+	it('sous /echanges/messages : la page des messages seule, sans la liste des murs', () => {
+		etat.page.params = {};
+		etat.page.url = new URL('http://x/echanges/messages');
+		const page = rendu({}, contexte(0));
+		etat.page.url = new URL('http://x/echanges');
+		expect(page).toContain('<h1>Vie du centre</h1>');
+		expect(page).not.toContain('aria-label="Murs"');
+		expect(page).not.toContain('Filtrer les échanges');
 	});
 });

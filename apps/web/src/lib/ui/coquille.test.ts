@@ -6,9 +6,9 @@ import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
-function html(chemin: string, connecte = true, cloche = 0) {
+function html(chemin: string, connecte = true, cloche = 0, nonLus = 0) {
 	return render(Coquille, {
-		props: { chemin, connecte, nomCentre: 'CIS Test', cloche, children: contenu }
+		props: { chemin, connecte, nomCentre: 'CIS Test', cloche, nonLus, children: contenu }
 	}).body;
 }
 
@@ -107,5 +107,21 @@ describe('rubriqueDe', () => {
 	});
 	it('ne confond pas un chemin qui commence pareil', () => {
 		expect(rubriqueDe('/agentsx')).not.toBe('/caserne');
+	});
+});
+
+describe('pastille d’Échanges', () => {
+	const onglet = (page: string) => page.match(/<a\b[^>]*href="\/echanges"[^>]*>[\s\S]*?<\/a>/)![0];
+
+	it('montre les messages non lus et les dit en texte', () => {
+		const lien = onglet(html('/', true, 0, 3));
+		expect(lien).toMatch(/<span class="nombre[^"]*" aria-hidden="true">3<\/span>/);
+		expect(lien.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')).toContain('Échanges , 3 messages non lus');
+		expect(onglet(html('/', true, 0, 1))).toContain('1 message non lu');
+		expect(onglet(html('/', true, 0, 120))).toContain('99+');
+	});
+
+	it('rien sans non-lus', () => {
+		expect(onglet(html('/', true, 0, 0))).not.toContain('nombre');
 	});
 });

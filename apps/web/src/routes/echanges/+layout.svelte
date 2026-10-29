@@ -4,7 +4,9 @@
 	import { untrack } from 'svelte';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { lireNonLus } from '#lib/messagerie/pastille.ts';
 	import { quand } from '#lib/murs/quand.ts';
+	import FiltresEchanges from '#lib/ui/FiltresEchanges.svelte';
 	import { ICONE_MAISON } from '#lib/ui/icones-roles.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import PastilleMur from '#lib/ui/PastilleMur.svelte';
@@ -13,6 +15,9 @@
 	let { data, children } = $props();
 
 	const affichage = lireAffichageContexte();
+	const nonLus = lireNonLus();
+	// Les messages ont leur propre page : la liste des murs s'efface.
+	const surMessages = $derived(page.url.pathname === '/echanges/messages' || page.url.pathname.startsWith('/echanges/messages/'));
 
 	// Sur un mur : au téléphone, la liste laisse la place au mur ; à l'ordinateur, elle reste à gauche, en bref.
 	const actif = $derived(page.params.mur);
@@ -91,6 +96,9 @@
 	<svelte:element this={actif ? 'p' : 'h2'} {id} class="rubrique">{texte}</svelte:element>
 {/snippet}
 
+{#if surMessages}
+	{@render children()}
+{:else}
 <div class="echanges" class:sur-un-mur={actif !== undefined} class:avec-journee={journee}>
 	<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
 	<nav class="murs" aria-label="Murs">
@@ -106,6 +114,8 @@
 					<span class="libelle">Écrire</span>
 				</a>
 			</header>
+			{#if data.avis}<p class="avis" role="status">{data.avis}</p>{/if}
+			{#if data.messagerie}<FiltresEchanges actif="murs" nonLus={nonLus.nombre} />{/if}
 		{/if}
 
 		<div class="colonnes">
@@ -222,6 +232,7 @@
 		</aside>
 	{/if}
 </div>
+{/if}
 
 <style>
 	.echanges {
@@ -233,6 +244,16 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+	}
+
+	.avis {
+		margin: 0;
+		padding: 12px 14px;
+		border: 1px solid var(--statut-info-trait);
+		border-radius: var(--rayon-grand);
+		background: var(--statut-info-fond);
+		color: var(--statut-info-texte);
+		font-weight: 600;
 	}
 
 	/* En-tête */
