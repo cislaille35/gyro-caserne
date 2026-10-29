@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Messages à l’ordinateur</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&amp;family=Barlow+Condensed:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1d2733}a:hover{color:#b3121f}
+</style>
+</helmet>
+<div style="width: 1280px; height: 860px; box-sizing: border-box; background: #f6f3ef; color: #1d2733; font-family: 'Barlow', system-ui, sans-serif; display: grid; grid-template-columns: 240px 320px minmax(0, 1fr) 280px;">
+
+  <nav aria-label="Navigation principale" style="background: #ffffff; border-right: 1px solid #e3ddd5; padding: 24px 16px; display: flex; flex-direction: column; gap: 8px;">
+    <a href="#" style="min-height: 48px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; text-decoration: none; color: #4a5562;">Accueil</a>
+    <a href="#" style="min-height: 48px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; text-decoration: none; color: #4a5562;">Planning</a>
+    <a href="#" style="min-height: 48px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; text-decoration: none; color: #4a5562;">Caserne</a>
+    <a href="#" aria-current="page" style="min-height: 48px; padding: 0 14px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; text-decoration: none; background: #f6f3ef; box-shadow: inset 4px 0 0 #b3121f; font-weight: 700;">Échanges <span style="min-width: 20px; height: 20px; border-radius: 10px; background: #b3121f; color: #fff; font-size: 12px; display: inline-flex; align-items: center; justify-content: center;">3</span></a>
+  </nav>
+
+  <aside aria-label="Conversations" style="border-right: 1px solid #e3ddd5; padding: 20px 12px; display: flex; flex-direction: column; gap: 12px; background: #fbf9f6;">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 0 4px;">
+      <h1 style="flex: 1; margin: 0; font: 700 26px 'Barlow Condensed', sans-serif;">Échanges</h1>
+      <a href="#" aria-label="Nouveau message" style="width: 44px; height: 44px; border-radius: 14px; background: #b3121f; color: #ffffff; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></a>
+    </div>
+    <nav aria-label="Filtrer" style="display: flex; gap: 6px; padding: 0 4px;">
+      <a href="#" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #e3ddd5; background: #fff; display: flex; align-items: center; font-weight: 600; text-decoration: none;">Murs</a>
+      <a href="#" aria-current="page" style="min-height: 36px; padding: 0 14px; border-radius: 999px; background: #1d2733; color: #fff; display: flex; align-items: center; gap: 6px; font-weight: 600; text-decoration: none;">Messages <span style="font-size: 12px; background: #b3121f; border-radius: 9px; padding: 0 6px;">3</span></a>
+    </nav>
+    <input aria-label="Rechercher une conversation" placeholder="Rechercher" style="min-height: 40px; border-radius: 999px; border: 1px solid #e3ddd5; padding: 0 14px; font: 400 15px 'Barlow', sans-serif;">
+    <a href="#" aria-current="true" style="padding: 10px; border-radius: 14px; background: #ffffff; box-shadow: inset 3px 0 0 #b3121f; display: flex; align-items: center; gap: 10px; text-decoration: none;">
+      <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #fbeaf1;"></span>
+      <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><strong>Départ de Thomas</strong><span style="font-size: 14px; color: #4a5562; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Manon : J’ai trouvé le cadeau !</span></span>
+    </a>
+    <a href="#" style="padding: 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; text-decoration: none;">
+      <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #d4a017; display: flex; align-items: center; justify-content: center; font-weight: 700;">EC</span>
+      <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><strong>Élodie Chef-Équipe</strong><span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tu peux prendre ma place samedi ?</span></span>
+      <span style="min-width: 20px; height: 20px; border-radius: 10px; background: #b3121f; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;">1</span>
+    </a>
+    <a href="#" style="padding: 10px; border-radius: 14px; display: flex; align-items: center; gap: 10px; text-decoration: none;">
+      <span aria-hidden="true" style="width: 44px; height: 44px; border-radius: 50%; background: #e7f0fa;"></span>
+      <span style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><strong>Formation COD2 – novembre</strong><span style="font-size: 14px; color: #4a5562;">Vous : Rendez-vous 8 h au centre</span></span>
+    </a>
+  </aside>
+
+  <main style="display: flex; flex-direction: column; background: #f3eee7; min-width: 0;">
+    <header style="background: #ffffff; border-bottom: 1px solid #e3ddd5; padding: 12px 20px; display: flex; flex-direction: column;">
+      <h2 style="margin: 0; font: 700 22px 'Barlow Condensed', sans-serif;">Départ de Thomas</h2>
+      <span style="font-size: 14px; color: #4a5562;">Claire, Manon, Romain, vous</span>
+    </header>
+    <div role="log" aria-label="Messages" style="flex: 1; padding: 16px 24px; display: flex; flex-direction: column; gap: 4px;">
+      <p style="margin: 0 auto 8px; font-size: 13px; font-weight: 600; color: #4a5562; background: #e9e2d8; padding: 4px 12px; border-radius: 999px;">Hier</p>
+      <div style="align-self: flex-start; max-width: 60%; background: #fff; padding: 8px 12px; border-radius: 4px 16px 16px 16px;"><strong style="display: block; font-size: 13px; color: #a3195b;">Romain</strong>Thomas part fin novembre. On lui fait une surprise ? <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">18 h 01</span></div>
+      <div style="align-self: flex-end; max-width: 60%; margin-top: 6px; background: #fbe1e4; padding: 8px 12px; border-radius: 16px 4px 16px 16px;">Carrément, je m’occupe de la carte. <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">18 h 03 <span style="color: #0f4c8a; font-weight: 700;">✓✓</span></span></div>
+      <p style="margin: 10px auto 8px; font-size: 13px; font-weight: 600; color: #4a5562; background: #e9e2d8; padding: 4px 12px; border-radius: 999px;">Aujourd’hui</p>
+      <div style="align-self: flex-start; max-width: 60%; background: #fff; padding: 8px 12px; border-radius: 4px 16px 16px 16px;"><strong style="display: block; font-size: 13px; color: #0f4c8a;">Manon</strong>Super. Et j’ai trouvé le cadeau ! <span style="float: right; margin: 6px 0 0 10px; font-size: 12px; color: #4a5562;">10 h 11</span></div>
+    </div>
+    <form style="background: #ffffff; border-top: 1px solid #e3ddd5; padding: 12px 20px; display: flex; gap: 10px; align-items: center;">
+      <button type="button" aria-label="Ajouter une photo" style="width: 44px; height: 44px; border-radius: 50%; border: 0; background: #f6f3ef; font-size: 22px;">+</button>
+      <input aria-label="Votre message" placeholder="Message (Entrée pour envoyer, Maj + Entrée pour aller à la ligne)" style="flex: 1; min-height: 44px; border-radius: 22px; border: 1px solid #c3ccd5; padding: 0 16px; font: 400 16px 'Barlow', sans-serif;">
+      <button type="submit" style="min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #b3121f; color: #fff; font: 700 15px 'Barlow', sans-serif;">Envoyer</button>
+    </form>
+  </main>
+
+  <aside aria-label="Infos du groupe" style="background: #ffffff; border-left: 1px solid #e3ddd5; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px;">
+    <h2 style="margin: 0; font: 700 20px 'Barlow Condensed', sans-serif;">Infos du groupe</h2>
+    <p style="margin: 0; font-size: 14px; color: #4a5562;">4 membres · créé par Romain. Seuls les membres lisent ce groupe.</p>
+    <button type="button" style="align-self: flex-start; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #c3ccd5; background: #fff; font: 600 14px 'Barlow', sans-serif;">Renommer</button>
+    <a href="#" style="font-weight: 600;">+ Ajouter des membres</a>
+    <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+      <li style="display: flex; align-items: center; gap: 10px;"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: #c2185b;"></span><span style="flex: 1;">Romain Rapporteur</span><span style="font-size: 12px; font-weight: 700; color: #1f5a14;">Animateur</span></li>
+      <li style="display: flex; align-items: center; gap: 10px;"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: #d4a017;"></span><span style="flex: 1;">Vous</span><span style="font-size: 12px; font-weight: 700; color: #1f5a14;">Animateur</span></li>
+      <li style="display: flex; align-items: center; gap: 10px;"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: #e6eaee;"></span><span style="flex: 1;">Claire Chef</span></li>
+      <li style="display: flex; align-items: center; gap: 10px;"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: #1565c0;"></span><span style="flex: 1;">Manon Membre</span></li>
+    </ul>
+    <button type="button" style="margin-top: auto; min-height: 44px; border: 0; background: none; color: #8a0f19; font: 600 15px 'Barlow', sans-serif; text-align: left;">Quitter le groupe</button>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
