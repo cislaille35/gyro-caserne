@@ -467,9 +467,10 @@
 		font: 600 0.9375rem var(--police);
 		cursor: pointer;
 	}
+	/* Côte à côte s'il y a la place, l'une sous l'autre au téléphone. */
 	.dates {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 		gap: 10px;
 	}
 	.dates .saisie {

@@ -17,11 +17,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		locals.base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation))
 	]);
 	const ouverts = murs.filter((m) => m.peutPublier);
-	const nombres = await audiences(
-		locals.base,
-		ouverts.map((m) => m.cle),
-		aujourdhui
-	);
+	const nombres = await audiences(locals.base, ouverts.map((m) => m.cle), aujourdhui);
 	const proposes = ouverts.map((m) => {
 		const a = apercus.find((x) => x.cle === m.cle);
 		return { cle: m.cle, nom: m.nom, type: m.type, peutModerer: m.peutModerer, audience: nombres.get(m.cle) ?? 0, icone: a?.icone ?? null, couleur: a?.couleur ?? null, numero: a?.numero ?? null };

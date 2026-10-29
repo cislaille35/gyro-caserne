@@ -12,20 +12,27 @@
 	<title>Nouvelle publication · Échanges · Gyro Caserne</title>
 </svelte:head>
 
-<header class="entete">
-	<a class="annuler" href={retour}>Annuler</a>
-	<h1 id="titre-publier" tabindex="-1">Nouvelle publication</h1>
-</header>
+<div class="page">
+	<header class="entete">
+		<a class="annuler" href={retour}>Annuler</a>
+		<h1 id="titre-publier" tabindex="-1">Nouvelle publication</h1>
+	</header>
 
-<div class="annonce" role="alert">{annonceEchec}</div>
+	<div class="annonce" role="alert">{annonceEchec}</div>
 
-{#if data.murs.length === 0}
-	<p class="aucun">Vous ne pouvez publier sur aucun mur.</p>
-{:else}
-	<FormulairePublication murs={data.murs} choisi={data.choisi} equipes={data.equipes} defauts={{ texte: data.texte, ouverture: data.ouverture, cloture: data.cloture }} {form} />
-{/if}
+	{#if data.murs.length === 0}
+		<p class="aucun">Vous ne pouvez publier sur aucun mur.</p>
+	{:else}
+		<FormulairePublication murs={data.murs} choisi={data.choisi} equipes={data.equipes} defauts={{ texte: data.texte, ouverture: data.ouverture, cloture: data.cloture }} {form} />
+	{/if}
+</div>
 
 <style>
+	/* À l'ordinateur, le formulaire garde une largeur de lecture. */
+	.page {
+		max-width: 40rem;
+		margin: 0 auto;
+	}
 	.entete {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
@@ -45,6 +52,7 @@
 		text-decoration: underline;
 	}
 	h1 {
+		grid-column: 2;
 		margin: 0;
 		text-align: center;
 		font: 700 1.375rem var(--police-titre);
