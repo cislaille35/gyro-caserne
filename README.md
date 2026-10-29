@@ -49,7 +49,7 @@ pnpm build        # compilation
 
 La préprod (centre fictif `exemple`, en ligne) reçoit les mêmes personnes fictives : `CENTRE=exemple pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne --avec-fictifs`. Cette option est refusée pour tout autre centre.
 
-Pour essayer chaque profil en préprod : lancer l'action GitHub **Comptes de test** (onglet Actions, « Run workflow ») avec la boîte de la caserne, par exemple `caserne@gmail.com`. Elle crée un compte par profil, de `caserne+chef@gmail.com` à `caserne+exterieur@gmail.com` (liste dans `packages/socle/src/comptes-de-test.ts`), et quelques publications. Les liens de connexion arrivent tous dans cette boîte. En local : `pnpm --filter @gyro-caserne/web jeu-de-depart --comptes-de-test=<boîte>`. Refusé pour tout autre centre qu'`exemple`.
+Pour essayer chaque profil en préprod : lancer l'action GitHub **Comptes de test** (onglet Actions, « Run workflow ») avec la boîte de la caserne, par exemple `caserne@exemple.fr`. Elle crée un compte par profil, de `caserne+chef@exemple.fr` à `caserne+exterieur@exemple.fr` (liste dans `packages/socle/src/comptes-de-test.ts`), et quelques publications ; relancée, elle complète sans dupliquer. Les liens de connexion arrivent tous dans cette boîte. En local : `pnpm --filter @gyro-caserne/web jeu-de-depart --comptes-de-test=<boîte>`. Refusé pour tout autre centre qu'`exemple`.
 
 Après une mise à jour qui refond les migrations (avant tout déploiement, elles peuvent être réécrites), repartir d'une base locale neuve : effacer `centres/<id>/.wrangler/state`, puis relancer `base-locale` et `jeu-de-depart`.
 

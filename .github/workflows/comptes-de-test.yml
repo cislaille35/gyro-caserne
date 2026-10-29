@@ -1,12 +1,12 @@
 name: Comptes de test
 
 # Lancé à la main : ajoute à la préprod un compte par profil (boîte+chef, boîte+agent…) et des publications fictives.
-# Ne fait rien si les comptes existent déjà. Refusé hors du centre exemple.
+# Relançable : complète ce qui manque sans dupliquer. Refusé hors du centre exemple.
 on:
   workflow_dispatch:
     inputs:
       boite:
-        description: 'Boîte qui reçoit les liens de connexion (ex. caserne@gmail.com)'
+        description: 'Boîte qui reçoit les liens de connexion (ex. caserne@exemple.fr)'
         required: true
 
 permissions:
@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   preprod:
-    if: vars.CENTRE_PREPROD != ''
+    # Depuis main seulement, et pour la préprod du centre exemple (le script le vérifie aussi).
+    if: github.ref == 'refs/heads/main' && vars.CENTRE_PREPROD == 'exemple'
     runs-on: ubuntu-latest
     concurrency:
       group: deploiement-preprod

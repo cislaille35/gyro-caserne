@@ -69,7 +69,8 @@ try {
 				if (nouvelle && sonEquipe) await base.insert(affectationEquipe).values({ personneId: nouvelle.id, equipeId: sonEquipe.id, debut: '2026-01-01' });
 			}
 		}
-		if (boite !== undefined) await chargerComptesDeTest(base, boite, maintenantParis());
+		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
+		if (boite !== undefined) await chargerComptesDeTest(base, boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
 		const lieu = enLigne ? 'en ligne' : 'locale';
 		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}${boite !== undefined ? ', avec les comptes de test' : ''}.`);
 	} finally {
