@@ -233,7 +233,9 @@ test('modération : le message signalé arrive dans la cloche, « Retirer le mes
 	await chef.context().close();
 
 	await page.reload();
-	await expect(page.getByRole('log').getByText('Message retiré par la modération')).toBeVisible();
+	// La conversation peut garder ceux d'un passage précédent : le dernier est le nôtre.
+	await expect(page.getByRole('log').getByText(`Grave ${marque}`)).toHaveCount(0);
+	await expect(page.getByRole('log').getByText('Message retiré par la modération').last()).toBeVisible();
 	await expect(page.getByRole('log').getByText(`Limite ${marque}`, { exact: true })).toBeVisible();
 });
 
@@ -270,7 +272,7 @@ test('colonnes : liste, conversation et infos à 1280 px ; liste et conversation
 	expect(await x(liste)).toBeLessThan(await x(fil));
 	expect(await x(fil)).toBeLessThan(await x(infos));
 	// La conversation ouverte est marquée dans la liste.
-	await expect(liste.locator('a[aria-current="page"]')).toHaveCount(1);
+	await expect(liste.locator('li a[aria-current="page"]')).toHaveCount(1);
 	// Au clavier, la liste vient d'abord, puis la conversation.
 	await liste.getByRole('link').last().focus();
 	await page.keyboard.press('Tab');
