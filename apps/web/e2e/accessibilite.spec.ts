@@ -881,7 +881,7 @@ test.describe('réglages', () => {
 		const role = `Référent sport ${marque}`;
 
 		await page.goto('/reglages');
-		await page.getByRole('link', { name: '+ Nouveau comité' }).click();
+		await page.getByRole('link', { name: 'Nouveau comité' }).click();
 		await page.getByLabel('Nom', { exact: true }).fill(comite);
 		await page.getByLabel('Thème').fill('sport');
 		await page.getByRole('button', { name: 'Créer le comité' }).click();
@@ -904,7 +904,7 @@ test.describe('réglages', () => {
 		const { groupe: stock } = await domaineOuvert(page, 'Stock et pharmacie');
 		await stock.getByRole('radio', { name: 'Gérer' }).check();
 		await expect(page.getByText('1 domaine modifié, pas encore enregistré')).toBeVisible();
-		await expect(page.locator('main header').getByText('Personnalisé', { exact: true })).toBeVisible();
+		await expect(page.locator('main .en-tete-role').getByText('Personnalisé', { exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
 		const pageRole = page.url();
@@ -923,11 +923,11 @@ test.describe('réglages', () => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		// Le jeu de départ a déjà un « Référent pharmacie » : les noms sont uniques.
 		const role = `Référent pharmacie ${nouvelleMarque()}`;
-		const entete = page.locator('main header');
+		const entete = page.locator('main .en-tete-role');
 		const barre = barreDe(page);
 
 		await page.goto('/reglages');
-		await page.getByRole('link', { name: '+ Nouveau rôle' }).click();
+		await page.getByRole('link', { name: 'Nouveau rôle' }).click();
 		await page.getByRole('link', { name: /^Référent pharmacie.*Stock et pharmacie/ }).click();
 		await expect(page.getByLabel('Nom', { exact: true })).toHaveValue('Référent pharmacie');
 		await page.getByLabel('Nom', { exact: true }).fill(role);

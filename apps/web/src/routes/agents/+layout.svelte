@@ -76,7 +76,7 @@
 					<a class="fichier" href="/agents/fichier"
 						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
 							><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M8 13h8 M8 17h8" /></svg
-						><span class="mot">Fichier</span><span class="masque">{' de l’effectif'}</span></a
+						>Fichier<span class="masque">{' de l’effectif'}</span></a
 					>
 				{/snippet}
 			</EnTetePage>
@@ -165,20 +165,7 @@
 	.fichier:hover {
 		border-color: var(--encre);
 	}
-	/* Au téléphone, l'icône seule, comme le bouton rond ; le nom reste lu. */
 	@media (max-width: 639px) {
-		.fichier {
-			width: 48px;
-			padding: 0;
-			justify-content: center;
-		}
-		.mot {
-			position: absolute;
-			width: 1px;
-			height: 1px;
-			overflow: hidden;
-			clip-path: inset(50%);
-		}
 		.etat :global(span) {
 			padding: 1px 8px;
 			font-size: 0.8125rem;

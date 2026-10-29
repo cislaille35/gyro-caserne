@@ -44,19 +44,20 @@ const ligne = (page: string, id: number) => page.slice(page.indexOf(`href="/regl
 const groupe = (page: string, titre: string) => page.slice(page.indexOf(`>${titre}<`), page.indexOf('</section>', page.indexOf(`>${titre}<`)));
 
 describe('page Réglages', () => {
-	it('range les rôles par thème dans des groupes repliés, avec un résumé', () => {
+	it('range les rôles par thème en rangées sous des rubriques comptées ; les archivés repliés', () => {
 		const page = html(Page, { data });
 		for (const titre of ['Chef de centre et adjoint', 'Chefs d’équipe', 'Référents', 'Comités', 'Profils', 'Archivés']) expect(page).toContain(`>${titre}<`);
-		expect(page).toMatch(/aria-expanded="false"/);
-		expect(groupe(page, 'Référents')).toContain('3 rôles · 1 sans titulaire');
+		expect(page.match(/aria-expanded=/g)).toHaveLength(1);
+		expect(page).toMatch(/aria-expanded="false"[\s\S]*Archivés/);
+		expect(groupe(page, 'Référents')).toMatch(/Référents(<!--[^>]*-->)* <span class="compte[^"]*">3</);
 		expect(ligne(page, 7)).toContain('--icone-camion-fond');
 		expect(groupe(page, 'Chef de centre et adjoint')).toContain('Chef de centre');
 		expect(groupe(page, 'Chefs d’équipe')).toContain('Chef d’équipe');
 	});
 
-	it('une ligne par rôle, qui ouvre sa page : « Aucun titulaire » en alerte, « Personnalisé » en pastille', () => {
+	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte, « Personnalisé » en pastille', () => {
 		const page = html(Page, { data });
-		expect(page).toMatch(/<a href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-alerte-fond\)[^>]*>(<!---->)?Aucun titulaire/);
+		expect(page).toMatch(/<a[^>]*href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-alerte-fond\)[^>]*>(<!---->)?À pourvoir/);
 		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
 		expect(engins).toContain('2 titulaires');
 		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);
@@ -82,10 +83,11 @@ describe('page Réglages', () => {
 		expect(archives).toContain('Sport, comité dissous');
 	});
 
-	it('« + Nouveau rôle » et « + Nouveau comité » selon les droits ; pas de profils sans pouvoir', () => {
+	it('« Nouveau rôle » en action principale et « Nouveau comité » en secondaire, selon les droits ; pas de profils sans pouvoir', () => {
 		const page = html(Page, { data });
-		expect(page).toContain('href="/reglages/roles/nouveau"');
-		expect(page).toContain('href="/reglages/comites/nouveau"');
+		expect(page).toMatch(/<a class="action[^"]*" href="\/reglages\/roles\/nouveau">[\s\S]*?Nouveau rôle</);
+		expect(page).toMatch(/<a class="secondaire[^"]*" href="\/reglages\/comites\/nouveau" aria-label="Nouveau comité">[\s\S]*?Comité<\/a>/);
+		expect(html(Page, { data: { ...data, responsabilites: null } })).not.toContain('/reglages/roles/nouveau');
 		const sansComites = html(Page, { data: { ...data, comites: null, profils: null } });
 		expect(sansComites).not.toContain('/reglages/comites/nouveau');
 		expect(sansComites).not.toContain('>Profils<');
@@ -97,13 +99,15 @@ describe('page Réglages', () => {
 		const MO = 1000 * 1000;
 		const jauge = (octets: number, alerte: boolean) => html(Page, { data: { ...data, photos: { octets, limite: 500 * MO, alerte } } });
 		const normale = jauge(120 * MO + 1000, false);
-		expect(normale).toContain('Photos : 120 Mo sur 500 Mo');
+		expect(normale).toMatch(/>Photos<[\s\S]*?>120 Mo sur 500 Mo</);
+		expect(normale).toContain('24 %');
+		expect(normale).not.toMatch(/class="rangee[^"]*alerte/);
 		expect(normale).not.toContain('presque pleine');
-		expect(jauge(Math.round(2.34 * MO), false)).toContain('Photos : 2,3 Mo sur 500 Mo');
+		expect(jauge(Math.round(2.34 * MO), false)).toContain('>2,3 Mo sur 500 Mo<');
 		const pleine = jauge(400 * MO, true);
-		expect(pleine).toContain('Photos : 400 Mo sur 500 Mo');
-		expect(pleine).toContain('La base des photos est presque pleine : il faudra choisir entre l’offre payante (5 $/mois) ou un stockage R2.');
-		expect(html(Page, { data: { ...data, photos: null } })).not.toContain('Photos :');
+		expect(pleine).toMatch(/class="rangee[^"]*alerte/);
+		expect(pleine).toContain('400 Mo sur 500 Mo. La base des photos est presque pleine : il faudra choisir entre l’offre payante (5 $/mois) ou un stockage R2.');
+		expect(html(Page, { data: { ...data, photos: null } })).not.toContain('>Photos<');
 	});
 
 	it('sans JavaScript, les groupes restent ouverts', () => {
@@ -117,7 +121,8 @@ describe('page Réglages', () => {
 		const mise = html(Layout, { data, children: createRawSnippet(() => ({ render: () => '<p>Contenu</p>' })) });
 		expect(mise).toMatch(/<nav[^>]*aria-label="Réglages du centre"/);
 		expect(mise).toMatch(/href="\/reglages\/roles\/3" aria-current="page"/);
-		expect(mise).toContain('href="/reglages">‹ Réglages');
+		expect(mise.match(/aria-current="page"/g)).toHaveLength(1);
+		expect(mise).toMatch(/<a class="retour[^"]*" href="\/reglages">[\s\S]*?Retour : <\/span>Réglages<\/a>/);
 		etat.page.url = new URL('http://x/reglages');
 		expect(html(Layout, { data, children: createRawSnippet(() => ({ render: () => '<p>Contenu</p>' })) })).not.toContain('<nav');
 	});

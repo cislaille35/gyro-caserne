@@ -107,7 +107,7 @@ describe('/agents : vue de tous', () => {
 describe('/agents : gestion', () => {
 	it('montre la liste, le volet, l’invite et les liens de gestion', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
-		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>[\s\S]*?Fichier<\/span><span class="masque[^"]*"> de l’effectif<\/span><\/a>/);
+		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>[\s\S]*?Fichier<span class="masque[^"]*"> de l’effectif<\/span><\/a>/);
 		expect(mise).toMatch(/<a class="action[^"]*" href="\/agents\/nouveau">[\s\S]*?Ajouter<\/span>/);
 		expect(mise).toContain('class="detail');
 		expect(mise).toContain('Contenu de la page');

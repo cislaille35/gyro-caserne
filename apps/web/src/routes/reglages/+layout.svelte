@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Retour from '#lib/ui/Retour.svelte';
 	import ListeReglages from './ListeReglages.svelte';
 
 	let { data, children } = $props();
@@ -20,7 +21,7 @@
 		</nav>
 	{/if}
 	<div class="principal">
-		{#if enfant}<a class="retour" href="/reglages">‹ Réglages</a>{/if}
+		{#if enfant}<div class="retour"><Retour href="/reglages" libelle="Réglages" /></div>{/if}
 		{@render children()}
 	</div>
 </div>
@@ -42,16 +43,13 @@
 		gap: 16px;
 	}
 	.retour {
-		align-self: flex-start;
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		color: var(--doux);
+		display: flex;
+		margin-bottom: -12px;
 	}
 	@media (min-width: 1024px) {
 		.cote {
 			display: block;
-			flex: 0 1 380px;
+			flex: 0 1 400px;
 			position: sticky;
 			top: 16px;
 		}

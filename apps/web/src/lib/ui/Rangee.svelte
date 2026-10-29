@@ -4,7 +4,7 @@
 	import type { IconeRole as NomIcone } from './icones-roles.ts';
 
 	// Une rangée de liste : tête (icône, visage, pastille), titre, sous-ligne, valeur ou `droite` ; lien avec chevron si `href`.
-	// Avec `children` (des gestes sous le texte), seul le titre est un lien. `alerte` ajoute une icône ; `discret`, pour ce qui n'existe pas encore.
+	// `courant` : la page affichée (liste à côté d'une page). Avec `children` (des gestes sous le texte), seul le titre est un lien. `alerte` ajoute une icône ; `discret`, pour ce qui n'existe pas encore.
 	let {
 		titre,
 		sous,
@@ -14,6 +14,7 @@
 		valeur,
 		alerte = false,
 		discret = false,
+		courant = false,
 		tete,
 		droite,
 		children
@@ -26,6 +27,7 @@
 		valeur?: string;
 		alerte?: boolean;
 		discret?: boolean;
+		courant?: boolean;
 		tete?: Snippet;
 		droite?: Snippet;
 		children?: Snippet;
@@ -61,7 +63,7 @@
 {/snippet}
 
 {#if lien}
-	<a class="rangee" class:alerte class:discret {href}>{@render contenu()}</a>
+	<a class="rangee" class:alerte class:discret {href} aria-current={courant ? 'page' : undefined}>{@render contenu()}</a>
 {:else}
 	<div class="rangee" class:alerte class:discret class:gestes={children !== undefined}>{@render contenu()}</div>
 {/if}
@@ -86,6 +88,14 @@
 	a.rangee:hover .titre,
 	a.titre:hover {
 		text-decoration: underline;
+	}
+	/* La page affichée : fond, liseré et titre en gras, pas la couleur seule. */
+	a.rangee[aria-current='page'] {
+		background: var(--statut-neutre-fond);
+		box-shadow: inset 4px 0 0 var(--encre);
+	}
+	a.rangee[aria-current='page'] .titre {
+		font-weight: 800;
 	}
 	.gestes {
 		align-items: flex-start;
