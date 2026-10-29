@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDate, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -23,7 +23,7 @@ export type DonneesPublication = {
 	texte: string;
 	priseDeConnaissance?: boolean;
 	evenement?: { debut: string; lieu: string; convoques: Convoques };
-	sondage?: { question: string; reponses: string[] };
+	sondage?: { question: string; reponses: string[]; ouverture: string; cloture: string };
 	photos?: { type: string; donnees: Uint8Array }[];
 };
 
@@ -42,8 +42,8 @@ export type PublicationVue = {
 	commentaires: number;
 	jaimeParMoi: boolean;
 	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number> } | null;
-	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs.
-	sondage: { question: string; reponses: string[]; resultats: number[] | null; vote: number | null } | null;
+	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs ; donnés à tous une fois le sondage fermé, jamais avant l'ouverture.
+	sondage: { question: string; reponses: string[]; ouverture: string | null; cloture: string | null; etat: EtatSondage; resultats: number[] | null; vote: number | null } | null;
 	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait.
 	priseDeConnaissance: { le: string | null } | null;
 	// Les 2 derniers, du plus ancien au plus récent.
@@ -78,12 +78,30 @@ function exigerPhotos(valeur: DonneesPublication['photos']) {
 	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
 }
 
-function exigerSondage(sondage: DonneesPublication['sondage']) {
-	if (!sondage) return { sondageQuestion: null, sondageReponses: null };
+export type EtatSondage = 'avenir' | 'ouvert' | 'ferme';
+
+// Comparaison à la minute. Sans dates (sondage publié avant les dates) : toujours ouvert.
+export function etatSondage(ouverture: string | null, cloture: string | null, maintenant: string): EtatSondage {
+	const m = maintenant.slice(0, 16);
+	if (ouverture === null || cloture === null) return 'ouvert';
+	if (m < ouverture) return 'avenir';
+	return m >= cloture ? 'ferme' : 'ouvert';
+}
+
+function exigerSondage(sondage: DonneesPublication['sondage'], debutEvenement: string | undefined) {
+	if (!sondage) return { sondageQuestion: null, sondageReponses: null, sondageOuverture: null, sondageCloture: null };
 	const question = texte(sondage.question, 'Question', 200, true);
 	const reponses = Array.isArray(sondage.reponses) ? sondage.reponses.map((r) => texte(r, 'Réponse', 100, true)) : [];
 	if (reponses.length < 2 || reponses.length > 6) throw new DonneeInvalide('De 2 à 6 réponses');
-	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses) };
+	if (!sondage.ouverture || !sondage.cloture) throw new DonneeInvalide('Dates du sondage manquantes');
+	exigerDateHeure(sondage.ouverture, 'Ouverture');
+	exigerDateHeure(sondage.cloture, 'Clôture');
+	const ouverture = sondage.ouverture.slice(0, 16);
+	const cloture = sondage.cloture.slice(0, 16);
+	if (cloture <= ouverture) throw new DonneeInvalide('Clôture avant l’ouverture');
+	if (cloture > `${ajouterJours(ouverture.slice(0, 10), 365)}${ouverture.slice(10)}`) throw new DonneeInvalide('Clôture dans plus d’un an');
+	if (debutEvenement && cloture > debutEvenement.slice(0, 16)) throw new DonneeInvalide('Clôture après le début de l’événement');
+	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses), sondageOuverture: ouverture, sondageCloture: cloture };
 }
 
 async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication, maintenant: string) {
@@ -120,7 +138,7 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 		if (!mur.peutModerer) throw refusMur(cle, 'moderer');
 	}
 	const photos = exigerPhotos(donnees.photos);
-	const sondage = exigerSondage(donnees.sondage);
+	const sondage = exigerSondage(donnees.sondage, donnees.type === 'evenement' ? donnees.evenement?.debut : undefined);
 	const evenement = await exigerEvenement(base, mur, donnees, maintenant);
 
 	const ecritures = [
@@ -221,7 +239,7 @@ export async function lireMur(
 	const enTete = avant === undefined ? epinglees : [];
 	const publications = suivantes.slice(0, taille);
 	const lignes = [...enTete, ...publications];
-	const vues = await vuesDe(base, acteur, mur, appartenances, lignes, { visite: maintenant });
+	const vues = await vuesDe(base, acteur, mur, appartenances, lignes, { maintenant, visite: true });
 	const vue = (p: (typeof lignes)[number]) => vues.find((v) => v.id === p.id)!;
 	return { mur, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
 }
@@ -230,7 +248,7 @@ export async function lireMur(
 export async function lirePublication(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<{ mur: Mur; publication: PublicationVue; commentaires: CommentaireVue[] }> {
 	const { ligne, mur, appartenances } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	const tous: CommentaireVue[] = [];
-	const [vue] = await vuesDe(base, acteur, mur, appartenances, [ligne], { tous });
+	const [vue] = await vuesDe(base, acteur, mur, appartenances, [ligne], { maintenant, tous });
 	return { mur, publication: vue!, commentaires: tous };
 }
 
@@ -245,7 +263,7 @@ async function vuesDe(
 	mur: Mur,
 	appartenances: Appartenances,
 	lignes: (typeof publication.$inferSelect)[],
-	options: { visite?: string; tous?: CommentaireVue[] }
+	options: { maintenant: string; visite?: boolean; tous?: CommentaireVue[] }
 ): Promise<PublicationVue[]> {
 	const cle = mur.cle;
 	const ids = lignes.map((p) => p.id);
@@ -289,9 +307,9 @@ async function vuesDe(
 			)
 			.orderBy(asc(commentaire.id))
 	] as const;
-	const maintenant = options.visite;
+	const { maintenant } = options;
 	const [jaimes, commentaires, reponses, votes, prises, photos, auteurs, derniers] =
-		acteur.type === 'personne' && maintenant
+		acteur.type === 'personne' && options.visite
 			? await base.batch([
 					...lectures,
 					base
@@ -311,6 +329,7 @@ async function vuesDe(
 		const convoques: Convoques = JSON.parse(p.convoques ?? '"tous"');
 		const droits = droitsSur(acteur, mur, p);
 		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
+		const etat = etatSondage(p.sondageOuverture, p.sondageCloture, maintenant);
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
@@ -342,7 +361,10 @@ async function vuesDe(
 					: {
 							question: p.sondageQuestion,
 							reponses: choix,
-							resultats: monVote !== null || droits.supprimer ? choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0) : null,
+							ouverture: p.sondageOuverture,
+							cloture: p.sondageCloture,
+							etat,
+							resultats: etat !== 'avenir' && (etat === 'ferme' || monVote !== null || droits.supprimer) ? choix.map((_, i) => sesVotes.find((v) => v.reponse === i)?.n ?? 0) : null,
 							vote: monVote
 						},
 			priseDeConnaissance: p.priseDeConnaissance === 1 ? { le: prises.find((x) => x.publicationId === p.id)?.le ?? null } : null,

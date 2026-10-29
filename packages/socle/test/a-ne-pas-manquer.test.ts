@@ -43,7 +43,7 @@ async function jeu() {
 
 const annonce = (texte = 'Note de service') => ({ type: 'annonce' as const, texte, priseDeConnaissance: true });
 const evenement = (debut: string, convoques: 'tous' | number[] = 'tous') => ({ type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut, lieu: 'Caserne', convoques } });
-const sondage = (texte = 'Repas') => ({ type: 'message' as const, texte, sondage: { question: 'Qui vient ?', reponses: ['Oui', 'Non'] } });
+const sondage = (texte = 'Repas', ouverture = '2026-09-01T00:00', cloture = '2026-12-31T00:00') => ({ type: 'message' as const, texte, sondage: { question: 'Qui vient ?', reponses: ['Oui', 'Non'], ouverture, cloture } });
 const ids = (liste: { id: number }[]) => liste.map((x) => x.id);
 
 describe('à ne pas manquer', () => {
@@ -123,13 +123,22 @@ describe('à ne pas manquer', () => {
 		]);
 	});
 
+	it('sondages pas encore ouverts ou fermés : non listés', async () => {
+		const { base, chef, agent } = await jeu();
+		const ouvert = await publier(base, acteur(chef), 'vie', sondage('Ouvert', maintenant, '2026-11-30T00:00'), maintenant);
+		await publier(base, acteur(chef), 'vie', sondage('À venir', '2026-10-29T00:00', '2026-11-30T00:00'), maintenant);
+		await publier(base, acteur(chef), 'vie', sondage('Fermé', '2026-10-01T00:00', maintenant), '2026-10-01T10:00');
+		const [{ id: ancien }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Sans dates', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]' }).returning({ id: publication.id });
+		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).sondages).sort()).toEqual([ouvert, ancien].sort());
+	});
+
 	it('sondages ouverts (moins de 30 jours) et pas encore votés', async () => {
 		const { base, chef, agent } = await jeu();
 		const recent = await publier(base, acteur(chef), 'vie', sondage('Récent'), maintenant);
 		const vote = await publier(base, acteur(chef), 'vie', sondage('Voté'), maintenant);
 		await publier(base, acteur(chef), 'vie', sondage('Ancien'), '2026-09-27T10:00');
 		const limite = await publier(base, acteur(chef), 'vie', sondage('Limite'), '2026-09-29T10:00');
-		await voter(base, acteur(agent), vote, 0, aujourdhui);
+		await voter(base, acteur(agent), vote, 0, maintenant);
 		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).sondages)).toEqual([recent, limite]);
 	});
 

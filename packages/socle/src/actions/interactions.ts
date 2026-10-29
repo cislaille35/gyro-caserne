@@ -9,7 +9,7 @@ import { REPONSES_EVENEMENT, STATUTS_AVEC_ACCES, type ReponseEvenement } from '.
 import { appartenances, estConvoque, estMembre, exigerMur, refusMur } from '../murs.ts';
 import { affectationEquipe, commentaire, jaime, personne, priseConnaissance, profil, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
-import { cible, commentaireVu, texte, type Convoques } from './publications.ts';
+import { cible, commentaireVu, etatSondage, texte, type Convoques } from './publications.ts';
 
 export type Personne = { id: number; prenom: string; nom: string };
 export type CommentaireVue = { id: number; auteur: { prenom: string; nom: string }; texte: string; creeLe: string; supprimable: boolean };
@@ -80,11 +80,13 @@ export async function repondreEvenement(base: Base, acteur: Acteur, id: number, 
 	await base.insert(reponseEvenement).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse } });
 }
 
-// Un vote par personne : le rang de la réponse choisie ; voter à nouveau le change.
-export async function voter(base: Base, acteur: Acteur, id: number, reponse: number, aujourdhui: string): Promise<void> {
-	exigerDate(aujourdhui);
-	const { ligne, moi } = await pourAgir(base, acteur, id, aujourdhui);
+// Un vote par personne : le rang de la réponse choisie ; voter à nouveau le change. Seulement entre l'ouverture et la clôture.
+export async function voter(base: Base, acteur: Acteur, id: number, reponse: number, maintenant: string): Promise<void> {
+	const { ligne, moi } = await pourAgir(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (ligne.sondageReponses === null) throw new DonneeInvalide('Pas de sondage');
+	const etat = etatSondage(ligne.sondageOuverture, ligne.sondageCloture, maintenant);
+	if (etat === 'avenir') throw new DonneeInvalide('Sondage pas encore ouvert');
+	if (etat === 'ferme') throw new DonneeInvalide('Sondage fermé');
 	const choix: string[] = JSON.parse(ligne.sondageReponses);
 	if (!Number.isInteger(reponse) || reponse < 0 || reponse >= choix.length) throw new DonneeInvalide('Réponse inconnue');
 	await base.insert(voteSondage).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [voteSondage.publicationId, voteSondage.personneId], set: { reponse } });

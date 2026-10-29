@@ -101,11 +101,11 @@ export async function chargerComptesDeTest(base: Base, boite: string, maintenant
 		type: 'evenement',
 		texte: 'Manœuvre mensuelle : désincarcération sur la plateforme.',
 		evenement: { debut: dans(7, '19:00'), lieu: 'Plateforme du centre', convoques: 'tous' },
-		sondage: { question: 'Petit déjeuner avant ?', reponses: ['Oui', 'Non'] }
+		sondage: { question: 'Petit déjeuner avant ?', reponses: ['Oui', 'Non'], ouverture: maintenant, cloture: dans(7, '19:00') }
 	});
 	if (manoeuvre.nouvelle) {
 		await repondreEvenement(base, qui('agent'), manoeuvre.id, 'present', maintenant);
-		await voter(base, qui('agent'), manoeuvre.id, 0, aujourdhui);
+		await voter(base, qui('agent'), manoeuvre.id, 0, maintenant);
 	}
 	const bravo = await publierUneFois('chef', 'centre', { type: 'bravo', texte: 'Bravo à Manon pour la réussite de son module de chef d’agrès !' });
 	if (bravo.nouvelle) {
@@ -113,9 +113,9 @@ export async function chargerComptesDeTest(base: Base, boite: string, maintenant
 		await commenter(base, qui('membre'), bravo.id, 'Merci à tous pour le soutien !', maintenant);
 	}
 
-	const sortie = await publierUneFois('agent', 'vie', { type: 'message', texte: 'Qui est partant pour un footing dimanche matin ?', sondage: { question: 'Dimanche 9 h ?', reponses: ['Partant', 'Pas cette fois'] } });
+	const sortie = await publierUneFois('agent', 'vie', { type: 'message', texte: 'Qui est partant pour un footing dimanche matin ?', sondage: { question: 'Dimanche 9 h ?', reponses: ['Partant', 'Pas cette fois'], ouverture: maintenant, cloture: `${ajouterJours(aujourdhui, 7)}${maintenant.slice(10, 16)}` } });
 	if (sortie.nouvelle) {
-		await voter(base, qui('rapporteur'), sortie.id, 0, aujourdhui);
+		await voter(base, qui('rapporteur'), sortie.id, 0, maintenant);
 		await commenter(base, qui('rapporteur'), sortie.id, 'Je viens, rendez-vous devant le centre.', maintenant);
 	}
 

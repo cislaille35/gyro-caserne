@@ -5,6 +5,12 @@ import { commentaire, commenter, fermerCommentaires, jaime, journal, personne, p
 import { envoyer, jpeg, locaux, preparer } from '../de-test.ts';
 import { actions, load } from './+page.server';
 
+const champsDates = (): [string, string][] => {
+	const { ouverture, cloture } = datesSondage(maintenantParis());
+	return [['ouverture', ouverture], ['cloture', cloture]];
+};
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const charger = (locals: unknown, mur: string, recherche = '') => (load as any)({ locals, params: { mur }, url: new URL(`http://x/echanges/${mur}${recherche}`) });
 const agir = (nom: string, locals: unknown, mur: string, corps: [string, string | File][]) => envoyer(actions, nom, locals, mur, corps);
@@ -70,6 +76,7 @@ describe('publier', () => {
 			['reponse', 'Oui'],
 			['reponse', 'Non'],
 			['reponse', ''],
+			...champsDates(),
 			['photos', jpeg()],
 			['photos', jpeg(2000, 'deux.jpg')],
 			['photos', new File([], '')]
@@ -77,7 +84,7 @@ describe('publier', () => {
 		const p = await derniere(base);
 		// L'identifiant sert à y mettre le focus.
 		expect(r).toMatchObject({ cible: 'publier', succes: 'Publication envoyée.', id: p.id });
-		expect(p).toMatchObject({ type: 'message', texte: 'Petit déjeuner samedi ?', sondageQuestion: 'Vous venez ?', sondageReponses: '["Oui","Non"]' });
+		expect(p).toMatchObject({ type: 'message', texte: 'Petit déjeuner samedi ?', sondageQuestion: 'Vous venez ?', sondageReponses: '["Oui","Non"]', sondageOuverture: expect.any(String), sondageCloture: expect.any(String) });
 		expect(await base.select({ id: photoPublication.id }).from(photoPublication).where(eq(photoPublication.publicationId, p.id))).toHaveLength(2);
 	});
 
@@ -119,10 +126,10 @@ describe('publier', () => {
 		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', demain()], ['lieu', '']])).toMatchObject({ status: 400, data: { erreurs: { lieu: 'Indiquez le lieu.' } } });
 		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', ''], ['lieu', 'Ici']])).toMatchObject({ status: 400, data: { erreurs: { debut: 'Indiquez la date et l’heure.' } } });
 		expect(await vie([['type', 'evenement'], ['texte', 'x'], ['debut', '2020-01-01T10:00'], ['lieu', 'Ici']])).toMatchObject({ status: 400, data: { erreurs: { debut: 'Cet événement est déjà passé.' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Proposez de 2 à 6 réponses.' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['reponse', 'Oui'], ['reponse', 'Non']])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez la question du sondage.' } } });
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui'], ...champsDates()])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Proposez de 2 à 6 réponses.' } } });
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['reponse', 'Oui'], ['reponse', 'Non'], ...champsDates()])).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez la question du sondage.' } } });
 		expect(await vie([['type', 'annonce'], ['texte', 'x'], ['priseDeConnaissance', 'oui']])).toMatchObject({ status: 403, data: { message: expect.stringContaining('modérateurs') } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'q'.repeat(201)], ['reponse', 'Oui'], ['reponse', 'Non']])).toMatchObject({
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['question', 'q'.repeat(201)], ['reponse', 'Oui'], ['reponse', 'Non'], ...champsDates()])).toMatchObject({
 			status: 400,
 			data: { erreurs: { sondage: 'La question ne peut pas dépasser 200 caractères.' } }
 		});
@@ -186,10 +193,16 @@ describe('taille des envois', () => {
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 
+	it('sondage sans dates : refusé avec une phrase claire', async () => {
+		const { base, alice } = await preparer();
+		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'], ['question', 'Q'], ['reponse', 'Oui'], ['reponse', 'Non']]);
+		expect(r).toMatchObject({ status: 400, data: { erreurs: { sondage: 'Indiquez les dates d’ouverture et de clôture du sondage.' } } });
+	});
+
 	it('accepte 4 photos de 400 Ko et le texte', async () => {
 		const { base, alice } = await preparer();
 		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
-		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...photos]);
+		const r = await agir('publier', locaux(base, alice), 'vie', [['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...champsDates(), ...photos]);
 		expect(r).toMatchObject({ succes: 'Publication envoyée.' });
 	});
 });
@@ -248,7 +261,7 @@ describe('interactions', () => {
 
 	it('voter : un choix par personne, qu’on peut changer', async () => {
 		const { base, alice, bruno } = await preparer();
-		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Samedi', sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenantParis()));
+		const id = String(await publier(base, alice, 'vie', { type: 'message', texte: 'Samedi', sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenantParis()) } }, maintenantParis()));
 		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '1']])).toMatchObject({ succes: 'Vote enregistré.' });
 		expect(await agir('voter', locaux(base, bruno), 'vie', [['id', id], ['reponse', '0']])).toMatchObject({ succes: 'Vote enregistré.' });
 		expect(await base.select().from(voteSondage)).toMatchObject([{ personneId: bruno.id, reponse: 0 }]);

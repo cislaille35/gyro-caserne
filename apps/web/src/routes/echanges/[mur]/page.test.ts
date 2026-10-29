@@ -64,7 +64,7 @@ describe('page d’un mur', () => {
 				pub({
 					type: 'evenement',
 					evenement: { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 } },
-					sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], resultats: [3, 1], vote: 0 },
+					sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ouverture: null, cloture: null, etat: 'ouvert', resultats: [3, 1], vote: 0 },
 					photos: [7, 8],
 					jaime: 2,
 					commentaires: 1
@@ -172,7 +172,7 @@ describe('gestes sur une publication', () => {
 	});
 
 	it('sondage : les choix, puis les résultats en nombre et en pourcentage (jamais la couleur seule)', () => {
-		const sondage = { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], resultats: [3, 1], vote: null };
+		const sondage = { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ouverture: null, cloture: null, etat: 'ouvert' as const, resultats: [3, 1], vote: null };
 		const avant = agir(pub({ sondage }));
 		expect(avant).toContain('action="?/voter"');
 		expect(avant).toMatch(/<button[^>]*name="reponse" value="0"[^>]*>Oui</);

@@ -12,6 +12,7 @@ const maintenant = '2026-10-28T14:30';
 const aujourdhui = '2026-10-28';
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
 const acteur = (id: number): Acteur => ({ type: 'personne', id });
+const dates = { ouverture: maintenant, cloture: '2026-11-04T14:30' };
 
 const jpeg = (taille = 1000) => {
 	const octets = new Uint8Array(taille);
@@ -110,7 +111,7 @@ describe('publier', () => {
 
 	it('sondage : question de 1 à 200, 2 à 6 réponses de 1 à 100', async () => {
 		const { base, agent } = await jeu();
-		const avec = (question: string, reponses: string[]) => publier(base, acteur(agent), 'vie', { ...message(), sondage: { question, reponses } }, maintenant);
+		const avec = (question: string, reponses: string[]) => publier(base, acteur(agent), 'vie', { ...message(), sondage: { question, reponses, ...dates } }, maintenant);
 		await expect(avec('', ['Oui', 'Non'])).rejects.toThrow(DonneeInvalide);
 		await expect(avec('q'.repeat(201), ['Oui', 'Non'])).rejects.toThrow('Question trop longue');
 		await expect(avec('Pizza ?', ['Oui'])).rejects.toThrow(DonneeInvalide);
@@ -120,7 +121,24 @@ describe('publier', () => {
 		await expect(publier(base, acteur(agent), 'vie', message('t'.repeat(4001)), maintenant)).rejects.toThrow('Texte trop long');
 		const id = await avec(' Pizza ? ', ['Oui', 'Non']);
 		const [ligne] = await base.select().from(publication).where(eq(publication.id, id));
-		expect(ligne).toMatchObject({ sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]' });
+		expect(ligne).toMatchObject({ sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]', sondageOuverture: dates.ouverture, sondageCloture: dates.cloture });
+	});
+
+	it('sondage : dates obligatoires, clôture après l’ouverture, dans l’année et avant l’événement', async () => {
+		const { base, agent } = await jeu();
+		const question = { question: 'Pizza ?', reponses: ['Oui', 'Non'] };
+		const avec = (sondage: object, plus: object = message()) => publier(base, acteur(agent), 'vie', { ...plus, sondage: { ...question, ...sondage } } as never, maintenant);
+		await expect(avec({})).rejects.toThrow('Dates du sondage manquantes');
+		await expect(avec({ ouverture: maintenant })).rejects.toThrow('Dates du sondage manquantes');
+		await expect(avec({ cloture: '2026-11-04T14:30' })).rejects.toThrow('Dates du sondage manquantes');
+		await expect(avec({ ouverture: maintenant, cloture: maintenant })).rejects.toThrow('Clôture avant l’ouverture');
+		await expect(avec({ ouverture: maintenant, cloture: '2026-10-27T10:00' })).rejects.toThrow('Clôture avant l’ouverture');
+		await expect(avec({ ouverture: maintenant, cloture: '2027-10-28T14:31' })).rejects.toThrow('Clôture dans plus d’un an');
+		await expect(avec({ ouverture: maintenant, cloture: 'demain' })).rejects.toThrow(DonneeInvalide);
+		await expect(avec({ ouverture: maintenant, cloture: '2027-10-28T14:30' })).resolves.toBeGreaterThan(0);
+		const evenement = { type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' as const } };
+		await expect(avec({ ouverture: maintenant, cloture: '2026-11-02T19:01' }, evenement)).rejects.toThrow('Clôture après le début de l’événement');
+		await expect(avec({ ouverture: maintenant, cloture: '2026-11-02T19:00' }, evenement)).resolves.toBeGreaterThan(0);
 	});
 
 	it('événement : début à venir (date et heure), lieu, convoqués ; seulement pour le type événement', async () => {
@@ -323,7 +341,7 @@ describe('lireMur', () => {
 			base,
 			acteur(chef),
 			'vie',
-			{ type: 'evenement', texte: 'Repas', priseDeConnaissance: false, evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'] }, photos: [jpeg(), webp()] },
+			{ type: 'evenement', texte: 'Repas', priseDeConnaissance: false, evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], ...dates, cloture: '2026-11-02T19:00' }, photos: [jpeg(), webp()] },
 			maintenant
 		);
 		await base.insert(jaime).values([
@@ -358,7 +376,7 @@ describe('lireMur', () => {
 			commentaires: 1,
 			jaimeParMoi: true,
 			evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous', convoque: true, reponse: 'present', compte: { present: 2, absent: 0, incertain: 1 } },
-			sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], resultats: [1, 0, 1], vote: 2 },
+			sondage: { question: 'Dessert ?', reponses: ['Oui', 'Non', 'Peut-être'], ouverture: maintenant, cloture: '2026-11-02T19:00', etat: 'ouvert', resultats: [1, 0, 1], vote: 2 },
 			priseDeConnaissance: null,
 			derniersCommentaires: [{ id: expect.any(Number), auteur: { prenom: 'Autre', nom: 'Test' }, texte: 'Super', creeLe: maintenant, supprimable: false }],
 			droits: { modifier: false, supprimer: false, epingler: false, fermer: false }
@@ -373,15 +391,38 @@ describe('lireMur', () => {
 	it('résultats du sondage : seulement à qui a voté, à l’auteur et aux modérateurs', async () => {
 		const { base, agent, autre, chef, nouvelle } = await jeu();
 		const tiers = await nouvelle('Tiers');
-		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'], ...dates } }, maintenant);
 		await base.insert(voteSondage).values({ publicationId: id, personneId: autre, reponse: 1 });
 		const sondage = async (qui: Acteur) => (await lireMur(base, qui, 'vie', {}, maintenant)).publications[0]!.sondage!;
 		expect(await sondage(acteur(autre))).toMatchObject({ resultats: [0, 1], vote: 1 });
 		expect(await sondage(acteur(agent))).toMatchObject({ resultats: [0, 1], vote: null });
 		expect(await sondage(acteur(chef))).toMatchObject({ resultats: [0, 1] });
 		expect(await sondage(superAdmin)).toMatchObject({ resultats: [0, 1] });
-		expect(await sondage(acteur(tiers))).toEqual({ question: 'Pizza ?', reponses: ['Oui', 'Non'], resultats: null, vote: null });
+		expect(await sondage(acteur(tiers))).toEqual({ question: 'Pizza ?', reponses: ['Oui', 'Non'], ...dates, etat: 'ouvert', resultats: null, vote: null });
 		expect((await lirePublication(base, acteur(tiers), id, maintenant)).publication.sondage!.resultats).toBeNull();
+	});
+
+	it('état du sondage : à venir sans résultats, ouvert, fermé avec résultats pour tous', async () => {
+		const { base, agent, autre, chef, nouvelle } = await jeu();
+		const tiers = await nouvelle('Tiers');
+		const id = await publier(base, acteur(agent), 'vie', { ...message(), sondage: { question: 'Pizza ?', reponses: ['Oui', 'Non'], ouverture: '2026-10-30T08:00', cloture: '2026-11-04T14:30' } }, maintenant);
+		const sondage = async (qui: Acteur, a: string) => (await lireMur(base, qui, 'vie', {}, a)).publications[0]!.sondage!;
+		expect(await sondage(acteur(agent), maintenant)).toMatchObject({ etat: 'avenir', resultats: null });
+		expect(await sondage(acteur(chef), maintenant)).toMatchObject({ etat: 'avenir', resultats: null });
+		expect(await sondage(acteur(tiers), '2026-10-30T08:00')).toMatchObject({ etat: 'ouvert', resultats: null });
+		await base.insert(voteSondage).values({ publicationId: id, personneId: autre, reponse: 1 });
+		expect(await sondage(acteur(tiers), '2026-11-04T14:29')).toMatchObject({ etat: 'ouvert', resultats: null });
+		expect(await sondage(acteur(tiers), '2026-11-04T14:30')).toMatchObject({ etat: 'ferme', resultats: [0, 1], vote: null });
+		expect((await lirePublication(base, acteur(tiers), id, '2026-11-05T09:00')).publication.sondage).toMatchObject({ etat: 'ferme', resultats: [0, 1] });
+	});
+
+	it('sondage sans dates (publié avant les dates) : ouvert, sans dates, jamais fermé', async () => {
+		const { base, agent, nouvelle } = await jeu();
+		const tiers = await nouvelle('Tiers');
+		const [{ id }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${agent}`, type: 'message', texte: 'Ancien', creeLe: '2026-01-01T10:00', sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]' }).returning({ id: publication.id });
+		const vue = (await lireMur(base, acteur(tiers), 'vie', {}, '2030-01-01T10:00')).publications[0]!;
+		expect(vue.id).toBe(id);
+		expect(vue.sondage).toMatchObject({ ouverture: null, cloture: null, etat: 'ouvert', resultats: null });
 	});
 
 	it('convoqué : « tous » ou son équipe en cours ; jamais le super administrateur', async () => {

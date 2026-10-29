@@ -220,7 +220,10 @@ export const publication = sqliteTable(
 		convoques: text('convoques'),
 		// Sondage : question et réponses (JSON, liste de textes).
 		sondageQuestion: text('sondage_question'),
-		sondageReponses: text('sondage_reponses')
+		sondageReponses: text('sondage_reponses'),
+		// Dates du sondage (« AAAA-MM-JJTHH:MM », heure de Paris) ; vides pour un sondage publié sans dates.
+		sondageOuverture: text('sondage_ouverture'),
+		sondageCloture: text('sondage_cloture')
 	},
 	(t) => [
 		check('publication_type', checkDans('type', TYPES_PUBLICATION)),

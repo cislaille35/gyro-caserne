@@ -17,6 +17,8 @@ import { load as nominations } from './nominations/+page.server';
 import { load as reglages } from './reglages/+layout.server';
 import { load as role } from './reglages/roles/[id]/+page.server';
 
+const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: new Date(Date.parse(`${m.slice(0, 16)}:00Z`) + 7 * 864e5).toISOString().slice(0, 16) });
+
 // D1 gratuit : 50 requêtes par appel du Worker. 45 au plus pour les pages, la session des hooks en prend quelques-unes.
 const BUDGET = 45;
 
@@ -91,7 +93,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const maintenant = maintenantParis();
 		const ids: number[] = [];
 		for (let i = 0; i < 20; i++) ids.push(await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: `Note ${i}`, priseDeConnaissance: true }, maintenant));
-		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] } }, maintenant));
+		for (let i = 0; i < 10; i++) ids.push(await publier(base, locals.acteur, 'vie', { type: 'evenement', texte: `Repas ${i}`, evenement: { debut: `2099-01-${String(i + 1).padStart(2, '0')}T19:00`, lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant));
 		await base.update(publication).set({ epinglee: 1 });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
 		const url = new URL('http://localhost/');
@@ -152,7 +154,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/echanges/[mur]/[id] : annonce suivie, 50 commentaires ; chaque geste puis le rechargement', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const maintenant = '2026-10-28T10:00:00';
-		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'] } }, maintenant);
+		const annonce = await publier(base, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		const evenement = await publier(base, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
 		const agents = await base.select({ id: personne.id }).from(personne);
 		for (const a of agents.slice(0, 100)) await prendreConnaissance(base, { type: 'personne', id: a.id }, annonce, maintenant);
