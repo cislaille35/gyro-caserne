@@ -22,10 +22,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 	const demande = url.searchParams.get('mur');
 	const ouverture = maintenantParis().slice(0, 16);
+	const choisi = proposes.find((m) => m.cle === demande)?.cle ?? null;
 	return {
 		murs: proposes,
-		choisi: proposes.find((m) => m.cle === demande)?.cle ?? null,
-		texte: (url.searchParams.get('texte') ?? '').slice(0, 4000),
+		choisi,
+		// Texte prérempli : seulement le lien « Souhaiter », vers Vie de caserne.
+		texte: choisi === 'vie' ? (url.searchParams.get('texte') ?? '').slice(0, 4000) : '',
 		ouverture,
 		cloture: clotureParDefaut(ouverture),
 		equipes

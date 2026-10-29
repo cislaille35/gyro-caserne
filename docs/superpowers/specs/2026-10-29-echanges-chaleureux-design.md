@@ -99,6 +99,7 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 ## Les sondages datés (maquette 3)
 
 - Deux dates par sondage : **ouverture** (préremplie avec maintenant) et **clôture** (obligatoire, préremplie à 7 jours, ou au début de l'événement s'il s'agit d'un événement, sans dépasser un an après l'ouverture). La clôture tombe après l'ouverture et dans moins d'un an (choix de Claude).
+- Une clôture déjà passée est refusée à la publication : « Cette date de clôture est déjà passée » (décision de la relecture, 2026-10-29).
 - Avant l'ouverture, le sondage s'affiche « Ouvre le … » et refuse les votes. Après la clôture, il s'affiche « Fermé », refuse les votes et montre les **résultats à tous**. Pendant qu'il est ouvert, on garde la règle du lot 1 : on voit les résultats une fois qu'on a voté.
 - Dans « À ne pas manquer », un sondage n'apparaît qu'une fois ouvert, et sort de la liste à sa clôture.
 - Les dates ne se modifient pas après la publication, comme le reste hors du texte (choix de Claude ; prolonger ou fermer plus tôt pourra venir plus tard).

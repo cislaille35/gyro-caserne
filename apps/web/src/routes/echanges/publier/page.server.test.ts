@@ -54,10 +54,11 @@ describe('page Publier', () => {
 		for (const mur of ['centre', `equipe:${e2.id}`, 'inconnu', '']) expect((await charger(locaux(base, alice), `?mur=${mur}`)).choisi).toBeNull();
 	});
 
-	it('?texte= préremplit le texte, coupé à 4 000 caractères', async () => {
-		const { base, alice } = await preparer();
+	it('?texte= préremplit le texte du mur Vie de caserne seulement (lien « Souhaiter »), coupé à 4 000 caractères', async () => {
+		const { base, alice, e1 } = await preparer();
 		expect((await charger(locaux(base, alice), `?mur=vie&texte=${encodeURIComponent('Joyeux anniversaire Alice !')}`)).texte).toBe('Joyeux anniversaire Alice !');
-		expect((await charger(locaux(base, alice), `?texte=${'x'.repeat(5000)}`)).texte).toHaveLength(4000);
+		expect((await charger(locaux(base, alice), `?mur=vie&texte=${'x'.repeat(5000)}`)).texte).toHaveLength(4000);
+		for (const mur of [`?mur=equipe:${e1.id}&`, '?mur=centre&', '?']) expect((await charger(locaux(base, alice), `${mur}texte=Bonjour`)).texte, mur).toBe('');
 		expect((await charger(locaux(base, alice))).texte).toBe('');
 	});
 
@@ -165,6 +166,7 @@ describe('publier', () => {
 			[[['ouverture', 'demain'], ['cloture', septJoursPlusTard(m)]], 'ouverture', 'Indiquez une date et une heure d’ouverture valides.'],
 			[[['ouverture', m], ['cloture', '2026-11-01T25:00']], 'cloture', 'Indiquez une date et une heure de clôture valides.'],
 			[[['ouverture', m], ['cloture', m]], 'cloture', 'Le sondage doit se clore après son ouverture.'],
+			[[['ouverture', '2020-01-01T10:00'], ['cloture', '2020-01-02T10:00']], 'cloture', 'Cette date de clôture est déjà passée : choisissez-en une à venir.'],
 			[[['ouverture', m], ['cloture', `${Number(m.slice(0, 4)) + 2}${m.slice(4)}`]], 'cloture', 'Le sondage ne peut pas durer plus d’un an.'],
 			[[['ouverture', m], ['cloture', septJoursPlusTard(demain())]], 'cloture', 'Le sondage doit se clore au plus tard au début de l’événement.', [['type', 'evenement'], ['debut', demain()], ['lieu', 'Ici']]]
 		];

@@ -90,7 +90,7 @@ export function etatSondage(ouverture: string | null, cloture: string | null, ma
 	return m >= cloture ? 'ferme' : 'ouvert';
 }
 
-function exigerSondage(sondage: DonneesPublication['sondage'], debutEvenement: string | undefined) {
+function exigerSondage(sondage: DonneesPublication['sondage'], debutEvenement: string | undefined, maintenant: string) {
 	if (!sondage) return { sondageQuestion: null, sondageReponses: null, sondageOuverture: null, sondageCloture: null };
 	const question = texte(sondage.question, 'Question', 200, true);
 	const reponses = Array.isArray(sondage.reponses) ? sondage.reponses.map((r) => texte(r, 'Réponse', 100, true)) : [];
@@ -101,6 +101,7 @@ function exigerSondage(sondage: DonneesPublication['sondage'], debutEvenement: s
 	const ouverture = sondage.ouverture.slice(0, 16);
 	const cloture = sondage.cloture.slice(0, 16);
 	if (cloture <= ouverture) throw new DonneeInvalide('Clôture avant l’ouverture');
+	if (cloture <= maintenant.slice(0, 16)) throw new DonneeInvalide('Clôture déjà passée');
 	if (cloture > `${ajouterJours(ouverture.slice(0, 10), 365)}${ouverture.slice(10)}`) throw new DonneeInvalide('Clôture dans plus d’un an');
 	if (debutEvenement && cloture > debutEvenement.slice(0, 16)) throw new DonneeInvalide('Clôture après le début de l’événement');
 	return { sondageQuestion: question, sondageReponses: JSON.stringify(reponses), sondageOuverture: ouverture, sondageCloture: cloture };
@@ -140,7 +141,7 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 		if (!mur.peutModerer) throw refusMur(cle, 'moderer');
 	}
 	const photos = exigerPhotos(donnees.photos);
-	const sondage = exigerSondage(donnees.sondage, donnees.type === 'evenement' ? donnees.evenement?.debut : undefined);
+	const sondage = exigerSondage(donnees.sondage, donnees.type === 'evenement' ? donnees.evenement?.debut : undefined, maintenant);
 	const evenement = await exigerEvenement(base, mur, donnees, maintenant);
 
 	const ecritures = [

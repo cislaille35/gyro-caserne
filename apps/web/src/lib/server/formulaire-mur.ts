@@ -82,6 +82,7 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Clôture invalide': { champ: 'cloture', texte: 'Indiquez une date et une heure de clôture valides.' },
 	'Dates du sondage manquantes': { champ: 'cloture', texte: 'Indiquez les dates d’ouverture et de clôture du sondage.' },
 	'Clôture avant l’ouverture': { champ: 'cloture', texte: 'Le sondage doit se clore après son ouverture.' },
+	'Clôture déjà passée': { champ: 'cloture', texte: 'Cette date de clôture est déjà passée : choisissez-en une à venir.' },
 	'Clôture dans plus d’un an': { champ: 'cloture', texte: 'Le sondage ne peut pas durer plus d’un an.' },
 	'Clôture après le début de l’événement': { champ: 'cloture', texte: 'Le sondage doit se clore au plus tard au début de l’événement.' },
 	'Date et lieu de l’événement manquants': { champ: 'debut', texte: 'Indiquez la date et l’heure.' },

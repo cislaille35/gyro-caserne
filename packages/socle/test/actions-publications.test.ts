@@ -124,7 +124,7 @@ describe('publier', () => {
 		expect(ligne).toMatchObject({ sondageQuestion: 'Pizza ?', sondageReponses: '["Oui","Non"]', sondageOuverture: dates.ouverture, sondageCloture: dates.cloture });
 	});
 
-	it('sondage : dates obligatoires, clôture après l’ouverture, dans l’année et avant l’événement', async () => {
+	it('sondage : dates obligatoires, clôture après l’ouverture, à venir, dans l’année et avant l’événement', async () => {
 		const { base, agent } = await jeu();
 		const question = { question: 'Pizza ?', reponses: ['Oui', 'Non'] };
 		const avec = (sondage: object, plus: object = message()) => publier(base, acteur(agent), 'vie', { ...plus, sondage: { ...question, ...sondage } } as never, maintenant);
@@ -135,6 +135,10 @@ describe('publier', () => {
 		await expect(avec({ ouverture: maintenant, cloture: '2026-10-27T10:00' })).rejects.toThrow('Clôture avant l’ouverture');
 		await expect(avec({ ouverture: maintenant, cloture: '2027-10-28T14:31' })).rejects.toThrow('Clôture dans plus d’un an');
 		await expect(avec({ ouverture: maintenant, cloture: 'demain' })).rejects.toThrow(DonneeInvalide);
+		await expect(avec({ ouverture: '2026-10-20T10:00', cloture: '2026-10-28T14:29' })).rejects.toThrow('Clôture déjà passée');
+		await expect(avec({ ouverture: '2026-10-20T10:00', cloture: maintenant })).rejects.toThrow('Clôture déjà passée');
+		await expect(publier(base, acteur(agent), 'vie', { ...message(), sondage: { ...question, ouverture: '2026-10-20T10:00', cloture: maintenant } }, `${maintenant}:59`)).rejects.toThrow('Clôture déjà passée');
+		await expect(avec({ ouverture: '2026-10-20T10:00', cloture: '2026-10-28T14:31' })).resolves.toBeGreaterThan(0);
 		await expect(avec({ ouverture: maintenant, cloture: '2027-10-28T14:30' })).resolves.toBeGreaterThan(0);
 		const evenement = { type: 'evenement' as const, texte: 'Manœuvre', evenement: { debut: '2026-11-02T19:00', lieu: 'Caserne', convoques: 'tous' as const } };
 		await expect(avec({ ouverture: maintenant, cloture: '2026-11-02T19:01' }, evenement)).rejects.toThrow('Clôture après le début de l’événement');
