@@ -299,6 +299,7 @@ describe('cartes par type', () => {
 		const avec = html({ messagerie: true, publications: [pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] });
 		const lien = /<a[^>]*href="([^"]*)"[^>]*>Répondre en privé<\/a>/.exec(avec);
 		expect(lien).not.toBeNull();
+		expect(lien![0]).toContain('aria-label="Répondre en privé à Alice Martin"');
 		const url = new URL(lien![1]!.replaceAll('&amp;', '&'), 'http://x');
 		expect(url.pathname).toBe('/echanges/messages/a/5');
 		expect(url.searchParams.get('apropos')).toBe(texte.slice(0, 120));

@@ -189,7 +189,7 @@
 				{/if}
 				{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
 			{/if}
-			{#if prive}<a class="pilule" href={prive}>Répondre en privé</a>{/if}
+			{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
 			<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>
 		</div>
 

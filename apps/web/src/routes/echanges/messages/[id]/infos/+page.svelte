@@ -93,7 +93,8 @@
 		return async ({ result, update }) => {
 			dialogue?.close();
 			confirmation = null;
-			await update();
+			// Refusé (par exemple, retiré entre-temps) : la phrase reste à l'écran, sans recharger la page.
+			await update({ invalidateAll: result.type !== 'failure' });
 			await tick();
 			if (!c || c.geste === 'quitter') return;
 			if (result.type === 'success' && c.geste === 'retirer') {
