@@ -71,6 +71,8 @@
 		position: absolute;
 		z-index: 6;
 		top: calc(100% + 4px);
+		/* Jamais caché sous l'en-tête ou la saisie. */
+		scroll-margin: 80px 0 140px;
 		min-width: 14rem;
 		padding: 6px;
 		display: flex;

@@ -8,14 +8,18 @@ test.use({ storageState: ETAT_CONNECTE });
 test('menu des gestes au clavier', async ({ page }) => {
 	const marque = `Essai ${Date.now().toString(36)}`;
 	await page.goto('/echanges/messages/nouveau');
+	await page.waitForLoadState('networkidle');
 	await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
 	await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
-	await page.getByLabel('Votre message').fill(marque);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('textbox', { name: 'Votre message' }).fill(marque);
 	await page.getByRole('button', { name: 'Envoyer' }).click();
 	const fil = page.getByRole('log');
 	await expect(fil.getByText(marque)).toBeVisible();
 
 	const bouton = page.getByRole('button', { name: /^Gestes sur votre message/ }).last();
+	// Le bouton n'apparaît qu'avec JavaScript, une fois la page prête.
+	await expect(bouton).not.toHaveAttribute('hidden');
 	await bouton.focus();
 	await page.keyboard.press('Enter');
 	const menu = page.getByRole('menu');
@@ -44,7 +48,7 @@ test('menu des gestes au clavier', async ({ page }) => {
 	await menu.getByRole('menuitem', { name: 'Répondre' }).focus();
 	await page.keyboard.press('Enter');
 	await expect(menu).toBeHidden();
-	await expect(page.getByLabel('Votre message')).toBeFocused();
+	await expect(page.getByRole('textbox', { name: 'Votre message' })).toBeFocused();
 	await expect(page.getByText(`Réponse à vous`)).toBeVisible();
 	await page.getByRole('button', { name: 'Annuler la réponse' }).click();
 	await expect(page.getByText(`Réponse à vous`)).toBeHidden();

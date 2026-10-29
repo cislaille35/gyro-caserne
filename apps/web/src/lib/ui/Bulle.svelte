@@ -66,6 +66,14 @@
 	const enTexte = (r: VueMessage['reactions'][number]) => `${r.emoji} ${r.nombre}${r.deMoi ? (r.nombre > 1 ? ', dont vous' : ', vous') : ''}`;
 </script>
 
+{#snippet meta()}
+	<span class="meta"
+			>{#if m.modifie}modifié · {/if}<time datetime={m.cree_le}>{heure(m.cree_le)}</time>{#if m.coche}<span class="coche" class:lu={m.coche === 'lu'} aria-hidden="true"
+					>{m.coche === 'lu' ? '✓✓' : '✓'}</span
+				><span class="masque">, {m.coche === 'lu' ? 'lu' : 'envoyé'}</span>{/if}</span
+		>
+{/snippet}
+
 {#if m.systeme !== null}
 	<p class="systeme" id="message-{m.id}">{m.systeme}</p>
 {:else}
@@ -94,6 +102,7 @@
 						><img src="/echanges/messages/{conversation}/photo/{p}" alt={m.photos.length > 1 ? `Photo ${i + 1} sur ${m.photos.length}` : 'Photo'} loading="lazy" /></a
 					>
 				{/each}
+				{#if photoSeule}{@render meta()}{/if}
 			</span>
 		{/if}
 		{#if m.supprime !== null}
@@ -101,11 +110,7 @@
 		{:else if m.texte}
 			<span class="texte">{m.texte}</span>
 		{/if}
-		<span class="meta"
-			>{#if m.modifie}modifié · {/if}<time datetime={m.cree_le}>{heure(m.cree_le)}</time>{#if m.coche}<span class="coche" class:lu={m.coche === 'lu'} aria-hidden="true"
-					>{m.coche === 'lu' ? '✓✓' : '✓'}</span
-				><span class="masque">, {m.coche === 'lu' ? 'lu' : 'envoyé'}</span>{/if}</span
-		>
+		{#if !photoSeule}{@render meta()}{/if}
 		{#if m.reactions.length > 0}
 			{#if actif}
 				<form
@@ -244,10 +249,27 @@
 		height: 110px;
 	}
 	.photo-seule {
-		padding: 4px 4px 6px;
+		padding: 4px;
 	}
 	.photo-seule .photos {
-		margin: 0 0 4px;
+		position: relative;
+		margin: 0;
+	}
+	/* Une photo seule : l'heure se pose sur la photo. */
+	.photo-seule .meta {
+		position: absolute;
+		right: 6px;
+		bottom: 6px;
+		float: none;
+		margin: 0;
+		padding: 1px 8px;
+		border-radius: 999px;
+		background: rgb(0 0 0 / 0.6);
+		color: #ffffff;
+	}
+	.photo-seule .coche,
+	.photo-seule .coche.lu {
+		color: #ffffff;
 	}
 	.texte {
 		white-space: pre-wrap;

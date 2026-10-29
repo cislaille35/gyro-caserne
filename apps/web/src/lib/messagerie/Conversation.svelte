@@ -430,7 +430,8 @@
 	/* La conversation occupe toute la place : l'en-tête reste en haut, la saisie en bas. */
 	.conversation {
 		margin: -1rem -1rem -6rem;
-		min-height: calc(100dvh - 4.5rem);
+		/* Sous l'en-tête de l'appli (69 px). */
+		min-height: calc(100dvh - 69px);
 		display: flex;
 		flex-direction: column;
 		background: var(--fond);
@@ -725,7 +726,6 @@
 	@media (min-width: 1024px) {
 		.conversation {
 			margin: -1rem -1rem -1.5rem;
-			min-height: calc(100dvh - 4.6rem);
 		}
 		.bas {
 			padding-bottom: 0;

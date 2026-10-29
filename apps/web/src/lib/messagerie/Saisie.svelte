@@ -188,9 +188,9 @@
 			placeholder="Message"
 			bind:value={texte}
 			bind:this={champ}
-			oninput={() => {
+			oninput={(e) => {
 				ajuster();
-				if (!edition) garder(texte);
+				if (!edition) garder(e.currentTarget.value);
 			}}
 			onkeydown={touche}
 		></textarea>
