@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { checkDans, DROITS, NATURES_RESPONSABILITE, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { checkDans, DROITS, NATURES_RESPONSABILITE, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -69,6 +69,8 @@ export const personne = sqliteTable(
 		profilId: integer('profil_id').references(() => profil.id),
 		statut: text('statut', { enum: STATUTS_OPERATIONNELS }).notNull().default('operationnel'),
 		contactUrgence: text('contact_urgence'),
+		// Messagerie : 0, la personne ne montre plus ses lectures et ne voit plus celles des autres.
+		cochesLecture: integer('coches_lecture').notNull().default(1),
 		creeLe: text('cree_le').notNull().default(sql`(datetime('now'))`)
 	},
 	(t) => [
@@ -290,6 +292,62 @@ export const visiteMur = sqliteTable(
 	'visite_mur',
 	{ personneId: versPersonne(), mur: text('mur').notNull(), vueLe: text('vue_le').notNull() },
 	(t) => [primaryKey({ columns: [t.personneId, t.mur] })]
+);
+
+// Messagerie (messagerie.ts). Une conversation à deux a une clé de paire « petit id:grand id » : une seule par paire de personnes.
+export const conversation = sqliteTable(
+	'conversation',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		type: text('type', { enum: TYPES_CONVERSATION }).notNull(),
+		nom: text('nom'),
+		icone: text('icone'),
+		clePaire: text('cle_paire').unique(),
+		creePar: integer('cree_par').notNull(),
+		creeLe: text('cree_le').notNull(),
+		dernierLe: text('dernier_le').notNull()
+	},
+	() => [check('conversation_type', checkDans('type', TYPES_CONVERSATION))]
+);
+
+// `lu_jusqu_a` : id du dernier message lu.
+export const membreConversation = sqliteTable(
+	'membre_conversation',
+	{
+		conversationId: integer('conversation_id')
+			.notNull()
+			.references(() => conversation.id, { onDelete: 'cascade' }),
+		personneId: versPersonne(),
+		animateur: integer('animateur').notNull().default(0),
+		entreLe: text('entre_le').notNull(),
+		luJusquA: integer('lu_jusqu_a').notNull().default(0)
+	},
+	(t) => [primaryKey({ columns: [t.conversationId, t.personneId] }), check('membre_conversation_animateur', sql`${sql.identifier('animateur')} IN (0, 1)`), index('membre_conversation_personne').on(t.personneId)]
+);
+
+// `auteur` nul : message système (`systeme`). `maj_le` : dernière création ou modification, pour le rafraîchissement.
+export const message = sqliteTable(
+	'message',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		conversationId: integer('conversation_id')
+			.notNull()
+			.references(() => conversation.id, { onDelete: 'cascade' }),
+		auteur: integer('auteur').references(() => personne.id),
+		texte: text('texte').notNull(),
+		reponseA: integer('reponse_a'),
+		systeme: text('systeme'),
+		creeLe: text('cree_le').notNull(),
+		majLe: text('maj_le').notNull(),
+		modifie: integer('modifie').notNull().default(0),
+		supprime: text('supprime', { enum: SUPPRESSIONS_MESSAGE })
+	},
+	(t) => [
+		check('message_modifie', sql`${sql.identifier('modifie')} IN (0, 1)`),
+		check('message_supprime', sql`${sql.identifier('supprime')} IS NULL OR ${checkDans('supprime', SUPPRESSIONS_MESSAGE)}`),
+		index('message_conversation').on(t.conversationId, t.id),
+		index('message_conversation_maj').on(t.conversationId, t.majLe)
+	]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

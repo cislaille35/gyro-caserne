@@ -60,6 +60,11 @@ export type ReponseEvenement = (typeof REPONSES_EVENEMENT)[number];
 
 export const TYPES_PHOTO = ['image/jpeg', 'image/webp'] as const;
 
+export const TYPES_CONVERSATION = ['deux', 'groupe'] as const;
+export type TypeConversation = (typeof TYPES_CONVERSATION)[number];
+
+export const SUPPRESSIONS_MESSAGE = ['auteur', 'moderation'] as const;
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 

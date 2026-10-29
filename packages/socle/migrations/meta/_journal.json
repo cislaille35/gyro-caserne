@@ -50,6 +50,13 @@
       "when": 1793261730437,
       "tag": "0006_wakeful_thunderbird",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793265793310,
+      "tag": "0007_last_tempest",
+      "breakpoints": true
     }
   ]
 }

@@ -25,3 +25,4 @@ export { audiences, exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
 export { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, TAILLE_PHOTO_MAX, type DonneesPublication, type RemplissagePhotos, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
 export { aNePasManquer, anniversairesDuJour, type ANePasManquer, type ItemANePasManquer } from './a-ne-pas-manquer.ts';
+export { annuaire, conversationAvec, envoyer, exigerMessagerie, lireConversation, mesConversations, nonLusTotal, type ApercuConversation, type Photo, type VueConversation, type VueMessage } from './messagerie.ts';

@@ -292,15 +292,17 @@ const ROLES = [
 	['chef_equipe', 'Chef d’équipe']
 ] as const;
 
+// Premier rôle tenu (Chef de centre, Adjoint, Chef d’équipe), parmi les rôles tenus du jour (requeteTenues).
+export function roleDe(tenues: { personneId: number; type: string; portee: string; systeme: string | null }[], personneId: number): string | null {
+	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
+	return ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null;
+}
+
 // Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
 function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {
 	if (personneId === null || !agents.some((a) => a.id === personneId)) return { couleur: null, role: null };
 	const affectation = affectations.find((x) => x.personneId === personneId);
-	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
-	return {
-		couleur: equipes.find((e) => e.id === affectation?.equipeId)?.couleur ?? null,
-		role: ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null
-	};
+	return { couleur: equipes.find((e) => e.id === affectation?.equipeId)?.couleur ?? null, role: roleDe(tenues, personneId) };
 }
 
 const PRESENTS_MAX = 3;
