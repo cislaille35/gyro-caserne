@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, customType, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { checkDans, DROITS, NATURES_RESPONSABILITE, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
@@ -272,12 +272,7 @@ export const priseConnaissance = sqliteTable(
 	(t) => [primaryKey({ columns: [t.publicationId, t.personneId] })]
 );
 
-// Octets bruts ; D1 rend un BLOB en ArrayBuffer, SQLite de Node en Uint8Array : toujours relu en Uint8Array.
-const octets = customType<{ data: Uint8Array; driverData: ArrayBuffer | Uint8Array | number[] }>({
-	dataType: () => 'blob',
-	fromDriver: (valeur) => (valeur instanceof Uint8Array ? valeur : new Uint8Array(valeur))
-});
-
+// Les octets sont dans la base des photos (schema-photos.ts) : ici, la référence seulement (`photo_id`, sans lien vérifiable d'une base à l'autre).
 export const photoPublication = sqliteTable(
 	'photo_publication',
 	{
@@ -285,7 +280,7 @@ export const photoPublication = sqliteTable(
 		publicationId: versPublication(),
 		ordre: integer('ordre').notNull(),
 		type: text('type', { enum: TYPES_PHOTO }).notNull(),
-		donnees: octets('donnees').notNull()
+		photoId: integer('photo_id').notNull()
 	},
 	(t) => [check('photo_publication_type', checkDans('type', TYPES_PHOTO)), index('photo_publication_publication').on(t.publicationId)]
 );

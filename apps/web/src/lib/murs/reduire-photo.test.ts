@@ -46,7 +46,7 @@ describe('reduirePhoto', () => {
 		expect(grand.taille).toEqual([500, 1600]);
 	});
 
-	it('baisse la qualité tant que la photo dépasse 400 Ko', async () => {
+	it('baisse la qualité tant que la photo dépasse 200 Ko', async () => {
 		const qualites: number[] = [];
 		simuler(1600, 1200);
 		vi.stubGlobal(
@@ -57,13 +57,77 @@ describe('reduirePhoto', () => {
 				}
 				async convertToBlob({ quality }: { quality: number }) {
 					qualites.push(quality);
-					return new Blob([new Uint8Array(quality > 0.5 ? 500 * 1024 : 300 * 1024)], { type: 'image/jpeg' });
+					return new Blob([new Uint8Array(quality > 0.5 ? 250 * 1024 : 150 * 1024)], { type: 'image/jpeg' });
 				}
 			}
 		);
 		const blob = await reduirePhoto(new File([new Uint8Array(10)], 'dense.jpg', { type: 'image/jpeg' }));
 		expect(qualites).toEqual([0.8, 0.6, 0.4]);
-		expect(blob.size).toBe(300 * 1024);
+		expect(blob.size).toBe(150 * 1024);
+	});
+
+	it('dépasse à 0,4 en 1600 px, puis passe en réduisant les dimensions', async () => {
+		const essais: string[] = [];
+		const { fermer } = simuler(4000, 3000);
+		vi.stubGlobal(
+			'OffscreenCanvas',
+			class {
+				constructor(public largeur: number, public hauteur: number) {}
+				getContext() {
+					return { drawImage: () => {} };
+				}
+				async convertToBlob({ quality }: { quality: number }) {
+					essais.push(`${this.largeur}x${this.hauteur}@${quality}`);
+					// Trop lourde en 1600 px quelle que soit la qualité ; en 1200 px, passe à 0,6.
+					return new Blob([new Uint8Array(this.largeur > 1200 || quality > 0.6 ? 238 * 1024 : 180 * 1024)], { type: 'image/jpeg' });
+				}
+			}
+		);
+		const blob = await reduirePhoto(new File([new Uint8Array(10)], 'dense.jpg', { type: 'image/jpeg' }));
+		expect(essais).toEqual(['1600x1200@0.8', '1600x1200@0.6', '1600x1200@0.4', '1200x900@0.8', '1200x900@0.6']);
+		expect(blob.size).toBe(180 * 1024);
+		expect(fermer).toHaveBeenCalled();
+	});
+
+	it('trop lourde même en 1000 px à 0,4 : refusée dans le navigateur, avec un message clair', async () => {
+		const tailles: number[] = [];
+		simuler(4000, 3000);
+		vi.stubGlobal(
+			'OffscreenCanvas',
+			class {
+				constructor(public largeur: number) {}
+				getContext() {
+					return { drawImage: () => {} };
+				}
+				async convertToBlob() {
+					tailles.push(this.largeur);
+					return new Blob([new Uint8Array(201 * 1024)], { type: 'image/jpeg' });
+				}
+			}
+		);
+		await expect(reduirePhoto(new File([new Uint8Array(10)], 'dense.jpg', { type: 'image/jpeg' }))).rejects.toThrow('Photo trop détaillée, essayez-en une autre');
+		expect([...new Set(tailles)]).toEqual([1600, 1200, 1000]);
+		expect(tailles).toHaveLength(9);
+	});
+
+	it('petite image : pas d’essai deux fois à la même taille', async () => {
+		const tailles: number[] = [];
+		simuler(900, 600);
+		vi.stubGlobal(
+			'OffscreenCanvas',
+			class {
+				constructor(public largeur: number) {}
+				getContext() {
+					return { drawImage: () => {} };
+				}
+				async convertToBlob() {
+					tailles.push(this.largeur);
+					return new Blob([new Uint8Array(201 * 1024)], { type: 'image/jpeg' });
+				}
+			}
+		);
+		await expect(reduirePhoto(new File([new Uint8Array(10)], 'p.jpg', { type: 'image/jpeg' }))).rejects.toThrow('Photo trop détaillée');
+		expect(tailles).toEqual([900, 900, 900]);
 	});
 
 	it('refuse un fichier qui n’est pas une image', async () => {

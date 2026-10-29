@@ -29,7 +29,7 @@ export const actions: Actions = {
 		}),
 	supprimer: ({ locals, params, request }) =>
 		surPublication({ locals, params, request }, async (acteur, id) => {
-			await supprimerPublication(locals.base, acteur, id, maintenantParis());
+			await supprimerPublication(locals.base, locals.basePhotos, acteur, id, maintenantParis());
 			return 'Publication supprimée.';
 		}),
 	epingler: ({ locals, params, request }) =>

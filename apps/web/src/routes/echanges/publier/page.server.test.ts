@@ -117,13 +117,25 @@ describe('publier', () => {
 		expect(await derniere(base)).toMatchObject({ type: 'bravo', debut: null, lieu: null, priseDeConnaissance: 0 });
 	});
 
+	it('photo trop lourde : le conseil « sans JavaScript » seulement à qui envoie sans JavaScript', async () => {
+		const { base, alice } = await preparer();
+		const corps: [string, string | File][] = [['mur', 'vie'], ['type', 'message'], ['texte', 'x'], ['photos', jpeg(200 * 1024 + 1)]];
+		const sans = await envoyer(locaux(base, alice), await requeteFormulaire(corps));
+		expect(sans.data.erreurs.photos).toBe('Photo trop lourde : 200 Ko au plus. Sans JavaScript, les photos ne sont pas réduites : réduisez-les avant de les envoyer.');
+		const avec = await envoyer(locaux(base, alice), await requeteFormulaire(corps, { 'x-sveltekit-action': 'true' }));
+		expect(avec.data.erreurs.photos).toBe('Photo trop lourde : 200 Ko au plus.');
+		const lourd = (enTetes: Record<string, string>) => new Request('http://x', { method: 'POST', body: 'x', headers: { ...enTetes, 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(2 * 1024 * 1024) } });
+		expect((await envoyer(locaux(base, alice), lourd({}))).data.message).toContain('Sans JavaScript');
+		expect((await envoyer(locaux(base, alice), lourd({ 'x-sveltekit-action': 'true' }))).data.message).toBe('Envoi trop lourd : 4 photos de 200 Ko au plus.');
+	});
+
 	it('refus affichés sur le formulaire, saisie et mur gardés', async () => {
 		const { base, alice } = await preparer();
 		const vie = (corps: [string, string | File][]) => agir(locaux(base, alice), [['mur', 'vie'], ...corps]);
 		expect(await vie([['type', 'message'], ['texte', '  ']])).toMatchObject({ status: 400, data: { cible: 'publier', erreurs: { texte: 'Écrivez le texte de la publication.' }, valeurs: { mur: 'vie', type: 'message' } } });
-		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', jpeg(401 * 1024)]])).toMatchObject({
+		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', jpeg(200 * 1024 + 1)]])).toMatchObject({
 			status: 400,
-			data: { erreurs: { photos: expect.stringContaining('400 Ko') }, valeurs: { texte: 'x', mur: 'vie' } }
+			data: { erreurs: { photos: expect.stringContaining('200 Ko') }, valeurs: { texte: 'x', mur: 'vie' } }
 		});
 		expect(await vie([['type', 'message'], ['texte', 'x'], ['photos', new File([new Uint8Array([0x89, 0x50])], 'a.png', { type: 'image/png' })]])).toMatchObject({
 			status: 400,
@@ -191,7 +203,7 @@ describe('publier', () => {
 });
 
 describe('taille des envois', () => {
-	it('refuse avant lecture un envoi sans longueur ou de plus de 1,7 Mo', async () => {
+	it('refuse avant lecture un envoi sans longueur ou de plus de 0,9 Mo', async () => {
 		const { base, alice } = await preparer();
 		const sansLongueur = new Request('http://x', { method: 'POST', body: new URLSearchParams({ mur: 'vie', type: 'message', texte: 'x' }) });
 		sansLongueur.headers.delete('content-length');
@@ -201,9 +213,15 @@ describe('taille des envois', () => {
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 
-	it('accepte 4 photos de 400 Ko et le texte', async () => {
+	it('refuse en 413 un envoi au-delà de 4 photos de 200 Ko et 100 Ko pour le reste', async () => {
 		const { base, alice } = await preparer();
-		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(400 * 1024, `p${i}.jpg`)]);
+		const longueur = (n: number) => new Request('http://x', { method: 'POST', body: 'x', headers: { 'content-type': 'multipart/form-data; boundary=a', 'content-length': String(n) } });
+		expect(await envoyer(locaux(base, alice), longueur(4 * 200 * 1024 + 100 * 1024 + 1))).toMatchObject({ status: 413, data: { message: expect.stringContaining('4 photos de 200 Ko') } });
+	});
+
+	it('accepte 4 photos de 200 Ko et le texte', async () => {
+		const { base, alice } = await preparer();
+		const photos = Array.from({ length: 4 }, (_, i): [string, File] => ['photos', jpeg(200 * 1024, `p${i}.jpg`)]);
 		const r = await reussir(locaux(base, alice), [['mur', 'vie'], ['type', 'message'], ['texte', 'x'.repeat(4000)], ['question', 'q'.repeat(200)], ['reponse', 'r'.repeat(100)], ['reponse', 'r'.repeat(100)], ...champsDates(), ...photos]);
 		expect(r.status).toBe(303);
 	});

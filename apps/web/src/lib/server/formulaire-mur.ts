@@ -1,8 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { DonneeInvalide, RefusDroit, type Acteur, type DonneesPublication } from '@gyro-caserne/socle';
+import { DonneeInvalide, RefusDroit, TAILLE_PHOTO_MAX, type Acteur, type DonneesPublication } from '@gyro-caserne/socle';
 
-const TAILLE_PHOTO_MAX = 400 * 1024;
-// 4 photos de 400 Ko et 0,1 Mo pour le texte et les autres champs.
+// 4 photos de 200 Ko et 0,1 Mo pour le texte et les autres champs.
 const ENVOI_MAX = 4 * TAILLE_PHOTO_MAX + 100 * 1024;
 
 export function exigerActeur(locals: App.Locals): Acteur {
@@ -33,9 +32,12 @@ export function envoiTropLourd(request: Request): boolean {
 	return !Number.isFinite(longueur) || longueur > ENVOI_MAX;
 }
 
-// Lit le formulaire « Publier » (corps déjà limité par envoiTropLourd). Une photo de plus de 400 Ko (envoyée sans JavaScript,
-// donc sans réduction) est refusée avant d'être copiée pour le socle.
-export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesPublication; valeurs: Valeurs; erreurs?: Record<string, string> }> {
+// Envoi fait avec JavaScript : SvelteKit ajoute cet en-tête, et les photos ont été réduites dans le navigateur.
+export const avecJavaScript = (request: Request) => request.headers.get('x-sveltekit-action') === 'true';
+
+// Lit le formulaire « Publier » (corps déjà limité par envoiTropLourd). Une photo de plus de 200 Ko (envoyée sans JavaScript,
+// donc sans réduction) est refusée avant d'être copiée pour le socle. `js` : le conseil « sans JavaScript » n'est pas donné.
+export async function lirePublication(f: FormData, js = false): Promise<{ donnees?: DonneesPublication; valeurs: Valeurs; erreurs?: Record<string, string> }> {
 	const valeurs: Valeurs = {
 		mur: texte(f, 'mur'),
 		type: texte(f, 'type'),
@@ -51,7 +53,7 @@ export async function lirePublication(f: FormData): Promise<{ donnees?: DonneesP
 	};
 	const fichiers = f.getAll('photos').filter((v): v is File => typeof v !== 'string' && v.size > 0);
 	if (fichiers.some((p) => p.size > TAILLE_PHOTO_MAX))
-		return { valeurs, erreurs: { photos: 'Photo trop lourde : 400 Ko au plus. Sans JavaScript, les photos ne sont pas réduites : réduisez-les avant de les envoyer.' } };
+		return { valeurs, erreurs: { photos: `Photo trop lourde : 200 Ko au plus.${js ? '' : ' Sans JavaScript, les photos ne sont pas réduites : réduisez-les avant de les envoyer.'}` } };
 
 	// Le socle refuse un type inconnu.
 	const type = valeurs.type as DonneesPublication['type'];
@@ -72,7 +74,7 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Prise de connaissance réservée aux annonces': { champ: 'type', texte: 'La prise de connaissance ne se demande que pour une annonce.' },
 	'4 photos au plus': { champ: 'photos', texte: '4 photos au plus.' },
 	'Photo JPEG ou WebP seulement': { champ: 'photos', texte: 'Les photos doivent être en JPEG ou WebP.' },
-	'Photo trop lourde (400 Ko au plus)': { champ: 'photos', texte: 'Photo trop lourde : 400 Ko au plus.' },
+	'Photo trop lourde (200 Ko au plus)': { champ: 'photos', texte: 'Photo trop lourde : 200 Ko au plus.' },
 	'Question vide': { champ: 'sondage', texte: 'Indiquez la question du sondage.' },
 	'Question trop longue': { champ: 'sondage', texte: 'La question ne peut pas dépasser 200 caractères.' },
 	'Réponse trop longue': { champ: 'sondage', texte: 'Une réponse ne peut pas dépasser 100 caractères.' },

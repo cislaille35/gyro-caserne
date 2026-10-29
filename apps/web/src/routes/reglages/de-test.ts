@@ -30,7 +30,7 @@ export async function preparer() {
 	return { base, donner, referent, chef, ordinaire, resp, com, droitsDe, droitsProfil, profilAgent: agent!, aujourdhui };
 }
 
-export const locaux = (base: unknown, acteur: unknown) => ({ base, acteur });
+export const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
 
 // Appelle une action comme SvelteKit : formulaire encodé, paramètres de route.
 export function envoyer(actions: Record<string, unknown>, nom: string, locals: unknown, corps: [string, string][], params: Record<string, string> = {}) {

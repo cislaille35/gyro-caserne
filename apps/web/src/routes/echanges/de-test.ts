@@ -24,15 +24,16 @@ export async function preparer() {
 	return { base, chef, alice, bruno, e1, e2 };
 }
 
-export const locaux = (base: unknown, acteur: unknown) => ({ base, acteur });
+export const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
 
 // Un envoi de formulaire tel que le navigateur le fait : plusieurs parties (photos comprises), avec sa longueur.
-export async function requeteFormulaire(corps: [string, string | File][]) {
+// `enTetes` : par exemple celui que SvelteKit ajoute aux envois faits avec JavaScript (`x-sveltekit-action`).
+export async function requeteFormulaire(corps: [string, string | File][], enTetes: Record<string, string> = {}) {
 	const formulaire = new FormData();
 	for (const [cle, valeur] of corps) formulaire.append(cle, valeur);
 	const brouillon = new Request('http://x', { method: 'POST', body: formulaire });
 	const octets = await brouillon.arrayBuffer();
-	return new Request('http://x', { method: 'POST', body: octets, headers: { 'content-type': brouillon.headers.get('content-type')!, 'content-length': String(octets.byteLength) } });
+	return new Request('http://x', { method: 'POST', body: octets, headers: { ...enTetes, 'content-type': brouillon.headers.get('content-type')!, 'content-length': String(octets.byteLength) } });
 }
 
 // Une action comme SvelteKit l'appelle, avec les paramètres de route.

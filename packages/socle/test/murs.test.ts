@@ -8,6 +8,7 @@ import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { appartenances, audiences, estConvoque, estMembre, exigerMur, mursDe, type Mur } from '../src/murs.ts';
 import { affectationEquipe, attribution, comite, equipe, personne, photoPublication, profil, publication, responsabilite } from '../src/schema.ts';
+import { photo as photoOctets } from '../src/schema-photos.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-28';
@@ -292,13 +293,13 @@ describe('exigerMur', () => {
 });
 
 describe('tables des murs', () => {
-	it('supprimer une publication supprime ses photos ; une photo se relit en Uint8Array', async () => {
+	it('supprimer une publication supprime ses références de photos ; une photo se relit en Uint8Array', async () => {
 		const { base } = await jeu();
 		const [p] = await base.insert(publication).values({ mur: 'centre', auteur: 'super:a@b.fr', type: 'message', texte: 'Bonjour', creeLe: '2026-10-28T08:00:00Z' }).returning();
-		await base.insert(photoPublication).values({ publicationId: p!.id, ordre: 1, type: 'image/jpeg', donnees: new Uint8Array([1, 2, 3]) });
-		const [photo] = await base.select().from(photoPublication);
-		expect(photo!.donnees).toBeInstanceOf(Uint8Array);
-		expect([...photo!.donnees]).toEqual([1, 2, 3]);
+		const [octets] = await base.photos.insert(photoOctets).values({ type: 'image/jpeg', donnees: new Uint8Array([1, 2, 3]), taille: 3, creeLe: '2026-10-28T08:00:00Z' }).returning();
+		expect(octets!.donnees).toBeInstanceOf(Uint8Array);
+		expect([...octets!.donnees]).toEqual([1, 2, 3]);
+		await base.insert(photoPublication).values({ publicationId: p!.id, ordre: 1, type: 'image/jpeg', photoId: octets!.id });
 		await base.delete(publication).where(eq(publication.id, p!.id));
 		expect(await base.select().from(photoPublication)).toEqual([]);
 	});

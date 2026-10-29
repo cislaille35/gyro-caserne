@@ -92,6 +92,20 @@ describe('page Réglages', () => {
 		expect(sansComites).toContain('>Référents<');
 	});
 
+	it('jauge des photos pour qui a le pouvoir : place prise sur 500 Mo, bandeau d’alerte à partir de 80 %', () => {
+		// Mo comptés en millions d'octets, comme la limite.
+		const MO = 1000 * 1000;
+		const jauge = (octets: number, alerte: boolean) => html(Page, { data: { ...data, photos: { octets, limite: 500 * MO, alerte } } });
+		const normale = jauge(120 * MO + 1000, false);
+		expect(normale).toContain('Photos : 120 Mo sur 500 Mo');
+		expect(normale).not.toContain('presque pleine');
+		expect(jauge(Math.round(2.34 * MO), false)).toContain('Photos : 2,3 Mo sur 500 Mo');
+		const pleine = jauge(400 * MO, true);
+		expect(pleine).toContain('Photos : 400 Mo sur 500 Mo');
+		expect(pleine).toContain('La base des photos est presque pleine : il faudra choisir entre l’offre payante (5 $/mois) ou un stockage R2.');
+		expect(html(Page, { data: { ...data, photos: null } })).not.toContain('Photos :');
+	});
+
 	it('sans JavaScript, les groupes restent ouverts', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const tete = render(Layout as any, { props: { data, children: createRawSnippet(() => ({ render: () => '<p>x</p>' })) } }).head;

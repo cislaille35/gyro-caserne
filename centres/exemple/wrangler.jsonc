@@ -14,7 +14,14 @@
 			"database_name": "gyro-caserne-exemple",
 			"database_id": "4023bc60-3007-494d-9c7a-68e0af29c927",
 			"migrations_dir": "../../packages/socle/migrations"
+		},
+		// Base des photos de la préprod (décision 0010) : un autre centre remplace aussi ce database_id.
+		{
+			"binding": "PHOTOS",
+			"database_name": "gyro-caserne-exemple-photos",
+			"database_id": "f641719a-76fa-45c1-8664-07ed7dd2b891",
+			"migrations_dir": "../../packages/socle/migrations-photos"
 		}
 	]
-	// Le stockage R2 des photos s'ajoutera ici avec les premières fonctions.
+	// Les photos sont dans une base D1 à part, pas dans R2 : voir docs/decisions/0010-photos-dans-leur-base.md.
 }

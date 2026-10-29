@@ -5,7 +5,7 @@ import { attribuer } from './actions/attributions.ts';
 import { aimer, commenter, prendreConnaissance, repondreEvenement, voter } from './actions/interactions.ts';
 import { ajouterPersonne, nomActeur } from './actions/personnes.ts';
 import { epingler, publier, type DonneesPublication } from './actions/publications.ts';
-import type { Base } from './base.ts';
+import type { Base, BasePhotos } from './base.ts';
 import { ajouterJours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
@@ -29,7 +29,7 @@ export const COMPTES_DE_TEST: Compte[] = [
 const INSTALLATEUR: Acteur = { type: 'super', email: 'comptes-de-test' };
 
 // Relançable : ce qui existe déjà (compte, rôle, publication) est gardé, le reste est complété. Le jeu de départ doit être chargé.
-export async function chargerComptesDeTest(base: Base, boite: string, maintenant: string, adressesReservees: string[] = []): Promise<void> {
+export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, boite: string, maintenant: string, adressesReservees: string[] = []): Promise<void> {
 	const morceaux = /^([^@+\s]+)@([^@\s]+\.[^@\s]+)$/.exec(boite.trim().toLowerCase());
 	if (!morceaux) throw new DonneeInvalide('Boîte invalide : une adresse simple, sans « + »');
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
@@ -89,7 +89,7 @@ export async function chargerComptesDeTest(base: Base, boite: string, maintenant
 			.select({ id: publication.id })
 			.from(publication)
 			.where(and(eq(publication.mur, mur), eq(publication.auteur, nomActeur(qui(role))), eq(publication.texte, donnees.texte)));
-		return deja ? { id: deja.id, nouvelle: false } : { id: await publier(base, qui(role), mur, donnees, maintenant), nouvelle: true };
+		return deja ? { id: deja.id, nouvelle: false } : { id: await publier(base, basePhotos, qui(role), mur, donnees, maintenant), nouvelle: true };
 	};
 
 	const consigne = await publierUneFois('chef', 'centre', { type: 'annonce', texte: 'Nouvelle consigne : vérification des ARI à chaque prise de garde. Merci de confirmer la lecture.', priseDeConnaissance: true });

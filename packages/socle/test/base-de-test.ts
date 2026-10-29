@@ -1,15 +1,26 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { drizzle } from 'drizzle-orm/sqlite-proxy';
+import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import * as schema from '../src/schema.ts';
-import { ecrit, type Base } from '../src/base.ts';
+import * as schemaPhotos from '../src/schema-photos.ts';
+import { ecrit, type Base, type BasePhotos } from '../src/base.ts';
 import { oublierDroits } from '../src/droits.ts';
 
-const dossierMigrations = new URL('../migrations/', import.meta.url);
+type Compteurs = { requetes: number; parametresMax: number };
 
-// `requetes` compte les appels à la base (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus).
-// Comme creerBaseD1, toute écriture fait oublier les droits lus.
-export async function baseDeTest(): Promise<Base & { requetes: number; parametresMax: number }> {
+// La base principale et, dans `photos`, la base des photos, comme les deux bases D1 de l'appli.
+// `requetes` compte les appels aux deux bases (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus).
+// Comme creerBaseD1, toute écriture dans la base principale fait oublier les droits lus.
+export async function baseDeTest(): Promise<Base & Compteurs & { photos: BasePhotos }> {
+	const base = ouvrir(new URL('../migrations/', import.meta.url), schema, (requetes) => {
+		if (requetes.some(ecrit)) oublierDroits(base);
+	}) as Base & Compteurs & { photos: BasePhotos };
+	base.photos = ouvrir(new URL('../migrations-photos/', import.meta.url), schemaPhotos, () => {}, base) as unknown as BasePhotos;
+	return base;
+}
+
+// Une base SQLite en mémoire, migrations appliquées, derrière le pilote « proxy » de drizzle. `compteurs` : à qui ajouter les appels.
+function ouvrir<S extends Record<string, unknown>>(dossierMigrations: URL, schemaBase: S, avant: (requetes: string[]) => void, compteurs?: Compteurs) {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
 	for (const fichier of readdirSync(dossierMigrations).filter((f) => f.endsWith('.sql')).sort()) {
@@ -18,7 +29,7 @@ export async function baseDeTest(): Promise<Base & { requetes: number; parametre
 	}
 
 	const executer = (requete: string, params: unknown[], methode: 'run' | 'all' | 'values' | 'get') => {
-		base.parametresMax = Math.max(base.parametresMax, params.length);
+		cpt().parametresMax = Math.max(cpt().parametresMax, params.length);
 		const instruction = sqlite.prepare(requete);
 		instruction.setReturnArrays(true);
 		const valeurs = params as never[];
@@ -32,14 +43,14 @@ export async function baseDeTest(): Promise<Base & { requetes: number; parametre
 
 	const base = drizzle(
 		async (requete, params, methode) => {
-			base.requetes++;
-			if (ecrit(requete)) oublierDroits(base);
+			cpt().requetes++;
+			avant([requete]);
 			return executer(requete, params, methode);
 		},
 		// Tout ou rien, comme le batch de D1.
 		async (requetes) => {
-			base.requetes++;
-			if (requetes.some((r) => ecrit(r.sql))) oublierDroits(base);
+			cpt().requetes++;
+			avant(requetes.map((r) => r.sql));
 			sqlite.exec('BEGIN');
 			try {
 				const resultats = requetes.map((r) => imiterD1(sqlite, r.sql, executer(r.sql, r.params, r.method)));
@@ -50,8 +61,9 @@ export async function baseDeTest(): Promise<Base & { requetes: number; parametre
 				throw erreur;
 			}
 		},
-		{ schema }
-	) as Base & { requetes: number; parametresMax: number };
+		{ schema: schemaBase }
+	) as SqliteRemoteDatabase<S> & Compteurs;
+	const cpt = () => compteurs ?? base;
 	base.requetes = 0;
 	base.parametresMax = 0;
 	return base;

@@ -1,5 +1,5 @@
 import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
-import type { Base } from '../base.ts';
+import type { Base, BasePhotos } from '../base.ts';
 import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
@@ -8,11 +8,12 @@ import { REPONSES_EVENEMENT, TYPES_PHOTO, TYPES_PUBLICATION, type ReponseEveneme
 import { tenuesValides } from '../casquettes.ts';
 import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
+import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
 import { nomActeur } from './personnes.ts';
 
 const PHOTOS_MAX = 4;
-const TAILLE_PHOTO_MAX = 400 * 1024;
+export const TAILLE_PHOTO_MAX = 200 * 1024;
 // D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
 const EPINGLEES_MAX = 10;
 const PAGE_MAX = 30;
@@ -75,7 +76,7 @@ function exigerPhotos(valeur: DonneesPublication['photos']) {
 	if (photos.length > PHOTOS_MAX) throw new DonneeInvalide(`${PHOTOS_MAX} photos au plus`);
 	for (const p of photos) {
 		if (!p || !(TYPES_PHOTO as readonly string[]).includes(p.type) || !(p.donnees instanceof Uint8Array) || !estDuType(p.type, p.donnees)) throw new DonneeInvalide('Photo JPEG ou WebP seulement');
-		if (p.donnees.length > TAILLE_PHOTO_MAX) throw new DonneeInvalide('Photo trop lourde (400 Ko au plus)');
+		if (p.donnees.length > TAILLE_PHOTO_MAX) throw new DonneeInvalide('Photo trop lourde (200 Ko au plus)');
 	}
 	return photos as { type: (typeof TYPES_PHOTO)[number]; donnees: Uint8Array }[];
 }
@@ -131,7 +132,8 @@ async function exigerEvenement(base: Base, mur: Mur, donnees: DonneesPublication
 	return { debut: ev.debut, lieu, convoques: JSON.stringify(convoques) };
 }
 
-export async function publier(base: Base, acteur: Acteur, cle: string, donnees: DonneesPublication, maintenant: string): Promise<number> {
+// Les octets d'abord, dans la base des photos ; puis la publication et ses références, dans la base principale.
+export async function publier(base: Base, basePhotos: BasePhotos, acteur: Acteur, cle: string, donnees: DonneesPublication, maintenant: string): Promise<number> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const mur = await exigerMur(base, acteur, cle, aujourdhui, 'publier');
 	if (!(TYPES_PUBLICATION as readonly string[]).includes(donnees.type)) throw new DonneeInvalide('Type inconnu');
@@ -154,11 +156,25 @@ export async function publier(base: Base, acteur: Acteur, cle: string, donnees: 
 	] as const;
 	// Le batch est une transaction : aucune autre écriture ne s'intercale, et AUTOINCREMENT donne le plus grand id à la publication qui vient d'être insérée.
 	const derniere = sql`(select max(${publication.id}) from ${publication})`;
-	const [lignes] =
-		photos.length === 0
-			? await base.batch(ecritures)
-			: await base.batch([...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, donnees: p.donnees })))]);
-	return lignes[0]!.id;
+	if (photos.length === 0) {
+		const [lignes] = await base.batch(ecritures);
+		return lignes[0]!.id;
+	}
+	const [premiere, ...autres] = photos.map((p) =>
+		basePhotos.insert(octetsPhoto).values({ type: p.type, donnees: p.donnees, taille: p.donnees.length, creeLe: maintenant }).returning({ id: octetsPhoto.id })
+	);
+	const ids = (await basePhotos.batch([premiere!, ...autres])).map(([ligne]) => ligne!.id);
+	try {
+		const [lignes] = await base.batch([...ecritures, base.insert(photoPublication).values(photos.map((p, ordre) => ({ publicationId: derniere, ordre, type: p.type, photoId: ids[ordre]! })))]);
+		return lignes[0]!.id;
+	} catch (erreur) {
+		// Publication non enregistrée : ses photos sont effacées. Si cet effacement échoue aussi, elles restent orphelines ; on signale la première erreur.
+		await basePhotos
+			.delete(octetsPhoto)
+			.where(inArray(octetsPhoto.id, ids))
+			.catch(() => {});
+		throw erreur;
+	}
 }
 
 // « fermer » : fermer les commentaires s'ils sont ouverts (auteur ou modérateur), les rouvrir sinon (modérateur seulement).
@@ -185,11 +201,21 @@ export async function modifierPublication(base: Base, acteur: Acteur, id: number
 	await base.batch([base.update(publication).set({ texte: corps, modifieeLe: maintenant }).where(eq(publication.id, id)), journalPublication(base, acteur, 'modifier_publication', id, maintenant)]);
 }
 
-// Photos, commentaires, j'aime, réponses et votes partent avec la publication (suppression en cascade).
-export async function supprimerPublication(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
+// Photos, commentaires, j'aime, réponses et votes partent avec la publication (suppression en cascade) ; puis les octets des photos, dans leur base.
+export async function supprimerPublication(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
 	const { cle, droits } = await cible(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (!droits.supprimer) throw refusMur(cle, 'moderer');
-	await base.batch([base.delete(publication).where(eq(publication.id, id)), journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })]);
+	const [photos] = await base.batch([
+		base.select({ photoId: photoPublication.photoId }).from(photoPublication).where(eq(photoPublication.publicationId, id)),
+		base.delete(publication).where(eq(publication.id, id)),
+		journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })
+	]);
+	if (photos.length === 0) return;
+	// La publication est déjà supprimée : si l'effacement des octets échoue, ils restent orphelins (place perdue, rien de visible), sans gêner l'agent.
+	await basePhotos
+		.delete(octetsPhoto)
+		.where(inArray(octetsPhoto.id, photos.map((p) => p.photoId)))
+		.catch(() => {});
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
@@ -440,12 +466,31 @@ export function commentaireVu(acteur: Acteur, mur: Mur, c: { id: number; auteur:
 	return { id: c.id, auteur: auteurVu(c.auteur, c), texte: c.texte, creeLe: c.creeLe, supprimable: c.auteur === nomActeur(acteur) || mur.peutModerer };
 }
 
-// Une photo, à qui peut lire son mur.
-export async function photo(base: Base, acteur: Acteur, idPhoto: number, aujourdhui: string): Promise<{ type: string; donnees: Uint8Array }> {
+// Une photo, à qui peut lire son mur : l'accès se vérifie dans la base principale, les octets se lisent dans la base des photos.
+export async function photo(base: Base, basePhotos: BasePhotos, acteur: Acteur, idPhoto: number, aujourdhui: string): Promise<{ type: string; donnees: Uint8Array }> {
 	exigerDate(aujourdhui);
-	const [ligne] = await base.select({ mur: publication.mur }).from(photoPublication).innerJoin(publication, eq(publication.id, photoPublication.publicationId)).where(eq(photoPublication.id, idPhoto));
+	const [ligne] = await base
+		.select({ mur: publication.mur, photoId: photoPublication.photoId })
+		.from(photoPublication)
+		.innerJoin(publication, eq(publication.id, photoPublication.publicationId))
+		.where(eq(photoPublication.id, idPhoto));
 	if (!ligne) throw new DonneeInvalide('Photo inconnue');
 	await exigerMur(base, acteur, ligne.mur, aujourdhui, 'lire');
-	const [octets] = await base.select({ type: photoPublication.type, donnees: photoPublication.donnees }).from(photoPublication).where(eq(photoPublication.id, idPhoto));
-	return octets!;
+	const [octets] = await basePhotos.select({ type: octetsPhoto.type, donnees: octetsPhoto.donnees }).from(octetsPhoto).where(eq(octetsPhoto.id, ligne.photoId));
+	if (!octets) throw new DonneeInvalide('Photo inconnue');
+	return octets;
+}
+
+// Une base D1 gratuite tient 500 Mo : alerte à 80 %, pour choisir à temps entre l'offre payante et un stockage R2 (décision 0010).
+// Prudent : 500 millions d'octets, un peu moins que 500 × 1024 × 1024.
+const LIMITE_PHOTOS = 500 * 1000 * 1000;
+const SEUIL_ALERTE = 0.8;
+
+export type RemplissagePhotos = { octets: number; limite: number; alerte: boolean };
+
+// La place prise par les photos, en une requête.
+export async function remplissagePhotos(basePhotos: BasePhotos): Promise<RemplissagePhotos> {
+	const [ligne] = await basePhotos.select({ octets: sql<number>`coalesce(sum(${octetsPhoto.taille}), 0)` }).from(octetsPhoto);
+	const octets = Number(ligne?.octets ?? 0);
+	return { octets, limite: LIMITE_PHOTOS, alerte: octets >= SEUIL_ALERTE * LIMITE_PHOTOS };
 }

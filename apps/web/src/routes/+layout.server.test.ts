@@ -69,15 +69,15 @@ describe('load du layout', () => {
 		const { base, chef, alice } = await preparer();
 		const maintenant = maintenantParis();
 		expect((await appeler(alice, base)).cloche).toBe(0);
-		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenant);
-		await publier(base, chef, 'centre', { type: 'annonce', texte: 'Sans demande', priseDeConnaissance: false }, maintenant);
-		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		await publier(base, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
+		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenant);
+		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Sans demande', priseDeConnaissance: false }, maintenant);
+		const evenement = await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(3);
 		await repondreEvenement(base, alice, evenement, 'incertain', maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(2);
 		// Un événement avec sondage compte une fois, tant que la réponse ou le vote manque.
-		await publier(base, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
+		await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		expect((await appeler(alice, base)).cloche).toBe(3);
 		// Le super administrateur et le visiteur : rien.
 		expect((await appeler(super_, base)).cloche).toBe(0);

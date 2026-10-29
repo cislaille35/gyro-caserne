@@ -12,7 +12,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test": "NODE_OPTIONS=--no-warnings vitest run",
-    "migrations": "drizzle-kit generate"
+    "migrations": "drizzle-kit generate",
+    "migrations-photos": "drizzle-kit generate --config drizzle-photos.config.ts"
   },
   "dependencies": {
     "@gyro-caserne/centre": "workspace:*",

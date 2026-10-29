@@ -85,9 +85,9 @@ describe('« À ne pas manquer » sur l’accueil', () => {
 	it('annonce à prendre en compte, événement et sondage ; « Pris connaissance » et réponse sur place', async () => {
 		const { base, chef, alice } = await preparer();
 		const maintenant = maintenantParis();
-		const annonce = await publier(base, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
-		const evenement = await publier(base, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		const sondage = await publier(base, chef, 'vie', { type: 'message', texte: 'Repas ?', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
+		const annonce = await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
+		const evenement = await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
+		const sondage = await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas ?', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		const locals = { base, acteur: alice };
 		const data = await appeler(locals);
 		expect(data.aNePasManquer.annonces.map((a: { id: number }) => a.id)).toEqual([annonce]);
@@ -106,12 +106,12 @@ describe('« À ne pas manquer » sur l’accueil', () => {
 
 	it('gestes refusés : identifiant invalide, publication inconnue, non convoqué, mur illisible, sans connexion', async () => {
 		const { base, chef, bruno, e1 } = await preparer();
-		const evenement = await publier(base, chef, `equipe:${e1.id}`, { type: 'evenement', texte: 'Réunion', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
+		const evenement = await publier(base, base.photos, chef, `equipe:${e1.id}`, { type: 'evenement', texte: 'Réunion', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenantParis());
 		const locals = { base, acteur: bruno };
 		expect(await geste('repondre', locals, [['id', 'abc'], ['reponse', 'present']])).toMatchObject({ status: 400 });
 		expect(await geste('repondre', locals, [['id', '9999'], ['reponse', 'present']])).toMatchObject({ status: 404 });
 		expect(await geste('repondre', locals, [['id', String(evenement)], ['reponse', 'present']])).toMatchObject({ status: 403, data: { cible: `publication:${evenement}` } });
-		const annonce = await publier(base, chef, `equipe:${e1.id}`, { type: 'annonce', texte: 'Consigne', priseDeConnaissance: true }, maintenantParis());
+		const annonce = await publier(base, base.photos, chef, `equipe:${e1.id}`, { type: 'annonce', texte: 'Consigne', priseDeConnaissance: true }, maintenantParis());
 		expect(await geste('prendreConnaissance', locals, [['id', String(annonce)]])).toMatchObject({ status: 403, data: { cible: `publication:${annonce}`, message: 'Vous n’avez pas le droit de faire cela.' } });
 		expect(await base.select().from(priseConnaissance)).toEqual([]);
 		await expect(geste('prendreConnaissance', { base, acteur: null }, [['id', String(evenement)]])).rejects.toMatchObject({ status: 303 });

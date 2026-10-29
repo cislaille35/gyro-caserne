@@ -1,6 +1,6 @@
 import { building } from '$app/env';
 import { env, waitUntil } from 'cloudflare:workers';
-import { acteurDe, creerBaseD1 } from '@gyro-caserne/socle';
+import { acteurDe, creerBaseD1, creerBasePhotos } from '@gyro-caserne/socle';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
@@ -18,6 +18,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const base = creerBaseD1(env.BASE);
 	const auth = creerAuth(env, base, waitUntil);
 	event.locals.base = base;
+	event.locals.basePhotos = creerBasePhotos(env.PHOTOS);
 	event.locals.auth = auth;
 	event.locals.superAdmins = superAdmins(env);
 
