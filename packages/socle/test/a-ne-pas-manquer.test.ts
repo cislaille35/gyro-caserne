@@ -49,8 +49,8 @@ const ids = (liste: { id: number }[]) => liste.map((x) => x.id);
 describe('à ne pas manquer', () => {
 	it('annonces à prendre en compte : jusqu’au « Pris connaissance », jamais pour l’auteur', async () => {
 		const { base, chef, agent } = await jeu();
-		const id = await publier(base, acteur(chef), 'centre', annonce('  Réunion   de\ncentre ' + 'x'.repeat(100)), maintenant);
-		await publier(base, acteur(chef), 'centre', { type: 'annonce', texte: 'Sans prise' }, maintenant);
+		const id = await publier(base, base.photos, acteur(chef), 'centre', annonce('  Réunion   de\ncentre ' + 'x'.repeat(100)), maintenant);
+		await publier(base, base.photos, acteur(chef), 'centre', { type: 'annonce', texte: 'Sans prise' }, maintenant);
 		const vu = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
 		expect(vu.annonces).toEqual([{ id, cle: 'centre', nomMur: 'Le centre', titre: expect.stringMatching(/^Réunion de centre x+…$/) }]);
 		expect(vu.annonces[0]!.titre).toHaveLength(80);
@@ -61,22 +61,22 @@ describe('à ne pas manquer', () => {
 
 	it('annonces : seulement celles des 90 derniers jours', async () => {
 		const { base, chef, agent } = await jeu();
-		await publier(base, acteur(chef), 'centre', annonce('Il y a 91 jours'), '2026-07-29T10:00');
-		const recente = await publier(base, acteur(chef), 'centre', annonce('Il y a 89 jours'), '2026-07-31T10:00');
-		const limite = await publier(base, acteur(chef), 'centre', annonce('Il y a 90 jours'), '2026-07-30T00:00');
+		await publier(base, base.photos, acteur(chef), 'centre', annonce('Il y a 91 jours'), '2026-07-29T10:00');
+		const recente = await publier(base, base.photos, acteur(chef), 'centre', annonce('Il y a 89 jours'), '2026-07-31T10:00');
+		const limite = await publier(base, base.photos, acteur(chef), 'centre', annonce('Il y a 90 jours'), '2026-07-30T00:00');
 		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).annonces)).toEqual([recente, limite]);
 	});
 
 	it('bornes : sondage et épinglée à J−30 inclus, J−31 exclus ; nouveautés dès J−14 sans visite', async () => {
 		const { base, chef, agent } = await jeu();
-		const s30 = await publier(base, acteur(chef), 'vie', sondage('J−30'), '2026-09-28T00:00');
-		await publier(base, acteur(chef), 'vie', sondage('J−31'), '2026-09-27T23:59');
-		const e30 = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−30' }, '2026-09-28T00:00');
-		const e31 = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−31' }, '2026-09-27T23:59');
+		const s30 = await publier(base, base.photos, acteur(chef), 'vie', sondage('J−30'), '2026-09-28T00:00');
+		await publier(base, base.photos, acteur(chef), 'vie', sondage('J−31'), '2026-09-27T23:59');
+		const e30 = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'J−30' }, '2026-09-28T00:00');
+		const e31 = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'J−31' }, '2026-09-27T23:59');
 		await epingler(base, acteur(chef), e30, true, maintenant);
 		await epingler(base, acteur(chef), e31, true, maintenant);
-		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−14' }, '2026-10-14T00:00');
-		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'J−15' }, '2026-10-13T23:59');
+		await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'J−14' }, '2026-10-14T00:00');
+		await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'J−15' }, '2026-10-13T23:59');
 		const vu = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
 		expect(ids(vu.sondages)).toEqual([s30]);
 		expect(ids(vu.epinglees)).toEqual([e30]);
@@ -88,10 +88,10 @@ describe('à ne pas manquer', () => {
 		await affecter(agent, e1.id);
 		await affecter(autre, e2.id);
 		const cle = `equipe:${e1.id}`;
-		await publier(base, acteur(chef), cle, annonce(), maintenant);
-		await publier(base, acteur(chef), cle, evenement('2026-11-02T19:00'), maintenant);
-		await publier(base, acteur(chef), cle, sondage(), maintenant);
-		const p = await publier(base, acteur(chef), cle, { type: 'message', texte: 'Épinglé' }, maintenant);
+		await publier(base, base.photos, acteur(chef), cle, annonce(), maintenant);
+		await publier(base, base.photos, acteur(chef), cle, evenement('2026-11-02T19:00'), maintenant);
+		await publier(base, base.photos, acteur(chef), cle, sondage(), maintenant);
+		const p = await publier(base, base.photos, acteur(chef), cle, { type: 'message', texte: 'Épinglé' }, maintenant);
 		await epingler(base, acteur(chef), p, true, maintenant);
 
 		const deE1 = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
@@ -109,11 +109,11 @@ describe('à ne pas manquer', () => {
 	it('événements à venir où l’on est convoqué, « demain » la veille, avec sa réponse', async () => {
 		const { base, chef, agent, affecter, e1, e2 } = await jeu();
 		await affecter(agent, e1.id);
-		const demain = await publier(base, acteur(chef), 'centre', evenement('2026-10-29T08:00'), maintenant);
-		const plusTard = await publier(base, acteur(chef), 'centre', evenement('2026-11-05T19:00', [e1.id]), maintenant);
-		await publier(base, acteur(chef), 'centre', evenement('2026-11-03T19:00', [e2.id]), maintenant);
+		const demain = await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-29T08:00'), maintenant);
+		const plusTard = await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-05T19:00', [e1.id]), maintenant);
+		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-03T19:00', [e2.id]), maintenant);
 		// Passé dans l'heure : plus à venir.
-		await publier(base, acteur(chef), 'centre', evenement('2026-10-28T14:00'), '2026-10-28T08:00');
+		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-28T14:00'), '2026-10-28T08:00');
 		await repondreEvenement(base, acteur(agent), plusTard, 'present', maintenant);
 
 		const { evenements } = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
@@ -125,9 +125,9 @@ describe('à ne pas manquer', () => {
 
 	it('sondages pas encore ouverts ou fermés : non listés ; même règle qu’etatSondage (sans dates, une seule date)', async () => {
 		const { base, chef, agent } = await jeu();
-		const ouvert = await publier(base, acteur(chef), 'vie', sondage('Ouvert', maintenant, '2026-11-30T00:00'), maintenant);
-		await publier(base, acteur(chef), 'vie', sondage('À venir', '2026-10-29T00:00', '2026-11-30T00:00'), maintenant);
-		await publier(base, acteur(chef), 'vie', sondage('Fermé', '2026-10-01T00:00', maintenant), '2026-10-01T10:00');
+		const ouvert = await publier(base, base.photos, acteur(chef), 'vie', sondage('Ouvert', maintenant, '2026-11-30T00:00'), maintenant);
+		await publier(base, base.photos, acteur(chef), 'vie', sondage('À venir', '2026-10-29T00:00', '2026-11-30T00:00'), maintenant);
+		await publier(base, base.photos, acteur(chef), 'vie', sondage('Fermé', '2026-10-01T00:00', maintenant), '2026-10-01T10:00');
 		const [{ id: ancien }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Sans dates', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]' }).returning({ id: publication.id });
 		// Une seule des deux dates : ouvert, comme etatSondage.
 		const [{ id: ouvertureSeule }] = await base.insert(publication).values({ mur: 'vie', auteur: `personne:${chef}`, type: 'message', texte: 'Ouverture seule', creeLe: maintenant, sondageQuestion: 'Qui ?', sondageReponses: '["a","b"]', sondageOuverture: '2026-11-15T00:00' }).returning({ id: publication.id });
@@ -138,18 +138,18 @@ describe('à ne pas manquer', () => {
 
 	it('sondages ouverts (moins de 30 jours) et pas encore votés', async () => {
 		const { base, chef, agent } = await jeu();
-		const recent = await publier(base, acteur(chef), 'vie', sondage('Récent'), maintenant);
-		const vote = await publier(base, acteur(chef), 'vie', sondage('Voté'), maintenant);
-		await publier(base, acteur(chef), 'vie', sondage('Ancien'), '2026-09-27T10:00');
-		const limite = await publier(base, acteur(chef), 'vie', sondage('Limite'), '2026-09-29T10:00');
+		const recent = await publier(base, base.photos, acteur(chef), 'vie', sondage('Récent'), maintenant);
+		const vote = await publier(base, base.photos, acteur(chef), 'vie', sondage('Voté'), maintenant);
+		await publier(base, base.photos, acteur(chef), 'vie', sondage('Ancien'), '2026-09-27T10:00');
+		const limite = await publier(base, base.photos, acteur(chef), 'vie', sondage('Limite'), '2026-09-29T10:00');
 		await voter(base, acteur(agent), vote, 0, maintenant);
 		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).sondages)).toEqual([recent, limite]);
 	});
 
 	it('épinglées de moins de 30 jours des murs lisibles', async () => {
 		const { base, chef, agent } = await jeu();
-		const recente = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'Récente' }, maintenant);
-		const ancienne = await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'Ancienne' }, '2026-09-01T10:00');
+		const recente = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Récente' }, maintenant);
+		const ancienne = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Ancienne' }, '2026-09-01T10:00');
 		await epingler(base, acteur(chef), recente, true, maintenant);
 		await epingler(base, acteur(chef), ancienne, true, maintenant);
 		expect((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).epinglees).toEqual([{ id: recente, cle: 'centre', nomMur: 'Le centre', titre: 'Récente' }]);
@@ -157,12 +157,12 @@ describe('à ne pas manquer', () => {
 
 	it('nouveautés : depuis la dernière visite, sinon les 14 derniers jours ; pas les siennes', async () => {
 		const { base, chef, agent } = await jeu();
-		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'Vieux' }, '2026-10-10T10:00');
-		await publier(base, acteur(chef), 'centre', { type: 'message', texte: 'Récent' }, '2026-10-20T10:00');
-		await publier(base, acteur(agent), 'vie', { type: 'message', texte: 'Le mien' }, '2026-10-20T10:00');
-		await publier(base, acteur(chef), 'vie', { type: 'message', texte: 'Avant visite' }, '2026-10-27T10:00');
+		await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Vieux' }, '2026-10-10T10:00');
+		await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Récent' }, '2026-10-20T10:00');
+		await publier(base, base.photos, acteur(agent), 'vie', { type: 'message', texte: 'Le mien' }, '2026-10-20T10:00');
+		await publier(base, base.photos, acteur(chef), 'vie', { type: 'message', texte: 'Avant visite' }, '2026-10-27T10:00');
 		await lireMur(base, acteur(agent), 'vie', {}, '2026-10-27T12:00');
-		await publier(base, acteur(chef), 'vie', { type: 'message', texte: 'Après visite' }, '2026-10-28T09:00');
+		await publier(base, base.photos, acteur(chef), 'vie', { type: 'message', texte: 'Après visite' }, '2026-10-28T09:00');
 		expect((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).nouveautes).toEqual([
 			{ cle: 'centre', nom: 'Le centre', nombre: 1 },
 			{ cle: 'vie', nom: 'Vie du centre', nombre: 1 }
@@ -173,8 +173,8 @@ describe('à ne pas manquer', () => {
 		const { base, chef, nouvelle } = await jeu();
 		const parti = await nouvelle('Parti', { statut: 'parti' });
 		const exterieur = await nouvelle('Exterieur', {}, 'exterieur');
-		await publier(base, acteur(chef), 'centre', annonce(), maintenant);
-		await publier(base, acteur(chef), 'centre', evenement('2026-11-02T19:00'), maintenant);
+		await publier(base, base.photos, acteur(chef), 'centre', annonce(), maintenant);
+		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-02T19:00'), maintenant);
 		const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] };
 		expect(await aNePasManquer(base, acteur(parti), aujourdhui, maintenant)).toEqual(vide);
 		expect(await aNePasManquer(base, acteur(exterieur), aujourdhui, maintenant)).toEqual(vide);
@@ -185,7 +185,7 @@ describe('à ne pas manquer', () => {
 	it('mur d’équipe inactive (lecture seule) : rien à traiter', async () => {
 		const { base, chef, agent, affecter, e1 } = await jeu();
 		await affecter(agent, e1.id);
-		await publier(base, acteur(chef), `equipe:${e1.id}`, annonce(), maintenant);
+		await publier(base, base.photos, acteur(chef), `equipe:${e1.id}`, annonce(), maintenant);
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
 		expect((await aNePasManquer(base, acteur(agent), aujourdhui, maintenant)).annonces).toEqual([]);
 	});

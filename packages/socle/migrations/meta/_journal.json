@@ -43,6 +43,13 @@
       "when": 1793236978712,
       "tag": "0005_marvelous_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793261730437,
+      "tag": "0006_wakeful_thunderbird",
+      "breakpoints": true
     }
   ]
 }

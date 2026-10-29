@@ -1,4 +1,4 @@
-export { creerBaseD1, type Base } from './base.ts';
+export { creerBaseD1, creerBasePhotos, type Base, type BasePhotos } from './base.ts';
 export * from './schema.ts';
 export { enCours } from './dates.ts';
 export { ligneJournal } from './journal.ts';
@@ -22,6 +22,6 @@ export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
 export { apercusDesMurs, type Apercu as ApercuMur } from './apercus.ts';
 export { audiences, exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
-export { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, supprimerPublication, type DonneesPublication, type PublicationVue } from './actions/publications.ts';
+export { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, TAILLE_PHOTO_MAX, type DonneesPublication, type RemplissagePhotos, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
 export { aNePasManquer, anniversairesDuJour, type ANePasManquer, type ItemANePasManquer } from './a-ne-pas-manquer.ts';

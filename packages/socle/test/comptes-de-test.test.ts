@@ -16,7 +16,7 @@ const aujourdhui = '2026-10-29';
 async function jeu() {
 	const base = await baseDeTest();
 	await chargerJeuDeDepart(base, centreExemple);
-	await chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant);
+	await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 	return base;
 }
 
@@ -59,7 +59,7 @@ describe('chargerComptesDeTest', () => {
 	it('ne fait rien la deuxième fois', async () => {
 		const base = await jeu();
 		const avant = (await base.select().from(publication)).length;
-		await chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 		expect((await base.select().from(publication)).length).toBe(avant);
 		expect((await base.select().from(personne).where(eq(personne.email, 'caserne+chef@exemple.fr'))).length).toBe(1);
 	});
@@ -67,7 +67,7 @@ describe('chargerComptesDeTest', () => {
 	it('refuse une boîte mal écrite', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		for (const boite of ['', 'caserne', 'caserne+chef@exemple.fr', 'a@b@c.fr']) await expect(chargerComptesDeTest(base, boite, maintenant)).rejects.toThrow(DonneeInvalide);
+		for (const boite of ['', 'caserne', 'caserne+chef@exemple.fr', 'a@b@c.fr']) await expect(chargerComptesDeTest(base, base.photos, boite, maintenant)).rejects.toThrow(DonneeInvalide);
 	});
 
 	it('se relance un autre jour et complète un chargement interrompu', async () => {
@@ -76,17 +76,17 @@ describe('chargerComptesDeTest', () => {
 		// Interruption simulée : seul le premier compte existe, sans son rôle.
 		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
 		await ajouterPersonne(base, { type: 'super', email: 'admin@exemple.fr' }, { email: 'caserne+chef@exemple.fr', prenom: 'Claire', nom: 'Chef', profilId: agent!.id }, aujourdhui, []);
-		await chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 		const avant = (await base.select().from(publication)).length;
 		expect((await mursDuCompte(base, 'chef')).length).toBe(7);
-		await chargerComptesDeTest(base, 'caserne@exemple.fr', '2026-12-29T10:00');
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', '2026-12-29T10:00');
 		expect((await base.select().from(publication)).length).toBe(avant);
 	});
 
 	it('marche un 29 février et normalise la boîte', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		await chargerComptesDeTest(base, '  Caserne@Exemple.FR ', '2028-02-29T10:00');
+		await chargerComptesDeTest(base, base.photos, '  Caserne@Exemple.FR ', '2028-02-29T10:00');
 		const [agent] = await base.select().from(personne).where(eq(personne.email, 'caserne+agent@exemple.fr'));
 		expect(agent?.naissance).toBe('1996-02-29');
 	});
@@ -96,7 +96,7 @@ describe('chargerComptesDeTest', () => {
 		await chargerJeuDeDepart(base, centreExemple);
 		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
 		await ajouterPersonne(base, { type: 'super', email: 'admin@exemple.fr' }, { email: 'alice.martin@exemple.fr', prenom: 'Alice', nom: 'Martin', profilId: agent!.id }, aujourdhui, []);
-		await chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 		expect((await base.select().from(personne)).length).toBe(COMPTES_DE_TEST.length + 1);
 	});
 
@@ -104,14 +104,14 @@ describe('chargerComptesDeTest', () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 1));
-		await expect(chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant)).rejects.toThrow('équipe 1 absente ou inactive');
+		await expect(chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).rejects.toThrow('équipe 1 absente ou inactive');
 		expect(await base.select().from(personne)).toEqual([]);
 	});
 
 	it('refuse une adresse de super administrateur', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		await expect(chargerComptesDeTest(base, 'caserne@exemple.fr', maintenant, ['Caserne+chef@exemple.fr'])).rejects.toThrow(DonneeInvalide);
+		await expect(chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant, ['Caserne+chef@exemple.fr'])).rejects.toThrow(DonneeInvalide);
 		expect(await base.select().from(personne)).toEqual([]);
 	});
 
