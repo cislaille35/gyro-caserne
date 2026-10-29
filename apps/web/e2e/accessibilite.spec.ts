@@ -479,6 +479,38 @@ test.describe('échanges', () => {
 		await autre.context().close();
 	});
 
+	test('prise de connaissance cochée puis changement de mur : la case masquée ne part pas, l’annonce est publiée', async ({ browser, page }) => {
+		const gestion = await pageSuper(browser);
+		const { email } = await nouvelAgent(gestion);
+		// Chef de l'équipe 1 : il modère son mur d'équipe, pas Vie du centre.
+		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action^="?/attribuer"]'));
+		const attribuer = carte.locator('form[action^="?/attribuer"]');
+		await attribuer.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
+		await attribuer.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
+		await attribuer.getByRole('button', { name: 'Attribuer' }).click();
+		await expect(attribuer.getByRole('status')).toHaveText('Rôle attribué');
+
+		await connecter(page, email);
+		await page.goto('/echanges/publier?mur=equipe:1');
+		const formulaire = await formulairePret(page);
+		await formulaire.getByRole('radio', { name: /^Annonce/ }).check();
+		const casePrise = formulaire.getByLabel('Demander une prise de connaissance (annonce)');
+		await casePrise.check();
+		await formulaire.getByRole('radio', { name: /^Vie du centre/ }).check();
+		await expect(casePrise).toBeHidden();
+		await expect(casePrise).toBeDisabled();
+		const texte = `Annonce ${nouvelleMarque()}`;
+		await formulaire.getByLabel('Votre message', { exact: true }).fill(texte);
+		await formulaire.getByRole('button', { name: 'Publier dans Vie du centre' }).click();
+		await page.waitForURL(/\/echanges\/vie#publication-\d+$/);
+		await expect(publicationDe(page, texte)).toBeVisible();
+
+		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef d’équipe — Équipe 1' }).check();
+		await carte.getByRole('button', { name: 'Terminer' }).click();
+		await expect(carte.getByRole('status').first()).toHaveText('Rôle terminé');
+		await gestion.context().close();
+	});
+
 	test('les envois du navigateur annoncent leur longueur : la garde de taille les laisse passer', async ({ browser, page }) => {
 		const gestion = await pageSuper(browser);
 		const { email } = await nouvelAgent(gestion);

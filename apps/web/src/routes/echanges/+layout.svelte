@@ -27,7 +27,10 @@
 	}));
 
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-	const total = $derived([s.centre, ...s.groupes, ...s.autres, ...s.supervision].reduce((n, t) => n + (t?.nouveautes ?? 0), 0));
+	const somme = (tuiles: (TuileMur | null)[]) => tuiles.reduce((n, t) => n + (t?.nouveautes ?? 0), 0);
+	// La supervision, repliée, a son propre compte dans son résumé.
+	const total = $derived(somme([s.centre, ...s.groupes, ...s.autres]));
+	const totalSupervision = $derived(somme(s.supervision));
 	const VARIANTES = ['Le café est encore chaud.', 'Rien ne vous a échappé : Gyro veille.', 'La caserne bavarde, voici l’essentiel.'];
 	const jourDeLAnnee = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${iso.slice(0, 4)}-01-01T00:00:00Z`)) / 864e5) + 1;
 	const phrase = $derived.by(() => {
@@ -180,7 +183,9 @@
 
 				{#if s.supervision.length > 0}
 					<details class="repli" open={ouvrir.supervision}>
-						<summary>Supervision <span class="doux">({s.supervision.length})</span></summary>
+						<summary
+							>Supervision {#if totalSupervision > 0}· {pluriel(totalSupervision, 'nouveauté')}{:else}<span class="doux">({s.supervision.length})</span>{/if}</summary
+						>
 						<ul>
 							{#each s.supervision as t (t.cle)}{@render tuile(t)}{/each}
 						</ul>

@@ -64,6 +64,8 @@
 
 	const choix = $derived(murs.find((m) => m.cle === mur));
 	const unModere = $derived(murs.some((m) => m.peutModerer));
+	// Masquée, la case ne part pas avec le formulaire (par exemple après un changement de mur).
+	const masquerPrise = $derived(js && (type !== 'annonce' || !choix?.peutModerer));
 	const convoquables = $derived(equipes.filter((e) => e.active === 1));
 
 	let erreurPhotos = $state('');
@@ -142,10 +144,11 @@
 
 	{#if unModere}
 		<!-- Sans JavaScript, la case reste visible avec sa mention ; avec, seulement pour une annonce sur un mur qu'on modère. -->
-		<label class="case" hidden={js && (type !== 'annonce' || !choix?.peutModerer)}>
+		<label class="case" hidden={masquerPrise}>
 			<input
 				type="checkbox"
 				name="priseDeConnaissance"
+				disabled={masquerPrise}
 				value="oui"
 				checked={valeurs.priseDeConnaissance}
 				aria-invalid={erreurs.priseDeConnaissance ? 'true' : undefined}

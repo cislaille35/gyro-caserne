@@ -97,6 +97,17 @@ describe('liste des murs', () => {
 		expect(page).not.toContain('<details');
 	});
 
+	it('Supervision : ses nouveautés écrites dans le résumé, hors de la phrase d’en-tête', () => {
+		etat.page.params = {};
+		const supervision = [{ ...sections.supervision[0], nouveautes: 4 }];
+		const page = texte(html({ sections: { ...sections, supervision } }, 'sobre'));
+		expect(page).toContain('5 nouveautés depuis votre dernière visite.');
+		expect(page).toContain('Supervision · 4 nouveautés');
+		expect(texte(html({}, 'sobre'))).toContain('Supervision (1)');
+		const seule = { ...sections, centre: { ...sections.centre, nouveautes: 0 }, groupes: [], supervision };
+		expect(texte(html({ sections: seule }, 'sobre'))).toContain('Rien de neuf depuis votre dernière visite.');
+	});
+
 	it('le bouton « Écrire » mène au formulaire', () => {
 		etat.page.params = {};
 		expect(html()).toMatch(/<a[^>]*href="\/echanges\/publier"[^>]*>/);
