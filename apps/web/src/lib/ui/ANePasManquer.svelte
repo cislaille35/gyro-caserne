@@ -93,7 +93,7 @@
 			<li><Rangee href={lien(i)} titre={i.titre} sous="Épinglée · {i.nomMur}" icone="livre" dessin={DESSINS.epinglee} /></li>
 		{/each}
 
-		{#each r.nouveautes as n (n.cle)}
+		{#each a.nouveautes as n (n.cle)}
 			<li>
 				<Rangee href="/echanges/{n.cle}" titre={n.nom} sous={pluriel(n.nombre, 'nouveauté')}>
 					{#snippet tete()}<PastilleMur icone={n.icone ?? null} couleur={n.couleur ?? null} numero={n.numero ?? null} taille={48} />{/snippet}

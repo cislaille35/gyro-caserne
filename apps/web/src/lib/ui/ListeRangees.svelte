@@ -14,7 +14,11 @@
 
 {#if titre}
 	<section aria-labelledby={idTitre}>
-		<h2 id={idTitre} class="rubrique" tabindex={ancre ? -1 : undefined}>{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
+		{#if ancre}
+			<h2 id={idTitre} class="rubrique" tabindex="-1">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
+		{:else}
+			<h2 id={idTitre} class="rubrique">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
+		{/if}
 		{@render liste()}
 		{#if pied}{@render pied()}{/if}
 	</section>
