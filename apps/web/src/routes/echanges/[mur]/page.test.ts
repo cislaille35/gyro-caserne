@@ -184,6 +184,11 @@ describe('gestes sur une publication', () => {
 		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
 			expect(page).toMatch(new RegExp(`<button[^>]*name="reponse" value="${valeur}"[^>]*aria-pressed="${appuye}"[^>]*><span aria-hidden="true"[^>]*>[✓✕?]</span> ${libelle}<`));
 		expect(page).toContain('2 présents · 0 absent · 1 incertain');
+		// La réponse choisie porte une marque écrite, pas seulement une couleur ; elle seule.
+		expect(page.match(/votre réponse</g)).toHaveLength(1);
+		expect(page).toMatch(/value="incertain"[^>]*aria-pressed="true"[^>]*>[\s\S]*?Incertain[\s\S]*?votre réponse<[\s\S]*?<\/button>/);
+		expect(page).not.toMatch(/aria-pressed="false"[^>]*>(?:(?!<\/button>)[\s\S])*votre réponse/);
+		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, reponse: null } }))).not.toContain('votre réponse<');
 		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, convoque: false } }))).not.toContain('?/repondre');
 	});
 
@@ -241,7 +246,12 @@ describe('cartes par type', () => {
 		expect(page).toContain('12 sur 38 ont confirmé');
 		expect(page).toContain('>J’ai pris connaissance<');
 		expect(agir(pub({ type: 'annonce', epinglee: true, priseDeConnaissance: { le: null, faites: 1, attendues: 38 } }))).toContain('Épinglée · Annonce à lire et confirmer');
-		expect(agir(pub({ type: 'annonce', priseDeConnaissance: { le: null, faites: 1, attendues: 38 } }))).toContain('1 sur 38 a confirmé');
+		// Le verbe suit l'ensemble : « a » seulement quand une seule personne est attendue.
+		const lu = (faites: number, attendues: number) => agir(pub({ type: 'annonce', priseDeConnaissance: { le: null, faites, attendues } }));
+		expect(lu(0, 38)).toContain('0 sur 38 ont confirmé');
+		expect(lu(1, 38)).toContain('1 sur 38 ont confirmé');
+		expect(lu(0, 1)).toContain('0 sur 1 a confirmé');
+		expect(lu(1, 1)).toContain('1 sur 1 a confirmé');
 	});
 
 	it('événement : la tuile date, les présents et trois boutons avec leur mot', () => {
@@ -279,6 +289,8 @@ describe('cartes par type', () => {
 		expect(page).toContain('a-saute');
 		const deux = html({ publications: [pub({ id: 1, type: 'bravo' }), pub({ id: 2, type: 'bravo' })], estPersonne: true }, null, 'vivant');
 		expect(deux.match(/a-saute/g)?.length).toBe(page.match(/a-saute/g)?.length);
+		expect(deux.indexOf('a-saute')).toBeGreaterThan(-1);
+		expect(deux.indexOf('a-saute')).toBeLessThan(deux.indexOf('id="publication-2"'));
 		expect(agir(pub({ type: 'bravo' }), 'equilibre')).not.toContain('a-saute');
 	});
 });

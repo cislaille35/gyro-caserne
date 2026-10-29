@@ -127,7 +127,9 @@
 					<input type="hidden" name="id" value={p.id} />
 					<div role="group" aria-label="Votre réponse" class="reponses">
 						{#each REPONSES as [valeur, libelle, signe] (valeur)}
-							<button type="submit" class="reponse {valeur}" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}><span aria-hidden="true">{signe}</span> {libelle}</button>
+							<button type="submit" class="reponse {valeur}" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}
+								><span aria-hidden="true">{signe}</span> {libelle}{#if e.reponse === valeur}<span class="choisie" aria-hidden="true">votre réponse</span>{/if}</button
+							>
 						{/each}
 					</div>
 				</form>
@@ -142,7 +144,7 @@
 			{#if prise.attendues > 0}
 				<p class="lecture">
 					<span class="jauge" aria-hidden="true"><span style:width="{Math.round((prise.faites * 100) / prise.attendues)}%"></span></span>
-					<span class="doux">{prise.faites} sur {prise.attendues} {prise.faites > 1 ? 'ont' : 'a'} confirmé</span>
+					<span class="doux">{prise.faites} sur {prise.attendues} {prise.attendues === 1 ? 'a' : 'ont'} confirmé</span>
 				</p>
 			{/if}
 			{#if prise.le}
@@ -406,6 +408,12 @@
 		color: var(--statut-neutre-fond);
 		font-weight: 700;
 	}
+	/* La marque écrite double l'inversion des couleurs ; l'état est déjà annoncé par aria-pressed. */
+	.choisie {
+		display: block;
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
 	.reponse.present[aria-pressed='true'] {
 		border-color: var(--statut-ok-texte);
 		background: var(--statut-ok-texte);
@@ -465,6 +473,10 @@
 	}
 	.bravo .pilule {
 		background: color-mix(in srgb, var(--surface) 70%, transparent);
+	}
+	/* Les morceaux du bouton sont des éléments flexibles : l'espace avant le nombre vient de l'écart. */
+	.aimer {
+		gap: 0.3em;
 	}
 	.bravo .aimer {
 		border: 2px solid var(--statut-alerte-trait);
