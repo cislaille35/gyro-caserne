@@ -52,7 +52,7 @@ for (const theme of ['auto', 'sombre']) {
 				const marque = nouvelleMarque();
 				await gestion.goto('/echanges/centre');
 				const annonce = await publier(gestion, { type: 'Annonce', texte: `Consigne ${marque}`, prise: true });
-				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'] });
+				await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque}`, debut: '2099-06-01T18:30', lieu: 'Caserne', question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], cloture: dansUneSemaine() });
 				// L'auteur voit le suivi de son annonce.
 				await gestion.goto(`/echanges/centre/${annonce}`);
 				await expect(gestion.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
@@ -344,7 +344,10 @@ async function formulairePret(page: Page): Promise<Locator> {
 	return formulaire;
 }
 
-type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; photo?: Buffer };
+type Saisie = { type?: string; texte: string; prise?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; cloture?: string; photo?: Buffer };
+
+// Un sondage ferme moins d'un an après son ouverture : pour un événement lointain, on choisit sa clôture.
+const dansUneSemaine = () => new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 16);
 
 // Publie depuis le mur ouvert (lien « Publier dans … ») ; de retour sur le mur, renvoie l'identifiant de la publication, lu dans l'adresse.
 async function publier(page: Page, s: Saisie): Promise<number> {
@@ -364,6 +367,7 @@ async function publier(page: Page, s: Saisie): Promise<number> {
 			if (!(await champ.isVisible())) await formulaire.getByRole('button', { name: '+ Ajouter une réponse' }).click();
 			await champ.fill(r);
 		}
+		if (s.cloture) await formulaire.getByLabel('Ferme le').fill(s.cloture);
 	}
 	if (s.photo) await formulaire.getByLabel('Photos').setInputFiles({ name: 'essai.jpg', mimeType: 'image/jpeg', buffer: s.photo });
 	await formulaire.getByRole('button', { name: /^Publier/ }).click();
