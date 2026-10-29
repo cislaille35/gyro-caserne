@@ -1,7 +1,7 @@
 import { creerBaseD1, creerBasePhotos, effacerAnciens } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from './lib/aujourdhui.ts';
 
-// Le gestionnaire planifié du worker (voir entree-du-worker.ts). Chargé par Wrangler hors de SvelteKit : imports relatifs seulement.
+// Le gestionnaire planifié du worker (voir entree-du-worker.ts). Chargé par Wrangler hors de SvelteKit : imports relatifs, sans les alias de SvelteKit.
 
 // La date, à Paris, `mois` mois avant `quand` (même jour, ou dernier jour du mois s'il n'existe pas).
 export function limiteDeConservation(quand: Date, mois: number): string {

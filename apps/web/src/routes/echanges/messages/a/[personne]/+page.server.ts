@@ -1,8 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { annuaire, conversationAvec, RefusDroit } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
-import { aPropos, debut } from '#lib/messagerie/infos.ts';
-import { actionEnvoyer } from '#lib/server/formulaire-messagerie.ts';
+import { actionEnvoyer, preremplir, publicationCitee } from '#lib/server/formulaire-messagerie.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,16 +21,16 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		if (erreur instanceof RefusDroit) redirect(303, '/echanges?refus=messagerie');
 		throw erreur;
 	}
-	// « Répondre en privé » : le début de la publication suit.
-	const apropos = url.searchParams.get('apropos');
-	if (existante !== null) redirect(303, `/echanges/messages/${existante}${apropos ? `?apropos=${encodeURIComponent(apropos)}` : ''}`);
+	// « Répondre en privé » : la publication suit, lue par la page d'arrivée.
+	const publication = publicationCitee(url);
+	if (existante !== null) redirect(303, `/echanges/messages/${existante}${publication === null ? '' : `?publication=${publication}`}`);
 	const p = agents.find((a) => a.id === id);
 	if (!p) error(404, 'Cette personne n’est pas dans l’annuaire');
 	return {
 		moiId: acteur.type === 'personne' ? acteur.id : 0,
 		personne: { id: p.id, prenom: p.prenom, nom: p.nom, couleur: p.equipe?.couleur ?? null },
 		sousTitre: p.role ?? (p.equipe ? `Équipe ${p.equipe.numero}` : ''),
-		prerempli: aPropos(debut(url.searchParams.get('apropos') ?? '', 200))
+		prerempli: await preremplir(locals.base, acteur, publication)
 	};
 };
 

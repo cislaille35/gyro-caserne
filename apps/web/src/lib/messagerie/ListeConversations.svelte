@@ -27,7 +27,7 @@
 <form class="recherche" method="get" action="/echanges/messages" role="search" onsubmit={(e) => e.preventDefault()}>
 	<label for="recherche" class="masque">Rechercher une conversation</label>
 	<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
-	<input id="recherche" type="search" name="q" bind:value={recherche} placeholder="Rechercher une conversation" autocomplete="off" />
+	<input id="recherche" type="search" name="q" bind:value={recherche} placeholder={breve ? 'Rechercher' : 'Rechercher une conversation'} autocomplete="off" />
 </form>
 
 <!-- Toujours présent (masqué quand la recherche trouve), pour que le lecteur d'écran annonce une recherche sans résultat. -->

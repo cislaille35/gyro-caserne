@@ -88,7 +88,7 @@ Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-message
 
 - `/echanges/messages` : filtres « Murs » | « Messages » (`FiltresEchanges`), la liste (`lib/messagerie/ListeConversations.svelte` : recherche par nom, `?q=` sans JavaScript, visage ou icône, aperçu, heure, non-lus), le crayon « Nouveau message » (flottant au téléphone).
 - `/echanges/messages/nouveau` (recherche, « Nouveau groupe », « Pour vous », « Tout le centre ») et `/echanges/messages/nouveau/groupe` (membres, puis `?etape=nom` ; `?equipe=`, `?comite=` préremplis ; `?ajouter=<id>` pour ajouter des membres à un groupe).
-- `/echanges/messages/a/[personne]` : une conversation à deux pas encore née (elle l'est au premier envoi), ou la redirection vers celle qui existe ; `?apropos=` (« Répondre en privé ») préremplit le champ.
+- `/echanges/messages/a/[personne]` : une conversation à deux pas encore née (elle l'est au premier envoi), ou la redirection vers celle qui existe ; `?publication=<id>` (« Répondre en privé ») suit la redirection ; le serveur lit la publication, si l'acteur lit son mur, et préremplit le champ par « À propos de « <80 premiers caractères> » : » (sinon le paramètre est ignoré).
 - `/echanges/messages/[id]` (`Conversation.svelte`, `Bulle.svelte`, `Saisie.svelte`, `MenuGestes.svelte`) : fil `role="log"`, 40 messages par page (`?avant=`), gestes en actions de formulaire (`lib/server/formulaire-messagerie.ts`), brouillon gardé dans le navigateur par personne et par conversation. Inconnue ou non-membre : 404.
 - `/echanges/messages/[id]/infos` : infos du groupe (renommer, membres et leur menu, ajouter, quitter) ou fiche courte à deux.
 - `GET /echanges/messages/[id]/photo/[photo]` : une photo, aux membres seulement.

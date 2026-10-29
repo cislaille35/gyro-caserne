@@ -294,23 +294,17 @@ describe('cartes par type', () => {
 		expect(agir(pub({ type: 'bravo' }), 'equilibre')).not.toContain('a-saute');
 	});
 
-	it('« Répondre en privé » à l’auteur, avec le début de la publication ; seulement si l’on a la messagerie et qu’on peut lui écrire', () => {
+	it('« Répondre en privé » à l’auteur, avec la publication (son identifiant, pas son texte) ; seulement si l’on a la messagerie et qu’on peut lui écrire', () => {
 		const texte = `Qui peut me remplacer samedi ? ${'x'.repeat(200)}`;
-		const avec = html({ messagerie: true, publications: [pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] });
+		const publication = pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } });
+		const avec = html({ messagerie: true, publications: [publication] });
 		const lien = /<a[^>]*href="([^"]*)"[^>]*>Répondre en privé<\/a>/.exec(avec);
 		expect(lien).not.toBeNull();
 		expect(lien![0]).toContain('aria-label="Répondre en privé à Alice Martin"');
 		const url = new URL(lien![1]!.replaceAll('&amp;', '&'), 'http://x');
 		expect(url.pathname).toBe('/echanges/messages/a/5');
-		expect(url.searchParams.get('apropos')).toBe(texte.slice(0, 120));
+		expect(url.search).toBe(`?publication=${publication.id}`);
 		expect(html({ messagerie: false, publications: [pub({ auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] })).not.toContain('Répondre en privé');
 		expect(html({ messagerie: true, publications: [pub()] })).not.toContain('Répondre en privé');
-	});
-
-	it('« Répondre en privé » : un emoji pile à la limite ne casse pas le mur', () => {
-		const texte = `${'a'.repeat(119)}🚒 et la suite`;
-		const page = html({ messagerie: true, publications: [pub({ texte, auteur: { prenom: 'Alice', nom: 'Martin', couleur: null, role: null, ecrireA: 5 } })] });
-		const lien = /<a[^>]*href="([^"]*)"[^>]*>Répondre en privé<\/a>/.exec(page)!;
-		expect(new URL(lien[1]!.replaceAll('&amp;', '&'), 'http://x').searchParams.get('apropos')).toBe(`${'a'.repeat(119)}🚒`);
 	});
 });

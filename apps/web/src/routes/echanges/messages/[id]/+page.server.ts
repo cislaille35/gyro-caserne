@@ -1,8 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { infosConversation, lireConversation, RefusDroit, type InfosConversation } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
-import { aPropos, debut } from '#lib/messagerie/infos.ts';
-import { actionEnvoyer, actionsDeGestes } from '#lib/server/formulaire-messagerie.ts';
+import { actionEnvoyer, actionsDeGestes, preremplir, publicationCitee } from '#lib/server/formulaire-messagerie.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -28,7 +27,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const avant = brut === null ? null : identifiant(brut);
 	if (id === null || (brut !== null && avant === null)) error(404, 'Conversation introuvable');
 	try {
-		const [vue, infos] = await Promise.all([lireConversation(locals.base, acteur, id, avant === null ? {} : { avant }, maintenantParis()), infosConversation(locals.base, acteur, id, aujourdhuiParis())]);
+		const [vue, infos, prerempli] = await Promise.all([
+			lireConversation(locals.base, acteur, id, avant === null ? {} : { avant }, maintenantParis()),
+			infosConversation(locals.base, acteur, id, aujourdhuiParis()),
+			preremplir(locals.base, acteur, publicationCitee(url))
+		]);
 		const moi = acteur.type === 'personne' ? acteur.id : 0;
 		return {
 			vue,
@@ -40,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			// Pour une conversation à deux en lecture seule : « Manon n'est plus dans l'annuaire ».
 			autrePrenom: vue.type === 'deux' ? (vue.membres.find((m) => m.id !== moi)?.prenom ?? null) : null,
 			// « Répondre en privé » depuis un mur.
-			prerempli: aPropos(debut(url.searchParams.get('apropos') ?? '', 200))
+			prerempli
 		};
 	} catch (erreur) {
 		if (erreur instanceof RefusDroit) {

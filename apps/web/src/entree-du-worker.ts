@@ -2,9 +2,10 @@ import { appendFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Adapter } from '@sveltejs/kit';
 
-// L'adaptateur Cloudflare n'écrit qu'un gestionnaire `fetch`, à l'endroit désigné par `main` (wrangler.jsonc). Après lui, son
-// worker est renommé _sveltekit.js, et une petite entrée prend sa place : elle reprend son `fetch` et ajoute le gestionnaire
-// planifié (planifie.ts). Wrangler assemble le tout au déploiement.
+// L'adaptateur Cloudflare n'écrit qu'un gestionnaire `fetch`, dans getBuildDirectory('cloudflare')/_worker.js : le test des
+// centres garantit que ce chemin est bien le `main` de wrangler.jsonc. Après lui, son worker est renommé _sveltekit.js, et une
+// petite entrée prend sa place : elle reprend son `fetch` et ajoute le gestionnaire planifié (planifie.ts). Wrangler assemble
+// le tout au déploiement. Voir docs/decisions/0011.
 export function avecEntreePlanifiee(adaptateur: Adapter, fichierCentre: string, fichierPlanifie: string): Adapter {
 	return {
 		...adaptateur,

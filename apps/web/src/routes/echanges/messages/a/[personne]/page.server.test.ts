@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { conversation, envoyer, personne } from '@gyro-caserne/socle';
+import { conversation, envoyer, personne, publier } from '@gyro-caserne/socle';
 import { locaux, preparer, requeteFormulaire } from '../../../de-test.ts';
 import { actions, load } from './+page.server';
 
@@ -21,15 +21,20 @@ describe('écrire à quelqu’un pour la première fois', () => {
 		await expect(charger(locaux(base, alice), bruno.id)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}` });
 	});
 
-	it('« Répondre en privé » : le champ prérempli, gardé si la conversation existe déjà', async () => {
-		const { base, alice, bruno } = await preparer();
-		const q = `?apropos=${encodeURIComponent('Qui peut me remplacer ?')}`;
+	it('« Répondre en privé » : le champ prérempli par la publication, qui suit si la conversation existe déjà', async () => {
+		const { base, chef, alice, bruno, e2 } = await preparer();
+		const pub = await publier(base, base.photos, bruno, 'vie', { type: 'message', texte: 'Qui peut me remplacer ?' }, '2026-10-28T08:00');
+		const q = `?publication=${pub}`;
 		expect((await charger(locaux(base, alice), bruno.id, q)).prerempli).toBe('À propos de « Qui peut me remplacer ? » : ');
+		// Un mur qu'Alice ne lit pas : le paramètre est ignoré ; l'ancien texte dans l'adresse aussi.
+		const equipe = await publier(base, base.photos, chef, `equipe:${e2.id}`, { type: 'message', texte: 'Secret d’équipe' }, '2026-10-28T08:00');
+		expect((await charger(locaux(base, alice), chef.id, `?publication=${equipe}`)).prerempli).toBe('');
+		expect((await charger(locaux(base, alice), bruno.id, `?apropos=${encodeURIComponent('Texte libre')}`)).prerempli).toBe('');
 		const { conversation: id } = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, '2026-10-28T09:00');
 		await expect(charger(locaux(base, alice), bruno.id, q)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
-		// Seul le début de la publication suit, rien d'autre de l'adresse.
-		await expect(charger(locaux(base, alice), bruno.id, `${q}&avant=3&x=1`)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
-		await expect(charger(locaux(base, alice), bruno.id, '?avant=3')).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}` });
+		// Seul l'identifiant de la publication suit, rien d'autre de l'adresse.
+		await expect(charger(locaux(base, alice), bruno.id, `${q}&avant=3&apropos=x`)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
+		for (const autre of ['?avant=3', '?publication=abc']) await expect(charger(locaux(base, alice), bruno.id, autre)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}` });
 	});
 
 	it('soi-même, une personne partie ou inconnue : introuvable', async () => {

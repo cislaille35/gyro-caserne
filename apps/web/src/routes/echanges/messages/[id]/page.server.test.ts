@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { creerGroupe, envoyer, lireConversation, message, personne, reactionMessage, retirerMembre, signalementMessage } from '@gyro-caserne/socle';
+import { creerGroupe, envoyer, lireConversation, message, personne, publier, reactionMessage, retirerMembre, signalementMessage } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { jpeg, locaux, preparer, requeteFormulaire } from '../../de-test.ts';
 import { actions, load } from './+page.server';
@@ -17,13 +17,17 @@ async function groupe() {
 }
 
 describe('une conversation : chargement', () => {
-	it('« Répondre en privé » : le champ prérempli par le début de la publication', async () => {
-		const { base, alice, id } = await groupe();
-		expect((await charger(locaux(base, alice), id, `?apropos=${encodeURIComponent('Repas de Noël')}`)).prerempli).toBe('À propos de « Repas de Noël » : ');
+	it('« Répondre en privé » : le champ prérempli par le début de la publication, lue par le serveur', async () => {
+		const { base, chef, alice, e2, id } = await groupe();
+		const noel = await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas de Noël' }, maintenantParis());
+		expect((await charger(locaux(base, alice), id, `?publication=${noel}`)).prerempli).toBe('À propos de « Repas de Noël » : ');
 		expect((await charger(locaux(base, alice), id)).prerempli).toBe('');
-		// Coupée à 200 caractères côté serveur, jamais au milieu d'un emoji.
-		const long = `${'a'.repeat(199)}🚒`;
-		await expect(charger(locaux(base, alice), id, `?apropos=${encodeURIComponent(long)}`)).resolves.toMatchObject({ prerempli: `À propos de « ${'a'.repeat(80)}… » : ` });
+		// Les 80 premiers caractères, jamais au milieu d'un emoji.
+		const long = await publier(base, base.photos, chef, 'vie', { type: 'message', texte: `${'a'.repeat(79)}🚒 et la suite` }, maintenantParis());
+		expect((await charger(locaux(base, alice), id, `?publication=${long}`)).prerempli).toBe(`À propos de « ${'a'.repeat(79)}🚒… » : `);
+		// Un mur qu'Alice ne lit pas, une publication inconnue ou illisible, l'ancien texte dans l'adresse : rien.
+		const equipe = await publier(base, base.photos, chef, `equipe:${e2.id}`, { type: 'message', texte: 'Secret d’équipe' }, maintenantParis());
+		for (const q of [`?publication=${equipe}`, '?publication=9999', '?publication=abc', `?apropos=${encodeURIComponent('Repas de Noël')}`]) expect((await charger(locaux(base, alice), id, q)).prerempli, q).toBe('');
 	});
 
 	it('demande la connexion', async () => {

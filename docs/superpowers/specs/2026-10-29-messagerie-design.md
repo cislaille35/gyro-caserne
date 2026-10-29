@@ -134,13 +134,14 @@ Anti-objectifs : un 5ᵉ onglet (porteur : « lourd ») ; un chef qui lit les co
 ## Contraintes
 
 - **Budget** : 45 requêtes D1 au plus par page. Un appel de rafraîchissement doit être **très léger** (2 à 3 requêtes, test de budget).
-- **D1** : pas de colonnes de même nom dans un batch, 100 paramètres au plus par requête, ligne de 2 Mo au plus (photos rangées en base comme sur les murs, 400 Ko chacune au plus).
+- **D1** : pas de colonnes de même nom dans un batch, 100 paramètres au plus par requête, ligne de 2 Mo au plus (photos rangées en base comme sur les murs, 200 Ko chacune au plus).
 - **Vie privée** :
   - le texte des messages n'est **jamais** inscrit au journal, seulement les actions (création, ajout, retrait, signalement) ;
   - les photos sont servies par l'appli après vérification d'appartenance ;
   - un signalement ne transmet que le message signalé.
 - **RGAA AA** :
-  - `role="log"` sur le fil ; aucune annonce « assertive » ;
+  - `role="log"` sur le fil, qui n'a jamais d'annonce « assertive » ;
+  - les erreurs utilisent `role="alert"` ;
   - un texte pour les coches, les heures et les réactions ;
   - un menu de gestes utilisable au clavier ;
   - cibles de 44 px, contrastes en clair et en sombre ;

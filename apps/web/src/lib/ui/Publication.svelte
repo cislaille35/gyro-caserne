@@ -4,7 +4,6 @@
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { heure, quand as quandBref } from '#lib/murs/quand.ts';
-	import { debut } from '#lib/messagerie/infos.ts';
 	import Bouton from './Bouton.svelte';
 	import Pastille from './Pastille.svelte';
 	import Sondage from './Sondage.svelte';
@@ -51,7 +50,7 @@
 	);
 	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
-	const prive = $derived(messagerie && p.auteur.ecrireA !== null ? `/echanges/messages/a/${p.auteur.ecrireA}?apropos=${encodeURIComponent(debut(p.texte, 120))}` : null);
+	const prive = $derived(messagerie && p.auteur.ecrireA !== null ? `/echanges/messages/a/${p.auteur.ecrireA}?publication=${p.id}` : null);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);
 	const bravo = $derived(p.type === 'bravo');
 	const prise = $derived(p.priseDeConnaissance);

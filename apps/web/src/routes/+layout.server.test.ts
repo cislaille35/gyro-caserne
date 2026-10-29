@@ -7,6 +7,14 @@ import { eq } from 'drizzle-orm';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { load } from './+layout.server';
 
+// Pour vérifier que la cloche compte les signalements sans les lire.
+const socle = vi.hoisted(() => ({ signalements: undefined as unknown as ReturnType<typeof vi.fn> }));
+vi.mock('@gyro-caserne/socle', async (importer) => {
+	const vrai = await importer<typeof import('@gyro-caserne/socle')>();
+	socle.signalements = vi.fn(vrai.signalements);
+	return { ...vrai, signalements: socle.signalements };
+});
+
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,6 +100,8 @@ describe('load du layout', () => {
 		expect((await appeler(super_, base)).cloche).toBe(1);
 		expect((await appeler(alice, base)).cloche).toBe(0);
 		expect((await appeler(bruno, base)).cloche).toBe(0);
+		// Un simple compte : les copies des messages signalés ne sont pas lues.
+		expect(socle.signalements).not.toHaveBeenCalled();
 	});
 
 	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {

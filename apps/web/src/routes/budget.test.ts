@@ -171,6 +171,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			const { message: m } = await envoyer(base, base.photos, { type: 'personne', id: auteur }, { personne: id }, { texte: `Grave ${i}` }, maintenantParis());
 			await signaler(base, { type: 'personne', id }, m, maintenantParis());
 		}
+		// La racine, sur chaque page : la cloche n'y ajoute qu'un compte, sans lire les 30 copies.
+		expect(await compter(() => (racine as any)({ locals }))).toBeLessThanOrEqual(11);
 		let liste: { id: number }[] = [];
 		const page = await compter(async () => {
 			expect((await (racine as any)({ locals })).cloche).toBe(30);
@@ -318,7 +320,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		];
 		for (const x of n) expect(x).toBeLessThanOrEqual(BUDGET);
 	});
-	it('/echanges/messages/[id] : un groupe de 60 et 2 000 messages ; l’envoi ; la suite en 3 requêtes au plus', async () => {
+	it('/echanges/messages/[id] : un groupe de 60 et 2 000 messages, par « Répondre en privé » ; l’envoi ; la suite en 3 requêtes au plus', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
 		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 59);
@@ -330,11 +332,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		let vue: { messages: { id: number }[]; majLe: string } | undefined;
 		// Avec 30 autres conversations pour la colonne de gauche.
 		for (const autre of ids.slice(0, 30)) await envoyer(base, base.photos, { type: 'personne', id: autre }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
+		// Arrivée par « Répondre en privé » : la publication est lue par le serveur.
+		const pub = await publier(base, base.photos, { type: 'personne', id: ids[0]! }, 'vie', { type: 'message', texte: 'Repas de Noël' }, maintenantParis());
 		const n = await compter(async () => {
 			await (racine as any)({ locals });
 			await (echanges as any)({ locals, url });
 			expect((await (layoutMessages as any)({ locals, url, depends: () => {} })).conversations).toHaveLength(31);
-			vue = (await (conversationOuverte as any)({ locals, params, url })).vue;
+			const page = await (conversationOuverte as any)({ locals, params, url: new URL(`${url}?publication=${pub}`) });
+			expect(page.prerempli).toBe('À propos de « Repas de Noël » : ');
+			vue = page.vue;
 		});
 		expect(vue!.messages).toHaveLength(40);
 		expect(n).toBeLessThanOrEqual(BUDGET);

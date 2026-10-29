@@ -33,6 +33,9 @@ describe('layout des messages', () => {
 		expect(liste).toMatch(/aria-label="Filtrer les échanges"/);
 		// La recherche sans JavaScript mène à la liste.
 		expect(liste).toMatch(/<form[^>]*action="\/echanges\/messages"[^>]*role="search"/);
+		// Dans la colonne étroite (1024 px et plus), un texte d'aide court qui tient ; le champ garde son nom complet.
+		expect(liste).toMatch(/<input[^>]*placeholder="Rechercher"/);
+		expect(liste).toMatch(/<label[^>]*for="recherche"[^>]*>Rechercher une conversation/);
 		// Aucun titre avant celui de la conversation.
 		expect(page.slice(0, page.indexOf('<h1>Départ de Thomas</h1>'))).not.toMatch(/<h[1-6]/);
 	});

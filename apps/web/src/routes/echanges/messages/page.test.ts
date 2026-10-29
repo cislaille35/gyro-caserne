@@ -87,6 +87,7 @@ describe('liste des messages', () => {
 		expect(page).toMatch(/<form[^>]*method="get"[^>]*role="search"|<form[^>]*role="search"[^>]*method="get"/);
 		expect(page).toMatch(/<input[^>]*name="q"[^>]*value="elodie"|<input[^>]*value="elodie"[^>]*name="q"/);
 		expect(page).toMatch(/<label[^>]*for="recherche"[^>]*>Rechercher une conversation/);
+		expect(page).toMatch(/<input[^>]*placeholder="Rechercher une conversation"/);
 		expect(liens(page)).toEqual(['/echanges/messages/5']);
 		expect(html({ q: 'zzz' })).toMatch(/<p[^>]*role="status"[^>]*>Aucune conversation à ce nom\.<\/p>/);
 		// La zone d'annonce reste présente, masquée, quand la recherche trouve.

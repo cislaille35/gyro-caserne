@@ -1,7 +1,25 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DonneeInvalide, envoyer, modifierMessage, reagir, RefusDroit, signaler, supprimerMessage, TAILLE_PHOTO_MAX, type Acteur, type Reaction } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { DonneeInvalide, envoyer, modifierMessage, reagir, RefusDroit, signaler, supprimerMessage, TAILLE_PHOTO_MAX, textePublication, type Acteur, type Reaction } from '@gyro-caserne/socle';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
+import { aPropos } from '#lib/messagerie/infos.ts';
 import { avecJavaScript, envoiTropLourd, exigerActeur } from './formulaire-mur.ts';
+
+// « Répondre en privé » : l'adresse ne porte que `?publication=<id>` ; null s'il est absent ou illisible.
+export function publicationCitee(url: URL): number | null {
+	const brut = url.searchParams.get('publication');
+	return brut !== null && /^\d+$/.test(brut) && Number(brut) > 0 ? Number(brut) : null;
+}
+
+// Le champ commence par le début de cette publication, lue ici, si l'acteur peut lire son mur ; sinon rien. Deux requêtes.
+export async function preremplir(base: App.Locals['base'], acteur: Acteur, publication: number | null): Promise<string> {
+	if (publication === null) return '';
+	try {
+		return aPropos(await textePublication(base, acteur, publication, aujourdhuiParis()));
+	} catch (erreur) {
+		if (erreur instanceof RefusDroit || erreur instanceof DonneeInvalide) return '';
+		throw erreur;
+	}
+}
 
 // `cible` : la saisie (« envoyer ») ou un geste sur un message. `valeurs` : la saisie à réafficher (sans les photos).
 export type ReponseMessage = { cible: 'envoyer' | 'geste'; message?: string; succes?: string; valeurs?: { texte: string; reponseA: string } };

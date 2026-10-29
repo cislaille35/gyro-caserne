@@ -1,7 +1,7 @@
-import { aLeDroit, nonLusTotal, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
+import { aLeDroit, nombreSignalements, nonLusTotal, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { nombreAFaire } from '#lib/a-faire.ts';
-import { aNePasManquerDe, signalementsDe } from '#lib/server/a-faire.ts';
+import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -34,8 +34,8 @@ async function peutReglerLeCentre(base: App.Locals['base'], acteur: NonNullable<
 // Une panne passagère de la base ne doit pas faire tomber toutes les pages : la cloche reste muette.
 async function compterCloche(base: App.Locals['base'], acteur: NonNullable<App.Locals['acteur']>) {
 	try {
-		const [murs, signales] = await Promise.all([acteur.type === 'personne' ? aNePasManquerDe(base, acteur).then(nombreAFaire) : 0, signalementsDe(base, acteur)]);
-		return murs + signales.length;
+		const [murs, signales] = await Promise.all([acteur.type === 'personne' ? aNePasManquerDe(base, acteur).then(nombreAFaire) : 0, nombreSignalements(base, acteur, aujourdhuiParis())]);
+		return murs + signales;
 	} catch (erreur) {
 		console.error('Cloche illisible', erreur);
 		return 0;
