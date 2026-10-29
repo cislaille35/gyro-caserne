@@ -29,4 +29,12 @@ describe('CENTRE obligatoire en ligne', () => {
 		expect(resultat.stderr).toContain('fictifs réservés au centre exemple');
 		expect(existsSync(`${appli}../../centres/laille/wrangler.en-ligne.jsonc`)).toBe(false);
 	}, 30_000);
+
+	it('jeu-de-depart --comptes-de-test refuse un autre centre qu’exemple', () => {
+		const env = { PATH: process.env.PATH, HOME: tmpdir(), CENTRE: 'laille' };
+		const resultat = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', 'scripts/jeu-de-depart.ts', '--en-ligne', '--comptes-de-test=caserne@exemple.fr'], { cwd: appli, env, encoding: 'utf8', timeout: 20_000 });
+		expect(resultat.status).toBe(1);
+		expect(resultat.stderr).toContain('Comptes de test réservés au centre exemple');
+		expect(existsSync(`${appli}../../centres/laille/wrangler.en-ligne.jsonc`)).toBe(false);
+	}, 30_000);
 });

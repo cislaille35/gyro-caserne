@@ -2,10 +2,12 @@
 // Par défaut, la base locale de développement, avec en plus une personne fictive, test@exemple.fr.
 // Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
+// Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerJeuDeDepart, creerBaseD1, equipe, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, creerBaseD1, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
+import { maintenantParis } from '../src/lib/aujourdhui.ts';
 
 const enLigne = process.argv.includes('--en-ligne');
 if (enLigne && !process.env.CENTRE) {
@@ -16,6 +18,11 @@ const centre = process.env.CENTRE || 'exemple';
 const avecFictifs = !enLigne || process.argv.includes('--avec-fictifs');
 if (enLigne && avecFictifs && centre !== 'exemple') {
 	console.error('Agents fictifs réservés au centre exemple (préprod), jamais dans la base d’un vrai centre.');
+	process.exit(1);
+}
+const boite = process.argv.find((a) => a.startsWith('--comptes-de-test='))?.slice('--comptes-de-test='.length);
+if (boite !== undefined && centre !== 'exemple') {
+	console.error('Comptes de test réservés au centre exemple (préprod), jamais dans la base d’un vrai centre.');
 	process.exit(1);
 }
 
@@ -62,8 +69,9 @@ try {
 				if (nouvelle && sonEquipe) await base.insert(affectationEquipe).values({ personneId: nouvelle.id, equipeId: sonEquipe.id, debut: '2026-01-01' });
 			}
 		}
+		if (boite !== undefined) await chargerComptesDeTest(base, boite, maintenantParis());
 		const lieu = enLigne ? 'en ligne' : 'locale';
-		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}.`);
+		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}${boite !== undefined ? ', avec les comptes de test' : ''}.`);
 	} finally {
 		await dispose();
 	}

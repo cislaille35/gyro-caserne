@@ -7,6 +7,7 @@ export { DonneeInvalide, RefusDroit } from './erreurs.ts';
 export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';
 export * from './listes.ts';
 export { chargerJeuDeDepart, NOM_COMITE_CENTRE } from './jeu-de-depart.ts';
+export { chargerComptesDeTest, COMPTES_DE_TEST } from './comptes-de-test.ts';
 export { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, modifierMonProfil, monProfil, retirerEquipe, type ChampsFiche, type MonProfil } from './actions/personnes.ts';
 export { attribuer, attributionsDe, ceQueJePeuxAttribuer, finirAttribution, peutAttribuerQuelqueChose, regleDAttribution, terminerAttribution, titulairesDe, titulairesDesMiens, type CeQueJePeuxAttribuer, type LigneAttribution, type PerimetreNomme, type Titulaire } from './actions/attributions.ts';
 export { apercuImport, type Apercu, type FichierLu, type Operation, type RefPersonne } from './apercu-import.ts';
