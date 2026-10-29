@@ -5,7 +5,7 @@ import { locaux, preparer, requeteFormulaire } from '../../../de-test.ts';
 import { actions, load } from './+page.server';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const charger = (locals: unknown, p: number | string) => (load as any)({ locals, params: { personne: String(p) } });
+const charger = (locals: unknown, p: number | string, q = '') => (load as any)({ locals, params: { personne: String(p) }, url: new URL(`http://x/echanges/messages/a/${p}${q}`) });
 const ecrire = async (locals: unknown, p: number, corps: [string, string][]) => (actions.envoyer as any)({ locals, params: { personne: String(p) }, request: await requeteFormulaire(corps) });
 
 describe('écrire à quelqu’un pour la première fois', () => {
@@ -19,6 +19,14 @@ describe('écrire à quelqu’un pour la première fois', () => {
 		const { base, alice, bruno } = await preparer();
 		const { conversation: id } = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, '2026-10-28T09:00');
 		await expect(charger(locaux(base, alice), bruno.id)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}` });
+	});
+
+	it('« Répondre en privé » : le champ prérempli, gardé si la conversation existe déjà', async () => {
+		const { base, alice, bruno } = await preparer();
+		const q = `?apropos=${encodeURIComponent('Qui peut me remplacer ?')}`;
+		expect((await charger(locaux(base, alice), bruno.id, q)).prerempli).toBe('À propos de « Qui peut me remplacer ? » : ');
+		const { conversation: id } = await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, '2026-10-28T09:00');
+		await expect(charger(locaux(base, alice), bruno.id, q)).rejects.toMatchObject({ status: 303, location: `/echanges/messages/${id}${q}` });
 	});
 
 	it('soi-même, une personne partie ou inconnue : introuvable', async () => {

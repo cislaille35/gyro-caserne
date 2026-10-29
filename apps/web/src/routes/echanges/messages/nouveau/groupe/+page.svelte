@@ -10,16 +10,18 @@
 
 	let { data, form } = $props();
 
+	// « Ajouter des membres » à un groupe existant : l'étape des membres seule, qui ajoute directement.
+	const ajout = $derived(data.ajouter);
 	// Après un refus de création, on reste sur l'étape du nom avec ce qui a été saisi.
-	const etape = $derived(form ? 'nom' : data.etape);
+	const etape = $derived(form && !ajout ? 'nom' : data.etape);
 	const valeurs = $derived(form?.valeurs ?? { nom: data.nom, icone: data.icone, membres: data.coches });
 	const erreurs = $derived<Record<string, string>>(form?.erreurs ?? {});
 
 	// Étape 1 : les cases cochées, et la recherche qui masque les autres sans les décocher.
-	let choisis = $state<number[]>(untrack(() => [...data.coches]));
+	let choisis = $state<number[]>(untrack(() => [...(form?.valeurs?.membres ?? data.coches)]));
 	let recherche = $state('');
 	let erreurLocale = $state<string | null>(null);
-	const erreurMembres = $derived(erreurLocale ?? data.erreur);
+	const erreurMembres = $derived(erreurLocale ?? (ajout ? form?.erreurs?.membres : null) ?? data.erreur);
 	const trouve = (a: { prenom: string; nom: string; surnom: string | null }) => plat(`${a.prenom} ${a.nom} ${a.surnom ?? ''}`).includes(plat(recherche));
 	const aucune = $derived(recherche.trim() !== '' && !data.personnes.some(trouve));
 	const personnesEnTexte = (n: number) => (n === 0 ? 'Aucune personne choisie' : `${n} ${n > 1 ? 'personnes choisies' : 'personne choisie'}`);
@@ -57,19 +59,19 @@
 			}
 		};
 	};
-	const annonce = $derived(form ? 'Le groupe n’a pas été créé : corrigez les erreurs.' : '');
+	const annonce = $derived(form ? (ajout ? 'Personne n’a été ajouté : corrigez les erreurs.' : 'Le groupe n’a pas été créé : corrigez les erreurs.') : '');
 </script>
 
 <svelte:head>
-	<title>{etape === 'nom' ? 'Nom et icône' : 'Membres'} · Nouveau groupe · Gyro Caserne</title>
+	<title>{ajout ? `Ajouter des membres · ${ajout.nom}` : `${etape === 'nom' ? 'Nom et icône' : 'Membres'} · Nouveau groupe`} · Gyro Caserne</title>
 </svelte:head>
 
 <div class="page">
 	<header class="entete">
-		<a class="annuler" href="/echanges/messages/nouveau">Annuler</a>
-		<h1>Nouveau groupe</h1>
+		<a class="annuler" href={ajout ? `/echanges/messages/${ajout.id}/infos` : '/echanges/messages/nouveau'}>Annuler</a>
+		<h1>{ajout ? 'Ajouter des membres' : 'Nouveau groupe'}</h1>
 	</header>
-	<p class="etape">{etape === 'nom' ? 'Étape 2 sur 2 : nom et icône' : 'Étape 1 sur 2 : les membres'}</p>
+	<p class="etape">{ajout ? `Au groupe « ${ajout.nom} »` : etape === 'nom' ? 'Étape 2 sur 2 : nom et icône' : 'Étape 1 sur 2 : les membres'}</p>
 	<div class="masque" role="alert">{annonce}</div>
 
 	{#if etape === 'membres'}
@@ -79,13 +81,16 @@
 			<input id="recherche" type="search" bind:value={recherche} placeholder="Nom, prénom ou surnom" autocomplete="off" />
 		</div>
 
-		<form method="get" onsubmit={verifier}>
-			<input type="hidden" name="etape" value="nom" />
-			<input type="hidden" name="nom" value={data.nom} />
-			<input type="hidden" name="icone" value={data.icone} />
+		<form method={ajout ? 'POST' : 'get'} action={ajout ? `?ajouter=${ajout.id}&/ajouter` : undefined} onsubmit={verifier}>
+			{#if !ajout}
+				<input type="hidden" name="etape" value="nom" />
+				<input type="hidden" name="nom" value={data.nom} />
+				<input type="hidden" name="icone" value={data.icone} />
+			{/if}
 			<fieldset class="membres" aria-describedby={erreurMembres ? 'membres-erreur' : undefined} bind:this={liste}>
 				<legend>Membres du groupe</legend>
 				{#if erreurMembres}<p class="erreur" id="membres-erreur">{erreurMembres}</p>{/if}
+				{#if ajout && data.personnes.length === 0}<p class="aucune">Tout l’annuaire fait déjà partie du groupe.</p>{/if}
 				<p class="aucune" class:masque={!aucune} role="status">{aucune ? 'Personne à ce nom.' : ''}</p>
 				<ul>
 					{#each data.personnes as a (a.id)}
@@ -102,7 +107,7 @@
 			</fieldset>
 			<div class="barre">
 				<span class="compte" aria-live="polite">{personnesEnTexte(choisis.length)}</span>
-				<Bouton type="submit">Suivant</Bouton>
+				<Bouton type="submit">{ajout ? 'Ajouter' : 'Suivant'}</Bouton>
 			</div>
 		</form>
 	{:else}

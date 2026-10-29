@@ -679,6 +679,9 @@ describe('groupes', () => {
 		const { base, nommer, affecter, manon, romain, claire, chef, e1 } = await jeuGroupe();
 		await affecter(manon, e1.id);
 		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		// Le téléphone n'est donné que si la personne le montre.
+		await base.update(personne).set({ telephone: '06 11 22 33 44', telephoneVisible: 1 }).where(eq(personne.id, manon));
+		await base.update(personne).set({ telephone: '06 99 99 99 99', telephoneVisible: 0 }).where(eq(personne.id, claire));
 		const id = await creerGroupe(base, acteur(romain), { nom: 'Garde', icone: 'camion', membres: [manon, claire] }, minute(0));
 		const avant = base.requetes;
 		const infos = await infosConversation(base, acteur(manon), id, aujourdhui);
@@ -688,6 +691,7 @@ describe('groupes', () => {
 			nom: 'Garde',
 			icone: 'camion',
 			creePar: romain,
+			creeParPrenom: 'Romain',
 			membres: [
 				{
 					id: romain,
@@ -695,7 +699,8 @@ describe('groupes', () => {
 					nom: 'Bernard',
 					animateur: true,
 					equipe: null,
-					role: 'Chef d’équipe'
+					role: 'Chef d’équipe',
+					telephone: null
 				},
 				{
 					id: manon,
@@ -703,7 +708,8 @@ describe('groupes', () => {
 					nom: 'Durand',
 					animateur: false,
 					equipe: { numero: e1.ordreRotation, couleur: e1.couleur },
-					role: null
+					role: null,
+					telephone: '06 11 22 33 44'
 				},
 				{
 					id: claire,
@@ -711,7 +717,8 @@ describe('groupes', () => {
 					nom: 'Martin',
 					animateur: false,
 					equipe: null,
-					role: null
+					role: null,
+					telephone: null
 				}
 			],
 			moiAnimateur: false
@@ -725,6 +732,9 @@ describe('groupes', () => {
 			icone: null,
 			moiAnimateur: false
 		});
+		// Le créateur parti du groupe reste nommé.
+		await quitterGroupe(base, base.photos, acteur(romain), id, minute(2));
+		expect(await infosConversation(base, acteur(manon), id, aujourdhui)).toMatchObject({ creePar: romain, creeParPrenom: 'Romain' });
 	});
 
 	it('un agent qui part quitte ses groupes (message, relais d’animation, groupe vide effacé) ; sa conversation à deux passe en lecture seule', async () => {

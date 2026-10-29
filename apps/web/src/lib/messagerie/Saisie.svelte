@@ -4,16 +4,20 @@
 	import { onMount, tick, untrack } from 'svelte';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import { entreeEnvoie } from './fil.ts';
+	import { avecBrouillon } from './infos.ts';
 
 	let {
 		cle,
 		texteInitial = '',
+		prerempli = '',
 		erreurInitiale = '',
 		apres
 	}: {
 		// La clé du brouillon sur l'appareil (cleBrouillon : par personne et par conversation).
 		cle: string;
 		texteInitial?: string;
+		// « Répondre en privé » : le début de la publication citée.
+		prerempli?: string;
 		erreurInitiale?: string;
 		// Après un envoi (ou une modification) réussi : le parent rafraîchit ou change de page.
 		apres: (resultat: ActionResult) => Promise<void> | void;
@@ -22,7 +26,7 @@
 	const PHOTOS_MAX = 4;
 	const BROUILLON = untrack(() => cle);
 
-	let texte = $state(untrack(() => texteInitial));
+	let texte = $state(untrack(() => texteInitial || prerempli));
 	let erreur = $state(untrack(() => erreurInitiale));
 	let reponse = $state<VueMessage | null>(null);
 	let edition = $state<VueMessage | null>(null);
@@ -55,8 +59,15 @@
 	}
 
 	onMount(() => {
-		if (!texte) texte = lire();
-		void tick().then(ajuster);
+		if (!texteInitial) texte = avecBrouillon(prerempli, lire());
+		void tick().then(() => {
+			ajuster();
+			// « Répondre en privé » : on écrit tout de suite, après la citation.
+			if (prerempli && champ) {
+				champ.focus();
+				champ.setSelectionRange(champ.value.length, champ.value.length);
+			}
+		});
 		return () => photos.forEach((p) => URL.revokeObjectURL(p.apercu));
 	});
 

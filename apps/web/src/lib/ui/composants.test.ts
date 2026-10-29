@@ -280,6 +280,8 @@ describe('Visage', () => {
 	it('les tailles de « Nouveau message » : 48 et 44', () => {
 		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 48 })).toMatch(/class="visage[^"]*\bt48\b/);
 		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 44 })).toMatch(/class="visage[^"]*\bt44\b/);
+		// Les infos d'une conversation à deux.
+		expect(html(Visage, { prenom: 'A', nom: 'B', couleur: null, taille: 88 })).toMatch(/class="visage[^"]*\bt88\b/);
 	});
 });
 

@@ -95,3 +95,25 @@ describe('nouveau groupe : le nom et l’icône', () => {
 		expect(page).toMatch(/role="alert"[^>]*>Le groupe n’a pas été créé : corrigez les erreurs\./);
 	});
 });
+
+describe('ajouter des membres', () => {
+	const ajout = { ajouter: { id: 7, nom: 'Garde' } };
+
+	it('« Annuler » vers les infos, le titre, le groupe ; un envoi qui ajoute directement', () => {
+		const page = html(ajout);
+		expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/7\/infos"[^>]*>Annuler<\/a>/);
+		expect(page).toMatch(/<h1[^>]*>Ajouter des membres<\/h1>/);
+		expect(texte(page)).toContain('Au groupe « Garde »');
+		const form = page.match(/<form[^>]*method="POST"[\s\S]*?<\/form>/)![0];
+		expect(form).toMatch(/action="\?ajouter=7&amp;\/ajouter"/);
+		expect(form).toMatch(/<button[^>]*type="submit"[^>]*>(?:<!---->)*Ajouter/);
+		expect(form).not.toContain('name="etape"');
+	});
+
+	it('le refus s’affiche sur la liste', () => {
+		const page = html(ajout, { erreurs: { membres: 'Une personne choisie fait déjà partie du groupe.' }, valeurs: { nom: '', icone: 'groupe', membres: [4] } });
+		expect(texte(page)).toContain('Une personne choisie fait déjà partie du groupe.');
+		expect(coches(page)).toEqual(['4']);
+		expect(texte(page)).not.toContain('Étape 2');
+	});
+});

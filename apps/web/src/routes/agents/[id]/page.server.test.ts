@@ -90,6 +90,15 @@ describe('/agents/[id] : accès', () => {
 		const adjointParLuiMeme = await lire(locaux(base, { type: 'personne', id: adjoint }), adjoint);
 		expect(adjointParLuiMeme.raison).toBe('Seuls le chef de centre ou un super administrateur modifient la fiche d’un adjoint.');
 	});
+
+	it('« Écrire » par la messagerie : à un autre agent qui l’a, si l’on l’a soi-même', async () => {
+		const { base, chef, agent } = await preparer();
+		expect((await lire(locaux(base, { type: 'personne', id: chef }), agent)).ecrire).toBe(true);
+		expect((await lire(locaux(base, { type: 'personne', id: chef }), chef)).ecrire).toBe(false);
+		expect((await lire(locaux(base, super_), agent)).ecrire).toBe(false);
+		await base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, agent));
+		expect((await lire(locaux(base, { type: 'personne', id: chef }), agent)).ecrire).toBe(false);
+	});
 });
 
 describe('/agents/[id] : ?/fiche', () => {

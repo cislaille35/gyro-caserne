@@ -10,6 +10,7 @@ import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membres
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
+import { aLaMessagerie } from '../messagerie.ts';
 import { nomActeur } from './personnes.ts';
 
 // D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
@@ -31,7 +32,8 @@ export type PublicationVue = {
 	id: number;
 	cle: CleMur;
 	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef d’équipe. Null pour un auteur parti ou le super administrateur.
-	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null };
+	// `ecrireA` : l'auteur, à qui l'acteur peut répondre en privé (il a la messagerie, et ce n'est pas l'acteur) ; null sinon.
+	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null; ecrireA: number | null };
 	type: TypePublication;
 	texte: string;
 	creeLe: string;
@@ -303,7 +305,10 @@ async function vuesDe(
 			.orderBy(sql`${reponseEvenement}.rowid`),
 		// Les identifiants seulement : les octets sont servis un par un, par photo().
 		base.select({ id: photoPublication.id, publicationId: photoPublication.publicationId }).from(photoPublication).where(inArray(photoPublication.publicationId, ids)).orderBy(photoPublication.ordre),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(inArray(personne.id, idsAuteurs)),
+		base
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, messagerie: sql<number>`${aLaMessagerie(personne.id, aujourdhui)}` })
+			.from(personne)
+			.where(inArray(personne.id, idsAuteurs)),
 		base
 			.select({ id: commentaire.id, publicationId: commentaire.publicationId, auteur: commentaire.auteur, texte: commentaire.texte, creeLe: commentaire.creeLe, prenom: personne.prenom, nom: personne.nom })
 			.from(commentaire)
@@ -351,10 +356,11 @@ async function vuesDe(
 		const droits = droitsSur(acteur, mur, p);
 		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
 		const etat = etatSondage(p.sondageOuverture, p.sondageCloture, maintenant);
+		const fiche = auteurs.find((a) => `personne:${a.id}` === p.auteur);
 		return {
 			id: p.id,
 			cle: p.mur as CleMur,
-			auteur: { ...auteurVu(p.auteur, auteurs.find((a) => `personne:${a.id}` === p.auteur)), ...visage(lus, equipes, idPersonne(p.auteur)) },
+			auteur: { ...auteurVu(p.auteur, fiche), ...visage(lus, equipes, idPersonne(p.auteur)), ecrireA: fiche?.messagerie === 1 && fiche.id !== moi ? fiche.id : null },
 			type: p.type,
 			texte: p.texte,
 			creeLe: p.creeLe,

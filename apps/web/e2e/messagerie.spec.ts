@@ -120,6 +120,55 @@ for (const mouvement of ['no-preference', 'reduce'] as const) {
 	});
 }
 
+// Infos d'un groupe qu'on vient de créer (on l'anime) : le menu d'un membre au clavier, la confirmation, puis l'ajout de membres.
+test('infos du groupe : menu d’un membre au clavier et confirmation', async ({ page }) => {
+	const nom = `Groupe ${Date.now().toString(36)}`;
+	await page.goto('/echanges/messages/nouveau/groupe');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label.ligne').nth(0).click();
+	await page.locator('label.ligne').nth(1).click();
+	await page.getByRole('button', { name: 'Suivant' }).click();
+	await page.getByLabel('Nom du groupe').fill(nom);
+	await page.getByRole('button', { name: 'Créer' }).click();
+	await page.waitForURL(/\/echanges\/messages\/\d+$/);
+	await page.goto(`${new URL(page.url()).pathname}/infos`);
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText(nom);
+
+	const bouton = page.getByRole('button', { name: /^Actions pour / }).first();
+	await expect(bouton).not.toHaveAttribute('hidden');
+	await bouton.focus();
+	await page.keyboard.press('Enter');
+	const menu = page.getByRole('menu');
+	const elements = menu.getByRole('menuitem');
+	await expect(elements).toHaveText([/^Écrire à /, 'Nommer animateur', 'Retirer du groupe']);
+	await expect(elements.first()).toBeFocused();
+	await page.keyboard.press('End');
+	await expect(elements.last()).toBeFocused();
+	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+	expect(violations.map((v) => v.id)).toEqual([]);
+
+	// Retirer demande une confirmation ; Échap l'annule et rend le focus.
+	await page.keyboard.press('Enter');
+	const dialogue = page.getByRole('dialog');
+	await expect(dialogue).toContainText(/Retirer .+ du groupe \?/);
+	await expect(dialogue.getByRole('button', { name: 'Annuler' })).toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(dialogue).toBeHidden();
+	await expect(bouton).toBeFocused();
+
+	// Nommer, confirmé : la personne anime aussi le groupe.
+	await page.keyboard.press('Enter');
+	await menu.getByRole('menuitem', { name: 'Nommer animateur' }).click();
+	await dialogue.getByRole('button', { name: 'Nommer' }).click();
+	await expect(page.getByRole('status').filter({ hasText: 'anime maintenant le groupe' })).toBeAttached();
+	await expect(page.locator('.animateur')).toHaveCount(2);
+	await expect(bouton).toBeFocused();
+
+	await page.getByRole('link', { name: 'Ajouter des membres' }).click();
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Ajouter des membres');
+});
+
 // Se déconnecter efface les brouillons de l'appareil (session à part : celle des autres tests reste ouverte).
 test.describe('déconnexion', () => {
 	test.use({ storageState: { cookies: [], origins: [] } });

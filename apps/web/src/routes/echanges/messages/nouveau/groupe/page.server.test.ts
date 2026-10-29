@@ -132,3 +132,40 @@ describe('nouveau groupe : créer', () => {
 		await expect(creer(locaux(base, { type: 'super', email: 'a@b.fr' }), [['nom', 'Garde'], ['membres', String(bruno.id)]])).rejects.toMatchObject({ status: 303, location: '/echanges?refus=messagerie' });
 	});
 });
+
+describe('ajouter des membres à un groupe (?ajouter=)', () => {
+	const ajouter = async (locals: unknown, id: number | string, corps: [string, string][]) =>
+		(actions.ajouter as any)({ locals, url: new URL(`http://x/echanges/messages/nouveau/groupe?ajouter=${id}&/ajouter`), request: await requeteFormulaire(corps) }).catch((e: unknown) => e);
+
+	async function groupe() {
+		const jeu = await preparer();
+		const [claire] = await jeu.base.insert(personne).values({ email: 'claire@exemple.fr', prenom: 'Claire', nom: 'Test', profilId: (await jeu.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+		const id = await (await import('@gyro-caserne/socle')).creerGroupe(jeu.base, jeu.alice, { nom: 'Garde', membres: [jeu.bruno.id] }, '2026-10-28T09:00');
+		return { ...jeu, claire: claire!, id };
+	}
+
+	it('ceux qui ne sont pas encore membres, le groupe nommé, à l’étape des membres', async () => {
+		const { base, alice, id } = await groupe();
+		const d = await charger(locaux(base, alice), `?ajouter=${id}`);
+		expect(d).toMatchObject({ etape: 'membres', ajouter: { id, nom: 'Garde' }, coches: [] });
+		expect(d.personnes.map((p: { prenom: string }) => p.prenom)).toEqual(['Chef', 'Claire']);
+	});
+
+	it('un simple membre : refusé ; un non-membre ou une conversation à deux : introuvable', async () => {
+		const { base, bruno, chef, claire, id } = await groupe();
+		await expect(charger(locaux(base, bruno), `?ajouter=${id}`)).rejects.toMatchObject({ status: 403 });
+		await expect(charger(locaux(base, chef), `?ajouter=${id}`)).rejects.toMatchObject({ status: 404 });
+		const { conversation: aDeux } = await (await import('@gyro-caserne/socle')).envoyer(base, base.photos, chef, { personne: claire.id }, { texte: 'Salut' }, '2026-10-28T09:00');
+		await expect(charger(locaux(base, chef), `?ajouter=${aDeux}`)).rejects.toMatchObject({ status: 404 });
+	});
+
+	it('l’ajout ramène aux infos du groupe ; les refus sont reliés aux membres', async () => {
+		const { base, alice, bruno, chef, claire, id } = await groupe();
+		expect(await ajouter(locaux(base, alice), id, [])).toMatchObject({ status: 400, data: { erreurs: { membres: 'Choisissez au moins une personne.' } } });
+		expect(await ajouter(locaux(base, bruno), id, [['membres', String(claire.id)]])).toMatchObject({ status: 403, data: { erreurs: { membres: 'Seuls les animateurs du groupe peuvent ajouter des membres.' } } });
+		expect(await ajouter(locaux(base, alice), id, [['membres', String(chef.id)], ['membres', String(claire.id)]])).toMatchObject({ status: 303, location: `/echanges/messages/${id}/infos` });
+		const membres = await base.select().from(membreConversation).where(eq(membreConversation.conversationId, id));
+		expect(membres).toHaveLength(4);
+		expect(await ajouter(locaux(base, alice), id, [['membres', String(chef.id)]])).toMatchObject({ status: 400, data: { erreurs: { membres: 'Une personne choisie fait déjà partie du groupe.' } } });
+	});
+});

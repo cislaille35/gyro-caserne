@@ -1,5 +1,5 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { annuaire, creerGroupe, DonneeInvalide, membresPourGroupe, NOMS_ICONES, RefusDroit } from '@gyro-caserne/socle';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { ajouterMembres, annuaire, creerGroupe, DonneeInvalide, infosConversation, membresPourGroupe, NOMS_ICONES, RefusDroit } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -31,17 +31,37 @@ async function raccourci(locals: App.Locals, url: URL, aujourdhui: string) {
 	}
 }
 
+// « Ajouter des membres » (?ajouter=<groupe>) : réservé aux animateurs, qui choisissent parmi ceux qui n'en sont pas.
+async function groupeOuNull(locals: App.Locals, url: URL, aujourdhui: string) {
+	const brut = url.searchParams.get('ajouter');
+	if (brut === null) return null;
+	const id = idDe(brut);
+	if (id === null) error(404, 'Groupe introuvable');
+	try {
+		const infos = await infosConversation(locals.base, exigerActeur(locals), id, aujourdhui);
+		if (infos.type !== 'groupe') error(404, 'Groupe introuvable');
+		if (!infos.moiAnimateur) error(403, 'Seuls les animateurs du groupe peuvent ajouter des membres.');
+		return { id, nom: infos.nom, membres: new Set(infos.membres.map((m) => m.id)) };
+	} catch (erreur) {
+		if (erreur instanceof RefusDroit && erreur.message === 'Conversation non accessible') error(404, 'Groupe introuvable');
+		throw erreur;
+	}
+}
+
 // Deux étapes, qui marchent aussi sans JavaScript : les membres (formulaire GET), puis le nom et l'icône.
+// Pour ajouter des membres à un groupe, la première étape seule.
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const acteur = exigerActeur(locals);
 	const aujourdhui = aujourdhuiParis();
 	const p = url.searchParams;
 	try {
-		const [agents, prerempli] = await Promise.all([annuaire(locals.base, acteur, aujourdhui), raccourci(locals, url, aujourdhui)]);
-		const personnes = agents.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, surnom: a.surnom, couleur: a.equipe?.couleur ?? null, sous: a.role ?? (a.equipe ? `Équipe ${a.equipe.numero}` : '') }));
+		const [agents, prerempli, groupe] = await Promise.all([annuaire(locals.base, acteur, aujourdhui), raccourci(locals, url, aujourdhui), groupeOuNull(locals, url, aujourdhui)]);
+		const personnes = agents
+			.filter((a) => !groupe?.membres.has(a.id))
+			.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, surnom: a.surnom, couleur: a.equipe?.couleur ?? null, sous: a.role ?? (a.equipe ? `Équipe ${a.equipe.numero}` : '') }));
 		const connus = new Set(personnes.map((x) => x.id));
 		const coches = prerempli?.membres ?? ids(p.getAll('membres')).filter((id) => connus.has(id));
-		const vers = p.get('etape') === 'nom';
+		const vers = !groupe && p.get('etape') === 'nom';
 		const erreur = vers && coches.length === 0 ? 'Choisissez au moins une personne.' : null;
 		return {
 			etape: vers && !erreur ? ('nom' as const) : ('membres' as const),
@@ -49,7 +69,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			coches,
 			nom: prerempli?.nom ?? (p.get('nom') ?? '').slice(0, 60),
 			icone: prerempli?.icone ?? icone(p.get('icone')),
-			erreur
+			erreur,
+			ajouter: groupe && { id: groupe.id, nom: groupe.nom }
 		};
 	} catch (erreur) {
 		return refus(erreur);
@@ -63,7 +84,8 @@ const ERREURS: Record<string, [champ: string, texte: string]> = {
 	'Icône inconnue': ['icone', 'Choisissez une icône de la liste.'],
 	'Choisissez au moins une personne': ['membres', 'Choisissez au moins une personne.'],
 	'60 membres au plus': ['membres', '60 membres au plus, vous compris.'],
-	'Une personne n’est pas dans l’annuaire': ['membres', 'Une personne choisie n’est plus dans l’annuaire.']
+	'Une personne n’est pas dans l’annuaire': ['membres', 'Une personne choisie n’est plus dans l’annuaire.'],
+	'Déjà membre du groupe': ['membres', 'Une personne choisie fait déjà partie du groupe.']
 };
 
 export const actions: Actions = {
@@ -80,5 +102,21 @@ export const actions: Actions = {
 			return refus(erreur);
 		}
 		redirect(303, `/echanges/messages/${id}`);
+	},
+	ajouter: async ({ locals, request, url }) => {
+		const acteur = exigerActeur(locals);
+		const id = idDe(url.searchParams.get('ajouter'));
+		if (id === null) error(404, 'Groupe introuvable');
+		const valeurs: Valeurs = { nom: '', icone: 'groupe', membres: ids((await request.formData()).getAll('membres')) };
+		try {
+			await ajouterMembres(locals.base, acteur, id, valeurs.membres, maintenantParis());
+		} catch (erreur) {
+			const connue = erreur instanceof DonneeInvalide ? ERREURS[erreur.message] : undefined;
+			if (connue) return fail<Reponse>(400, { erreurs: { membres: connue[1] }, valeurs });
+			if (erreur instanceof RefusDroit && erreur.message === 'Réservé aux animateurs du groupe') return fail<Reponse>(403, { erreurs: { membres: 'Seuls les animateurs du groupe peuvent ajouter des membres.' }, valeurs });
+			if (erreur instanceof RefusDroit && erreur.message === 'Conversation non accessible') return fail<Reponse>(403, { erreurs: { membres: 'Vous ne faites plus partie de ce groupe.' }, valeurs });
+			return refus(erreur);
+		}
+		redirect(303, `/echanges/messages/${id}/infos`);
 	}
 };

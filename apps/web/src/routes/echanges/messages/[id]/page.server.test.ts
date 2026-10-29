@@ -17,6 +17,12 @@ async function groupe() {
 }
 
 describe('une conversation : chargement', () => {
+	it('« Répondre en privé » : le champ prérempli par le début de la publication', async () => {
+		const { base, alice, id } = await groupe();
+		expect((await charger(locaux(base, alice), id, `?apropos=${encodeURIComponent('Repas de Noël')}`)).prerempli).toBe('À propos de « Repas de Noël » : ');
+		expect((await charger(locaux(base, alice), id)).prerempli).toBe('');
+	});
+
 	it('demande la connexion', async () => {
 		await expect(charger({ acteur: null }, 1)).rejects.toMatchObject({ status: 303, location: '/connexion' });
 	});

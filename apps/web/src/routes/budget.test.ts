@@ -15,6 +15,7 @@ import { load as nouveauMessage } from './echanges/messages/nouveau/+page.server
 import { actions as actionsConversation, load as conversationOuverte } from './echanges/messages/[id]/+page.server';
 import { GET as suite } from './echanges/messages/[id]/suite/+server';
 import { actions as actionsGroupe, load as nouveauGroupe } from './echanges/messages/nouveau/groupe/+page.server';
+import { actions as actionsInfos, load as infos } from './echanges/messages/[id]/infos/+page.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { actions as actionsPublier, load as pagePublier } from './echanges/publier/+page.server';
 import { actions as actionsPublication, load as publicationSeule } from './echanges/[mur]/[id]/+page.server';
@@ -314,5 +315,34 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const dernier = vue!.messages.at(-1)!.id;
 		const tour = await compter(() => (suite as any)({ locals, params, url: new URL(`http://localhost/echanges/messages/${id}/suite?dernier=${dernier}&maj=${encodeURIComponent(vue!.majLe)}`) }));
 		expect(tour).toBeLessThanOrEqual(3);
+	});
+
+	it('/echanges/messages/[id]/infos : un groupe de 60 ; chaque geste ; l’ajout de membres', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(62);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id);
+		const id = await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids.slice(0, 58) }, '2026-10-01T09:00');
+		const params = { id: String(id) };
+		const url = new URL(`http://localhost/echanges/messages/${id}/infos`);
+		const page = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			expect((await (infos as any)({ locals, params, url })).infos.membres).toHaveLength(59);
+		});
+		expect(page).toBeLessThanOrEqual(BUDGET);
+		const geste = (nom: keyof typeof actionsInfos, corps: [string, string][]) => compter(async () => void (await (actionsInfos[nom] as any)({ locals, params, url, request: await requeteFormulaire(corps) }).catch(() => {})));
+		for (const n of [await geste('nommer', [['personne', String(ids[0])]]), await geste('retirer', [['personne', String(ids[1])]]), await geste('renommer', [['nom', 'Tous']])]) expect(n).toBeLessThanOrEqual(BUDGET);
+		const ajout = new URL(`http://localhost/echanges/messages/nouveau/groupe?ajouter=${id}`);
+		const selection = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url: ajout });
+			await (nouveauGroupe as any)({ locals, url: ajout });
+		});
+		expect(selection).toBeLessThanOrEqual(BUDGET);
+		const envoi = await compter(async () => {
+			const request = await requeteFormulaire([['membres', String(ids[1])], ['membres', String(ids[60])]]);
+			await expect((actionsGroupe.ajouter as any)({ locals, url: ajout, request })).rejects.toMatchObject({ status: 303 });
+		});
+		expect(envoi).toBeLessThanOrEqual(BUDGET);
 	});
 });

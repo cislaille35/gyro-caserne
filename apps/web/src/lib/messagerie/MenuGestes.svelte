@@ -1,16 +1,21 @@
 <script module lang="ts">
 	export type Geste = 'repondre' | 'copier' | 'modifier' | 'supprimer' | 'signaler';
+	export type Choix<C extends string> = { cle: C; libelle: string; danger?: boolean };
+
+	const LIBELLES: Record<Geste, string> = { repondre: 'Répondre', copier: 'Copier le texte', modifier: 'Modifier', supprimer: 'Supprimer', signaler: 'Signaler' };
+	// Les gestes sur un message, avec leur libellé.
+	export const gestesMessage = (gestes: Geste[]): Choix<Geste>[] => gestes.map((cle) => ({ cle, libelle: LIBELLES[cle], danger: cle === 'supprimer' || cle === 'signaler' }));
 </script>
 
-<script lang="ts">
+<script lang="ts" generics="C extends string">
 	import { REACTIONS } from '@gyro-caserne/socle';
 	import { onMount } from 'svelte';
 
 	let {
 		id,
 		etiquette,
-		reactions,
-		maReaction,
+		reactions = false,
+		maReaction = null,
 		gestes,
 		choisir,
 		reagir,
@@ -19,16 +24,14 @@
 		id: string;
 		// L'id du bouton « ⋯ » qui ouvre le menu.
 		etiquette: string;
-		reactions: boolean;
-		maReaction: string | null;
-		gestes: Geste[];
-		choisir: (geste: Geste) => void;
-		reagir: (emoji: string) => void;
+		reactions?: boolean;
+		maReaction?: string | null;
+		gestes: Choix<C>[];
+		choisir: (geste: C) => void;
+		reagir?: (emoji: string) => void;
 		// `rendreFocus` : au bouton « ⋯ » (Échap, Tab).
 		fermer: (rendreFocus: boolean) => void;
 	} = $props();
-
-	const LIBELLES: Record<Geste, string> = { repondre: 'Répondre', copier: 'Copier le texte', modifier: 'Modifier', supprimer: 'Supprimer', signaler: 'Signaler' };
 
 	let menu: HTMLElement;
 	const elements = () => [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')];
@@ -57,12 +60,12 @@
 	{#if reactions}
 		<div class="reactions" role="group" aria-label="Réagir">
 			{#each REACTIONS as emoji (emoji)}
-				<button type="button" role="menuitemradio" tabindex="-1" class="reaction" aria-checked={maReaction === emoji} aria-label="Réagir : {emoji}" onclick={() => reagir(emoji)}>{emoji}</button>
+				<button type="button" role="menuitemradio" tabindex="-1" class="reaction" aria-checked={maReaction === emoji} aria-label="Réagir : {emoji}" onclick={() => reagir?.(emoji)}>{emoji}</button>
 			{/each}
 		</div>
 	{/if}
-	{#each gestes as g (g)}
-		<button type="button" role="menuitem" tabindex="-1" class="geste" class:danger={g === 'supprimer' || g === 'signaler'} onclick={() => choisir(g)}>{LIBELLES[g]}</button>
+	{#each gestes as g (g.cle)}
+		<button type="button" role="menuitem" tabindex="-1" class="geste" class:danger={g.danger} onclick={() => choisir(g.cle)}>{g.libelle}</button>
 	{/each}
 </div>
 

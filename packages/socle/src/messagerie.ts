@@ -118,7 +118,7 @@ const STATUTS = sql.raw(STATUTS_AVEC_ACCES.map((s) => `'${s}'`).join(', '));
 // Seule règle d'accès à la messagerie, en SQL pour l'appliquer à beaucoup de personnes en une requête : un agent qui a accès
 // (ni parti, ni suspendu, ni extérieur) et qui tient UTILISER_MESSAGERIE sur le centre ce jour-là, par son profil ou par une
 // responsabilité en cours (même calcul que droitsDe, vérifié par les tests).
-function aLaMessagerie(id: SQLWrapper | number, aujourdhui: string): SQL {
+export function aLaMessagerie(id: SQLWrapper | number, aujourdhui: string): SQL {
 	return sql`exists (select 1 from personne p left join profil pr on pr.id = p.profil_id
 		where p.id = ${id} and p.statut in (${STATUTS}) and (pr.type_personne is null or pr.type_personne <> 'exterieur')
 		and (exists (select 1 from profil_droit pd where pd.profil_id = p.profil_id and pd.droit = 'UTILISER_MESSAGERIE' and pd.perimetre_type = 'centre')
@@ -899,7 +899,10 @@ export type InfosConversation = {
 	nom: string;
 	icone: string | null;
 	creePar: number;
-	membres: { id: number; prenom: string; nom: string; animateur: boolean; equipe: { numero: number; couleur: string } | null; role: string | null }[];
+	// Même s'il a quitté le groupe ; null s'il n'est plus dans la base.
+	creeParPrenom: string | null;
+	// `telephone` : seulement si la personne le montre.
+	membres: { id: number; prenom: string; nom: string; animateur: boolean; equipe: { numero: number; couleur: string } | null; role: string | null; telephone: string | null }[];
 	moiAnimateur: boolean;
 };
 
@@ -910,12 +913,24 @@ export async function infosConversation(base: Base, acteur: Acteur, id: number, 
 	const [acces, place, membres, affectations, tenues] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base
-			.select({ type: conversation.type, nom: conversation.nom, icone: conversation.icone, creePar: conversation.creePar })
+			.select({
+				type: conversation.type,
+				nom: conversation.nom,
+				icone: conversation.icone,
+				creePar: conversation.creePar,
+				creeParPrenom: sql<string | null>`(select p.prenom from personne p where p.id = ${conversation.creePar})`
+			})
 			.from(conversation)
 			.innerJoin(membreConversation, and(eq(membreConversation.conversationId, conversation.id), eq(membreConversation.personneId, moi)))
 			.where(eq(conversation.id, id)),
 		base
-			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, animateur: membreConversation.animateur })
+			.select({
+				id: personne.id,
+				prenom: personne.prenom,
+				nom: personne.nom,
+				animateur: membreConversation.animateur,
+				telephone: sql<string | null>`case when ${personne.telephoneVisible} = 1 then ${personne.telephone} end`
+			})
 			.from(membreConversation)
 			.innerJoin(personne, eq(personne.id, membreConversation.personneId))
 			.where(eq(membreConversation.conversationId, id)),
@@ -932,8 +947,9 @@ export async function infosConversation(base: Base, acteur: Acteur, id: number, 
 		nom: conv.type === 'deux' ? (autre ? `${autre.prenom} ${autre.nom}` : '') : (conv.nom ?? ''),
 		icone: conv.icone,
 		creePar: conv.creePar,
+		creeParPrenom: conv.creeParPrenom,
 		membres: membres
-			.map((m) => ({ id: m.id, prenom: m.prenom, nom: m.nom, animateur: m.animateur === 1, equipe: equipes.get(m.id) ?? null, role: roleDe(tenues, m.id) }))
+			.map((m) => ({ id: m.id, prenom: m.prenom, nom: m.nom, animateur: m.animateur === 1, equipe: equipes.get(m.id) ?? null, role: roleDe(tenues, m.id), telephone: m.telephone }))
 			.sort(parNom),
 		moiAnimateur: membres.some((m) => m.id === moi && m.animateur === 1)
 	};

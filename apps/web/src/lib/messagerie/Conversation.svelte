@@ -9,7 +9,7 @@
 	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
-	import MenuGestes, { type Geste } from './MenuGestes.svelte';
+	import MenuGestes, { gestesMessage, type Geste } from './MenuGestes.svelte';
 	import { apresArrivee, cleBrouillon, instant } from './fil.ts';
 	import { bandeauNonLus, fusionner, regrouper } from './regrouper.ts';
 	import Saisie from './Saisie.svelte';
@@ -25,6 +25,7 @@
 		avant = null,
 		autrePrenom = null,
 		nouvelle = null,
+		prerempli = '',
 		form = null
 	}: {
 		vue: VueConversation;
@@ -35,6 +36,8 @@
 		autrePrenom?: string | null;
 		// La personne à qui l'on écrit pour la première fois : la conversation naîtra au premier message.
 		nouvelle?: { id: number; prenom: string } | null;
+		// « Répondre en privé » depuis un mur.
+		prerempli?: string;
 		form?: Reponse;
 	} = $props();
 
@@ -295,7 +298,7 @@
 										etiquette="gestes-{m.id}"
 										reactions={actif && !m.supprime}
 										maReaction={m.reactions.find((r) => r.deMoi)?.emoji ?? null}
-										gestes={gestesDe(m)}
+										gestes={gestesMessage(gestesDe(m))}
 										choisir={(g) => choisir(m, g)}
 										reagir={(emoji) => reagir(m, emoji)}
 										{fermer}
@@ -329,6 +332,7 @@
 				bind:this={saisie}
 				cle={cleBrouillon(moiId, nouvelle ? `a-${nouvelle.id}` : String(id))}
 				texteInitial={form?.cible === 'envoyer' ? (form.valeurs?.texte ?? '') : ''}
+				{prerempli}
 				erreurInitiale={form?.cible === 'envoyer' ? (form.message ?? '') : ''}
 				apres={apresEnvoi}
 			/>

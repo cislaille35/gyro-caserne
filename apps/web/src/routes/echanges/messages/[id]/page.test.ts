@@ -28,7 +28,7 @@ const vue: VueConversation = {
 	majLe: `${aujourdhui}T10:20:00`
 };
 
-function html(data: Partial<{ vue: VueConversation; sousTitre: string; avant: number | null; autrePrenom: string | null }> = {}, form: unknown = null) {
+function html(data: Partial<{ vue: VueConversation; sousTitre: string; avant: number | null; autrePrenom: string | null; prerempli: string }> = {}, form: unknown = null) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return render(Page as any, {
 		props: { data: { vue, moiId: 1, sousTitre: 'Manon, Romain, vous', avant: null, autrePrenom: null, ...data }, form },
@@ -42,6 +42,10 @@ const texte = (page: string) =>
 		.trim();
 
 describe('une conversation', () => {
+	it('« Répondre en privé » : le champ arrive prérempli, sans JavaScript aussi', () => {
+		expect(html({ prerempli: 'À propos de « Repas » : ' })).toMatch(/<textarea[^>]*>À propos de « Repas » : <\/textarea>/);
+	});
+
 	it('l’en-tête : retour, nom, membres, et le lien vers les infos', () => {
 		const page = html();
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/messages"[^>]*aria-label="Retour aux messages"/);
