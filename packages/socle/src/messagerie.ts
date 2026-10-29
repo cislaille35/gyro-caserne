@@ -187,7 +187,7 @@ export async function envoyer(
 		.insert(message)
 		.values({ conversationId: id, auteur: moi, texte: corps, reponseA, creeLe: maintenant, majLe: maintenant })
 		.returning({ id: message.id, conversation: message.conversationId });
-	// L'auteur a lu son propre message.
+	// Voulu, comme WhatsApp : envoyer marque la conversation comme lue, messages reçus avant compris.
 	const lu = base
 		.update(membreConversation)
 		.set({ luJusquA: sql`(select max(${message.id}) from ${message} where ${message.conversationId} = ${id})` })

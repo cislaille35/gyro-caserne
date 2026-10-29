@@ -5,7 +5,7 @@ import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { annuaire, conversationAvec, envoyer, exigerMessagerie, lireConversation, mesConversations, nonLusTotal } from '../src/messagerie.ts';
-import { affectationEquipe, attribution, conversation, equipe, journal, membreConversation, message, personne, profil, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { affectationEquipe, attribution, conversation, equipe, journal, membreConversation, message, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -71,29 +71,42 @@ describe('exigerMessagerie', () => {
 		}
 	});
 
-	it('suit la règle des droits : une responsabilité en cours qui donne le droit sur le centre suffit, comme pour aLeDroit', async () => {
+	it('suit la règle des droits : même réponse que aLeDroit sur le centre, cas par cas', async () => {
 		const { base, nouvelle } = await jeu();
 		const [sansDroit] = await base.insert(profil).values({ nom: 'Sans messagerie', typePersonne: 'agent' }).returning();
+		const [parEquipe] = await base.insert(profil).values({ nom: 'Messagerie d’équipe', typePersonne: 'agent' }).returning();
+		await base.insert(profilDroit).values({ profilId: parEquipe!.id, droit: 'UTILISER_MESSAGERIE', perimetreType: 'equipe', perimetreId: 1 });
 		const [r] = await base.insert(responsabilite).values({ nom: 'Messager', nature: 'mission', typePerimetre: 'centre' }).returning();
 		await base.insert(responsabiliteDroit).values({ responsabiliteId: r!.id, droit: 'UTILISER_MESSAGERIE' });
-		const enCours = await nouvelle('Encours', 'Test', { profilId: sansDroit!.id });
-		const finie = await nouvelle('Finie', 'Test', { profilId: sansDroit!.id });
-		const horsPortee = await nouvelle('Hors', 'Portee', { profilId: sansDroit!.id });
-		const ligne = { responsabiliteId: r!.id, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' };
-		await base.insert(attribution).values([
-			{ ...ligne, personneId: enCours, perimetreType: 'centre' },
-			{ ...ligne, personneId: finie, perimetreType: 'centre', fin: '2026-10-28' },
+		const responsable = async (prenom: string, champs: Partial<typeof attribution.$inferInsert> = {}, fiche: Partial<typeof personne.$inferInsert> = { profilId: sansDroit!.id }) => {
+			const id = await nouvelle(prenom, 'Test', fiche);
+			await base.insert(attribution).values({ personneId: id, responsabiliteId: r!.id, perimetreType: 'centre', debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01', ...champs });
+			return id;
+		};
+		const cas: [string, number, boolean][] = [
+			['responsabilité en cours', await responsable('Encours'), true],
+			['responsabilité finie hier', await responsable('Finie', { fin: '2026-10-28' }), false],
+			['responsabilité finie aujourd’hui', await responsable('Finitaujourdhui', { fin: aujourdhui }), true],
+			['responsabilité qui commence demain', await responsable('Demain', { debut: '2026-10-30' }), false],
 			// Hors du type de périmètre de la responsabilité : ne donne rien.
-			{ ...ligne, personneId: horsPortee, perimetreType: 'equipe', perimetreId: 1 }
-		]);
-		for (const [id, attendu] of [
-			[enCours, true],
-			[finie, false],
-			[horsPortee, false]
-		] as const) {
-			expect(await aLeDroit(base, acteur(id), 'UTILISER_MESSAGERIE', { type: 'centre' }, aujourdhui)).toBe(attendu);
-			expect(await exigerMessagerie(base, acteur(id), aujourdhui).then(() => true, () => false)).toBe(attendu);
+			['responsabilité hors portée', await responsable('Hors', { perimetreType: 'equipe', perimetreId: 1 }), false],
+			['sans profil, avec la responsabilité', await responsable('Sansprofil', {}, { profilId: null }), true],
+			['stagiaire', await nouvelle('Stagiaire', 'Test', { statut: 'stagiaire' }), true],
+			['inapte temporaire', await nouvelle('Inapte', 'Test', { statut: 'inapte_temporaire' }), true],
+			['droit de profil limité à une équipe', await nouvelle('Equipe', 'Test', { profilId: parEquipe!.id }), false]
+		];
+		for (const [libelle, id, attendu] of cas) {
+			expect([libelle, await aLeDroit(base, acteur(id), 'UTILISER_MESSAGERIE', { type: 'centre' }, aujourdhui)]).toEqual([libelle, attendu]);
+			expect([libelle, await exigerMessagerie(base, acteur(id), aujourdhui).then(() => true, () => false)]).toEqual([libelle, attendu]);
 		}
+	});
+
+	it('un extérieur à qui l’on donne UTILISER_MESSAGERIE : aLeDroit dit oui, la messagerie reste fermée', async () => {
+		const { base, nouvelle, exterieurId } = await jeu();
+		await base.insert(profilDroit).values({ profilId: exterieurId, droit: 'UTILISER_MESSAGERIE', perimetreType: 'centre', perimetreId: null });
+		const ext = await nouvelle('Ext', 'Rieur', { profilId: exterieurId });
+		expect(await aLeDroit(base, acteur(ext), 'UTILISER_MESSAGERIE', { type: 'centre' }, aujourdhui)).toBe(true);
+		await expect(exigerMessagerie(base, acteur(ext), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 	});
 });
 
@@ -239,7 +252,7 @@ describe('lireConversation', () => {
 
 		const avant = base.requetes;
 		const vue = await lireConversation(base, acteur(manon), id, {}, minute(3));
-		expect(base.requetes - avant).toBeLessThanOrEqual(3);
+		expect(base.requetes - avant).toBe(2);
 		expect(vue).toMatchObject({ id, type: 'deux', nom: 'Romain Bernard', lectureSeule: false, premierNonLu: m2.message, plusAnciens: false });
 		expect(vue.messages).toEqual([
 			{ id: m1.message, auteur: { id: manon, prenom: 'Manon', nom: 'Durand', couleur: null }, texte: 'Salut', cree_le: minute(0), modifie: false, supprime: null, systeme: null, reponse: null, photos: [], reactions: [], moi: true, coche: 'lu' },
@@ -296,7 +309,7 @@ describe('lireConversation', () => {
 		base.parametresMax = 0;
 		const avant = base.requetes;
 		const page = await lireConversation(base, acteur(manon), id, {}, minute(5));
-		expect(base.requetes - avant).toBeLessThanOrEqual(3);
+		expect(base.requetes - avant).toBe(2);
 		expect(page.messages).toHaveLength(40);
 		expect(page.messages.at(-1)!.texte).toBe('Message 1999');
 		expect(page.messages[0]!.texte).toBe('Message 1960');
@@ -346,6 +359,26 @@ describe('non-lus et liste des conversations', () => {
 			[avecChef.conversation, 'Chef : Quatre']
 		]);
 		expect(await nonLusTotal(base, acteur(romain), aujourdhui)).toBe(1);
+	});
+
+	it('aperçu d’un message supprimé, puis d’un message système', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(romain), { personne: manon }, { texte: 'Secret' }, minute(0));
+		await base.update(message).set({ supprime: 'auteur' }).where(eq(message.id, m.message));
+		expect((await mesConversations(base, acteur(manon), minute(1)))[0]!.apercu).toBe('Message supprimé');
+		await base.insert(message).values({ conversationId: m.conversation, auteur: null, texte: '', systeme: 'Romain a renommé le groupe', creeLe: minute(2), majLe: minute(2) });
+		expect((await mesConversations(base, acteur(manon), minute(3)))[0]!.apercu).toBe('Romain a renommé le groupe');
+	});
+
+	it('envoyer marque la conversation comme lue, messages reçus avant compris (voulu, comme WhatsApp)', async () => {
+		const { base, manon, romain } = await jeu();
+		const { conversation: id } = await envoyer(base, base.photos, acteur(romain), { personne: manon }, { texte: 'Un' }, minute(0));
+		await envoyer(base, base.photos, acteur(romain), { conversation: id }, { texte: 'Deux' }, minute(1));
+		expect(await nonLusTotal(base, acteur(manon), aujourdhui)).toBe(2);
+		await envoyer(base, base.photos, acteur(manon), { conversation: id }, { texte: 'Réponse' }, minute(2));
+		expect(await nonLusTotal(base, acteur(manon), aujourdhui)).toBe(0);
+		expect((await mesConversations(base, acteur(manon), minute(3)))[0]!.nonLus).toBe(0);
+		expect((await lireConversation(base, acteur(romain), id, {}, minute(3))).messages.map((x) => x.coche)).toEqual(['lu', 'lu', null]);
 	});
 
 	it('mesConversations ne montre que les conversations de l’acteur', async () => {
