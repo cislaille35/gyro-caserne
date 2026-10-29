@@ -4,7 +4,7 @@
 	import { NOMS_ICONES } from './roles.ts';
 
 	// L'icône d'un rôle, choisie dans la petite liste fixe.
-	let { valeur, erreur, legende = 'Icône' }: { valeur: Icone; erreur?: string; legende?: string } = $props();
+	let { valeur, erreur, legende = 'Icône' }: { valeur?: Icone; erreur?: string; legende?: string } = $props();
 	const id = $props.id();
 </script>
 

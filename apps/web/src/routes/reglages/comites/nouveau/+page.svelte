@@ -20,7 +20,7 @@
 <form method="POST" class="formulaire">
 	<Champ id="comite-nom" name="nom" libelle="Nom" requis maxlength={60} valeur={form?.valeurs?.nom ?? ''} erreur={erreurs.nom} />
 	<Champ id="comite-theme" name="theme" libelle="Thème" requis maxlength={60} valeur={form?.valeurs?.theme ?? ''} erreur={erreurs.theme} />
-	<ChoixIcone legende="Icône du mur" valeur={(form?.valeurs?.icone || 'groupe') as IconeRole} erreur={erreurs.icone} />
+	<ChoixIcone legende="Icône du mur" valeur={(form?.valeurs?.icone || undefined) as IconeRole | undefined} erreur={erreurs.icone} />
 	<Bouton type="submit">Créer le comité</Bouton>
 </form>
 
