@@ -75,7 +75,7 @@ Chaque ligne de mur montre :
 
 ## Les publications (maquette 2)
 
-- **Visage** de l'auteur : sa photo si elle est en base (`personne.photo`), sinon ses initiales sur la couleur de son équipe, ou sur du gris s'il n'a pas d'équipe. Son rôle principal (« Chef de centre », « Adjoint », « Chef d'équipe ») apparaît sous son nom, s'il en a un (choix de Claude).
+- **Visage** de l'auteur : ses initiales sur la couleur de son équipe, ou sur du gris s'il n'a pas d'équipe. Aucune photo d'agent ne peut encore être déposée (`personne.photo` n'est rempli par rien) : la photo viendra avec « Mon profil ». Les initiales sont posées sur la couleur avec un contraste AA (texte foncé sur une couleur claire, et inversement). Son rôle principal (« Chef de centre », « Adjoint », « Chef d'équipe ») apparaît sous son nom, s'il en a un (choix de Claude).
 - **Annonce à confirmer** : bordure et bandeau ambre « Annonce à lire et confirmer » (« Épinglée · … » si elle est épinglée), barre de progression et « 12 sur 38 ont confirmé ». Le compte est **visible de tous** (choix de Claude), les noms restent réservés à l'auteur et aux modérateurs, comme au lot 1. Le total compte les membres naturels du mur **au moment de la lecture**, comme le suivi du lot 1 : les superviseurs non membres n'y sont pas. Bouton pleine largeur « J'ai pris connaissance ».
 - **Événement** :
   - une tuile calendrier (jour, date, mois) avec le titre, l'heure, le lieu et les convoqués ;
@@ -113,7 +113,7 @@ La couleur et la mise en forme ne sont pas de la décoration : elles restent au 
 
 ## La page d'un comité
 
-Son onglet « Mur » reprend tout ce qui précède : la bande « Visible par », les cartes et le formulaire.
+Elle n'a pas encore d'onglet « Mur » (maquette 10, non construite). Quand il viendra, il reprendra les mêmes composants. Rien à faire dans ce lot.
 
 ## À l'ordinateur (maquette 5)
 
