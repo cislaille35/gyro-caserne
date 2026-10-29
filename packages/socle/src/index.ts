@@ -20,6 +20,7 @@ export { iconeDuComite, iconeDuRole, NOMS_ICONES, type NomIcone } from './icones
 export { MODELES, type Modele } from './modeles.ts';
 export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
+export { apercusDesMurs, type Apercu as ApercuMur } from './apercus.ts';
 export { exigerMur, mursDe, type CleMur, type Mur } from './murs.ts';
 export { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, supprimerPublication, type DonneesPublication, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
