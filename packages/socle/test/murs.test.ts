@@ -6,7 +6,7 @@ import type { Acteur } from '../src/droits.ts';
 import { dissoudreComite } from '../src/actions/comites.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { appartenances, estConvoque, estMembre, exigerMur, mursDe, type Mur } from '../src/murs.ts';
+import { appartenances, audiences, estConvoque, estMembre, exigerMur, mursDe, type Mur } from '../src/murs.ts';
 import { affectationEquipe, attribution, comite, equipe, personne, photoPublication, profil, publication, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -238,6 +238,32 @@ describe('membres naturels et convoqués (règle partagée avec le suivi)', () =
 		expect(estConvoque(chef, 'comite:7', 'tous')).toBe(false);
 		// Une tenue hors de la portée de sa responsabilité ne compte pas.
 		expect(estMembre(appartenances([], [{ ...tenue('comite', 7), portee: 'centre' }], aujourdhui), 'comite:7')).toBe(false);
+	});
+});
+
+describe('audiences', () => {
+	it('compte les membres naturels de chaque mur demandé, en une requête', async () => {
+		const { base, nouvelle, nommer, affecter, amicale, e1, e2 } = await jeu();
+		const alice = await nouvelle('Alice');
+		const bruno = await nouvelle('Bruno');
+		const chef = await nouvelle('Claire');
+		await nouvelle('Paul', { statut: 'parti' });
+		await nouvelle('Ext', { exterieur: true });
+		await affecter(alice, e1.id);
+		await affecter(bruno, e1.id, hier);
+		await nommer(bruno, 'Chef d’équipe', { type: 'equipe', id: e2.id });
+		await nommer(alice, 'Membre de comité', { type: 'comite', id: amicale.id });
+		await nommer(chef, 'Chef de centre', { type: 'centre' });
+		base.requetes = 0;
+		const n = await audiences(base, ['centre', 'vie', `equipe:${e1.id}`, `equipe:${e2.id}`, `comite:${amicale.id}`], aujourdhui);
+		expect(base.requetes).toBe(1);
+		expect([...n]).toEqual([
+			['centre', 3],
+			['vie', 3],
+			[`equipe:${e1.id}`, 1],
+			[`equipe:${e2.id}`, 1],
+			[`comite:${amicale.id}`, 1]
+		]);
 	});
 });
 

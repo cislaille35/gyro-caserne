@@ -88,6 +88,12 @@ export function agentsDuJour([agents, affectations, tenues]: AgentsLus, aujourdh
 
 export const membresDe = (agents: AgentDuJour[], cle: string) => agents.filter((x) => estMembre(x.a, cle));
 
+// Nombre de membres naturels de chaque mur demandé. Une seule requête (un batch).
+export async function audiences(base: Base, cles: CleMur[], aujourdhui: string): Promise<Map<CleMur, number>> {
+	const agents = agentsDuJour(await base.batch(lecturesAgents(base, aujourdhui)), aujourdhui);
+	return new Map(cles.map((cle) => [cle, membresDe(agents, cle).length]));
+}
+
 // Convoqué : membre du mur et, si des équipes sont convoquées, membre en cours ou chef de l'une d'elles.
 export function estConvoque(a: Appartenances, cle: string, convoques: 'tous' | number[]): boolean {
 	return estMembre(a, cle) && (convoques === 'tous' || convoques.some((id) => a.membreEquipe.has(id) || a.chefEquipe.has(id)));
