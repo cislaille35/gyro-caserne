@@ -69,7 +69,7 @@
 </svelte:head>
 
 <div class="page">
-	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents">
+	<section class="liste" class:masquee={enfant && data.gestion} class:seule={!data.gestion} aria-label="Agents">
 		{#if data.gestion}
 			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
 				{#snippet secondaire()}
@@ -129,10 +129,14 @@
 </div>
 
 <style>
+	/* Au téléphone, un refus s'affiche au-dessus de la liste. */
 	.page {
 		display: flex;
+		flex-direction: column;
 		gap: 28px;
-		align-items: flex-start;
+	}
+	.detail {
+		order: -1;
 	}
 	.liste,
 	.detail {
@@ -345,12 +349,22 @@
 		border-color: var(--encre);
 	}
 	@media (min-width: 1024px) {
+		.page {
+			flex-direction: row;
+			align-items: flex-start;
+		}
+		.detail {
+			order: 0;
+		}
 		.masquee,
 		.masque-detail {
 			display: flex;
 		}
 		.liste {
 			flex: 0 1 460px;
+		}
+		.liste.seule {
+			flex: 0 1 44rem;
 		}
 		.detail {
 			flex: 1 1 0;
