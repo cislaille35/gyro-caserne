@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -12,6 +12,8 @@ import { load as echanges } from './echanges/+layout.server';
 import { load as messages } from './echanges/messages/+page.server';
 import { GET as pastille } from './echanges/messages/pastille/+server';
 import { load as nouveauMessage } from './echanges/messages/nouveau/+page.server';
+import { actions as actionsConversation, load as conversationOuverte } from './echanges/messages/[id]/+page.server';
+import { GET as suite } from './echanges/messages/[id]/suite/+server';
 import { actions as actionsGroupe, load as nouveauGroupe } from './echanges/messages/nouveau/groupe/+page.server';
 import { actions as actionsMur, load as mur } from './echanges/[mur]/+page.server';
 import { actions as actionsPublier, load as pagePublier } from './echanges/publier/+page.server';
@@ -287,5 +289,30 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			})
 		];
 		for (const x of n) expect(x).toBeLessThanOrEqual(BUDGET);
+	});
+	it('/echanges/messages/[id] : un groupe de 60 et 2 000 messages ; l’envoi ; la suite en 3 requêtes au plus', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const autres = await base.select({ id: personne.id }).from(personne).limit(61);
+		const ids = autres.map((p) => p.id).filter((id) => id !== locals.acteur.id).slice(0, 59);
+		const id = await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids }, '2026-10-01T09:00');
+		const lignes = Array.from({ length: 2000 }, (_, i) => ({ conversationId: id, auteur: ids[i % 59]!, texte: `Message ${i}`, creeLe: '2026-10-02T10:00:00', majLe: '2026-10-02T10:00:00' }));
+		for (let i = 0; i < lignes.length; i += 10) await base.insert(message).values(lignes.slice(i, i + 10));
+		const params = { id: String(id) };
+		const url = new URL(`http://localhost/echanges/messages/${id}`);
+		let vue: { messages: { id: number }[]; majLe: string } | undefined;
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			await (echanges as any)({ locals, url });
+			vue = (await (conversationOuverte as any)({ locals, params, url })).vue;
+		});
+		expect(vue!.messages).toHaveLength(40);
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		const envoi = await compter(async () => {
+			await expect((actionsConversation.envoyer as any)({ locals, params, url, request: await requeteFormulaire([['texte', 'Bonjour à tous']]) })).rejects.toMatchObject({ status: 303 });
+		});
+		expect(envoi).toBeLessThanOrEqual(BUDGET);
+		const dernier = vue!.messages.at(-1)!.id;
+		const tour = await compter(() => (suite as any)({ locals, params, url: new URL(`http://localhost/echanges/messages/${id}/suite?dernier=${dernier}&maj=${encodeURIComponent(vue!.majLe)}`) }));
+		expect(tour).toBeLessThanOrEqual(3);
 	});
 });
