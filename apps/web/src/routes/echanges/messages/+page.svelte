@@ -16,10 +16,10 @@
 	const total = $derived(data.conversations.reduce((n, c) => n + c.nonLus, 0));
 
 	const nonLusEnTexte = (n: number) => `${n} ${n > 1 ? 'messages non lus' : 'message non lu'}`;
-	// Un groupe : son icône sur sa teinte (« groupe » par défaut).
 	// À deux, l'aperçu ne répète pas le prénom de l'autre : son nom est juste au-dessus.
 	const apercu = (c: ApercuConversation) => (c.personne && c.apercu.startsWith(`${c.personne.prenom} : `) ? c.apercu.slice(c.personne.prenom.length + 3) : c.apercu);
 	type Icone = keyof typeof ICONES_ROLES;
+	// Un groupe : son icône sur sa teinte (« groupe » par défaut).
 	const icone = (c: ApercuConversation): Icone => (c.icone && c.icone in ICONES_ROLES ? (c.icone as Icone) : 'groupe');
 </script>
 
