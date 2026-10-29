@@ -25,15 +25,18 @@ Anti-objectifs : un 5ᵉ onglet (porteur : « lourd ») ; un chef qui lit les co
 - **Droit** : `UTILISER_MESSAGERIE`, déjà donné au profil « Agent » par le jeu de départ. Les extérieurs ne l'ont pas, donc pas de messagerie (doc fonctionnelle).
 - **Annuaire** : tous les agents actifs (opérationnel, stagiaire, inapte temporaire) qui ont le droit. Un agent suspendu n'apparaît plus et ne lit plus rien. Un agent **parti** quitte toutes ses conversations (doc fonctionnelle).
 - **Seuls les membres lisent une conversation**, y compris le chef de centre et le super administrateur. Il n'y a pas d'exception.
-- **Conversation à deux** : une seule par paire de personnes. « Écrire à Manon » rouvre la conversation existante (choix de Claude).
+- **Conversation à deux** : une seule par paire de personnes. « Écrire à Manon » rouvre la conversation existante (choix de Claude). Si l'autre part ou est suspendu, l'historique reste lisible en lecture seule, avec « Manon n'est plus dans l'annuaire » à la place de la saisie (choix de Claude).
 - **Groupe** :
   - **Qui fait quoi** : le créateur est **animateur** et peut nommer d'autres animateurs (choix de Claude, comme WhatsApp ; la doc fonctionnelle parlait d'un seul animateur). Seuls les animateurs ajoutent ou retirent des membres et nomment des animateurs. Tout membre peut renommer le groupe et le quitter (choix de Claude).
   - **Animateurs** : un groupe garde au moins un animateur. Si le dernier part, le plus ancien membre le devient.
-  - **Taille** : 2 à 60 membres. Le nom est obligatoire, 60 caractères au plus (choix de Claude).
+  - **Taille** : 2 à 60 membres à la création. Le nom est obligatoire, 60 caractères au plus (choix de Claude).
+  - **Groupe qui se vide** : il reste utilisable tant qu'il a un membre (l'animateur peut en ajouter) ; sans aucun membre, il est effacé (choix de Claude).
   - **Historique** : le nouvel arrivant voit l'historique du groupe (choix de Claude, comme Telegram, plutôt que WhatsApp : utile pour un outil de service). Un membre retiré ou qui quitte perd tout l'accès, historique compris (choix de Claude, plus simple et plus sûr).
   - **Messages système**, écrits dans le fil : création, ajout, retrait, départ, renommage, nouvel animateur.
   - **Raccourcis à la création** : « Groupe avec l'équipe N » et « Groupe avec le comité X » ajoutent d'un coup leurs membres du jour (choix de Claude). Le groupe reste indépendant : il ne suit pas les changements d'équipe.
 - **Signaler** un message : il part vers ceux qui ont `MODERER_MESSAGERIE`, seul, sans le reste de la conversation (porteur, doc fonctionnelle). Ils le voient dans la cloche, avec l'auteur, la date et qui a signalé.
+  - Le signalement garde une **copie du texte** du message (et ses photos), au cas où l'auteur le supprime ; cette copie est effacée quand le signalement est classé (choix de Claude).
+  - Le modérateur peut **supprimer le message** pour tous (il devient « Message retiré par la modération ») ou **classer** le signalement. Les deux actions sont inscrites au journal, sans le texte. Il ne voit rien d'autre de la conversation (choix de Claude).
 - **Conservation** : 12 mois par défaut, puis le message est effacé (doc fonctionnelle). La durée se règle par centre dans `centres/<id>/centre.ts` (choix de Claude ; pas d'écran de réglage dans ce lot).
 
 ## Les écrans
@@ -81,7 +84,7 @@ Anti-objectifs : un 5ᵉ onglet (porteur : « lourd ») ; un chef qui lit les co
   - **Séparateurs** de jour (« Aujourd'hui », « Hier », la date), les **messages système** centrés, et le bandeau « **N messages non lus** » à l'ouverture. On arrive à cet endroit, sinon en bas.
   - Un bouton « **↓** » avec le nombre de nouveaux messages quand on lit plus haut. Sans lui, pas de défilement automatique.
 - **Coches** : « envoyé » (✓) puis « lu » (✓✓).
-  - En conversation à deux : lu par l'autre. Dans un groupe : lu par tous les membres présents à l'envoi.
+  - En conversation à deux : lu par l'autre. Dans un groupe : lu par tous les membres présents à l'envoi qui n'ont pas coupé leurs coches ; ceux qui les ont coupées ne comptent pas (choix de Claude).
   - Chacun peut les couper dans « Mon profil ». Il ne montre alors plus ses lectures et ne voit plus celles des autres, comme WhatsApp (choix de Claude).
   - Pas de liste « lu par » dans un groupe (choix de Claude : éviter la pression).
   - Toujours accompagnées d'un texte pour les lecteurs d'écran.
@@ -152,4 +155,4 @@ Anti-objectifs : un 5ᵉ onglet (porteur : « lourd ») ; un chef qui lit les co
 - Le découpage en composants, la gestion du défilement et du brouillon, le geste de glissement (Pointer Events, sans bibliothèque).
 - La phrase du vide en Vivant, au ton du design UI.
 - Les tests, dont un test de budget pour le rafraîchissement, et l'accessibilité Playwright aux deux tailles.
-- La doc : `docs/fonctionnel/messagerie.md` alignée (animateurs multiples, historique visible), `docs/utilisation/` (« Comment écrire à un collègue ? », « Comment créer un groupe ? »), `docs/technique/`. Ajouter dans `CLAUDE.md` la règle du porteur : « Chaque écran est soigné et son point d'entrée pensé pour être fluide : c'est l'interface qui fait adopter l'appli. »
+- La doc : `docs/fonctionnel/messagerie.md` alignée (animateurs multiples, historique visible ; retirer « couper les notifications sauf mention », les mentions étant hors lot), `docs/utilisation/` (« Comment écrire à un collègue ? », « Comment créer un groupe ? »), `docs/technique/`. Ajouter dans `CLAUDE.md` la règle du porteur : « Chaque écran est soigné et son point d'entrée pensé pour être fluide : c'est l'interface qui fait adopter l'appli. »
