@@ -662,12 +662,12 @@ function idsDe(ids: unknown): number[] {
 }
 
 // Contrôles d'un geste sur un groupe, en une requête : l'acteur en est membre ; `cibles` : celles qui ont la messagerie ;
-// `photos` : celles du groupe si l'acteur en est le dernier membre.
-async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: string, cibles: number[] = []) {
+// `photos` (pour quitter seulement) : celles du groupe si l'acteur en est le dernier membre.
+async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: string, cibles: number[] = [], pourQuitter = false) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = idDe(acteur);
 	exigerId(id, 'Conversation');
-	const [acces, place, membres, joignables, photos] = await base.batch([
+	const [acces, place, membres, joignables, photos = []] = await base.batch([
 		lireAcces(base, moi, aujourdhui),
 		base.select({ type: conversation.type }).from(conversation).where(eq(conversation.id, id)),
 		base
@@ -678,7 +678,7 @@ async function lireGroupe(base: Base, acteur: Acteur, id: number, maintenant: st
 			.select({ id: personne.id })
 			.from(personne)
 			.where(and(inArray(personne.id, cibles), aLaMessagerie(personne.id, aujourdhui))),
-		photosDesDerniers(base, eq(message.conversationId, id))
+		...(pourQuitter ? [photosDesDerniers(base, eq(message.conversationId, id))] : [])
 	]);
 	if (acces.length === 0) throw refus();
 	const mien = membres.find((m) => m.id === moi);
@@ -772,7 +772,7 @@ export async function renommerGroupe(base: Base, acteur: Acteur, id: number, nom
 
 // Le dernier membre qui s'en va efface le groupe, et ses photos dans PHOTOS.
 export async function quitterGroupe(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
-	const g = await lireGroupe(base, acteur, id, maintenant);
+	const g = await lireGroupe(base, acteur, id, maintenant, [], true);
 	await executer(base, sortie(base, id, g.moi, g.membres, { type: 'depart', par: g.moi }, maintenant));
 	await effacerPhotos(basePhotos, g.photos);
 }

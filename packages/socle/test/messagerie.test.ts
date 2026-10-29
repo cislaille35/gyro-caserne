@@ -1006,6 +1006,20 @@ describe('modifier et supprimer', () => {
 	});
 });
 
+describe('supprimer en lecture seule', () => {
+	it('l’autre est parti : on supprime encore son message, photos comprises', async () => {
+		const { base, manon, romain } = await jeu();
+		const m = await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'À effacer', photos: [jpeg()] }, minute(0));
+		await changerStatut(base, base.photos, superAdmin, romain, 'parti', minute(1));
+		expect((await lireConversation(base, acteur(manon), m.conversation, {}, minute(2))).lectureSeule).toBe(true);
+		await supprimerMessage(base, base.photos, acteur(manon), m.message, minute(3));
+		const [ligne] = await base.select().from(message).where(eq(message.id, m.message));
+		expect(ligne).toMatchObject({ texte: '', supprime: 'auteur', majLe: minute(3) });
+		expect(await base.select().from(photoDeMessage)).toEqual([]);
+		expect(await base.photos.select().from(octetsPhoto)).toEqual([]);
+	});
+});
+
 describe('coches', () => {
 	it('dans un groupe : « lu » quand tous les présents à l’envoi qui ont leurs coches l’ont lu ; aucune si l’acteur a coupé les siennes', async () => {
 		const { base, nouvelle, manon, romain } = await jeu();
