@@ -126,7 +126,7 @@
 		width: 44px;
 		height: 26px;
 		border-radius: 999px;
-		background: var(--statut-neutre-trait);
+		background: var(--doux);
 		transition: background 0.15s;
 	}
 	.bouton-rond {
@@ -141,7 +141,7 @@
 		transition: transform 0.15s;
 	}
 	[aria-checked='true'] .glissiere {
-		background: var(--rouge);
+		background: var(--accent);
 	}
 	[aria-checked='true'] .bouton-rond {
 		transform: translateX(18px);

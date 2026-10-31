@@ -55,8 +55,9 @@
 				{#if cloche > 0}<span class="nombre" aria-hidden="true">{cloche > 99 ? '99+' : cloche}</span>{/if}
 			</a>
 			<!-- « Moi » : le visage de la personne ; sans fiche (super administrateur), l'icône de profil. -->
-			<a class="moi" href="/moi" aria-label="Moi" aria-current={courant('/moi')}>
+			<a class="moi" href="/moi" aria-current={courant('/moi')}>
 				{#if visage}<Visage prenom={visage.prenom} nom={visage.nom} couleur={visage.couleur} taille={44} />{:else}<span class="rond">{@render icone('moi')}</span>{/if}
+				<span class="masque">Moi</span>
 			</a>
 		{/if}
 	</header>
@@ -166,6 +167,9 @@
 	}
 	.moi {
 		border-radius: 50%;
+	}
+	header a.moi[aria-current='page'] {
+		text-decoration: none;
 	}
 	/* La page « Moi » ou une de ses pages : un anneau autour du visage. */
 	header a.moi[aria-current='page'] :global(.visage) {

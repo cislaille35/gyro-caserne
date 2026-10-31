@@ -75,6 +75,7 @@ describe('notifierPublication', () => {
 		expect(envois[0]).toMatchObject({ titre: `${e2.nom} · Bruno Test`, url: `/echanges/equipe:${e2.id}/${id}`, tag: `publication:${id}` });
 		expect(envois[0].texte).toHaveLength(100);
 		expect(envois[0].texte.startsWith('Manœuvre samedi')).toBe(true);
+		expect(envois[0].texte.endsWith('…')).toBe(true);
 	});
 
 	it('« Le centre » : tous les agents sauf l’auteur ; publication du super administrateur : tout le monde', async () => {

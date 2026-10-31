@@ -197,7 +197,7 @@
 	}
 	/* Non lue : liseré, titre en gras et point, jamais la couleur seule. */
 	.non-lue {
-		box-shadow: inset 4px 0 0 var(--rouge);
+		box-shadow: inset 4px 0 0 var(--accent);
 	}
 	.non-lue .quoi {
 		font-weight: 700;
@@ -233,7 +233,7 @@
 		width: 10px;
 		height: 10px;
 		border-radius: 50%;
-		background: var(--rouge);
+		background: var(--accent);
 	}
 	.tout-lu {
 		min-height: var(--cible);

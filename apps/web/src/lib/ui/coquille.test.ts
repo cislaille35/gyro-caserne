@@ -50,7 +50,7 @@ describe('Coquille', () => {
 		const page = html('/');
 		const entete = page.match(/<header[\s\S]*?<\/header>/)![0];
 		expect(entete).toMatch(/<a[^>]*href="\/notifications"[^>]*aria-label="Notifications"/);
-		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*aria-label="Moi"/);
+		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?<span class="masque">Moi<\/span>/);
 	});
 
 	it('« Moi » : le visage seul de la personne (initiales, couleur d’équipe) ; sans fiche, l’icône de profil', () => {
@@ -58,7 +58,8 @@ describe('Coquille', () => {
 		const avec = moi({ prenom: 'Alice', nom: 'Martin', couleur: '#d4a017' });
 		expect(avec).toMatch(/class="visage[^"]*"[^>]*style="background: #d4a017;[^"]*"[^>]*>AM<\/span>/);
 		expect(avec).not.toContain('<svg');
-		expect(avec).not.toMatch(/>\s*Moi\s*</);
+		// « Moi » n'est écrit que pour les lecteurs d'écran : le visage suffit à l'œil.
+		expect(avec.match(/>([^<]+)</g)!.map((t) => t.slice(1, -1).trim()).filter(Boolean)).toEqual(['AM', 'Moi']);
 		expect(moi(null)).toContain('<svg');
 	});
 

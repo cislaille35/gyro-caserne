@@ -43,6 +43,18 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Clés des notifications au téléphone (secrets du dépôt VAPID_PUBLIQUE_PREPROD et VAPID_PRIVEE_PREPROD), posées sur le Worker.
+      # Sans elles, rien n'est posé : l'appli marche, sans notifications au téléphone.
+      - name: Clés des notifications
+        run: |
+          if [ -z "$VAPID_PUBLIQUE" ] || [ -z "$VAPID_PRIVEE" ]; then echo "Pas de clés VAPID : rien à poser."; exit 0; fi
+          node -e 'process.stdout.write(JSON.stringify({ VAPID_PUBLIQUE: process.env.VAPID_PUBLIQUE, VAPID_PRIVEE: process.env.VAPID_PRIVEE }))' \
+            | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
+        env:
+          VAPID_PUBLIQUE: ${{ secrets.VAPID_PUBLIQUE_PREPROD }}
+          VAPID_PRIVEE: ${{ secrets.VAPID_PRIVEE_PREPROD }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   production:
     needs: verifier
@@ -77,6 +89,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - run: pnpm deployer
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Clés des notifications au téléphone (secrets du dépôt VAPID_PUBLIQUE_PRODUCTION et VAPID_PRIVEE_PRODUCTION), posées sur le Worker.
+      # Sans elles, rien n'est posé : l'appli marche, sans notifications au téléphone.
+      - name: Clés des notifications
+        run: |
+          if [ -z "$VAPID_PUBLIQUE" ] || [ -z "$VAPID_PRIVEE" ]; then echo "Pas de clés VAPID : rien à poser."; exit 0; fi
+          node -e 'process.stdout.write(JSON.stringify({ VAPID_PUBLIQUE: process.env.VAPID_PUBLIQUE, VAPID_PRIVEE: process.env.VAPID_PRIVEE }))' \
+            | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
+        env:
+          VAPID_PUBLIQUE: ${{ secrets.VAPID_PUBLIQUE_PRODUCTION }}
+          VAPID_PRIVEE: ${{ secrets.VAPID_PRIVEE_PRODUCTION }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # Journal des mises en production : une fiche par version réellement déployée

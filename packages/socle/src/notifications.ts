@@ -26,7 +26,11 @@ export type LigneFil = {
 	lue: boolean;
 };
 
-const extrait = (texte: string) => texte.replace(/\s+/g, ' ').trim().slice(0, EXTRAIT);
+// Le début du texte, sur une ligne ; coupé, il finit par « … ».
+function extrait(texte: string): string {
+	const ligne = texte.replace(/\s+/g, ' ').trim();
+	return ligne.length > EXTRAIT ? `${ligne.slice(0, EXTRAIT - 1).trimEnd()}…` : ligne;
+}
 const idPersonne = (auteur: string | null) => {
 	const id = /^personne:(\d+)$/.exec(auteur ?? '')?.[1];
 	return id === undefined ? null : Number(id);
