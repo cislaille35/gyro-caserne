@@ -1,0 +1,16 @@
+{
+	"name": "Gyro Caserne",
+	"short_name": "Gyro Caserne",
+	"description": "L'appli de la vie du centre d'incendie et de secours.",
+	"lang": "fr",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#f6f3ef",
+	"theme_color": "#c8102e",
+	"icons": [
+		{ "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/icones/icone-512.png", "sizes": "512x512", "type": "image/png" },
+		{ "src": "/icones/icone-masquable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	]
+}

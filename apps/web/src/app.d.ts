@@ -17,6 +17,8 @@ declare global {
 			affichage: Affichage;
 			// waitUntil de Cloudflare : finir un travail après la réponse (les notifications).
 			enArrierePlan?: (tache: Promise<unknown>) => void;
+			// Clé publique VAPID du centre, pour abonner un appareil ; nulle sans secrets.
+			clePublique?: string | null;
 		}
 	}
 	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`

@@ -43,6 +43,7 @@
 		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
 		{#if data.estPersonne}
 			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" icone="livre" dessin={DESSINS.profil} /></li>
+			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
 		{/if}
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>
 	</ListeRangees>
