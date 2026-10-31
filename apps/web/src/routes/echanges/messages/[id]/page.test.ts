@@ -6,7 +6,9 @@ vi.mock('$app/navigation', () => ({ invalidate: () => {}, goto: () => {}, afterN
 vi.mock('$app/forms', () => ({ enhance: () => ({}), applyAction: () => {}, deserialize: () => ({}) }));
 const { default: Page } = await import('./+page.svelte');
 
-const aujourdhui = new Date().toISOString().slice(0, 10);
+// Horloge figée : « Aujourd’hui » ne doit pas dépendre de l'heure du test.
+vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-29T12:00:00') });
+const aujourdhui = '2026-10-29';
 const romain = { id: 2, prenom: 'Romain', nom: 'Test', couleur: '#a3195b' };
 const manon = { id: 3, prenom: 'Manon', nom: 'Test', couleur: null };
 const moi = { id: 1, prenom: 'Thomas', nom: 'Test', couleur: null };

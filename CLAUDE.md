@@ -85,7 +85,7 @@ La machine de développement est petite (2 Go de mémoire) et peut redémarrer. 
 
 - **commit et push à chaque étape verte** : un redémarrage ne coûte que l'étape en cours ;
 - **commande lourde** (types, compilation, installation) : toujours en cage mémoire et avec une limite de temps, pour qu'elle échoue seule au lieu de tout bloquer ;
-- **PR ouverte en brouillon dès le premier push** : la CI fait les vérifications lourdes ; en local, on garde les tests rapides.
+- **PR ouverte en brouillon dès le premier push** : la CI y fait la vérification rapide ; la complète (types, accessibilité) part quand la PR passe « prête » ou à la demande. En local, on garde les tests rapides.
 
 ## Compte rendu
 
