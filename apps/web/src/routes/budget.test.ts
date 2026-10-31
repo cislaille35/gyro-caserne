@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import centre from '$centre';
 import { ajouterRessource, attribution, chargerJeuDeDepart, comite, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
-import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
@@ -427,7 +427,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const [vl] = await base.select().from(ressource);
 		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
 		const bancs = await ajouterRessource(base, { type: 'super', email: 'a@b.fr' }, { nom: 'Bancs', stock: 999, icone: 'groupe', comiteId: amicale!.id }, maintenantParis());
-		const jour = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+		const jour = (n: number) => aujourdhuiParis(new Date(Date.now() + n * 864e5));
 		for (let i = 0; i < 20; i++) {
 			await reserver(base, { type: 'personne', id: agent.id }, vl!.id, { debut: `${jour(2 + i)}T09:00`, fin: `${jour(2 + i)}T12:00` }, maintenantParis());
 			await reserver(base, { type: 'personne', id: agent.id }, bancs, { debut: jour(2 + i), fin: jour(3 + i), quantite: 2 }, maintenantParis());

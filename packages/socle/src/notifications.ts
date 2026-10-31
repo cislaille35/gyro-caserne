@@ -80,7 +80,8 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 }
 
 // `ids` : une liste, ou une sous-requête d'identifiants de personnes. Lieu « reservations » : seul « tout » le coupe.
-export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string) {
+// `si` : une condition de plus, vérifiée au moment de l'écriture.
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL) {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
@@ -89,7 +90,7 @@ export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: strin
 		base
 			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`${JSON.stringify(donnees)}`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le') })
 			.from(abonnementPush)
-			.where(and(inArray(abonnementPush.personneId, Array.isArray(ids) ? parmi(ids) : ids), notExists(coupe)))
+			.where(and(inArray(abonnementPush.personneId, Array.isArray(ids) ? parmi(ids) : ids), notExists(coupe), si))
 	);
 }
 

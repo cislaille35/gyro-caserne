@@ -1,5 +1,5 @@
 import { annuler, mesReservations } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { champ, exigerConnecte, idDe, refus } from '#lib/server/reservations.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const mes = await mesReservations(locals.base, exigerConnecte(locals), maintenantParis());
 	const reservee = url.searchParams.get('reservee');
-	return { ...mes, reservee: reservee === 'attente' || reservee === 'acceptee' ? reservee : null, confirmer: idDe(url.searchParams.get('annuler')) || null };
+	return { ...mes, reservee: reservee === 'attente' || reservee === 'acceptee' ? reservee : null, confirmer: idDe(url.searchParams.get('annuler')) || null, aujourdhui: aujourdhuiParis() };
 };
 
 export const actions: Actions = {

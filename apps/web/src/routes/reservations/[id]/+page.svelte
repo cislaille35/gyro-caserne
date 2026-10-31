@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { periodeCourte, restantParJour, type Ressource, type VueReservation } from '@gyro-caserne/socle';
-	import { ceJour, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from '#lib/reservations.ts';
+	import { ceJour, decaler, etatAffiche, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from '#lib/reservations.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
@@ -15,7 +15,7 @@
 	const mois = $derived(data.jour.slice(0, 7));
 	const titreSemaine = $derived(`D${periodeCourte('jours', jours[0]!, jours[6]!).slice(1)}`);
 	const restant = (jour: string) => (r.stock === null ? null : (restantParJour(r.stock, data.reservations, jour, jour)[0]?.restant ?? r.stock));
-	const quoi = (x: VueReservation, jour: string) => `${r.forme === 'creneau' ? horaire(x, jour) : x.quantite} · ${x.demandeur}${x.mienne ? ' (vous)' : ''}`;
+	const quoi = (x: VueReservation, jour: string) => `${r.forme === 'creneau' ? horaire(x, jour) : x.quantite} · ${x.demandeur}${x.mienne && !x.nomDemandeur ? ' (vous)' : ''}`;
 	const COLONNES = [
 		['lundi', 'lun.'],
 		['mardi', 'mar.'],
@@ -33,7 +33,7 @@
 	<title>{r.nom} · Réservations · Gyro Caserne</title>
 </svelte:head>
 
-{#snippet etat(x: VueReservation)}<Pastille ton={ETATS[x.etat].ton}>{ETATS[x.etat].libelle}</Pastille>{/snippet}
+{#snippet etat(x: VueReservation)}{@const e = etatAffiche(x, data.aujourdhui)}<Pastille ton={e.ton}>{e.libelle}</Pastille>{/snippet}
 
 <div class="page">
 	<EnTetePage titre={r.nom} {phrase} retour={{ href: '/reservations', libelle: 'Réservations' }} action={data.peutReserver ? { href: lienReserver(data.jour), libelle: 'Réserver' } : undefined} />
@@ -91,7 +91,7 @@
 								{#if reste !== null && pris.length > 0}<span class="reste">Reste {reste}</span>{/if}
 								<ul role="list">
 									{#each pris.slice(0, PAR_CASE) as x (x.id)}
-										<li class="etat-{x.etat}">{quoi(x, jour)}{#if x.etat === 'attente'}<span class="en-attente"> · en attente</span>{/if}</li>
+										<li class="etat-{x.etat}">{quoi(x, jour)}{#if x.etat === 'attente'}<span class="en-attente"> · {etatAffiche(x, data.aujourdhui).libelle.toLowerCase()}</span>{/if}</li>
 									{/each}
 								</ul>
 								{#if pris.length > PAR_CASE}<span class="doux plus">et {pris.length - PAR_CASE} de plus</span>{/if}

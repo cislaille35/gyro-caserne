@@ -39,7 +39,7 @@
 			<fieldset>
 				<legend>Pour qui ?</legend>
 				<Champ id="reserver-nom" name="nom" libelle="Nom du demandeur" requis maxlength={60} autocomplete="off" valeur={depart('nom', '')} aide="La personne de la réserve citoyenne qui aura la VL." />
-				<Champ id="reserver-telephone" name="telephone" type="tel" libelle="Téléphone (facultatif)" maxlength={20} autocomplete="off" valeur={depart('telephone', '')} aide="Vu seulement par qui gère la VL." />
+				<Champ id="reserver-telephone" name="telephone" type="tel" libelle="Téléphone (facultatif)" maxlength={20} autocomplete="off" valeur={depart('telephone', '')} aide="Vu seulement par qui gère la ressource." />
 			</fieldset>
 		{/if}
 		<fieldset>

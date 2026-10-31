@@ -34,6 +34,13 @@ describe('calendrier d’une ressource', () => {
 		expect(page).not.toContain('Reste');
 	});
 
+	it('le compte de la réserve citoyenne : le nom saisi, sans « (vous) » ; une demande restée sans réponse le dit', () => {
+		const page = html({ aujourdhui: '2026-11-06', ressource: vl, reservations: [res({ ressourceId: 1, forme: 'creneau', ressource: 'VL', quantite: 1, debut: '2026-11-05T09:00', fin: '2026-11-05T12:00', etat: 'attente', demandeur: 'M. Roux', nomDemandeur: 'M. Roux', mienne: true })] });
+		expect(page).toContain('9 h – 12 h · M. Roux');
+		expect(page).not.toContain('M. Roux (vous)');
+		expect(page).toMatch(/<h3[^>]*>jeudi 5 nov\.<\/h3>[\s\S]*?Sans réponse/);
+	});
+
 	it('sans droit de réserver (gestionnaire seulement) : pas de bouton « Réserver »', () => {
 		expect(html({ peutReserver: false })).not.toContain('/reserver');
 	});

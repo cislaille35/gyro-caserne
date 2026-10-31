@@ -5,7 +5,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data, form }: { data: { aVenir: VueReservation[]; passees: VueReservation[]; reservee: 'attente' | 'acceptee' | null; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { aVenir: VueReservation[]; passees: VueReservation[]; reservee: 'attente' | 'acceptee' | null; confirmer: number | null; aujourdhui: string }; form?: { message?: string; succes?: string } | null } = $props();
 
 	const REUSSITE = { attente: 'Demande envoyée : vous serez prévenu de la réponse.', acceptee: 'Réservation acceptée : elle est à vous.' };
 	const succes = $derived(form?.succes ?? (data.reservee ? REUSSITE[data.reservee] : ''));
@@ -30,7 +30,7 @@
 			<ul role="list">
 				{#each data.aVenir as r (r.id)}
 					<li>
-						<CarteReservation {r}>
+						<CarteReservation {r} aujourdhui={data.aujourdhui}>
 							{#if r.annulable}
 								{#if data.confirmer === r.id}
 									<div class="confirmer">
@@ -59,7 +59,7 @@
 			<h2 id="t-passees" class="rubrique">Passées</h2>
 			<ul role="list">
 				{#each data.passees as r (r.id)}
-					<li><CarteReservation {r} /></li>
+					<li><CarteReservation {r} aujourdhui={data.aujourdhui} /></li>
 				{/each}
 			</ul>
 		</section>

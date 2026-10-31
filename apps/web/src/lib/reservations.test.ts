@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ceJour, disponibilite, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from './reservations.ts';
+import { ceJour, disponibilite, etatAffiche, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from './reservations.ts';
 
 const r = (debut: string, fin: string, etat = 'acceptee') => ({ debut, fin, etat, quantite: 2 }) as never;
 
@@ -31,6 +31,13 @@ describe('calendrier des réservations', () => {
 		expect(horaire({ debut: '2026-11-07T18:00', fin: '2026-11-09T12:00' }, '2026-11-07')).toBe('Dès 18 h');
 		expect(horaire({ debut: '2026-11-07T18:00', fin: '2026-11-09T12:00' }, '2026-11-08')).toBe('Toute la journée');
 		expect(horaire({ debut: '2026-11-07T18:00', fin: '2026-11-09T12:00' }, '2026-11-09')).toBe('Jusqu’à 12 h');
+	});
+
+	it('une demande restée en attente après sa période : « Sans réponse »', () => {
+		expect(etatAffiche({ etat: 'attente', fin: '2026-11-06' }, '2026-11-07')).toEqual({ libelle: 'Sans réponse', ton: 'neutre' });
+		expect(etatAffiche({ etat: 'attente', fin: '2026-11-07' }, '2026-11-07')).toEqual(ETATS.attente);
+		expect(etatAffiche({ etat: 'attente', fin: '2026-11-07T00:00' }, '2026-11-07')).toEqual({ libelle: 'Sans réponse', ton: 'neutre' });
+		expect(etatAffiche({ etat: 'acceptee', fin: '2026-11-01' }, '2026-11-07')).toEqual(ETATS.acceptee);
 	});
 
 	it('les états, toujours écrits', () => {

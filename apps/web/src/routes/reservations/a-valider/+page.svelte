@@ -5,7 +5,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data, form }: { data: { demandes: { demande: VueReservation; conflits: VueReservation[] }[]; acceptees: VueReservation[] }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { demandes: { demande: VueReservation; conflits: VueReservation[] }[]; acceptees: VueReservation[]; maintenant: string }; form?: { message?: string; succes?: string } | null } = $props();
 </script>
 
 <svelte:head>
@@ -37,13 +37,13 @@
 			<ul role="list">
 				{#each data.demandes as { demande: r, conflits } (r.id)}
 					<li>
-						<CarteReservation {r} demandeur>
+						<CarteReservation {r} aujourdhui={data.maintenant.slice(0, 10)} demandeur>
 							{#if conflits.length > 0}
 								<div class="conflit">
 									<p><strong>Déjà réservée sur ce créneau :</strong></p>
 									<ul role="list">
 										{#each conflits as c (c.id)}
-											<li>{c.demandeur} · {periodeCourte(c.forme, c.debut, c.fin)}{#if c.telephone} · <a href="tel:{c.telephone}">{c.telephone}</a>{/if}</li>
+											<li>{c.demandeur} · {periodeCourte(c.forme, c.debut, c.fin)}{c.debut <= data.maintenant ? ' · en cours' : ''}{#if c.telephone} · <a href="tel:{c.telephone}">{c.telephone}</a>{/if}</li>
 										{/each}
 									</ul>
 									<p>Garder cette demande annule l’autre réservation ; son demandeur est prévenu.</p>
@@ -77,7 +77,7 @@
 			<ul role="list">
 				{#each data.acceptees as r (r.id)}
 					<li>
-						<CarteReservation {r} demandeur>
+						<CarteReservation {r} aujourdhui={data.maintenant.slice(0, 10)} demandeur>
 							<details class="plus">
 								<summary class="bouton secondaire">Annuler<span class="masque">{` la réservation de ${r.demandeur}`}</span></summary>
 								<form method="POST" action="?/annuler" use:enhance>

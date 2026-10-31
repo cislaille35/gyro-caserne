@@ -10,6 +10,12 @@ export const ETATS: Record<EtatReservation, { libelle: string; ton: 'ok' | 'info
 	annulee: { libelle: 'Annulée', ton: 'neutre' }
 };
 
+// L'état montré : une demande restée en attente après sa période n'attend plus rien.
+export function etatAffiche(r: { etat: EtatReservation; fin: string }, aujourdhui: string): { libelle: string; ton: 'ok' | 'info' | 'alerte' | 'danger' | 'neutre' } {
+	const finie = r.fin.length === 10 ? r.fin < aujourdhui : r.fin <= `${aujourdhui}T00:00`;
+	return r.etat === 'attente' && finie ? { libelle: 'Sans réponse', ton: 'neutre' } : ETATS[r.etat];
+}
+
 const date = (jour: string) => new Date(`${jour.slice(0, 10)}T00:00:00Z`);
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const format = (options: Intl.DateTimeFormatOptions, jour: string) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(date(jour));

@@ -21,7 +21,7 @@ describe('/reservations/a-valider', () => {
 		expect(duChef.demandes).toMatchObject([{ demande: { id: v2 }, conflits: [{ id: v1 }] }]);
 		expect(duChef.acceptees.map((r: { id: number }) => r.id)).toEqual([v1]);
 		expect((await charger(locaux(base, bruno))).demandes).toMatchObject([{ demande: { ressource: 'Bancs' }, conflits: [] }]);
-		expect(await charger(locaux(base, alice))).toEqual({ demandes: [], acceptees: [] });
+		expect(await charger(locaux(base, alice))).toMatchObject({ demandes: [], acceptees: [], maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/) });
 	});
 
 	it('accepter, refuser avec un motif, annuler une acceptée avec un mot', async () => {

@@ -23,6 +23,10 @@ C'est la ressource qui dit qui la gère (un rôle ou un comité) : le référent
 - **États** : en attente → acceptée ou refusée (motif facultatif). Le demandeur annule tant que la période n'a pas commencé ; qui gère annule une réservation acceptée, avec un mot au demandeur.
 - **Conflit VL** : accepter une demande qui chevauche une réservation acceptée oblige à choisir : « Garder cette demande » annule l'autre, « Garder l'autre » refuse la demande. Le demandeur écarté est prévenu.
 - **Retirer du matériel** : plus aucune demande ; ses réservations à venir sont annulées, leurs demandeurs prévenus.
+- **Baisser un stock** : refusé sous ce qui est déjà accepté un jour à venir (« Déjà 8 promis le 12 nov. ») ; il faut d'abord annuler des réservations.
+- Deux demandes de VL envoyées au même instant sur un créneau libre : une seule est acceptée d'office, l'autre attend.
+- Une demande restée sans réponse après sa période est dite « Sans réponse ».
+- Au départ d'un agent, ses réservations à venir sont annulées.
 - Une réservation commence dans moins d'un an et dure 14 jours au plus.
 - Les réservations finies depuis plus d'un an sont effacées chaque nuit.
 

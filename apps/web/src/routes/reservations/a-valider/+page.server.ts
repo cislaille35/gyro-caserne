@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	const acteur = exigerConnecte(locals);
 	const [demandes, lesAcceptees] = await Promise.all([aValider(locals.base, acteur, aujourdhuiParis()), acceptees(locals.base, acteur, aujourdhuiParis())]);
-	return { demandes, acceptees: lesAcceptees };
+	return { demandes, acceptees: lesAcceptees, maintenant: maintenantParis().slice(0, 16) };
 };
 
 async function geste(locals: App.Locals, request: Request, faire: (id: number, texte: string | null) => Promise<void>, succes: string) {

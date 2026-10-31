@@ -2,6 +2,8 @@ import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
+import type { Base } from '../src/base.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import {
@@ -22,7 +24,8 @@ import {
 	retirerRessource
 } from '../src/reservations.ts';
 import { couper, effacerVieillesNotifications, enTeteDe, filDeNotifications, toutMarquerLu } from '../src/notifications.ts';
-import { periodeCourte } from '../src/reservations-calcul.ts';
+import { chevauche, periodeCourte } from '../src/reservations-calcul.ts';
+const chevaucheCreneau = (a: { debut: string; fin: string }, b: { debut: string; fin: string }) => chevauche(a, b, 'creneau');
 import { abonnementPush, attribution, avisReservation, comite, envoiPush, personne, profil, profilDroit, reservation, ressource, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -440,5 +443,88 @@ describe('période en bref', () => {
 		expect(periodeCourte('jours', '2026-10-30', '2026-11-02')).toBe('du 30 oct. au 2 nov.');
 		expect(periodeCourte('creneau', '2026-11-07T09:00', '2026-11-07T12:30')).toBe('7 nov., 9 h – 12 h 30');
 		expect(periodeCourte('creneau', '2026-11-07T18:00', '2026-11-08T09:05')).toBe('du 7 nov., 18 h au 8 nov., 9 h 05');
+	});
+});
+
+// Une écriture d'un autre agent glissée juste avant le batch de l'action : deux requêtes qui se croisent.
+function avecCourse<B extends Base>(base: B, avant: () => Promise<unknown>): B {
+	let fait = false;
+	return new Proxy(base, {
+		get(cible, cle) {
+			if (cle !== 'batch') return Reflect.get(cible, cle);
+			return async (requetes: never) => {
+				if (!fait) {
+					fait = true;
+					await avant();
+				}
+				return cible.batch(requetes);
+			};
+		}
+	});
+}
+
+describe('après la revue', () => {
+	it('VL : deux demandes simultanées sur un créneau libre, la seconde passe en attente et sonne chez le référent', async () => {
+		const { base, alice, romain, remi, vl } = await avecTelephones();
+		const course = avecCourse(base, () => base.insert(reservation).values({ ressourceId: vl, personneId: romain.id, debut: '2026-11-07T09:00', fin: '2026-11-07T12:00', etat: 'acceptee', creeLe: maintenant }));
+		const { id, etat: lEtat } = await reserver(course, alice, vl, { debut: '2026-11-07T10:00', fin: '2026-11-07T11:00' }, maintenant);
+		expect(lEtat).toBe('attente');
+		expect(await etat(base, id)).toMatchObject({ etat: 'attente' });
+		const envois = await base.select({ personneId: abonnementPush.personneId }).from(envoiPush).innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId));
+		expect(envois).toEqual([{ personneId: remi.id }]);
+	});
+
+	it('une demande tranchée entre-temps par un autre gestionnaire : ni avis ni envoi contradictoire', async () => {
+		const { base, alice, romain, bancs, envois, vider } = await avecTelephones();
+		const { id } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		await vider();
+		const course = avecCourse(base, () => refuser(base, superAdmin, id, null, maintenant));
+		await accepter(course, romain, id, maintenant);
+		expect(await etat(base, id)).toMatchObject({ etat: 'refusee' });
+		expect((await base.select().from(avisReservation)).map((a) => a.quoi)).toEqual(['refusee']);
+		expect((await envois()).map((e) => e.titre)).toEqual(['Bancs : demande refusée']);
+	});
+
+	it('stock épuisé par une baisse : « il n’en reste plus » ; baisser sous ce qui est déjà accepté est refusé', async () => {
+		const { base, alice, romain, bancs } = await preparer();
+		const { id: a } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 8 }, maintenant);
+		const { id: b } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 4 }, maintenant);
+		await accepter(base, romain, a, maintenant);
+		await modifierRessource(base, romain, bancs, { nom: 'Bancs', stock: 8, icone: 'groupe' }, maintenant);
+		await expect(accepter(base, romain, b, maintenant)).rejects.toThrow(new DonneeInvalide('Bancs : il n’en reste plus le 12 nov.'));
+		await expect(modifierRessource(base, romain, bancs, { nom: 'Bancs', stock: 7, icone: 'groupe' }, maintenant)).rejects.toThrow(new DonneeInvalide('Déjà 8 promis le 12 nov. : annulez d’abord des réservations'));
+		// Une réservation passée ne compte pas.
+		await base.update(reservation).set({ debut: '2026-10-12', fin: '2026-10-12' }).where(eq(reservation.id, a));
+		await modifierRessource(base, romain, bancs, { nom: 'Bancs', stock: 2, icone: 'groupe' }, maintenant);
+	});
+
+	it('perdre la gestion : rôle archivé, gestionnaire parti', async () => {
+		const { base, alice, remi, romain, vl, bancs } = await preparer();
+		await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		await reserver(base, romain, vl, { debut: '2026-11-07T10:00', fin: '2026-11-07T11:00' }, maintenant);
+		await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 1 }, maintenant);
+		expect(await nombreAValider(base, remi, aujourdhui)).toBe(1);
+		await base.update(responsabilite).set({ archiveeLe: '2026-10-31' }).where(eq(responsabilite.nom, 'Référent engins'));
+		expect(await nombreAValider(base, remi, aujourdhui)).toBe(0);
+		expect(await nombreAValider(base, romain, aujourdhui)).toBe(1);
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, romain.id));
+		expect(await nombreAValider(base, romain, aujourdhui)).toBe(0);
+	});
+
+	it('au départ d’un agent, ses réservations à venir sont annulées ; les passées restent', async () => {
+		const { base, alice, bancs, vl } = await preparer();
+		const { id: v } = await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		const { id: b } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 1 }, maintenant);
+		const [passee] = await base.insert(reservation).values({ ressourceId: bancs, personneId: alice.id, debut: '2026-10-12', fin: '2026-10-12', quantite: 1, etat: 'acceptee', creeLe: 'x' }).returning();
+		await changerStatut(base, base.photos, superAdmin, alice.id, 'parti', maintenant);
+		expect(await etat(base, v)).toMatchObject({ etat: 'annulee', motif: 'Départ du demandeur' });
+		expect(await etat(base, b)).toMatchObject({ etat: 'annulee' });
+		expect(await etat(base, passee!.id)).toMatchObject({ etat: 'acceptee' });
+	});
+
+	it('un créneau qui passe minuit chevauche le lendemain matin', () => {
+		const nuit = { debut: '2026-11-07T22:00', fin: '2026-11-08T06:00' };
+		expect(chevaucheCreneau(nuit, { debut: '2026-11-08T05:00', fin: '2026-11-08T07:00' })).toBe(true);
+		expect(chevaucheCreneau(nuit, { debut: '2026-11-08T06:00', fin: '2026-11-08T07:00' })).toBe(false);
 	});
 });

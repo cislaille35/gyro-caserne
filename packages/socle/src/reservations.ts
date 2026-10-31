@@ -285,26 +285,30 @@ export async function reserver(base: Base, acteur: Acteur, id: number, d: Demand
 	const nomDemandeur = qui.reserveCitoyenne ? nomObligatoire(d.nomDemandeur, 'Nom du demandeur', 60) : null;
 	const telephone = qui.reserveCitoyenne ? texteFacultatif(d.telephone, 'Téléphone', 20) : null;
 
-	const prises = await base
-		.select({ debut: reservation.debut, fin: reservation.fin, quantite: reservation.quantite, etat: reservation.etat })
-		.from(reservation)
-		.where(and(eq(reservation.ressourceId, id), enCoursDeDemande, dansLaPeriode(p.debut.slice(0, 10), p.fin.slice(0, 10))));
-	let etat: 'attente' | 'acceptee' = 'attente';
 	if (r.forme === 'jours') {
+		const prises = await base
+			.select({ debut: reservation.debut, fin: reservation.fin, quantite: reservation.quantite, etat: reservation.etat })
+			.from(reservation)
+			.where(and(eq(reservation.ressourceId, id), enCoursDeDemande, dansLaPeriode(p.debut, p.fin)));
 		const m = manque(r, prises, p, quantite);
 		if (m) throw new DonneeInvalide(m.restant === 0 ? `${r.nom} : il n’en reste plus le ${jourCourt(m.jour)}` : `${r.nom} : il en reste ${m.restant} le ${jourCourt(m.jour)}`);
-	} else if (!prises.some((x) => chevauche(x, p, 'creneau'))) etat = 'acceptee';
+	}
+	// Créneau : libre ou pris se décide à l'écriture même, pour que deux demandes simultanées ne soient pas toutes deux acceptées.
+	const chevauchement = sql`exists (select 1 from reservation x where x.ressource_id = ${id} and x.etat in ('attente', 'acceptee') and x.debut < ${p.fin} and ${p.debut} < x.fin)`;
+	const etat = r.forme === 'creneau' ? sql<EtatReservation>`case when ${chevauchement} then 'attente' else 'acceptee' end` : 'attente';
+	const derniere = sql`(select max(id) from reservation)`;
+	const demandeur = nomDemandeur ?? (await nomDe(base, acteur.id));
 
 	const [[cree]] = await base.batch([
 		base
 			.insert(reservation)
 			.values({ ressourceId: id, personneId: acteur.id, nomDemandeur, telephone, debut: p.debut, fin: p.fin, quantite, mot, etat, creeLe: maintenant })
-			.returning({ id: reservation.id }),
-		ligneJournal(base, { acteur: auteurDe(acteur), action: 'reserver', cibleType: 'reservation', cibleId: sql`last_insert_rowid()`, details: { ressourceId: id, etat } }, maintenant),
+			.returning({ id: reservation.id, etat: reservation.etat }),
+		ligneJournal(base, { acteur: auteurDe(acteur), action: 'reserver', cibleType: 'reservation', cibleId: derniere, details: { ressourceId: id } }, maintenant),
 		// Une demande à trancher sonne chez qui gère ; elle reste ensuite comptée dans leur cloche (nombreAValider).
-		...(etat === 'attente' ? [demandeAuxGestionnaires(base, acteur.id, r, { demandeur: nomDemandeur ?? (await nomDe(base, acteur.id)), quantite, ...p }, aujourdhui, maintenant)] : [])
+		demandeAuxGestionnaires(base, acteur.id, r, { demandeur, quantite, ...p }, sql`exists (select 1 from reservation where id = ${derniere} and etat = 'attente')`, aujourdhui, maintenant)
 	]);
-	return { id: cree!.id, etat };
+	return { id: cree!.id, etat: cree!.etat as 'attente' | 'acceptee' };
 }
 
 async function nomDe(base: Base, id: number): Promise<string> {
@@ -312,21 +316,35 @@ async function nomDe(base: Base, id: number): Promise<string> {
 	return `${p?.prenom ?? ''} ${p?.nom ?? ''}`.trim();
 }
 
-function demandeAuxGestionnaires(base: Base, demandeurId: number, r: Ressource, d: { demandeur: string; quantite: number; debut: string; fin: string }, aujourdhui: string, maintenant: string) {
+function demandeAuxGestionnaires(base: Base, demandeurId: number, r: Ressource, d: { demandeur: string; quantite: number; debut: string; fin: string }, si: SQL, aujourdhui: string, maintenant: string) {
 	const texte = [d.demandeur, ...(r.forme === 'jours' ? [String(d.quantite)] : []), periodeCourte(r.forme, d.debut, d.fin)].join(' · ');
 	const qui = base.select({ id: personne.id }).from(personne).where(and(inArray(personne.id, gestionnairesDe(base, r.id, aujourdhui)), ne(personne.id, demandeurId)));
-	return mettreEnFile(base, qui, 'reservations', { titre: `Demande de réservation · ${r.nom}`, texte, url: '/reservations/a-valider', tag: 'reservations-a-valider' }, maintenant);
+	return mettreEnFile(base, qui, 'reservations', { titre: `Demande de réservation · ${r.nom}`, texte, url: '/reservations/a-valider', tag: 'reservations-a-valider' }, maintenant, si);
 }
 
 const TITRES_AVIS = { acceptee: 'demande acceptée', refusee: 'demande refusée', annulee: 'réservation annulée' } as const;
 
-// Ce qu'apprend le demandeur d'une décision de qui gère : un avis dans sa cloche et un envoi au téléphone. Rien s'il a tranché lui-même.
+// Ce qu'apprend le demandeur d'une décision de qui gère : un avis dans sa cloche et un envoi au téléphone. Rien s'il a tranché lui-même,
+// ni si la décision n'a pas été écrite (un autre gestionnaire a tranché juste avant) : la réservation doit porter cette décision-ci.
 function prevenir(base: Base, acteur: Acteur, l: { id: number; personneId: number; ressourceNom: string; forme: FormeRessource; debut: string; fin: string }, quoi: keyof typeof TITRES_AVIS, motif: string | null, maintenant: string) {
 	if (l.personneId === moiDe(acteur)) return [];
 	const texte = [periodeCourte(l.forme, l.debut, l.fin), ...(motif ? [motif] : [])].join(' · ');
+	const decidee = and(eq(reservation.id, l.id), eq(reservation.etat, quoi), eq(reservation.trancheePar, auteurDe(acteur)), eq(reservation.trancheeLe, maintenant));
 	return [
-		base.insert(avisReservation).values({ personneId: l.personneId, reservationId: l.id, quoi, creeLe: maintenant }),
-		mettreEnFile(base, [l.personneId], 'reservations', { titre: `${l.ressourceNom} : ${TITRES_AVIS[quoi]}`, texte, url: '/reservations/miennes', tag: `reservation:${l.id}` }, maintenant)
+		base.insert(avisReservation).select(
+			base
+				.select({
+					id: sql<number | null>`null`.as('id'),
+					personneId: reservation.personneId,
+					reservationId: reservation.id,
+					quoi: sql<string>`${quoi}`.as('quoi'),
+					creeLe: sql<string>`${maintenant}`.as('cree_le'),
+					lueLe: sql<string | null>`null`.as('lue_le')
+				})
+				.from(reservation)
+				.where(decidee)
+		),
+		mettreEnFile(base, [l.personneId], 'reservations', { titre: `${l.ressourceNom} : ${TITRES_AVIS[quoi]}`, texte, url: '/reservations/miennes', tag: `reservation:${l.id}` }, maintenant, sql`exists ${base.select({ un: sql`1` }).from(reservation).where(decidee)}`)
 	];
 }
 
@@ -358,7 +376,7 @@ export async function accepter(base: Base, acteur: Acteur, id: number, maintenan
 	const enConflit = ecartees.map((a) => a.id);
 	if (l.forme === 'jours') {
 		const m = manque({ nom: l.ressourceNom, stock: l.stock }, autres, l, l.quantite);
-		if (m) throw new DonneeInvalide(`${l.ressourceNom} : il n’en reste que ${m.restant} le ${jourCourt(m.jour)}`);
+		if (m) throw new DonneeInvalide(m.restant === 0 ? `${l.ressourceNom} : il n’en reste plus le ${jourCourt(m.jour)}` : `${l.ressourceNom} : il n’en reste que ${m.restant} le ${jourCourt(m.jour)}`);
 	}
 	const qui = tranchee(acteur, maintenant);
 	await base.batch([
@@ -515,6 +533,18 @@ export async function ajouterRessource(base: Base, acteur: Acteur, d: { nom: str
 	return cree!.id;
 }
 
+// Le stock ne descend pas sous ce qui est déjà accepté, un jour à venir.
+async function exigerStockSuffisant(base: Base, id: number, stock: number, aujourdhui: string) {
+	const acceptees = await base
+		.select({ debut: reservation.debut, fin: reservation.fin, quantite: reservation.quantite, etat: reservation.etat })
+		.from(reservation)
+		.where(and(eq(reservation.ressourceId, id), eq(reservation.etat, 'acceptee'), sql`${reservation.fin} >= ${aujourdhui}`));
+	if (acceptees.length === 0) return;
+	const dernier = acceptees.reduce((a, b) => (b.fin > a ? b.fin : a), aujourdhui);
+	const plusPris = restantParJour(0, acceptees, aujourdhui, dernier).reduce((a, b) => (b.restant < a.restant ? b : a));
+	if (-plusPris.restant > stock) throw new DonneeInvalide(`Déjà ${-plusPris.restant} promis le ${jourCourt(plusPris.jour)} : annulez d’abord des réservations`);
+}
+
 // Nom, icône et, pour une ressource prise par jours, le stock.
 export async function modifierRessource(base: Base, acteur: Acteur, id: number, d: { nom: string; stock?: number; icone: string }, maintenant: string): Promise<void> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
@@ -523,6 +553,7 @@ export async function modifierRessource(base: Base, acteur: Acteur, id: number, 
 	const nom = exigerNom(d.nom);
 	const icone = exigerIcone(d.icone);
 	const stock = r.forme === 'jours' ? exigerStock(d.stock) : null;
+	if (stock !== null) await exigerStockSuffisant(base, id, stock, aujourdhui);
 	await exigerNomLibre(base, nom, id);
 	await base.batch([
 		base.update(ressource).set({ nom, icone, stock }).where(eq(ressource.id, id)),
@@ -548,6 +579,13 @@ export async function retirerRessource(base: Base, acteur: Acteur, id: number, m
 		ligneJournal(base, { acteur: auteurDe(acteur), action: 'retirer_ressource', cibleType: 'ressource', cibleId: id }, maintenant)
 	]);
 }
+
+// Au départ d'une personne : ses réservations à venir sont annulées (elles ne bloquent plus la VL ni le stock). Écriture à placer dans un batch.
+export const annulerAuDepart = (base: Base, personneId: number, maintenant: string) =>
+	base
+		.update(reservation)
+		.set({ etat: 'annulee', motif: 'Départ du demandeur', trancheeLe: maintenant })
+		.where(and(eq(reservation.personneId, personneId), enCoursDeDemande, sql`${reservation.fin} >= substr(${maintenant}, 1, length(${reservation.fin}))`));
 
 // Ménage de nuit : réservations finies avant `avant` (AAAA-MM-JJ).
 export async function effacerVieillesReservations(base: Base, avant: string): Promise<void> {

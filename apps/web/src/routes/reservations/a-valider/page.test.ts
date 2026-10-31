@@ -7,7 +7,7 @@ const { default: Page } = await import('./+page.svelte');
 const res = (r: Record<string, unknown>) => ({ id: 1, ressourceId: 2, ressource: 'Bancs', forme: 'jours', debut: '2026-11-12', fin: '2026-11-14', quantite: 4, mot: 'Anniversaire', etat: 'attente', demandeur: 'Alice Test', nomDemandeur: null, telephone: null, motif: null, creeLe: 'x', mienne: false, annulable: false, ...r });
 const html = (data: Record<string, unknown>, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { form, data: { demandes: [], acceptees: [], ...data } } }).body;
+	render(Page as any, { props: { form, data: { demandes: [], acceptees: [], maintenant: '2026-11-07T10:00', ...data } } }).body;
 
 describe('page « À valider »', () => {
 	it('rien en attente : un écran vide', () => {
@@ -32,13 +32,13 @@ describe('page « À valider »', () => {
 				}
 			]
 		});
-		expect(page).toMatch(/Déjà réservée sur ce créneau[\s\S]*?Mme Durand[\s\S]*?7 nov\., 9 h – 12 h/);
+		expect(page).toMatch(/Déjà réservée sur ce créneau[\s\S]*?Mme Durand[\s\S]*?7 nov\., 9 h – 12 h · en cours/);
 		expect(page).toMatch(/action="\?\/accepter"[\s\S]*?Garder cette demande/);
 		expect(page).toMatch(/action="\?\/refuser"[\s\S]*?name="motif" value="Créneau déjà réservé"[\s\S]*?Garder l’autre/);
 	});
 
 	it('les acceptées à venir, avec « Annuler » et un mot pour le demandeur ; téléphone de la réserve citoyenne', () => {
 		const page = html({ acceptees: [res({ id: 5, etat: 'acceptee', nomDemandeur: 'Mme Durand', demandeur: 'Mme Durand', telephone: '06 00' })] });
-		expect(page).toMatch(/<h2[^>]*>Acceptées à venir<\/h2>[\s\S]*?Demandé par Mme Durand[\s\S]*?href="tel:06 00"[\s\S]*?<summary[^>]*>Annuler[\s\S]*?action="\?\/annuler"[\s\S]*?name="mot"/);
+		expect(page).toMatch(/<h2[^>]*>Acceptées à venir<\/h2>[\s\S]*?Demandé par Mme Durand · réserve citoyenne[\s\S]*?href="tel:06 00"[\s\S]*?<summary[^>]*>Annuler[\s\S]*?action="\?\/annuler"[\s\S]*?name="mot"/);
 	});
 });
