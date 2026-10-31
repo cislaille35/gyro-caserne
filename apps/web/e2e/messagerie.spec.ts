@@ -247,9 +247,11 @@ test('Mon profil : « Montrer quand j’ai lu les messages », décochée puis r
 	await axe(page);
 	for (const coche of [false, true]) {
 		await caseCoches.setChecked(coche);
-		await page.getByRole('button', { name: 'Enregistrer' }).click();
+		// Attendre la réponse de cet envoi : le message du précédent peut encore être à l'écran.
+		await Promise.all([page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/profil'), page.getByRole('button', { name: 'Enregistrer' }).click()]);
 		await expect(page.getByText('Profil enregistré')).toBeVisible();
-		await page.reload();
+		// Relire par une nouvelle visite : recharger renverrait le formulaire.
+		await page.goto('/profil');
 		if (coche) await expect(caseCoches).toBeChecked();
 		else await expect(caseCoches).not.toBeChecked();
 	}
