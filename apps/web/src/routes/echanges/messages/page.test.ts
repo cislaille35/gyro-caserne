@@ -1,6 +1,8 @@
 import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 
+// L'heure s'affiche pour un message du jour : on fige l'horloge au jour des données.
+vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-29T12:00:00') });
 vi.mock('$app/navigation', () => ({ invalidate: () => {} }));
 const { default: Page } = await import('./+page.svelte');
 
