@@ -6,6 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import {
 	accepter,
+	acceptees,
 	aValider,
 	ajouterRessource,
 	annuler,
@@ -168,6 +169,19 @@ describe('trancher', () => {
 		await modifierRessource(base, romain, bancs, { nom: 'Bancs', stock: 10, icone: 'groupe' }, maintenant);
 		await expect(accepter(base, romain, b2, maintenant)).rejects.toThrow(new DonneeInvalide('Bancs : il n’en reste que 2 le 12 nov.'));
 		expect(await etat(base, b1)).toMatchObject({ etat: 'acceptee' });
+	});
+
+	it('les réservations acceptées à venir des ressources que l’on gère (pour pouvoir les annuler)', async () => {
+		const { base, alice, romain, remi, bancs, vl } = await preparer();
+		const { id: b } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		await reserver(base, alice, bancs, { debut: '2026-11-13', fin: '2026-11-13', quantite: 2 }, maintenant);
+		await accepter(base, romain, b, maintenant);
+		const { id: v } = await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		expect((await acceptees(base, romain, aujourdhui)).map((r) => r.id)).toEqual([b]);
+		expect((await acceptees(base, remi, aujourdhui)).map((r) => r.id)).toEqual([v]);
+		expect((await acceptees(base, superAdmin, aujourdhui)).map((r) => r.id)).toEqual([v, b]);
+		expect(await acceptees(base, alice, aujourdhui)).toEqual([]);
+		expect(await acceptees(base, romain, '2026-11-13')).toEqual([]);
 	});
 
 	it('perdre son rôle, c’est perdre la gestion', async () => {

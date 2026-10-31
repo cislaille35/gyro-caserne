@@ -32,6 +32,8 @@ import { load as reservations } from './reservations/+page.server';
 import { load as ressourcePage } from './reservations/[id]/+page.server';
 import { actions as actionsReserver, load as pageReserver } from './reservations/[id]/reserver/+page.server';
 import { actions as actionsMiennes, load as miennes } from './reservations/miennes/+page.server';
+import { actions as actionsAValider, load as pageAValider } from './reservations/a-valider/+page.server';
+import { load as pageMateriel } from './reservations/materiel/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -458,5 +460,28 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
 		});
 		expect(m, 'annuler').toBeLessThanOrEqual(BUDGET);
+
+		// Le super administrateur gère tout : À valider (20 demandes de bancs), Gérer le matériel, l'accueil ; accepter une demande.
+		const gestion = { ...locals, acteur: { type: 'super' as const, email: 'a@b.fr' } };
+		const pagesGestion: [string, () => Promise<unknown>][] = [
+			['/reservations/a-valider', () => (pageAValider as any)({ locals: gestion })],
+			['/reservations/materiel', () => (pageMateriel as any)({ locals: gestion, url: new URL('http://localhost/reservations/materiel') })],
+			['/', () => (accueil as any)({ locals: gestion, url: new URL('http://localhost/') })]
+		];
+		for (const [nom, page] of pagesGestion) {
+			const k = await compter(async () => {
+				await (racine as any)({ locals: gestion });
+				await page();
+			});
+			expect(k, nom).toBeLessThanOrEqual(BUDGET);
+		}
+		const { demandes } = await (pageAValider as any)({ locals: gestion });
+		expect(demandes.length).toBeGreaterThanOrEqual(20);
+		const a = await compter(async () => {
+			expect(await (actionsAValider.accepter as any)({ locals: gestion, request: await requeteFormulaire([['id', String(demandes[0].demande.id)]]) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals: gestion });
+			await (pageAValider as any)({ locals: gestion });
+		});
+		expect(a, 'accepter').toBeLessThanOrEqual(BUDGET);
 	});
 });

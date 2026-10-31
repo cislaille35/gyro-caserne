@@ -88,15 +88,23 @@ describe('accueil', () => {
 
 	it('rôle : ce qu’il permet, en phrases', () => {
 		const role = { id: 'role:7', nom: 'Référent pharmacie', icone: 'croix', compte: 0 };
-		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: ['Gérer le stock et la pharmacie.'] } })).toContain('Gérer le stock et la pharmacie.');
-		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: [] } })).toContain('Ce rôle n’ajoute rien à ce que fait tout agent.');
+		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: ['Gérer le stock et la pharmacie.'], aDecider: [] } })).toContain('Gérer le stock et la pharmacie.');
+		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: [], aDecider: [] } })).toContain('Ce rôle n’ajoute rien à ce que fait tout agent.');
+	});
+
+	it('rôle ou comité qui gère une ressource : ses demandes de réservation « À décider », en tête', () => {
+		const aDecider = [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }];
+		const amicale = page({ casquettes: [astreinte, { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 1 }], choisie: 'comite:2', contenu: { type: 'comite', membres: [], aDecider } });
+		expect(amicale).toMatch(/<h2[^>]*>À décider[\s\S]*?href="\/reservations\/a-valider"[\s\S]*?Bancs · 4 · du 12 au 14 nov\. · Alice Test[\s\S]*?Membres/);
+		const engins = page({ casquettes: [astreinte, { id: 'role:6', nom: 'Référent engins', icone: 'camion', compte: 0 }], choisie: 'role:6', contenu: { type: 'role', permet: [], aDecider: [] } });
+		expect(engins).not.toContain('À décider');
 	});
 
 	it('comité : membres et rapporteur', () => {
 		const html = page({
 			casquettes: [astreinte, { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 0 }],
 			choisie: 'comite:2',
-			contenu: { type: 'comite', membres: [{ personneId: 4, prenom: 'Bruno', nom: 'Petit', role: 'Rapporteur de comité' }, { personneId: 5, prenom: 'Bruno', nom: 'Petit', role: 'Membre de comité' }] }
+			contenu: { type: 'comite', membres: [{ personneId: 4, prenom: 'Bruno', nom: 'Petit', role: 'Rapporteur de comité' }, { personneId: 5, prenom: 'Bruno', nom: 'Petit', role: 'Membre de comité' }], aDecider: [] }
 		});
 		expect(html).toContain('Bruno Petit');
 		expect(html).toContain('Rapporteur de comité');

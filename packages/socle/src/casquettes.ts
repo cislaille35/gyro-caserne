@@ -1,10 +1,11 @@
-import { and, asc, eq, gte, isNull, lte, ne, or } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
 import { iconeDuRole, type NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
-import { attribution, comite, equipe, personne, profil, responsabilite, responsabiliteDroit } from './schema.ts';
+import { periodeCourte } from './reservations-calcul.ts';
+import { attribution, comite, equipe, personne, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
 export type Casquette = { id: string; nom: string; icone: NomIcone; compte: number };
@@ -13,8 +14,8 @@ export type ContenuCasquette =
 	| { type: 'centre'; aDecider: ADecider[] }
 	| { type: 'astreinte' }
 	| { type: 'equipe' }
-	| { type: 'role'; permet: string[] }
-	| { type: 'comite'; membres: { personneId: number; prenom: string; nom: string; role: string }[] };
+	| { type: 'role'; permet: string[]; aDecider: ADecider[] }
+	| { type: 'comite'; membres: { personneId: number; prenom: string; nom: string; role: string }[]; aDecider: ADecider[] };
 export type Accueil = { casquettes: Casquette[]; choisie: string; contenu: ContenuCasquette };
 
 const enCoursLe = (aujourdhui: string) => and(lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui)));
@@ -67,14 +68,56 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 	];
 }
 
-// Les casquettes et, pour « Le centre », ce qui est à décider : chaque lecture une seule fois.
-async function lire(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null }> {
+// Les casquettes et ce qui est à décider : pour « Le centre », l'organisation ; pour un rôle ou un comité qui gère une ressource,
+// les demandes de réservation en attente. Chaque lecture une seule fois.
+async function lire(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
 	const aDecider = liste.some((c) => c.id === 'centre') ? await lireADecider(base, aujourdhui) : null;
-	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : 0 })), aDecider };
+	const reservations = await demandesParCasquette(base, liste, aujourdhui);
+	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : (reservations.get(c.id)?.length ?? 0) })), aDecider, reservations };
 }
 
-// Ordre : centre, chef d'équipe, astreinte, référents, comités. Seul « Le centre » a déjà de quoi compter.
+// Les demandes de réservation en attente des ressources gérées par les rôles et comités tenus ; aucune lecture s'il n'y en a pas.
+async function demandesParCasquette(base: Base, liste: Omit<Casquette, 'compte'>[], aujourdhui: string): Promise<Map<string, ADecider[]>> {
+	const ids = (prefixe: string) => liste.filter((c) => c.id.startsWith(prefixe)).map((c) => Number(c.id.slice(prefixe.length)));
+	const roles = ids('role:');
+	const comites = ids('comite:');
+	const parCasquette = new Map<string, ADecider[]>();
+	if (roles.length === 0 && comites.length === 0) return parCasquette;
+	const lignes = await base
+		.select({
+			roleId: ressource.gereeParResponsabiliteId,
+			comiteId: ressource.gereeParComiteId,
+			ressource: sql<string>`${ressource.nom}`.as('ressource'),
+			forme: ressource.forme,
+			debut: reservation.debut,
+			fin: reservation.fin,
+			quantite: reservation.quantite,
+			nomDemandeur: reservation.nomDemandeur,
+			prenom: personne.prenom,
+			nom: personne.nom
+		})
+		.from(reservation)
+		.innerJoin(ressource, eq(ressource.id, reservation.ressourceId))
+		.innerJoin(personne, eq(personne.id, reservation.personneId))
+		.where(
+			and(
+				eq(reservation.etat, 'attente'),
+				isNull(ressource.retireeLe),
+				sql`substr(${reservation.fin}, 1, 10) >= ${aujourdhui}`,
+				or(inArray(ressource.gereeParResponsabiliteId, roles.length > 0 ? roles : [0]), inArray(ressource.gereeParComiteId, comites.length > 0 ? comites : [0]))
+			)
+		)
+		.orderBy(asc(reservation.debut), asc(reservation.id));
+	for (const l of lignes) {
+		const id = l.roleId !== null ? `role:${l.roleId}` : `comite:${l.comiteId}`;
+		const texte = [l.ressource, ...(l.forme === 'jours' ? [String(l.quantite)] : []), periodeCourte(l.forme, l.debut, l.fin), l.nomDemandeur ?? `${l.prenom} ${l.nom}`].join(' · ');
+		parCasquette.set(id, [...(parCasquette.get(id) ?? []), { texte, lien: '/reservations/a-valider' }]);
+	}
+	return parCasquette;
+}
+
+// Ordre : centre, chef d’équipe, astreinte, référents, comités. Comptent : « Le centre », et les rôles et comités qui gèrent une ressource.
 export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string): Promise<Casquette[]> {
 	return (await lire(base, acteur, aujourdhui)).casquettes;
 }
@@ -87,9 +130,9 @@ export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string): 
 
 // L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
 export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string): Promise<Accueil> {
-	const { casquettes, aDecider } = await lire(base, acteur, aujourdhui);
+	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui);
 	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
-	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, aujourdhui) };
+	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui) };
 }
 
 async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]> {
@@ -150,7 +193,7 @@ const DOMAINES: [Droit, string][][] = [
 ];
 
 // Le contenu d'une casquette déjà vérifiée comme tenue.
-async function contenu(base: Base, id: string, aDecider: ADecider[] | null, aujourdhui: string): Promise<ContenuCasquette> {
+async function contenu(base: Base, id: string, aDecider: ADecider[] | null, reservations: ADecider[], aujourdhui: string): Promise<ContenuCasquette> {
 	if (id === 'centre') return { type: 'centre', aDecider: aDecider! };
 	if (id === 'astreinte') return { type: 'astreinte' };
 	const [type, numero] = id.split(':') as ['equipe' | 'role' | 'comite', string];
@@ -159,7 +202,7 @@ async function contenu(base: Base, id: string, aDecider: ADecider[] | null, aujo
 	if (type === 'role') {
 		const droits = (await base.select({ droit: responsabiliteDroit.droit }).from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, Number(numero)))).map((d) => d.droit);
 		const permet = DOMAINES.flatMap((niveaux) => niveaux.find(([droit]) => droits.includes(droit))?.[1] ?? []);
-		return { type: 'role', permet };
+		return { type: 'role', permet, aDecider: reservations };
 	}
 
 	const lignes = await base
@@ -175,5 +218,5 @@ async function contenu(base: Base, id: string, aDecider: ADecider[] | null, aujo
 		const deja = membres.get(l.personneId);
 		membres.set(l.personneId, deja ? { ...deja, role: `${deja.role} · ${l.role}` } : l);
 	}
-	return { type: 'comite', membres: [...membres.values()] };
+	return { type: 'comite', membres: [...membres.values()], aDecider: reservations };
 }

@@ -5,7 +5,8 @@ import { accueilDe, aDecider, casquettesDe } from '../src/casquettes.ts';
 import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { attribution, comite, equipe, grade, personne, profil, responsabilite } from '../src/schema.ts';
+import { ajouterRessource, refuser, reserver } from '../src/reservations.ts';
+import { attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -216,10 +217,11 @@ describe('accueilDe', () => {
 		const id = await nouvelle('Bruno');
 		await nommer(id, role('Référent engins'), { type: 'centre' });
 		await nommer(id, role('Référent technique'), { type: 'centre' });
-		expect((await accueilDe(base, acteur(id), `role:${role('Référent engins')}`, aujourdhui)).contenu).toEqual({ type: 'role', permet: ['Gérer les engins et les anomalies.'] });
+		expect((await accueilDe(base, acteur(id), `role:${role('Référent engins')}`, aujourdhui)).contenu).toEqual({ type: 'role', permet: ['Gérer les engins et les anomalies.'], aDecider: [] });
 		expect((await accueilDe(base, acteur(id), `role:${role('Référent technique')}`, aujourdhui)).contenu).toEqual({
 			type: 'role',
-			permet: ['Gérer les comités.', 'Gérer les responsabilités.']
+			permet: ['Gérer les comités.', 'Gérer les responsabilités.'],
+			aDecider: []
 		});
 	});
 
@@ -239,7 +241,8 @@ describe('accueilDe', () => {
 			membres: [
 				{ personneId: alice, prenom: 'Alice', nom: 'Test', role: 'Membre de comité' },
 				{ personneId: bruno, prenom: 'Bruno', nom: 'Test', role: 'Rapporteur de comité' }
-			]
+			],
+			aDecider: []
 		});
 	});
 
@@ -253,6 +256,32 @@ describe('accueilDe', () => {
 		await nommer(alice, role('Membre de comité'), { type: 'comite', id: idComite('Amicale') });
 		await base.update(comite).set({ dissousLe: '2026-06-01' }).where(eq(comite.id, idComite('Amicale')));
 		expect(await accueilDe(base, acteur(alice), `comite:${idComite('Amicale')}`, aujourdhui)).toMatchObject({ choisie: 'astreinte', contenu: { type: 'astreinte' } });
+	});
+
+	it('qui gère une ressource : ses demandes de réservation à décider, comptées sur sa casquette (comité ou rôle)', async () => {
+		const { base, role, idComite, nouvelle, nommer } = await jeu();
+		const alice = await nouvelle('Alice');
+		const bruno = await nouvelle('Bruno');
+		const remi = await nouvelle('Remi');
+		const amicale = idComite('Amicale');
+		await nommer(bruno, role('Membre de comité'), { type: 'comite', id: amicale });
+		await nommer(remi, role('Référent engins'), { type: 'centre' });
+		const maintenant = `${aujourdhui}T10:00`;
+		const bancs = await ajouterRessource(base, acteur(bruno), { nom: 'Bancs', stock: 12, icone: 'groupe', comiteId: amicale }, maintenant);
+		const [vl] = await base.select().from(ressource).where(eq(ressource.forme, 'creneau'));
+		await reserver(base, acteur(alice), bancs, { debut: '2026-11-12', fin: '2026-11-14', quantite: 4 }, maintenant);
+		const { id: refusee } = await reserver(base, acteur(alice), bancs, { debut: '2026-11-20', fin: '2026-11-20', quantite: 1 }, maintenant);
+		await refuser(base, acteur(bruno), refusee, null, maintenant);
+		await reserver(base, acteur(alice), vl!.id, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		await reserver(base, acteur(bruno), vl!.id, { debut: '2026-11-07T10:00', fin: '2026-11-07T11:00' }, maintenant);
+
+		const deBruno = await accueilDe(base, acteur(bruno), null, aujourdhui);
+		expect(deBruno.casquettes.find((c) => c.id === `comite:${amicale}`)!.compte).toBe(1);
+		expect(deBruno).toMatchObject({ choisie: `comite:${amicale}`, contenu: { type: 'comite', aDecider: [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }] } });
+		const deRemi = await accueilDe(base, acteur(remi), null, aujourdhui);
+		expect(deRemi).toMatchObject({ choisie: `role:${role('Référent engins')}`, contenu: { type: 'role', aDecider: [{ texte: 'VL · 7 nov., 10 h – 11 h · Bruno Test', lien: '/reservations/a-valider' }] } });
+		// Alice, sans rien à gérer : aucune requête de plus, rien à décider.
+		expect((await casquettesDe(base, acteur(alice), aujourdhui)).every((c) => c.compte === 0)).toBe(true);
 	});
 
 	it('par défaut : où quelque chose attend, sinon la principale ; centre : « À décider » lu une fois', async () => {

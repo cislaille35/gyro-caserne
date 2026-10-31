@@ -445,6 +445,18 @@ export async function aValider(base: Base, acteur: Acteur, aujourdhui: string): 
 	}));
 }
 
+const ACCEPTEES_MAX = 50;
+
+// Les réservations acceptées, pas encore finies, des ressources que l'acteur gère : il peut les annuler.
+export async function acceptees(base: Base, acteur: Acteur, aujourdhui: string): Promise<VueReservation[]> {
+	exigerDate(aujourdhui);
+	const lignes = await lignesReservations(base)
+		.where(and(eq(reservation.etat, 'acceptee'), isNull(ressource.retireeLe), sql`substr(${reservation.fin}, 1, 10) >= ${aujourdhui}`, jeGereSql(acteur, aujourdhui)))
+		.orderBy(asc(reservation.debut), asc(reservation.id))
+		.limit(ACCEPTEES_MAX);
+	return lignes.map((l) => vue(l, moiDe(acteur), true, `${aujourdhui}T00:00`));
+}
+
 // Le nombre de demandes à trancher par l'acteur : une requête (la cloche).
 export async function nombreAValider(base: Base, acteur: Acteur, aujourdhui: string): Promise<number> {
 	exigerDate(aujourdhui);
