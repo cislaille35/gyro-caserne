@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { regrouper } from '../a-faire.ts';
@@ -24,7 +25,6 @@
 		ok: 'M5 12.5l4.5 4.5L19 7'
 	};
 	const lien = (i: ItemANePasManquer) => `/echanges/${i.cle}/${i.id}`;
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const debut = (iso: string) =>
 		new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));

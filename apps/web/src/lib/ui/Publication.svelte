@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import type { PublicationVue } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
@@ -48,7 +49,6 @@
 	const convoques = $derived(
 		!p.evenement || p.evenement.convoques === 'tous' ? 'tout le mur' : p.evenement.convoques.map((id) => equipes.find((e) => e.id === id)?.nom ?? 'équipe archivée').join(', ')
 	);
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const lien = $derived(`/echanges/${p.cle}/${p.id}`);
 	const prive = $derived(messagerie && p.auteur.ecrireA !== null ? `/echanges/messages/a/${p.auteur.ecrireA}?publication=${p.id}` : null);
 	const auteurDeLAnnonce = $derived(p.droits.modifier);

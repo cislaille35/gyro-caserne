@@ -1,22 +1,17 @@
 import { redirect } from '@sveltejs/kit';
-import { aDecider, RefusDroit, vueEffectif } from '@gyro-caserne/socle';
+import { ceQueJePeuxAttribuer, titulairesDesMiens, vueEffectif } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+import { aPourvoir, avecTitulaires } from '#lib/nominations.ts';
 import type { PageServerLoad } from './$types';
 
-// Les droits (Nominations, Réglages) viennent du layout. Ici, des chiffres utiles : l'effectif, et ce qui est à pourvoir pour qui décide.
+// Les droits (Nominations, Réglages) viennent du layout. Ici, des chiffres utiles : l'effectif, et, pour qui peut nommer, les rôles à pourvoir (comme sur Nominations).
 export const load: PageServerLoad = async ({ locals }) => {
 	const { acteur, base } = locals;
 	if (!acteur) redirect(303, '/connexion');
 	const aujourdhui = aujourdhuiParis();
-	const [groupes, decider] = await Promise.all([
-		vueEffectif(base, aujourdhui),
-		aDecider(base, acteur, aujourdhui).catch((erreur) => {
-			if (erreur instanceof RefusDroit) return null;
-			throw erreur;
-		})
-	]);
+	const [groupes, roles] = await Promise.all([vueEffectif(base, aujourdhui), ceQueJePeuxAttribuer(base, acteur, aujourdhui)]);
 	return {
 		agents: groupes.filter((g) => g.cle !== 'exterieurs').reduce((n, g) => n + g.personnes.length, 0),
-		aPourvoir: decider === null ? null : decider.filter((d) => d.lien === '/nominations').length
+		aPourvoir: roles.length === 0 ? null : aPourvoir(avecTitulaires(roles, await titulairesDesMiens(base, acteur, aujourdhui)))
 	};
 };

@@ -2,7 +2,7 @@
 	import type { Apercu } from '@gyro-caserne/socle';
 	import type { CompteRendu } from '#lib/fichier-effectif/appliquer.ts';
 	import Carte from '#lib/ui/Carte.svelte';
-	import { compter } from './textes.ts';
+	import { pluriel } from '#lib/pluriel.ts';
 
 	let { compte, departs }: { compte: CompteRendu; departs: Apercu['departs'] } = $props();
 
@@ -29,17 +29,17 @@
 		{#if compte.interruption}
 			<p class="arret"><strong>Application arrêtée : {ARRETS[compte.interruption]}.</strong></p>
 		{/if}
-		<p>{compte.appliquees === 0 ? 'Aucune opération appliquée.' : `${compter(compte.appliquees, 'opération appliquée', 'opérations appliquées')}.`}</p>
+		<p>{compte.appliquees === 0 ? 'Aucune opération appliquée.' : `${pluriel(compte.appliquees, 'opération appliquée', 'opérations appliquées')}.`}</p>
 		{#if compte.erreurs.length > 0}
 			<section>
-				<h3>{compter(compte.erreurs.length, 'erreur', 'erreurs')}</h3>
+				<h3>{pluriel(compte.erreurs.length, 'erreur', 'erreurs')}</h3>
 				<ul>
 					{#each compte.erreurs as e, i (i)}<li>{libelle(e)}</li>{/each}
 				</ul>
 			</section>
 		{/if}
 		{#if compte.nonTentees.length > 0}
-			<p>{compter(compte.nonTentees.length, 'opération non tentée', 'opérations non tentées')} : {nonTentees}.</p>
+			<p>{pluriel(compte.nonTentees.length, 'opération non tentée', 'opérations non tentées')} : {nonTentees}.</p>
 		{/if}
 		<p class="rappel"><strong>Réexportez avant le prochain import.</strong></p>
 	</div>

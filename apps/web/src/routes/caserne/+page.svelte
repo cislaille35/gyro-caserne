@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
@@ -7,7 +8,6 @@
 
 	let { data } = $props();
 
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
 		...(data.peutNominations

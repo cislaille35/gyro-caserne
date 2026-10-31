@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import type { InfosConversation } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -21,7 +22,6 @@
 	const icone = $derived<Icone>(infos.icone && infos.icone in ICONES_ROLES ? (infos.icone as Icone) : 'groupe');
 	const nomComplet = (m: Membre) => `${m.prenom} ${m.nom}`;
 	const sous = (m: Membre) => m.role ?? (m.equipe ? `Équipe ${m.equipe.numero}` : '');
-	const pluriel = (n: number) => `${n} membre${n > 1 ? 's' : ''}`;
 	const chiffres = (tel: string) => tel.replace(/[^\d+]/g, '');
 	const retourInfos = $derived(`/echanges/messages/${data.id}/infos`);
 	const erreur = $derived(form?.message && form.cible !== 'renommer' ? form.message : '');
@@ -151,7 +151,7 @@
 		</section>
 
 		<section class="carte" aria-labelledby="t-membres">
-			<h2 id="t-membres" tabindex="-1">{pluriel(infos.membres.length)}</h2>
+			<h2 id="t-membres" tabindex="-1">{pluriel(infos.membres.length, 'membre')}</h2>
 			{#if infos.moiAnimateur}
 				<a class="ligne ajouter" href="/echanges/messages/nouveau/groupe?ajouter={data.id}">
 					<span class="plus" aria-hidden="true">+</span>

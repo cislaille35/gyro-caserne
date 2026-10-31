@@ -29,6 +29,13 @@ describe('/moi', () => {
 		expect(html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: null, role: 'Chef de centre', equipe: null } })).toContain('Chef de centre');
 	});
 
+	it('sans grade, équipe ni rôle : le nom seul, rien d’inventé', () => {
+		const page = html({ estPersonne: true, identite: { prenom: 'Paul', nom: 'Neuf', grade: null, role: null, equipe: null } });
+		expect(page).toContain('Paul Neuf');
+		expect(page).not.toContain('Agent du centre');
+		expect(page).not.toMatch(/<p class="doux[^"]*">\s*<\/p>/);
+	});
+
 	it('la carte vient de l’effectif ; rien pour le super administrateur', async () => {
 		const { base, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,6 +7,8 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
+	import { aPourvoir } from '#lib/nominations.ts';
+	import { pluriel } from '#lib/pluriel.ts';
 
 	let { data, form } = $props();
 
@@ -32,8 +34,8 @@
 	// La réussite s'annonce dans la carte du rôle, même si le titulaire a quitté la liste.
 	const annonce = (role: number) => (form?.succes && (form.role === role || concerne(`attribuer-${role}`)) ? form.message : null);
 
-	const aPourvoir = $derived(data.roles.filter((r) => r.titulaires.length === 0).length);
-	const phrase = $derived(aPourvoir === 0 ? 'Qui tient quel rôle. Chaque rôle a son titulaire.' : `Qui tient quel rôle. ${aPourvoir} ${aPourvoir > 1 ? 'rôles' : 'rôle'} à pourvoir.`);
+	const vides = $derived(aPourvoir(data.roles));
+	const phrase = $derived(vides === 0 ? 'Qui tient quel rôle. Chaque rôle a son titulaire.' : `Qui tient quel rôle. ${pluriel(vides, 'rôle')} à pourvoir.`);
 
 	// Recherche d'un rôle ou d'un agent, sans accents ni majuscules.
 	let recherche = $derived(data.recherche);

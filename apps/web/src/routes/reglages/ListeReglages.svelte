@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { iconeDuComite, iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { DOMAINES, estPersonnalise, niveauxDe } from '#lib/paquets.ts';
@@ -22,7 +23,6 @@
 	const archives = $derived((data.responsabilites ?? []).filter((r) => r.archiveeLe !== null));
 	const dissous = $derived((data.comites ?? []).filter((c) => c.dissousLe !== null));
 
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	function resumeProfil(droits: string[]): string {
 		const niveaux = niveauxDe(droits as Droit[]);
 		const dits = DOMAINES.filter((d) => niveaux[d.id] !== 0).map((d) => {

@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { ceQueJePeuxAttribuer, titulairesDe, titulairesDesMiens, vueEffectif } from '@gyro-caserne/socle';
 import { finir, nommer, terminer } from '#lib/server/actions-attribution.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+import { avecTitulaires } from '#lib/nominations.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 // Ouvert à quiconque peut attribuer au moins une responsabilité ; le socle décide du reste.
@@ -18,8 +19,7 @@ const entier = (brut: FormDataEntryValue | null) => (/^\d+$/.test(String(brut ??
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { acteur, base, aujourdhui, peutAttribuer } = await exigerNominateur(locals);
-	const titulaires = await titulairesDesMiens(base, acteur, aujourdhui);
-	const roles = peutAttribuer.map((r) => ({ ...r, titulaires: titulaires.get(r.responsabiliteId) ?? [] }));
+	const roles = avecTitulaires(peutAttribuer, await titulairesDesMiens(base, acteur, aujourdhui));
 	// Nom et équipe seulement : pas de donnée de gestion pour un rapporteur.
 	const agents = (await vueEffectif(base, aujourdhui))
 		.flatMap((g) => g.personnes.map((p) => ({ id: p.id, nom: `${p.prenom} ${p.nom}`, equipe: g.titre })))

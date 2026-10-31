@@ -8,7 +8,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Apercu from './Apercu.svelte';
 	import CompteRendu from './CompteRendu.svelte';
-	import { compter } from './textes.ts';
+	import { pluriel } from '#lib/pluriel.ts';
 
 	let { data } = $props();
 
@@ -121,7 +121,7 @@
 		occupe = false;
 		etape = 'fini';
 		focaliser('titre-compte-rendu');
-		annonce = `Import ${compte.interruption ? 'arrêté' : 'terminé'} : ${compter(compte.appliquees, 'opération appliquée', 'opérations appliquées')}, ${compter(compte.erreurs.length, 'erreur', 'erreurs')}.`;
+		annonce = `Import ${compte.interruption ? 'arrêté' : 'terminé'} : ${pluriel(compte.appliquees, 'opération appliquée', 'opérations appliquées')}, ${pluriel(compte.erreurs.length, 'erreur', 'erreurs')}.`;
 	}
 
 	function abandonner() {

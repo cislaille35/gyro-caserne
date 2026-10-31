@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { rechercheListe } from '#lib/liste-agents.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -15,9 +16,9 @@
 	type Personne = { id: number; prenom: string; nom: string; grade: string | null; roles: string[]; statut?: StatutPersonne; aCompleter?: boolean };
 
 	const enfant = $derived(page.url.pathname !== '/agents');
-	const pluriel = (n: number) => `${n} ${n > 1 ? 'agents' : 'agent'}`;
+	const agents = (n: number) => pluriel(n, 'agent');
 	const resume = (n: number, equipe: { chefs: string[] } | null) =>
-		!equipe ? pluriel(n) : equipe.chefs.length === 0 ? `${pluriel(n)} · sans chef d’équipe` : `${pluriel(n)} · chef : ${equipe.chefs.join(', ')}`;
+		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef d’équipe` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Les partis restent repliés, sauf quand on les cherche.
 	const ouvert = (cle: string) => cle !== 'partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
 	const filtres = $derived(

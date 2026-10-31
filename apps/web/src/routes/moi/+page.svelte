@@ -29,7 +29,7 @@
 			<Visage prenom={id.prenom} nom={id.nom} couleur={id.equipe?.couleur ?? null} taille={52} />
 			<div class="qui">
 				<p class="nom">{id.prenom} {id.nom}</p>
-				<p class="doux">{details || id.role || 'Agent du centre'}</p>
+				{#if details || id.role}<p class="doux">{details || id.role}</p>{/if}
 			</div>
 		{:else if !data.estPersonne}
 			<IconeRole icone="cle" taille={52} />

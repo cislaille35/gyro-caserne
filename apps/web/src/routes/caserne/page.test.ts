@@ -2,6 +2,7 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
 import { load } from './+page.server';
+import { load as nominations } from '../nominations/+page.server';
 import { preparer } from '../echanges/de-test.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,15 +15,18 @@ describe('/caserne', () => {
 		await expect((load as any)({ locals: { acteur: null } })).rejects.toMatchObject({ status: 303, location: '/connexion' });
 	});
 
-	it('l’effectif pour tous ; ce qui est à pourvoir seulement pour le chef de centre', async () => {
+	it('l’effectif pour tous ; ce qui est à pourvoir pour qui peut nommer, le même compte que la page Nominations', async () => {
 		const { base, chef, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		const pourAlice = await charger(alice);
-		expect(pourAlice).toEqual({ agents: 3, aPourvoir: null });
+		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null });
 		const pourLeChef = await charger(chef);
 		expect(pourLeChef.agents).toBe(3);
-		expect(pourLeChef.aPourvoir).toBeGreaterThan(0);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { roles } = await (nominations as any)({ locals: { base, acteur: chef }, url: new URL('http://x/nominations') });
+		const vides = roles.filter((r: { titulaires: unknown[] }) => r.titulaires.length === 0).length;
+		expect(vides).toBeGreaterThan(0);
+		expect(pourLeChef.aPourvoir).toBe(vides);
 	});
 
 	it('agent ordinaire : « Agents », sans « Nominations » ni « Réglages »', () => {
