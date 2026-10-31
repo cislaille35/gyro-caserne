@@ -231,6 +231,8 @@ describe('lectures', () => {
 		expect(vue.reservations).toMatchObject([{ demandeur: 'Mme Durand', telephone: null, etat: 'acceptee', mienne: false, debut: '2026-11-07T09:00' }]);
 		expect((await calendrier(base, remi, vl, '2026-11-02', '2026-11-08', aujourdhui)).reservations[0]).toMatchObject({ telephone: '0600' });
 		expect((await calendrier(base, estelle, vl, '2026-11-02', '2026-11-08', aujourdhui)).reservations[0]).toMatchObject({ telephone: '0600', mienne: true, annulable: true });
+		expect(await calendrier(base, estelle, vl, '2026-11-02', '2026-11-08', aujourdhui)).toMatchObject({ peutReserver: true, reserveCitoyenne: true });
+		expect(await calendrier(base, alice, vl, '2026-11-02', '2026-11-08', aujourdhui)).toMatchObject({ peutReserver: true, reserveCitoyenne: false });
 	});
 
 	it('calendrier : ressource invisible ou retirée, refus', async () => {
@@ -253,7 +255,11 @@ describe('lectures', () => {
 		expect((await mesReservations(base, alice, '2026-11-08T00:00')).passees.map((r) => r.ressource)).toEqual(['VL']);
 		await reserver(base, estelle, vl, { debut: '2026-11-09T09:00', fin: '2026-11-09T12:00', nomDemandeur: 'Mme Durand' }, maintenant);
 		await reserver(base, estelle, vl, { debut: '2026-11-10T09:00', fin: '2026-11-10T12:00', nomDemandeur: 'M. Roux' }, maintenant);
-		expect((await mesReservations(base, estelle, maintenant)).aVenir.map((r) => r.demandeur)).toEqual(['Mme Durand', 'M. Roux']);
+		expect((await mesReservations(base, estelle, maintenant)).aVenir.map((r) => [r.demandeur, r.nomDemandeur])).toEqual([
+			['Mme Durand', 'Mme Durand'],
+			['M. Roux', 'M. Roux']
+		]);
+		expect((await mesReservations(base, alice, maintenant)).aVenir[0]!.nomDemandeur).toBeNull();
 	});
 
 	it('ressourcesDe : ce qui attend chez qui gère, et qui peut gérer le matériel', async () => {
@@ -261,6 +267,8 @@ describe('lectures', () => {
 		await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
 		expect(await ressourcesDe(base, romain, aujourdhui)).toMatchObject({ aValider: 1, peutGererMateriel: true });
 		expect(await ressourcesDe(base, alice, aujourdhui)).toMatchObject({ aValider: 0, peutGererMateriel: false });
+		expect((await ressourcesDe(base, alice, aujourdhui)).mesAVenir).toBe(1);
+		expect((await ressourcesDe(base, romain, aujourdhui)).mesAVenir).toBe(0);
 	});
 });
 

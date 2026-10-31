@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { attribution, chargerJeuDeDepart, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { ajouterRessource, attribution, chargerJeuDeDepart, comite, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -28,6 +28,10 @@ import { load as moi } from './moi/+page.server';
 import { load as reglages } from './reglages/+layout.server';
 import { load as pageReglages } from './reglages/+page.server';
 import { load as role } from './reglages/roles/[id]/+page.server';
+import { load as reservations } from './reservations/+page.server';
+import { load as ressourcePage } from './reservations/[id]/+page.server';
+import { actions as actionsReserver, load as pageReserver } from './reservations/[id]/reserver/+page.server';
+import { actions as actionsMiennes, load as miennes } from './reservations/miennes/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -414,5 +418,45 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await expect((actionsGroupe.ajouter as any)({ locals, url: ajout, request })).rejects.toMatchObject({ status: 303 });
 		});
 		expect(envoi).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('réservations : la liste, le calendrier, réserver puis Mes réservations, annuler ; 40 réservations déjà prises', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const [vl] = await base.select().from(ressource);
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const bancs = await ajouterRessource(base, { type: 'super', email: 'a@b.fr' }, { nom: 'Bancs', stock: 999, icone: 'groupe', comiteId: amicale!.id }, maintenantParis());
+		const jour = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+		for (let i = 0; i < 20; i++) {
+			await reserver(base, { type: 'personne', id: agent.id }, vl!.id, { debut: `${jour(2 + i)}T09:00`, fin: `${jour(2 + i)}T12:00` }, maintenantParis());
+			await reserver(base, { type: 'personne', id: agent.id }, bancs, { debut: jour(2 + i), fin: jour(3 + i), quantite: 2 }, maintenantParis());
+		}
+		const pages: [string, () => Promise<unknown>][] = [
+			['/reservations', () => (reservations as any)({ locals })],
+			['/reservations/[id]', () => (ressourcePage as any)({ locals, params: { id: String(bancs) }, url: new URL('http://localhost/reservations/1') })],
+			['/reservations/[id]/reserver', () => (pageReserver as any)({ locals, params: { id: String(vl!.id) }, url: new URL('http://localhost/reservations/1/reserver') })],
+			['/reservations/miennes', () => (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') })]
+		];
+		for (const [nom, page] of pages) {
+			const n = await compter(async () => {
+				await (racine as any)({ locals });
+				await page();
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
+		// Réserver (une demande de bancs qui sonne chez l'amicale), puis la redirection vers Mes réservations.
+		const n = await compter(async () => {
+			const envoi = (actionsReserver.default as any)({ locals, params: { id: String(bancs) }, request: await requeteFormulaire([['debut', jour(30)], ['fin', jour(31)], ['quantite', '3']]) });
+			await expect(envoi).rejects.toMatchObject({ status: 303 });
+			await (racine as any)({ locals });
+			await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
+		});
+		expect(n, 'réserver').toBeLessThanOrEqual(BUDGET);
+		const { aVenir } = await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
+		const m = await compter(async () => {
+			expect(await (actionsMiennes.annuler as any)({ locals, request: await requeteFormulaire([['id', String(aVenir[0].id)]]) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals });
+			await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
+		});
+		expect(m, 'annuler').toBeLessThanOrEqual(BUDGET);
 	});
 });

@@ -35,6 +35,8 @@ export type VueReservation = {
 	mot: string | null;
 	etat: EtatReservation;
 	demandeur: string;
+	// Le nom saisi par le compte de la réserve citoyenne ; nul pour un agent.
+	nomDemandeur: string | null;
 	telephone: string | null;
 	motif: string | null;
 	creeLe: string;
@@ -136,13 +138,21 @@ const parRang = (a: Ressource, b: Ressource) => (a.forme === b.forme ? a.nom.loc
 export async function ressourcesDe(base: Base, acteur: Acteur, aujourdhui: string) {
 	exigerDate(aujourdhui);
 	const qui = await quiEst(base, acteur, aujourdhui);
-	const [lignes, comites] = await base.batch([base.select(champsRessource(acteur, aujourdhui)).from(ressource).where(isNull(ressource.retireeLe)), mesComites(base, acteur, aujourdhui)]);
+	const [lignes, comites, [miennes]] = await base.batch([
+		base.select(champsRessource(acteur, aujourdhui)).from(ressource).where(isNull(ressource.retireeLe)),
+		mesComites(base, acteur, aujourdhui),
+		base
+			.select({ n: count() })
+			.from(reservation)
+			.where(and(eq(reservation.personneId, moiDe(acteur) ?? 0), enCoursDeDemande, sql`substr(${reservation.fin}, 1, 10) >= ${aujourdhui}`))
+	]);
 	const ressources = lignes.map(versRessource).filter((r) => voit(qui, r)).sort(parRang);
 	return {
 		ressources,
 		peutReserver: accorde(qui.droits, 'RESERVER', { type: 'centre' }),
 		reserveCitoyenne: qui.reserveCitoyenne,
 		aValider: lignes.filter((l) => l.jeGere === 1).reduce((n, l) => n + l.attente, 0),
+		mesAVenir: miennes?.n ?? 0,
 		peutGererMateriel: comites.length > 0 || ressources.some((r) => r.jeGere && r.forme === 'jours')
 	};
 }
@@ -194,6 +204,7 @@ function vue(l: LigneReservation, moi: number | null, gestionnaire: boolean, mai
 		mot: l.mot,
 		etat: l.etat,
 		demandeur: l.nomDemandeur ?? `${l.prenom} ${l.nomPersonne}`.trim(),
+		nomDemandeur: l.nomDemandeur,
 		telephone: mienne || gestionnaire ? l.telephone : null,
 		motif: l.motif,
 		creeLe: l.creeLe,
@@ -207,7 +218,7 @@ const dansLaPeriode = (du: string, au: string) => and(sql`substr(${reservation.d
 const enCoursDeDemande = inArray(reservation.etat, ['attente', 'acceptee']);
 
 // Le calendrier d'une ressource : les demandes en attente et réservations acceptées qui touchent [du, au].
-export async function calendrier(base: Base, acteur: Acteur, id: number, du: string, au: string, aujourdhui: string): Promise<{ ressource: Ressource; reservations: VueReservation[] }> {
+export async function calendrier(base: Base, acteur: Acteur, id: number, du: string, au: string, aujourdhui: string): Promise<{ ressource: Ressource; reservations: VueReservation[]; peutReserver: boolean; reserveCitoyenne: boolean }> {
 	exigerDate(du);
 	exigerDate(au);
 	const qui = await quiEst(base, acteur, aujourdhui);
@@ -216,7 +227,7 @@ export async function calendrier(base: Base, acteur: Acteur, id: number, du: str
 	const lignes = await lignesReservations(base)
 		.where(and(eq(reservation.ressourceId, id), enCoursDeDemande, dansLaPeriode(du, au)))
 		.orderBy(asc(reservation.debut), asc(reservation.id));
-	return { ressource: r, reservations: lignes.map((l) => vue(l, moiDe(acteur), r.jeGere, `${aujourdhui}T00:00`)) };
+	return { ressource: r, reservations: lignes.map((l) => vue(l, moiDe(acteur), r.jeGere, `${aujourdhui}T00:00`)), peutReserver: acteur.type === 'personne' && peutReserver(qui, r), reserveCitoyenne: qui.reserveCitoyenne };
 }
 
 function texteFacultatif(valeur: unknown, libelle: string, max: number): string | null {
