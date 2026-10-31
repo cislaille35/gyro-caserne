@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { commenter, envoyer, lireConversation, message, notifierCommentaire, notifierPublication, publier, signaler, supprimerMessage } from '@gyro-caserne/socle';
+import { commenter, envoyer, reserver, ressource, lireConversation, message, notifierCommentaire, notifierPublication, publier, signaler, supprimerMessage } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { locaux, preparer, requeteFormulaire } from '../echanges/de-test.ts';
 import { actions, load } from './+page.server';
@@ -31,6 +31,16 @@ describe('load de /notifications', () => {
 			{ type: 'publication', cle: 'centre', nomMur: 'Le centre', publicationId: note, extrait: 'Note de service', lue: false }
 		]);
 		expect(data.aujourdhui).toBe(maintenant.slice(0, 10));
+	});
+
+	it('les demandes de réservation à trancher, pour qui gère', async () => {
+		const { base, chef, alice } = await preparer();
+		const [vl] = await base.select().from(ressource);
+		const demain = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+		await reserver(base, alice, vl!.id, { debut: `${demain}T09:00`, fin: `${demain}T12:00` }, maintenantParis());
+		await reserver(base, chef, vl!.id, { debut: `${demain}T10:00`, fin: `${demain}T11:00` }, maintenantParis());
+		expect((await charger(locaux(base, { type: 'super', email: 'a@b.fr' }))).aValider).toBe(1);
+		expect((await charger(locaux(base, alice))).aValider).toBe(0);
 	});
 
 	it('« Tout marquer comme lu »', async () => {

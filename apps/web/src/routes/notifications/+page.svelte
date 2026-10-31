@@ -5,10 +5,12 @@
 	import { heure, jourEtHeure } from '#lib/murs/quand.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
-	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// Le fil, du plus récent au plus ancien : « Aujourd'hui », puis « Plus tôt ».
 	const groupes = $derived(
@@ -18,7 +20,7 @@
 		].filter((g) => g.lignes.length > 0)
 	);
 	const phrase = $derived(data.nonLues > 0 ? `${pluriel(data.nonLues, 'notification')} non ${data.nonLues > 1 ? 'lues' : 'lue'}.` : data.lignes.length > 0 ? 'Tout est lu.' : undefined);
-	const quoi = (l: LigneFil) => `${l.auteur.prenom} ${l.auteur.nom}`.trim() + (l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`);
+	const QUOI_RESERVATION = { acceptee: 'demande acceptée', refusee: 'demande refusée', annulee: 'réservation annulée' } as const;
 	const moment = (l: LigneFil) => (l.creeLe.slice(0, 10) === data.aujourdhui ? heure(l.creeLe) : jourEtHeure(l.creeLe));
 
 	const nom = (p: { prenom: string; nom: string }) => `${p.prenom} ${p.nom}`.trim() || 'Un ancien agent';
@@ -74,6 +76,12 @@
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
 
+{#if data.aValider > 0}
+	<ListeRangees titre="À trancher">
+		<li><Rangee href="/reservations/a-valider" titre="{pluriel(data.aValider, 'demande')} de réservation à valider" sous="Accepter ou refuser, d’un geste." icone="cle" alerte /></li>
+	</ListeRangees>
+{/if}
+
 {#if data.signalements.length > 0}
 	<section class="signalements" aria-labelledby="t-signalements">
 		<h2 id="t-signalements" class="rubrique" tabindex="-1">Messages signalés</h2>
@@ -124,23 +132,35 @@
 	<section class="groupe" aria-labelledby="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}">
 		<h2 id="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}" class="rubrique">{g.titre}</h2>
 		<ul class="liste" role="list">
-			{#each g.lignes as l (l.id)}
+			{#each g.lignes as l (`${l.type}-${l.id}`)}
 				<li>
-					<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
-						<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
-						<span class="corps">
-							<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{quoi(l)}</span>
-							{#if l.extrait}<span class="extrait">{l.extrait}</span>{/if}
-							<span class="moment">{moment(l)}</span>
-						</span>
-						{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
-					</a>
+					{#if l.type === 'reservation'}
+						<a class="ligne" class:non-lue={!l.lue} href="/reservations/miennes#reservation-{l.reservationId}">
+							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 6h16v14H4z M4 10h16 M8 3v5 M16 3v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							<span class="corps">
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.ressource} : {QUOI_RESERVATION[l.quoi]}</span>
+								<span class="extrait">{[l.periode, l.motif].filter(Boolean).join(' · ')}</span>
+								<span class="moment">{moment(l)}</span>
+							</span>
+							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+						</a>
+					{:else}
+						<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
+							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							<span class="corps">
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{`${l.auteur.prenom} ${l.auteur.nom}`.trim()}{l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`}</span>
+								{#if l.extrait}<span class="extrait">{l.extrait}</span>{/if}
+								<span class="moment">{moment(l)}</span>
+							</span>
+							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+						</a>
+					{/if}
 				</li>
 			{/each}
 		</ul>
 	</section>
 {:else}
-	{#if data.signalements.length === 0}
+	{#if data.signalements.length === 0 && data.aValider === 0}
 		<Vide titre="Rien de nouveau pour vous." texte="Les publications de vos murs et les commentaires sous les vôtres arriveront ici." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
 	{/if}
 {/each}
@@ -227,6 +247,16 @@
 	.moment {
 		color: var(--doux);
 		font-size: 0.8125rem;
+	}
+	.pictogramme {
+		flex: none;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		background: var(--fond);
+		color: var(--encre);
 	}
 	.point {
 		flex: none;

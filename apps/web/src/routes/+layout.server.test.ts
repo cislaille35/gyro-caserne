@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { ajouterRessource, attribuer, chargerJeuDeDepart, reserver, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -97,6 +97,18 @@ describe('load du layout', () => {
 		expect((await appeler(bruno, base)).cloche).toBe(0);
 		// Un simple compte : les copies des messages signalés ne sont pas lues.
 		expect(socle.signalements).not.toHaveBeenCalled();
+	});
+
+	it('la cloche : les demandes de réservation à trancher, pour qui gère la ressource', async () => {
+		const { base, alice, chef } = await preparer();
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const [membre] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Membre de comité'));
+		await attribuer(base, super_, { personneId: chef.id, responsabiliteId: membre!.id, perimetre: { type: 'comite', id: amicale!.id }, debut: '2026-01-01' }, aujourdhuiParis());
+		const bancs = await ajouterRessource(base, chef, { nom: 'Bancs', stock: 12, icone: 'groupe', comiteId: amicale!.id }, maintenantParis());
+		const demain = new Date(Date.parse(`${aujourdhuiParis()}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+		await reserver(base, alice, bancs, { debut: demain, fin: demain, quantite: 2 }, maintenantParis());
+		expect((await appeler(chef, base)).cloche).toBe(1);
+		expect((await appeler(alice, base)).cloche).toBe(0);
 	});
 
 	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {

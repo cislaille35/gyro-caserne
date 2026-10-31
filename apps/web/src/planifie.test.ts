@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAnciens, effacerVieillesNotifications } from '@gyro-caserne/socle';
+import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -36,6 +36,8 @@ describe('avecPlanifie', () => {
 		expect(await lancer('30 3 * * *', '2026-10-29T03:30:00Z')).toHaveLength(1);
 		expect(vi.mocked(effacerAnciens).mock.calls[0]![2]).toBe('2026-04-29');
 		expect(vi.mocked(effacerVieillesNotifications).mock.calls[0]![1]).toBe('2026-09-29');
+		// Les réservations finies depuis plus d'un an.
+		expect(vi.mocked(effacerVieillesReservations).mock.calls[0]![1]).toBe('2025-10-29');
 		expect(envoyerLot).not.toHaveBeenCalled();
 	});
 

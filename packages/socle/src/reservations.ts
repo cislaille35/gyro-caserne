@@ -6,8 +6,9 @@ import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { NOMS_ICONES, type NomIcone } from './icones.ts';
 import { ligneJournal } from './journal.ts';
 import { STATUTS_AVEC_ACCES, type EtatReservation, type FormeRessource } from './listes.ts';
-import { chevauche, jourCourt, restantParJour, tientUnePlace } from './reservations-calcul.ts';
-import { comite, personne, profil, reservation, ressource } from './schema.ts';
+import { marquerAvisLus, mettreEnFile } from './notifications.ts';
+import { chevauche, jourCourt, periodeCourte, restantParJour, tientUnePlace } from './reservations-calcul.ts';
+import { avisReservation, comite, personne, profil, reservation, ressource } from './schema.ts';
 
 // Réservations : la VL, le matériel de l'amicale, et toute autre ressource. La ressource dit qui la gère (un rôle ou un comité) ;
 // sa forme dit la règle : par créneau, acceptée d'office si libre ; par jours, toujours à valider, dans la limite du stock.
@@ -288,9 +289,34 @@ export async function reserver(base: Base, acteur: Acteur, id: number, d: Demand
 			.insert(reservation)
 			.values({ ressourceId: id, personneId: acteur.id, nomDemandeur, telephone, debut: p.debut, fin: p.fin, quantite, mot, etat, creeLe: maintenant })
 			.returning({ id: reservation.id }),
-		ligneJournal(base, { acteur: auteurDe(acteur), action: 'reserver', cibleType: 'reservation', cibleId: sql`last_insert_rowid()`, details: { ressourceId: id, etat } }, maintenant)
+		ligneJournal(base, { acteur: auteurDe(acteur), action: 'reserver', cibleType: 'reservation', cibleId: sql`last_insert_rowid()`, details: { ressourceId: id, etat } }, maintenant),
+		// Une demande à trancher sonne chez qui gère ; elle reste ensuite comptée dans leur cloche (nombreAValider).
+		...(etat === 'attente' ? [demandeAuxGestionnaires(base, acteur.id, r, { demandeur: nomDemandeur ?? (await nomDe(base, acteur.id)), quantite, ...p }, aujourdhui, maintenant)] : [])
 	]);
 	return { id: cree!.id, etat };
+}
+
+async function nomDe(base: Base, id: number): Promise<string> {
+	const [p] = await base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, id));
+	return `${p?.prenom ?? ''} ${p?.nom ?? ''}`.trim();
+}
+
+function demandeAuxGestionnaires(base: Base, demandeurId: number, r: Ressource, d: { demandeur: string; quantite: number; debut: string; fin: string }, aujourdhui: string, maintenant: string) {
+	const texte = [d.demandeur, ...(r.forme === 'jours' ? [String(d.quantite)] : []), periodeCourte(r.forme, d.debut, d.fin)].join(' · ');
+	const qui = base.select({ id: personne.id }).from(personne).where(and(inArray(personne.id, gestionnairesDe(base, r.id, aujourdhui)), ne(personne.id, demandeurId)));
+	return mettreEnFile(base, qui, 'reservations', { titre: `Demande de réservation · ${r.nom}`, texte, url: '/reservations/a-valider', tag: 'reservations-a-valider' }, maintenant);
+}
+
+const TITRES_AVIS = { acceptee: 'demande acceptée', refusee: 'demande refusée', annulee: 'réservation annulée' } as const;
+
+// Ce qu'apprend le demandeur d'une décision de qui gère : un avis dans sa cloche et un envoi au téléphone. Rien s'il a tranché lui-même.
+function prevenir(base: Base, acteur: Acteur, l: { id: number; personneId: number; ressourceNom: string; forme: FormeRessource; debut: string; fin: string }, quoi: keyof typeof TITRES_AVIS, motif: string | null, maintenant: string) {
+	if (l.personneId === moiDe(acteur)) return [];
+	const texte = [periodeCourte(l.forme, l.debut, l.fin), ...(motif ? [motif] : [])].join(' · ');
+	return [
+		base.insert(avisReservation).values({ personneId: l.personneId, reservationId: l.id, quoi, creeLe: maintenant }),
+		mettreEnFile(base, [l.personneId], 'reservations', { titre: `${l.ressourceNom} : ${TITRES_AVIS[quoi]}`, texte, url: '/reservations/miennes', tag: `reservation:${l.id}` }, maintenant)
+	];
 }
 
 // Une réservation et sa ressource, vue par l'acteur.
@@ -314,10 +340,11 @@ export async function accepter(base: Base, acteur: Acteur, id: number, maintenan
 	if (l.jeGere !== 1) throw refusGestion(l.ressourceId);
 	if (l.etat !== 'attente') throw new DonneeInvalide('Cette demande a déjà été traitée');
 	const autres = await base
-		.select({ id: reservation.id, debut: reservation.debut, fin: reservation.fin, quantite: reservation.quantite, etat: reservation.etat })
+		.select({ id: reservation.id, personneId: reservation.personneId, debut: reservation.debut, fin: reservation.fin, quantite: reservation.quantite, etat: reservation.etat })
 		.from(reservation)
 		.where(and(eq(reservation.ressourceId, l.ressourceId), eq(reservation.etat, 'acceptee'), ne(reservation.id, id), dansLaPeriode(l.debut.slice(0, 10), l.fin.slice(0, 10))));
-	const enConflit = l.forme === 'creneau' ? autres.filter((a) => chevauche(a, l, 'creneau')).map((a) => a.id) : [];
+	const ecartees = l.forme === 'creneau' ? autres.filter((a) => chevauche(a, l, 'creneau')) : [];
+	const enConflit = ecartees.map((a) => a.id);
 	if (l.forme === 'jours') {
 		const m = manque({ nom: l.ressourceNom, stock: l.stock }, autres, l, l.quantite);
 		if (m) throw new DonneeInvalide(`${l.ressourceNom} : il n’en reste que ${m.restant} le ${jourCourt(m.jour)}`);
@@ -329,7 +356,9 @@ export async function accepter(base: Base, acteur: Acteur, id: number, maintenan
 			.update(reservation)
 			.set({ etat: 'annulee', motif: MOTIF_CONFLIT, ...qui })
 			.where(and(inArray(reservation.id, enConflit.length > 0 ? enConflit : [0]), eq(reservation.etat, 'acceptee'))),
-		ligneJournal(base, { acteur: qui.trancheePar, action: 'accepter_reservation', cibleType: 'reservation', cibleId: id, details: { annulees: enConflit } }, maintenant)
+		ligneJournal(base, { acteur: qui.trancheePar, action: 'accepter_reservation', cibleType: 'reservation', cibleId: id, details: { annulees: enConflit } }, maintenant),
+		...prevenir(base, acteur, l, 'acceptee', null, maintenant),
+		...ecartees.flatMap((a) => prevenir(base, acteur, { ...l, ...a }, 'annulee', MOTIF_CONFLIT, maintenant))
 	]);
 }
 
@@ -339,9 +368,11 @@ export async function refuser(base: Base, acteur: Acteur, id: number, motif: str
 	if (l.jeGere !== 1) throw refusGestion(l.ressourceId);
 	if (l.etat !== 'attente') throw new DonneeInvalide('Cette demande a déjà été traitée');
 	const qui = tranchee(acteur, maintenant);
+	const propre = texteFacultatif(motif, 'Motif', 200);
 	await base.batch([
-		base.update(reservation).set({ etat: 'refusee', motif: texteFacultatif(motif, 'Motif', 200), ...qui }).where(and(eq(reservation.id, id), eq(reservation.etat, 'attente'))),
-		ligneJournal(base, { acteur: qui.trancheePar, action: 'refuser_reservation', cibleType: 'reservation', cibleId: id }, maintenant)
+		base.update(reservation).set({ etat: 'refusee', motif: propre, ...qui }).where(and(eq(reservation.id, id), eq(reservation.etat, 'attente'))),
+		ligneJournal(base, { acteur: qui.trancheePar, action: 'refuser_reservation', cibleType: 'reservation', cibleId: id }, maintenant),
+		...prevenir(base, acteur, l, 'refusee', propre, maintenant)
 	]);
 }
 
@@ -355,12 +386,11 @@ export async function annuler(base: Base, acteur: Acteur, id: number, mot: strin
 	const parLeDemandeur = mienne && !commencee(l.debut, maintenant);
 	if (!parLeDemandeur && l.jeGere !== 1) throw new DonneeInvalide('Déjà commencée : demandez à qui gère la ressource');
 	const qui = tranchee(acteur, maintenant);
+	const motif = parLeDemandeur ? null : texteFacultatif(mot, 'Mot', 200);
 	await base.batch([
-		base
-			.update(reservation)
-			.set({ etat: 'annulee', motif: parLeDemandeur ? null : texteFacultatif(mot, 'Mot', 200), ...qui })
-			.where(and(eq(reservation.id, id), enCoursDeDemande)),
-		ligneJournal(base, { acteur: qui.trancheePar, action: 'annuler_reservation', cibleType: 'reservation', cibleId: id, details: { parLeDemandeur } }, maintenant)
+		base.update(reservation).set({ etat: 'annulee', motif, ...qui }).where(and(eq(reservation.id, id), enCoursDeDemande)),
+		ligneJournal(base, { acteur: qui.trancheePar, action: 'annuler_reservation', cibleType: 'reservation', cibleId: id, details: { parLeDemandeur } }, maintenant),
+		...(parLeDemandeur ? [] : prevenir(base, acteur, l, 'annulee', motif, maintenant))
 	]);
 }
 
@@ -379,7 +409,8 @@ export async function mesReservations(base: Base, acteur: Acteur, maintenant: st
 		lignesReservations(base)
 			.where(and(eq(reservation.personneId, moi), fini))
 			.orderBy(desc(reservation.debut), desc(reservation.id))
-			.limit(PASSEES_MAX)
+			.limit(PASSEES_MAX),
+		marquerAvisLus(base, moi, maintenant)
 	]);
 	return { aVenir: aVenir.map((l) => vue(l, moi, false, maintenant)), passees: passees.map((l) => vue(l, moi, false, maintenant)) };
 }
@@ -482,11 +513,14 @@ export async function retirerRessource(base: Base, acteur: Acteur, id: number, m
 	const r = await lireRessource(base, acteur, id, aujourdhui);
 	if (!r.jeGere) throw refusGestion(id);
 	if (r.forme !== 'jours') throw new DonneeInvalide('Cette ressource ne se retire pas');
+	const aVenir = and(eq(reservation.ressourceId, id), enCoursDeDemande, sql`${reservation.fin} >= ${aujourdhui}`);
+	const touchees = await base.select({ id: reservation.id, personneId: reservation.personneId, debut: reservation.debut, fin: reservation.fin }).from(reservation).where(aVenir);
 	await base.batch([
 		base
 			.update(reservation)
 			.set({ etat: 'annulee', motif: MOTIF_RETRAIT, ...tranchee(acteur, maintenant) })
-			.where(and(eq(reservation.ressourceId, id), enCoursDeDemande, sql`${reservation.fin} >= ${aujourdhui}`)),
+			.where(aVenir),
+		...touchees.flatMap((t) => prevenir(base, acteur, { ...t, ressourceNom: r.nom, forme: r.forme }, 'annulee', MOTIF_RETRAIT, maintenant)),
 		base.update(ressource).set({ retireeLe: aujourdhui }).where(eq(ressource.id, id)),
 		ligneJournal(base, { acteur: auteurDe(acteur), action: 'retirer_ressource', cibleType: 'ressource', cibleId: id }, maintenant)
 	]);

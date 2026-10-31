@@ -1,11 +1,12 @@
-import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notExists, notInArray, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notExists, notInArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
 import { aLaMessagerie } from './messagerie.ts';
 import { agentsDuJour, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
-import { abonnementPush, affectationEquipe, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication } from './schema.ts';
+import { periodeCourte } from './reservations-calcul.ts';
+import { abonnementPush, affectationEquipe, avisReservation, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reservation, ressource } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -14,7 +15,9 @@ const EXTRAIT = 100;
 const FIL_MAX = 50;
 
 export type DonneesPush = { titre: string; texte: string; url: string; tag: string };
-export type LigneFil = {
+export type LigneFil = LigneMur | LigneReservation;
+export type LigneReservation = { id: number; type: 'reservation'; reservationId: number; quoi: 'acceptee' | 'refusee' | 'annulee'; ressource: string; periode: string; motif: string | null; creeLe: string; lue: boolean };
+type LigneMur = {
 	id: number;
 	type: 'publication' | 'commentaire';
 	cle: CleMur;
@@ -76,7 +79,8 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 	);
 }
 
-function mettreEnFile(base: Base, ids: number[], lieu: string, donnees: DonneesPush, maintenant: string) {
+// `ids` : une liste, ou une sous-requête d'identifiants de personnes. Lieu « reservations » : seul « tout » le coupe.
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string) {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
@@ -85,7 +89,7 @@ function mettreEnFile(base: Base, ids: number[], lieu: string, donnees: DonneesP
 		base
 			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`${JSON.stringify(donnees)}`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le') })
 			.from(abonnementPush)
-			.where(and(inArray(abonnementPush.personneId, parmi(ids)), notExists(coupe)))
+			.where(and(inArray(abonnementPush.personneId, Array.isArray(ids) ? parmi(ids) : ids), notExists(coupe)))
 	);
 }
 
@@ -172,7 +176,28 @@ export async function notifierMessage(base: Base, id: number, maintenant: string
 	await base.batch([mettreEnFile(base, ids, `conversation:${m.conversationId}`, donnees, maintenant)]);
 }
 
-const nonLuesDe = (base: Base, moi: number) => base.select({ n: count() }).from(notification).where(and(eq(notification.personneId, moi), isNull(notification.lueLe)));
+// Les non-lues : publications et commentaires, et avis de réservation. Une requête.
+const nonLuesDe = (base: Base, moi: number) =>
+	base
+		.select({
+			n: sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${moi} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${moi} and ${avisReservation.lueLe} is null)`
+		})
+		.from(personne)
+		.where(eq(personne.id, moi));
+
+// Les avis de réservation reçus par la personne, les plus récents d'abord.
+const avisDe = (base: Base, moi: number) =>
+	base
+		.select({ id: avisReservation.id, reservationId: avisReservation.reservationId, quoi: avisReservation.quoi, creeLe: avisReservation.creeLe, lueLe: avisReservation.lueLe, ressource: sql<string>`${ressource.nom}`.as('ressource'), forme: ressource.forme, debut: reservation.debut, fin: reservation.fin, motif: reservation.motif })
+		.from(avisReservation)
+		.innerJoin(reservation, eq(reservation.id, avisReservation.reservationId))
+		.innerJoin(ressource, eq(ressource.id, reservation.ressourceId))
+		.where(eq(avisReservation.personneId, moi))
+		.orderBy(desc(avisReservation.id))
+		.limit(FIL_MAX);
+
+// Écriture à placer dans le batch de « Mes réservations » : les avis sont vus.
+export const marquerAvisLus = (base: Base, moi: number, maintenant: string) => base.update(avisReservation).set({ lueLe: maintenant }).where(and(eq(avisReservation.personneId, moi), isNull(avisReservation.lueLe)));
 
 // Le fil de la cloche : les 50 plus récentes, et le nombre de non-lues. Une requête.
 export async function filDeNotifications(base: Base, acteur: Acteur, maintenant: string): Promise<{ lignes: LigneFil[]; nonLues: number }> {
@@ -181,7 +206,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	const moi = acteur.id;
 	const auteur = sql<string>`coalesce(${commentaire.auteur}, ${publication.auteur})`;
 	const lesAuteurs = base.select({ auteur }).from(notification).innerJoin(publication, eq(publication.id, notification.publicationId)).leftJoin(commentaire, eq(commentaire.id, notification.commentaireId)).where(eq(notification.personneId, moi));
-	const [lignes, [compte], equipes, comites, personnes] = await base.batch([
+	const [lignes, [compte], equipes, comites, personnes, avis] = await base.batch([
 		base
 			.select({
 				id: notification.id,
@@ -204,11 +229,23 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
 			.from(personne)
-			.where(inArray(sql`'personne:' || ${personne.id}`, lesAuteurs))
+			.where(inArray(sql`'personne:' || ${personne.id}`, lesAuteurs)),
+		avisDe(base, moi)
 	]);
+	const deReservations: LigneFil[] = avis.map((a) => ({ id: a.id, type: 'reservation', reservationId: a.reservationId, quoi: a.quoi, ressource: a.ressource, periode: periodeCourte(a.forme, a.debut, a.fin), motif: a.motif, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	return {
 		nonLues: compte?.n ?? 0,
-		lignes: lignes.map((l) => {
+		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
+	};
+}
+
+function deMurs(
+	lignes: { id: number; publicationId: number; commentaireId: number | null; creeLe: string; lueLe: string | null; mur: string; auteur: string; texte: string }[],
+	personnes: { id: number; prenom: string; nom: string; couleur: string | null }[],
+	equipes: { id: number; nom: string }[],
+	comites: { id: number; nom: string }[]
+): LigneFil[] {
+	return lignes.map((l) => {
 			const p = personnes.find((x) => x.id === idPersonne(l.auteur));
 			return {
 				id: l.id,
@@ -221,8 +258,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 				creeLe: l.creeLe,
 				lue: l.lueLe !== null
 			};
-		})
-	};
+		});
 }
 
 // L'en-tête de chaque page : le nombre de non-lues et le visage de la personne. Une requête ; aucune pour le super administrateur.
@@ -242,7 +278,7 @@ export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string): 
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return;
-	await base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe)));
+	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant)]);
 }
 
 // Écritures à placer dans un batch de lecture : ouvrir un mur marque lues ses publications ; ouvrir une publication, elle et ses commentaires.
@@ -395,9 +431,9 @@ export async function oublierAbonnements(base: Base, ids: number[]): Promise<voi
 // Ménage de nuit : notifications et envois restés en file créés avant `avant` (AAAA-MM-JJ).
 export async function effacerVieillesNotifications(base: Base, avant: string): Promise<void> {
 	exigerDate(avant);
-	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
+	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(avisReservation).where(lt(avisReservation.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
 }
 
 // Au départ d'une personne : ses appareils, son fil et ses coupures. Écritures à placer dans un batch.
 export const effacerNotificationsDe = (base: Base, personneId: number) =>
-	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;
+	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;

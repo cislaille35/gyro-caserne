@@ -20,7 +20,9 @@ import {
 	ressourcesDe,
 	retirerRessource
 } from '../src/reservations.ts';
-import { attribution, comite, personne, profil, profilDroit, reservation, ressource, responsabilite } from '../src/schema.ts';
+import { couper, effacerVieillesNotifications, enTeteDe, filDeNotifications, toutMarquerLu } from '../src/notifications.ts';
+import { periodeCourte } from '../src/reservations-calcul.ts';
+import { abonnementPush, attribution, avisReservation, comite, envoiPush, personne, profil, profilDroit, reservation, ressource, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-11-01T10:00';
@@ -310,5 +312,111 @@ describe('ménage', () => {
 		]);
 		await effacerVieillesReservations(base, '2025-11-01');
 		expect((await base.select().from(reservation).where(and(eq(reservation.ressourceId, bancs)))).map((r) => r.fin)).toEqual(['2025-11-02T09:00']);
+	});
+});
+
+// Chacun a un téléphone abonné ; les envois en file, par personne.
+async function avecTelephones() {
+	const p = await preparer();
+	const personnes = await p.base.select({ id: personne.id }).from(personne);
+	await p.base.insert(abonnementPush).values(personnes.map((x) => ({ personneId: x.id, endpoint: `https://fcm.googleapis.com/${x.id}`, p256dh: 'a', auth: 'b', creeLe: maintenant })));
+	const envois = async () =>
+		(await p.base.select({ personneId: abonnementPush.personneId, donnees: envoiPush.donnees }).from(envoiPush).innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId))).map((e) => ({ personneId: e.personneId, ...JSON.parse(e.donnees) }));
+	const vider = () => p.base.delete(envoiPush);
+	return { ...p, envois, vider };
+}
+
+describe('notifications des réservations', () => {
+	it('une demande de matériel sonne chez qui la gère, une fois, jamais chez le demandeur', async () => {
+		const { base, alice, romain, bancs, envois } = await avecTelephones();
+		await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-14', quantite: 4 }, maintenant);
+		expect(await envois()).toEqual([{ personneId: romain.id, titre: 'Demande de réservation · Bancs', texte: 'Alice Test · 4 · du 12 au 14 nov.', url: '/reservations/a-valider', tag: 'reservations-a-valider' }]);
+	});
+
+	it('VL : acceptée d’office, rien ; en attente, le référent engins', async () => {
+		const { base, alice, romain, remi, vl, envois } = await avecTelephones();
+		await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		expect(await envois()).toEqual([]);
+		await reserver(base, romain, vl, { debut: '2026-11-07T11:00', fin: '2026-11-07T13:30' }, maintenant);
+		expect(await envois()).toMatchObject([{ personneId: remi.id, titre: 'Demande de réservation · VL', texte: 'Romain Test · 7 nov., 11 h – 13 h 30' }]);
+	});
+
+	it('accord, refus et annulation par qui gère : un avis et un envoi au demandeur ; annulation par le demandeur : rien', async () => {
+		const { base, alice, romain, bancs, envois, vider } = await avecTelephones();
+		const { id: a } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		const { id: b } = await reserver(base, alice, bancs, { debut: '2026-11-13', fin: '2026-11-13', quantite: 2 }, maintenant);
+		const { id: c } = await reserver(base, alice, bancs, { debut: '2026-11-14', fin: '2026-11-14', quantite: 2 }, maintenant);
+		await vider();
+		await accepter(base, romain, a, maintenant);
+		await refuser(base, romain, b, 'Déjà prêtés', maintenant);
+		await annuler(base, romain, a, 'Bancs cassés', maintenant);
+		await annuler(base, alice, c, null, maintenant);
+		expect(await envois()).toEqual([
+			{ personneId: alice.id, titre: 'Bancs : demande acceptée', texte: '12 nov.', url: '/reservations/miennes', tag: `reservation:${a}` },
+			{ personneId: alice.id, titre: 'Bancs : demande refusée', texte: '13 nov. · Déjà prêtés', url: '/reservations/miennes', tag: `reservation:${b}` },
+			{ personneId: alice.id, titre: 'Bancs : réservation annulée', texte: '12 nov. · Bancs cassés', url: '/reservations/miennes', tag: `reservation:${a}` }
+		]);
+		expect((await base.select().from(avisReservation)).map((x) => [x.personneId, x.reservationId, x.quoi])).toEqual([
+			[alice.id, a, 'acceptee'],
+			[alice.id, b, 'refusee'],
+			[alice.id, a, 'annulee']
+		]);
+	});
+
+	it('VL : la réservation écartée par un conflit et celles d’une ressource retirée préviennent leur demandeur', async () => {
+		const { base, alice, romain, remi, vl, bancs, envois, vider } = await avecTelephones();
+		const { id: v1 } = await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
+		const { id: v2 } = await reserver(base, romain, vl, { debut: '2026-11-07T10:00', fin: '2026-11-07T11:00' }, maintenant);
+		const { id: b } = await reserver(base, remi, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		await vider();
+		await accepter(base, remi, v2, maintenant);
+		await retirerRessource(base, romain, bancs, maintenant);
+		expect((await envois()).map((e) => [e.personneId, e.titre, e.texte])).toEqual([
+			[romain.id, 'VL : demande acceptée', '7 nov., 10 h – 11 h'],
+			[alice.id, 'VL : réservation annulée', '7 nov., 9 h – 12 h · Créneau donné à une autre demande'],
+			[remi.id, 'Bancs : réservation annulée', '12 nov. · Ressource retirée']
+		]);
+		expect((await base.select().from(avisReservation)).map((x) => x.reservationId)).toEqual([v2, v1, b]);
+	});
+
+	it('« tout » coupé : l’avis est dans la cloche, rien au téléphone ; qui tranche sa propre demande n’est pas prévenu', async () => {
+		const { base, alice, romain, bancs, envois, vider } = await avecTelephones();
+		await couper(base, alice, 'tout', true, maintenant);
+		const { id } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		await refuser(base, romain, id, null, maintenant);
+		expect((await envois()).filter((e) => e.personneId === alice.id)).toEqual([]);
+		expect(await base.select().from(avisReservation)).toHaveLength(1);
+		const { id: sienne } = await reserver(base, romain, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 2 }, maintenant);
+		await vider();
+		await accepter(base, romain, sienne, maintenant);
+		expect(await envois()).toEqual([]);
+		expect(await base.select().from(avisReservation)).toHaveLength(1);
+	});
+
+	it('la cloche : l’avis est dans le fil et compté ; « Mes réservations » et « Tout marquer comme lu » le marquent lu ; le ménage l’efface après 30 jours', async () => {
+		const { base, alice, romain, bancs } = await avecTelephones();
+		const { id } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-13', quantite: 2 }, maintenant);
+		await refuser(base, romain, id, 'Déjà prêtés', maintenant);
+		const fil = await filDeNotifications(base, alice, maintenant);
+		expect(fil.nonLues).toBe(1);
+		expect(fil.lignes).toEqual([{ id: expect.any(Number), type: 'reservation', reservationId: id, quoi: 'refusee', ressource: 'Bancs', periode: 'du 12 au 13 nov.', motif: 'Déjà prêtés', creeLe: maintenant, lue: false }]);
+		expect((await enTeteDe(base, alice, aujourdhui)).nonLues).toBe(1);
+		await mesReservations(base, alice, maintenant);
+		expect((await enTeteDe(base, alice, aujourdhui)).nonLues).toBe(0);
+		await base.update(avisReservation).set({ lueLe: null });
+		await toutMarquerLu(base, alice, maintenant);
+		expect((await filDeNotifications(base, alice, maintenant)).lignes[0]).toMatchObject({ lue: true });
+		await effacerVieillesNotifications(base, '2026-12-01');
+		expect(await base.select().from(avisReservation)).toEqual([]);
+	});
+});
+
+describe('période en bref', () => {
+	it('jours et créneaux', () => {
+		expect(periodeCourte('jours', '2026-11-12', '2026-11-12')).toBe('12 nov.');
+		expect(periodeCourte('jours', '2026-11-12', '2026-11-14')).toBe('du 12 au 14 nov.');
+		expect(periodeCourte('jours', '2026-10-30', '2026-11-02')).toBe('du 30 oct. au 2 nov.');
+		expect(periodeCourte('creneau', '2026-11-07T09:00', '2026-11-07T12:30')).toBe('7 nov., 9 h – 12 h 30');
+		expect(periodeCourte('creneau', '2026-11-07T18:00', '2026-11-08T09:05')).toBe('du 7 nov., 18 h au 8 nov., 9 h 05');
 	});
 });

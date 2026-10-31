@@ -28,3 +28,19 @@ export function restantParJour(stock: number, prises: Prise[], du: string, au: s
 export function jourCourt(date: string): string {
 	return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date.slice(0, 10)}T00:00:00Z`));
 }
+
+// « 9 h », « 12 h 30 ».
+const heureCourte = (quand: string) => {
+	const [h, m] = quand.slice(11, 16).split(':');
+	return `${Number(h)} h${m === '00' ? '' : ` ${m}`}`;
+};
+
+// « 12 nov. », « du 12 au 14 nov. », « 7 nov., 9 h – 12 h », « du 7 nov., 18 h au 8 nov., 9 h ».
+export function periodeCourte(forme: FormeRessource, debut: string, fin: string): string {
+	if (forme === 'jours') {
+		if (debut === fin) return jourCourt(debut);
+		return `du ${debut.slice(0, 7) === fin.slice(0, 7) ? Number(debut.slice(8, 10)) : jourCourt(debut)} au ${jourCourt(fin)}`;
+	}
+	if (debut.slice(0, 10) === fin.slice(0, 10)) return `${jourCourt(debut)}, ${heureCourte(debut)} – ${heureCourte(fin)}`;
+	return `du ${jourCourt(debut)}, ${heureCourte(debut)} au ${jourCourt(fin)}, ${heureCourte(fin)}`;
+}

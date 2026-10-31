@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { classerSignalement, DonneeInvalide, filDeNotifications, RefusDroit, retirerParModeration, toutMarquerLu } from '@gyro-caserne/socle';
+import { classerSignalement, DonneeInvalide, filDeNotifications, nombreAValider, RefusDroit, retirerParModeration, toutMarquerLu } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import { signalementsDe } from '#lib/server/a-faire.ts';
@@ -8,10 +8,11 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const acteur = exigerActeur(locals);
 	// Le fil (publications et commentaires reçus) ; les signalements à traiter, en tête, pour qui modère.
-	const [fil, signalements] = await Promise.all([filDeNotifications(locals.base, acteur, maintenantParis()), signalementsDe(locals.base, acteur)]);
+	// Et les demandes de réservation à trancher, pour qui gère.
+	const [fil, signalements, aValider] = await Promise.all([filDeNotifications(locals.base, acteur, maintenantParis()), signalementsDe(locals.base, acteur), nombreAValider(locals.base, acteur, aujourdhuiParis())]);
 	// Sans JavaScript, « Retirer le message » ouvre sa confirmation dans la carte (`?retirer=<id>`).
 	const brut = url.searchParams.get('retirer');
-	return { ...fil, aujourdhui: aujourdhuiParis(), signalements, confirmer: brut !== null && /^\d+$/.test(brut) ? Number(brut) : null };
+	return { ...fil, aujourdhui: aujourdhuiParis(), signalements, aValider, confirmer: brut !== null && /^\d+$/.test(brut) ? Number(brut) : null };
 };
 
 // Les refus du socle, dits simplement.
