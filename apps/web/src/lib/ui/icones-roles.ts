@@ -28,5 +28,7 @@ export const DESSINS = {
 	echanges: 'M4 5h16v11H8l-4 4z',
 	affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5',
 	loupe: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4',
-	plus: 'M12 5v14M5 12h14'
+	plus: 'M12 5v14M5 12h14',
+	cloche: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20a2 2 0 0 0 4 0',
+	clocheCoupee: 'M6 16v-5a6 6 0 0 1 9.5-4.9 M18 10.5V16l2 2H8 M10 20a2 2 0 0 0 4 0 M3 3l18 18'
 } as const;

@@ -158,4 +158,10 @@ describe('une conversation', () => {
 		expect(aside).not.toContain('?quitter');
 		expect(aside).not.toContain('?renommer');
 	});
+
+	it('la cloche barrée dans l’en-tête : bascule nommée, sans JavaScript aussi', () => {
+		const page = html({ coupe: true } as never);
+		const entete = page.match(/<header class="entete[\s\S]*?<\/header>/)![0];
+		expect(entete).toMatch(/action="\?\/couper"[\s\S]*?name="oui" value="0"[\s\S]*?aria-pressed="true"[\s\S]*?Couper les notifications de Départ de Thomas/);
+	});
 });

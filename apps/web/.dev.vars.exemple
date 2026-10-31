@@ -9,3 +9,6 @@ SUPER_ADMINS=admin@exemple.fr
 # BREVO_CLE=
 # Adresse vérifiée dans Brevo (sans nom : « Gyro Caserne » est ajouté par l'appli).
 # COURRIEL_EXPEDITEUR=cislaille35@gmail.com
+# Notifications au téléphone : la paire VAPID du centre, créée par `pnpm --filter @gyro-caserne/web cles-vapid`. Sans elle, rien ne part au téléphone.
+# VAPID_PUBLIQUE=
+# VAPID_PRIVEE=

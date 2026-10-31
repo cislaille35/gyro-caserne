@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { envoyer, lireConversation, message, prendreConnaissance, publier, repondreEvenement, signaler, supprimerMessage } from '@gyro-caserne/socle';
-import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { commenter, envoyer, lireConversation, message, notifierCommentaire, notifierPublication, publier, signaler, supprimerMessage } from '@gyro-caserne/socle';
+import { maintenantParis } from '#lib/aujourdhui.ts';
 import { locaux, preparer, requeteFormulaire } from '../echanges/de-test.ts';
 import { actions, load } from './+page.server';
 
-const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const charger = (locals: unknown, requete = '') => (load as any)({ locals, url: new URL(`http://x/notifications${requete}`) });
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const agir = async (nom: 'retirer' | 'classer', locals: unknown, id: number | string) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, request: await requeteFormulaire([['id', String(id)]]) });
@@ -18,23 +17,27 @@ describe('load de /notifications', () => {
 		await expect(charger({ acteur: null })).rejects.toMatchObject({ status: 303, location: '/connexion' });
 	});
 
-	it('annonces à prendre en compte, événements sans réponse et sondages ouverts ; ce qui est fait disparaît', async () => {
+	it('le fil : publications et commentaires reçus, du plus récent au plus ancien, avec le nombre de non-lues', async () => {
 		const { base, chef, alice } = await preparer();
 		const maintenant = maintenantParis();
-		const annonce = await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
-		const evenement = await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		const sondage = await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
-		const data = await charger({ base, acteur: alice });
-		expect(data.annonces).toMatchObject([{ id: annonce, cle: 'centre', nomMur: 'Le centre', titre: 'Note de service' }]);
-		expect(data.evenements).toMatchObject([{ id: evenement, debut: '2099-01-01T19:00' }]);
-		expect(data.sondages).toMatchObject([{ id: sondage, cle: 'vie' }]);
-		await prendreConnaissance(base, alice, annonce, maintenant);
-		await repondreEvenement(base, alice, evenement, 'absent', maintenant);
-		expect(await charger({ base, acteur: alice })).toMatchObject({ annonces: [], evenements: [], sondages: [{ id: sondage }] });
-		// Un événement avec sondage : une seule ligne, sous les événements, tant que la réponse ou le vote manque.
-		const repas = await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
-		await repondreEvenement(base, alice, repas, 'present', maintenant);
-		expect(await charger({ base, acteur: alice })).toMatchObject({ evenements: [{ id: repas, sondage: true }], sondages: [{ id: sondage }] });
+		const note = await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note de service', priseDeConnaissance: true }, maintenant);
+		await notifierPublication(base, note, maintenant);
+		const sienne = await publier(base, base.photos, alice, 'vie', { type: 'message', texte: 'Gâteau' }, maintenant);
+		await notifierCommentaire(base, await commenter(base, chef, sienne, 'Merci !', maintenant), maintenant);
+		const data = await charger(locaux(base, alice));
+		expect(data.nonLues).toBe(2);
+		expect(data.lignes).toMatchObject([
+			{ type: 'commentaire', cle: 'vie', publicationId: sienne, extrait: 'Merci !', lue: false, auteur: { prenom: 'Chef' } },
+			{ type: 'publication', cle: 'centre', nomMur: 'Le centre', publicationId: note, extrait: 'Note de service', lue: false }
+		]);
+		expect(data.aujourdhui).toBe(maintenant.slice(0, 10));
+	});
+
+	it('« Tout marquer comme lu »', async () => {
+		const { base, chef, alice } = await preparer();
+		await notifierPublication(base, await publier(base, base.photos, chef, 'centre', { type: 'message', texte: 'Note' }, maintenantParis()), maintenantParis());
+		expect(await (actions.toutLu as any)({ locals: locaux(base, alice), request: await requeteFormulaire([]) })).toEqual({ succes: 'Tout est marqué comme lu.' });
+		expect((await charger(locaux(base, alice))).nonLues).toBe(0);
 	});
 });
 

@@ -20,3 +20,5 @@ Format d'une page :
 - [Comment répondre à une convocation ?](repondre-a-une-convocation.md)
 - [Comment écrire à un collègue ?](comment-ecrire-a-un-collegue.md)
 - [Comment créer un groupe ?](comment-creer-un-groupe.md)
+- [Comment recevoir les notifications sur mon téléphone ?](activer-les-notifications.md)
+- [Comment couper les notifications d'un mur ou d'une conversation ?](couper-les-notifications.md)

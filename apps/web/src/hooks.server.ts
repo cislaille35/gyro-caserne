@@ -5,6 +5,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins } from '#lib/server/auth.ts';
+import { clesVapid } from '#lib/server/webpush.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -21,6 +22,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.basePhotos = creerBasePhotos(env.PHOTOS);
 	event.locals.auth = auth;
 	event.locals.superAdmins = superAdmins(env);
+	event.locals.enArrierePlan = waitUntil;
+	event.locals.clePublique = clesVapid(env)?.publique ?? null;
 
 	const connexion = await auth.api.getSession({ headers: event.request.headers });
 	event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, event.locals.superAdmins) : null;

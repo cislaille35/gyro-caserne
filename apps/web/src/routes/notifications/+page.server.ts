@@ -1,17 +1,17 @@
 import { fail } from '@sveltejs/kit';
-import { classerSignalement, DonneeInvalide, RefusDroit, retirerParModeration } from '@gyro-caserne/socle';
-import { maintenantParis } from '#lib/aujourdhui.ts';
+import { classerSignalement, DonneeInvalide, filDeNotifications, RefusDroit, retirerParModeration, toutMarquerLu } from '@gyro-caserne/socle';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
-import { aFaire } from '#lib/a-faire.ts';
-import { aNePasManquerDe, signalementsDe } from '#lib/server/a-faire.ts';
+import { signalementsDe } from '#lib/server/a-faire.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const acteur = exigerActeur(locals);
-	const [a, signalements] = await Promise.all([aNePasManquerDe(locals.base, acteur), signalementsDe(locals.base, acteur)]);
+	// Le fil (publications et commentaires reçus) ; les signalements à traiter, en tête, pour qui modère.
+	const [fil, signalements] = await Promise.all([filDeNotifications(locals.base, acteur, maintenantParis()), signalementsDe(locals.base, acteur)]);
 	// Sans JavaScript, « Retirer le message » ouvre sa confirmation dans la carte (`?retirer=<id>`).
 	const brut = url.searchParams.get('retirer');
-	return { ...aFaire(a), signalements, confirmer: brut !== null && /^\d+$/.test(brut) ? Number(brut) : null };
+	return { ...fil, aujourdhui: aujourdhuiParis(), signalements, confirmer: brut !== null && /^\d+$/.test(brut) ? Number(brut) : null };
 };
 
 // Les refus du socle, dits simplement.
@@ -38,6 +38,10 @@ async function traiter(locals: App.Locals, request: Request, geste: Geste, succe
 }
 
 export const actions: Actions = {
+	toutLu: async ({ locals }) => {
+		await toutMarquerLu(locals.base, exigerActeur(locals), maintenantParis());
+		return { succes: 'Tout est marqué comme lu.' };
+	},
 	retirer: ({ locals, request }) => traiter(locals, request, retirerParModeration, 'Message retiré pour tous.'),
 	classer: ({ locals, request }) => traiter(locals, request, classerSignalement, 'Signalement classé.')
 };

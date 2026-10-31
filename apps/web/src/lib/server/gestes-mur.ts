@@ -6,6 +6,7 @@ import {
 	commenter,
 	DonneeInvalide,
 	fermerCommentaires,
+	notifierCommentaire,
 	prendreConnaissance,
 	publication,
 	repondreEvenement,
@@ -14,6 +15,7 @@ import {
 	type Acteur
 } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
+import { enArrierePlan } from './notifier.ts';
 import { echecMur, exigerActeur, type Reponse, type Valeurs } from './formulaire-mur.ts';
 
 // Sans mur (depuis l'accueil), toute publication que le socle permet de viser.
@@ -58,7 +60,9 @@ export const gestes = {
 		surPublication(
 			r,
 			async (acteur, id, f) => {
-				return { succes: 'Commentaire publié.', id: await commenter(r.locals.base, acteur, id, texte(f, 'texte'), maintenantParis()) };
+				const nouveau = await commenter(r.locals.base, acteur, id, texte(f, 'texte'), maintenantParis());
+				enArrierePlan(r.locals, () => notifierCommentaire(r.locals.base, nouveau, maintenantParis()));
+				return { succes: 'Commentaire publié.', id: nouveau };
 			},
 			(f) => ({ texte: texte(f, 'texte') })
 		),

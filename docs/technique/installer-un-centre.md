@@ -34,6 +34,7 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
     | `SUPER_ADMINS` | l'adresse du super administrateur (plusieurs : séparées par des virgules) |
     | `BREVO_CLE` | la clé d'API Brevo du centre |
     | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
+    | `VAPID_PUBLIQUE` et `VAPID_PRIVEE` | les clés des notifications au téléphone, propres au centre : `pnpm --filter @gyro-caserne/web cles-vapid` les affiche (une paire neuve à chaque fois, jamais écrite sur le disque). Sans elles, l'appli marche, sans notifications au téléphone. Les changer plus tard oblige chaque agent à réactiver les notifications sur ses appareils |
 
 ## Déploiement automatique (facultatif)
 
@@ -43,7 +44,8 @@ Pour que GitHub déploie tout seul :
 2. Dans le fork, onglet Settings › Secrets and variables › Actions :
    - secrets `CLOUDFLARE_API_TOKEN` (le jeton) et `CLOUDFLARE_ACCOUNT_ID` (affiché sur la page d'accueil du compte Cloudflare) ;
    - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
-3. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
+3. Facultatif, pour que le déploiement pose aussi les clés des notifications : secrets `VAPID_PUBLIQUE_PRODUCTION` et `VAPID_PRIVEE_PRODUCTION` (et `…_PREPROD` pour une préprod), avec des paires créées par `pnpm --filter @gyro-caserne/web cles-vapid`. Par exemple, sans afficher la clé privée : `node --experimental-transform-types apps/web/scripts/cles-vapid.ts | while IFS='=' read -r nom valeur; do printf %s "$valeur" | gh secret set "${nom}_PRODUCTION"; done`.
+4. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
 
 `centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : ses `database_id` sont ceux de Laillé. En le copiant (étape 3 de l'installation), remplacer les deux `database_id` par ceux des nouvelles bases (étape 8).
 

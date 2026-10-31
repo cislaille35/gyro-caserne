@@ -16,6 +16,7 @@
     "base-locale": "for base in PHOTOS BASE; do wrangler d1 migrations apply $base --local --config ../../centres/${CENTRE:-exemple}/wrangler.jsonc --persist-to ../../centres/${CENTRE:-exemple}/.wrangler/state || exit 1; done",
     "base-en-ligne": "for base in PHOTOS BASE; do wrangler d1 migrations apply $base --remote --config ../../centres/${CENTRE:?à préciser, par exemple CENTRE=laille}/wrangler.jsonc || exit 1; done",
     "jeu-de-depart": "node --experimental-transform-types --no-warnings scripts/jeu-de-depart.ts",
+    "cles-vapid": "node --experimental-transform-types --no-warnings scripts/cles-vapid.ts",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "test:a11y": "playwright test"

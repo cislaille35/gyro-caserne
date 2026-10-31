@@ -7,6 +7,7 @@
 	import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 	import { heure } from '#lib/murs/quand.ts';
 	import Bulle from '#lib/ui/Bulle.svelte';
+	import ClocheCoupee from '#lib/ui/ClocheCoupee.svelte';
 	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
@@ -28,6 +29,7 @@
 		autrePrenom = null,
 		nouvelle = null,
 		prerempli = '',
+		coupe = null,
 		form = null
 	}: {
 		vue: VueConversation;
@@ -41,6 +43,8 @@
 		// « Répondre en privé » depuis un mur.
 		prerempli?: string;
 		form?: Reponse;
+		// La cloche barrée de l'en-tête : coupées ou non au téléphone ; nulle, pas de cloche (conversation pas encore née).
+		coupe?: boolean | null;
 	} = $props();
 
 	const id = untrack(() => vue.id);
@@ -274,6 +278,7 @@
 				{#if sousTitre}<span class="sous">{sousTitre}</span>{/if}
 			</span>
 		</svelte:element>
+		{#if coupe !== null && !nouvelle}<ClocheCoupee {coupe} nom={vue.nom} />{/if}
 	</header>
 
 	<div class="fil" role="log" aria-label="Messages de {vue.nom}">

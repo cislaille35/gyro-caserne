@@ -71,6 +71,13 @@
       "when": 1793270425692,
       "tag": "0009_overconfident_jean_grey",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793471774366,
+      "tag": "0010_large_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

@@ -157,6 +157,16 @@ Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-message
 - **Conservation** : `effacerAnciens(base, basePhotos, avant)` efface les messages créés avant `avant` (réactions, photos et octets compris) et les signalements classés d'avant cette date ; les conversations restent. Appelé chaque nuit par le gestionnaire planifié du worker (`apps/web/src/planifie.ts`), avec `conservationMessagesMois` du centre (12 par défaut).
 - `infosConversation` (1) : type, nom, icône, créateur (`creeParPrenom`, même parti du groupe), membres triés par nom (équipe, rôle, animateur, téléphone s'il le montre), `moiAnimateur`. Sur un mur, `PublicationVue.auteur.ecrireA` donne l'auteur à qui « Répondre en privé » (il a la messagerie, et ce n'est pas l'acteur), par la même règle `aLaMessagerie`. `membresPourGroupe` (1) : membres du jour d'une équipe ou d'un comité (`membresDe` des murs), qui ont la messagerie, sans l'acteur.
 
+## Notifications
+
+Spec : [2026-10-31-notifications-design.md](../superpowers/specs/2026-10-31-notifications-design.md). Migration additive `0010`. Décision : [0012](../decisions/0012-notifications-file-d-envoi.md).
+
+- Tables : `notification` (le fil de la cloche : personne, publication, commentaire éventuel, `lue_le` ; supprimée avec sa publication ou son commentaire), `abonnement_push` (un appareil, `endpoint` unique : réabonné, il passe au dernier agent), `coupure` (`tout`, `mur:<clé>` ou `conversation:<id>`), `envoi_push` (la file, `donnees` en JSON : titre, texte, url, tag).
+- `notifierPublication`, `notifierCommentaire`, `notifierMessage` (1 lecture + 1 écriture) : destinataires du moment (lecteurs du mur par `lecturesAgents` ; auteur de la publication s'il lit encore le mur ; membres qui ont la messagerie), jamais l'auteur ; le fil (pas pour les messages) et la file, sans les appareils coupés. Listes d'identifiants passées en un seul paramètre JSON (`json_each`) : sous les 100 paramètres de D1, même à 150 agents.
+- `filDeNotifications` (1) : 50 lignes, non-lues ; `enTeteDe` (1) : non-lues et visage de l'en-tête. `lireMur` marque lues les publications du mur, `lirePublication` la publication et ses commentaires, dans leur batch (sans requête de plus) ; `toutMarquerLu`.
+- `couper`, `estCoupe`, `mesNotifications` (1) ; `abonner` (services push connus seulement : Google, Mozilla, Apple, Microsoft, pour que le Worker ne poste jamais ailleurs ; dix appareils au plus par agent ; un appareil repris perd les envois en file de l'ancien titulaire), `desabonner`.
+- `prendreEnvois` (1 batch : lecture puis suppression des mêmes lignes, jamais pris deux fois) et `oublierAbonnements` (404/410), pour `envoyerLot` de l'appli. `effacerVieillesNotifications` (ménage de nuit). Au départ (`changerStatut` → `parti`), abonnements, fil et coupures sont effacés.
+
 ## Fichier de l'effectif
 
 Trois modules, tous réservés aux gestionnaires (`estGestionnaire`, sinon `RefusDroit`), 50 requêtes au plus par appel. Le classeur `.xlsx` est écrit et lu dans le navigateur ([interface.md](interface.md)) : le socle ne voit que des lignes de texte.

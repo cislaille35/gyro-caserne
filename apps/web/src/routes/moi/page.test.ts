@@ -8,8 +8,9 @@ import { preparer } from '../echanges/de-test.ts';
 const html = (data: Record<string, unknown>) => render(Page as any, { props: { data } }).body;
 
 describe('/moi', () => {
-	it('personne connectée : « Mon profil », « Affichage », « Se déconnecter »', () => {
+	it('personne connectée : « Mon profil », « Notifications », « Affichage », « Se déconnecter »', () => {
 		const page = html({ estPersonne: true });
+		expect(page).toMatch(/<a[^>]*href="\/moi\/notifications"[^>]*>[\s\S]*?Notifications/);
 		expect(page).toMatch(/<a[^>]*href="\/profil"[^>]*>[\s\S]*?Mon profil/);
 		expect(page).toMatch(/<a[^>]*href="\/affichage"[^>]*>[\s\S]*?Affichage/);
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/deconnecter"[\s\S]*?<button[^>]*type="submit"[^>]*>[\s\S]*?Se déconnecter/);
@@ -47,6 +48,7 @@ describe('/moi', () => {
 	it('super administrateur : pas de « Mon profil »', () => {
 		const page = html({ estPersonne: false });
 		expect(page).not.toContain('href="/profil"');
+		expect(page).not.toContain('href="/moi/notifications"');
 		expect(page).toContain('href="/affichage"');
 		expect(page).toContain('Se déconnecter');
 	});

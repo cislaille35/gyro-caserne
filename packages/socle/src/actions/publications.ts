@@ -12,6 +12,7 @@ import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
 import { aLaMessagerie } from '../messagerie.ts';
 import { nomActeur } from './personnes.ts';
+import { marquerLueLaPublication, marquerLuesDuMur } from '../notifications.ts';
 
 // D1 lie 100 paramètres au plus par requête : épinglées et page restent sous ce seuil.
 const EPINGLEES_MAX = 10;
@@ -238,7 +239,7 @@ export async function lirePublication(base: Base, acteur: Acteur, id: number, ma
 	const tous: CommentaireVue[] = [];
 	const {
 		vues: [vue]
-	} = await vuesDe(base, acteur, mur, appartenances, [ligne], { maintenant, tous });
+	} = await vuesDe(base, acteur, mur, appartenances, [ligne], { maintenant, tous, lue: id });
 	return { mur, publication: vue!, commentaires: tous };
 }
 
@@ -261,14 +262,15 @@ const idPersonne = (auteur: string) => {
 
 // Tout ce qui accompagne des publications, en une requête : comptes, gestes de l'acteur, photos, auteurs, derniers commentaires,
 // membres naturels du mur (audience, prises de connaissance attendues) et visages (couleur, rôle).
-// `visite` : marque la visite du mur ; `tous` : reçoit tous les commentaires (d'une seule publication) au lieu des 2 derniers.
+// `visite` : marque la visite du mur (et ses publications lues) ; `tous` : reçoit tous les commentaires (d'une seule publication) au lieu des 2 derniers ;
+// `lue` : la publication ouverte, marquée lue avec ses commentaires.
 async function vuesDe(
 	base: Base,
 	acteur: Acteur,
 	mur: Mur,
 	appartenances: Appartenances,
 	lignes: (typeof publication.$inferSelect)[],
-	options: { maintenant: string; visite?: boolean; tous?: CommentaireVue[] }
+	options: { maintenant: string; visite?: boolean; tous?: CommentaireVue[]; lue?: number }
 ): Promise<{ vues: PublicationVue[]; audience: number }> {
 	const cle = mur.cle;
 	const ids = lignes.map((p) => p.id);
@@ -328,16 +330,21 @@ async function vuesDe(
 			.orderBy(asc(commentaire.id))
 	] as const;
 	const { maintenant } = options;
-	const [agents, affectations, tenues, equipes, jaimes, commentaires, reponses, votes, prises, presents, photos, auteurs, derniers] =
-		acteur.type === 'personne' && options.visite
-			? await base.batch([
-					...lectures,
-					base
-						.insert(visiteMur)
-						.values({ personneId: moi, mur: cle, vueLe: maintenant })
-						.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } })
-				])
-			: await base.batch(lectures);
+	const ecritures =
+		acteur.type !== 'personne'
+			? []
+			: options.visite
+				? [
+						base
+							.insert(visiteMur)
+							.values({ personneId: moi, mur: cle, vueLe: maintenant })
+							.onConflictDoUpdate({ target: [visiteMur.personneId, visiteMur.mur], set: { vueLe: maintenant } }),
+						marquerLuesDuMur(base, moi, cle, maintenant)
+					]
+				: options.lue !== undefined
+					? [marquerLueLaPublication(base, moi, options.lue, maintenant)]
+					: [];
+	const [agents, affectations, tenues, equipes, jaimes, commentaires, reponses, votes, prises, presents, photos, auteurs, derniers] = await base.batch([...lectures, ...ecritures]);
 	const lus: AgentsLus = [agents, affectations, tenues];
 	const membres = membresDe(agentsDuJour(lus, aujourdhui), cle);
 	const vusCommentaires = derniers.map((c) => ({ ...commentaireVu(acteur, mur, c), publicationId: c.publicationId }));

@@ -6,36 +6,43 @@ const { default: Page } = await import('./+page.svelte');
 
 const html = (data: Record<string, unknown>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { annonces: [], evenements: [], sondages: [], signalements: [], ...data } } }).body;
+	render(Page as any, { props: { data: { lignes: [], nonLues: 0, aujourdhui: '2026-10-31', signalements: [], ...data } } }).body;
 
 describe('page des notifications', () => {
-	it('rien de nouveau : une phrase, pas de liste vide', () => {
+	it('rien de reçu : une phrase, pas de liste vide, pas de « Tout marquer comme lu »', () => {
 		const page = html({});
 		expect(page).toMatch(/<h1[^>]*>Notifications<\/h1>/);
 		expect(page).toContain('Rien de nouveau pour vous.');
-		expect(page).toContain('Tout est à jour');
 		expect(page).toMatch(/<a[^>]*href="\/echanges"[^>]*>Voir les échanges<\/a>/);
 		expect(page).not.toContain('<ul');
+		expect(page).not.toContain('?/toutLu');
 	});
 
-	it('une liste de liens vers chaque publication, avec ce qu’il faut faire écrit', () => {
+	const ligne = (l: Record<string, unknown>) => ({ id: 1, type: 'publication', cle: 'centre', nomMur: 'Le centre', publicationId: 10, auteur: { prenom: 'Élodie', nom: 'Martin', couleur: '#c2185b' }, extrait: 'Manœuvre samedi', creeLe: '2026-10-31T09:00', lue: false, ...l });
+
+	it('le fil groupé « Aujourd’hui » puis « Plus tôt », chaque ligne vers sa publication ; les non lues dites et marquées', () => {
 		const page = html({
-			annonces: [{ id: 1, cle: 'centre', nomMur: 'Le centre', titre: 'Note de service' }],
-			evenements: [
-				{ id: 2, cle: 'equipe:1', nomMur: 'Équipe 1', titre: 'Manœuvre', debut: '2026-10-29T19:00', demain: true, reponse: null, sondage: false },
-				{ id: 5, cle: 'centre', nomMur: 'Le centre', titre: 'Repas', debut: '2026-11-05T12:00', demain: false, reponse: 'present', sondage: true }
-			],
-			sondages: [{ id: 3, cle: 'vie', nomMur: 'Vie du centre', titre: 'Repas' }]
+			nonLues: 1,
+			lignes: [
+				ligne({}),
+				ligne({ id: 2, type: 'commentaire', cle: 'vie', nomMur: 'Vie du centre', publicationId: 11, extrait: 'Bravo', creeLe: '2026-10-29T18:00', lue: true, auteur: { prenom: 'Romain', nom: 'Petit', couleur: null } })
+			]
 		});
-		expect(page).not.toContain('Rien de nouveau');
-		expect(page).toMatch(/<ul[^>]*role="list"/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/1"[^>]*>[\s\S]*?Note de service[\s\S]*?Annonce à prendre en compte · Le centre/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/equipe:1\/2"[^>]*>[\s\S]*?Manœuvre[\s\S]*?Événement demain, à répondre · Équipe 1/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/5"[^>]*>[\s\S]*?Repas[\s\S]*?Événement avec sondage, à voter · Le centre/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/vie\/3"[^>]*>[\s\S]*?Repas[\s\S]*?Sondage à répondre · Vie du centre/);
-		// Un événement montre sa date ; le compte est dit en tête.
-		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 29 octobre"/);
-		expect(page).toContain('4 choses demandent votre attention.');
+		expect(page).toMatch(/<h2[^>]*>Aujourd’hui<\/h2>[\s\S]*Élodie Martin[\s\S]*<h2[^>]*>Plus tôt<\/h2>[\s\S]*Romain Petit/);
+		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/10"[^>]*>[\s\S]*?Élodie Martin a publié dans Le centre[\s\S]*?Manœuvre samedi[\s\S]*?<\/a>/);
+		expect(page).toMatch(/<a[^>]*href="\/echanges\/vie\/11"[^>]*>[\s\S]*?Romain Petit a commenté votre publication[\s\S]*?Bravo/);
+		expect(page).toMatch(/class="visage[^"]*"[^>]*style="background: #c2185b;/);
+		// Non lue : écrit pour les lecteurs d'écran, pas seulement montré.
+		expect(page).toMatch(/non-lue[\s\S]*?<span class="masque[^"]*">Non lu, <\/span>[\s\S]*?Élodie Martin/);
+		expect(page.match(/Non lu, /g)).toHaveLength(1);
+		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/toutLu"[\s\S]*?Tout marquer comme lu/);
+		expect(page).toContain('1 notification non lue.');
+	});
+
+	it('tout lu : plus de bouton « Tout marquer comme lu »', () => {
+		const page = html({ lignes: [ligne({ lue: true })] });
+		expect(page).not.toContain('?/toutLu');
+		expect(page).toContain('Tout est lu.');
 	});
 
 	it('un signalement : le texte copié, ses photos, l’auteur, la date et qui a signalé ; « Retirer le message » et « Classer »', () => {

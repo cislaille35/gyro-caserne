@@ -13,7 +13,7 @@
 <div class="avec-infos">
 	<!-- Une autre conversation, ou une autre page : tout repart de zéro (fil, défilement, rafraîchissement). -->
 	{#key `${data.vue.id}:${data.avant}`}
-		<Conversation vue={data.vue} moiId={data.moiId} sousTitre={data.sousTitre} avant={data.avant} autrePrenom={data.autrePrenom} prerempli={data.prerempli} {form} />
+		<Conversation vue={data.vue} moiId={data.moiId} sousTitre={data.sousTitre} avant={data.avant} autrePrenom={data.autrePrenom} prerempli={data.prerempli} coupe={data.coupe} {form} />
 	{/key}
 	<div class="cote"><InfosCote id={data.vue.id} moiId={data.moiId} infos={data.infos} /></div>
 </div>

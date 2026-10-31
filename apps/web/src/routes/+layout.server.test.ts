@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { attribuer, chargerJeuDeDepart, comite, envoyer, personne, profil, publier, repondreEvenement, responsabilite, signaler } from '@gyro-caserne/socle';
+import { attribuer, chargerJeuDeDepart, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
-import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { load } from './+layout.server';
 
 // Pour vérifier que la cloche compte les signalements sans les lire.
@@ -14,8 +14,6 @@ vi.mock('@gyro-caserne/socle', async (importer) => {
 	socle.signalements = vi.fn(vrai.signalements);
 	return { ...vrai, signalements: socle.signalements };
 });
-
-const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const appeler = (acteur: unknown, base: unknown = null) => (load as any)({ locals: { acteur, base, affichage: { niveau: 1, theme: 'clair' } } });
@@ -73,23 +71,20 @@ describe('load du layout', () => {
 		expect((await appeler({ type: 'personne', id: rapporteur!.id }, base)).peutNominations).toBe(true);
 	});
 
-	it('la cloche : annonces à prendre en compte, événements sans réponse et sondages ouverts', async () => {
-		const { base, chef, alice } = await preparer();
+	it('la cloche : les notifications non lues ; le visage de l’en-tête', async () => {
+		const { base, chef, alice, e1 } = await preparer();
 		const maintenant = maintenantParis();
 		expect((await appeler(alice, base)).cloche).toBe(0);
-		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenant);
-		await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Sans demande', priseDeConnaissance: false }, maintenant);
-		const evenement = await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
-		await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas', sondage: { question: 'Venez-vous ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
-		expect((await appeler(alice, base)).cloche).toBe(3);
-		await repondreEvenement(base, alice, evenement, 'incertain', maintenant);
-		expect((await appeler(alice, base)).cloche).toBe(2);
-		// Un événement avec sondage compte une fois, tant que la réponse ou le vote manque.
-		await publier(base, base.photos, chef, 'centre', { type: 'evenement', texte: 'Repas', evenement: { debut: '2099-02-01T12:00', lieu: 'Caserne', convoques: 'tous' }, sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
-		expect((await appeler(alice, base)).cloche).toBe(3);
-		// Le super administrateur et le visiteur : rien.
-		expect((await appeler(super_, base)).cloche).toBe(0);
-		expect((await appeler(null, base)).cloche).toBe(0);
+		const id = await publier(base, base.photos, chef, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true }, maintenant);
+		await notifierPublication(base, id, maintenant);
+		await notifierPublication(base, await publier(base, base.photos, chef, 'vie', { type: 'message', texte: 'Repas' }, maintenant), maintenant);
+		expect(await appeler(alice, base)).toMatchObject({ cloche: 2, visage: { prenom: 'Alice', nom: 'Test', couleur: e1.couleur } });
+		// Consulter la publication la marque lue.
+		await lirePublication(base, alice, id, maintenant);
+		expect((await appeler(alice, base)).cloche).toBe(1);
+		// Le super administrateur et le visiteur : ni nombre, ni visage.
+		expect(await appeler(super_, base)).toMatchObject({ cloche: 0, visage: null });
+		expect(await appeler(null, base)).toMatchObject({ cloche: 0, visage: null });
 	});
 
 	it('la cloche : les messages signalés, pour qui modère la messagerie (chef de centre, super administrateur) seulement', async () => {

@@ -185,4 +185,19 @@ describe('interactions', () => {
 		for (const nom of ['commenter', 'supprimerCommentaire', 'aimer', 'repondre', 'voter', 'prendreConnaissance', 'fermerCommentaires'])
 			expect(await agir(nom, locaux(base, chef), 'centre', [['id', id]]), nom).toMatchObject({ status: 404 });
 	});
+
+	it('la cloche barrée : coupe puis réactive les notifications de ce mur au téléphone', async () => {
+		const { base, alice } = await preparer();
+		expect((await charger(locaux(base, alice), 'vie')).coupe).toBe(false);
+		expect(await agir('couper', locaux(base, alice), 'vie', [['oui', '1']])).toEqual({ cible: 'couper', succes: 'Notifications coupées pour ce mur.' });
+		expect((await charger(locaux(base, alice), 'vie')).coupe).toBe(true);
+		expect(await agir('couper', locaux(base, alice), 'vie', [['oui', '0']])).toEqual({ cible: 'couper', succes: 'Notifications réactivées pour ce mur.' });
+		expect((await charger(locaux(base, alice), 'vie')).coupe).toBe(false);
+	});
+
+	it('la cloche barrée : refusée sur un mur que l’on ne lit pas, absente pour le super administrateur', async () => {
+		const { base, alice, e2 } = await preparer();
+		expect(await agir('couper', locaux(base, alice), `equipe:${e2.id}`, [['oui', '1']])).toMatchObject({ status: 403 });
+		expect((await charger(locaux(base, { type: 'super', email: 'a@b.fr' }), 'vie')).coupe).toBeNull();
+	});
 });

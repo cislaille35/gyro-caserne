@@ -396,5 +396,47 @@ export const signalementMessage = sqliteTable(
 	(t) => [uniqueIndex('signalement_message_par').on(t.messageId, t.par), index('signalement_message_classe').on(t.classeLe)]
 );
 
+// Notifications (notifications.ts). Le fil de la cloche : une ligne par publication ou commentaire reçu ; `lue_le` nul tant qu'elle n'est pas lue.
+export const notification = sqliteTable(
+	'notification',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		publicationId: versPublication(),
+		commentaireId: integer('commentaire_id').references(() => commentaire.id, { onDelete: 'cascade' }),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [index('notification_personne').on(t.personneId, t.lueLe), index('notification_publication').on(t.publicationId)]
+);
+
+// Un appareil où la personne a activé les notifications (Web Push). Un même appareil n'est abonné qu'une fois.
+export const abonnementPush = sqliteTable(
+	'abonnement_push',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		endpoint: text('endpoint').notNull().unique(),
+		p256dh: text('p256dh').notNull(),
+		auth: text('auth').notNull(),
+		appareil: text('appareil').notNull().default(''),
+		creeLe: text('cree_le').notNull()
+	},
+	(t) => [index('abonnement_push_personne').on(t.personneId)]
+);
+
+// Ce que la personne a coupé au téléphone : « tout », « mur:<clé> » ou « conversation:<id> ».
+export const coupure = sqliteTable('coupure', { personneId: versPersonne(), lieu: text('lieu').notNull() }, (t) => [primaryKey({ columns: [t.personneId, t.lieu] })]);
+
+// La file des envois au téléphone, vidée par lots (tâche planifiée). `donnees` : JSON { titre, texte, url, tag }.
+export const envoiPush = sqliteTable('envoi_push', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	abonnementId: integer('abonnement_id')
+		.notNull()
+		.references(() => abonnementPush.id, { onDelete: 'cascade' }),
+	donnees: text('donnees').notNull(),
+	creeLe: text('cree_le').notNull()
+});
+
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';
