@@ -1,8 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DonneeInvalide, envoyer, modifierMessage, reagir, RefusDroit, signaler, supprimerMessage, TAILLE_PHOTO_MAX, textePublication, type Acteur, type Reaction } from '@gyro-caserne/socle';
+import { DonneeInvalide, envoyer, modifierMessage, notifierMessage, reagir, RefusDroit, signaler, supprimerMessage, TAILLE_PHOTO_MAX, textePublication, type Acteur, type Reaction } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { aPropos } from '#lib/messagerie/infos.ts';
 import { avecJavaScript, envoiTropLourd, exigerActeur } from './formulaire-mur.ts';
+import { enArrierePlan } from './notifier.ts';
 
 // « Répondre en privé » : l'adresse ne porte que `?publication=<id>` ; null s'il est absent ou illisible.
 export function publicationCitee(url: URL): number | null {
@@ -86,6 +87,8 @@ export async function actionEnvoyer(locals: App.Locals, request: Request, cible:
 	} catch (erreur) {
 		return echecMessagerie(erreur, 'envoyer', valeurs);
 	}
+	const { message } = envoi;
+	enArrierePlan(locals, () => notifierMessage(locals.base, message, maintenantParis()));
 	redirect(303, `/echanges/messages/${envoi.conversation}#message-${envoi.message}`);
 }
 

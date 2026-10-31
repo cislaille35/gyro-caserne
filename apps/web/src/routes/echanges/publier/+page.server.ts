@@ -1,8 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { asc } from 'drizzle-orm';
-import { apercusDesMurs, audiences, equipe, mursDe, publier } from '@gyro-caserne/socle';
+import { apercusDesMurs, audiences, equipe, mursDe, notifierPublication, publier } from '@gyro-caserne/socle';
 import { aujourdhuiParis, clotureParDefaut, maintenantParis } from '#lib/aujourdhui.ts';
 import { avecJavaScript, echecMur, envoiTropLourd, exigerActeur, lirePublication, type Reponse } from '#lib/server/formulaire-mur.ts';
+import { enArrierePlan } from '#lib/server/notifier.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 // Les murs où l'on peut publier, avec qui les voit et leur identité (pastille, couleur).
@@ -47,6 +48,8 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return echecMur(erreur, 'publier', valeurs);
 		}
+		const publiee = id;
+		enArrierePlan(locals, () => notifierPublication(locals.base, publiee, maintenantParis()));
 		redirect(303, `/echanges/${valeurs.mur}#publication-${id}`);
 	}
 };

@@ -1,6 +1,7 @@
 import type { Acteur, Base, BasePhotos } from '@gyro-caserne/socle';
 import type { Affichage } from '#lib/affichage.ts';
 import type { Auth, EnvAuth } from '#lib/server/auth.ts';
+import type { EnvVapid } from '#lib/server/webpush.ts';
 
 declare global {
 	namespace App {
@@ -14,11 +15,13 @@ declare global {
 			// Adresses des super administrateurs : aucune fiche ne peut les prendre.
 			superAdmins: string[];
 			affichage: Affichage;
+			// waitUntil de Cloudflare : finir un travail après la réponse (les notifications).
+			enArrierePlan?: (tache: Promise<unknown>) => void;
 		}
 	}
 	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`
 	namespace Cloudflare {
-		interface Env extends EnvAuth {
+		interface Env extends EnvAuth, EnvVapid {
 			BASE: D1Database;
 			PHOTOS: D1Database;
 		}

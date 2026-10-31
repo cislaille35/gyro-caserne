@@ -18,8 +18,8 @@ describe('centres du dépôt', () => {
 		expect(Object.keys(fichiers).length).toBeGreaterThan(0);
 	});
 
-	it('centres/exemple efface les vieux messages chaque nuit, à 3 h 30 (UTC)', () => {
-		expect(configCloudflare('../../../centres/exemple/centre.ts').config.triggers.crons).toEqual(['30 3 * * *']);
+	it('centres/exemple fait son ménage chaque nuit, à 3 h 30 (UTC), et envoie les notifications chaque minute', () => {
+		expect(configCloudflare('../../../centres/exemple/centre.ts').config.triggers.crons).toEqual(['30 3 * * *', '* * * * *']);
 	});
 
 	for (const [chemin, charger] of Object.entries(fichiers)) {

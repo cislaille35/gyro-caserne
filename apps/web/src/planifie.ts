@@ -1,5 +1,7 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from './lib/aujourdhui.ts';
+import { envoyerLot } from './lib/server/envoi-push.ts';
+import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
 
 // Le gestionnaire planifié du worker (voir entree-du-worker.ts). Chargé par Wrangler hors de SvelteKit : imports relatifs, sans les alias de SvelteKit.
 
@@ -12,15 +14,27 @@ export function limiteDeConservation(quand: Date, mois: number): string {
 	return vise.toISOString().slice(0, 10);
 }
 
-type Env = { BASE: D1Database; PHOTOS: D1Database };
+type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database };
 
-// Le worker de SvelteKit, plus l'effacement quotidien des messages plus vieux que la durée de conservation du centre.
+// Les notifications du fil sont gardées 30 jours.
+const CONSERVATION_NOTIFICATIONS_JOURS = 30;
+// Le ménage, chaque nuit ; les autres déclenchements (chaque minute) envoient les notifications au téléphone. Voir wrangler.jsonc.
+export const CRON_NUIT = '30 3 * * *';
+
+// Le worker de SvelteKit, plus le gestionnaire planifié.
 export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number }) {
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
-			const avant = limiteDeConservation(new Date(controleur.scheduledTime), centre.conservationMessagesMois);
-			ctx.waitUntil(effacerAnciens(creerBaseD1(env.BASE), creerBasePhotos(env.PHOTOS), avant));
+			const base = creerBaseD1(env.BASE);
+			if (controleur.cron !== CRON_NUIT) {
+				ctx.waitUntil(envoyerLot(base, clesVapid(env)));
+				return;
+			}
+			const quand = new Date(controleur.scheduledTime);
+			const avant = limiteDeConservation(quand, centre.conservationMessagesMois);
+			const notifications = aujourdhuiParis(new Date(quand.getTime() - CONSERVATION_NOTIFICATIONS_JOURS * 86_400_000));
+			ctx.waitUntil(Promise.all([effacerAnciens(base, creerBasePhotos(env.PHOTOS), avant), effacerVieillesNotifications(base, notifications)]));
 		}
 	};
 }

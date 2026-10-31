@@ -21,6 +21,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.basePhotos = creerBasePhotos(env.PHOTOS);
 	event.locals.auth = auth;
 	event.locals.superAdmins = superAdmins(env);
+	event.locals.enArrierePlan = waitUntil;
 
 	const connexion = await auth.api.getSession({ headers: event.request.headers });
 	event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, event.locals.superAdmins) : null;

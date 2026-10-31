@@ -44,10 +44,13 @@ async function centreDe150() {
 	await base.insert(attribution).values({ personneId: chef!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 	for (let i = 0; i < 150; i++) await base.insert(personne).values({ email: `agent${i}@exemple.fr`, prenom: `Agent${i}`, nom: 'Test', profilId: p!.id });
 	const [agent] = await base.select().from(personne).where(eq(personne.email, 'agent0@exemple.fr'));
-	const locals = { base, basePhotos: base.photos, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {} };
+	// Ce qui part en arrière-plan (les notifications) compte dans la même requête du Worker.
+	const taches: Promise<unknown>[] = [];
+	const locals = { base, basePhotos: base.photos, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {}, enArrierePlan: (p: Promise<unknown>) => taches.push(p) };
 	const compter = async (etapes: () => Promise<unknown>) => {
 		const avant = base.requetes;
 		await etapes();
+		await Promise.all(taches.splice(0));
 		return base.requetes - avant;
 	};
 	return { base, locals, agent: agent!, compter };
