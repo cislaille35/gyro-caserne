@@ -13,7 +13,7 @@
 	let echec = $state(false);
 	onMount(() => {
 		if (!data.clePublique) etat = 'sans-cles';
-		else etatPush().then((e) => (etat = e)).catch(() => (etat = 'indisponible'));
+		else etatPush(data.clePublique).then((e) => (etat = e)).catch(() => (etat = 'indisponible'));
 	});
 
 	async function changer(faire: () => Promise<EtatTelephone>) {

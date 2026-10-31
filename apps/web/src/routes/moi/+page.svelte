@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
+	import { oublierCetAppareil } from '#lib/push.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
@@ -10,6 +11,18 @@
 	let { data } = $props();
 
 	const id = $derived(data.identite);
+	// En partant, ni les brouillons ni les notifications de ce compte ne restent sur l'appareil (il peut être partagé).
+	let partir = false;
+	async function deconnecter(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		oublierBrouillons();
+		if (partir) return;
+		e.preventDefault();
+		const formulaire = e.currentTarget;
+		await oublierCetAppareil().catch(() => {});
+		partir = true;
+		formulaire.requestSubmit();
+	}
+
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
 
@@ -48,8 +61,7 @@
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>
 	</ListeRangees>
 
-	<!-- En partant, les brouillons de messages ne restent pas sur l'appareil pour le compte suivant. -->
-	<form method="POST" action="?/deconnecter" onsubmit={oublierBrouillons}>
+	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
 		<button type="submit" class="sortir"
 			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.sortir} /></svg>Se déconnecter</button
 		>

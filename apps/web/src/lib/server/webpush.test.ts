@@ -56,7 +56,10 @@ describe('Web Push', () => {
 		expect(cles.privee).toMatchObject({ kty: 'EC', crv: 'P-256', d: VAPID_PRIVEE });
 		expect(cles.contact).toBe('mailto:caserne@exemple.fr');
 		expect(clesVapid({ VAPID_PUBLIQUE, VAPID_PRIVEE, BETTER_AUTH_URL: 'https://appli.exemple' })!.contact).toBe('https://appli.exemple');
-		expect(clesVapid({ VAPID_PUBLIQUE: 'abc', VAPID_PRIVEE })).toBeNull();
+		expect(clesVapid({ VAPID_PUBLIQUE: 'abc', VAPID_PRIVEE, BETTER_AUTH_URL: 'https://appli.exemple' })).toBeNull();
+		// Sans contact (Apple refuserait tout), ou une clé privée qui n'en est pas une : pas de clés plutôt que des envois perdus.
+		expect(clesVapid({ VAPID_PUBLIQUE, VAPID_PRIVEE })).toBeNull();
+		expect(clesVapid({ VAPID_PUBLIQUE, VAPID_PRIVEE: 'abc', BETTER_AUTH_URL: 'https://appli.exemple' })).toBeNull();
 	});
 
 	it('jetonVapid : signé par la clé VAPID, pour le service push visé', async () => {

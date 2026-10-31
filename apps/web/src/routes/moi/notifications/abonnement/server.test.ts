@@ -5,7 +5,7 @@ import { DELETE, POST } from './+server';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const requete = (methode: string, corps: unknown) => new Request('http://x/moi/notifications/abonnement', { method: methode, headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps) });
-const abonnement = { endpoint: 'https://push.exemple/alice', keys: { p256dh: 'BCle', auth: 'secret' }, appareil: 'Mozilla/5.0 (iPhone)' };
+const abonnement = { endpoint: 'https://fcm.googleapis.com/fcm/send/alice', keys: { p256dh: 'BCle', auth: 'secret' }, appareil: 'Mozilla/5.0 (iPhone)' };
 
 describe('/moi/notifications/abonnement', () => {
 	it('POST abonne cet appareil ; DELETE le désabonne', async () => {

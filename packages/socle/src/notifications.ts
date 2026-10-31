@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notExists, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notExists, notInArray, sql, type SQL } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
@@ -330,24 +330,38 @@ export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: s
 export type Abonnement = { endpoint: string; p256dh: string; auth: string; appareil: string };
 
 const CLE = /^[A-Za-z0-9_-]{1,200}$/;
+const APPAREILS_MAX = 10;
+// Les services push des navigateurs (Chrome et Edge, Firefox, Safari, anciens Edge) : le Worker ne poste jamais ailleurs.
+const SERVICES_PUSH = ['fcm.googleapis.com', 'push.services.mozilla.com', 'push.apple.com', 'notify.windows.com'];
 
-// Un appareil abonné : s'il l'était déjà (même adresse), il passe à cette personne.
+function servicePushConnu(endpoint: string): boolean {
+	if (endpoint.length > 1000) return false;
+	try {
+		const url = new URL(endpoint);
+		return url.protocol === 'https:' && url.username === '' && url.port === '' && SERVICES_PUSH.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`));
+	} catch {
+		return false;
+	}
+}
+
+// Un appareil abonné : s'il l'était déjà (même adresse), il passe à cette personne, sans les envois encore en file pour l'ancienne.
+// Dix appareils au plus par personne : le plus ancien laisse sa place.
 export async function abonner(base: Base, acteur: Acteur, a: Abonnement, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	const moi = moiDe(acteur);
 	const endpoint = typeof a.endpoint === 'string' ? a.endpoint : '';
-	let valide = endpoint.length <= 1000 && endpoint.startsWith('https://');
-	try {
-		new URL(endpoint);
-	} catch {
-		valide = false;
-	}
-	if (!valide || typeof a.p256dh !== 'string' || !CLE.test(a.p256dh) || typeof a.auth !== 'string' || !CLE.test(a.auth)) throw new DonneeInvalide('Abonnement invalide');
+	if (!servicePushConnu(endpoint) || typeof a.p256dh !== 'string' || !CLE.test(a.p256dh) || typeof a.auth !== 'string' || !CLE.test(a.auth)) throw new DonneeInvalide('Abonnement invalide');
 	const appareil = typeof a.appareil === 'string' ? a.appareil.slice(0, 80) : '';
-	await base
-		.insert(abonnementPush)
-		.values({ personneId: moi, endpoint, p256dh: a.p256dh, auth: a.auth, appareil, creeLe: maintenant })
-		.onConflictDoUpdate({ target: abonnementPush.endpoint, set: { personneId: moi, p256dh: a.p256dh, auth: a.auth, appareil, creeLe: maintenant } });
+	const lAbonnement = base.select({ id: abonnementPush.id }).from(abonnementPush).where(eq(abonnementPush.endpoint, endpoint));
+	const recents = base.select({ id: abonnementPush.id }).from(abonnementPush).where(eq(abonnementPush.personneId, moi)).orderBy(desc(abonnementPush.creeLe), desc(abonnementPush.id)).limit(APPAREILS_MAX);
+	await base.batch([
+		base.delete(envoiPush).where(inArray(envoiPush.abonnementId, lAbonnement)),
+		base
+			.insert(abonnementPush)
+			.values({ personneId: moi, endpoint, p256dh: a.p256dh, auth: a.auth, appareil, creeLe: maintenant })
+			.onConflictDoUpdate({ target: abonnementPush.endpoint, set: { personneId: moi, p256dh: a.p256dh, auth: a.auth, appareil, creeLe: maintenant } }),
+		base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, moi), notInArray(abonnementPush.id, recents)))
+	]);
 }
 
 export async function desabonner(base: Base, acteur: Acteur, endpoint: string): Promise<void> {

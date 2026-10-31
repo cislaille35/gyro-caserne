@@ -37,7 +37,7 @@ describe('notifications en arrière-plan', () => {
 
 	it('envoyer un message : mis en file pour le téléphone de l’autre', async () => {
 		const { base, alice, bruno } = await preparer();
-		await (await import('@gyro-caserne/socle')).abonner(base, bruno, { endpoint: 'https://push.exemple/bruno', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenantParis());
+		await (await import('@gyro-caserne/socle')).abonner(base, bruno, { endpoint: 'https://fcm.googleapis.com/fcm/send/bruno', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenantParis());
 		const { locals, taches } = avecArrierePlan(base, alice);
 		const request = await requeteFormulaire([['texte', 'Salut']]);
 		await expect((actionsAPersonne.envoyer as any)({ locals, params: { personne: String(bruno.id) }, url: new URL('http://x'), request })).rejects.toMatchObject({ status: 303 });
@@ -46,14 +46,15 @@ describe('notifications en arrière-plan', () => {
 		expect(await base.select().from(notification)).toEqual([]);
 	});
 
-	it('une erreur des notifications est écrite dans la console, sans rien casser ; sans arrière-plan, la tâche part quand même', async () => {
+	it('une erreur des notifications est écrite dans la console, sans le texte et sans rien casser ; sans arrière-plan, la tâche part quand même', async () => {
 		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const taches: Promise<unknown>[] = [];
 		enArrierePlan({ enArrierePlan: (p: Promise<unknown>) => taches.push(p) } as never, async () => {
-			throw new Error('panne');
+			throw new TypeError('params: ["Texte privé"]');
 		});
 		await Promise.all(taches);
-		expect(erreur).toHaveBeenCalledWith('Notifications non créées', expect.any(Error));
+		// Le nom de l'erreur seulement : son message peut porter le texte (paramètres de la requête).
+		expect(erreur).toHaveBeenCalledWith('Notifications non créées', 'TypeError');
 		const faite = vi.fn(async () => {});
 		enArrierePlan({} as never, faite);
 		expect(faite).toHaveBeenCalledOnce();

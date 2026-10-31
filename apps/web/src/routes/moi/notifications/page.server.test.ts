@@ -17,7 +17,7 @@ describe('/moi/notifications', () => {
 	it('la clé publique du centre (nulle sans secrets), « tout » coupé ou non, les lieux coupés, les appareils', async () => {
 		const { base, e1, alice } = await preparer();
 		await couper(base, alice, `mur:equipe:${e1.id}`, true, maintenantParis());
-		await abonner(base, alice, { endpoint: 'https://push.exemple/a', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenantParis());
+		await abonner(base, alice, { endpoint: 'https://fcm.googleapis.com/fcm/send/a', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenantParis());
 		expect(await charger({ ...locaux(base, alice), clePublique: 'BPub' })).toEqual({ clePublique: 'BPub', tout: false, coupes: [{ lieu: `mur:equipe:${e1.id}`, nom: e1.nom }], appareils: 1 });
 		expect((await charger(locaux(base, alice))).clePublique).toBeNull();
 	});

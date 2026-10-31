@@ -17,7 +17,7 @@ export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (u
 				if (reponse.status === 404 || reponse.status === 410) perimes.push(e.abonnementId);
 				else if (!reponse.ok) console.warn('Notification refusée par le service push', reponse.status);
 			} catch (erreur) {
-				console.error('Notification non envoyée', erreur);
+				console.error('Notification non envoyée', erreur instanceof Error ? erreur.name : typeof erreur);
 			}
 		})
 	);

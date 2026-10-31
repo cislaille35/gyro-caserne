@@ -39,7 +39,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 ## Les règles
 
 - Les notifications de plus de 30 jours sont effacées chaque nuit.
-- Au départ d'un agent, ses appareils et ses notifications sont effacés.
+- Au départ d'un agent, ses appareils et ses notifications sont effacés. Se déconnecter désabonne l'appareil : un téléphone partagé ne reçoit plus les notifications du compte qui l'a quitté.
 - Pas d'heures calmes dans l'appli : le mode « Ne pas déranger » du téléphone s'en charge. Pas d'alerte opérationnelle : c'est le rôle du CTA-CODIS.
 
 ## Ce que la fonction ne fait pas (encore)

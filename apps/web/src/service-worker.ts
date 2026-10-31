@@ -34,7 +34,9 @@ sw.addEventListener('notificationclick', (event) => {
 	event.waitUntil(
 		sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenetres) => {
 			const ouverte = fenetres.find((f) => f.url.startsWith(sw.location.origin)) as WindowClient | undefined;
-			return ouverte ? ouverte.navigate(url).then((f) => f?.focus()) : sw.clients.openWindow(url);
+			// Une fenêtre que le service worker ne contrôle pas refuse `navigate` : on en ouvre une autre.
+			const nouvelle = () => sw.clients.openWindow(url);
+			return ouverte ? ouverte.navigate(url).then((f) => (f ? f.focus() : nouvelle())).catch(nouvelle) : nouvelle();
 		})
 	);
 });

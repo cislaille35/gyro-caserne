@@ -63,14 +63,16 @@ export async function chiffrer(message: string, p256dh: string, auth: string): P
 export type ClesVapid = { publique: string; privee: JsonWebKey; contact: string };
 export type EnvVapid = { VAPID_PUBLIQUE?: string; VAPID_PRIVEE?: string; COURRIEL_EXPEDITEUR?: string; BETTER_AUTH_URL?: string };
 
-// Les clés du centre (secrets) : le point public brut et `d`, en base64url. Nulles si elles manquent ou sont illisibles.
+// Les clés du centre (secrets) : le point public brut et `d`, en base64url. Nulles si elles manquent ou sont illisibles,
+// ou sans contact (le service push d'Apple refuse un jeton sans lui) : mieux vaut aucun envoi que des envois perdus.
 export function clesVapid(env: EnvVapid): ClesVapid | null {
-	if (!env.VAPID_PUBLIQUE || !env.VAPID_PRIVEE) return null;
+	const contact = env.COURRIEL_EXPEDITEUR ? `mailto:${env.COURRIEL_EXPEDITEUR}` : (env.BETTER_AUTH_URL ?? '');
+	if (!env.VAPID_PUBLIQUE || !env.VAPID_PRIVEE || !/^[A-Za-z0-9_-]{43}$/.test(env.VAPID_PRIVEE) || !contact) return null;
 	try {
 		const point = depuisB64u(env.VAPID_PUBLIQUE);
 		if (point.length !== 65 || point[0] !== 4) return null;
 		const privee = { kty: 'EC', crv: 'P-256', x: b64u(point.slice(1, 33)), y: b64u(point.slice(33)), d: env.VAPID_PRIVEE };
-		return { publique: env.VAPID_PUBLIQUE, privee, contact: env.COURRIEL_EXPEDITEUR ? `mailto:${env.COURRIEL_EXPEDITEUR}` : (env.BETTER_AUTH_URL ?? '') };
+		return { publique: env.VAPID_PUBLIQUE, privee, contact };
 	} catch {
 		return null;
 	}

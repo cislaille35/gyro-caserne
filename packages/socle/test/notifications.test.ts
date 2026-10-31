@@ -43,7 +43,7 @@ async function jeu() {
 	const nouvelle = async (prenom: string, equipeId?: number) => {
 		const [p] = await base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Test', profilId: agent!.id }).returning();
 		if (equipeId) await base.insert(affectationEquipe).values({ personneId: p!.id, equipeId, debut: '2026-01-01' });
-		await abonner(base, acteur(p!.id), { endpoint: `https://push.exemple/${prenom}`, p256dh: 'BCle', auth: 'secret', appareil: 'Téléphone' }, maintenant);
+		await abonner(base, acteur(p!.id), { endpoint: `https://fcm.googleapis.com/fcm/send/${prenom}`, p256dh: 'BCle', auth: 'secret', appareil: 'Téléphone' }, maintenant);
 		return p!.id;
 	};
 	const chef = await nouvelle('Chef');
@@ -208,7 +208,7 @@ describe('couper', () => {
 		const groupe = await creerGroupe(base, acteur(alice), { nom: 'Pot', membres: [bruno] }, maintenant);
 		const deux = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Salut' }, maintenant);
 		for (const lieu of [`mur:equipe:${e2.id}`, 'mur:vie', `conversation:${groupe}`, `conversation:${deux.conversation}`]) await couper(base, acteur(bruno), lieu, true, maintenant);
-		await abonner(base, acteur(bruno), { endpoint: 'https://push.exemple/Bruno-tablette', p256dh: 'BCle', auth: 'secret', appareil: 'Tablette' }, maintenant);
+		await abonner(base, acteur(bruno), { endpoint: 'https://fcm.googleapis.com/fcm/send/Bruno-tablette', p256dh: 'BCle', auth: 'secret', appareil: 'Tablette' }, maintenant);
 		expect(await mesNotifications(base, acteur(bruno), aujourdhui)).toEqual({
 			tout: false,
 			appareils: 2,
@@ -295,16 +295,41 @@ describe('le fil et la cloche', () => {
 describe('abonnements et file d’envoi', () => {
 	it('un même appareil n’est abonné qu’une fois, au dernier agent ; adresse non https refusée ; désabonner', async () => {
 		const { base, alice, bruno } = await jeu();
-		await abonner(base, acteur(bruno), { endpoint: 'https://push.exemple/Alice', p256dh: 'BAutre', auth: 'autre', appareil: 'Prêté' }, maintenant);
-		const lignes = await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://push.exemple/Alice'));
+		await abonner(base, acteur(bruno), { endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BAutre', auth: 'autre', appareil: 'Prêté' }, maintenant);
+		const lignes = await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://fcm.googleapis.com/fcm/send/Alice'));
 		expect(lignes).toMatchObject([{ personneId: bruno, p256dh: 'BAutre', auth: 'autre' }]);
 		await expect(abonner(base, acteur(alice), { endpoint: 'http://push.exemple/x', p256dh: 'B', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
-		await expect(abonner(base, acteur(alice), { endpoint: 'https://push.exemple/x', p256dh: '', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
-		await expect(abonner(base, superAdmin, { endpoint: 'https://push.exemple/x', p256dh: 'B', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(abonner(base, acteur(alice), { endpoint: 'https://fcm.googleapis.com/fcm/send/x', p256dh: '', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(abonner(base, superAdmin, { endpoint: 'https://fcm.googleapis.com/fcm/send/x', p256dh: 'B', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
 		// On ne désabonne que les siens.
-		await desabonner(base, acteur(alice), 'https://push.exemple/Bruno');
-		await desabonner(base, acteur(bruno), 'https://push.exemple/Bruno');
+		await desabonner(base, acteur(alice), 'https://fcm.googleapis.com/fcm/send/Bruno');
+		await desabonner(base, acteur(bruno), 'https://fcm.googleapis.com/fcm/send/Bruno');
 		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint.split('/').pop()).sort()).toEqual(['Alice', 'Chef', 'Chloe']);
+	});
+
+	it('seuls les services push connus sont acceptés : le Worker ne poste jamais ailleurs', async () => {
+		const { base, alice } = await jeu();
+		for (const endpoint of ['https://exemple.org/n', 'https://fcm.googleapis.com.exemple.org/x', 'https://push.apple.com@exemple.org/x', `https://fcm.googleapis.com/${'x'.repeat(1000)}`])
+			await expect(abonner(base, acteur(alice), { endpoint, p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		for (const endpoint of ['https://fcm.googleapis.com/fcm/send/a', 'https://updates.push.services.mozilla.com/wpush/v2/b', 'https://web.push.apple.com/c', 'https://wns2-par02p.notify.windows.com/w/?token=d'])
+			await abonner(base, acteur(alice), { endpoint, p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant);
+		await expect(abonner(base, acteur(alice), { endpoint: 'https://fcm.googleapis.com/fcm/send/z', p256dh: 'B+/', auth: 'secret', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+	});
+
+	it('dix appareils au plus par agent : le plus ancien laisse sa place', async () => {
+		const { base, bruno } = await jeu();
+		for (let i = 0; i < 11; i++) await abonner(base, acteur(bruno), { endpoint: `https://fcm.googleapis.com/fcm/send/b${i}`, p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant);
+		const siens = (await base.select().from(abonnementPush).where(eq(abonnementPush.personneId, bruno))).map((a) => a.endpoint.split('/').pop());
+		expect(siens).toHaveLength(10);
+		expect(siens).not.toContain('Bruno');
+		expect(siens).toContain('b10');
+	});
+
+	it('un appareil repris par un autre agent ne reçoit pas les envois encore en file pour le premier', async () => {
+		const { base, chef, bruno, file } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Pour Alice' }, maintenant), maintenant);
+		await abonner(base, acteur(bruno), { endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant);
+		expect((await file()).map((e) => e.a)).toEqual(['Bruno', 'Chloe']);
 	});
 
 	it('prendreEnvois : les plus anciens d’abord, retirés de la file ; oublierAbonnements', async () => {
@@ -312,12 +337,12 @@ describe('abonnements et file d’envoi', () => {
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const pris = await prendreEnvois(base, 2);
 		expect(pris).toHaveLength(2);
-		expect(pris[0]).toMatchObject({ endpoint: 'https://push.exemple/Alice', p256dh: 'BCle', auth: 'secret', donnees: { titre: 'Le centre · Chef Test', tag: expect.any(String) } });
+		expect(pris[0]).toMatchObject({ endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BCle', auth: 'secret', donnees: { titre: 'Le centre · Chef Test', tag: expect.any(String) } });
 		expect(await file()).toHaveLength(1);
 		expect(await prendreEnvois(base, 2)).toHaveLength(1);
 		expect(await prendreEnvois(base, 2)).toEqual([]);
 		await oublierAbonnements(base, [pris[0]!.abonnementId]);
-		expect(await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://push.exemple/Alice'))).toEqual([]);
+		expect(await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://fcm.googleapis.com/fcm/send/Alice'))).toEqual([]);
 	});
 });
 

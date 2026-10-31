@@ -17,7 +17,7 @@ async function enFile() {
 		const brut = new Uint8Array((await crypto.subtle.exportKey('raw', paire.publicKey)) as ArrayBuffer);
 		return { p256dh: btoa(String.fromCharCode(...brut)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), auth: 'c2VjcmV0LWRlLXRlc3Q' };
 	};
-	for (const [qui, nom] of [[alice, 'alice'], [bruno, 'bruno'], [alice, 'alice-tablette']] as const) await abonner(base, qui, { endpoint: `https://push.exemple/${nom}`, ...(await navigateur()), appareil: '' }, maintenant);
+	for (const [qui, nom] of [[alice, 'alice'], [bruno, 'bruno'], [alice, 'alice-tablette']] as const) await abonner(base, qui, { endpoint: `https://fcm.googleapis.com/fcm/send/${nom}`, ...(await navigateur()), appareil: '' }, maintenant);
 	await notifierPublication(base, await publier(base, base.photos, chef, 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 	const v = await paireVapid();
 	return { ...p, cles: clesVapid({ ...v, BETTER_AUTH_URL: 'https://appli.exemple' })! };
@@ -27,9 +27,9 @@ describe('envoyerLot', () => {
 	it('envoie chaque envoi en file ; 404 ou 410 : l’abonnement est supprimé ; une erreur n’arrête pas le lot', async () => {
 		const { base, cles } = await enFile();
 		const reponses: Record<string, () => Response> = {
-			'https://push.exemple/alice': () => new Response(null, { status: 201 }),
-			'https://push.exemple/bruno': () => new Response(null, { status: 410 }),
-			'https://push.exemple/alice-tablette': () => {
+			'https://fcm.googleapis.com/fcm/send/alice': () => new Response(null, { status: 201 }),
+			'https://fcm.googleapis.com/fcm/send/bruno': () => new Response(null, { status: 410 }),
+			'https://fcm.googleapis.com/fcm/send/alice-tablette': () => {
 				throw new Error('réseau');
 			}
 		};
@@ -42,7 +42,7 @@ describe('envoyerLot', () => {
 		erreur.mockRestore();
 		expect(envoyer).toHaveBeenCalledTimes(3);
 		expect(await base.select().from(envoiPush)).toEqual([]);
-		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint).sort()).toEqual(['https://push.exemple/alice', 'https://push.exemple/alice-tablette']);
+		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint).sort()).toEqual(['https://fcm.googleapis.com/fcm/send/alice', 'https://fcm.googleapis.com/fcm/send/alice-tablette']);
 	});
 
 	it('pas plus de `max` par lot ; un appel à la base sans abonnement périmé', async () => {
