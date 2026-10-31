@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { rechercheListe } from '#lib/liste-agents.ts';
@@ -87,12 +88,10 @@
 		return null;
 	});
 	const chiffres = (tel: string) => tel.replace(/[^\d+]/g, '');
-	const DESSINS = {
+	const GESTES = {
 		message: 'M4 5h16v11H9l-5 4z',
 		courriel: 'M3 6h18v12H3z M3 7l9 6 9-6',
-		appeler: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',
-		profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
-		sortir: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3'
+		appeler: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2'
 	};
 </script>
 
@@ -173,9 +172,9 @@
 					{/each}
 				</ul>
 				<ul class="contact" aria-label="Contacter">
-					{#if data.ecrire}<li><a href="/echanges/messages/a/{fiche.id}">{@render pictogramme(DESSINS.message)}Message</a></li>{/if}
-					<li><a href="mailto:{fiche.email}">{@render pictogramme(DESSINS.courriel)}Courriel</a></li>
-					{#if fiche.telephone}<li><a href="tel:{chiffres(fiche.telephone)}">{@render pictogramme(DESSINS.appeler)}Appeler</a></li>{/if}
+					{#if data.ecrire}<li><a href="/echanges/messages/a/{fiche.id}">{@render pictogramme(GESTES.message)}Message</a></li>{/if}
+					<li><a href="mailto:{fiche.email}">{@render pictogramme(GESTES.courriel)}Courriel</a></li>
+					{#if fiche.telephone}<li><a href="tel:{chiffres(fiche.telephone)}">{@render pictogramme(GESTES.appeler)}Appeler</a></li>{/if}
 				</ul>
 			</div>
 		</header>

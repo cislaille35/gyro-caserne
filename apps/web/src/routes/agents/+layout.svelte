@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
-	import { rechercheListe } from '#lib/liste-agents.ts';
+	import { emailCherche, rechercheListe } from '#lib/liste-agents.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
+	import Recherche from '#lib/ui/Recherche.svelte';
 	import Retour from '#lib/ui/Retour.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
 	import type { StatutPersonne } from '#lib/ui/statut.ts';
@@ -13,7 +14,7 @@
 
 	let { data, children } = $props();
 
-	type Personne = { id: number; prenom: string; nom: string; grade: string | null; roles: string[]; statut?: StatutPersonne; aCompleter?: boolean };
+	type Personne = { id: number; prenom: string; nom: string; email?: string; grade: string | null; roles: string[]; statut?: StatutPersonne; aCompleter?: boolean };
 
 	const enfant = $derived(page.url.pathname !== '/agents');
 	const agents = (n: number) => pluriel(n, 'agent');
@@ -37,6 +38,7 @@
 
 {#snippet agent(p: Personne, couleur: string | null)}
 	{@const courant = page.url.pathname === `/agents/${p.id}`}
+	{@const email = data.gestion && emailCherche(p, data.filtres.texte)}
 	<li class="agent" class:courant>
 		<Visage prenom={p.prenom} nom={p.nom} {couleur} />
 		<span class="identite">
@@ -46,9 +48,9 @@
 			{:else}
 				<span class="nom">{p.prenom} {p.nom}</span>
 			{/if}
-			{#if p.grade || p.roles.length > 0}
+			{#if p.grade || p.roles.length > 0 || email}
 				<span class="sous"
-					>{p.grade ?? ''}{#if p.grade && p.roles.length > 0}{' · '}{/if}{#if p.roles.length > 0}<span class="masque">Rôles :</span> {p.roles.join(' · ')}{/if}</span
+					>{p.grade ?? ''}{#if p.grade && p.roles.length > 0}{' · '}{/if}{#if p.roles.length > 0}<span class="masque">Rôles :</span> {p.roles.join(' · ')}{/if}{#if email}{#if p.grade || p.roles.length > 0}{' · '}{/if}{p.email}{/if}</span
 				>
 			{/if}
 		</span>
@@ -74,7 +76,7 @@
 		{#if data.gestion}
 			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
 				{#snippet secondaire()}
-					<a class="fichier" href="/agents/fichier"
+					<a class="lien-secondaire" href="/agents/fichier"
 						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
 							><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M8 13h8 M8 17h8" /></svg
 						>Fichier<span class="masque">{' de l’effectif'}</span></a
@@ -83,15 +85,8 @@
 			</EnTetePage>
 
 			<form method="GET" role="search" class="filtres">
-				<div class="recherche">
-					<label for="filtre-texte" class="masque">Rechercher un agent</label>
-					<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
-					<button type="submit" class="loupe" name="filtre" value={filtre}
-						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4" /></svg
-						><span class="masque">Rechercher</span></button
-					>
-					<input id="filtre-texte" name="texte" type="search" value={data.filtres.texte} placeholder="Nom, prénom ou e-mail" autocomplete="off" />
-				</div>
+				<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
+				<Recherche id="filtre-texte" name="texte" valeur={data.filtres.texte} libelle="Rechercher un agent" aide="Nom, prénom ou e-mail" bouton={{ name: 'filtre', value: filtre }} />
 				<div class="puces" role="group" aria-label="Filtrer la liste">
 					{#each filtres as f (f.valeur)}
 						<button type="submit" class="puce" name="filtre" value={f.valeur} aria-pressed={filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
@@ -154,22 +149,6 @@
 	.masque-detail {
 		display: none;
 	}
-	.fichier {
-		min-height: 48px;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 0 16px 0 12px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.fichier:hover {
-		border-color: var(--encre);
-	}
 	@media (max-width: 639px) {
 		.etat :global(span) {
 			padding: 1px 8px;
@@ -180,45 +159,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-	}
-	.recherche {
-		position: relative;
-		display: flex;
-	}
-	.recherche input {
-		flex: 1;
-		min-width: 0;
-		min-height: 48px;
-		padding: 0 16px 0 48px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font: 400 1rem var(--police);
-	}
-	.recherche input::placeholder {
-		color: var(--doux);
-	}
-	.recherche input:hover {
-		border-color: var(--doux);
-	}
-	.loupe {
-		position: absolute;
-		left: 2px;
-		top: 2px;
-		width: 44px;
-		height: 44px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border: 0;
-		border-radius: 999px;
-		background: none;
-		color: var(--doux);
-		cursor: pointer;
-	}
-	.loupe:hover {
-		color: var(--encre);
 	}
 	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
 	.puces {

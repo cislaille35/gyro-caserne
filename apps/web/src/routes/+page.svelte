@@ -9,7 +9,8 @@
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
-	import type { IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
+	import { pluriel } from '#lib/pluriel.ts';
+	import { DESSINS, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
 
 	let { data, form } = $props();
 
@@ -21,18 +22,14 @@
 	const aFaire = $derived(nombreAFaire(data.aNePasManquer));
 	const phrase = $derived(
 		[
-			aFaire === 0 ? 'Rien ne vous attend : tout est à jour.' : `${aFaire} ${aFaire > 1 ? 'publications attendent' : 'publication attend'} votre réponse.`,
+			// Sans rien à faire, « Tout est à jour » est dit une fois, dans « À ne pas manquer ».
+			aFaire === 0 ? '' : `${pluriel(aFaire, 'publication')} ${aFaire > 1 ? 'vous attendent' : 'vous attend'}.`,
 			affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : ''
 		].join(' ').trim()
 	);
 	const rangee = $derived(data.casquettes.length >= 2);
 	const casquette = $derived(data.casquettes.find((c) => c.id === data.choisie));
 
-	const DESSINS = {
-		ok: 'M5 12.5l4.5 4.5L19 7',
-		echanges: 'M4 5h16v11H8l-4 4z',
-		profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'
-	};
 	type Lien = { href: string; titre: string; texte: string; icone: NomIcone; dessin?: string };
 	const gerer: Lien[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque' },

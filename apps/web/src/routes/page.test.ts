@@ -73,10 +73,12 @@ describe('accueil', () => {
 	it('un agent : ses raccourcis et une phrase qui dit ce qui l’attend', () => {
 		const html = page({ estPersonne: true, casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
 		for (const href of ['/echanges', '/agents', '/profil']) expect(html).toContain(`href="${href}"`);
-		expect(html).toContain('Rien ne vous attend : tout est à jour.');
-		expect(html).toContain('Tout est à jour');
+		// « Tout est à jour » une seule fois.
+		expect(html.match(/[Tt]out est à jour/g)).toHaveLength(1);
 		const occupe = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...vide, sondages: [{ id: 4, cle: 'vie', nomMur: 'Vie du centre', titre: 'Repas ?' }] } });
-		expect(occupe).toContain('1 publication attend votre réponse.');
+		expect(occupe).toContain('1 publication vous attend.');
+		const deux = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...vide, sondages: [1, 2].map((id) => ({ id, cle: 'vie', nomMur: 'Vie du centre', titre: `Repas ${id} ?` })) } });
+		expect(deux).toContain('2 publications vous attendent.');
 	});
 
 	it('chef d’équipe : vide avec une phrase vraie', () => {

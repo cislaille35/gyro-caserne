@@ -4,7 +4,7 @@
 	import type { IconeRole as NomIcone } from './icones-roles.ts';
 
 	// Une rangée de liste : tête (icône, visage, pastille), titre, sous-ligne, valeur ou `droite` ; lien avec chevron si `href`.
-	// `courant` : la page affichée (liste à côté d'une page). Avec `children` (des gestes sous le texte), seul le titre est un lien. `alerte` ajoute une icône ; `discret`, pour ce qui n'existe pas encore.
+	// `courant` : la page affichée (liste à côté d'une page). Avec `children` (des gestes sous le texte), seul le titre est un lien. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a déjà une icône) ; `discret`, pour ce qui n'existe pas encore.
 	let {
 		titre,
 		sous,
@@ -36,22 +36,28 @@
 	const lien = $derived(href !== undefined && !children);
 </script>
 
+{#snippet signe(aDroite: boolean)}
+	<span class="signe" class:a-droite={aDroite} aria-hidden="true"
+		><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19z M12 10v4.5 M12 17.2v.3" /></svg
+		></span
+	>
+{/snippet}
+
 {#snippet contenu()}
 	{#if tete}
 		{@render tete()}
 	{:else if icone}
 		<IconeRole {icone} {dessin} taille={40} />
 	{:else if alerte}
-		<span class="signe" aria-hidden="true"
-			><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19z M12 10v4.5 M12 17.2v.3" /></svg
-			></span
-		>
+		{@render signe(false)}
 	{/if}
 	<div class="corps">
 		{#if href && !lien}<a class="titre" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
 		{#if sous}<span class="sous">{sous}</span>{/if}
 		{#if children}{@render children()}{/if}
 	</div>
+	<!-- Avec une icône en tête, le signe d'alerte passe à droite : jamais la couleur seule. -->
+	{#if alerte && (tete || icone)}{@render signe(true)}{/if}
 	{#if droite}
 		<span class="droite">{@render droite()}</span>
 	{:else if valeur}
@@ -154,6 +160,11 @@
 		justify-content: center;
 		background: var(--surface);
 		color: var(--statut-alerte-texte);
+	}
+	.a-droite {
+		width: 32px;
+		height: 32px;
+		border-radius: 10px;
 	}
 	/* À traiter : fond chaud, icône d'alerte, texte qui dit quoi. */
 	.alerte {

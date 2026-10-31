@@ -9,7 +9,7 @@
 	{#if gyro}<GyroDuMoment tenue="vide" taille={120} decoratif />{/if}
 	{#if titre}<p class="titre">{titre}</p>{/if}
 	<p class="texte">{texte}</p>
-	{#if action}<a class="action" href={action.href}>{action.libelle}</a>{/if}
+	{#if action}<a class="action lien-secondaire" href={action.href}>{action.libelle}</a>{/if}
 </div>
 
 <style>
@@ -33,19 +33,6 @@
 		color: var(--doux);
 	}
 	.action {
-		min-height: var(--cible);
 		margin-top: 10px;
-		padding: 0 20px;
-		display: inline-flex;
-		align-items: center;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.action:hover {
-		border-color: var(--encre);
 	}
 </style>

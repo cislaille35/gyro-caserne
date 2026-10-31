@@ -7,6 +7,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
+	import Recherche from '#lib/ui/Recherche.svelte';
 	import { aPourvoir } from '#lib/nominations.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 
@@ -127,13 +128,8 @@
 	<EnTetePage titre="Nominations" phrase={phrase} />
 
 	<!-- Sans JavaScript, ce formulaire porte la recherche et les boutons « Nommer » et « Retirer » (par l'adresse). -->
-	<form id="choix" method="GET" class="recherche" role="search" onsubmit={(e) => e.preventDefault()}>
-		<label for="q" class="masque">Rechercher un rôle ou un agent</label>
-		<button type="submit" class="loupe"
-			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4" /></svg
-			><span class="masque">Rechercher</span></button
-		>
-		<input id="q" type="search" name="q" value={recherche} oninput={(e) => (recherche = e.currentTarget.value)} placeholder="Un rôle ou un agent : pharmacie, Martin…" autocomplete="off" />
+	<form id="choix" method="GET" role="search" onsubmit={(e) => e.preventDefault()}>
+		<Recherche id="q" name="q" valeur={recherche} libelle="Rechercher un rôle ou un agent" aide="Un rôle ou un agent : pharmacie, Martin…" oninput={(v) => (recherche = v)} />
 	</form>
 
 	<p role="status" class="resultat">{resultat}</p>
@@ -144,13 +140,14 @@
 			{@const cible = `attribuer-${id}`}
 			{@const erreurs = pourVolet(cible) ? (form?.erreurs ?? {}) : {}}
 			{@const message = annonce(id)}
-			<section class="role" class:vide={r.titulaires.length === 0} aria-labelledby="role-{id}">
+			<section class="role" aria-labelledby="role-{id}">
 				<div class="tete">
 					<IconeRole icone={r.icone} />
 					<div class="textes">
 						<h2 id="role-{id}" tabindex="-1">{r.nom}</h2>
 						<p class="note">{perimetreDe(r)}</p>
 					</div>
+					<button id="nommer-{id}" form="choix" name="nommer" value={id} class="nommer" aria-describedby="role-{id}" onclick={(e) => ouvrirNommer(e, id)}>Nommer</button>
 					{#if r.titulaires.length === 0}
 						<div class="titulaires"><Pastille ton="alerte">À pourvoir</Pastille></div>
 					{:else}
@@ -171,7 +168,6 @@
 							{/each}
 						</ul>
 					{/if}
-					<button id="nommer-{id}" form="choix" name="nommer" value={id} class="nommer" aria-describedby="role-{id}" onclick={(e) => ouvrirNommer(e, id)}>Nommer</button>
 				</div>
 
 				<div role="status">{#if message}<p class="succes">{message}</p>{/if}</div>
@@ -272,7 +268,6 @@
 	.page {
 		gap: 16px;
 	}
-	h1,
 	h2,
 	h3,
 	p {
@@ -292,42 +287,6 @@
 	.role > div[role='status']:empty {
 		margin-top: -10px;
 	}
-	.recherche {
-		position: relative;
-		flex-direction: row;
-	}
-	.recherche input {
-		flex: 1;
-		min-width: 0;
-		min-height: 48px;
-		padding: 0 16px 0 48px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font: 400 1rem var(--police);
-	}
-	.recherche input::placeholder {
-		color: var(--doux);
-	}
-	.recherche input:hover {
-		border-color: var(--doux);
-	}
-	.loupe {
-		position: absolute;
-		left: 2px;
-		top: 2px;
-		width: 44px;
-		height: 44px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		border: 0;
-		border-radius: 999px;
-		background: none;
-		color: var(--doux);
-		cursor: pointer;
-	}
 	.roles {
 		display: flex;
 		flex-direction: column;
@@ -342,7 +301,7 @@
 		border: 1px solid var(--trait-doux);
 		border-radius: 18px;
 	}
-	/* Au téléphone : icône, nom, « Nommer » ; les titulaires dessous. À l'ordinateur, tout tient sur une ligne. */
+	/* Icône, nom, « Nommer » ; les titulaires dessous, dans l'ordre du code (lecteurs d'écran, clavier). */
 	.tete {
 		display: grid;
 		grid-template-columns: auto minmax(0, 1fr) auto;
@@ -372,15 +331,6 @@
 	}
 	.nommer:hover {
 		border-color: var(--encre);
-	}
-	@media (min-width: 900px) {
-		.tete {
-			grid-template-columns: auto minmax(0, 1fr) auto auto;
-			grid-template-areas: 'icone textes titulaires nommer';
-		}
-		.titulaires {
-			justify-content: flex-end;
-		}
 	}
 	h2 {
 		font: 600 1.0625rem/1.3 var(--police);

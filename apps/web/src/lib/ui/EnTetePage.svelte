@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import GyroDuMoment from '../gyro/GyroDuMoment.svelte';
 	import Retour from './Retour.svelte';
+	import { DESSINS } from './icones-roles.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
 	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rond rouge).
@@ -43,7 +44,7 @@
 		{#if action}
 			<a class="action" href={action.href}>
 				<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-					><path d={action.dessin ?? 'M12 5v14M5 12h14'} /></svg
+					><path d={action.dessin ?? DESSINS.plus} /></svg
 				>
 				<span class="libelle">{action.libelle}</span>
 			</a>
@@ -109,7 +110,7 @@
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
 	}
 	.action:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 	/* Au téléphone, le libellé est lu mais pas montré : le bouton reste rond. */

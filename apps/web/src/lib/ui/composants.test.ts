@@ -23,6 +23,7 @@ import EnTetePage from './EnTetePage.svelte';
 import ListeRangees from './ListeRangees.svelte';
 import Rangee from './Rangee.svelte';
 import Vide from './Vide.svelte';
+import Recherche from './Recherche.svelte';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
@@ -391,6 +392,21 @@ describe('Rangee', () => {
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});
+	it('alerte avec une icône : le signe d’alerte reste, jamais la couleur seule', () => {
+		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
+		expect(page).toContain('var(--icone-camion-fond)');
+		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
+		expect(net(Rangee, { titre: 'Photos', icone: 'camion' })).not.toContain('class="signe');
+	});
+	it('courant : la page affichée, dite par aria-current', () => {
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', courant: true })).toMatch(/^<a[^>]*aria-current="page"/);
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent' })).not.toContain('aria-current');
+	});
+	it('discret : ce qui n’existe pas encore, sans lien', () => {
+		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt', icone: 'camion', discret: true });
+		expect(page).toMatch(/^<div[^>]*class="rangee[^"]*\bdiscret\b/);
+		expect(page).not.toContain('<a');
+	});
 	it('une tête et une droite sur mesure', () => {
 		const page = net(Rangee, { titre: 'Claire', tete: contenu, droite: contenu });
 		expect(page.match(/<span>Contenu<\/span>/g)).toHaveLength(2);
@@ -428,5 +444,15 @@ describe('Vide', () => {
 		const page = net(Vide, { texte: 'Le planning arrive bientôt.' });
 		expect(page).toContain('Le planning arrive bientôt.');
 		expect(page).not.toContain('<a');
+	});
+});
+
+describe('Recherche', () => {
+	it('libellé lu, aide reliée au champ, loupe qui envoie le formulaire', () => {
+		const page = net(Recherche, { id: 'q', name: 'q', valeur: 'mar', libelle: 'Rechercher un agent', aide: 'Nom ou e-mail', bouton: { name: 'filtre', value: 'partis' } });
+		expect(page).toMatch(/<label for="q"[^>]*>Rechercher un agent<\/label>/);
+		expect(page).toMatch(/<input id="q" type="search" name="q" value="mar"[^>]*aria-describedby="q-aide"/);
+		expect(page).toMatch(/<p id="q-aide"[^>]*>Nom ou e-mail<\/p>/);
+		expect(page).toMatch(/<button type="submit"[^>]*name="filtre" value="partis"[\s\S]*?<svg[^>]*aria-hidden="true"[\s\S]*?>Rechercher</);
 	});
 });

@@ -16,3 +16,17 @@ export type IconeRole = keyof typeof ICONES_ROLES;
 
 // Le centre : une maison. Hors de la liste des icônes à choisir.
 export const ICONE_MAISON = 'M3 11l9-7 9 7v9H3zM9 20v-6h6v6';
+
+// Tracés d'interface partagés entre écrans (même grille 24 × 24).
+export const DESSINS = {
+	profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
+	sortir: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
+	annonce: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7',
+	sondage: 'M5 20V11 M12 20V4 M19 20v-6',
+	epinglee: 'M9 3h6l-1 6 4 4H6l4-4z M12 13v8',
+	ok: 'M5 12.5l4.5 4.5L19 7',
+	echanges: 'M4 5h16v11H8l-4 4z',
+	affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5',
+	loupe: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4',
+	plus: 'M12 5v14M5 12h14'
+} as const;

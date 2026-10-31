@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
@@ -8,11 +9,6 @@
 
 	let { data } = $props();
 
-	const DESSINS = {
-		profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
-		affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5',
-		sortir: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3'
-	};
 	const id = $derived(data.identite);
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>

@@ -8,7 +8,7 @@
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import TuileDate from '#lib/ui/TuileDate.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
-	import type { IconeRole } from '#lib/ui/icones-roles.ts';
+	import { DESSINS, type IconeRole } from '#lib/ui/icones-roles.ts';
 
 	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; debut: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
@@ -18,8 +18,8 @@
 	// Ce qu'il faut faire est écrit, pas seulement montré.
 	const elements: { id: number; cle: string; nomMur: string; titre: string; quoi: string; debut?: string; icone?: IconeRole; dessin?: string }[] = $derived([
 		...data.evenements.map((e) => ({ ...e, quoi: quoiEvenement(e) })),
-		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte', icone: 'etoile' as const, dessin: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7' })),
-		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre', icone: 'camion' as const, dessin: 'M5 20V11 M12 20V4 M19 20v-6' }))
+		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte', icone: 'etoile' as const, dessin: DESSINS.annonce })),
+		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre', icone: 'camion' as const, dessin: DESSINS.sondage }))
 	]);
 	const total = $derived(elements.length + data.signalements.length);
 	const phrase = $derived(total === 0 ? 'Tout est à jour.' : `${total} ${total > 1 ? 'choses demandent' : 'chose demande'} votre attention.`);
@@ -247,7 +247,7 @@
 		color: var(--sur-rouge);
 	}
 	a.danger:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 	a.secondaire:hover {

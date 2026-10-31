@@ -55,6 +55,20 @@ describe('/nominations : cartes', () => {
 		expect(page).toMatch(/<form[^>]*id="choix"[^>]*method="GET"|<form[^>]*method="GET"[^>]*id="choix"/);
 	});
 
+	it('« Nommer » vient avant les titulaires, dans l’ordre affiché', () => {
+		const role = carte(html({ data, form: null }), 'Référent engins');
+		expect(role.indexOf('name="nommer"')).toBeLessThan(role.indexOf('aria-label="Titulaires"'));
+		const vide = carte(html({ data, form: null }), 'Membre de comité');
+		expect(vide.indexOf('name="nommer"')).toBeLessThan(vide.indexOf('À pourvoir'));
+	});
+
+	it('la recherche : libellé lu, aide reliée au champ', () => {
+		const page = html({ data, form: null });
+		const champ = page.match(/<input[^>]*name="q"[^>]*>/)![0];
+		const aide = champ.match(/aria-describedby="([^"]+)"/)![1];
+		expect(page).toMatch(new RegExp(`id="${aide}"[^>]*>Un rôle ou un agent : pharmacie, Martin…<`));
+	});
+
 	it('signale « Aucun titulaire » en alerte', () => {
 		const vide = carte(html({ data, form: null }), 'Membre de comité');
 		expect(vide).toMatch(/--statut-alerte-fond[^>]*>(<!--[^>]*-->)*À pourvoir</);

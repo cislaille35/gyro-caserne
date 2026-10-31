@@ -126,6 +126,21 @@ describe('/agents : gestion', () => {
 		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">2 agents · sans chef d’équipe</);
 	});
 
+	it('montre l’e-mail dans la sous-ligne quand c’est lui qui répond à la recherche', () => {
+		const parEmail = html(Layout, { data: gestion({ filtres: { texte: 'ALICE@', filtre: '' } }), children: enfants });
+		expect(parEmail).toMatch(/Alice Martin<\/a>[\s\S]*?class="sous[^"]*"[^>]*>[\s\S]*?alice@exemple\.fr/);
+		expect(parEmail).not.toContain('paul@exemple.fr');
+		// Le nom répond déjà : pas d'e-mail.
+		expect(html(Layout, { data: gestion({ filtres: { texte: 'alice', filtre: '' } }), children: enfants })).not.toContain('alice@exemple.fr');
+	});
+
+	it('la recherche : libellé lu, aide reliée au champ', () => {
+		const mise = html(Layout, { data: gestion(), children: enfants });
+		const champ = mise.match(/<input[^>]*name="texte"[^>]*>/)![0];
+		const aide = champ.match(/aria-describedby="([^"]+)"/)![1];
+		expect(mise).toMatch(new RegExp(`id="${aide}"[^>]*>Nom, prénom ou e-mail<`));
+	});
+
 	it('propose « Nommer » à côté d’une équipe sans chef', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
 		expect(mise).toMatch(/<a[^>]*href="\/nominations"[^>]*>Nommer <span class="masque[^"]*">un chef pour Équipe 1<\/span><\/a>/);

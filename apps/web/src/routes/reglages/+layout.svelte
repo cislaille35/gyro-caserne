@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Retour from '#lib/ui/Retour.svelte';
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import ListeReglages from './ListeReglages.svelte';
 
 	let { data, children } = $props();
@@ -14,9 +15,22 @@
 	<noscript><style>.groupe > [hidden] { display: block !important; } .groupe .chevron { display: none; }</style></noscript>
 </svelte:head>
 
+{#snippet creer(href: string, libelle: string)}
+	<a class="lien-secondaire" {href}
+		><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d={DESSINS.plus} /></svg>{libelle}</a
+	>
+{/snippet}
+
 <div class="reglages" class:enfant>
 	{#if enfant}
 		<nav class="cote" aria-label="Réglages du centre">
+			<!-- Les créations restent à portée depuis une page de réglage, avec les mêmes droits que la page Réglages. -->
+			{#if data.responsabilites || data.comites}
+				<div class="creer">
+					{#if data.responsabilites}{@render creer('/reglages/roles/nouveau', 'Nouveau rôle')}{/if}
+					{#if data.comites}{@render creer('/reglages/comites/nouveau', 'Nouveau comité')}{/if}
+				</div>
+			{/if}
 			<ListeReglages {data} niveauTitre={2} />
 		</nav>
 	{/if}
@@ -34,6 +48,12 @@
 	}
 	.cote {
 		display: none;
+	}
+	.creer {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 20px;
 	}
 	.principal {
 		flex: 1;

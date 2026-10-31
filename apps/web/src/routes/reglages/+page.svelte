@@ -1,6 +1,7 @@
 <script lang="ts">
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import ListeReglages from './ListeReglages.svelte';
 
 	let { data } = $props();
@@ -21,8 +22,8 @@
 	<EnTetePage titre="Réglages du centre" phrase="Les rôles par thème, les comités et les profils." action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle' } : undefined}>
 		{#snippet secondaire()}
 			{#if data.comites}
-				<a class="secondaire" href="/reglages/comites/nouveau" aria-label="Nouveau comité"
-					><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>Comité</a
+				<a class="lien-secondaire" href="/reglages/comites/nouveau" aria-label="Nouveau comité"
+					><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d={DESSINS.plus} /></svg>Comité</a
 				>
 			{/if}
 		{/snippet}
@@ -78,21 +79,5 @@
 		display: block;
 		height: 100%;
 		background: currentColor;
-	}
-	.secondaire {
-		min-height: 48px;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 0 16px 0 12px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.secondaire:hover {
-		border-color: var(--encre);
 	}
 </style>

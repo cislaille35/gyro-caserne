@@ -86,7 +86,7 @@ describe('page Réglages', () => {
 	it('« Nouveau rôle » en action principale et « Nouveau comité » en secondaire, selon les droits ; pas de profils sans pouvoir', () => {
 		const page = html(Page, { data });
 		expect(page).toMatch(/<a class="action[^"]*" href="\/reglages\/roles\/nouveau">[\s\S]*?Nouveau rôle</);
-		expect(page).toMatch(/<a class="secondaire[^"]*" href="\/reglages\/comites\/nouveau" aria-label="Nouveau comité">[\s\S]*?Comité<\/a>/);
+		expect(page).toMatch(/<a class="lien-secondaire[^"]*" href="\/reglages\/comites\/nouveau" aria-label="Nouveau comité">[\s\S]*?Comité<\/a>/);
 		expect(html(Page, { data: { ...data, responsabilites: null } })).not.toContain('/reglages/roles/nouveau');
 		const sansComites = html(Page, { data: { ...data, comites: null, profils: null } });
 		expect(sansComites).not.toContain('/reglages/comites/nouveau');
@@ -114,6 +114,23 @@ describe('page Réglages', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const tete = render(Layout as any, { props: { data, children: createRawSnippet(() => ({ render: () => '<p>x</p>' })) } }).head;
 		expect(tete).toMatch(/<noscript><style>\.groupe > \[hidden\]/);
+	});
+
+	it('sur une page de réglage, « Nouveau rôle » et « Nouveau comité » restent dans la colonne, selon les droits', () => {
+		etat.page.url = new URL('http://x/reglages/roles/3');
+		try {
+			const contenu = createRawSnippet(() => ({ render: () => '<p>Contenu</p>' }));
+			const nav = (d: unknown) => {
+				const mise = html(Layout, { data: d, children: contenu });
+				return mise.slice(mise.indexOf('<nav'), mise.indexOf('</nav>'));
+			};
+			expect(nav(data)).toMatch(/<a class="lien-secondaire[^"]*" href="\/reglages\/roles\/nouveau">[\s\S]*?Nouveau rôle<\/a>/);
+			expect(nav(data)).toMatch(/<a class="lien-secondaire[^"]*" href="\/reglages\/comites\/nouveau">[\s\S]*?Nouveau comité<\/a>/);
+			expect(nav({ ...data, responsabilites: null })).not.toContain('/reglages/roles/nouveau');
+			expect(nav({ ...data, comites: null })).not.toContain('/reglages/comites/nouveau');
+		} finally {
+			etat.page.url = new URL('http://x/reglages');
+		}
 	});
 
 	it('sur une page de réglage, la liste est à côté et un lien ramène aux réglages', () => {

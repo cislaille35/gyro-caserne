@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESSINS } from './icones-roles.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -18,12 +19,6 @@
 		['absent', 'Absent'],
 		['incertain', 'Incertain']
 	] as const;
-	const DESSINS = {
-		annonce: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7',
-		sondage: 'M5 20V11 M12 20V4 M19 20v-6',
-		epinglee: 'M9 3h6l-1 6 4 4H6l4-4z M12 13v8',
-		ok: 'M5 12.5l4.5 4.5L19 7'
-	};
 	const lien = (i: ItemANePasManquer) => `/echanges/${i.cle}/${i.id}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const debut = (iso: string) =>

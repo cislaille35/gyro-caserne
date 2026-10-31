@@ -350,7 +350,7 @@
 		color: var(--sur-rouge);
 	}
 	.envoyer:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 	}
 	.masque {
 		position: absolute;

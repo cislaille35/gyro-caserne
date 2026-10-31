@@ -295,7 +295,7 @@
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
 	}
 	.ecrire:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 	.libelle,

@@ -33,6 +33,11 @@ describe('Vide', () => {
 		expect(page).toContain('Rien à afficher');
 		expect(page).toContain('<svg');
 	});
+	it('vivant, mais sans Gyro sur demande (gyro=false) : le texte seul', () => {
+		const page = rendre(Vide, 'vivant', { texte: 'Rien à afficher', gyro: false });
+		expect(page).toContain('Rien à afficher');
+		expect(page).not.toContain('<svg');
+	});
 });
 
 describe('GyroAccueil', () => {
