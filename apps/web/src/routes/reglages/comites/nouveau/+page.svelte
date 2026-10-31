@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import type { IconeRole } from '#lib/ui/icones-roles.ts';
@@ -12,8 +13,7 @@
 	<title>Nouveau comité · Réglages · Gyro Caserne</title>
 </svelte:head>
 
-<h1>Nouveau comité</h1>
-<p class="intro">Un comité réunit des agents autour d’un thème (amicale, sport…). Ses membres et son rapporteur se nomment ensuite.</p>
+<EnTetePage titre="Nouveau comité" phrase="Un comité réunit des agents autour d’un thème (amicale, sport…). Ses membres et son rapporteur se nomment ensuite." />
 <div role="alert">
 	{#if form?.message || form?.erreurs}<p class="echec">{form?.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 </div>
@@ -25,12 +25,8 @@
 </form>
 
 <style>
-	h1,
 	p {
 		margin: 0;
-	}
-	.intro {
-		color: var(--doux);
 	}
 	.formulaire {
 		display: flex;

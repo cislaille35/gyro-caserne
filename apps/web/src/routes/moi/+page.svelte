@@ -1,14 +1,16 @@
 <script lang="ts">
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
-	import Bouton from '#lib/ui/Bouton.svelte';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import IconeRole from '#lib/ui/IconeRole.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
+	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data } = $props();
 
-	// Le super administrateur n'a pas de fiche : pas de « Mon profil ».
-	const liens = $derived([
-		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Surnom, téléphone, contact d’urgence.' }] : []),
-		{ href: '/affichage', titre: 'Affichage', texte: 'Thème et niveau de vie de l’appli.' }
-	]);
+	const id = $derived(data.identite);
+	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
 
 <svelte:head>
@@ -16,20 +18,40 @@
 </svelte:head>
 
 <div class="page">
-	<h1>Moi</h1>
-	<ul class="liens">
-		{#each liens as lien (lien.href)}
-			<li>
-				<a href={lien.href}>
-					<span class="titre">{lien.titre}</span>
-					<span class="texte">{lien.texte}</span>
-				</a>
-			</li>
-		{/each}
-	</ul>
+	<EnTetePage titre="Moi" phrase="Votre compte et vos réglages." />
+
+	<section class="carte" aria-label="Mon identité" style:--teinte={id?.equipe?.couleur ?? null}>
+		{#if id}
+			<Visage prenom={id.prenom} nom={id.nom} couleur={id.equipe?.couleur ?? null} taille={52} />
+			<div class="qui">
+				<p class="nom">{id.prenom} {id.nom}</p>
+				{#if details || id.role}<p class="doux">{details || id.role}</p>{/if}
+			</div>
+		{:else if !data.estPersonne}
+			<IconeRole icone="cle" taille={52} />
+			<div class="qui">
+				<p class="nom">Super administrateur</p>
+				<p class="doux">Tout le centre, sans fiche d’agent.</p>
+			</div>
+		{:else}
+			<IconeRole icone="groupe" dessin={DESSINS.profil} taille={52} />
+			<div class="qui"><p class="nom">Mon compte</p></div>
+		{/if}
+	</section>
+
+	<ListeRangees>
+		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
+		{#if data.estPersonne}
+			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" icone="livre" dessin={DESSINS.profil} /></li>
+		{/if}
+		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>
+	</ListeRangees>
+
 	<!-- En partant, les brouillons de messages ne restent pas sur l'appareil pour le compte suivant. -->
 	<form method="POST" action="?/deconnecter" onsubmit={oublierBrouillons}>
-		<Bouton type="submit" variante="secondaire">Se déconnecter</Bouton>
+		<button type="submit" class="sortir"
+			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.sortir} /></svg>Se déconnecter</button
+		>
 	</form>
 </div>
 
@@ -37,37 +59,50 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 20px;
+		max-width: 40rem;
 	}
-	h1 {
-		margin: 0;
-	}
-	.liens {
-		display: grid;
-		gap: 12px;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.liens a {
-		min-height: var(--cible);
+	.carte {
 		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 16px 20px;
-		background: var(--surface);
+		align-items: center;
+		gap: 14px;
+		padding: 18px;
 		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
-		color: var(--encre);
-		text-decoration: none;
+		border-radius: 20px;
+		background: var(--surface);
+		/* Un liseré à la couleur de l'équipe, quand il y en a une. */
+		box-shadow: inset 0 4px 0 var(--teinte, transparent);
 	}
-	.liens a:hover .titre {
+	.qui {
+		min-width: 0;
+	}
+	.qui p {
+		margin: 0;
+		overflow-wrap: anywhere;
+	}
+	.nom {
+		font: 700 1.5rem/1.15 var(--police-titre);
+	}
+	form {
+		display: flex;
+		justify-content: center;
+		margin-top: 8px;
+	}
+	.sortir {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 0 16px;
+		border: 0;
+		border-radius: 999px;
+		background: none;
+		color: var(--accent);
+		font: 600 1rem var(--police);
+		cursor: pointer;
+	}
+	.sortir:hover {
+		background: var(--statut-danger-fond);
 		text-decoration: underline;
-	}
-	.titre {
-		font: 700 1.25rem var(--police-titre);
-	}
-	.texte {
-		color: var(--doux);
 	}
 </style>

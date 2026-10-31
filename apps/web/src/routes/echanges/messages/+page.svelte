@@ -67,7 +67,7 @@
 		box-shadow: 0 6px 16px color-mix(in srgb, var(--rouge) 35%, transparent);
 	}
 	.crayon:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 

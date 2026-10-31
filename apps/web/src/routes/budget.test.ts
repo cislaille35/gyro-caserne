@@ -23,6 +23,8 @@ import { actions as actionsPublication, load as publicationSeule } from './echan
 import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
+import { load as caserne } from './caserne/+page.server';
+import { load as moi } from './moi/+page.server';
 import { load as reglages } from './reglages/+layout.server';
 import { load as pageReglages } from './reglages/+page.server';
 import { load as role } from './reglages/roles/[id]/+page.server';
@@ -122,6 +124,26 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const n = await compter(async () => {
 			await (racine as any)({ locals });
 			await (nominations as any)({ locals, url: new URL('http://localhost/nominations') });
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/caserne : l’effectif et ce qui est à pourvoir', async () => {
+		const { locals, compter } = await centreDe150();
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			const data = await (caserne as any)({ locals });
+			expect(data.agents).toBe(151);
+			expect(data.aPourvoir).toBeGreaterThan(0);
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/moi : la carte d’identité', async () => {
+		const { locals, compter } = await centreDe150();
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			expect((await (moi as any)({ locals })).identite).toMatchObject({ prenom: 'Chef' });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});

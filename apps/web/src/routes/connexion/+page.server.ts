@@ -10,6 +10,7 @@ export const actions: Actions = {
 			// Même message dans tous les cas : un échec ne doit pas révéler qu'une adresse est autorisée.
 			console.error('Lien de connexion non envoyé', erreur);
 		}
-		return { envoye: true };
+		// L’adresse est rappelée à la personne, telle qu’elle l’a tapée (normalisée) : rien de plus n’est dit.
+		return { envoye: true, email };
 	}
 };

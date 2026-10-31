@@ -691,12 +691,12 @@ test.describe('agents', () => {
 		await expect(page.getByText('Fiche enregistrée')).toBeVisible();
 		await expect(page).toHaveURL(/filtre=a-completer/);
 		await expect(page.getByRole('button', { name: /^À compléter/, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
-		// Sur téléphone, la liste est derrière la fiche : « Retour à la liste » la rend, filtrée.
+		// Sur téléphone, la liste est derrière la fiche : « ‹ Agents » la rend, filtrée.
 		if (testInfo.project.name === 'telephone') {
-			await page.getByRole('link', { name: 'Retour à la liste' }).click();
+			await page.getByRole('link', { name: 'Retour : Agents' }).click();
 			await expect(page).toHaveURL(/\/agents\?filtre=a-completer$/);
 		} else {
-			await expect(page.getByRole('link', { name: 'Retour à la liste' })).toBeHidden();
+			await expect(page.getByRole('link', { name: 'Retour : Agents' })).toBeHidden();
 		}
 		await expect(page.getByRole('button', { name: /^À compléter/ })).toHaveAttribute('aria-pressed', 'true');
 		await page.getByRole('link', { name: second.nom, exact: true }).click();
@@ -861,7 +861,7 @@ test.describe('nominations', () => {
 		// La recherche d'un agent ne garde que ses rôles.
 		await nommer(page, 'Référent pharmacie', nom);
 		await page.getByLabel('Rechercher un rôle ou un agent').fill(nom);
-		await expect(page.locator('section.carte h2')).toHaveText(['Référent pharmacie']);
+		await expect(page.locator('section.role h2')).toHaveText(['Référent pharmacie']);
 		await page.context().close();
 	});
 });
@@ -881,7 +881,7 @@ test.describe('réglages', () => {
 		const role = `Référent sport ${marque}`;
 
 		await page.goto('/reglages');
-		await page.getByRole('link', { name: '+ Nouveau comité' }).click();
+		await page.getByRole('link', { name: 'Nouveau comité' }).click();
 		await page.getByLabel('Nom', { exact: true }).fill(comite);
 		await page.getByLabel('Thème').fill('sport');
 		await page.getByRole('button', { name: 'Créer le comité' }).click();
@@ -904,7 +904,7 @@ test.describe('réglages', () => {
 		const { groupe: stock } = await domaineOuvert(page, 'Stock et pharmacie');
 		await stock.getByRole('radio', { name: 'Gérer' }).check();
 		await expect(page.getByText('1 domaine modifié, pas encore enregistré')).toBeVisible();
-		await expect(page.locator('main header').getByText('Personnalisé', { exact: true })).toBeVisible();
+		await expect(page.locator('main .en-tete-role').getByText('Personnalisé', { exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
 		const pageRole = page.url();
@@ -923,11 +923,11 @@ test.describe('réglages', () => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		// Le jeu de départ a déjà un « Référent pharmacie » : les noms sont uniques.
 		const role = `Référent pharmacie ${nouvelleMarque()}`;
-		const entete = page.locator('main header');
+		const entete = page.locator('main .en-tete-role');
 		const barre = barreDe(page);
 
 		await page.goto('/reglages');
-		await page.getByRole('link', { name: '+ Nouveau rôle' }).click();
+		await page.getByRole('link', { name: 'Nouveau rôle' }).click();
 		await page.getByRole('link', { name: /^Référent pharmacie.*Stock et pharmacie/ }).click();
 		await expect(page.getByLabel('Nom', { exact: true })).toHaveValue('Référent pharmacie');
 		await page.getByLabel('Nom', { exact: true }).fill(role);

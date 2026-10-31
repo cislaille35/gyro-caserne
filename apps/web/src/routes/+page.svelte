@@ -1,12 +1,16 @@
 <script lang="ts">
-	import centre from '$centre';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
-	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { nombreAFaire } from '#lib/a-faire.ts';
 	import ANePasManquer from '#lib/ui/ANePasManquer.svelte';
-	import Carte from '#lib/ui/Carte.svelte';
 	import Casquettes from '#lib/ui/Casquettes.svelte';
-	import Initiales from '#lib/ui/Initiales.svelte';
-	import Vide from '#lib/ui/Vide.svelte';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Pastille from '#lib/ui/Pastille.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
+	import Visage from '#lib/ui/Visage.svelte';
+	import { pluriel } from '#lib/pluriel.ts';
+	import { DESSINS, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
 
 	let { data, form } = $props();
 
@@ -15,168 +19,178 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
+	const aFaire = $derived(nombreAFaire(data.aNePasManquer));
 	const phrase = $derived(
-		affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : affichage.niveau === 'equilibre' ? 'Bienvenue sur Gyro Caserne.' : ''
+		[
+			// Sans rien à faire, « Tout est à jour » est dit une fois, dans « À ne pas manquer ».
+			aFaire === 0 ? '' : `${pluriel(aFaire, 'publication')} ${aFaire > 1 ? 'vous attendent' : 'vous attend'}.`,
+			affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : ''
+		].join(' ').trim()
 	);
 	const rangee = $derived(data.casquettes.length >= 2);
-	const gerer = $derived([
-		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents.' },
-		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle.' }] : []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les rôles et les comités.' }] : [])
+	const casquette = $derived(data.casquettes.find((c) => c.id === data.choisie));
+
+	type Lien = { href: string; titre: string; texte: string; icone: NomIcone; dessin?: string };
+	const gerer: Lien[] = $derived([
+		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque' },
+		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const }] : []),
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les rôles et les comités', icone: 'outil' as const }] : [])
 	]);
+	// Hors « Le centre » : de quoi aller vite là où l'on va le plus.
+	const raccourcis: Lien[] = $derived([
+		{ href: '/echanges', titre: 'Échanges', texte: 'Les murs du centre et vos messages', icone: 'camion', dessin: DESSINS.echanges },
+		{ href: '/agents', titre: 'L’effectif', texte: 'Qui est qui au centre', icone: 'casque' },
+		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Téléphone, contact d’urgence', icone: 'livre' as const, dessin: DESSINS.profil }] : [])
+	]);
+
+	// « À décider » : les trois premiers, le reste derrière « Voir les autres ».
+	const VISIBLES = 3;
 </script>
 
 <svelte:head>
 	<title>Accueil · Gyro Caserne</title>
 </svelte:head>
 
+{#snippet gyro()}<GyroAccueil taille={72} />{/snippet}
+
+{#snippet liens(titre: string, liste: Lien[])}
+	<ListeRangees {titre}>
+		{#each liste as l (l.href)}
+			<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} dessin={l.dessin} /></li>
+		{/each}
+	</ListeRangees>
+{/snippet}
+
 <div class="page">
-	<div class="tete">
-		<GyroAccueil taille={96} />
-		<div>
-			<h1>{data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'}</h1>
-			<p class="centre">{centre.nom}</p>
-			{#if phrase}<p class="phrase">{phrase}</p>{/if}
-		</div>
-	</div>
+	<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
-	<div class="annonce" role="status">{annonceSucces}</div>
-	<div class="annonce" role="alert">{annonceEchec}</div>
+	<div class="masque" role="status">{annonceSucces}</div>
+	<div class="masque" role="alert">{annonceEchec}</div>
 
-	<div class="contenu">
-		<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
-		{#if data.contenu.type === 'centre'}
-			<Carte titre="À décider">
-				{#if data.contenu.aDecider.length > 0}
-					<ul class="liste" role="list">
-						{#each data.contenu.aDecider as element (element.texte)}
-							<li><a class="ligne alerte" href={element.lien}><span>{element.texte}</span><span aria-hidden="true">›</span></a></li>
+	<div class="colonnes">
+		<div class="colonne">
+			<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
+		</div>
+
+		<div class="colonne">
+			{#if data.contenu.type === 'centre'}
+				{@const decider = data.contenu.aDecider}
+				{#if decider.length > 0}
+					<ListeRangees titre="À décider" compte={decider.length}>
+						{#each decider.slice(0, VISIBLES) as element (element.texte)}
+							<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
 						{/each}
-					</ul>
+						{#snippet pied()}
+							{#if decider.length > VISIBLES}
+								<details class="autres">
+									<summary>Voir {decider.length - VISIBLES > 1 ? `les ${decider.length - VISIBLES} autres` : 'l’autre'}</summary>
+									<ul role="list">
+										{#each decider.slice(VISIBLES) as element (element.texte)}
+											<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
+										{/each}
+									</ul>
+								</details>
+							{/if}
+						{/snippet}
+					</ListeRangees>
 				{:else}
-					<p>Rien à décider pour le moment.</p>
+					<ListeRangees titre="À décider">
+						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
+					</ListeRangees>
 				{/if}
-			</Carte>
-			<Carte titre="Gérer">
-				<ul class="liste" role="list">
-					{#each gerer as lien (lien.href)}
+				{@render liens('Gérer', gerer)}
+			{:else}
+				{#if data.contenu.type === 'astreinte' || data.contenu.type === 'equipe'}
+					<ListeRangees titre={casquette?.nom ?? 'Mon astreinte'}>
 						<li>
-							<a class="ligne" href={lien.href}>
-								<span class="texte"><span class="titre">{lien.titre}</span><span class="doux">{lien.texte}</span></span><span aria-hidden="true">›</span>
-							</a>
+							<Rangee titre="Bientôt ici" sous="Votre astreinte s’affichera ici avec le planning." icone="casque" discret>
+								{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
+							</Rangee>
 						</li>
-					{/each}
-				</ul>
-			</Carte>
-		{:else if data.contenu.type === 'astreinte' || data.contenu.type === 'equipe'}
-			<Vide texte="Votre astreinte s’affichera ici avec le planning." />
-		{:else if data.contenu.type === 'role'}
-			<Carte titre="Ce que ce rôle permet">
-				{#if data.contenu.permet.length > 0}
-					<ul class="phrases">
-						{#each data.contenu.permet as permis (permis)}<li>{permis}</li>{/each}
-					</ul>
-				{:else}
-					<p>Ce rôle n’ajoute rien à ce que fait tout agent.</p>
-				{/if}
-			</Carte>
-		{:else if data.contenu.type === 'comite'}
-			<Carte titre="Membres">
-				{#if data.contenu.membres.length > 0}
-					<ul class="liste" role="list">
-						{#each data.contenu.membres as membre (membre.personneId)}
-							<li class="membre">
-								<Initiales prenom={membre.prenom} nom={membre.nom} />
-								<span class="texte"><span>{membre.prenom} {membre.nom}</span><span class="doux">{membre.role}</span></span>
-							</li>
+					</ListeRangees>
+				{:else if data.contenu.type === 'role'}
+					<ListeRangees titre="Ce que ce rôle permet">
+						{#each data.contenu.permet as permis (permis)}
+							<li><Rangee titre={permis} icone={casquette?.icone ?? 'etoile'} /></li>
+						{:else}
+							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." icone={casquette?.icone ?? 'etoile'} /></li>
 						{/each}
-					</ul>
-				{:else}
-					<p>Aucun membre pour le moment.</p>
+					</ListeRangees>
+				{:else if data.contenu.type === 'comite'}
+					<ListeRangees titre="Membres" compte={data.contenu.membres.length}>
+						{#each data.contenu.membres as membre (membre.personneId)}
+							<li>
+								<Rangee titre="{membre.prenom} {membre.nom}" sous={membre.role}>
+									{#snippet tete()}<Visage prenom={membre.prenom} nom={membre.nom} couleur={null} taille={40} />{/snippet}
+								</Rangee>
+							</li>
+						{:else}
+							<li><Rangee titre="Aucun membre pour le moment." icone="groupe" /></li>
+						{/each}
+					</ListeRangees>
 				{/if}
-			</Carte>
-		{/if}
+				{@render liens('Raccourcis', raccourcis)}
+			{/if}
+		</div>
 	</div>
 </div>
 
 <style>
-	.page,
-	.contenu {
+	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 18px;
 	}
-	.tete {
+	.colonnes,
+	.colonne {
 		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	.autres summary {
+		min-height: var(--cible);
+		display: inline-flex;
 		align-items: center;
-		gap: 16px;
-		flex-wrap: wrap;
+		gap: 8px;
+		padding: 0 4px;
+		color: var(--encre);
+		font-weight: 600;
+		cursor: pointer;
+		list-style: none;
 	}
-	h1 {
-		margin: 0;
+	.autres summary::-webkit-details-marker {
+		display: none;
 	}
-	p {
-		margin: 4px 0 0;
+	.autres summary::before {
+		content: '';
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(-45deg);
 	}
-	.centre,
-	.phrase,
-	.doux {
-		color: var(--doux);
+	.autres[open] summary::before {
+		transform: rotate(45deg);
 	}
-	.liste {
+	.autres[open] summary {
+		margin-bottom: 10px;
+	}
+	.autres ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 10px;
 	}
-	.phrases {
-		margin: 0;
-		padding-left: 1.25rem;
-	}
-	.ligne {
-		min-height: var(--cible);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 14px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 12px;
-		color: var(--encre);
-		text-decoration: none;
-	}
-	.ligne:hover > span:first-child {
-		text-decoration: underline;
-	}
-	/* À faire : orange, avec le texte qui dit quoi. */
-	.alerte {
-		background: var(--statut-alerte-fond);
-		border-color: var(--statut-alerte-trait);
-		color: var(--statut-alerte-texte);
-		font-weight: 600;
-	}
-	.texte {
-		display: flex;
-		flex-direction: column;
-	}
-	.titre {
-		font-weight: 700;
-	}
-	.annonce {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
-	.membre {
-		display: flex;
-		align-items: center;
-		gap: 12px;
+	@media (min-width: 1024px) {
+		.colonnes {
+			display: grid;
+			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+			align-items: start;
+			gap: 28px;
+		}
 	}
 </style>

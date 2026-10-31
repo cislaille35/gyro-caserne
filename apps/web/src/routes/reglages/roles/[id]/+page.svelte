@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { untrack } from 'svelte';
 	import { estDroitPouvoir, iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { LIBELLES_DROIT } from '#lib/droits.ts';
@@ -83,21 +84,17 @@
 	</div>
 {/snippet}
 
-<header class="entete">
-	<div class="titre">
-		<IconeRole icone={iconeDuRole(role)} taille={48} />
-		<div>
-			<h1>{role.nom}</h1>
-			<p class="sous-titre">{porteeLibelle} · {quiAttribue(role.attributeur, data.comitesChoix)}</p>
-		</div>
-	</div>
+<div class="en-tete-role">
+	<EnTetePage titre={role.nom} phrase="{porteeLibelle} · {quiAttribue(role.attributeur, data.comitesChoix)}">
+		{#snippet tete()}<IconeRole icone={iconeDuRole(role)} taille={48} />{/snippet}
+	</EnTetePage>
 	<div class="pastilles">
 		{#if data.modele}<Pastille ton="neutre">Modèle : {data.modele.nom}</Pastille>{/if}
 		{#if personnalise}<Pastille ton="alerte">Personnalisé</Pastille>{/if}
 		{#if role.systeme !== null}<Pastille ton="neutre">Rôle système</Pastille>{/if}
 		{#if role.archiveeLe !== null}<Pastille ton="neutre">Archivé</Pastille>{/if}
 	</div>
-</header>
+</div>
 
 {#if data.raison}<p class="raison">{data.raison}</p>{/if}
 {@render retour('role')}
@@ -197,24 +194,14 @@
 {/if}
 
 <style>
-	.entete {
+	.en-tete-role {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 	}
-	.titre {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	h1 {
-		margin: 0;
-		line-height: 1.1;
-	}
 	p {
 		margin: 0;
 	}
-	.sous-titre,
 	.intro,
 	.aide {
 		color: var(--doux);

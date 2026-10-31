@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { ICONES_ROLES, type IconeRole } from './icones-roles.ts';
 
-	let { icone, taille = 40 }: { icone: IconeRole; taille?: number } = $props();
+	// `icone` donne la teinte ; `dessin` remplace son tracé, pour une icône hors des rôles (Affichage, Planning…).
+	let { icone, taille = 40, dessin }: { icone: IconeRole; taille?: number; dessin?: string } = $props();
 </script>
 
 <span
@@ -14,7 +15,7 @@
 	style:color="var(--icone-{icone}-texte)"
 >
 	<svg width={Math.round(taille * 0.55)} height={Math.round(taille * 0.55)} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-		><path d={ICONES_ROLES[icone]} /></svg
+		><path d={dessin ?? ICONES_ROLES[icone]} /></svg
 	>
 </span>
 

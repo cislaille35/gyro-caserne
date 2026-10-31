@@ -1,13 +1,19 @@
 <script lang="ts">
-	import Carte from '#lib/ui/Carte.svelte';
-	import Vide from '#lib/ui/Vide.svelte';
+	import { pluriel } from '#lib/pluriel.ts';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Pastille from '#lib/ui/Pastille.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
+	import type { IconeRole } from '#lib/ui/icones-roles.ts';
 
 	let { data } = $props();
 
-	const liens = $derived([
-		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents.' },
-		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle, et les nominations à venir.' }] : []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les comités et les responsabilités du centre.' }] : [])
+	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
+		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
+		...(data.peutNominations
+			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
+			: []),
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les comités et les responsabilités du centre', icone: 'outil' as const }] : [])
 	]);
 </script>
 
@@ -16,61 +22,41 @@
 </svelte:head>
 
 <div class="page">
-	<h1>Caserne</h1>
-	<ul class="liens">
-		{#each liens as lien (lien.href)}
+	<EnTetePage titre="Caserne" phrase="Le centre, ses agents et son organisation." gyro />
+	<div class="colonnes">
+		<ListeRangees titre="Organisation">
+			{#each liens as l (l.href)}
+				<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} valeur={l.valeur} /></li>
+			{/each}
+		</ListeRangees>
+		<ListeRangees titre="Bientôt">
 			<li>
-				<a href={lien.href}>
-					<span class="titre">{lien.titre}</span>
-					<span class="texte">{lien.texte}</span>
-				</a>
+				<Rangee titre="Engins" sous="Les engins arrivent bientôt." icone="camion" discret>
+					{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
+				</Rangee>
 			</li>
-		{/each}
-	</ul>
-	<Carte titre="Engins"><Vide texte="Les engins arrivent bientôt." /></Carte>
-	<Carte titre="Comités"><Vide texte="Les pages des comités arrivent bientôt." /></Carte>
+			<li>
+				<Rangee titre="Comités" sous="Les pages des comités arrivent bientôt." icone="groupe" discret>
+					{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
+				</Rangee>
+			</li>
+		</ListeRangees>
+	</div>
 </div>
 
 <style>
-	.page {
+	.page,
+	.colonnes {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-	}
-	h1 {
-		margin: 0;
-	}
-	.liens {
-		display: grid;
-		gap: 12px;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.liens a {
-		min-height: var(--cible);
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 16px 20px;
-		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
-		color: var(--encre);
-		text-decoration: none;
-	}
-	.liens a:hover .titre {
-		text-decoration: underline;
-	}
-	.titre {
-		font: 700 1.25rem var(--police-titre);
-	}
-	.texte {
-		color: var(--doux);
+		gap: 24px;
 	}
 	@media (min-width: 1024px) {
-		.liens {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+		.colonnes {
+			display: grid;
+			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+			align-items: start;
+			gap: 28px;
 		}
 	}
 </style>

@@ -93,6 +93,13 @@ describe('« À ne pas manquer » sur l’accueil', () => {
 		expect(data.aNePasManquer.annonces.map((a: { id: number }) => a.id)).toEqual([annonce]);
 		expect(data.aNePasManquer.evenements).toMatchObject([{ id: evenement, reponse: null, demain: false }]);
 		expect(data.aNePasManquer.sondages.map((a: { id: number }) => a.id)).toEqual([sondage]);
+		// Les nouveautés portent la pastille de leur mur.
+		expect(data.aNePasManquer.nouveautes).toEqual(
+			expect.arrayContaining([
+				{ cle: 'centre', nom: 'Le centre', nombre: 2, icone: 'maison', couleur: null, numero: null },
+				{ cle: 'vie', nom: expect.any(String), nombre: 1, icone: 'ballon', couleur: null, numero: null }
+			])
+		);
 
 		expect(await geste('repondre', locals, [['id', String(evenement)], ['reponse', 'present']])).toEqual({ cible: `publication:${evenement}`, succes: 'Réponse enregistrée : présent.' });
 		expect(await base.select().from(reponseEvenement)).toMatchObject([{ publicationId: evenement, personneId: alice.id, reponse: 'present' }]);

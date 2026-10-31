@@ -88,7 +88,7 @@
 			color: var(--sur-rouge);
 		}
 		.crayon:hover {
-			background: color-mix(in srgb, var(--rouge) 88%, black);
+			background: var(--rouge-survol);
 			color: var(--sur-rouge);
 		}
 	}

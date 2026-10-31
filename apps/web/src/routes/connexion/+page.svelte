@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
-	import Carte from '#lib/ui/Carte.svelte';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 
 	let { form } = $props();
@@ -14,16 +13,21 @@
 <div class="page">
 	<GyroDuMoment tenue="bienvenue" taille={120} decoratif />
 	<h1>Connexion</h1>
-	<Carte titre="Recevoir un lien">
-		{#if form?.envoye}
-			<p role="status">Si cette adresse est autorisée, un lien vient de partir. Pensez à regarder dans vos courriers indésirables.</p>
-		{:else}
-			<form method="post">
-				<Champ id="email" name="email" type="email" libelle="Adresse e-mail" autocomplete="email" requis />
-				<Bouton type="submit">Recevoir un lien de connexion</Bouton>
-			</form>
-		{/if}
-	</Carte>
+	{#if form?.envoye}
+		<div class="carte" role="status">
+			<p class="titre">Regardez vos courriels</p>
+			<p>
+				Si cette adresse est autorisée, un lien vient de partir{#if form.email}{' '}vers <strong class="adresse">{form.email}</strong>{/if}. Pensez à regarder dans vos courriers indésirables.
+			</p>
+		</div>
+		<a class="changer" href="/connexion">Changer d’adresse</a>
+	{:else}
+		<p class="phrase">Pas de mot de passe : recevez un lien de connexion par courriel.</p>
+		<form method="post" class="carte">
+			<Champ id="email" name="email" type="email" libelle="Adresse e-mail" autocomplete="email" requis />
+			<Bouton type="submit">Recevoir un lien de connexion</Bouton>
+		</form>
+	{/if}
 </div>
 
 <style>
@@ -31,23 +35,51 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 16px;
-		max-width: 28rem;
+		gap: 14px;
+		max-width: 26rem;
 		margin: 0 auto;
+		padding-top: 1rem;
+		text-align: center;
 	}
 	h1 {
 		margin: 0;
-	}
-	.page :global(section) {
-		width: 100%;
-		box-sizing: border-box;
-	}
-	form {
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
+		font: 700 2rem/1.1 var(--police-titre);
 	}
 	p {
 		margin: 0;
+	}
+	.phrase {
+		color: var(--doux);
+	}
+	.carte {
+		align-self: stretch;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding: 20px;
+		border: 1px solid var(--trait-doux);
+		border-radius: 20px;
+		background: var(--surface);
+		text-align: left;
+	}
+	.carte :global(button) {
+		width: 100%;
+	}
+	div.carte {
+		gap: 6px;
+	}
+	.titre {
+		font: 700 1.25rem var(--police-titre);
+	}
+	.adresse {
+		overflow-wrap: anywhere;
+	}
+	.changer {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		padding: 0 12px;
+		color: var(--encre);
+		font-weight: 600;
 	}
 </style>

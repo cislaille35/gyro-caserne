@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { iconeDuComite } from '@gyro-caserne/socle';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -15,7 +17,6 @@
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
 	const saisie = (champ: 'nom' | 'theme', defaut: string) => (concerne('comite') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
 	const iconeSaisie = $derived((concerne('comite') ? form?.valeurs?.icone : undefined) as ReturnType<typeof iconeDuComite> | undefined);
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
 	const SUITE = 'les nominations à venir sont annulées. Les responsabilités qu’il attribuait seront attribuées par le chef de centre.';
 	const avertissement = (n: number) =>
@@ -39,15 +40,9 @@
 	</div>
 {/snippet}
 
-<header class="titre">
-	<IconeRole icone={iconeDuComite(c)} taille={48} />
-	<div>
-		<h1>{c.nom}</h1>
-		<p class="sous-titre">
-			{pluriel(c.membresEnCours, 'membre')} · {c.rapporteurs.length > 0 ? `rapporteur : ${c.rapporteurs.join(', ')}` : 'pas de rapporteur'}
-		</p>
-	</div>
-</header>
+<EnTetePage titre={c.nom} phrase="{pluriel(c.membresEnCours, 'membre')} · {c.rapporteurs.length > 0 ? `rapporteur : ${c.rapporteurs.join(', ')}` : 'pas de rapporteur'}">
+	{#snippet tete()}<IconeRole icone={iconeDuComite(c)} taille={48} />{/snippet}
+</EnTetePage>
 {#if c.dissousLe !== null}<p><Pastille ton="neutre">Dissous</Pastille></p>{/if}
 
 {#if c.dissousLe === null}
@@ -86,17 +81,10 @@
 {/if}
 
 <style>
-	.titre {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	h1,
 	h2,
 	p {
 		margin: 0;
 	}
-	.sous-titre,
 	.aide {
 		color: var(--doux);
 	}

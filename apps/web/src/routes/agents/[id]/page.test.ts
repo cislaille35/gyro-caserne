@@ -47,6 +47,9 @@ describe('page fiche agent', () => {
 			expect(entete).toMatch(/aria-hidden="true"[^>]*>AM</);
 			expect(entete).toMatch(/<h1[^>]*>Alice Martin<\/h1>/);
 			expect(entete).toContain('Caporal-chef · Équipe 1');
+			// Le bandeau et le visage à la couleur de l'équipe.
+			expect(entete).toMatch(/<header[^>]*style="--teinte: #b3121f;?"/);
+			expect(entete).toMatch(/background: #b3121f[^>]*>AM</);
 			expect(entete).toContain('Opérationnel');
 			expect(entete).toContain('Référent engins');
 			expect(entete).toMatch(/<svg[\s\S]*Référent engins/);
@@ -54,22 +57,22 @@ describe('page fiche agent', () => {
 			expect(page.match(/<h1/g)).toHaveLength(1);
 		});
 
-		it('« Courriel » ouvre la messagerie de l’appareil ; pas de lien « Appeler » sans téléphone ; « Écrire » seulement par la messagerie', () => {
+		it('« Courriel » ouvre la messagerie de l’appareil ; pas de lien « Appeler » sans téléphone ; « Message » seulement par la messagerie', () => {
 			const page = html({ data, form: null });
-			expect(page).toMatch(/<a[^>]*href="mailto:alice@exemple\.fr"[^>]*>(<!--[^>]*-->)*Courriel/);
+			expect(page).toMatch(/<a[^>]*href="mailto:alice@exemple\.fr"[^>]*>(<!--[^>]*-->|<span class="rond[\s\S]*?<\/span>)*Courriel/);
 			expect(page).not.toContain('tel:');
 			expect(page).not.toContain('Appeler');
-			expect(page).not.toContain('Écrire');
+			expect(page).not.toContain('/echanges/messages/a/');
 		});
 
-		it('« Écrire » ouvre la conversation dans l’appli', () => {
+		it('« Message » ouvre la conversation dans l’appli', () => {
 			const page = html({ data: { ...data, ecrire: true }, form: null });
-			expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/a\/3"[^>]*>(<!--[^>]*-->)*Écrire/);
+			expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/a\/3"[^>]*>(<!--[^>]*-->|<span class="rond[\s\S]*?<\/span>)*Message/);
 		});
 
 		it('« Appeler » compose le numéro quand il existe', () => {
 			const page = html({ data: { ...data, fiche: { ...fiche, telephone: '06 12 34 56 78' } }, form: null });
-			expect(page).toMatch(/<a[^>]*href="tel:0612345678"[^>]*>(<!--[^>]*-->)*Appeler/);
+			expect(page).toMatch(/<a[^>]*href="tel:0612345678"[^>]*>(<!--[^>]*-->|<span class="rond[\s\S]*?<\/span>)*Appeler/);
 		});
 	});
 

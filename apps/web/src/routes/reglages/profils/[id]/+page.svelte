@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { untrack } from 'svelte';
 	import type { Droit } from '@gyro-caserne/socle';
 	import { DOMAINES, niveauxDe } from '#lib/paquets.ts';
@@ -23,13 +24,9 @@
 	<title>{data.profil.nom} · Réglages · Gyro Caserne</title>
 </svelte:head>
 
-<header class="titre">
-	<IconeRole icone="casque" taille={48} />
-	<div>
-		<h1>{data.profil.nom}</h1>
-		<p class="sous-titre">Profil · {data.profil.typePersonne === 'agent' ? 'agents du centre' : 'personnes extérieures'}</p>
-	</div>
-</header>
+<EnTetePage titre={data.profil.nom} phrase="Profil · {data.profil.typePersonne === 'agent' ? 'agents du centre' : 'personnes extérieures'}">
+	{#snippet tete()}<IconeRole icone="casque" taille={48} />{/snippet}
+</EnTetePage>
 
 <div role="alert">
 	{#if form?.message}<p class="echec">{form.message}</p>{/if}
@@ -48,16 +45,9 @@
 </form>
 
 <style>
-	.titre {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	h1,
 	p {
 		margin: 0;
 	}
-	.sous-titre,
 	.intro {
 		color: var(--doux);
 	}

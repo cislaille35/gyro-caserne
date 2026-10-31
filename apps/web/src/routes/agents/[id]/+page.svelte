@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { rechercheListe } from '#lib/liste-agents.ts';
@@ -7,10 +8,10 @@
 	import Choix from '#lib/ui/Choix.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
-	import Initiales from '#lib/ui/Initiales.svelte';
 	import PastilleEquipe from '#lib/ui/PastilleEquipe.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
 	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
+	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data, form } = $props();
 
@@ -87,6 +88,11 @@
 		return null;
 	});
 	const chiffres = (tel: string) => tel.replace(/[^\d+]/g, '');
+	const GESTES = {
+		message: 'M4 5h16v11H9l-5 4z',
+		courriel: 'M3 6h18v12H3z M3 7l9 6 9-6',
+		appeler: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2'
+	};
 </script>
 
 <svelte:head>
@@ -145,37 +151,44 @@
 	</ul>
 {/snippet}
 
+{#snippet pictogramme(trace: string)}
+	<span class="rond" aria-hidden="true"
+		><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={trace} /></svg></span
+	>
+{/snippet}
+
 {#key fiche.id}
 	<div class="fiche">
-		<header class="entete">
-			<div class="qui">
-				<Initiales prenom={fiche.prenom} nom={fiche.nom} taille={64} />
-				<div>
-					<h1>{fiche.prenom} {fiche.nom}</h1>
-					{#if sousTitre}<p class="doux">{sousTitre}</p>{/if}
-				</div>
-			</div>
-			<ul class="etiquettes" aria-label="Statut et rôles en cours">
-				<li><Statut statut={fiche.statut} /></li>
-				{#each enCours as l (l.id)}
-					<li class="role"><IconeRole icone={l.responsabilite.icone} taille={24} />{intitule(l)}</li>
-				{/each}
-			</ul>
-			<div class="contact">
-				{#if data.ecrire}<a class="ecrire" href="/echanges/messages/a/{fiche.id}">Écrire</a>{/if}
-				{#if fiche.telephone}<a href="tel:{chiffres(fiche.telephone)}">Appeler</a>{/if}
-				<a href="mailto:{fiche.email}">Courriel</a>
+		<header class="entete" style:--teinte={fiche.equipe?.couleur ?? null}>
+			<div class="bandeau" aria-hidden="true"></div>
+			<div class="corps">
+				<span class="visage"><Visage prenom={fiche.prenom} nom={fiche.nom} couleur={fiche.equipe?.couleur ?? null} taille={88} /></span>
+				<h1 tabindex="-1">{fiche.prenom} {fiche.nom}</h1>
+				{#if sousTitre}<p class="doux">{sousTitre}</p>{/if}
+				<ul class="etiquettes" aria-label="Statut et rôles en cours">
+					<li><Statut statut={fiche.statut} /></li>
+					{#each enCours as l (l.id)}
+						<li class="role"><IconeRole icone={l.responsabilite.icone} taille={24} />{intitule(l)}</li>
+					{/each}
+				</ul>
+				<ul class="contact" aria-label="Contacter">
+					{#if data.ecrire}<li><a href="/echanges/messages/a/{fiche.id}">{@render pictogramme(GESTES.message)}Message</a></li>{/if}
+					<li><a href="mailto:{fiche.email}">{@render pictogramme(GESTES.courriel)}Courriel</a></li>
+					{#if fiche.telephone}<li><a href="tel:{chiffres(fiche.telephone)}">{@render pictogramme(GESTES.appeler)}Appeler</a></li>{/if}
+				</ul>
 			</div>
 		</header>
 
-		<div role="status">
-			{#if generale?.succes}<p class="succes">{generale.message}</p>{/if}
-		</div>
-		<div role="alert">
-			{#if generale && !generale.succes && (generale.message || generale.erreurs)}<p class="echec">{generale.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+		<div class="annonces">
+			<div role="status">
+				{#if generale?.succes}<p class="succes">{generale.message}</p>{/if}
+			</div>
+			<div role="alert">
+				{#if generale && !generale.succes && (generale.message || generale.erreurs)}<p class="echec">{generale.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
+			</div>
 		</div>
 
-		<Groupe titre="Identité et contact" resume={resumes.identite} ouvert={blocOuvert === 'identite'}>
+		<Groupe titre="Identité et contact" icone="livre" dessin={DESSINS.profil} resume={resumes.identite} ouvert={blocOuvert === 'identite'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -202,7 +215,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Parcours" resume={resumes.parcours} ouvert={blocOuvert === 'parcours'}>
+		<Groupe titre="Parcours" icone="casque" resume={resumes.parcours} ouvert={blocOuvert === 'parcours'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -241,7 +254,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Équipe et statut" resume={resumes.equipe} ouvert={blocOuvert === 'equipe'}>
+		<Groupe titre="Équipe et statut" icone="groupe" resume={resumes.equipe} ouvert={blocOuvert === 'equipe'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -277,7 +290,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Rôles" resume={resumes.roles} ouvert={blocOuvert === 'roles'}>
+		<Groupe titre="Rôles" icone="cle" resume={resumes.roles} ouvert={blocOuvert === 'roles'}>
 			<div class="bloc">
 				<!-- Le rôle terminé ou raccourci peut quitter sa liste : le succès s'annonce ici. -->
 				<div role="status">{#if annonceRole}<p class="succes">{annonceRole}</p>{/if}</div>
@@ -338,7 +351,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Départ du centre" resume={resumes.depart} couleur="var(--rouge)" ouvert={blocOuvert === 'depart'}>
+		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} couleur="var(--rouge)" ouvert={blocOuvert === 'depart'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -369,6 +382,16 @@
 {/key}
 
 <style>
+	/* Les zones d'annonce restent en place, vides, sans creuser d'écart. */
+	.annonces {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		margin: -8px 0;
+	}
+	.annonces:not(:has(p)) {
+		margin: -16px 0 0;
+	}
 	.fiche,
 	form {
 		display: flex;
@@ -389,31 +412,47 @@
 		gap: 16px;
 		padding: 16px;
 	}
+	/* La carte d'identité : un bandeau à la couleur de l'équipe, le visage à cheval. */
 	.entete {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
+		overflow: hidden;
 		background: var(--surface);
 		border: 1px solid var(--trait-doux);
-		border-bottom: 3px solid var(--rouge);
-		border-radius: var(--rayon-grand);
+		border-radius: 20px;
 	}
-	.qui {
+	.bandeau {
+		height: 64px;
+		background: var(--teinte, var(--statut-neutre-fond));
+	}
+	.corps {
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 14px;
+		gap: 8px;
+		padding: 0 16px 16px;
+		text-align: center;
+	}
+	.visage {
+		margin-top: -48px;
+		border: 4px solid var(--surface);
+		border-radius: 50%;
+		display: inline-flex;
 	}
 	h1 {
 		margin: 0;
+		font: 700 1.875rem/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
+	}
+	h1:focus {
+		outline: none;
 	}
 	.doux {
 		color: var(--doux);
 	}
-	.etiquettes {
+	.etiquettes,
+	.contact {
 		display: flex;
 		flex-wrap: wrap;
+		justify-content: center;
 		align-items: center;
 		gap: 6px;
 		margin: 0;
@@ -431,29 +470,36 @@
 		font-weight: 600;
 	}
 	.contact {
-		display: flex;
-		gap: 8px;
+		gap: 20px;
+		margin-top: 6px;
 	}
 	.contact a {
-		flex: 1;
+		min-width: 64px;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		min-height: var(--cible);
-		border: 1px solid var(--trait);
-		border-radius: 12px;
+		gap: 4px;
 		color: var(--encre);
+		font-size: 0.875rem;
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.contact a:hover {
-		text-decoration: underline;
+	.rond {
+		width: 48px;
+		height: 48px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: var(--statut-danger-fond);
+		color: var(--accent);
 	}
-	/* Écrire dans l'appli : le contact le plus direct. */
-	.contact .ecrire {
-		border: 2px solid var(--encre);
+	.contact a:hover .rond {
 		background: var(--rouge);
 		color: var(--sur-rouge);
+	}
+	.contact a:hover {
+		text-decoration: underline;
 	}
 	p {
 		margin: 0;

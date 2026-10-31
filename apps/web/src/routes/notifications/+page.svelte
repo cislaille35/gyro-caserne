@@ -3,19 +3,26 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
 	import { jourEtHeure } from '#lib/murs/quand.ts';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
+	import TuileDate from '#lib/ui/TuileDate.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
+	import { DESSINS, type IconeRole } from '#lib/ui/icones-roles.ts';
 
-	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; debut: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// « Événement demain, à répondre et sondage à voter », « Événement avec sondage, à voter »…
 	const quoiEvenement = (e: { demain: boolean; reponse: string | null; sondage: boolean }) =>
 		`Événement${e.demain ? ' demain' : ''}${e.reponse === null ? `, à répondre${e.sondage ? ' et sondage à voter' : ''}` : ' avec sondage, à voter'}`;
 	// Ce qu'il faut faire est écrit, pas seulement montré.
-	const elements = $derived([
-		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte' })),
+	const elements: { id: number; cle: string; nomMur: string; titre: string; quoi: string; debut?: string; icone?: IconeRole; dessin?: string }[] = $derived([
 		...data.evenements.map((e) => ({ ...e, quoi: quoiEvenement(e) })),
-		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre' }))
+		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte', icone: 'etoile' as const, dessin: DESSINS.annonce })),
+		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre', icone: 'camion' as const, dessin: DESSINS.sondage }))
 	]);
+	const total = $derived(elements.length + data.signalements.length);
+	const phrase = $derived(total === 0 ? 'Tout est à jour.' : `${total} ${total > 1 ? 'choses demandent' : 'chose demande'} votre attention.`);
 
 	const nom = (p: { prenom: string; nom: string }) => `${p.prenom} ${p.nom}`.trim() || 'Un ancien agent';
 	const photo = (s: Signalement, id: number) => `/notifications/signalements/${s.id}/photo/${id}`;
@@ -57,13 +64,14 @@
 	<title>Notifications · Gyro Caserne</title>
 </svelte:head>
 
-<h1 tabindex="-1">Notifications</h1>
+<div class="page">
+<EnTetePage titre="Notifications" {phrase} />
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
 
 {#if data.signalements.length > 0}
 	<section class="signalements" aria-labelledby="t-signalements">
-		<h2 id="t-signalements" tabindex="-1">Messages signalés</h2>
+		<h2 id="t-signalements" class="rubrique" tabindex="-1">Messages signalés</h2>
 		<p class="doux">Seul le message signalé vous est transmis, jamais le reste de la conversation.</p>
 		<ul class="liste" role="list">
 			{#each data.signalements as s (s.id)}
@@ -108,20 +116,23 @@
 {/if}
 
 {#if elements.length > 0}
-	{#if data.signalements.length > 0}<h2 class="rubrique">À faire</h2>{/if}
-	<ul class="liste" role="list">
+	<ListeRangees titre={data.signalements.length > 0 ? 'À faire' : undefined}>
 		{#each elements as e (`${e.quoi}:${e.id}`)}
 			<li>
-				<a class="ligne" href="/echanges/{e.cle}/{e.id}">
-					<span class="texte"><span class="titre">{e.titre}</span><span class="doux">{e.quoi} · {e.nomMur}</span></span>
-					<span aria-hidden="true">›</span>
-				</a>
+				{#if e.debut}
+					<Rangee href="/echanges/{e.cle}/{e.id}" titre={e.titre} sous="{e.quoi} · {e.nomMur}">
+						{#snippet tete()}<TuileDate iso={e.debut!} />{/snippet}
+					</Rangee>
+				{:else}
+					<Rangee href="/echanges/{e.cle}/{e.id}" titre={e.titre} sous="{e.quoi} · {e.nomMur}" icone={e.icone} dessin={e.dessin} />
+				{/if}
 			</li>
 		{/each}
-	</ul>
+	</ListeRangees>
 {:else if data.signalements.length === 0}
-	<Vide texte="Rien de nouveau pour vous." />
+	<Vide titre="Tout est à jour" texte="Rien de nouveau pour vous." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
 {/if}
+</div>
 
 {#if aRetirer}
 	{@const s = aRetirer}
@@ -140,10 +151,11 @@
 {/if}
 
 <style>
-	h1 {
-		margin: 0 0 16px;
+	.page {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
 	}
-	h1:focus,
 	h2:focus {
 		outline: none;
 	}
@@ -154,43 +166,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-	}
-	.ligne {
-		min-height: var(--cible);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 14px;
-		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: 12px;
-		color: var(--encre);
-		text-decoration: none;
-	}
-	.ligne:hover .titre {
-		text-decoration: underline;
-	}
-	.texte {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.titre {
-		font-weight: 700;
-		overflow-wrap: anywhere;
-	}
-	.doux {
-		margin: 0;
-		color: var(--doux);
-	}
-	.rubrique,
-	.signalements h2 {
-		margin: 0;
-		font: 700 1.25rem var(--police-titre);
-	}
-	.rubrique {
-		margin: 24px 0 10px;
 	}
 
 	/* Messages signalés */
@@ -272,7 +247,7 @@
 		color: var(--sur-rouge);
 	}
 	a.danger:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 	a.secondaire:hover {
@@ -292,24 +267,13 @@
 		margin: 0 0 12px;
 	}
 	.erreur {
-		margin: 0 0 12px;
+		margin: 0;
 		padding: 12px 14px;
 		border: 1px solid var(--statut-danger-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-danger-fond);
 		color: var(--statut-danger-texte);
 		font-weight: 600;
-	}
-	.masque {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: 0;
-		padding: 0;
-		border: 0;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 
 	.confirmation {
@@ -338,11 +302,7 @@
 	}
 
 	@media (min-width: 1024px) {
-		h1,
-		.signalements,
-		.liste,
-		.rubrique,
-		.erreur {
+		.page {
 			max-width: 44rem;
 		}
 	}

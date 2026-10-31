@@ -3,6 +3,7 @@
 	import Carte from '#lib/ui/Carte.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import Choix from '#lib/ui/Choix.svelte';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
 
 	let { data, form } = $props();
@@ -16,7 +17,7 @@
 </svelte:head>
 
 <div class="nouveau">
-	<h1>Ajouter un agent</h1>
+	<EnTetePage titre="Ajouter un agent" phrase="Sa fiche pourra être complétée ensuite." />
 	<div role="alert">
 		{#if form?.message || form?.erreurs}<p class="echec">{form.message ?? 'Le formulaire contient des erreurs.'}</p>{/if}
 	</div>
@@ -92,7 +93,6 @@
 	form > :global(button) {
 		align-self: flex-start;
 	}
-	h1,
 	p {
 		margin: 0;
 	}

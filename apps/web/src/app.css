@@ -14,6 +14,7 @@
 	--accent: #b3121f;
 	--rouge: #b3121f;
 	--sur-rouge: #ffffff;
+	--rouge-survol: #9e101b;
 	--ok: #2e7a1f;
 	--focus: #1257c4;
 	--statut-ok-fond: #e6f2e2;
@@ -75,6 +76,7 @@
 	--accent: #ff8a92;
 	--rouge: #b3121f;
 	--sur-rouge: #ffffff;
+	--rouge-survol: #9e101b;
 	--ok: #7cc95a;
 	--focus: #7ab8ff;
 	--statut-ok-fond: #1b3314;
@@ -128,6 +130,7 @@
 		--accent: #ff8a92;
 		--rouge: #b3121f;
 		--sur-rouge: #ffffff;
+		--rouge-survol: #9e101b;
 		--ok: #7cc95a;
 		--focus: #7ab8ff;
 	--statut-ok-fond: #1b3314;
@@ -198,4 +201,46 @@ body {
 		animation: none !important;
 		transition: none !important;
 	}
+}
+
+/* Classes communes à tous les écrans. */
+/* Texte lu par les lecteurs d'écran, invisible à l'écran. */
+.masque {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+.doux {
+	color: var(--doux);
+}
+/* Titre de rubrique, en condensé, comme dans Échanges. */
+.rubrique {
+	margin: 0;
+	font: 700 1.25rem/1.2 var(--police-titre);
+}
+/* Lien secondaire arrondi (« Fichier », « Comité », « Tout afficher ») : un contour, pas la couleur de l'action principale. */
+.lien-secondaire {
+	min-height: 48px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0 16px;
+	border: 1px solid var(--trait);
+	border-radius: 999px;
+	background: var(--surface);
+	color: var(--encre);
+	font-weight: 600;
+	text-decoration: none;
+}
+.lien-secondaire:has(svg) {
+	padding-left: 12px;
+}
+.lien-secondaire:hover {
+	border-color: var(--encre);
 }

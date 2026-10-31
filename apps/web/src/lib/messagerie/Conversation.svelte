@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import type { VueConversation, VueMessage } from '@gyro-caserne/socle';
 	import { applyAction, deserialize, type ActionResult } from '$app/forms';
 	import { afterNavigate, goto, invalidateAll } from '$app/navigation';
@@ -253,7 +254,6 @@
 		noeud.focus({ preventScroll: true });
 	}
 
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 </script>
 
 <div class="conversation">
@@ -334,7 +334,7 @@
 
 	<div class="bas">
 		{#if loinDuBas && js}
-			<button type="button" class="descendre" aria-label={nouveauxEnDessous > 0 ? `${pluriel(nouveauxEnDessous, 'nouveau message')}, aller en bas` : 'Aller aux derniers messages'} onclick={() => allerEnBas()}
+			<button type="button" class="descendre" aria-label={nouveauxEnDessous > 0 ? `${pluriel(nouveauxEnDessous, 'nouveau message', 'nouveaux messages')}, aller en bas` : 'Aller aux derniers messages'} onclick={() => allerEnBas()}
 				><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6" /></svg
 				>{#if nouveauxEnDessous > 0}<span class="nombre" aria-hidden="true">{nouveauxEnDessous > 99 ? '99+' : nouveauxEnDessous}</span>{/if}</button
 			>

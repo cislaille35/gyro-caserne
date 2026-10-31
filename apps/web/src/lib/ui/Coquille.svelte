@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { DESSINS } from './icones-roles.ts';
 	import type { Snippet } from 'svelte';
 	import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
@@ -24,11 +25,11 @@
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
 		planning: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
 		caserne: 'M3 21V9l9-5 9 5v12 M9 21v-6h6v6',
-		echanges: 'M4 5h16v11H8l-4 4z',
-		connexion: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
-		affichage: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1.5 1.5 M17.5 17.5 19 19 M5 19l1.5-1.5 M17.5 6.5 19 5',
+		echanges: DESSINS.echanges,
+		connexion: DESSINS.sortir,
+		affichage: DESSINS.affichage,
 		cloche: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20a2 2 0 0 0 4 0',
-		moi: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1'
+		moi: DESSINS.profil
 	};
 </script>
 
@@ -161,14 +162,6 @@
 		top: -8px;
 		right: -14px;
 	}
-	.masque {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-	}
 	.moi {
 		padding-right: 0.25rem;
 		font-weight: 600;
@@ -235,6 +228,8 @@
 			grid-template-areas:
 				'menu entete'
 				'menu contenu';
+			/* Le fond et le trait du menu descendent jusqu'en bas, même sur une page plus haute que l'écran. */
+			background: linear-gradient(to right, var(--surface) calc(16rem - 1px), var(--trait) calc(16rem - 1px) 16rem, transparent 16rem);
 		}
 		header {
 			grid-area: entete;
@@ -253,7 +248,7 @@
 			gap: 0.25rem;
 			padding: 1.5rem 1rem;
 			border-top: 0;
-			border-right: 1px solid var(--trait);
+			margin-right: 1px;
 		}
 		nav a {
 			flex: none;

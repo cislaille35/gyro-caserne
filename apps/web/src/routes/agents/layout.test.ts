@@ -47,7 +47,7 @@ const gestion = (autres: Record<string, unknown> = {}) => ({
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const tete = (composant: any, props: Record<string, unknown>) => render(composant, { props }).head;
-const boutonDuGroupe = (mise: string, titre: string) => mise.match(new RegExp(`<button[^>]*aria-expanded="(true|false)"[^>]*>\\s*<span class="textes[^"]*">\\s*<span class="titre[^"]*">${titre}`))?.[1];
+const boutonDuGroupe = (mise: string, titre: string) => mise.match(new RegExp(`<button[^>]*aria-expanded="(true|false)"[^>]*>(?:\\s|<!--[^>]*-->)*<span class="textes[^"]*">\\s*<span class="titre[^"]*">${titre}`))?.[1];
 
 describe('/agents : vue de tous', () => {
 	const data = { gestion: false, groupes };
@@ -55,6 +55,9 @@ describe('/agents : vue de tous', () => {
 	it('groupe par équipe, ouverts, avec liseré, effectif et chef en résumé', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toMatch(/<h1[^>]*>Agents<\/h1>/);
+		// Le visage à la couleur de l'équipe ; gris sans équipe.
+		expect(mise).toMatch(/background: #b3121f[^>]*>AM</);
+		expect(mise).toMatch(/background: var\(--statut-neutre-fond\)[^>]*>TF</);
 		expect(mise).toMatch(/<h2[^>]*>\s*<button[\s\S]*Équipe 1[\s\S]*2 agents · chef : A\. Martin/);
 		expect(mise).toContain('border-left: 6px solid #b3121f');
 		expect(boutonDuGroupe(mise, 'Équipe 1')).toBe('true');
@@ -73,7 +76,7 @@ describe('/agents : vue de tous', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toContain('Alice Martin');
 		expect(mise).toContain('Sergent-chef');
-		expect(mise).toMatch(/Rôles\s*:[\s\S]*Chef d’équipe \(Équipe 1\)[\s\S]*Rapporteur \(Amicale\)/);
+		expect(mise).toMatch(/Sergent-chef(<!--[^>]*-->)* · (<!--[^>]*-->)*<span class="masque[^"]*">Rôles :<\/span> Chef d’équipe \(Équipe 1\) · Rapporteur \(Amicale\)/);
 		expect(mise.match(/Rôles/g)).toHaveLength(1);
 		// Une espace entre « Rôles : » (lu seulement) et les rôles, pour le texte lu.
 		expect(mise).toMatch(/Rôles :<\/span> Chef d’équipe/);
@@ -104,25 +107,43 @@ describe('/agents : vue de tous', () => {
 describe('/agents : gestion', () => {
 	it('montre la liste, le volet, l’invite et les liens de gestion', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
-		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>Fichier de l'effectif<\/a>/);
+		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>[\s\S]*?Fichier<span class="masque[^"]*"> de l’effectif<\/span><\/a>/);
+		expect(mise).toMatch(/<a class="action[^"]*" href="\/agents\/nouveau">[\s\S]*?Ajouter<\/span>/);
 		expect(mise).toContain('class="detail');
 		expect(mise).toContain('Contenu de la page');
 		expect(tete(Layout, { data: gestion(), children: enfants })).not.toContain('<title>');
 		expect(html(Page, { data: gestion() })).toContain('Choisissez un agent dans la liste.');
+		expect(html(Page, { data: gestion() })).toContain('Sa fiche s’ouvre ici');
 	});
 
-	it('une ligne : lien vers la fiche au nom de l’agent, e-mail, statut hors opérationnel, fiche à compléter', () => {
+	it('une ligne : lien vers la fiche au nom de l’agent, grade, statut hors opérationnel, fiche à compléter ; pas d’e-mail', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
 		expect(mise).toMatch(/<a[^>]*href="\/agents\/1"[^>]*>Alice Martin<\/a>/);
-		expect(mise).toContain('alice@exemple.fr');
+		expect(mise).toMatch(/Alice Martin<\/a>[\s\S]*?Sapeur/);
+		expect(mise).not.toContain('alice@exemple.fr');
 		expect(mise).toMatch(/Alice Martin[\s\S]*Stagiaire[\s\S]*À compléter[\s\S]*Paul Durand/);
 		expect(mise).not.toContain('Opérationnel');
 		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">2 agents · sans chef d’équipe</);
 	});
 
+	it('montre l’e-mail dans la sous-ligne quand c’est lui qui répond à la recherche', () => {
+		const parEmail = html(Layout, { data: gestion({ filtres: { texte: 'ALICE@', filtre: '' } }), children: enfants });
+		expect(parEmail).toMatch(/Alice Martin<\/a>[\s\S]*?class="sous[^"]*"[^>]*>[\s\S]*?alice@exemple\.fr/);
+		expect(parEmail).not.toContain('paul@exemple.fr');
+		// Le nom répond déjà : pas d'e-mail.
+		expect(html(Layout, { data: gestion({ filtres: { texte: 'alice', filtre: '' } }), children: enfants })).not.toContain('alice@exemple.fr');
+	});
+
+	it('la recherche : libellé lu, aide reliée au champ', () => {
+		const mise = html(Layout, { data: gestion(), children: enfants });
+		const champ = mise.match(/<input[^>]*name="texte"[^>]*>/)![0];
+		const aide = champ.match(/aria-describedby="([^"]+)"/)![1];
+		expect(mise).toMatch(new RegExp(`id="${aide}"[^>]*>Nom, prénom ou e-mail<`));
+	});
+
 	it('propose « Nommer » à côté d’une équipe sans chef', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
-		expect(mise).toMatch(/<a[^>]*href="\/nominations"[^>]*>Nommer <span class="cache[^"]*">un chef pour Équipe 1<\/span><\/a>/);
+		expect(mise).toMatch(/<a[^>]*href="\/nominations"[^>]*>Nommer <span class="masque[^"]*">un chef pour Équipe 1<\/span><\/a>/);
 		expect(mise.match(/href="\/nominations"/g)).toHaveLength(1);
 	});
 
@@ -137,12 +158,12 @@ describe('/agents : gestion', () => {
 		}
 	});
 
-	it('après un enregistrement sans JavaScript, garde recherche et filtre sans le nom de l’action (liens et « Retour à la liste »)', () => {
+	it('après un enregistrement sans JavaScript, garde recherche et filtre sans le nom de l’action (liens et retour « ‹ Agents »)', () => {
 		Object.assign(etat.page, { url: new URL('http://x/agents/1?/fiche&texte=mar&filtre=a-completer') });
 		try {
 			const mise = html(Layout, { data: gestion({ filtres: { texte: 'mar', filtre: 'a-completer' } }), children: enfants });
 			expect(mise).toContain('href="/agents/2?texte=mar&amp;filtre=a-completer"');
-			expect(mise).toMatch(/<a class="retour[^"]*" href="\/agents\?texte=mar&amp;filtre=a-completer">Retour à la liste<\/a>/);
+			expect(mise).toMatch(/<a class="retour[^"]*" href="\/agents\?texte=mar&amp;filtre=a-completer">[\s\S]*?Retour : <\/span>Agents<\/a>/);
 			expect(mise).not.toContain('/fiche');
 		} finally {
 			Object.assign(etat.page, { url: new URL('http://x/agents') });
@@ -181,7 +202,10 @@ describe('/agents : gestion', () => {
 	});
 
 	it('dit quand aucun agent ne correspond', () => {
-		expect(html(Layout, { data: gestion({ groupes: [] }), children: enfants })).toContain('Aucun agent ne correspond.');
+		expect(html(Layout, { data: gestion({ groupes: [] }), children: enfants })).toContain('Aucun agent à afficher');
+		const cherche = html(Layout, { data: gestion({ groupes: [], filtres: { texte: 'zz', filtre: '' } }), children: enfants });
+		expect(cherche).toContain('Aucun agent ne correspond.');
+		expect(cherche).toMatch(/<a class="action[^"]*" href="\/agents">Tout afficher<\/a>/);
 	});
 
 	it('masque la liste derrière la fiche et marque l’agent affiché', () => {

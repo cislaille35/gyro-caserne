@@ -222,7 +222,7 @@
 		text-decoration: none;
 	}
 	.aller-publier:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 	}
 	.aller-publier svg {
 		flex: none;

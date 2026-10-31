@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import type { PublicationVue } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { jourEtHeure, periodeSondage } from '#lib/murs/quand.ts';
@@ -14,7 +15,6 @@
 	const etat = $derived(s.etat === 'ferme' ? 'Fermé' : s.etat === 'avenir' && s.ouverture ? `Ouvre le ${jourEtHeure(s.ouverture)}` : 'Ouvert');
 	const total = $derived(s.resultats ? s.resultats.reduce((a, b) => a + b, 0) : 0);
 	const pourcent = (n: number) => (total === 0 ? 0 : Math.round((n * 100) / total));
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const ouvert = $derived(s.etat === 'ouvert');
 </script>
 

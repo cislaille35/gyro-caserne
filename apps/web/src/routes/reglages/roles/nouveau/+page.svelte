@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { ADMINISTRATION, DOMAINES, niveauxDe } from '#lib/paquets.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -27,7 +28,7 @@
 	<title>Nouveau rôle · Réglages · Gyro Caserne</title>
 </svelte:head>
 
-<h1>Nouveau rôle</h1>
+<EnTetePage titre="Nouveau rôle" />
 
 {#if !choisi}
 	<p class="intro">À partir de quel modèle ? Le rôle en reprend les droits ; vous pourrez les ajuster ensuite.</p>
@@ -80,7 +81,6 @@
 {/if}
 
 <style>
-	h1,
 	p {
 		margin: 0;
 	}

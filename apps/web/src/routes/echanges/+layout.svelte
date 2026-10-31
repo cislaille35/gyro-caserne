@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 	import { untrack } from 'svelte';
@@ -31,7 +32,6 @@
 		supervision: data.sections.supervision.some((t) => t.cle === page.params.mur)
 	}));
 
-	const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 	const somme = (tuiles: (TuileMur | null)[]) => tuiles.reduce((n, t) => n + (t?.nouveautes ?? 0), 0);
 	// La supervision, repliée, a son propre compte dans son résumé.
 	const total = $derived(somme([s.centre, ...s.groupes, ...s.autres]));
@@ -295,7 +295,7 @@
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
 	}
 	.ecrire:hover {
-		background: color-mix(in srgb, var(--rouge) 88%, black);
+		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
 	.libelle,

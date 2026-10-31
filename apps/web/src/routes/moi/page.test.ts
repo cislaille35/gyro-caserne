@@ -2,6 +2,7 @@ import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
 import { actions, load } from './+page.server';
+import { preparer } from '../echanges/de-test.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (data: Record<string, unknown>) => render(Page as any, { props: { data } }).body;
@@ -12,6 +13,35 @@ describe('/moi', () => {
 		expect(page).toMatch(/<a[^>]*href="\/profil"[^>]*>[\s\S]*?Mon profil/);
 		expect(page).toMatch(/<a[^>]*href="\/affichage"[^>]*>[\s\S]*?Affichage/);
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/deconnecter"[\s\S]*?<button[^>]*type="submit"[^>]*>[\s\S]*?Se déconnecter/);
+	});
+
+	it('carte d’identité : visage à la couleur de l’équipe, nom, grade · équipe', () => {
+		const page = html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: 'Lieutenant', equipe: { nom: 'Équipe 1', couleur: '#d4a017' } } });
+		expect(page).toMatch(/class="visage[^"]*"[^>]*style="background: #d4a017;/);
+		expect(page).toContain('Claire Chef');
+		expect(page).toContain('Lieutenant · Équipe 1');
+		expect(page.indexOf('Claire Chef')).toBeLessThan(page.indexOf('href="/profil"'));
+	});
+
+	it('la carte du super administrateur', () => {
+		expect(html({ estPersonne: false, identite: null })).toContain('Super administrateur');
+		// Sans grade ni équipe : son rôle.
+		expect(html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: null, role: 'Chef de centre', equipe: null } })).toContain('Chef de centre');
+	});
+
+	it('sans grade, équipe ni rôle : le nom seul, rien d’inventé', () => {
+		const page = html({ estPersonne: true, identite: { prenom: 'Paul', nom: 'Neuf', grade: null, role: null, equipe: null } });
+		expect(page).toContain('Paul Neuf');
+		expect(page).not.toContain('Agent du centre');
+		expect(page).not.toMatch(/<p class="doux[^"]*">\s*<\/p>/);
+	});
+
+	it('la carte vient de l’effectif ; rien pour le super administrateur', async () => {
+		const { base, alice } = await preparer();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
+		expect(await charger(alice)).toEqual({ identite: { prenom: 'Alice', nom: 'Test', grade: null, role: null, equipe: { nom: expect.any(String), couleur: expect.stringMatching(/^#/) } } });
+		expect(await charger({ type: 'super', email: 'a@b.fr' })).toEqual({ identite: null });
 	});
 
 	it('super administrateur : pas de « Mon profil »', () => {

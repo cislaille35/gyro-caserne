@@ -1,22 +1,25 @@
 <script lang="ts">
+	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
-	import { rechercheListe } from '#lib/liste-agents.ts';
-	import Champ from '#lib/ui/Champ.svelte';
+	import { emailCherche, rechercheListe } from '#lib/liste-agents.ts';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
-	import Initiales from '#lib/ui/Initiales.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
+	import Recherche from '#lib/ui/Recherche.svelte';
+	import Retour from '#lib/ui/Retour.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
 	import type { StatutPersonne } from '#lib/ui/statut.ts';
 	import Vide from '#lib/ui/Vide.svelte';
+	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data, children } = $props();
 
-	type Personne = { id: number; prenom: string; nom: string; grade: string | null; roles: string[]; email?: string; statut?: StatutPersonne; aCompleter?: boolean };
+	type Personne = { id: number; prenom: string; nom: string; email?: string; grade: string | null; roles: string[]; statut?: StatutPersonne; aCompleter?: boolean };
 
 	const enfant = $derived(page.url.pathname !== '/agents');
-	const pluriel = (n: number) => `${n} ${n > 1 ? 'agents' : 'agent'}`;
+	const agents = (n: number) => pluriel(n, 'agent');
 	const resume = (n: number, equipe: { chefs: string[] } | null) =>
-		!equipe ? pluriel(n) : equipe.chefs.length === 0 ? `${pluriel(n)} · sans chef d’équipe` : `${pluriel(n)} · chef : ${equipe.chefs.join(', ')}`;
+		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef d’équipe` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Les partis restent repliés, sauf quand on les cherche.
 	const ouvert = (cle: string) => cle !== 'partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
 	const filtres = $derived(
@@ -29,12 +32,15 @@
 				]
 			: []
 	);
+	const filtre = $derived(data.gestion ? data.filtres.filtre : '');
+	const cherche = $derived(data.gestion && (data.filtres.texte !== '' || data.filtres.filtre !== ''));
 </script>
 
-{#snippet agent(p: Personne)}
+{#snippet agent(p: Personne, couleur: string | null)}
 	{@const courant = page.url.pathname === `/agents/${p.id}`}
+	{@const email = data.gestion && emailCherche(p, data.filtres.texte)}
 	<li class="agent" class:courant>
-		<Initiales prenom={p.prenom} nom={p.nom} />
+		<Visage prenom={p.prenom} nom={p.nom} {couleur} />
 		<span class="identite">
 			{#if data.gestion}
 				<!-- La liste garde sa recherche et son filtre à côté de la fiche. -->
@@ -42,14 +48,21 @@
 			{:else}
 				<span class="nom">{p.prenom} {p.nom}</span>
 			{/if}
-			{#if p.grade}<span class="petit">{p.grade}</span>{/if}
-			{#if p.email}<span class="petit email">{p.email}</span>{/if}
+			{#if p.grade || p.roles.length > 0 || email}
+				<span class="sous"
+					>{p.grade ?? ''}{#if p.grade && p.roles.length > 0}{' · '}{/if}{#if p.roles.length > 0}<span class="masque">Rôles :</span> {p.roles.join(' · ')}{/if}{#if email}{#if p.grade || p.roles.length > 0}{' · '}{/if}{p.email}{/if}</span
+				>
+			{/if}
 		</span>
-		<span class="etat">
-			{#if p.statut && p.statut !== 'operationnel'}<Statut statut={p.statut} />{/if}
-			{#if p.aCompleter}<Pastille ton="alerte">À compléter</Pastille>{/if}
-			{#if p.roles.length > 0}<small class="petit"><span class="cache">Rôles :</span> {p.roles.join(' · ')}</small>{/if}
-		</span>
+		{#if (p.statut && p.statut !== 'operationnel') || p.aCompleter}
+			<span class="etat">
+				{#if p.statut && p.statut !== 'operationnel'}<Statut statut={p.statut} />{/if}
+				{#if p.aCompleter}<Pastille ton="alerte">À compléter</Pastille>{/if}
+			</span>
+		{/if}
+		{#if data.gestion}
+			<svg class="chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+		{/if}
 	</li>
 {/snippet}
 
@@ -59,60 +72,67 @@
 </svelte:head>
 
 <div class="page">
-	<section class="liste" class:masquee={enfant && data.gestion} aria-labelledby="titre-agents">
-		<div class="entete">
-			<h1 id="titre-agents">Agents</h1>
-			{#if data.gestion}
-				<div class="liens">
-					<a class="fichier" href="/agents/fichier">Fichier de l'effectif</a>
-					<a class="ajout" href="/agents/nouveau">Ajouter un agent</a>
-				</div>
-			{/if}
-		</div>
-
+	<section class="liste" class:masquee={enfant && data.gestion} class:seule={!data.gestion} aria-label="Agents">
 		{#if data.gestion}
+			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
+				{#snippet secondaire()}
+					<a class="lien-secondaire" href="/agents/fichier"
+						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+							><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M8 13h8 M8 17h8" /></svg
+						>Fichier<span class="masque">{' de l’effectif'}</span></a
+					>
+				{/snippet}
+			</EnTetePage>
+
 			<form method="GET" role="search" class="filtres">
-				<div class="recherche">
-					<Champ id="filtre-texte" name="texte" type="search" libelle="Rechercher un agent" aide="Nom, prénom ou e-mail" valeur={data.filtres.texte} />
-					<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
-					<button type="submit" class="chercher" name="filtre" value={data.filtres.filtre}>Rechercher</button>
-				</div>
-				<div class="pastilles" role="group" aria-label="Filtrer la liste">
+				<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
+				<Recherche id="filtre-texte" name="texte" valeur={data.filtres.texte} libelle="Rechercher un agent" aide="Nom, prénom ou e-mail" bouton={{ name: 'filtre', value: filtre }} />
+				<div class="puces" role="group" aria-label="Filtrer la liste">
 					{#each filtres as f (f.valeur)}
-						<button type="submit" class="pastille" name="filtre" value={f.valeur} aria-pressed={data.filtres.filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
+						<button type="submit" class="puce" name="filtre" value={f.valeur} aria-pressed={filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
 					{/each}
 				</div>
 			</form>
+		{:else}
+			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." gyro />
 		{/if}
 
 		{#each data.groupes as g (g.cle)}
 			{@const sansChef = g.equipe?.chefs.length === 0}
 			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.cle)}>
 				{#snippet action()}
-					{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="cache">un chef pour {g.titre}</span></a>{/if}
+					{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="masque">un chef pour {g.titre}</span></a>{/if}
 				{/snippet}
 				<ul>
-					{#each g.personnes as p (p.id)}{@render agent(p)}{/each}
+					{#each g.personnes as p (p.id)}{@render agent(p, g.equipe?.couleur ?? null)}{/each}
 				</ul>
 			</Groupe>
 		{:else}
-			<Vide texte={data.gestion ? 'Aucun agent ne correspond.' : 'Aucun agent à afficher.'} />
+			{#if cherche}
+				<Vide titre="Personne ici" texte="Aucun agent ne correspond. Essayez un autre nom ou un autre filtre." action={{ href: '/agents', libelle: 'Tout afficher' }} />
+			{:else}
+				<Vide titre="Personne ici" texte="Aucun agent à afficher pour l’instant." />
+			{/if}
 		{/each}
 	</section>
 
 	{#if data.gestion || page.error}
-		<div class="detail" class:masque={!enfant}>
-			{#if enfant}<a class="retour" href="/agents{rechercheListe(page.url)}">Retour à la liste</a>{/if}
+		<div class="detail" class:masque-detail={!enfant}>
+			{#if enfant}<div class="retour"><Retour href="/agents{rechercheListe(page.url)}" libelle="Agents" /></div>{/if}
 			{@render children()}
 		</div>
 	{/if}
 </div>
 
 <style>
+	/* Au téléphone, un refus s'affiche au-dessus de la liste. */
 	.page {
 		display: flex;
-		gap: 24px;
-		align-items: flex-start;
+		flex-direction: column;
+		gap: 28px;
+	}
+	.detail {
+		order: -1;
 	}
 	.liste,
 	.detail {
@@ -123,84 +143,49 @@
 		gap: 16px;
 	}
 	.liste {
-		gap: 12px;
+		gap: 14px;
 	}
 	.masquee,
-	.masque {
+	.masque-detail {
 		display: none;
 	}
-	.entete {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-	h1 {
-		margin: 0;
-	}
-	.liens {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 12px;
-	}
-	.fichier {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-	}
-	.ajout {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		padding: 0 20px;
-		border-radius: var(--rayon-petit);
-		background: var(--rouge);
-		color: var(--sur-rouge);
-		border: 2px solid var(--encre);
-		font-weight: 700;
-		text-decoration: none;
+	@media (max-width: 639px) {
+		.etat :global(span) {
+			padding: 1px 8px;
+			font-size: 0.8125rem;
+		}
 	}
 	.filtres {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 10px;
 	}
-	.recherche {
+	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
+	.puces {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-end;
 		gap: 8px;
+		margin: -4px -16px;
+		padding: 4px 16px;
+		overflow-x: auto;
+		scrollbar-width: none;
 	}
-	.recherche :global(.champ) {
-		flex: 1 1 180px;
-	}
-	.pastilles {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-	button {
+	.puce {
+		flex: none;
 		min-height: var(--cible);
-		font: 600 1rem var(--police);
+		padding: 0 16px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		background: var(--surface);
 		color: var(--encre);
+		font: 600 0.9375rem var(--police);
+		white-space: nowrap;
 		cursor: pointer;
 	}
-	.chercher {
-		padding: 0 16px;
-		border-radius: var(--rayon-petit);
-		border: 2px solid var(--encre);
-		background: var(--surface);
-	}
-	.pastille {
-		padding: 0 16px;
-		border-radius: 999px;
-		border: 1px solid var(--trait);
-		background: var(--surface);
+	.puce:hover {
+		border-color: var(--encre);
 	}
 	/* Pressé : fond plein et gras, pas seulement une teinte. */
-	.pastille[aria-pressed='true'] {
+	.puce[aria-pressed='true'] {
 		background: var(--encre);
 		color: var(--surface);
 		border-color: var(--encre);
@@ -214,24 +199,31 @@
 	.agent {
 		position: relative;
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 12px;
-		min-height: 56px;
-		padding: 8px 14px;
+		gap: 12px;
+		min-height: 64px;
+		padding: 10px 14px;
 	}
 	.agent + .agent {
 		border-top: 1px solid var(--trait-doux);
 	}
 	.identite {
-		flex: 1 1 140px;
+		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
+		gap: 2px;
 	}
 	.nom {
 		font-weight: 600;
+		font-size: 1.0625rem;
+		line-height: 1.3;
 		color: var(--encre);
+	}
+	.sous {
+		color: var(--doux);
+		font-size: 0.875rem;
+		overflow-wrap: anywhere;
 	}
 	/* Toute la ligne ouvre la fiche. */
 	a.nom {
@@ -242,7 +234,7 @@
 		position: absolute;
 		inset: 0;
 	}
-	a.nom:hover {
+	.agent:hover a.nom {
 		text-decoration: underline;
 	}
 	a.nom:focus-visible {
@@ -260,48 +252,60 @@
 	.courant .nom {
 		font-weight: 800;
 	}
-	.nommer {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		padding: 0 14px;
-		font-weight: 600;
-	}
+	/* Les pastilles s'empilent à droite, chacune sur une ligne. */
 	.etat {
+		flex: none;
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 4px 8px;
-		max-width: 100%;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 4px;
+		white-space: nowrap;
 	}
-	.petit {
+	.chevron {
+		flex: none;
+		margin-left: -4px;
 		color: var(--doux);
-		font-size: 0.875rem;
 	}
-	.email {
-		overflow-wrap: anywhere;
-	}
-	.cache {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-	}
-	.retour {
+	.nommer {
+		flex: none;
 		display: inline-flex;
 		align-items: center;
-		min-height: var(--cible);
-		align-self: flex-start;
+		min-height: 36px;
+		margin-right: 12px;
+		padding: 0 14px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		color: var(--encre);
+		font-weight: 600;
+		text-decoration: none;
+		position: relative;
+	}
+	/* Cible de 44 px autour d'un bouton de 36 px. */
+	.nommer::before {
+		content: '';
+		position: absolute;
+		inset: -4px;
+	}
+	.nommer:hover {
+		border-color: var(--encre);
 	}
 	@media (min-width: 1024px) {
+		.page {
+			flex-direction: row;
+			align-items: flex-start;
+		}
+		.detail {
+			order: 0;
+		}
 		.masquee,
-		.masque {
+		.masque-detail {
 			display: flex;
 		}
 		.liste {
-			flex: 0 1 480px;
+			flex: 0 1 460px;
+		}
+		.liste.seule {
+			flex: 0 1 44rem;
 		}
 		.detail {
 			flex: 1 1 0;

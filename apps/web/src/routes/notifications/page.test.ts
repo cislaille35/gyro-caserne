@@ -13,6 +13,8 @@ describe('page des notifications', () => {
 		const page = html({});
 		expect(page).toMatch(/<h1[^>]*>Notifications<\/h1>/);
 		expect(page).toContain('Rien de nouveau pour vous.');
+		expect(page).toContain('Tout est à jour');
+		expect(page).toMatch(/<a[^>]*href="\/echanges"[^>]*>Voir les échanges<\/a>/);
 		expect(page).not.toContain('<ul');
 	});
 
@@ -31,6 +33,9 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/equipe:1\/2"[^>]*>[\s\S]*?Manœuvre[\s\S]*?Événement demain, à répondre · Équipe 1/);
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/5"[^>]*>[\s\S]*?Repas[\s\S]*?Événement avec sondage, à voter · Le centre/);
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/vie\/3"[^>]*>[\s\S]*?Repas[\s\S]*?Sondage à répondre · Vie du centre/);
+		// Un événement montre sa date ; le compte est dit en tête.
+		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 29 octobre"/);
+		expect(page).toContain('4 choses demandent votre attention.');
 	});
 
 	it('un signalement : le texte copié, ses photos, l’auteur, la date et qui a signalé ; « Retirer le message » et « Classer »', () => {

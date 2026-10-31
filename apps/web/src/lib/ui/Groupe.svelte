@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import IconeRole from './IconeRole.svelte';
+	import type { IconeRole as NomIcone } from './icones-roles.ts';
 
 	let {
 		titre,
@@ -8,9 +10,11 @@
 		niveauTitre = 2,
 		couleur,
 		alerte = false,
+		icone,
+		dessin,
 		action,
 		children
-	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; couleur?: string; alerte?: boolean; action?: Snippet; children: Snippet } = $props();
+	}: { titre: string; resume?: string; ouvert?: boolean; niveauTitre?: 2 | 3; couleur?: string; alerte?: boolean; icone?: NomIcone; dessin?: string; action?: Snippet; children: Snippet } = $props();
 	const id = $props.id();
 </script>
 
@@ -18,11 +22,12 @@
 	<div class="ligne">
 		<svelte:element this={`h${niveauTitre}`} class="entete">
 			<button type="button" aria-expanded={ouvert ? 'true' : 'false'} aria-controls={id} onclick={() => (ouvert = !ouvert)}>
+				{#if icone}<IconeRole {icone} {dessin} taille={40} />{/if}
 				<span class="textes">
 					<span class="titre">{titre}</span>
 					{#if resume}<span class="resume" class:alerte>{resume}</span>{/if}
 				</span>
-				<span class="chevron" aria-hidden="true">›</span>
+				<svg class="chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
 			</button>
 		</svelte:element>
 		{#if action}{@render action()}{/if}
@@ -34,7 +39,7 @@
 	.groupe {
 		background: var(--surface);
 		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
+		border-radius: 18px;
 		overflow: hidden;
 	}
 	.ligne {
@@ -52,8 +57,8 @@
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 14px;
+		gap: 12px;
+		padding: 10px 14px;
 		border: none;
 		background: none;
 		color: var(--encre);
@@ -81,9 +86,14 @@
 		font-weight: 600;
 	}
 	.chevron {
-		font-size: 1.25rem;
+		flex: none;
 		color: var(--doux);
 		transition: transform 0.15s;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.chevron {
+			transition: none;
+		}
 	}
 	[aria-expanded='true'] .chevron {
 		transform: rotate(90deg);

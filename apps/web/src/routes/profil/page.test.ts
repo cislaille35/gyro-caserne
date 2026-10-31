@@ -21,4 +21,15 @@ describe('page Mon profil', () => {
 		expect(page).not.toContain('cochesLecture');
 		expect(page).not.toContain('avecCoches');
 	});
+
+	it('en-tête avec retour vers « Moi »', () => {
+		expect(html({})).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Moi<\/a>[\s\S]*?<h1[^>]*>Mon profil<\/h1>/);
+	});
+
+	it('super administrateur : un vide qui explique, et où aller', () => {
+		const page = html({ profil: null });
+		expect(page).toContain('Le super administrateur n’a pas de fiche.');
+		expect(page).toMatch(/<a[^>]*href="\/affichage"/);
+		expect(page).not.toContain('<form');
+	});
 });

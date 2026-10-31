@@ -1,7 +1,12 @@
 <script lang="ts">
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import ListeReglages from './ListeReglages.svelte';
 
 	let { data } = $props();
+
+	const PHOTO = 'M4 7h3l2-3h6l2 3h3v12H4z M12 10a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z';
 
 	// En millions d'octets, comme la limite de la base (500 Mo).
 	const MO = 1000 * 1000;
@@ -14,13 +19,30 @@
 </svelte:head>
 
 <div class="page">
-	<h1>Réglages du centre</h1>
-	<p class="intro">Les rôles du centre rangés par thème, les comités et les profils. Touchez une ligne pour la régler.</p>
+	<EnTetePage titre="Réglages du centre" phrase="Les rôles par thème, les comités et les profils." action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle' } : undefined}>
+		{#snippet secondaire()}
+			{#if data.comites}
+				<a class="lien-secondaire" href="/reglages/comites/nouveau" aria-label="Nouveau comité"
+					><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d={DESSINS.plus} /></svg>Comité</a
+				>
+			{/if}
+		{/snippet}
+	</EnTetePage>
+
 	{#if data.photos}
-		<p class="jauge">Photos : {enMo(data.photos.octets)} Mo sur {enMo(data.photos.limite)} Mo</p>
-		{#if data.photos.alerte}
-			<p class="alerte">La base des photos est presque pleine : il faudra choisir entre l’offre payante (5 $/mois) ou un stockage R2.</p>
-		{/if}
+		{@const part = Math.min(100, Math.round((data.photos.octets / data.photos.limite) * 100))}
+		<ul class="jauge" role="list">
+			<li>
+				<Rangee icone="camion" dessin={PHOTO} titre="Photos" sous={`${enMo(data.photos.octets)} Mo sur ${enMo(data.photos.limite)} Mo${data.photos.alerte ? '. La base des photos est presque pleine : il faudra choisir entre l’offre payante (5 $/mois) ou un stockage R2.' : ''}`} alerte={data.photos.alerte}>
+					{#snippet droite()}
+						<span class="mesure">
+							<span class="barre" aria-hidden="true"><span style:width="{part}%"></span></span>
+							<span>{part} %</span>
+						</span>
+					{/snippet}
+				</Rangee>
+			</li>
+		</ul>
 	{/if}
 	<ListeReglages {data} />
 </div>
@@ -29,26 +51,33 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 20px;
 		max-width: 44rem;
 	}
-	h1,
-	.intro {
-		margin: 0;
-	}
-	.intro,
 	.jauge {
-		color: var(--doux);
-	}
-	.jauge,
-	.alerte {
 		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
-	.alerte {
-		padding: 12px 16px;
-		border: 1px solid var(--statut-alerte-trait);
-		border-radius: var(--rayon-grand);
-		background: var(--statut-alerte-fond);
-		color: var(--statut-alerte-texte);
+	.mesure {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		color: inherit;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		white-space: nowrap;
+	}
+	.barre {
+		width: 64px;
+		height: 8px;
+		border-radius: 4px;
+		background: var(--statut-neutre-fond);
+		overflow: hidden;
+	}
+	.barre span {
+		display: block;
+		height: 100%;
+		background: currentColor;
 	}
 </style>

@@ -240,16 +240,21 @@ test('modération : le message signalé arrive dans la cloche, « Retirer le mes
 });
 
 test('Mon profil : « Montrer quand j’ai lu les messages », décochée puis recochée', async ({ page }) => {
+	// Avant l'hydratation, un clic sur la case est défait : on attend la page prête.
 	await page.goto('/profil');
+	await page.waitForLoadState('networkidle');
 	const caseCoches = page.getByRole('checkbox', { name: 'Montrer quand j’ai lu les messages' });
 	await expect(caseCoches).toBeChecked();
 	await expect(caseCoches).toHaveAccessibleDescription(/vous ne voyez plus non plus celles des autres/);
 	await axe(page);
 	for (const coche of [false, true]) {
 		await caseCoches.setChecked(coche);
-		await page.getByRole('button', { name: 'Enregistrer' }).click();
+		// Attendre la réponse de cet envoi : le message du précédent peut encore être à l'écran.
+		await Promise.all([page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/profil'), page.getByRole('button', { name: 'Enregistrer' }).click()]);
 		await expect(page.getByText('Profil enregistré')).toBeVisible();
-		await page.reload();
+		// Relire par une nouvelle visite : recharger renverrait le formulaire.
+		await page.goto('/profil');
+		await page.waitForLoadState('networkidle');
 		if (coche) await expect(caseCoches).toBeChecked();
 		else await expect(caseCoches).not.toBeChecked();
 	}
