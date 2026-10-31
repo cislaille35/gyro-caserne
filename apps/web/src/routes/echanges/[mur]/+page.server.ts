@@ -1,7 +1,7 @@
 import { asc } from 'drizzle-orm';
-import { anniversairesDuJour, epingler, equipe, lireMur, modifierPublication, supprimerPublication } from '@gyro-caserne/socle';
+import { anniversairesDuJour, couper, epingler, equipe, estCoupe, lireMur, modifierPublication, supprimerPublication } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
-import { erreurLecture, exigerActeur } from '#lib/server/formulaire-mur.ts';
+import { echecMur, erreurLecture, exigerActeur } from '#lib/server/formulaire-mur.ts';
 import { gestes, surPublication } from '#lib/server/gestes-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -14,13 +14,25 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		const equipes = mur.mur.type === 'equipe' ? [] : await locals.base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation));
 		// « Vie du centre » souhaite les anniversaires du jour.
 		const anniversaires = mur.mur.type === 'vie' ? await anniversairesDuJour(locals.base, aujourdhuiParis()) : [];
-		return { ...mur, equipes, anniversaires, plusAnciennes: avant !== null };
+		// La cloche barrée de l'en-tête : nulle pour le super administrateur, qui ne reçoit rien.
+		const coupe = acteur.type === 'personne' ? await estCoupe(locals.base, acteur, `mur:${params.mur}`) : null;
+		return { ...mur, equipes, anniversaires, plusAnciennes: avant !== null, coupe };
 	} catch (erreur) {
 		erreurLecture(erreur);
 	}
 };
 
 export const actions: Actions = {
+	couper: async ({ locals, params, request }) => {
+		const acteur = exigerActeur(locals);
+		const oui = (await request.formData()).get('oui') === '1';
+		try {
+			await couper(locals.base, acteur, `mur:${params.mur}`, oui, maintenantParis());
+		} catch (erreur) {
+			return echecMur(erreur, 'couper');
+		}
+		return { cible: 'couper', succes: oui ? 'Notifications coupées pour ce mur.' : 'Notifications réactivées pour ce mur.' };
+	},
 	modifier: ({ locals, params, request }) =>
 		surPublication({ locals, params, request }, async (acteur, id, f) => {
 			const texte = f.get('texte');

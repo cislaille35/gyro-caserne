@@ -202,4 +202,17 @@ describe('une conversation : gestes', () => {
 		expect(await agir('reagir', locaux(base, alice), id, [['id', String(ailleurs)], ['emoji', '👍']])).toMatchObject({ status: 403 });
 		expect(await agir('reagir', locaux(base, alice), id, [['id', 'x'], ['emoji', '👍']])).toMatchObject({ status: 400 });
 	});
+
+	it('la cloche barrée : coupe puis réactive cette conversation au téléphone ; seulement pour un membre', async () => {
+		const { base, alice, bruno, chef } = await preparer();
+		const { conversation } = await envoyer(base, base.photos, alice, { personne: bruno.id }, { texte: 'Salut' }, '2026-10-28T09:00');
+		const params = { id: String(conversation) };
+		const couper = async (acteur: unknown, oui: string) => (actions.couper as any)({ locals: locaux(base, acteur), params, request: await requeteFormulaire([['oui', oui]]) });
+		const charger = async (acteur: unknown) => (load as any)({ locals: locaux(base, acteur), params, url: new URL(`http://x/echanges/messages/${conversation}`) });
+		expect((await charger(bruno)).coupe).toBe(false);
+		expect(await couper(bruno, '1')).toEqual({ cible: 'couper', succes: 'Notifications coupées pour cette conversation.' });
+		expect((await charger(bruno)).coupe).toBe(true);
+		expect(await couper(bruno, '0')).toEqual({ cible: 'couper', succes: 'Notifications réactivées pour cette conversation.' });
+		expect(await couper(chef, '1')).toMatchObject({ status: 404 });
+	});
 });

@@ -1,28 +1,25 @@
 <script lang="ts">
-	import type { Signalement } from '@gyro-caserne/socle';
+	import type { LigneFil, Signalement } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
-	import { jourEtHeure } from '#lib/murs/quand.ts';
+	import { heure, jourEtHeure } from '#lib/murs/quand.ts';
+	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
-	import ListeRangees from '#lib/ui/ListeRangees.svelte';
-	import Rangee from '#lib/ui/Rangee.svelte';
-	import TuileDate from '#lib/ui/TuileDate.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
-	import { DESSINS, type IconeRole } from '#lib/ui/icones-roles.ts';
+	import Visage from '#lib/ui/Visage.svelte';
 
-	let { data, form }: { data: { annonces: { id: number; cle: string; nomMur: string; titre: string }[]; evenements: { id: number; cle: string; nomMur: string; titre: string; debut: string; demain: boolean; reponse: string | null; sondage: boolean }[]; sondages: { id: number; cle: string; nomMur: string; titre: string }[]; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
-	// « Événement demain, à répondre et sondage à voter », « Événement avec sondage, à voter »…
-	const quoiEvenement = (e: { demain: boolean; reponse: string | null; sondage: boolean }) =>
-		`Événement${e.demain ? ' demain' : ''}${e.reponse === null ? `, à répondre${e.sondage ? ' et sondage à voter' : ''}` : ' avec sondage, à voter'}`;
-	// Ce qu'il faut faire est écrit, pas seulement montré.
-	const elements: { id: number; cle: string; nomMur: string; titre: string; quoi: string; debut?: string; icone?: IconeRole; dessin?: string }[] = $derived([
-		...data.evenements.map((e) => ({ ...e, quoi: quoiEvenement(e) })),
-		...data.annonces.map((a) => ({ ...a, quoi: 'Annonce à prendre en compte', icone: 'etoile' as const, dessin: DESSINS.annonce })),
-		...data.sondages.map((s) => ({ ...s, quoi: 'Sondage à répondre', icone: 'camion' as const, dessin: DESSINS.sondage }))
-	]);
-	const total = $derived(elements.length + data.signalements.length);
-	const phrase = $derived(total === 0 ? 'Tout est à jour.' : `${total} ${total > 1 ? 'choses demandent' : 'chose demande'} votre attention.`);
+	// Le fil, du plus récent au plus ancien : « Aujourd'hui », puis « Plus tôt ».
+	const groupes = $derived(
+		[
+			{ titre: 'Aujourd’hui', lignes: data.lignes.filter((l) => l.creeLe.slice(0, 10) === data.aujourdhui) },
+			{ titre: 'Plus tôt', lignes: data.lignes.filter((l) => l.creeLe.slice(0, 10) !== data.aujourdhui) }
+		].filter((g) => g.lignes.length > 0)
+	);
+	const phrase = $derived(data.nonLues > 0 ? `${pluriel(data.nonLues, 'notification')} non ${data.nonLues > 1 ? 'lues' : 'lue'}.` : data.lignes.length > 0 ? 'Tout est lu.' : undefined);
+	const quoi = (l: LigneFil) => `${l.auteur.prenom} ${l.auteur.nom}`.trim() + (l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`);
+	const moment = (l: LigneFil) => (l.creeLe.slice(0, 10) === data.aujourdhui ? heure(l.creeLe) : jourEtHeure(l.creeLe));
 
 	const nom = (p: { prenom: string; nom: string }) => `${p.prenom} ${p.nom}`.trim() || 'Un ancien agent';
 	const photo = (s: Signalement, id: number) => `/notifications/signalements/${s.id}/photo/${id}`;
@@ -65,7 +62,15 @@
 </svelte:head>
 
 <div class="page">
-<EnTetePage titre="Notifications" {phrase} />
+<EnTetePage titre="Notifications" {phrase}>
+	{#snippet secondaire()}
+		{#if data.nonLues > 0}
+			<form method="POST" action="?/toutLu" use:enhance>
+				<button type="submit" class="secondaire tout-lu">Tout marquer comme lu</button>
+			</form>
+		{/if}
+	{/snippet}
+</EnTetePage>
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
 
@@ -115,23 +120,30 @@
 	</section>
 {/if}
 
-{#if elements.length > 0}
-	<ListeRangees titre={data.signalements.length > 0 ? 'À faire' : undefined}>
-		{#each elements as e (`${e.quoi}:${e.id}`)}
-			<li>
-				{#if e.debut}
-					<Rangee href="/echanges/{e.cle}/{e.id}" titre={e.titre} sous="{e.quoi} · {e.nomMur}">
-						{#snippet tete()}<TuileDate iso={e.debut!} />{/snippet}
-					</Rangee>
-				{:else}
-					<Rangee href="/echanges/{e.cle}/{e.id}" titre={e.titre} sous="{e.quoi} · {e.nomMur}" icone={e.icone} dessin={e.dessin} />
-				{/if}
-			</li>
-		{/each}
-	</ListeRangees>
-{:else if data.signalements.length === 0}
-	<Vide titre="Tout est à jour" texte="Rien de nouveau pour vous." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
-{/if}
+{#each groupes as g (g.titre)}
+	<section class="groupe" aria-labelledby="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}">
+		<h2 id="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}" class="rubrique">{g.titre}</h2>
+		<ul class="liste" role="list">
+			{#each g.lignes as l (l.id)}
+				<li>
+					<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
+						<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+						<span class="corps">
+							<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{quoi(l)}</span>
+							{#if l.extrait}<span class="extrait">{l.extrait}</span>{/if}
+							<span class="moment">{moment(l)}</span>
+						</span>
+						{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+					</a>
+				</li>
+			{/each}
+		</ul>
+	</section>
+{:else}
+	{#if data.signalements.length === 0}
+		<Vide titre="Rien de nouveau pour vous." texte="Les publications de vos murs et les commentaires sous les vôtres arriveront ici." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
+	{/if}
+{/each}
 </div>
 
 {#if aRetirer}
@@ -158,6 +170,75 @@
 	}
 	h2:focus {
 		outline: none;
+	}
+	.groupe {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.ligne {
+		min-height: 64px;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 10px 12px;
+		border: 1px solid var(--trait-doux);
+		border-radius: 18px;
+		background: var(--surface);
+		color: var(--encre);
+		text-decoration: none;
+	}
+	.ligne:hover {
+		border-color: var(--trait);
+		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 8%, transparent);
+	}
+	.ligne:hover .quoi {
+		text-decoration: underline;
+	}
+	/* Non lue : liseré, titre en gras et point, jamais la couleur seule. */
+	.non-lue {
+		box-shadow: inset 4px 0 0 var(--rouge);
+	}
+	.non-lue .quoi {
+		font-weight: 700;
+	}
+	.corps {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.quoi {
+		font-weight: 500;
+		line-height: 1.3;
+		overflow-wrap: anywhere;
+	}
+	.extrait {
+		color: var(--doux);
+		font-size: 0.9375rem;
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow-wrap: anywhere;
+	}
+	.moment {
+		color: var(--doux);
+		font-size: 0.8125rem;
+	}
+	.point {
+		flex: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--rouge);
+	}
+	.tout-lu {
+		min-height: var(--cible);
+		padding: 0 14px;
+		white-space: nowrap;
 	}
 	.liste {
 		margin: 0;

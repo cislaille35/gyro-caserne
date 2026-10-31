@@ -6,9 +6,9 @@ import { entreesNavigation, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
-function html(chemin: string, connecte = true, cloche = 0, nonLus = 0) {
+function html(chemin: string, connecte = true, cloche = 0, nonLus = 0, visage: { prenom: string; nom: string; couleur: string | null } | null = null) {
 	return render(Coquille, {
-		props: { chemin, connecte, nomCentre: 'CIS Test', cloche, nonLus, children: contenu }
+		props: { chemin, connecte, nomCentre: 'CIS Test', cloche, nonLus, visage, children: contenu }
 	}).body;
 }
 
@@ -50,7 +50,16 @@ describe('Coquille', () => {
 		const page = html('/');
 		const entete = page.match(/<header[\s\S]*?<\/header>/)![0];
 		expect(entete).toMatch(/<a[^>]*href="\/notifications"[^>]*aria-label="Notifications"/);
-		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Moi[\s\S]*?<\/a>/);
+		expect(entete).toMatch(/<a[^>]*href="\/moi"[^>]*aria-label="Moi"/);
+	});
+
+	it('« Moi » : le visage seul de la personne (initiales, couleur d’équipe) ; sans fiche, l’icône de profil', () => {
+		const moi = (visage: Parameters<typeof html>[4]) => html('/', true, 0, 0, visage).match(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?<\/a>/)![0];
+		const avec = moi({ prenom: 'Alice', nom: 'Martin', couleur: '#d4a017' });
+		expect(avec).toMatch(/class="visage[^"]*"[^>]*style="background: #d4a017;[^"]*"[^>]*>AM<\/span>/);
+		expect(avec).not.toContain('<svg');
+		expect(avec).not.toMatch(/>\s*Moi\s*</);
+		expect(moi(null)).toContain('<svg');
 	});
 
 	it('la cloche dit le nombre de nouvelles, au singulier comme au pluriel, sans compter sur la couleur', () => {

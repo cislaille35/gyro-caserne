@@ -1,5 +1,5 @@
-import { error, redirect } from '@sveltejs/kit';
-import { infosConversation, lireConversation, RefusDroit, type InfosConversation } from '@gyro-caserne/socle';
+import { error, fail, redirect } from '@sveltejs/kit';
+import { couper, DonneeInvalide, estCoupe, infosConversation, lireConversation, RefusDroit, type InfosConversation } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { actionEnvoyer, actionsDeGestes, preremplir, publicationCitee } from '#lib/server/formulaire-messagerie.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
@@ -27,10 +27,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const avant = brut === null ? null : identifiant(brut);
 	if (id === null || (brut !== null && avant === null)) error(404, 'Conversation introuvable');
 	try {
-		const [vue, infos, prerempli] = await Promise.all([
+		const [vue, infos, prerempli, coupe] = await Promise.all([
 			lireConversation(locals.base, acteur, id, avant === null ? {} : { avant }, maintenantParis()),
 			infosConversation(locals.base, acteur, id, aujourdhuiParis()),
-			preremplir(locals.base, acteur, publicationCitee(url))
+			preremplir(locals.base, acteur, publicationCitee(url)),
+			estCoupe(locals.base, acteur, `conversation:${id}`)
 		]);
 		const moi = acteur.type === 'personne' ? acteur.id : 0;
 		return {
@@ -43,7 +44,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			// Pour une conversation à deux en lecture seule : « Manon n'est plus dans l'annuaire ».
 			autrePrenom: vue.type === 'deux' ? (vue.membres.find((m) => m.id !== moi)?.prenom ?? null) : null,
 			// « Répondre en privé » depuis un mur.
-			prerempli
+			prerempli,
+			// La cloche barrée de l'en-tête.
+			coupe
 		};
 	} catch (erreur) {
 		if (erreur instanceof RefusDroit) {
@@ -59,6 +62,18 @@ export const actions: Actions = {
 		const id = identifiant(params.id);
 		if (id === null) error(404, 'Conversation introuvable');
 		return actionEnvoyer(locals, request, { conversation: id });
+	},
+	couper: async ({ locals, params, request }) => {
+		const acteur = exigerActeur(locals);
+		const id = identifiant(params.id);
+		const oui = (await request.formData()).get('oui') === '1';
+		try {
+			await couper(locals.base, acteur, `conversation:${id ?? 0}`, oui, maintenantParis());
+		} catch (erreur) {
+			if (erreur instanceof DonneeInvalide) return fail(404, { cible: 'couper', message: 'Conversation introuvable.' });
+			throw erreur;
+		}
+		return { cible: 'couper', succes: oui ? 'Notifications coupées pour cette conversation.' : 'Notifications réactivées pour cette conversation.' };
 	},
 	...actionsDeGestes
 };

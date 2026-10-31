@@ -45,6 +45,6 @@
 	afterNavigate(({ from, to }) => suivi?.apresNavigation(from?.url.pathname, to?.url.pathname));
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} {nonLus} nomCentre={centre.nom}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom}>
 	{@render children()}
 </Coquille>

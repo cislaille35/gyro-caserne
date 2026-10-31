@@ -2,6 +2,7 @@
 	import { DESSINS } from './icones-roles.ts';
 	import type { Snippet } from 'svelte';
 	import { entreesNavigation, rubriqueDe } from './navigation.ts';
+	import Visage from './Visage.svelte';
 
 	let {
 		chemin,
@@ -9,8 +10,9 @@
 		nomCentre,
 		cloche = 0,
 		nonLus = 0,
+		visage = null,
 		children
-	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; children: Snippet } = $props();
+	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; visage?: { prenom: string; nom: string; couleur: string | null } | null; children: Snippet } = $props();
 
 	const entrees = $derived(entreesNavigation(connecte));
 	// Sans connexion, seule la page elle-même est marquée.
@@ -52,9 +54,9 @@
 				{@render icone('cloche')}
 				{#if cloche > 0}<span class="nombre" aria-hidden="true">{cloche > 99 ? '99+' : cloche}</span>{/if}
 			</a>
-			<a class="moi" href="/moi" aria-current={courant('/moi')}>
-				<span class="rond">{@render icone('moi')}</span>
-				<span>Moi</span>
+			<!-- « Moi » : le visage de la personne ; sans fiche (super administrateur), l'icône de profil. -->
+			<a class="moi" href="/moi" aria-label="Moi" aria-current={courant('/moi')}>
+				{#if visage}<Visage prenom={visage.prenom} nom={visage.nom} couleur={visage.couleur} taille={44} />{:else}<span class="rond">{@render icone('moi')}</span>{/if}
 			</a>
 		{/if}
 	</header>
@@ -163,8 +165,13 @@
 		right: -14px;
 	}
 	.moi {
-		padding-right: 0.25rem;
-		font-weight: 600;
+		border-radius: 50%;
+	}
+	/* La page « Moi » ou une de ses pages : un anneau autour du visage. */
+	header a.moi[aria-current='page'] :global(.visage) {
+		box-shadow:
+			0 0 0 2px var(--surface),
+			0 0 0 4px var(--accent);
 	}
 	header a[aria-current='page'] {
 		text-decoration: underline;
