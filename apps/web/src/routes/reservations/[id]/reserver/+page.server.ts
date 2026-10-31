@@ -14,7 +14,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		if (!vue.peutReserver) error(403, 'Vous ne pouvez pas réserver cette ressource');
 		const demande = url.searchParams.get('jour') ?? '';
 		const jour = /^\d{4}-\d{2}-\d{2}$/.test(demande) && demande >= aujourdhui ? demande : aujourdhui;
-		return { ressource: vue.ressource, reserveCitoyenne: vue.reserveCitoyenne, prises: vue.reservations.map(({ debut, fin, quantite, etat }) => ({ debut, fin, quantite, etat })), jour, aujourdhui };
+		// Un créneau proposé pour aujourd'hui serait souvent déjà passé : demain, sauf jour choisi.
+		const jourCreneau = vue.ressource.forme === 'creneau' && jour === aujourdhui && !demande ? decaler(aujourdhui, 1) : jour;
+		return { ressource: vue.ressource, reserveCitoyenne: vue.reserveCitoyenne, prises: vue.reservations.map(({ debut, fin, quantite, etat }) => ({ debut, fin, quantite, etat })), jour: jourCreneau, aujourdhui, maintenant: maintenantParis().slice(0, 16) };
 	} catch (erreur) {
 		if (erreur instanceof DonneeInvalide) error(404, 'Ressource introuvable');
 		if (erreur instanceof RefusDroit) error(403, 'Ressource non accessible');

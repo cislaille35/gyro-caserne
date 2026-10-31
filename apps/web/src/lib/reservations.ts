@@ -28,7 +28,6 @@ export function premierDuMois(jour: string, mois = 0): string {
 
 const lundi = (jour: string) => decaler(jour, -((date(jour).getUTCDay() + 6) % 7));
 
-export const semaine = (jour: string) => Array.from({ length: 7 }, (_, i) => decaler(lundi(jour), i));
 export const grilleDuMois = (jour: string) => Array.from({ length: 42 }, (_, i) => decaler(lundi(premierDuMois(jour)), i));
 
 export const jourLong = (jour: string) => format({ weekday: 'long', day: 'numeric', month: 'short' }, jour);
@@ -50,16 +49,18 @@ export function horaire(r: { debut: string; fin: string }, jour: string): string
 }
 
 // Ce que la page « Réserver » dit tout de suite de la période choisie ; rien tant qu'elle est incomplète.
-export function disponibilite(r: Pick<Ressource, 'nom' | 'forme' | 'stock' | 'gestionnaire'>, prises: Prise[], v: { debut: string; fin: string; quantite: string }): { ton: 'ok' | 'alerte' | 'danger'; texte: string } | null {
+export function disponibilite(r: Pick<Ressource, 'nom' | 'forme' | 'stock' | 'gestionnaire'>, prises: Prise[], v: { debut: string; fin: string; quantite: string }, maintenant = ''): { ton: 'ok' | 'alerte' | 'danger'; texte: string } | null {
 	const jour = /^\d{4}-\d{2}-\d{2}$/;
 	const moment = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 	if (r.forme === 'creneau') {
 		if (!moment.test(v.debut) || !moment.test(v.fin) || v.fin <= v.debut) return null;
+		if (v.debut < maintenant.slice(0, 16)) return { ton: 'danger', texte: 'Ce début est déjà passé.' };
 		return prises.some((p) => chevauche(p, v, 'creneau'))
 			? { ton: 'alerte', texte: `Créneau déjà demandé : votre demande attendra la décision de ${r.gestionnaire.nom}.` }
 			: { ton: 'ok', texte: 'Libre : la réservation est acceptée dès l’envoi.' };
 	}
 	if (!jour.test(v.debut) || !jour.test(v.fin) || v.fin < v.debut || r.stock === null) return null;
+	if (v.debut < maintenant.slice(0, 10)) return { ton: 'danger', texte: 'Ce début est déjà passé.' };
 	const plusPris = restantParJour(r.stock, prises, v.debut, v.fin).reduce((a, b) => (b.restant < a.restant ? b : a));
 	const voulue = Number(v.quantite) || 1;
 	if (voulue > plusPris.restant) return { ton: 'danger', texte: plusPris.restant <= 0 ? `Plus rien de libre le ${jourCourt(plusPris.jour)}` : `Pas assez : il en reste ${plusPris.restant} le ${jourCourt(plusPris.jour)}` };

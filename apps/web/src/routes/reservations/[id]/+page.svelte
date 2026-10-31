@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { restantParJour, type Ressource, type VueReservation } from '@gyro-caserne/socle';
-	import { ceJour, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois, semaine } from '#lib/reservations.ts';
+	import { periodeCourte, restantParJour, type Ressource, type VueReservation } from '@gyro-caserne/socle';
+	import { ceJour, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from '#lib/reservations.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
@@ -9,10 +9,11 @@
 	const r = $derived(data.ressource);
 	const phrase = $derived(r.forme === 'creneau' ? `Gérée par ${r.gestionnaire.nom}. Un créneau libre est à vous tout de suite ; un créneau déjà pris attend sa décision.` : `${r.stock} en stock, gérés par ${r.gestionnaire.nom}. Chaque demande attend leur accord.`);
 
-	const jours = $derived(semaine(data.jour));
+	// Au téléphone : les sept jours à partir du jour choisi (aujourd'hui par défaut).
+	const jours = $derived(Array.from({ length: 7 }, (_, i) => decaler(data.jour, i)));
 	const grille = $derived(grilleDuMois(data.jour));
 	const mois = $derived(data.jour.slice(0, 7));
-	const titreSemaine = $derived(`Semaine du ${Number(jours[0]!.slice(8))}${jours[0]!.slice(5, 7) === jours[6]!.slice(5, 7) ? '' : ` ${jourLong(jours[0]!).split(' ').slice(2).join(' ')}`} au ${jourLong(jours[6]!).split(' ').slice(1).join(' ')}`);
+	const titreSemaine = $derived(`D${periodeCourte('jours', jours[0]!, jours[6]!).slice(1)}`);
 	const restant = (jour: string) => (r.stock === null ? null : (restantParJour(r.stock, data.reservations, jour, jour)[0]?.restant ?? r.stock));
 	const quoi = (x: VueReservation, jour: string) => `${r.forme === 'creneau' ? horaire(x, jour) : x.quantite} · ${x.demandeur}${x.mienne ? ' (vous)' : ''}`;
 	const COLONNES = [
@@ -39,9 +40,9 @@
 
 	<section class="semaine" aria-labelledby="t-semaine">
 		<div class="navigation">
-			<a class="lien-secondaire" href="?jour={decaler(data.jour, -7)}" rel="nofollow"><span aria-hidden="true">‹</span> <span class="masque">Semaine précédente</span></a>
+			<a class="lien-secondaire" href="?jour={decaler(data.jour, -7)}" rel="nofollow"><span aria-hidden="true">‹</span> <span class="masque">Sept jours plus tôt</span></a>
 			<h2 id="t-semaine" class="rubrique">{titreSemaine}</h2>
-			<a class="lien-secondaire" href="?jour={decaler(data.jour, 7)}" rel="nofollow"><span class="masque">Semaine suivante</span> <span aria-hidden="true">›</span></a>
+			<a class="lien-secondaire" href="?jour={decaler(data.jour, 7)}" rel="nofollow"><span class="masque">Sept jours plus tard</span> <span aria-hidden="true">›</span></a>
 		</div>
 		<ul class="jours" role="list">
 			{#each jours as jour (jour)}
@@ -137,8 +138,9 @@
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
 	}
+	/* Jour passé : sur le fond de la page, sans baisser le contraste. */
 	.jour.passe {
-		opacity: 0.75;
+		background: transparent;
 	}
 	.entete-jour {
 		display: flex;
@@ -202,7 +204,7 @@
 		color: var(--doux);
 	}
 	td.passe {
-		opacity: 0.75;
+		background: transparent;
 	}
 	td.aujourdhui {
 		border: 2px solid var(--encre);

@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ceJour, disponibilite, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois, semaine } from './reservations.ts';
+import { ceJour, disponibilite, decaler, ETATS, grilleDuMois, horaire, jourLong, moisDe, premierDuMois } from './reservations.ts';
 
 const r = (debut: string, fin: string, etat = 'acceptee') => ({ debut, fin, etat, quantite: 2 }) as never;
 
 describe('calendrier des réservations', () => {
-	it('la semaine (du lundi au dimanche) et la grille du mois (6 semaines, du lundi)', () => {
-		expect(semaine('2026-11-05')).toEqual(['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08']);
-		expect(semaine('2026-11-02')[0]).toBe('2026-11-02');
-		expect(semaine('2026-11-08')[0]).toBe('2026-11-02');
+	it('la grille du mois : 6 semaines, à partir du lundi', () => {
 		const grille = grilleDuMois('2026-11-17');
 		expect(grille).toHaveLength(42);
 		expect(grille[0]).toBe('2026-10-26');
@@ -55,6 +52,12 @@ describe('disponibilité affichée dans « Réserver »', () => {
 		expect(disponibilite(bancs, prises, { debut: '2026-11-12', fin: '2026-11-10', quantite: '1' })).toBeNull();
 		expect(disponibilite(bancs, prises, { debut: '', fin: '', quantite: '1' })).toBeNull();
 	});
+	it('un début déjà passé est dit tout de suite', () => {
+		expect(disponibilite(vl, [], { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00', quantite: '1' }, '2026-11-07T10:00')).toEqual({ ton: 'danger', texte: 'Ce début est déjà passé.' });
+		expect(disponibilite(bancs, [], { debut: '2026-11-06', fin: '2026-11-07', quantite: '1' }, '2026-11-07T10:00')).toEqual({ ton: 'danger', texte: 'Ce début est déjà passé.' });
+		expect(disponibilite(bancs, [], { debut: '2026-11-07', fin: '2026-11-07', quantite: '1' }, '2026-11-07T10:00')).toMatchObject({ ton: 'ok' });
+	});
+
 	it('créneau', () => {
 		const pris = [{ debut: '2026-11-07T09:00', fin: '2026-11-07T12:00', quantite: 1, etat: 'acceptee' }];
 		expect(disponibilite(vl, pris, { debut: '2026-11-07T12:00', fin: '2026-11-07T14:00', quantite: '1' })).toEqual({ ton: 'ok', texte: 'Libre : la réservation est acceptée dès l’envoi.' });

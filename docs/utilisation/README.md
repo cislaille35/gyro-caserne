@@ -22,3 +22,5 @@ Format d'une page :
 - [Comment créer un groupe ?](comment-creer-un-groupe.md)
 - [Comment recevoir les notifications sur mon téléphone ?](activer-les-notifications.md)
 - [Comment couper les notifications d'un mur ou d'une conversation ?](couper-les-notifications.md)
+- [Comment réserver la VL ou du matériel de l'amicale ?](reserver-la-vl-ou-du-materiel.md)
+- [Comment accepter ou refuser une demande de réservation ?](valider-une-reservation.md)

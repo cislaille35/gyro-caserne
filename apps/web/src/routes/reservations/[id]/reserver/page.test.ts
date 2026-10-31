@@ -8,7 +8,7 @@ const bancs = { id: 2, nom: 'Bancs', forme: 'jours', stock: 12, icone: 'groupe',
 const vl = { id: 1, nom: 'VL', forme: 'creneau', stock: null, icone: 'camion', ouverteReserve: true, gestionnaire: { type: 'role', id: 6, nom: 'Référent engins' }, jeGere: false };
 const html = (data: Record<string, unknown>, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { form, data: { ressource: bancs, prises: [], reserveCitoyenne: false, jour: '2026-11-05', aujourdhui: '2026-11-04', ...data } } }).body;
+	render(Page as any, { props: { form, data: { ressource: bancs, prises: [], reserveCitoyenne: false, jour: '2026-11-05', aujourdhui: '2026-11-04', maintenant: '2026-11-04T10:00', ...data } } }).body;
 
 // Un champ, quel que soit l'ordre de ses attributs.
 const champ = (attributs: string[]) => new RegExp(`<input${attributs.map((a) => `(?=[^>]*${a})`).join('')}[^>]*>`);

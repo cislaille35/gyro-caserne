@@ -6,7 +6,7 @@
 	import Champ from '#lib/ui/Champ.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 
-	let { data, form }: { data: { ressource: Ressource; prises: Prise[]; reserveCitoyenne: boolean; jour: string; aujourdhui: string }; form?: { message?: string; valeurs?: Record<string, string> } | null } = $props();
+	let { data, form }: { data: { ressource: Ressource; prises: Prise[]; reserveCitoyenne: boolean; jour: string; aujourdhui: string; maintenant: string }; form?: { message?: string; valeurs?: Record<string, string> } | null } = $props();
 
 	const r = $derived(data.ressource);
 	const creneau = $derived(r.forme === 'creneau');
@@ -16,7 +16,7 @@
 	let debut = $state(depart('debut', enCreneau ? `${jour}T09:00` : jour));
 	let fin = $state(depart('fin', enCreneau ? `${jour}T12:00` : jour));
 	let quantite = $state(depart('quantite', '1'));
-	const dispo = $derived(disponibilite(r, data.prises, { debut, fin, quantite: String(quantite) }));
+	const dispo = $derived(disponibilite(r, data.prises, { debut, fin, quantite: String(quantite) }, data.maintenant));
 </script>
 
 <svelte:head>

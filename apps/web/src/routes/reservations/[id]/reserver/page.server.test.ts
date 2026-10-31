@@ -18,6 +18,13 @@ describe('/reservations/[id]/reserver', () => {
 		expect(data).toMatchObject({ ressource: { nom: 'Bancs' }, reserveCitoyenne: false, jour: dans(4) });
 		expect(data.prises).toEqual([{ debut: dans(2), fin: dans(3), quantite: 5, etat: 'attente' }]);
 		expect((await charger(locaux(base, alice), bancs, '?jour=2020-01-01')).jour).toBe(aujourdhuiParis());
+		expect((await charger(locaux(base, alice), bancs)).maintenant).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+	});
+
+	it('load : un créneau sans jour choisi est proposé pour demain', async () => {
+		const { base, alice, vl } = await preparer();
+		expect((await charger(locaux(base, alice), vl)).jour).toBe(dans(1));
+		expect((await charger(locaux(base, alice), vl, `?jour=${dans(0)}`)).jour).toBe(dans(0));
 	});
 
 	it('load : sans droit de réserver, 403 ; inconnue, 404', async () => {

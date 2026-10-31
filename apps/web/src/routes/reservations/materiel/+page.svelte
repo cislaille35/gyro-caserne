@@ -52,19 +52,21 @@
 									</div>
 								</div>
 							{/if}
-							<details>
-								<summary class="bouton secondaire">Modifier<span class="masque">{` ${r.nom}`}</span></summary>
-								<form method="POST" action="?/modifier" class="formulaire" use:enhance>
-									<input type="hidden" name="id" value={r.id} />
-									<Champ id="nom-{r.id}" name="nom" libelle="Nom" requis maxlength={60} valeur={r.nom} />
-									{#if r.forme === 'jours'}<Champ id="stock-{r.id}" name="stock" type="number" libelle="Stock" requis valeur={String(r.stock)} />{/if}
-									<ChoixIcone valeur={r.icone} />
-									<Bouton type="submit">Enregistrer</Bouton>
-								</form>
-							</details>
-							{#if r.forme === 'jours' && data.confirmer !== r.id}
-								<a class="bouton secondaire retirer" href="?retirer={r.id}">Retirer<span class="masque">{` ${r.nom}`}</span></a>
-							{/if}
+							<div class="gestes">
+								<details>
+									<summary class="bouton secondaire">Modifier<span class="masque">{` ${r.nom}`}</span></summary>
+									<form method="POST" action="?/modifier" class="formulaire" use:enhance>
+										<input type="hidden" name="id" value={r.id} />
+										<Champ id="nom-{r.id}" name="nom" libelle="Nom" requis maxlength={60} valeur={r.nom} />
+										{#if r.forme === 'jours'}<Champ id="stock-{r.id}" name="stock" type="number" libelle="Stock" requis valeur={String(r.stock)} />{/if}
+										<ChoixIcone valeur={r.icone} />
+										<Bouton type="submit">Enregistrer</Bouton>
+									</form>
+								</details>
+								{#if r.forme === 'jours' && data.confirmer !== r.id}
+									<a class="bouton secondaire retirer" href="?retirer={r.id}">Retirer<span class="masque">{` ${r.nom}`}</span></a>
+								{/if}
+							</div>
 						</li>
 					{/each}
 				</ul>
@@ -151,8 +153,13 @@
 	details summary::-webkit-details-marker {
 		display: none;
 	}
-	.retirer {
-		align-self: flex-start;
+	.gestes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.gestes details[open] {
+		flex-basis: 100%;
 	}
 	.champ {
 		display: flex;
