@@ -37,8 +37,8 @@ describe('listerProfils', () => {
 		expect(profils.map((p) => p.nom)).toEqual(['Agent', 'Réserve citoyenne']);
 		expect(profils[0]).toMatchObject({ typePersonne: 'agent' });
 		expect(profils[0]!.droits).toContain('SIGNALER_ANOMALIE');
-		expect(profils[0]!.droits).toHaveLength(10);
-		expect(profils[1]!.droits).toEqual([]);
+		expect(profils[0]!.droits).toHaveLength(11);
+		expect(profils[1]!.droits).toEqual(['RESERVER']);
 	});
 
 	it('refuse le référent technique', async () => {
@@ -51,12 +51,12 @@ describe('modifierDroitsProfil', () => {
 	it('le chef de centre modifie les droits, journalise avant et après', async () => {
 		const { base, chef, agent, droitsDuProfil } = await jeu();
 		const avant = (await listerProfils(base, chef, aujourdhui))[0]!.droits;
-		const apres = [...avant.filter((d) => d !== 'UTILISER_MESSAGERIE'), 'RESERVER' as const];
+		const apres = [...avant.filter((d) => d !== 'UTILISER_MESSAGERIE'), 'VOIR_MOTIFS_ABSENCE' as const];
 		await modifierDroitsProfil(base, chef, agent.id, apres, aujourdhui);
 		const lus = await droitsDuProfil(agent.id);
-		expect(lus).toContain('RESERVER@centre');
+		expect(lus).toContain('VOIR_MOTIFS_ABSENCE@centre');
 		expect(lus).not.toContain('UTILISER_MESSAGERIE@centre');
-		expect(lus).toHaveLength(10);
+		expect(lus).toHaveLength(11);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_droits_profil'));
 		expect(ligne).toMatchObject({ cibleType: 'profil', cibleId: agent.id, acteur: `personne:${(chef as { id: number }).id}` });
 		expect(JSON.parse(ligne!.details)).toEqual({ droits: { avant: [...avant].sort(), apres: [...apres].sort() } });

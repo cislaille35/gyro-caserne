@@ -68,6 +68,16 @@ export const SUPPRESSIONS_MESSAGE = ['auteur', 'moderation'] as const;
 export const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '👏'] as const;
 export type Reaction = (typeof REACTIONS)[number];
 
+// Réservations : une ressource se prend par jours (avec un stock) ou par créneau horaire.
+export const FORMES_RESSOURCE = ['jours', 'creneau'] as const;
+export type FormeRessource = (typeof FORMES_RESSOURCE)[number];
+
+export const ETATS_RESERVATION = ['attente', 'acceptee', 'refusee', 'annulee'] as const;
+export type EtatReservation = (typeof ETATS_RESERVATION)[number];
+
+export const AVIS_RESERVATION = ['acceptee', 'refusee', 'annulee'] as const;
+export type AvisReservation = (typeof AVIS_RESERVATION)[number];
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 

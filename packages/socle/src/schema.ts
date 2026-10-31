@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { checkDans, DROITS, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_RESERVATION, checkDans, DROITS, ETATS_RESERVATION, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -437,6 +437,71 @@ export const envoiPush = sqliteTable('envoi_push', {
 	donnees: text('donnees').notNull(),
 	creeLe: text('cree_le').notNull()
 });
+
+// Réservations (reservations.ts). Une ressource est gérée par un rôle ou par un comité, jamais les deux.
+// `stock` : pour une ressource prise par jours ; vide pour un créneau. `retiree_le` : date de retrait, vide tant qu'elle sert.
+export const ressource = sqliteTable(
+	'ressource',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		nom: text('nom').notNull(),
+		forme: text('forme', { enum: FORMES_RESSOURCE }).notNull(),
+		stock: integer('stock'),
+		icone: text('icone').notNull(),
+		ouverteReserve: integer('ouverte_reserve').notNull().default(0),
+		gereeParResponsabiliteId: integer('geree_par_responsabilite_id').references(() => responsabilite.id),
+		gereeParComiteId: integer('geree_par_comite_id').references(() => comite.id),
+		retireeLe: text('retiree_le'),
+		creeLe: text('cree_le').notNull()
+	},
+	() => [
+		check('ressource_forme', checkDans('forme', FORMES_RESSOURCE)),
+		check('ressource_ouverte_reserve', sql`${sql.identifier('ouverte_reserve')} IN (0, 1)`),
+		check('ressource_gestionnaire', sql`(${sql.identifier('geree_par_responsabilite_id')} IS NULL) <> (${sql.identifier('geree_par_comite_id')} IS NULL)`),
+		check('ressource_stock', sql`(${sql.identifier('forme')} = 'jours') = (${sql.identifier('stock')} IS NOT NULL)`)
+	]
+);
+
+// Jours « AAAA-MM-JJ » inclus pour une ressource prise par jours ; « AAAA-MM-JJTHH:MM », fin exclue, pour un créneau (heure de Paris).
+// `nom_demandeur`, `telephone` : saisis par le compte partagé de la réserve citoyenne. `tranchee_par` : format du journal.
+export const reservation = sqliteTable(
+	'reservation',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		ressourceId: integer('ressource_id')
+			.notNull()
+			.references(() => ressource.id),
+		personneId: versPersonne(),
+		nomDemandeur: text('nom_demandeur'),
+		telephone: text('telephone'),
+		debut: text('debut').notNull(),
+		fin: text('fin').notNull(),
+		quantite: integer('quantite').notNull().default(1),
+		mot: text('mot'),
+		etat: text('etat', { enum: ETATS_RESERVATION }).notNull(),
+		creeLe: text('cree_le').notNull(),
+		trancheePar: text('tranchee_par'),
+		trancheeLe: text('tranchee_le'),
+		motif: text('motif')
+	},
+	(t) => [check('reservation_etat', checkDans('etat', ETATS_RESERVATION)), index('reservation_ressource').on(t.ressourceId, t.etat, t.debut), index('reservation_personne').on(t.personneId)]
+);
+
+// Ce que le demandeur apprend d'un gestionnaire (accord, refus, annulation) : sa ligne dans la cloche.
+export const avisReservation = sqliteTable(
+	'avis_reservation',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		reservationId: integer('reservation_id')
+			.notNull()
+			.references(() => reservation.id, { onDelete: 'cascade' }),
+		quoi: text('quoi', { enum: AVIS_RESERVATION }).notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [check('avis_reservation_quoi', checkDans('quoi', AVIS_RESERVATION)), index('avis_reservation_personne').on(t.personneId, t.lueLe)]
+);
 
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';

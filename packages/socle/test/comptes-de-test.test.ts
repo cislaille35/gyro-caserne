@@ -7,7 +7,8 @@ import { DonneeInvalide } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { mursDe } from '../src/murs.ts';
 import { ajouterPersonne } from '../src/actions/personnes.ts';
-import { equipe, journal, personne, profil, publication } from '../src/schema.ts';
+import { nombreAValider } from '../src/reservations.ts';
+import { equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -54,6 +55,22 @@ describe('chargerComptesDeTest', () => {
 		expect(pubs.some((p) => p.priseDeConnaissance === 1 && p.epinglee === 1)).toBe(true);
 		expect(pubs.some((p) => p.sondageQuestion !== null)).toBe(true);
 		expect(pubs.filter((p) => p.type === 'evenement').every((p) => p.debut! > maintenant)).toBe(true);
+	});
+
+	it('du matériel de l’amicale et une demande de l’agent qui attend l’amicale ; le référent engins gère la VL', async () => {
+		const base = await jeu();
+		expect((await base.select().from(ressource)).map((r) => [r.nom, r.stock])).toEqual([
+			['VL', null],
+			['Bancs', 12],
+			['Tables', 6],
+			['Barnum', 1]
+		]);
+		expect(await base.select({ etat: reservation.etat, quantite: reservation.quantite, debut: reservation.debut }).from(reservation)).toEqual([{ etat: 'attente', quantite: 4, debut: '2026-11-08' }]);
+		const membre = await acteurDe(base, 'caserne+membre@exemple.fr', []);
+		expect(await nombreAValider(base, membre!, aujourdhui)).toBe(1);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await base.select().from(ressource)).toHaveLength(4);
+		expect(await base.select().from(reservation)).toHaveLength(1);
 	});
 
 	it('ne fait rien la deuxième fois', async () => {

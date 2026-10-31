@@ -9,7 +9,8 @@ import type { Base, BasePhotos } from './base.ts';
 import { ajouterJours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
-import { attribution, comite, equipe, personne, profil, publication, responsabilite } from './schema.ts';
+import { chargerMaterielFictif, reserver } from './reservations.ts';
+import { attribution, comite, equipe, personne, profil, publication, reservation, responsabilite, ressource } from './schema.ts';
 
 type Compte = { role: string; prenom: string; nom: string; profil: 'Agent' | 'Réserve citoyenne'; equipe?: number; responsabilite?: string; comite?: string };
 
@@ -22,6 +23,7 @@ export const COMPTES_DE_TEST: Compte[] = [
 	{ role: 'rapporteur', prenom: 'Romain', nom: 'Rapporteur', profil: 'Agent', equipe: 2, responsabilite: 'Rapporteur de comité', comite: 'Amicale' },
 	{ role: 'membre', prenom: 'Manon', nom: 'Membre', profil: 'Agent', equipe: 3, responsabilite: 'Membre de comité', comite: 'Amicale' },
 	{ role: 'referent', prenom: 'Rémi', nom: 'Référent', profil: 'Agent', equipe: 2, responsabilite: 'Référent technique' },
+	{ role: 'engins', prenom: 'Erwan', nom: 'Engins', profil: 'Agent', equipe: 3, responsabilite: 'Référent engins' },
 	{ role: 'exterieur', prenom: 'Estelle', nom: 'Extérieure', profil: 'Réserve citoyenne' }
 ];
 
@@ -121,4 +123,10 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 
 	await publierUneFois('chef-equipe', equipe1, { type: 'message', texte: 'Semaine d’astreinte : pensez à mettre vos dispos à jour avant vendredi.' });
 	await publierUneFois('rapporteur', amicale, { type: 'evenement', texte: 'Repas de Sainte-Barbe, conjoints et enfants bienvenus.', evenement: { debut: dans(30, '12:00'), lieu: 'Salle des fêtes', convoques: 'tous' } });
+
+	// Réservations : le matériel de l'amicale, et une demande de l'agent qui attend l'amicale.
+	await chargerMaterielFictif(base, maintenant);
+	const [bancs] = await base.select({ id: ressource.id }).from(ressource).where(and(eq(ressource.nom, 'Bancs'), isNull(ressource.retireeLe)));
+	const [demande] = await base.select({ id: reservation.id }).from(reservation).where(eq(reservation.personneId, ids.agent!));
+	if (bancs && !demande) await reserver(base, qui('agent'), bancs.id, { debut: ajouterJours(aujourdhui, 10), fin: ajouterJours(aujourdhui, 11), quantite: 4, mot: 'Anniversaire de ma fille' }, maintenant);
 }

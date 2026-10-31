@@ -4,7 +4,7 @@
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerComptesDeTest, chargerMaterielFictif, chargerJeuDeDepart, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
@@ -67,6 +67,7 @@ try {
 				const sonEquipe = equipes.find((e) => e.nom === f.equipe);
 				if (nouvelle && sonEquipe) await base.insert(affectationEquipe).values({ personneId: nouvelle.id, equipeId: sonEquipe.id, debut: '2026-01-01' });
 			}
+			await chargerMaterielFictif(base, maintenantParis());
 		}
 		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
 		if (boite !== undefined) await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
