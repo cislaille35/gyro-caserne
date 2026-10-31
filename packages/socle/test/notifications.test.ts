@@ -1,0 +1,342 @@
+import { eq } from 'drizzle-orm';
+import { describe, expect, it } from 'vitest';
+import centreExemple from '../../../centres/exemple/centre.ts';
+import type { Acteur } from '../src/droits.ts';
+import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
+import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
+import { commenter } from '../src/actions/interactions.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
+import { lireMur, lirePublication, publier, supprimerPublication } from '../src/actions/publications.ts';
+import { creerGroupe, envoyer } from '../src/messagerie.ts';
+import {
+	abonner,
+	couper,
+	desabonner,
+	effacerVieillesNotifications,
+	enTeteDe,
+	filDeNotifications,
+	mesNotifications,
+	estCoupe,
+	notifierCommentaire,
+	notifierMessage,
+	notifierPublication,
+	oublierAbonnements,
+	prendreEnvois,
+	toutMarquerLu
+} from '../src/notifications.ts';
+import { abonnementPush, affectationEquipe, attribution, coupure, envoiPush, equipe, notification, personne, profil, responsabilite } from '../src/schema.ts';
+import { baseDeTest } from './base-de-test.ts';
+
+const maintenant = '2026-10-31T10:00';
+const aujourdhui = '2026-10-31';
+const acteur = (id: number): Acteur => ({ type: 'personne', id });
+const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
+
+// Chef de centre (sans équipe), Alice (équipe 1), Bruno et Chloé (équipe 2). Chacun a un téléphone abonné.
+async function jeu() {
+	const base = await baseDeTest();
+	await chargerJeuDeDepart(base, centreExemple);
+	const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
+	const equipes = await base.select().from(equipe).orderBy(equipe.ordreRotation);
+	const e1 = equipes[0]!;
+	const e2 = equipes[1]!;
+	const nouvelle = async (prenom: string, equipeId?: number) => {
+		const [p] = await base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Test', profilId: agent!.id }).returning();
+		if (equipeId) await base.insert(affectationEquipe).values({ personneId: p!.id, equipeId, debut: '2026-01-01' });
+		await abonner(base, acteur(p!.id), { endpoint: `https://push.exemple/${prenom}`, p256dh: 'BCle', auth: 'secret', appareil: 'Téléphone' }, maintenant);
+		return p!.id;
+	};
+	const chef = await nouvelle('Chef');
+	const [r] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre'));
+	await base.insert(attribution).values({ personneId: chef, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+	const alice = await nouvelle('Alice', e1.id);
+	const bruno = await nouvelle('Bruno', e2.id);
+	const chloe = await nouvelle('Chloe', e2.id);
+	// Les notifications de qui, et les envois en file vers quels téléphones.
+	const fil = async () => (await base.select({ personneId: notification.personneId }).from(notification)).map((n) => n.personneId).sort((a, b) => a - b);
+	const file = async () => {
+		const lignes = await base.select({ endpoint: abonnementPush.endpoint, donnees: envoiPush.donnees }).from(envoiPush).innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId));
+		return lignes.map((l) => ({ a: l.endpoint.split('/').pop(), ...JSON.parse(l.donnees) })).sort((x, y) => x.a.localeCompare(y.a));
+	};
+	const vider = () => base.batch([base.delete(notification), base.delete(envoiPush)]);
+	return { base, e1, e2, chef, alice, bruno, chloe, fil, file, vider, nouvelle };
+}
+
+const tri = (...ids: number[]) => ids.sort((a, b) => a - b);
+
+describe('notifierPublication', () => {
+	it('mur d’équipe : ses membres et le chef de centre, jamais l’auteur ; titre, début du texte, adresse', async () => {
+		const { base, e2, chef, bruno, chloe, fil, file } = await jeu();
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: `Manœuvre samedi ${'x'.repeat(200)}` }, maintenant);
+		await notifierPublication(base, id, maintenant);
+		expect(await fil()).toEqual(tri(chef, chloe));
+		const envois = await file();
+		expect(envois.map((e) => e.a)).toEqual(['Chef', 'Chloe']);
+		expect(envois[0]).toMatchObject({ titre: `${e2.nom} · Bruno Test`, url: `/echanges/equipe:${e2.id}/${id}`, tag: `publication:${id}` });
+		expect(envois[0].texte).toHaveLength(100);
+		expect(envois[0].texte.startsWith('Manœuvre samedi')).toBe(true);
+	});
+
+	it('« Le centre » : tous les agents sauf l’auteur ; publication du super administrateur : tout le monde', async () => {
+		const { base, chef, alice, bruno, chloe, fil, vider } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		expect(await fil()).toEqual(tri(alice, bruno, chloe));
+		await vider();
+		await notifierPublication(base, await publier(base, base.photos, superAdmin, 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		expect(await fil()).toEqual(tri(chef, alice, bruno, chloe));
+	});
+
+	it('150 agents : 2 appels à la base, 100 paramètres au plus', async () => {
+		const { base, chef, nouvelle, fil } = await jeu();
+		for (let i = 0; i < 146; i++) await nouvelle(`Agent${i}`);
+		const id = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant);
+		const avant = base.requetes;
+		base.parametresMax = 0;
+		await notifierPublication(base, id, maintenant);
+		expect(base.requetes - avant).toBe(2);
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
+		expect(await fil()).toHaveLength(149);
+	});
+
+	it('publication inconnue : rien', async () => {
+		const { base, fil } = await jeu();
+		await notifierPublication(base, 999, maintenant);
+		expect(await fil()).toEqual([]);
+	});
+});
+
+describe('notifierCommentaire', () => {
+	it('l’auteur de la publication seulement, jamais s’il commente lui-même', async () => {
+		const { base, e2, bruno, chloe, fil, file, vider } = await jeu();
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre' }, maintenant);
+		await notifierCommentaire(base, await commenter(base, acteur(chloe), id, 'J’y serai', maintenant), maintenant);
+		expect(await fil()).toEqual([bruno]);
+		expect(await file()).toMatchObject([{ a: 'Bruno', titre: 'Chloe Test a commenté votre publication', texte: 'J’y serai', url: `/echanges/equipe:${e2.id}/${id}`, tag: `commentaires:${id}` }]);
+		await vider();
+		await notifierCommentaire(base, await commenter(base, acteur(bruno), id, 'Merci', maintenant), maintenant);
+		expect(await fil()).toEqual([]);
+	});
+
+	it('publication du super administrateur ou d’un auteur qui ne lit plus le mur : personne', async () => {
+		const { base, e2, alice, bruno, chloe, fil } = await jeu();
+		const sup = await publier(base, base.photos, superAdmin, 'vie', { type: 'message', texte: 'Bonjour' }, maintenant);
+		await notifierCommentaire(base, await commenter(base, acteur(alice), sup, 'Bonjour', maintenant), maintenant);
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre' }, maintenant);
+		await base.update(affectationEquipe).set({ fin: '2026-10-30' }).where(eq(affectationEquipe.personneId, bruno));
+		await notifierCommentaire(base, await commenter(base, acteur(chloe), id, 'Oui', maintenant), maintenant);
+		expect(await fil()).toEqual([]);
+	});
+});
+
+describe('notifierMessage', () => {
+	it('à deux : l’autre au téléphone, rien dans le fil ; en groupe : les autres membres', async () => {
+		const { base, alice, bruno, chloe, fil, file, vider } = await jeu();
+		const envoi = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Salut Bruno' }, maintenant);
+		await notifierMessage(base, envoi.message, maintenant);
+		expect(await fil()).toEqual([]);
+		expect(await file()).toMatchObject([{ a: 'Bruno', titre: 'Message de Alice', texte: 'Salut Bruno', url: `/echanges/messages/${envoi.conversation}`, tag: `conversation:${envoi.conversation}` }]);
+		await vider();
+		const groupe = await creerGroupe(base, acteur(alice), { nom: 'Départ de Thomas', membres: [bruno, chloe] }, maintenant);
+		const m = await envoyer(base, base.photos, acteur(chloe), { conversation: groupe }, { texte: 'On fait un pot' }, maintenant);
+		await notifierMessage(base, m.message, maintenant);
+		expect((await file()).map((e) => [e.a, e.titre])).toEqual([
+			['Alice', 'Départ de Thomas · Chloe'],
+			['Bruno', 'Départ de Thomas · Chloe']
+		]);
+	});
+
+	it('message avec photo seule : « Photo »', async () => {
+		const { base, alice, bruno, file } = await jeu();
+		const photo = new Uint8Array(100);
+		photo.set([0xff, 0xd8, 0xff, 0xe0]);
+		const envoi = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: '', photos: [{ type: 'image/jpeg', donnees: photo }] }, maintenant);
+		await notifierMessage(base, envoi.message, maintenant);
+		expect(await file()).toMatchObject([{ texte: 'Photo' }]);
+	});
+});
+
+describe('couper', () => {
+	it('« tout » et un mur retirent du téléphone, pas du fil ; réactiver', async () => {
+		const { base, e2, chef, bruno, chloe, fil, file, vider } = await jeu();
+		await couper(base, acteur(chloe), 'tout', true, maintenant);
+		await couper(base, acteur(chef), `mur:equipe:${e2.id}`, true, maintenant);
+		const publierEtNotifier = async () => notifierPublication(base, await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre' }, maintenant), maintenant);
+		await publierEtNotifier();
+		expect(await fil()).toEqual(tri(chef, chloe));
+		expect(await file()).toEqual([]);
+		expect(await estCoupe(base, acteur(chef), `mur:equipe:${e2.id}`)).toBe(true);
+		await vider();
+		await couper(base, acteur(chloe), 'tout', false, maintenant);
+		await publierEtNotifier();
+		expect((await file()).map((e) => e.a)).toEqual(['Chloe']);
+	});
+
+	it('un mur coupé coupe aussi les commentaires sous ses propres publications', async () => {
+		const { base, e2, bruno, chloe, fil, file } = await jeu();
+		await couper(base, acteur(bruno), `mur:equipe:${e2.id}`, true, maintenant);
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre' }, maintenant);
+		await notifierCommentaire(base, await commenter(base, acteur(chloe), id, 'Oui', maintenant), maintenant);
+		expect(await fil()).toEqual([bruno]);
+		expect(await file()).toEqual([]);
+	});
+
+	it('une conversation coupée : celle-là seulement', async () => {
+		const { base, alice, bruno, chloe, file } = await jeu();
+		const groupe = await creerGroupe(base, acteur(alice), { nom: 'Pot', membres: [bruno, chloe] }, maintenant);
+		await couper(base, acteur(bruno), `conversation:${groupe}`, true, maintenant);
+		await notifierMessage(base, (await envoyer(base, base.photos, acteur(alice), { conversation: groupe }, { texte: 'Vendredi' }, maintenant)).message, maintenant);
+		await notifierMessage(base, (await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Et toi ?' }, maintenant)).message, maintenant);
+		expect((await file()).map((e) => [e.a, e.texte])).toEqual([
+			['Bruno', 'Et toi ?'],
+			['Chloe', 'Vendredi']
+		]);
+	});
+
+	it('refuse un lieu inconnu, un mur illisible, une conversation dont on n’est pas membre, le super administrateur', async () => {
+		const { base, e1, alice, bruno, chloe } = await jeu();
+		const groupe = await creerGroupe(base, acteur(alice), { nom: 'Pot', membres: [bruno] }, maintenant);
+		await expect(couper(base, acteur(bruno), 'ailleurs', true, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(couper(base, acteur(bruno), `mur:equipe:${e1.id}`, true, maintenant)).rejects.toThrow(RefusDroit);
+		await expect(couper(base, acteur(chloe), `conversation:${groupe}`, true, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(couper(base, superAdmin, 'tout', true, maintenant)).rejects.toThrow(DonneeInvalide);
+		expect(await base.select().from(coupure)).toEqual([]);
+	});
+
+	it('mesNotifications : « tout », les lieux coupés nommés, les appareils', async () => {
+		const { base, e2, alice, bruno } = await jeu();
+		const groupe = await creerGroupe(base, acteur(alice), { nom: 'Pot', membres: [bruno] }, maintenant);
+		const deux = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Salut' }, maintenant);
+		for (const lieu of [`mur:equipe:${e2.id}`, 'mur:vie', `conversation:${groupe}`, `conversation:${deux.conversation}`]) await couper(base, acteur(bruno), lieu, true, maintenant);
+		await abonner(base, acteur(bruno), { endpoint: 'https://push.exemple/Bruno-tablette', p256dh: 'BCle', auth: 'secret', appareil: 'Tablette' }, maintenant);
+		expect(await mesNotifications(base, acteur(bruno), aujourdhui)).toEqual({
+			tout: false,
+			appareils: 2,
+			coupes: [
+				{ lieu: 'mur:vie', nom: 'Vie du centre' },
+				{ lieu: `mur:equipe:${e2.id}`, nom: e2.nom },
+				{ lieu: `conversation:${deux.conversation}`, nom: 'Alice Test' },
+				{ lieu: `conversation:${groupe}`, nom: 'Pot' }
+			]
+		});
+	});
+});
+
+describe('le fil et la cloche', () => {
+	it('filDeNotifications : publication et commentaire, plus récent d’abord, auteur, mur, extrait ; en 1 requête', async () => {
+		const { base, e2, bruno, chloe } = await jeu();
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre samedi' }, '2026-10-31T09:00');
+		await notifierPublication(base, id, '2026-10-31T09:00');
+		const sous = await publier(base, base.photos, acteur(chloe), 'vie', { type: 'message', texte: 'Gâteau' }, '2026-10-31T09:30');
+		await notifierPublication(base, sous, '2026-10-31T09:30');
+		await notifierCommentaire(base, await commenter(base, acteur(bruno), sous, 'Merci !', '2026-10-31T09:45'), '2026-10-31T09:45');
+		const avant = base.requetes;
+		const { lignes, nonLues } = await filDeNotifications(base, acteur(chloe), maintenant);
+		expect(base.requetes - avant).toBe(1);
+		expect(nonLues).toBe(2);
+		expect(lignes).toEqual([
+			{ id: expect.any(Number), type: 'commentaire', cle: 'vie', nomMur: 'Vie du centre', publicationId: sous, auteur: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, extrait: 'Merci !', creeLe: '2026-10-31T09:45', lue: false },
+			{ id: expect.any(Number), type: 'publication', cle: `equipe:${e2.id}`, nomMur: e2.nom, publicationId: id, auteur: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, extrait: 'Manœuvre samedi', creeLe: '2026-10-31T09:00', lue: false }
+		]);
+	});
+
+	it('enTeteDe : non-lues et visage en 1 requête ; super administrateur sans requête', async () => {
+		const { base, e2, chef, bruno } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		const avant = base.requetes;
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur } });
+		expect(base.requetes - avant).toBe(1);
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null } });
+		const ensuite = base.requetes;
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, visage: null });
+		expect(base.requetes).toBe(ensuite);
+	});
+
+	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {
+		const { base, e2, bruno, chloe } = await jeu();
+		const id = await publier(base, base.photos, acteur(bruno), `equipe:${e2.id}`, { type: 'message', texte: 'Manœuvre' }, maintenant);
+		await notifierPublication(base, id, maintenant);
+		await notifierPublication(base, await publier(base, base.photos, acteur(bruno), 'vie', { type: 'message', texte: 'Vie' }, maintenant), maintenant);
+		await notifierCommentaire(base, await commenter(base, acteur(bruno), await publier(base, base.photos, acteur(chloe), 'vie', { type: 'message', texte: 'Moi' }, maintenant), 'Oui', maintenant), maintenant);
+		const nonLues = async () => (await enTeteDe(base, acteur(chloe), aujourdhui)).nonLues;
+		expect(await nonLues()).toBe(3);
+		const avant = base.requetes;
+		await lireMur(base, acteur(chloe), `equipe:${e2.id}`, {}, maintenant);
+		expect(base.requetes - avant).toBe(3);
+		expect(await nonLues()).toBe(2);
+		await lirePublication(base, acteur(chloe), id, maintenant);
+		expect(await nonLues()).toBe(2);
+		const [commentee] = await base.select({ publicationId: notification.publicationId }).from(notification).where(eq(notification.personneId, chloe)).orderBy(notification.id).limit(10).offset(2);
+		await lirePublication(base, acteur(chloe), commentee!.publicationId, maintenant);
+		expect(await nonLues()).toBe(1);
+		await toutMarquerLu(base, acteur(chloe), maintenant);
+		expect(await nonLues()).toBe(0);
+		expect((await filDeNotifications(base, acteur(chloe), maintenant)).lignes.every((l) => l.lue)).toBe(true);
+	});
+
+	it('une publication supprimée part du fil', async () => {
+		const { base, chef, bruno } = await jeu();
+		const id = await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant);
+		await notifierPublication(base, id, maintenant);
+		await supprimerPublication(base, base.photos, acteur(chef), id, maintenant);
+		expect((await filDeNotifications(base, acteur(bruno), maintenant)).lignes).toEqual([]);
+	});
+
+	it('le fil garde les 50 plus récentes', async () => {
+		const { base, chef, bruno } = await jeu();
+		for (let i = 0; i < 52; i++) await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: `Note ${i}` }, maintenant), maintenant);
+		const { lignes, nonLues } = await filDeNotifications(base, acteur(bruno), maintenant);
+		expect(lignes).toHaveLength(50);
+		expect(lignes[0]!.extrait).toBe('Note 51');
+		expect(nonLues).toBe(52);
+	});
+});
+
+describe('abonnements et file d’envoi', () => {
+	it('un même appareil n’est abonné qu’une fois, au dernier agent ; adresse non https refusée ; désabonner', async () => {
+		const { base, alice, bruno } = await jeu();
+		await abonner(base, acteur(bruno), { endpoint: 'https://push.exemple/Alice', p256dh: 'BAutre', auth: 'autre', appareil: 'Prêté' }, maintenant);
+		const lignes = await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://push.exemple/Alice'));
+		expect(lignes).toMatchObject([{ personneId: bruno, p256dh: 'BAutre', auth: 'autre' }]);
+		await expect(abonner(base, acteur(alice), { endpoint: 'http://push.exemple/x', p256dh: 'B', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(abonner(base, acteur(alice), { endpoint: 'https://push.exemple/x', p256dh: '', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		await expect(abonner(base, superAdmin, { endpoint: 'https://push.exemple/x', p256dh: 'B', auth: 'a', appareil: '' }, maintenant)).rejects.toThrow(DonneeInvalide);
+		// On ne désabonne que les siens.
+		await desabonner(base, acteur(alice), 'https://push.exemple/Bruno');
+		await desabonner(base, acteur(bruno), 'https://push.exemple/Bruno');
+		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint.split('/').pop()).sort()).toEqual(['Alice', 'Chef', 'Chloe']);
+	});
+
+	it('prendreEnvois : les plus anciens d’abord, retirés de la file ; oublierAbonnements', async () => {
+		const { base, chef, file } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		const pris = await prendreEnvois(base, 2);
+		expect(pris).toHaveLength(2);
+		expect(pris[0]).toMatchObject({ endpoint: 'https://push.exemple/Alice', p256dh: 'BCle', auth: 'secret', donnees: { titre: 'Le centre · Chef Test', tag: expect.any(String) } });
+		expect(await file()).toHaveLength(1);
+		expect(await prendreEnvois(base, 2)).toHaveLength(1);
+		expect(await prendreEnvois(base, 2)).toEqual([]);
+		await oublierAbonnements(base, [pris[0]!.abonnementId]);
+		expect(await base.select().from(abonnementPush).where(eq(abonnementPush.endpoint, 'https://push.exemple/Alice'))).toEqual([]);
+	});
+});
+
+describe('départ et ménage', () => {
+	it('au départ : abonnements, notifications et coupures effacés', async () => {
+		const { base, chef, bruno } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		await couper(base, acteur(bruno), 'tout', true, maintenant);
+		await changerStatut(base, base.photos, acteur(chef), bruno, 'parti', maintenant);
+		expect(await base.select().from(abonnementPush).where(eq(abonnementPush.personneId, bruno))).toEqual([]);
+		expect(await base.select().from(notification).where(eq(notification.personneId, bruno))).toEqual([]);
+		expect(await base.select().from(coupure).where(eq(coupure.personneId, bruno))).toEqual([]);
+	});
+
+	it('effacerVieillesNotifications : avant la date, notifications et envois en file effacés ; après, gardés', async () => {
+		const { base, chef, fil } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Vieille' }, '2026-09-01T10:00'), '2026-09-01T10:00');
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Neuve' }, maintenant), maintenant);
+		await effacerVieillesNotifications(base, '2026-10-01');
+		expect(await fil()).toHaveLength(3);
+		expect(await base.select().from(envoiPush)).toHaveLength(3);
+	});
+});
