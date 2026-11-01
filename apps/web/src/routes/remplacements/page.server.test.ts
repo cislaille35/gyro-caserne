@@ -86,7 +86,7 @@ describe('/remplacements', () => {
 
 	it('échanger une manœuvre : rien à échanger sans manœuvre par équipe', async () => {
 		const jeu = await preparer();
-		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), '/remplacements/manoeuvre')).toEqual({ miennes: [], collegues: [] });
+		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), '/remplacements/manoeuvre')).toMatchObject({ miennes: [], collegues: [], mienne: null });
 	});
 
 	it('super administrateur : pas de demande, page sans liste', async () => {

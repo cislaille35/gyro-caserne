@@ -139,11 +139,14 @@
 								{:else}
 									<span class="note">Annoncée deux semaines avant : vous pourrez répondre ici.</span>
 								{/if}
+								{#if manoeuvre.convocation !== 'tous'}
+									<a class="echanger" href="/remplacements/manoeuvre?mienne={manoeuvre.id}&depuis=planning">Je ne peux pas : échanger ma place<span class="masque">{` à « ${manoeuvre.theme} »`}</span></a>
+								{/if}
 							</Rangee>
 						</li>
 					{/if}
 					{#if fete}
-						<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}." icone="etoile" /></li>
+						<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}{fete.date.slice(0, 4) === m.slice(0, 4) ? '' : ` ${fete.date.slice(0, 4)}`}." icone="etoile" /></li>
 					{/if}
 					{#each demandes as d (d.v.id)}
 						<li>
@@ -159,7 +162,7 @@
 			<div class="droite">
 				<nav class="vues" aria-label="Vue du planning">
 					{#each VUES as [vue, libelle] (vue)}
-						<a href={lien({ vue })} aria-current={data.vue === vue ? 'page' : undefined} onclick={() => retenir(vue)} data-sveltekit-noscroll>{libelle}</a>
+						<a href={lien({ vue })} aria-current={data.vue === vue ? 'page' : undefined} onclick={() => retenir(vue)} data-sveltekit-reset="false">{libelle}</a>
 					{/each}
 				</nav>
 
@@ -250,6 +253,14 @@
 		align-items: center;
 		padding: 0 6px;
 		color: var(--doux);
+		font-weight: 600;
+	}
+	.echanger {
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		color: var(--encre);
+		font-size: 0.9375rem;
 		font-weight: 600;
 	}
 	.note {

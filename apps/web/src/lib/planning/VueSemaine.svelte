@@ -31,9 +31,9 @@
 
 <section class="vue" aria-labelledby="titre-semaine">
 	<div class="navigation">
-		<a href={precedente} class="fleche" aria-label="Semaine précédente" data-sveltekit-noscroll>‹</a>
+		<a href={precedente} class="fleche" aria-label="Semaine précédente" data-sveltekit-reset="false">‹</a>
 		<h2 id="titre-semaine">Semaine {semaine.numero}<span class="dates">{duAu(semaine.debut, finDeSemaine(semaine.debut))}</span></h2>
-		<a href={suivante} class="fleche" aria-label="Semaine suivante" data-sveltekit-noscroll>›</a>
+		<a href={suivante} class="fleche" aria-label="Semaine suivante" data-sveltekit-reset="false">›</a>
 	</div>
 
 	<div class="bande" class:mienne style:--equipe={equipe.couleur}>
@@ -44,7 +44,7 @@
 		<p class="doux">{majuscule(duAuCourt(semaine.periodes[0]!.debut, semaine.periodes.at(-1)!.fin))}</p>
 		{#each vacances as v (v.texte)}<p class="doux">Vacances : {v.texte}</p>{/each}
 		{#if mienne && semaine.periodes.at(-1)!.fin > maintenant}
-			<a class="remplacer" href="/remplacements/demander#periode-{semaine.debut}">Me faire remplacer<span class="masque">{` : semaine ${semaine.numero}`}</span></a>
+			<a class="remplacer" href="/remplacements/demander?semaine={semaine.debut}">Me faire remplacer<span class="masque">{` : semaine ${semaine.numero}`}</span></a>
 		{/if}
 	</div>
 
@@ -63,6 +63,9 @@
 					<ul role="list" class="reperes">
 						{#each j.reperes as r, i (i)}<li class={r.genre}><span class="signe">{SIGNES[r.genre]}&nbsp;:</span> {r.texte}</li>{/each}
 					</ul>
+				{/if}
+				{#if mienne && j.plages.length && j.date >= maintenant.slice(0, 10)}
+					<a class="remplacer-jour" href="/remplacements/demander?semaine={semaine.debut}&jour={j.date}">Me faire remplacer<span class="masque">{` : ${jourLong(j.date)}`}</span></a>
 				{/if}
 			</li>
 		{/each}
@@ -159,6 +162,15 @@
 		display: inline-flex;
 		align-items: center;
 		color: var(--encre);
+		font-weight: 600;
+	}
+	.remplacer-jour {
+		align-self: flex-start;
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		color: var(--encre);
+		font-size: 0.9375rem;
 		font-weight: 600;
 	}
 	ol,

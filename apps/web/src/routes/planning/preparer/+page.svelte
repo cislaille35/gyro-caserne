@@ -139,7 +139,7 @@
 							<p><PastilleEquipe nom={e.nom} couleur={e.couleur} /></p>
 							{#if horsTour(f)}
 								<p class="avertissement">Hors de son tour : c’est à {noms(attendues(f))} de tenir {f === 'noel' ? 'Noël' : 'le Nouvel An'}.</p>
-								{#if data.proposer !== f}<a class="lien-secondaire" href={ici({ proposer: f })} data-sveltekit-noscroll>Proposer un échange de semaines</a>{/if}
+								{#if data.proposer !== f}<a class="lien-secondaire" href={ici({ proposer: f })} data-sveltekit-reset="false">Proposer un échange de semaines</a>{/if}
 							{:else if attendues(f).length}
 								<p class="doux">Dans son tour.</p>
 							{/if}
@@ -152,7 +152,7 @@
 											<input type="hidden" name="semaine-{proposition.fete.debut}" value={proposition.autre.equipeId} />
 											<input type="hidden" name="semaine-{proposition.autre.debut}" value={proposition.fete.equipeId} />
 											<Bouton type="submit">Accepter l’échange</Bouton>
-											<a class="lien-secondaire" href={ici()} data-sveltekit-noscroll>Non merci</a>
+											<a class="lien-secondaire" href={ici()} data-sveltekit-reset="false">Non merci</a>
 										</form>
 									{:else}
 										<p>Aucune semaine à échanger : changez l’équipe d’une semaine à l’étape « Vérifier et publier ».</p>

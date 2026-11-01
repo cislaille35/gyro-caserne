@@ -29,7 +29,8 @@ describe('accueil', () => {
 		const periodes = [{ debut: '2026-11-20T18:00', fin: '2026-11-23T06:00' }, { debut: '2026-11-23T18:00', fin: '2026-11-27T06:00' }];
 		const a = { debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes };
 		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant: '2026-11-01T10:00' });
-		expect(html).toMatch(/<a[^>]*class="carte compacte[^"]*"[^>]*href="\/planning"/);
+		expect(html).toMatch(/class="carte[^"]*compacte[\s\S]*?<a[^>]*href="\/planning"[^>]*>Voir le planning/);
+		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-20"');
 		expect(html).toContain('Votre équipe est d’astreinte dans 19 jours');
 		expect(html).toContain('Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
 		expect(html).toContain('Équipe 3');
