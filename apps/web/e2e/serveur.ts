@@ -1,4 +1,4 @@
-// Avant les tests : bases locales neuves (principale et photos, par `pnpm base-locale`) avec les personnes fictives, serveur de développement,
+// Avant les tests : bases locales neuves (principale et photos, par `pnpm base-locale`) avec les personnes fictives, serveur de l'appli,
 // puis connexion de test@exemple.fr (agent) et du super administrateur fictif, gardées pour les tests « connecté ».
 import { chromium, type FullConfig } from '@playwright/test';
 import { execSync, spawn } from 'node:child_process';
@@ -20,6 +20,9 @@ function adresse(): string {
 }
 
 export const ADRESSE = adresse();
+// En CI (ou avec COMPILEE=1), l'appli compilée par `pnpm build`, servie par Wrangler comme en ligne : bien plus rapide que le serveur
+// de développement, qui prépare chaque page à sa première visite. Sans CI, le serveur de développement, qui n'attend pas de compilation.
+const COMPILEE = Boolean(process.env.CI || process.env.COMPILEE);
 export const ETAT_CONNECTE = fileURLToPath(new URL('../test-results/connecte.json', import.meta.url));
 export const SUPER = 'admin@exemple.fr';
 export const ETAT_SUPER = fileURLToPath(new URL('../test-results/super.json', import.meta.url));
@@ -67,17 +70,30 @@ export default async function preparer(config: FullConfig) {
 
 	mkdirSync(fileURLToPath(new URL('../test-results', import.meta.url)), { recursive: true });
 	const journal = createWriteStream(JOURNAL);
-	const serveur = spawn('pnpm', ['dev', '--port', new URL(ADRESSE).port, '--strictPort'], { cwd: appli, detached: true });
+	const port = new URL(ADRESSE).port;
+	// Wrangler lit .dev.vars à côté de la config du centre et la base locale là où `pnpm base-locale` l'a créée ; il ne lance pas les tâches planifiées.
+	const commande = COMPILEE
+		? ['exec', 'wrangler', 'dev', '--config', `${centre}wrangler.jsonc`, '--port', port, '--persist-to', `${centre}.wrangler/state`, '--show-interactive-dev-session=false']
+		: ['dev', '--port', port, '--strictPort'];
+	if (COMPILEE && !existsSync(`${appli}.svelte-kit/cloudflare/_worker.js`)) throw new Error('Appli pas compilée : lancez `pnpm build` avant les tests (COMPILEE=1).');
+	const serveur = spawn('pnpm', commande, { cwd: appli, detached: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
 	serveur.stdout.pipe(journal);
 	serveur.stderr.pipe(journal);
-	const arreter = () => process.kill(-serveur.pid!, 'SIGTERM');
+	// Le serveur a pu s'arrêter seul (port pris) : son erreur, dans le journal, compte plus que celle de l'arrêt.
+	const arreter = () => {
+		try {
+			process.kill(-serveur.pid!, 'SIGTERM');
+		} catch {
+			// Déjà arrêté
+		}
+	};
 
 	try {
 		await attendre(`${ADRESSE}/connexion`);
 		const navigateur = await chromium.launch(config.projects[0]!.use.launchOptions);
 		const page = await navigateur.newPage({ baseURL: ADRESSE });
 		await connecter(page, 'test@exemple.fr');
-		// Premier passage sur chaque page : Vite prépare ses fichiers une fois pour toutes.
+		// Premier passage sur chaque page : le serveur de développement prépare ses fichiers une fois pour toutes.
 		for (const chemin of ['/affichage', '/agents', '/profil']) await page.goto(chemin);
 		await page.context().storageState({ path: ETAT_CONNECTE });
 

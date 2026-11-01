@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { ADRESSE } from './e2e/serveur.ts';
 
 // Tests d'accessibilité dans Chromium, à la taille d'un téléphone et d'un ordinateur.
-// Un seul serveur de développement pour tous les tests, lancé par e2e/serveur.ts.
+// Un seul serveur pour tous les tests, lancé par e2e/serveur.ts (l'appli compilée en CI).
 export default defineConfig({
 	testDir: 'e2e',
 	globalSetup: './e2e/serveur.ts',
