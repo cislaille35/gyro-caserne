@@ -63,7 +63,9 @@ describe('Préparer l’année en cinq étapes', () => {
 		expect(html).toContain('Ajouter une manœuvre');
 		expect(html).not.toContain('class="panneau');
 		const panneau = page({ etape: 'manoeuvres', manoeuvre: 5 });
-		expect(panneau).toMatch(/<section class="panneau[^"]*"/);
+		// Une vraie fenêtre : ouverte sans JavaScript, modale avec ; fermer garde le focus pour le rendre à l'ouvreur.
+		expect(panneau).toMatch(/<dialog class="panneau[^"]*" open="" aria-labelledby="[^"]+"/);
+		expect(panneau).toMatch(/<a class="fermer[^"]*" href="\?annee=2027&amp;etape=manoeuvres"[^>]*data-sveltekit-reset="false"/);
 		expect(panneau).toContain('Modifier la manœuvre');
 		expect(panneau).toContain('action="/planning/preparer/manoeuvre?/enregistrer"');
 		expect(panneau).toContain('value="Feux de forêt"');
@@ -86,7 +88,7 @@ describe('Préparer l’année en cinq étapes', () => {
 		expect(html).toContain('Récapitulatif');
 		expect(html).toContain('Publier l’année 2027');
 		const choix = page({ etape: 'publier', semaine: '2027-01-01' });
-		expect(choix).toMatch(/<section class="panneau[^"]*"/);
+		expect(choix).toMatch(/<dialog class="panneau[^"]*"/);
 		expect(choix).toMatch(/<button[^>]*name="semaine-2027-01-01"[^>]*value="1"[^>]*aria-pressed="true"/);
 		expect(choix).toMatch(/<button[^>]*name="semaine-2027-01-01"[^>]*value="3"[^>]*aria-pressed="false"/);
 	});

@@ -102,7 +102,6 @@ describe('onglet Planning', () => {
 	it('Mois : une bande par semaine, numéro et équipe écrits ; un jour mène à sa semaine', () => {
 		const html = page({ vue: 'mois' });
 		expect(html).toMatch(/<h2[^>]*>Novembre 2026/);
-		expect(html).toMatch(/<th scope="row"[^>]*>[\s\S]*?S45[\s\S]*?Équipe 1[\s\S]*?Mon astreinte/);
 		expect(html).toContain('href="?annee=2026&amp;vue=semaine&amp;semaine=2026-11-06#jour-2026-11-11"');
 		expect(html).toMatch(/Férié\u00a0:<\/span> Armistice 1918/);
 		expect(html).toContain('href="?annee=2026&amp;vue=mois&amp;mois=12"');
@@ -123,6 +122,19 @@ describe('onglet Planning', () => {
 		expect(html).toContain('Les équipes en 2026');
 		expect(html).not.toContain('Seulement mes semaines');
 		expect((html.match(/<span class="equipe[^"]*">Équipe 4<\/span>/g) ?? []).length).toBe(13);
+	});
+
+	it('Mois au téléphone : la bande de la semaine au-dessus de ses sept jours, pour des cases d’au moins 44 px', () => {
+		const html = page({ vue: 'mois' });
+		expect((html.match(/<tbody/g) ?? []).length).toBe(5);
+		expect(html).toMatch(/<tbody[^>]*>\s*<tr[^>]*><th scope="rowgroup" colspan="7"[^>]*>[\s\S]*?S45[\s\S]*?Équipe 1[\s\S]*?Mon astreinte/);
+		expect(html).not.toContain('scope="row"');
+	});
+
+	it('Mois de décembre : le signe « Fête » le 25 et le 31, même quand la relève tombe à Noël', () => {
+		const html = page({ vue: 'mois', mois: 12 });
+		expect(html).toContain('vendredi 25 décembre, Férié, Fête, vacances</span>');
+		expect(html).toContain('jeudi 31 décembre, Fête, vacances</span>');
 	});
 
 	it('Mois de janvier : les fériés d’avant la première relève sont dits', () => {

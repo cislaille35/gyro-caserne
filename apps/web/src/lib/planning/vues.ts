@@ -88,6 +88,23 @@ export function grilleDuMois<S extends { debut: string }>(annee: number, mois: n
 		.filter((l) => l.jours.some((j) => j.dansLeMois));
 }
 
+// Les repères des jours de la grille du mois, chacun à son jour, sans doublon ni remplacement.
+// Une case peut recevoir le repère d'une autre semaine : quand la relève tombe à Noël, la garde est dans la semaine d'avant.
+export function reperesDeLaGrille(lignes: { semaine: SemaineCalculee }[], d: Donnees, mode: Mode): Repere[] {
+	const vus = new Set<string>();
+	const liste: Repere[] = [];
+	for (const l of lignes)
+		for (const r of reperesDe(l.semaine, d, mode, true)) {
+			const cle = `${r.genre}${r.date}${r.texte}`;
+			if (r.genre !== 'remplacement' && !vus.has(cle)) {
+				vus.add(cle);
+				liste.push(r);
+			}
+		}
+	const ordre = Object.keys(SIGNES);
+	return liste.sort((a, b) => a.date.localeCompare(b.date) || ordre.indexOf(a.genre) - ordre.indexOf(b.genre));
+}
+
 // « 1 astreinte · 1 manœuvre · 2 fériés » (moi) ; « 4 semaines · … » (toutes les équipes).
 export function resumeDuMois(annee: number, mois: number, semaines: (SemaineCalculee & { mienne: boolean })[], d: Donnees, mode: Mode): string {
 	const prefixe = `${annee}-${String(mois).padStart(2, '0')}`;

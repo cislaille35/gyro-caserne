@@ -7,7 +7,7 @@ Ouvert à tout agent, dès que le chef de centre a publié l'année.
 3. **À venir** : votre prochaine manœuvre (répondez Présent, Absent ou Incertain sur place), la garde de fête de votre équipe, vos remplacements en cours.
 4. Choisissez une vue en haut à droite (sur téléphone, sous « À venir ») :
    - **Semaine** : jour par jour, les heures d'astreinte, les remplacements, manœuvres et fériés ; « ‹ » et « › » pour changer de semaine.
-   - **Mois** : une ligne par semaine d'astreinte, avec son numéro et son équipe écrits ; touchez un jour pour ouvrir sa semaine.
+   - **Mois** : une bande par semaine d'astreinte, avec son numéro et son équipe écrits, au-dessus de ses sept jours ; touchez un jour pour ouvrir sa semaine.
    - **Année** : les douze mois, repliés sauf le mois en cours, chacun résumé (« 1 astreinte · 1 manœuvre ») ; « Seulement mes semaines » ne garde que les vôtres.
    - **Équipes** : quelle équipe est d'astreinte chaque semaine.
 5. L'appli retient la dernière vue choisie sur votre téléphone.
