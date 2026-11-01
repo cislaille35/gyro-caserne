@@ -26,8 +26,9 @@ test.describe('remplacements', () => {
 			await page.getByRole('link', { name: /^Détails/ }).click();
 			await expect(page.getByText(/mettez à jour votre disponibilité dans l’appli du SDIS/)).toBeVisible();
 			await sansViolation(page);
-			await page.goto('/planning?vue=moi');
-			await expect(page.getByText(/je remplace David Leroy/).first()).toBeVisible();
+			// Vue Année : le mois du remplacement peut être replié.
+			await page.goto('/planning?vue=annee');
+			await expect(page.getByText(/je remplace David Leroy/).first()).toBeAttached();
 		} else {
 			await connecter(page, 'david.leroy@exemple.fr');
 			await page.goto('/planning');

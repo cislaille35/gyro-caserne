@@ -12,16 +12,33 @@ async function sansViolation(page: Page) {
 test.describe('chef : préparer l’année', () => {
 	test.use({ storageState: ETAT_SUPER });
 
-	test('voir l’année publiée, ajouter une manœuvre', async ({ page }) => {
+	test('les cinq étapes, une semaine ouverte, ajouter une manœuvre dans le panneau', async ({ page }) => {
+		test.setTimeout(90_000);
 		const annee = new Date().getFullYear();
 		const theme = `Secourisme ${Date.now().toString(36)}`;
 		await page.goto('/planning');
 		await page.getByRole('link', { name: 'Préparer l’année' }).click();
 		await expect(page.getByRole('heading', { level: 1, name: `Préparer ${annee}` })).toBeVisible();
 		await expect(page.getByText('Publiée', { exact: true })).toBeVisible();
+		await expect(page.getByText('Étape 1 sur 5')).toBeVisible();
+		await expect(page.getByRole('button', { name: /^Monter / }).first()).toBeVisible();
 		await sansViolation(page);
 
+		for (const etape of ['Fêtes', 'Repères', 'Vérifier et publier']) {
+			await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: etape }).click();
+			await expect(page.getByRole('heading', { level: 2, name: etape })).toBeVisible();
+			await sansViolation(page);
+		}
+		// Toucher une semaine ouvre le choix d'équipe.
+		await page.locator('a.case').first().click();
+		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toBeVisible();
+		await sansViolation(page);
+		await page.getByRole('link', { name: 'Fermer' }).click();
+		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toHaveCount(0);
+
+		await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: 'Manœuvres' }).click();
 		await page.getByRole('link', { name: 'Ajouter une manœuvre' }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Nouvelle manœuvre' })).toBeVisible();
 		await page.getByLabel('Date').fill(`${annee + 1}-03-07`);
 		await page.getByLabel('Heure de début').fill('08:30');
 		await page.getByLabel('Thème').fill(theme);
@@ -35,19 +52,34 @@ test.describe('chef : préparer l’année', () => {
 });
 
 test.describe('agent : mon année et mon agenda', () => {
-	test('prochaine astreinte, mon année, toutes les équipes ; lien d’agenda et « Changer le lien »', async ({ page }, info) => {
+	test('carte, vues Semaine, Mois, Année, Équipes ; lien d’agenda et « Changer le lien »', async ({ page }, info) => {
 		test.setTimeout(90_000);
 		// Un lien de connexion par minute et par adresse : un agent par taille d'écran.
 		await connecter(page, info.project.name === 'telephone' ? 'alice.martin@exemple.fr' : 'bruno.petit@exemple.fr');
 		await page.getByRole('link', { name: 'Planning', exact: true }).first().click();
-		await expect(page.getByRole('heading', { level: 2, name: 'Ma prochaine astreinte' })).toBeVisible();
-		await expect(page.getByText('Mon astreinte').first()).toBeVisible();
-		await expect(page.getByRole('heading', { level: 2, name: 'Décembre' })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 2, name: /Ma prochaine astreinte|Mon astreinte en cours/ })).toBeVisible();
+		await expect(page.getByRole('heading', { level: 2, name: /^Semaine \d+/ })).toBeVisible();
 		await sansViolation(page);
-		await page.getByRole('link', { name: 'Toutes les équipes' }).click();
-		await expect(page.getByRole('link', { name: 'Toutes les équipes' })).toHaveAttribute('aria-current', 'page');
-		await expect(page.getByText('Mon astreinte')).toHaveCount(0);
+		await page.getByRole('link', { name: 'Semaine suivante' }).click();
+		await expect(page).toHaveURL(/semaine=/);
+
+		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Mois' }).click();
+		await expect(page.getByRole('table')).toBeVisible();
 		await sansViolation(page);
+
+		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' }).click();
+		await expect(page.getByRole('heading', { level: 3, name: 'Décembre' })).toBeVisible();
+		await expect(page.getByText('Mon astreinte', { exact: true }).first()).toBeVisible();
+		await page.getByRole('switch', { name: 'Seulement mes semaines' }).check();
+		await sansViolation(page);
+
+		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Équipes' }).click();
+		await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Équipes' })).toHaveAttribute('aria-current', 'page');
+		await expect(page.getByText('Mon astreinte', { exact: true })).toHaveCount(0);
+		await sansViolation(page);
+		// La dernière vue est retenue sur l'appareil.
+		await page.goto('/planning');
+		await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Équipes' })).toHaveAttribute('aria-current', 'page');
 
 		await page.goto('/moi');
 		await page.getByRole('link', { name: /Ajouter à mon agenda/ }).click();

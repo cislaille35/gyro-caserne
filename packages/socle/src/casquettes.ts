@@ -6,7 +6,7 @@ import { iconeDuRole, type NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { remplacementsAValider } from './remplacements/lectures.ts';
-import { attribution, comite, equipe, personne, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
+import { anneePlanning, attribution, comite, equipe, personne, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
 export type Casquette = { id: string; nom: string; icone: NomIcone; compte: number };
@@ -152,7 +152,8 @@ export async function accueilDe(base: Base, acteur: Acteur, demandee: string | n
 
 async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]> {
 	// Pas de jointure à noms de colonnes en double : dans un batch, D1 n'en garde qu'une.
-	const [equipes, attributions, responsabilites, personnes] = await base.batch([
+	const suivante = Number(aujourdhui.slice(0, 4)) + 1;
+	const [equipes, attributions, responsabilites, personnes, annees] = await base.batch([
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base
 			.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
@@ -169,14 +170,18 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 		base
 			.select({ gradeId: personne.gradeId, entreeCentre: personne.entreeCentre, statut: personne.statut, typePersonne: profil.typePersonne })
 			.from(personne)
-			.leftJoin(profil, eq(profil.id, personne.profilId))
+			.leftJoin(profil, eq(profil.id, personne.profilId)),
+		base.select({ publieeLe: anneePlanning.publieeLe }).from(anneePlanning).where(eq(anneePlanning.annee, suivante))
 	]);
+	// À partir du 1er octobre, l'année suivante est à préparer tant qu'elle n'est pas publiée.
+	const planning = aujourdhui.slice(5) >= '10-01' && !annees.some((a) => a.publieeLe !== null);
 
 	const sansChef = equipes.filter((e) => !attributions.some((a) => a.systeme === 'chef_equipe' && a.type === 'equipe' && a.perimetreId === e.id));
 	const sansTitulaire = responsabilites.filter((r) => !attributions.some((a) => a.responsabiliteId === r.id));
 	const fiches = personnes.filter((p) => p.statut !== 'parti' && p.typePersonne !== 'exterieur' && (p.gradeId === null || p.entreeCentre === null)).length;
 
 	return [
+		...(planning ? [{ texte: `Planning ${suivante} à préparer`, lien: `/planning/preparer?annee=${suivante}` }] : []),
 		...sansChef.map((e) => ({ texte: `${e.nom} sans chef d’équipe`, lien: '/nominations' })),
 		...sansTitulaire.map((r) => ({ texte: `${r.nom} : aucun titulaire`, lien: '/nominations' })),
 		...(fiches > 0 ? [{ texte: `${fiches} ${fiches > 1 ? 'fiches' : 'fiche'} à compléter (grade ou date d’entrée manquants)`, lien: '/agents?filtre=a-completer' }] : [])

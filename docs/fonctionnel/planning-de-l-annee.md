@@ -12,20 +12,26 @@ Le chef de centre prépare l'année dans l'appli (astreintes des équipes, manœ
 
 ## Préparer l'année (droit « Gérer le planning » : chef de centre et adjoint)
 
-Planning → « Préparer l'année ». L'année est civile : une semaine appartient à l'année où elle commence.
+Planning → « Préparer l'année ». L'année est civile : une semaine appartient à l'année où elle commence. Un parcours en **cinq étapes**, avec une barre de progression et l'étiquette **Brouillon / Publiée** toujours visible ; chaque étape s'enregistre seule et l'on revient à n'importe laquelle.
 
-1. **Roulement** : l'ordre des équipes ; la première tient la première semaine. L'appli remplit toutes les semaines.
-2. **Semaines** : le chef change l'équipe de n'importe quelle semaine (c'est ainsi qu'il règle le tour des fêtes). La suite du roulement ne bouge pas.
-3. **Noël et Nouvel An** : l'appli montre l'équipe d'astreinte le 25 décembre à midi et le 31 décembre à 23 h. Avec l'historique (saisi une fois pour les années passées), elle signale une équipe qui passe hors de son tour : c'est le tour de celle qui a tenu la fête il y a le plus longtemps, ou jamais. Elle ne bloque pas.
-4. **Manœuvres** : date, heure, thème, lieu (« Caserne » par défaut), équipes convoquées (certaines, ou tout le centre), petit-déjeuner oui ou non.
-5. **Repères** : les jours fériés sont calculés ; les vacances scolaires sont saisies par le chef, pour l'affichage.
-6. **Publier** : avant, les agents ne voient rien ; après, tout changement est visible tout de suite.
+1. **Roulement** : l'ordre des équipes, avec « Monter » et « Descendre » (au clavier comme au doigt) ; la première tient la première semaine. Un aperçu montre les six premières semaines.
+2. **Fêtes** : l'équipe d'astreinte le 25 décembre à midi et le 31 décembre à 23 h. Avec l'historique (saisi une fois pour les années passées), l'appli signale une équipe hors de son tour (le tour revient à celle qui a tenu la fête il y a le plus longtemps, ou jamais) et **propose l'échange** avec la semaine la plus proche d'une équipe dont c'est le tour. Le chef accepte ou non ; rien n'est bloqué.
+3. **Manœuvres** : en rangées ; ajout et modification dans un panneau (feuille du bas au téléphone, panneau latéral à l'ordinateur) : date, heure, thème, lieu (« Caserne » par défaut), équipes convoquées (certaines, ou tout le centre), petit-déjeuner oui ou non.
+4. **Repères** : les jours fériés sont calculés (liste repliée) ; les vacances scolaires sont saisies par le chef, pour l'affichage.
+5. **Vérifier et publier** : l'année en grille de semaines colorées, l'équipe écrite dans chaque case ; toucher une semaine ouvre le choix de son équipe (la suite du roulement ne bouge pas). Un récapitulatif (semaines changées, manœuvres, fêtes, vacances), puis « Publier l'année » : avant, les agents ne voient rien ; après, tout changement est visible tout de suite.
+
+À partir du **1er octobre**, tant que l'année suivante n'est pas publiée, l'Accueil du chef de centre affiche « Planning 2027 à préparer » en tête de « À décider ».
 
 ## Ce que voit l'agent
 
-- En haut : « Ma prochaine astreinte » (avec les heures, et « En cours » s'il y est), « Ma prochaine manœuvre », la garde de Noël ou du Nouvel An si son équipe la tient.
-- « Mon année » : douze mois, semaine par semaine ; ses semaines sont marquées « Mon astreinte » (en texte et en couleur). Fériés, vacances, ses manœuvres et les fêtes sont écrits sous la semaine.
-- « Toutes les équipes » : la même vue pour tout le centre. Un agent sans équipe (chef de centre, adjoint) la voit d'emblée.
+- **Accueil** : une carte d'astreinte en tête, à la couleur de son équipe (toujours nommée) : « Votre équipe est d'astreinte dans 19 jours — du ven. 20 nov. 18 h au ven. 27 nov. 6 h », ou « Vous êtes d'astreinte jusqu'à vendredi 6 h » et la prochaine plage. Sans équipe (chef de centre) : « Cette semaine : Équipe 2 d'astreinte ». Elle mène au Planning.
+- **Planning** : une phrase vivante en tête, la même carte avec « Me faire remplacer » et « Ajouter à mon agenda », puis **À venir** : la prochaine manœuvre (réponse Présent / Absent / Incertain sur place une fois annoncée), la garde de fête de son équipe, ses remplacements en cours.
+- Quatre **vues** en puces, la dernière retenue sur l'appareil :
+  - **Semaine** : du jour de relève à la veille de la suivante, jour par jour, les plages réelles (« 18 h – 6 h », « 24 h »), l'équipe, « X remplace Y », manœuvres, fériés ; flèches semaine précédente et suivante.
+  - **Mois** : une ligne par semaine d'astreinte (du vendredi au jeudi), à la couleur de l'équipe, numéro et équipe écrits ; marques pour manœuvre, férié, vacances, dites en toutes lettres sous la grille ; toucher un jour ouvre sa semaine.
+  - **Année** : douze mois repliés sauf le mois en cours, chacun résumé (« 1 astreinte · 1 manœuvre · 1 férié ») ; « Seulement mes semaines ».
+  - **Équipes** : la même présentation, pour toutes les équipes. Un agent sans équipe la voit d'emblée.
+- À l'ordinateur, deux colonnes : la carte et « À venir » à gauche, la vue à droite.
 - L'équipe de l'agent est celle de **la date** de chaque semaine : un changement d'équipe en cours d'année est suivi.
 
 ## Manœuvres annoncées toutes seules
