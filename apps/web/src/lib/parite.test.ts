@@ -18,7 +18,13 @@ const ECRANS = [
 	'lib/remplacements/CarteDemande.svelte',
 	'lib/planning/CarteAstreinte.svelte',
 	'lib/planning/VueSemaine.svelte',
-	'lib/planning/VueMois.svelte'
+	'lib/planning/VueMois.svelte',
+	'routes/planning/ete/+page.svelte',
+	'routes/planning/preparer/fichier/+page.svelte',
+	'routes/planning/preparer/+page.svelte',
+	'routes/moi/vacances/+page.svelte',
+	'routes/reglages/armement/+page.svelte',
+	'lib/planning/Panneau.svelte'
 ];
 const CACHE = /display:\s*none|visibility:\s*hidden|clip-path|clip:|opacity:\s*0[;\s]|width:\s*1px|height:\s*0/;
 

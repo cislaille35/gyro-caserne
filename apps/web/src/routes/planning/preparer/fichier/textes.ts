@@ -18,6 +18,7 @@ export function resumer(a: ApercuPlanning): string {
 		...(a.semaines.length ? [`${pluriel(a.semaines.length, 'semaine changée', 'semaines changées')}`] : []),
 		...manoeuvres,
 		...(vacances ? [pluriel(vacances, 'changement de vacances scolaires', 'changements de vacances scolaires')] : []),
+		...(a.ete.ajouts + a.ete.retraits ? [`été : ${pluriel(a.ete.ajouts + a.ete.retraits, 'présence changée', 'présences changées')}`] : []),
 		...a.fetes.map((f) => `${f.fete === 'noel' ? 'Noël' : 'Le Nouvel An'} passe à ${f.apres === null ? 'personne' : `l’${f.apres}`}`)
 	];
 	return parties.length ? parties.join(', ') : 'Aucun changement';

@@ -9,11 +9,12 @@ import { nomActeur } from '../actions/personnes.ts';
 import { anneePlanning, manoeuvre, publication, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesExistante, ecrituresModification, ecrituresRetrait, preparerAnnee, type Preparation } from './annee.ts';
 import { calculerAnnee, fetes, type Fete, type Reglage } from './calendrier.ts';
+import { analyserFeuilleEte, feuilleEte } from './repartition.ts';
 
 // Le fichier du planning : l'année dans un classeur (Semaines, Manœuvres, Vacances scolaires), relu avec un aperçu avant d'être appliqué.
 // Les fériés sont calculés : ils ne sont pas dans le fichier.
 
-export const FEUILLES = { semaines: 'Semaines', manoeuvres: 'Manœuvres', vacances: 'Vacances scolaires' } as const;
+export const FEUILLES = { semaines: 'Semaines', manoeuvres: 'Manœuvres', vacances: 'Vacances scolaires', ete: 'Été' } as const;
 export const ENTETES_PLANNING = {
 	semaines: ['N°', 'Du', 'Au', 'Équipe'],
 	// « Réf. » : le numéro de la manœuvre dans l'appli ; vide pour une nouvelle.
@@ -24,7 +25,8 @@ export const TOUTES = 'Toutes';
 
 export type Feuille = { nom: string; entetes: string[]; lignes: string[][]; listes: Record<string, string[]> };
 export type DonneesFichierPlanning = { annee: number; feuilles: Feuille[] };
-export type FichierPlanningLu = { feuilles: Record<string, { numero: number; cellules: string[] }[]> };
+// `entetes` : la première ligne de chaque feuille (l'onglet Été en a besoin : une colonne par plage).
+export type FichierPlanningLu = { feuilles: Record<string, { numero: number; cellules: string[] }[]>; entetes?: Record<string, string[]> };
 
 export type ApercuPlanning = {
 	semaines: { debut: string; numero: number; avant: string; apres: string }[];
@@ -32,6 +34,8 @@ export type ApercuPlanning = {
 	vacances: { ajoutees: { nom: string; debut: string; fin: string }[]; retirees: { nom: string; debut: string; fin: string }[] };
 	// Une fête qui change d'équipe ; `horsTour` : la nouvelle n'est pas parmi celles dont c'est le tour.
 	fetes: { fete: Fete; avant: string | null; apres: string | null; horsTour: boolean }[];
+	// L'onglet Été : présences ajoutées et retirées.
+	ete: { ajouts: number; retraits: number };
 	erreurs: { feuille: string; ligne: number; message: string }[];
 };
 
@@ -45,6 +49,7 @@ const actives = (p: Preparation) => p.equipes.filter((e) => p.ordrePropose.inclu
 
 export async function donneesFichierPlanning(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage): Promise<DonneesFichierPlanning> {
 	const p = await preparerAnnee(base, acteur, annee, maintenant, reglage);
+	const ete = await feuilleEte(base, annee, maintenant.slice(0, 10), reglage);
 	const equipes = actives(p);
 	const numero = (id: number) => String(equipes.findIndex((e) => e.id === id) + 1);
 	const fin = (debut: string) => {
@@ -69,7 +74,9 @@ export async function donneesFichierPlanning(base: Base, acteur: Acteur, annee: 
 					.map((m) => [String(m.id), dateFichier(m.debut.slice(0, 10)), m.debut.slice(11, 16), m.theme, m.lieu, m.convoques === 'tous' ? TOUTES : m.convoques.map(numero).filter((n) => n !== '0').join(', '), m.petitDejeuner ? 'Oui' : 'Non']),
 				listes: { 'Petit-déjeuner': ['Oui', 'Non'] }
 			},
-			{ nom: FEUILLES.vacances, entetes: [...ENTETES_PLANNING.vacances], lignes: p.vacances.map((v) => [v.nom, dateFichier(v.debut), dateFichier(v.fin)]), listes: {} }
+			{ nom: FEUILLES.vacances, entetes: [...ENTETES_PLANNING.vacances], lignes: p.vacances.map((v) => [v.nom, dateFichier(v.debut), dateFichier(v.fin)]), listes: {} },
+			// L'été, une fois la répartition proposée.
+			...(ete ? [{ nom: FEUILLES.ete, entetes: ete.entetes, lignes: ete.lignes, listes: {} }] : [])
 		]
 	};
 }
@@ -201,6 +208,11 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 	const enPlace = new Map(p.vacances.map((v) => [cle(v), v]));
 	if (!lu.feuilles[FEUILLES.vacances]) for (const [k, v] of enPlace) voulues.set(k, v);
 
+	// L'été : seulement si l'onglet est dans le fichier.
+	const feuille = lu.feuilles[FEUILLES.ete];
+	const ete = feuille ? await analyserFeuilleEte(base, annee, lu.entetes?.[FEUILLES.ete] ?? [], feuille, maintenant, reglage) : null;
+	for (const x of ete?.erreurs ?? []) erreurs.push({ feuille: FEUILLES.ete, ligne: x.ligne, message: x.message });
+
 	const apercu: ApercuPlanning = {
 		semaines: semainesChangees,
 		manoeuvres: {
@@ -210,9 +222,10 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 		},
 		vacances: { ajoutees: [...voulues].filter(([k]) => !enPlace.has(k)).map(([, v]) => v), retirees: [...enPlace].filter(([k]) => !voulues.has(k)).map(([, v]) => ({ nom: v.nom, debut: v.debut, fin: v.fin })) },
 		fetes: fetesChangees,
+		ete: { ajouts: ete?.changements.filter((c) => c.present).length ?? 0, retraits: ete?.changements.filter((c) => !c.present).length ?? 0 },
 		erreurs
 	};
-	return { p, apercu, ordre, choix, semaines, ajouts, modifications, retraits, vacancesRetirees: [...enPlace].filter(([k]) => !voulues.has(k)).map(([, v]) => v.id) };
+	return { p, apercu, ecrituresEte: ete?.ecritures ?? (() => []), ordre, choix, semaines, ajouts, modifications, retraits, vacancesRetirees: [...enPlace].filter(([k]) => !voulues.has(k)).map(([, v]) => v.id) };
 }
 
 export async function apercuPlanning(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage): Promise<ApercuPlanning> {
@@ -241,8 +254,9 @@ export async function appliquerPlanning(base: Base, acteur: Acteur, annee: numbe
 	for (const x of a.retraits) ecritures.push(...ecrituresRetrait(base, x.id, x.publicationId, maintenant));
 	for (const v of a.apercu.vacances.ajoutees) ecritures.push(base.insert(vacancesScolaires).values(v));
 	if (a.vacancesRetirees.length) ecritures.push(base.delete(vacancesScolaires).where(inArray(vacancesScolaires.id, a.vacancesRetirees)));
+	ecritures.push(...a.ecrituresEte());
 	const { semaines, manoeuvres, vacances } = a.apercu;
-	const details = { annee, semaines: semaines.length, manoeuvres: manoeuvres.ajoutees.length + manoeuvres.modifiees.length + manoeuvres.retirees.length, vacances: vacances.ajoutees.length + vacances.retirees.length };
+	const details = { annee, ete: a.apercu.ete.ajouts + a.apercu.ete.retraits, semaines: semaines.length, manoeuvres: manoeuvres.ajoutees.length + manoeuvres.modifiees.length + manoeuvres.retirees.length, vacances: vacances.ajoutees.length + vacances.retirees.length };
 	await base.batch([ligneJournal(base, { acteur: nomActeur(acteur), action: 'importer_planning', cibleType: 'planning', cibleId: null, details }, maintenant), ...ecritures]);
 	return { changees: [...a.modifications.map((x) => x.id), ...a.retraits.map((x) => x.id)].filter((id) => a.p.manoeuvres.find((x) => x.id === id)?.publiee) };
 }

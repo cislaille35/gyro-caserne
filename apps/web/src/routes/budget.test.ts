@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, ajouterRessource, pourDemander, attribution, changerSemaines, chargerJeuDeDepart, comite, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, ajouterRessource, pourDemander, attribution, changerSemaines, chargerJeuDeDepart, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -42,6 +42,9 @@ import { load as demandeRemplacementPage } from './remplacements/[id]/+page.serv
 import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
 import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
 import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
+import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
+import { load as mesVacancesPage } from './moi/vacances/+page.server';
+import { load as reglagesArmement } from './reglages/armement/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -154,6 +157,36 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			expect(data.aPourvoir).toBeGreaterThan(0);
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/planning/ete : tout un été proposé pour 150 agents ; proposer, ajuster, publier ; Mes vacances, armement', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const ids = (await base.select().from(equipe)).map((e) => e.id);
+		const annee = Number(maintenantParis().slice(0, 4)) + 1;
+		const m = maintenantParis();
+		await reglerRoulement(base, locals.acteur, annee, ids, m);
+		await reglerEte(base, locals.acteur, annee, periodeParDefaut(annee, centre.astreinte), m, centre.astreinte);
+		const url = new URL(`http://localhost/planning/ete?annee=${annee}`);
+		for (const nom of ['proposer', 'publier'] as const) {
+			const n = await compter(async () => {
+				expect(await (actionsEte as any)[nom]({ locals, url, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals });
+				await (pageEte as any)({ locals, url });
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
+		const [premiere] = await base.select().from(plageEte).orderBy(plageEte.debut);
+		const ouverte = new URL(`${url}&plage=${premiere!.debut}`);
+		const n = await compter(async () => {
+			expect(await (actionsEte as any).ajuster({ locals, url: ouverte, request: await requeteFormulaire([['debut', premiere!.debut], ['personne', String(agent.id)], ['present', 'oui']]) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals });
+			expect((await (pageEte as any)({ locals, url: ouverte })).ete.detail).not.toBeNull();
+		});
+		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
+		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
+		expect(await compter(async () => { await (racine as any)({ locals: deLAgent }); await (mesVacancesPage as any)({ locals: deLAgent }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (reglagesArmement as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
 	});
 
 	it('/planning et /planning/preparer : une année publiée, 20 manœuvres, 30 semaines changées ; chaque action', async () => {

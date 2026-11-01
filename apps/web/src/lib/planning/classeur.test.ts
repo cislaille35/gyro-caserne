@@ -30,6 +30,7 @@ describe('classeur du planning', () => {
 			Manœuvres: [{ numero: 2, cellules: ['4', '07/03/2027', '08:30', 'Feux de forêt', 'Caserne', '1, 3', 'Oui'] }],
 			'Vacances scolaires': []
 		});
+		expect(lu.entetes?.['Manœuvres']).toEqual(['Réf.', 'Date', 'Heure', 'Thème', 'Lieu', 'Équipes', 'Petit-déjeuner']);
 	});
 
 	it('listes déroulantes sur les colonnes Équipe et Petit-déjeuner ; feuille Listes masquée', async () => {

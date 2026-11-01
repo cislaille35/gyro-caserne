@@ -11,6 +11,7 @@ import { bandesDe, disponible, lireContexte } from '../src/remplacements/context
 import { avisEte, demandeRemplacement, plageEte } from '../src/schema.ts';
 import type { Poste } from '../src/armement.ts';
 import { jeuEte } from './jeu-ete.ts';
+import { apercuPlanning, appliquerPlanning, donneesFichierPlanning } from '../src/planning/fichier.ts';
 
 const reglage = centreExemple.astreinte;
 const maintenant = '2027-03-01T10:00';
@@ -157,5 +158,30 @@ describe('été : proposer, ajuster, publier', () => {
 		await base.delete(avisEte);
 		await ajouterMesVacances(base, a(p.eva), 2027, { debut: '2027-06-30', fin: '2027-06-30' }, maintenant);
 		expect((await base.select().from(avisEte).where(eq(avisEte.personneId, chefId))).map((x) => [x.quoi, x.texte, x.url])).toEqual([['vacances_changees', 'Eva Test a changé ses vacances : à revoir.', '/planning/ete?annee=2027']]);
+	});
+
+	it('l’onglet Été du fichier : une colonne par plage, « X » si présent ; relu, il ajoute et retire', async () => {
+		const { base, chef, p } = await jeu();
+		expect((await donneesFichierPlanning(base, chef, 2027, maintenant, reglage)).feuilles.map((f) => f.nom)).not.toContain('Été');
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
+		const feuille = d.feuilles.find((f) => f.nom === 'Été')!;
+		expect(feuille.entetes).toEqual(['N°', 'Agent', 'Équipe', '25/06 nuit', '26/06 24 h', '27/06 24 h', '28/06 nuit', '29/06 nuit', '30/06 nuit', '01/07 nuit']);
+		const ligne = (id: number) => feuille.lignes.find((l) => l[0] === String(id))!;
+		expect(ligne(p.alice)).toEqual([String(p.alice), 'Alice Test', 'Équipe 1', 'X', '', '', 'X', '', 'X', '']);
+		expect(ligne(p.gina).slice(3)).toEqual(['', '', '', '', '', '', '']);
+		const lu = {
+			feuilles: { Été: [{ numero: 2, cellules: [...ligne(p.alice).slice(0, 3), '', '', '', 'X', '', 'X', ''] }, { numero: 3, cellules: [...ligne(p.hugo).slice(0, 3), 'X', ...ligne(p.hugo).slice(4)] }] },
+			entetes: { Été: feuille.entetes }
+		};
+		expect((await apercuPlanning(base, chef, 2027, lu, maintenant, reglage)).ete).toEqual({ ajouts: 1, retraits: 1 });
+		await appliquerPlanning(base, chef, 2027, lu, maintenant, reglage);
+		const [ven] = await base.select().from(plageEte).where(eq(plageEte.debut, VEN));
+		expect(JSON.parse(ven!.ajoutes)).toEqual([p.hugo]);
+		const fautif = { feuilles: { Été: [{ numero: 2, cellules: ['999', 'X', '', 'X'] }] }, entetes: { Été: ['N°', 'Agent', 'Équipe', '24/06 nuit'] } };
+		expect((await apercuPlanning(base, chef, 2027, fautif, maintenant, reglage)).erreurs).toEqual([
+			{ feuille: 'Été', ligne: 1, message: 'Colonne « 24/06 nuit » : pas une plage de l’été' },
+			{ feuille: 'Été', ligne: 2, message: 'N° « 999 » : agent inconnu' }
+		]);
 	});
 });

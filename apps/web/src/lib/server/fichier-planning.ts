@@ -11,6 +11,8 @@ export function estFichierPlanningLu(v: unknown): v is FichierPlanningLu {
 	if (typeof v !== 'object' || v === null) return false;
 	const feuilles = (v as Record<string, unknown>).feuilles;
 	if (typeof feuilles !== 'object' || feuilles === null) return false;
+	const entetes = (v as Record<string, unknown>).entetes;
+	if (entetes !== undefined && (typeof entetes !== 'object' || entetes === null || !Object.values(entetes).every(textes))) return false;
 	return Object.values(feuilles).every(
 		(lignes) => Array.isArray(lignes) && lignes.length <= LIGNES_MAX && lignes.every((l) => typeof l === 'object' && l !== null && Number.isSafeInteger(l.numero) && textes(l.cellules))
 	);

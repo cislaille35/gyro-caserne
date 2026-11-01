@@ -66,7 +66,10 @@
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
-	<p class="par-fichier"><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></p>
+	<ul class="raccourcis" role="list">
+		<li><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></li>
+		<li><a href="/planning/ete?annee={p.annee}">Été {p.annee}</a> <span class="doux">: vacances des agents et répartition qui arme le FPT.</span></li>
+	</ul>
 
 	<nav class="etapes" aria-label="Étapes">
 		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
@@ -331,10 +334,12 @@
 <Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
-	.par-fichier {
+	.raccourcis {
 		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
-	.par-fichier a {
+	.raccourcis a {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);

@@ -20,7 +20,7 @@
 
 	// Le classeur s'écrit et se lit dans le navigateur seulement.
 	const classeur = () => import('#lib/planning/classeur.ts');
-	const NOMS = [...Object.values(FEUILLES_PLANNING), 'Été'];
+	const NOMS = Object.values(FEUILLES_PLANNING) as string[];
 	const texteErreur = (e: unknown) => (e instanceof Error ? e.message : String(e));
 	const rien = $derived(apercu !== null && resumer(apercu) === 'Aucun changement');
 
@@ -163,6 +163,12 @@
 							{#each apercu.vacances.ajoutees as v (v.nom + v.debut)}<li>Ajoutées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
 							{#each apercu.vacances.retirees as v (v.nom + v.debut)}<li>Retirées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
 						</ul>
+					</section>
+				{/if}
+				{#if apercu.ete.ajouts + apercu.ete.retraits}
+					<section>
+						<h3>Été</h3>
+						<p>{pluriel(apercu.ete.ajouts, 'présence ajoutée', 'présences ajoutées')}, {pluriel(apercu.ete.retraits, 'retirée', 'retirées')}.</p>
 					</section>
 				{/if}
 				{#if apercu.erreurs.length}

@@ -17,7 +17,14 @@ const MESSAGES: Record<string, string> = {
 	'Manœuvre passée': 'Cette date est déjà passée.',
 	'Choisissez au moins une équipe': 'Choisissez au moins une équipe, ou tout le centre.',
 	'Manœuvre inconnue': 'Cette manœuvre n’existe plus.',
-	'Année invalide': 'Choisissez une année à partir de 2020.'
+	'Année invalide': 'Choisissez une année à partir de 2020.',
+	'Jour de relève attendu': 'Le début et la fin de l’été sont des jours de relève.',
+	'Été publié : la période ne change plus': 'L’été est publié : sa période ne change plus.',
+	'Été pas encore ouvert': 'Ouvrez d’abord l’été (période et date limite).',
+	'Été déjà publié': 'L’été est déjà publié : ajustez plutôt plage par plage.',
+	'Proposez d’abord l’été': 'Proposez d’abord la répartition.',
+	'Plage commencée': 'Cette plage est commencée : elle ne change plus.',
+	'Plage inconnue': 'Cette plage n’existe plus : rechargez la page.'
 };
 
 export function echecPlanning(erreur: unknown, cible: string, valeurs?: ReponsePlanning['valeurs']) {

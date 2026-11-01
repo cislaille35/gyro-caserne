@@ -254,3 +254,65 @@ export async function publierEte(base: Base, acteur: Acteur, annee: number, main
 		...[...textes].flatMap(([id, t]) => avis(base, [id], 'repartition', `Planning d’été : ${t.join(' ; ')}.`, '/planning', maintenant))
 	]);
 }
+
+// L'onglet « Été » du fichier du planning : une ligne par agent, une colonne par plage (« 25/06 nuit »), « X » s'il est présent.
+const colonnePlage = (p: Periode) => {
+	const duree = (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.debut}:00Z`)) / 3_600_000;
+	return `${p.debut.slice(8, 10)}/${p.debut.slice(5, 7)} ${duree === 24 ? '24 h' : p.debut.slice(11, 16) >= '17:00' ? 'nuit' : p.debut.slice(11, 16)}`;
+};
+export const ENTETES_ETE = ['N°', 'Agent', 'Équipe'];
+
+// Rien tant que l'été n'est pas proposé.
+export async function feuilleEte(base: Base, annee: number, aujourdhui: string, reglage: Reglage) {
+	const lu = await lireEte(base, annee, aujourdhui, reglage);
+	if (lu.plages.length === 0) return null;
+	const presences = lu.plagesEte.map((p) => new Set(presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut))));
+	const agents = [...lu.agents].sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
+	const equipeDe = (id: number) => lu.equipes.find((e) => e.id === equipeLe(lu.affectationsDe(id), lu.plagesEte[0]!.semaine))?.nom ?? '';
+	return {
+		entetes: [...ENTETES_ETE, ...lu.plagesEte.map(colonnePlage)],
+		lignes: agents.map((a) => [String(a.id), `${a.prenom} ${a.nom}`, equipeDe(a.id), ...presences.map((s) => (s.has(a.id) ? 'X' : ''))])
+	};
+}
+
+// Les changements de présence voulus par le fichier, et les écritures qui les appliquent. Un agent absent du fichier ne change pas.
+export async function analyserFeuilleEte(base: Base, annee: number, entetes: string[], lignes: { numero: number; cellules: string[] }[], maintenant: string, reglage: Reglage) {
+	const lu = await lireEte(base, annee, maintenant.slice(0, 10), reglage);
+	const erreurs: { ligne: number; message: string }[] = [];
+	if (lu.plages.length === 0) return { erreurs: [{ ligne: 1, message: 'Proposez d’abord la répartition de l’été dans l’appli' }], changements: [], ecritures: () => [] };
+	const colonnes = entetes.slice(ENTETES_ETE.length).map((t) => lu.plagesEte.find((p) => colonnePlage(p) === t.trim()));
+	entetes.slice(ENTETES_ETE.length).forEach((t, i) => {
+		if (!colonnes[i]) erreurs.push({ ligne: 1, message: `Colonne « ${t} » : pas une plage de l’été` });
+	});
+	const ecarts = new Map(lu.plages.map((x) => [x.debut, { ajoutes: [...x.ajoutes], retires: [...x.retires] }]));
+	const changements: { debut: string; personneId: number; present: boolean }[] = [];
+	for (const l of lignes) {
+		const id = Number(l.cellules[0]);
+		if (!lu.agents.some((a) => a.id === id)) {
+			erreurs.push({ ligne: l.numero, message: `N° « ${l.cellules[0] ?? ''} » : agent inconnu` });
+			continue;
+		}
+		colonnes.forEach((p, i) => {
+			if (!p) return;
+			const voulu = (l.cellules[ENTETES_ETE.length + i] ?? '').trim() !== '';
+			const ecart = ecarts.get(p.debut)!;
+			const deBase = lu.base(p).includes(id);
+			const present = deBase ? !ecart.retires.includes(id) : ecart.ajoutes.includes(id);
+			if (voulu === present) return;
+			if (lu.e!.publiee && p.debut <= maintenant.slice(0, 16)) {
+				erreurs.push({ ligne: l.numero, message: `${colonnePlage(p)} : plage commencée, elle ne change plus` });
+				return;
+			}
+			if (deBase) ecart.retires = voulu ? ecart.retires.filter((x) => x !== id) : [...ecart.retires, id];
+			else ecart.ajoutes = voulu ? [...ecart.ajoutes, id] : ecart.ajoutes.filter((x) => x !== id);
+			changements.push({ debut: p.debut, personneId: id, present: voulu });
+		});
+	}
+	const touchees = [...new Set(changements.map((c) => c.debut))];
+	const ecritures = () => [
+		...touchees.map((debut) => base.update(plageEte).set({ ajoutes: JSON.stringify(ecarts.get(debut)!.ajoutes), retires: JSON.stringify(ecarts.get(debut)!.retires) }).where(eq(plageEte.debut, debut))),
+		// Été publié : chaque agent touché est prévenu une fois.
+		...(lu.e!.publiee ? [...new Set(changements.map((c) => c.personneId))].flatMap((id) => avis(base, [id], 'repartition', 'Planning d’été : vos plages ont changé. Voyez votre planning.', '/planning', maintenant)) : [])
+	];
+	return { erreurs, changements, ecritures };
+}

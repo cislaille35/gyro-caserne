@@ -85,6 +85,7 @@ export async function lireClasseurPlanning(fichier: Blob, noms: string[]): Promi
 		if (!noms.includes(f.sheet)) continue;
 		const [ligneEntetes = [], ...suite] = f.data as Valeur[][];
 		const entetes = ligneEntetes.map((v) => enTexte(v, undefined));
+		(lu.entetes ??= {})[f.sheet] = entetes;
 		lu.feuilles[f.sheet] = suite.map((ligne, i) => ({ numero: i + 2, cellules: entetes.map((e, colonne) => enTexte(ligne[colonne] ?? null, e)) })).filter((l) => l.cellules.some((c) => c !== ''));
 	}
 	if (Object.keys(lu.feuilles).length === 0) throw new Error('Aucune feuille du planning dans ce fichier');
