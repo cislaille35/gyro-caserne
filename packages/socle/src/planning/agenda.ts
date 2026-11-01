@@ -8,6 +8,7 @@ import { fetes, type Reglage } from './calendrier.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { soustraire } from '../remplacements/tranches.ts';
 import { anneesPubliees, convoque, equipeLe, lectures, vueManoeuvre } from './annee.ts';
+import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 
 // L'abonnement d'agenda : un fichier iCalendar (RFC 5545) propre à chaque agent, au bout d'un lien qui porte une clé secrète.
 // La clé n'est jamais écrite au journal ; elle est comparée en temps constant.
@@ -110,21 +111,24 @@ export async function agendaDe(base: Base, fichier: string, maintenant: string, 
 	if (!(await aLeDroit(base, { type: 'personne', id }, 'VOIR_PLANNING', { type: 'centre' }, aujourdhui))) return null;
 
 	const annee = Number(aujourdhui.slice(0, 4));
-	const [[annees, changees, manoeuvres, , equipes, , conclues], affectations] = await Promise.all([
-		base.batch([...lectures(base, `${annee - 1}-01-01`, `${annee + 1}-12-31`), requeteConclues(base, `${annee - 1}-01-01`, `${annee + 1}-12-31`, id)]),
+	const [[annees, changees, manoeuvres, , equipes, , conclues, lignesPlages], affectations] = await Promise.all([
+		base.batch([...lectures(base, `${annee - 1}-01-01`, `${annee + 1}-12-31`), requeteConclues(base, `${annee - 1}-01-01`, `${annee + 1}-12-31`, id), requetePlagesPubliees(base, `${annee - 1}-01-01`, `${annee + 1}-12-31`)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, id))
 	]);
 	const nom = (equipeId: number) => equipes.find((e) => e.id === equipeId)?.nom ?? 'Équipe';
 	const publiees = anneesPubliees(annees.filter((a) => Math.abs(a.annee - annee) <= 1), changees, reglage);
 	const evenements: Evenement[] = [];
+	const plages = lignesPlages.map(lirePlage);
 	// Les périodes cédées à un remplaçant sortent de l'agenda ; celles prises à un collègue y entrent.
 	const remplacements = effectifs(conclues);
 	const cedees = remplacements.filter((r) => r.titulaireId === id);
 	for (const r of remplacements.filter((x) => x.remplacantId === id)) evenements.push({ uid: `remplacement-${r.debut}`, debut: r.debut, fin: r.fin, titre: `Remplacement de ${r.titulaire}` });
 	for (const [a, semaines] of publiees) {
 		for (const s of semaines) {
-			if (equipeLe(affectations, s.debut) !== s.equipeId) continue;
-			soustraire(s.periodes, cedees).forEach((p, i) => evenements.push({ uid: `astreinte-${s.debut}-${i}`, debut: p.debut, fin: p.fin, titre: `Astreinte · ${nom(s.equipeId)}` }));
+			// En été publié, mes plages seulement (renfort compris).
+			const heures = heuresDe(s, equipeLe(affectations, s.debut), id, plages);
+			if (heures.length === 0) continue;
+			soustraire(heures, cedees).forEach((p, i) => evenements.push({ uid: `astreinte-${s.debut}-${i}`, debut: p.debut, fin: p.fin, titre: `Astreinte · ${nom(s.equipeId)}` }));
 		}
 		const f = fetes(a, semaines);
 		for (const [cle, libelle, date, equipeId] of [

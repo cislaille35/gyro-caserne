@@ -11,6 +11,7 @@ import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
 import { affectationEquipe, anneePlanning, equipe, gardeFete, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesPublication } from './manoeuvres.ts';
+import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
 export type Convoques = 'tous' | number[];
@@ -64,7 +65,7 @@ export function lectures(base: Base, debut: string, fin: string) {
 	] as const;
 }
 
-const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage): SemaineCalculee[] => {
+export const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage): SemaineCalculee[] => {
 	const ordre = JSON.parse(ordreJson ?? '[]') as number[];
 	if (ordre.length === 0) return [];
 	return calculerAnnee(annee, reglage, ordre, new Map(changees.filter((c) => c.debut.startsWith(`${annee}-`)).map((c) => [c.debut, c.equipeId])));
@@ -213,7 +214,7 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 	}
 	const [existante] = await base.select(colonnesExistante).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(eq(manoeuvre.id, d.id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
-	await base.batch([...ecrituresModification(base, d.id, existante, valeurs, maintenant), journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id)]);
+	await base.batch([journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id), ...ecrituresModification(base, d.id, existante, valeurs, maintenant)]);
 	return d.id;
 }
 
@@ -247,7 +248,7 @@ export async function supprimerManoeuvre(base: Base, acteur: Acteur, id: number,
 	const [existante] = await base.select().from(manoeuvre).where(eq(manoeuvre.id, id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
 	if (existante.debut <= maintenant.slice(0, 16)) throw new DonneeInvalide('Manœuvre passée');
-	await base.batch([...ecrituresRetrait(base, id, existante.publicationId, maintenant), journalPlanning(base, acteur, existante.publicationId !== null ? 'annuler_manoeuvre' : 'supprimer_manoeuvre', {}, maintenant, id)]);
+	await base.batch([journalPlanning(base, acteur, existante.publicationId !== null ? 'annuler_manoeuvre' : 'supprimer_manoeuvre', {}, maintenant, id), ...ecrituresRetrait(base, id, existante.publicationId, maintenant)]);
 }
 
 export async function publierAnnee(base: Base, acteur: Acteur, annee: number, maintenant: string): Promise<void> {
@@ -308,8 +309,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	// Dès la mi-décembre de l'année d'avant : une semaine commencée fin décembre peut être encore en cours.
 	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4))) - 1}-12-18`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
-	const [[annees, changees, manoeuvres, vacances, equipes, , conclues], affectations, gerer] = await Promise.all([
-		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`)]),
+	const [[annees, changees, manoeuvres, vacances, equipes, , conclues, lignesPlages], affectations, gerer] = await Promise.all([
+		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`), requetePlagesPubliees(base, debutLecture, finLecture)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
@@ -318,9 +319,15 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const semainesAnnee = publiees.get(annee);
 	if (!semainesAnnee) return { publiee: false, annee, peutPreparer: gerer };
 
-	const mienne = (s: SemaineCalculee) => equipeLe(affectations, s.debut) === s.equipeId;
-	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	const prochaineSemaine = toutes.find((s) => mienne(s) && s.periodes.at(-1)!.fin > maintenant);
+	// Mes heures de la semaine : celles de mon équipe, ou mes plages de l'été publié (renfort compris, vacances retirées).
+	const plages = lignesPlages.map(lirePlage);
+	const miennes = (s: SemaineCalculee) => heuresDe(s, equipeLe(affectations, s.debut), moi, plages);
+	const avecMesHeures = (s: SemaineCalculee) => {
+		const h = miennes(s);
+		return h.length ? { ...s, periodes: h, mienne: true } : { ...s, mienne: false };
+	};
+	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s).map(avecMesHeures);
+	const prochaineSemaine = toutes.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
 	const prochaineManoeuvre = vues.find((m) => m.debut >= maintenant.slice(0, 16) && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
@@ -345,7 +352,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		annee,
 		peutPreparer: gerer,
 		equipes: equipes.map(({ id, nom, couleur }) => ({ id, nom, couleur })),
-		semaines: semainesAnnee.map((s) => ({ ...s, mienne: mienne(s) })),
+		semaines: semainesAnnee.map(avecMesHeures),
 		manoeuvres: vues.filter((m) => m.debut.startsWith(`${annee}-`)).map((m) => ({ ...m, convoque: convoqueA(m) })),
 		vacances: vacances.filter((v) => v.debut <= `${annee}-12-31` && v.fin >= `${annee}-01-01`) as Vacances[],
 		feries: feries(annee),

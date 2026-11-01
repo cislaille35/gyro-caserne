@@ -167,8 +167,9 @@ export async function reponsesEte(base: Base, acteur: Acteur, annee: number, mai
 		base.select().from(ete).where(eq(ete.annee, annee)),
 		base.select().from(reponseEte).where(eq(reponseEte.annee, annee)),
 		base.select().from(vacancesAgent).where(eq(vacancesAgent.annee, annee)).orderBy(asc(vacancesAgent.debut)),
-		...lecturesAgents(base, aujourdhui).slice(0, 2)
-	] as const);
+		lecturesAgents(base, aujourdhui)[0],
+		lecturesAgents(base, aujourdhui)[1]
+	]);
 	const e = lignesEte[0] ? vueEte(lignesEte[0]) : null;
 	return {
 		ete: e,
@@ -186,8 +187,9 @@ export async function rappelsEte(base: Base, maintenant: string): Promise<number
 	const [etes, reponses, agents, affectations] = await base.batch([
 		base.select().from(ete).where(and(sql`${ete.publieeLe} is null`, gte(ete.dateLimite, aujourdhui))),
 		base.select({ annee: reponseEte.annee, personneId: reponseEte.personneId }).from(reponseEte),
-		...lecturesAgents(base, aujourdhui).slice(0, 2)
-	] as const);
+		lecturesAgents(base, aujourdhui)[0],
+		lecturesAgents(base, aujourdhui)[1]
+	]);
 	const ecritures = [];
 	let n = 0;
 	for (const e of etes) {

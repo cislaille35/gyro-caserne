@@ -1,0 +1,161 @@
+import { eq } from 'drizzle-orm';
+import { describe, expect, it } from 'vitest';
+import centreExemple from '../../../centres/exemple/centre.ts';
+import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
+import { planningDe } from '../src/planning/annee.ts';
+import { astreinteDe } from '../src/planning/astreinte.ts';
+import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
+import { ajouterMesVacances, reglerEte } from '../src/planning/ete.ts';
+import { ajusterPlage, eteAPreparer, proposer, proposerEte, publierEte, texteManque } from '../src/planning/repartition.ts';
+import { bandesDe, disponible, lireContexte } from '../src/remplacements/contexte.ts';
+import { avisEte, demandeRemplacement, plageEte } from '../src/schema.ts';
+import type { Poste } from '../src/armement.ts';
+import { jeuEte } from './jeu-ete.ts';
+
+const reglage = centreExemple.astreinte;
+const maintenant = '2027-03-01T10:00';
+const FPT = { ca2: 1, ca1: 0, ce: 2, cod1: 1, agent: 2 };
+// Les sept plages de la semaine du vendredi 25 juin 2027 (Équipe 2).
+const VEN = '2027-06-25T18:00';
+const LUN = '2027-06-28T18:00';
+const MAR = '2027-06-29T18:00';
+
+// Équipe 2 : Bruno (CA2), Cora (COD1), Denis et Eva (CE), Fred, Gina. Alice (équipe 1, CA2), Hugo (équipe 3, COD1), le chef (sans équipe).
+// Été d'une semaine ; Gina en vacances toute la semaine, Bruno le lundi.
+async function jeu() {
+	const j = await jeuEte();
+	const { nouvelle, apte, a, base, chef } = j;
+	const p = {
+		bruno: await nouvelle('Bruno', 2),
+		cora: await nouvelle('Cora', 2),
+		denis: await nouvelle('Denis', 2),
+		eva: await nouvelle('Eva', 2),
+		fred: await nouvelle('Fred', 2),
+		gina: await nouvelle('Gina', 2),
+		alice: await nouvelle('Alice', 1),
+		hugo: await nouvelle('Hugo', 3)
+	};
+	await apte(p.bruno, 'CA2');
+	await apte(p.alice, 'CA2');
+	await apte(p.cora, 'COD1');
+	await apte(p.hugo, 'COD1');
+	await apte(p.denis, 'CE');
+	await apte(p.eva, 'CE');
+	await reglerEte(base, chef, 2027, { debut: '2027-06-25', fin: '2027-06-25', dateLimite: '2027-05-15' }, maintenant, reglage);
+	await ajouterMesVacances(base, a(p.gina), 2027, { debut: '2027-06-25', fin: '2027-07-02' }, maintenant);
+	await ajouterMesVacances(base, a(p.bruno), 2027, { debut: '2027-06-28', fin: '2027-06-28' }, maintenant);
+	const chefId = chef.type === 'personne' ? chef.id : 0;
+	return { ...j, p, chefId };
+}
+
+describe('la proposition (calcul)', () => {
+	it('l’équipe de base moins les vacances ; un renfort seulement s’il comble une place ; les moins sollicités d’abord', () => {
+		const tous = new Set<Poste>(['agent', 'ca2', 'ca1', 'ce', 'cod1']);
+		const postes = (id: number) => (id === 1 ? tous : id === 2 ? new Set<Poste>(['agent', 'cod1']) : id <= 4 ? new Set<Poste>(['agent', 'ce']) : new Set<Poste>(['agent']));
+		const plages = ['2027-06-28T18:00', '2027-06-29T18:00', '2027-06-30T18:00'].map((debut) => ({ debut, fin: `${debut.slice(0, 8)}${Number(debut.slice(8, 10)) + 1}T06:00`, semaine: '2027-06-25', equipeId: 1 }));
+		const r = proposer({ plages, base: () => [1, 2, 3, 4, 5, 6], candidats: [7, 8, 9], enVacances: (id, p) => id === 6 || (id === 1 && p.debut.startsWith('2027-06-29')), postes, fpt: FPT });
+		expect(r.ecarts.map((x) => [x.ajoutes, x.retires])).toEqual([
+			[[7], [6]],
+			[[8], [1, 6]],
+			[[9], [6]]
+		]);
+		// Sans CA2 parmi les candidats : la plage du mardi reste impossible, mais l'agent manquant est comblé.
+		expect(r.impossibles).toEqual([{ debut: '2027-06-29T18:00', fin: '2027-06-30T06:00', manque: ['ca2'] }]);
+		expect(texteManque(r.impossibles[0]!, ['ca2'])).toBe('Nuit du mardi 29 juin : pas de CA tout engins disponible');
+		expect(texteManque(r.impossibles[0]!, ['ca2', 'agent', 'agent'])).toBe('Nuit du mardi 29 juin : manque CA tout engins, 2 agents');
+	});
+});
+
+describe('été : proposer, ajuster, publier', () => {
+	it('réservé à qui gère le planning', async () => {
+		const { base, p, a } = await jeu();
+		await expect(eteAPreparer(base, a(p.alice), 2027, maintenant, reglage)).rejects.toThrow(RefusDroit);
+		await expect(proposerEte(base, a(p.alice), 2027, maintenant, reglage)).rejects.toThrow(RefusDroit);
+	});
+
+	it('propose : toutes les plages armées, renforts répartis équitablement ; le tableau le montre', async () => {
+		const { base, chef, p, chefId } = await jeu();
+		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).proposee).toBe(false);
+		expect(await proposerEte(base, chef, 2027, maintenant, reglage)).toEqual({ impossibles: [] });
+		const lignes = await base.select().from(plageEte).orderBy(plageEte.debut);
+		expect(lignes.map((l) => [l.debut, JSON.parse(l.ajoutes), JSON.parse(l.retires)])).toEqual([
+			[VEN, [p.alice], [p.gina]],
+			['2027-06-26T06:00', [chefId], [p.gina]],
+			['2027-06-27T06:00', [p.hugo], [p.gina]],
+			[LUN, [p.alice, chefId], [p.bruno, p.gina]],
+			[MAR, [p.hugo], [p.gina]],
+			['2027-06-30T18:00', [p.alice], [p.gina]],
+			['2027-07-01T18:00', [chefId], [p.gina]]
+		]);
+		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage, LUN);
+		expect(vue.semaines).toHaveLength(1);
+		expect(vue.semaines[0]!.plages.every((x) => x.arme)).toBe(true);
+		expect(vue.semaines[0]!.plages[3]!.presents.map((x) => `${x.prenom}${x.renfort ? ' (renfort)' : ''}`)).toEqual(['Cora', 'Denis', 'Eva', 'Fred', 'Alice (renfort)', 'Chef (renfort)']);
+		expect(vue.detail!.candidats.find((x) => x.id === p.gina)).toMatchObject({ vacances: true });
+		expect(vue.detail!.candidats[0]).toMatchObject({ prenom: 'Hugo', postes: ['cod1'] });
+		expect(vue.reponses.find((x) => x.id === p.gina)).toMatchObject({ reponse: 'vacances' });
+	});
+
+	it('une plage impossible est signalée', async () => {
+		const { base, chef, p, a } = await jeu();
+		await ajouterMesVacances(base, a(p.alice), 2027, { debut: '2027-06-28', fin: '2027-06-28' }, maintenant);
+		expect(await proposerEte(base, chef, 2027, maintenant, reglage)).toEqual({ impossibles: ['Nuit du lundi 28 juin : pas de CA tout engins disponible'] });
+		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).impossibles).toEqual(['Nuit du lundi 28 juin : pas de CA tout engins disponible']);
+	});
+
+	it('publier : les renforts sont prévenus ; le planning, l’Accueil, l’agenda et les remplacements suivent', async () => {
+		const { base, chef, p, a, ids } = await jeu();
+		await expect(publierEte(base, chef, 2027, maintenant, reglage)).rejects.toThrow('Proposez d’abord l’été');
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await ajusterPlage(base, chef, 2027, MAR, p.fred, false, maintenant, reglage);
+		expect(await base.select().from(avisEte)).toEqual([]);
+		await publierEte(base, chef, 2027, maintenant, reglage);
+		await expect(proposerEte(base, chef, 2027, maintenant, reglage)).rejects.toThrow('Été déjà publié');
+		const avis = await base.select().from(avisEte);
+		expect(avis.find((x) => x.personneId === p.alice)!.texte).toBe('Planning d’été : vous êtes en renfort de l’Équipe 2 la semaine du vendredi 25 juin.');
+		expect(avis.find((x) => x.personneId === p.fred)!.texte).toBe('Planning d’été : vous n’êtes pas d’astreinte sur une partie de la semaine du vendredi 25 juin.');
+		expect(avis.some((x) => x.personneId === p.gina)).toBe(false);
+
+		// Planning : Alice tient trois nuits de la semaine de l'Équipe 2 ; Gina, en vacances, n'y est pas.
+		const planAlice = await planningDe(base, a(p.alice), 2027, '2027-06-20T10:00', reglage);
+		const semaine = planAlice.publiee ? planAlice.semaines.find((s) => s.debut === '2027-06-25')! : null;
+		expect(semaine).toMatchObject({ mienne: true, equipeId: ids[1] });
+		expect(semaine!.periodes).toEqual([
+			{ debut: VEN, fin: '2027-06-26T06:00' },
+			{ debut: LUN, fin: '2027-06-29T06:00' },
+			{ debut: '2027-06-30T18:00', fin: '2027-07-01T06:00' }
+		]);
+		const planGina = await planningDe(base, a(p.gina), 2027, '2027-06-20T10:00', reglage);
+		expect(planGina.publiee && planGina.semaines.find((s) => s.debut === '2027-06-25')!.mienne).toBe(false);
+		expect((await astreinteDe(base, a(p.alice), '2027-06-25T10:00', reglage))).toMatchObject({ debut: VEN, mienne: true, equipe: { id: ids[1] } });
+		expect((await astreinteDe(base, a(p.gina), '2027-06-25T10:00', reglage))!.debut).not.toBe(VEN);
+
+		const lien = await monLienAgenda(base, a(p.alice), '2027-06-20T10:00');
+		const ics = (await agendaDe(base, `${lien}.ics`.replace('.ics', ''), '2027-06-20T10:00', reglage))!;
+		expect(ics).toContain('UID:astreinte-2027-06-25-1@gyro-caserne');
+		expect(ics).toMatch(/DTSTART:20270628T160000Z\r\nDTEND:20270629T040000Z\r\nSUMMARY:Astreinte · Équipe 2/);
+
+		const ctx = await lireContexte(base, '2027-06-20T10:00', reglage);
+		const nuitLundi = { debut: LUN, fin: '2027-06-29T06:00' };
+		expect(disponible(ctx, p.gina, [nuitLundi])).toBe(false);
+		expect(disponible(ctx, p.bruno, [nuitLundi])).toBe(false);
+		expect(disponible(ctx, p.fred, [{ debut: MAR, fin: '2027-06-30T06:00' }])).toBe(true);
+		expect(bandesDe(ctx, p.alice).find((s) => s.semaine === '2027-06-25')).toMatchObject({ equipeId: ids[1] });
+	});
+
+	it('après publication : un ajustement prévient l’agent ; des vacances changées préviennent le chef ; un remplacement conclu contredit est signalé', async () => {
+		const { base, chef, chefId, p, a } = await jeu();
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await base.insert(demandeRemplacement).values({ genre: 'remplacement', demandeurId: p.fred, remplacantId: p.hugo, periodes: JSON.stringify([{ debut: MAR, fin: '2027-06-30T06:00' }]), debut: MAR, etat: 'conclue', creeLe: maintenant });
+		await publierEte(base, chef, 2027, maintenant, reglage);
+		await base.delete(avisEte);
+		await ajusterPlage(base, chef, 2027, MAR, p.fred, false, maintenant, reglage);
+		await expect(ajusterPlage(base, chef, 2027, '2027-06-29T19:00', p.fred, false, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
+		expect((await base.select().from(avisEte)).map((x) => [x.personneId, x.texte])).toEqual([[p.fred, 'Vous n’êtes plus d’astreinte : nuit du mardi 29 juin.']]);
+		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage);
+		expect(vue.conflits).toEqual(['nuit du mardi 29 juin : Fred Test est remplacé par Hugo Test, mais n’est plus d’astreinte']);
+		await base.delete(avisEte);
+		await ajouterMesVacances(base, a(p.eva), 2027, { debut: '2027-06-30', fin: '2027-06-30' }, maintenant);
+		expect((await base.select().from(avisEte).where(eq(avisEte.personneId, chefId))).map((x) => [x.quoi, x.texte, x.url])).toEqual([['vacances_changees', 'Eva Test a changé ses vacances : à revoir.', '/planning/ete?annee=2027']]);
+	});
+});
