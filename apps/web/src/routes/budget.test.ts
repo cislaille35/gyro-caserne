@@ -553,6 +553,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(demander, 'demander').toBeLessThanOrEqual(BUDGET);
 		for (const [nom, page, l, url] of [
 			['demander', pageDemander, deLAgent, '/remplacements/demander'],
+			['demander, à qui ?', pageDemander, deLAgent, `/remplacements/demander?p=${encodeURIComponent(`${nuit.debut}|${nuit.fin}`)}&etape=qui`],
 			['manoeuvre', pageEchangeManoeuvre, deLAgent, '/remplacements/manoeuvre'],
 			['liste', remplacements, locals, '/remplacements'],
 			['aptitudes', reglagesAptitudes, locals, '/reglages/aptitudes']
@@ -573,7 +574,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(accepter, 'accepter').toBeLessThanOrEqual(BUDGET);
 		const detail = await compter(async () => {
 			await (racine as any)({ locals: deLAgent });
-			await (demandeRemplacementPage as any)({ locals: deLAgent, params: { id } });
+			await (demandeRemplacementPage as any)({ locals: deLAgent, params: { id }, url: new URL(`http://localhost/remplacements/${id}?envoyee`) });
 		});
 		expect(detail, 'détail').toBeLessThanOrEqual(BUDGET);
 	});
