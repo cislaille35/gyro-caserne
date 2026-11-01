@@ -214,7 +214,7 @@
 			{:else}
 				<p>Aucune manœuvre pour {p.annee}.</p>
 			{/if}
-			<p><a class="bouton-lien" href={ici({ manoeuvre: 'nouvelle' })} data-sveltekit-noscroll>Ajouter une manœuvre</a></p>
+			<p><a class="bouton-lien" href={ici({ manoeuvre: 'nouvelle' })} data-sveltekit-reset="false">Ajouter une manœuvre</a></p>
 		{:else if data.etape === 'reperes'}
 			<details class="repli">
 				<summary>Jours fériés <span class="doux">({p.feries.length}, calculés)</span></summary>
@@ -271,7 +271,7 @@
 								{#each m.semaines as s (s.debut)}
 									{@const e = equipe(s.equipeId)}
 									<li>
-										<a href={ici({ semaine: s.debut })} class="case" class:changee={s.changee} class:ouverte={s.debut === data.semaine} style:--equipe={e.couleur} data-sveltekit-noscroll>
+										<a href={ici({ semaine: s.debut })} class="case" class:changee={s.changee} class:ouverte={s.debut === data.semaine} style:--equipe={e.couleur} data-sveltekit-reset="false">
 											<span class="numero-s">S{s.numero}</span>
 											<span class="nom">{e.nom}</span>
 											{#if s.changee}<span class="mot">changée</span>{/if}

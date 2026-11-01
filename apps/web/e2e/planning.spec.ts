@@ -35,10 +35,28 @@ test.describe('chef : préparer l’année', () => {
 		await sansViolation(page);
 		await page.getByRole('link', { name: 'Fermer' }).click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toHaveCount(0);
+		await expect(page.locator('a.case').first()).toBeFocused();
 
 		await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: 'Manœuvres' }).click();
-		await page.getByRole('link', { name: 'Ajouter une manœuvre' }).click();
-		await expect(page.getByRole('heading', { level: 2, name: 'Nouvelle manœuvre' })).toBeVisible();
+		// Au clavier : le panneau est modal (focus dedans, page inerte), Échap le ferme et rend le focus à son lien.
+		const ajouter = page.getByRole('link', { name: 'Ajouter une manœuvre' });
+		const panneau = page.getByRole('dialog', { name: 'Nouvelle manœuvre' });
+		await ajouter.focus();
+		await page.keyboard.press('Enter');
+		await expect(panneau).toBeVisible();
+		await expect(page.locator('dialog:modal')).toHaveCount(1);
+		await expect(panneau.getByRole('heading', { level: 2 })).toBeFocused();
+		await page.keyboard.press('Tab');
+		await expect(panneau.getByRole('link', { name: 'Fermer' })).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(panneau).toHaveCount(0);
+		await expect(ajouter).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(panneau).toBeVisible();
+		// Échap pendant une saisie ne ferme pas : ce qui a été tapé reste.
+		await page.getByLabel('Thème').fill('Brouillon');
+		await page.keyboard.press('Escape');
+		await expect(panneau).toBeVisible();
 		await page.getByLabel('Date').fill(`${annee + 1}-03-07`);
 		await page.getByLabel('Heure de début').fill('08:30');
 		await page.getByLabel('Thème').fill(theme);
@@ -66,6 +84,14 @@ test.describe('agent : mon année et mon agenda', () => {
 		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Mois' }).click();
 		await expect(page.getByRole('table')).toBeVisible();
 		await sansViolation(page);
+		// Des cases d'au moins 44 px, au téléphone aussi.
+		for (const boite of await page.locator('td a').evaluateAll((liens) => liens.map((l) => l.getBoundingClientRect()))) {
+			expect(boite.width).toBeGreaterThanOrEqual(44);
+			expect(boite.height).toBeGreaterThanOrEqual(44);
+		}
+		// Le 25 décembre porte le signe « Fête », même quand la relève tombe à Noël.
+		await page.goto(`/planning?annee=${new Date().getFullYear()}&vue=mois&mois=12`);
+		await expect(page.getByRole('link', { name: /25 décembre, .*Fête/ })).toBeVisible();
 
 		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' }).click();
 		await expect(page.getByRole('heading', { level: 3, name: 'Décembre' })).toBeVisible();

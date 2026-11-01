@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import centre from '$centre';
 import { calculerAnnee, feries } from '@gyro-caserne/socle';
-import { grilleDuMois, joursDeLaSemaine, plagesDuJour, reperesDe, resumeDuMois, type Donnees } from './vues.ts';
+import { grilleDuMois, joursDeLaSemaine, plagesDuJour, reperesDe, reperesDeLaGrille, resumeDuMois, type Donnees } from './vues.ts';
 
 const semaines = calculerAnnee(2026, centre.astreinte, [1, 2, 3, 4], new Map()).map((s) => ({ ...s, mienne: s.equipeId === 1 }));
 const semaine = (debut: string) => semaines.find((s) => s.debut === debut)!;
@@ -75,5 +75,13 @@ describe('vues du planning', () => {
 		expect(noel.reperes.map((r) => r.texte)).toEqual(['Noël', 'Garde de Noël']);
 		// Une semaine ordinaire s'arrête au jeudi.
 		expect(joursDeLaSemaine(semaine('2026-11-06'), d, 'equipes')).toHaveLength(7);
+	});
+
+	it('les repères de la grille du mois : chacun à son jour, sans doublon ni remplacement ; Noël et le Nouvel An marqués', () => {
+		const r = reperesDeLaGrille(grilleDuMois(2026, 12, semaines), d, 'moi');
+		// La garde de Noël est dans la semaine du 18, mais le 25 est la première case de celle du 25.
+		expect(r.filter((x) => x.date === '2026-12-25').map((x) => `${x.genre} ${x.texte}`)).toEqual(['ferie Noël', 'fete Garde de Noël']);
+		expect(r.filter((x) => x.genre === 'fete').map((x) => x.date)).toEqual(['2026-12-25', '2026-12-31']);
+		expect(reperesDeLaGrille(grilleDuMois(2026, 11, semaines), d, 'equipes').map((x) => x.genre)).toEqual(['ferie', 'manoeuvre', 'manoeuvre', 'ferie']);
 	});
 });
