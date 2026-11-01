@@ -19,7 +19,7 @@ describe('/planning/preparer/manoeuvre', () => {
 		const { base, chef, ids, annee } = await preparer();
 		const l = locaux(base, chef);
 		const champs: [string, string][] = [['date', `${annee + 1}-03-07`], ['heure', '08:30'], ['theme', 'Feux de forêt'], ['lieu', 'Caserne'], ['pour', 'equipes'], ['equipes', String(ids[0])], ['equipes', String(ids[1])], ['petitDejeuner', 'oui']];
-		await expect(envoyer(actions, 'enregistrer', l, champs)).rejects.toMatchObject({ status: 303, location: `/planning/preparer?annee=${annee + 1}#manoeuvres` });
+		await expect(envoyer(actions, 'enregistrer', l, champs)).rejects.toMatchObject({ status: 303, location: `/planning/preparer?annee=${annee + 1}&etape=manoeuvres` });
 		const [m] = await base.select().from(manoeuvre);
 		expect(m).toMatchObject({ debut: `${annee + 1}-03-07T08:30`, convoques: JSON.stringify([ids[0], ids[1]]), petitDejeuner: 1 });
 		const data = await charger(load, l, `?id=${m!.id}`);

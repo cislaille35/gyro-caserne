@@ -6,7 +6,7 @@ import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { ajouterRessource, refuser, reserver } from '../src/reservations.ts';
-import { attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
+import { anneePlanning, attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -163,8 +163,8 @@ describe('aDecider', () => {
 		await nouvelle('Parti', { complete: false, statut: 'parti' });
 		await nouvelle('Exterieur', { complete: false, exterieur: true });
 
-		// « Membre de comité » et « Rapporteur de comité » n'ont aucun titulaire, mais ne sont pas listés.
-		expect(await aDecider(base, acteur(chef), aujourdhui)).toEqual([
+		// « Membre de comité » et « Rapporteur de comité » n'ont aucun titulaire, mais ne sont pas listés. En septembre, pas encore de planning à préparer.
+		expect(await aDecider(base, acteur(chef), '2026-09-25')).toEqual([
 			{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Équipe 3 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Équipe 4 sans chef d’équipe', lien: '/nominations' },
@@ -189,7 +189,20 @@ describe('aDecider', () => {
 		expect(await aDecider(base, acteur(chef), aujourdhui)).toContainEqual({ texte: '1 fiche à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' });
 
 		const vide = await baseDeTest();
-		expect(await aDecider(vide, superAdmin, aujourdhui)).toEqual([]);
+		expect(await aDecider(vide, superAdmin, '2026-09-25')).toEqual([]);
+	});
+
+	it('à partir du 1er octobre, tant que l’année suivante n’est pas publiée : « Planning N à préparer » en tête', async () => {
+		const { base, role, nouvelle, nommer } = await jeu();
+		const chef = await nouvelle('Claire');
+		await nommer(chef, role('Chef de centre'), { type: 'centre' });
+		const ligne = { texte: 'Planning 2027 à préparer', lien: '/planning/preparer?annee=2027' };
+		expect(await aDecider(base, acteur(chef), '2026-09-30')).not.toContainEqual(ligne);
+		expect((await aDecider(base, acteur(chef), '2026-10-01'))[0]).toEqual(ligne);
+		await base.insert(anneePlanning).values({ annee: 2027, ordre: '[1,2]' });
+		expect((await aDecider(base, acteur(chef), '2026-12-31'))[0]).toEqual(ligne);
+		await base.update(anneePlanning).set({ publieeLe: '2026-11-01T10:00' });
+		expect(await aDecider(base, acteur(chef), '2026-12-31')).not.toContainEqual(ligne);
 	});
 
 	it('refusé à qui n’a pas « Le centre », même règle que les casquettes', async () => {

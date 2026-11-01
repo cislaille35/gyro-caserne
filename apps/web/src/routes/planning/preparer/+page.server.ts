@@ -1,6 +1,9 @@
+import { fail } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { ajouterVacances, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances } from '@gyro-caserne/socle';
+import { ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
+import { deplacer, etapeDe } from '#lib/planning/preparer.ts';
 import { champ, echecPlanning, nombres } from '#lib/server/formulaire-planning.ts';
 import { annoncerSiJournee, anneeDe, connecte, ouRefus } from '#lib/server/planning.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -12,7 +15,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const annee = anneeDe(url);
 	const preparation = await ouRefus(preparerAnnee(base, acteur, annee, maintenantParis(), centre.astreinte), REFUS);
 	const courante = Number(maintenantParis().slice(0, 4));
-	return { preparation, annees: [courante, courante + 1] };
+	// Avant le premier enregistrement, l'aperçu suit l'ordre proposé.
+	const ordre = preparation.ordre.length ? preparation.ordre : preparation.ordrePropose;
+	const apercu = (preparation.semaines.length ? preparation.semaines : calculerAnnee(annee, centre.astreinte, ordre, new Map())).slice(0, 6);
+	const nombre = (cle: string) => (/^\d+$/.test(url.searchParams.get(cle) ?? '') ? Number(url.searchParams.get(cle)) : null);
+	return {
+		preparation,
+		annees: [courante, courante + 1],
+		etape: etapeDe(url),
+		apercu,
+		// Le panneau ouvert : une manœuvre (« nouvelle » ou son numéro), une semaine, ou l'échange proposé pour une fête.
+		manoeuvre: url.searchParams.get('manoeuvre') === 'nouvelle' ? ('nouvelle' as const) : nombre('manoeuvre'),
+		semaine: preparation.semaines.find((x) => x.debut === url.searchParams.get('semaine'))?.debut ?? null,
+		proposer: url.searchParams.get('proposer') === 'noel' ? ('noel' as const) : url.searchParams.get('proposer') === 'nouvel_an' ? ('nouvel_an' as const) : null
+	};
 };
 
 // Chaque action : l'année visée dans l'adresse (?annee=), une réponse pour son formulaire.
@@ -29,6 +45,16 @@ async function agir(locals: App.Locals, cible: string, succes: string, faire: (m
 export const actions: Actions = {
 	roulement: async ({ locals, request, url }) => {
 		const ordre = nombres(await request.formData(), 'ordre');
+		return agir(locals, 'roulement', 'Roulement enregistré.', (m) => reglerRoulement(locals.base, locals.acteur!, anneeDe(url), ordre, m));
+	},
+	// Monter ou descendre une équipe : l'ordre est enregistré tout de suite.
+	deplacer: async ({ locals, request, url }) => {
+		const f = await request.formData();
+		const [rang, sens] = champ(f, 'deplacer').split(':');
+		const ordre = deplacer(nombres(f, 'ordre'), Number(rang), sens === 'monter' ? -1 : 1);
+		// Une année publiée ne change plus de roulement d'un geste : ses semaines se changent une à une.
+		const [ligne] = await locals.base.select({ publieeLe: anneePlanning.publieeLe }).from(anneePlanning).where(eq(anneePlanning.annee, anneeDe(url)));
+		if (ligne?.publieeLe) return fail(400, { cible: 'roulement', message: 'Année publiée : changez plutôt l’équipe d’une semaine, à l’étape « Vérifier et publier ».' });
 		return agir(locals, 'roulement', 'Roulement enregistré.', (m) => reglerRoulement(locals.base, locals.acteur!, anneeDe(url), ordre, m));
 	},
 	semaines: async ({ locals, request, url }) => {

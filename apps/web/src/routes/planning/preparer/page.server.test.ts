@@ -33,6 +33,40 @@ describe('/planning/preparer', () => {
 		expect((await base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee + 1)))[0]!.publieeLe).not.toBeNull();
 	});
 
+	it('l’étape et les panneaux viennent de l’adresse ; l’aperçu suit l’ordre proposé', async () => {
+		const { base, chef, annee } = await preparer({ publiee: false });
+		const l = locaux(base, chef);
+		const q = `?annee=${annee + 1}`;
+		const data = await charger(load, l, q);
+		expect(data).toMatchObject({ etape: 'roulement', manoeuvre: null, semaine: null, proposer: null });
+		expect(data.apercu).toHaveLength(6);
+		expect(data.apercu.map((s: { equipeId: number }) => s.equipeId)).toEqual([...data.preparation.ordrePropose, ...data.preparation.ordrePropose].slice(0, 6));
+		expect(await charger(load, l, `${q}&etape=fetes&proposer=noel`)).toMatchObject({ etape: 'fetes', proposer: 'noel' });
+		expect(await charger(load, l, `${q}&etape=manoeuvres&manoeuvre=nouvelle`)).toMatchObject({ manoeuvre: 'nouvelle' });
+		expect(await charger(load, l, `${q}&etape=manoeuvres&manoeuvre=12`)).toMatchObject({ manoeuvre: 12 });
+	});
+
+	it('monter une équipe enregistre le roulement', async () => {
+		const { base, chef, annee, ids } = await preparer({ publiee: false });
+		const q = `?annee=${annee + 1}`;
+		const ordre = ids.map((id): [string, string] => ['ordre', String(id)]);
+		expect(await envoyer(actions, 'deplacer', locaux(base, chef), [...ordre, ['deplacer', '1:monter']], q)).toMatchObject({ cible: 'roulement', succes: expect.any(String) });
+		expect((await charger(load, locaux(base, chef), q)).preparation.ordre).toEqual([ids[1], ids[0], ids[2], ids[3]]);
+		expect(await envoyer(actions, 'deplacer', locaux(base, chef), [...ordre, ['deplacer', '3:descendre']], q)).toMatchObject({ succes: expect.any(String) });
+	});
+
+	it('année publiée : déplacer une équipe est refusé ; accepter l’échange change deux semaines', async () => {
+		const { base, chef, annee, ids } = await preparer();
+		const l = locaux(base, chef);
+		const q = `?annee=${annee}`;
+		const ordre = ids.map((id): [string, string] => ['ordre', String(id)]);
+		expect(await envoyer(actions, 'deplacer', l, [...ordre, ['deplacer', '1:monter']], q)).toMatchObject({ status: 400, data: { cible: 'roulement' } });
+		const [a, b] = (await charger(load, l, q)).preparation.semaines;
+		expect(await envoyer(actions, 'semaines', l, [[`semaine-${a.debut}`, String(b.equipeId)], [`semaine-${b.debut}`, String(a.equipeId)]], q)).toMatchObject({ succes: expect.any(String) });
+		const [a2, b2] = (await charger(load, l, q)).preparation.semaines;
+		expect([a2.equipeId, b2.equipeId]).toEqual([b.equipeId, a.equipeId]);
+	});
+
 	it('refuse un roulement avec une équipe en double, sur le bon formulaire', async () => {
 		const { base, chef, ids } = await preparer({ publiee: false });
 		expect(await envoyer(actions, 'roulement', locaux(base, chef), [['ordre', String(ids[0])], ['ordre', String(ids[0])]])).toMatchObject({ status: 400, data: { cible: 'roulement', message: expect.stringContaining('une fois') } });

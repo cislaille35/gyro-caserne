@@ -41,7 +41,7 @@ export const actions: Actions = {
 		// Déjà annoncée : les convoqués sont prévenus du changement, après la réponse. Sinon, annoncée tout de suite si elle est proche.
 		if (valeurs.id) enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis()));
 		annoncerSiJournee(locals);
-		redirect(303, `/planning/preparer?annee=${valeurs.date.slice(0, 4)}#manoeuvres`);
+		redirect(303, `/planning/preparer?annee=${valeurs.date.slice(0, 4)}&etape=manoeuvres`);
 	},
 	supprimer: async ({ locals, request }) => {
 		const { acteur, base } = connecte(locals);
@@ -55,6 +55,6 @@ export const actions: Actions = {
 			return echecPlanning(erreur, 'supprimer');
 		}
 		enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis()));
-		redirect(303, `/planning/preparer?annee=${annee}#manoeuvres`);
+		redirect(303, `/planning/preparer?annee=${annee}&etape=manoeuvres`);
 	}
 };

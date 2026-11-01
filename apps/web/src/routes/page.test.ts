@@ -17,11 +17,23 @@ describe('accueil', () => {
 		expect(html).not.toContain('Tout est à jour');
 	});
 
-	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; astreinte vide sans fausses données', () => {
+	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; pas de fausse astreinte', () => {
 		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
 		expect(html).toContain('Bonjour Alice');
 		expect(html).not.toContain('aria-label="Casquettes"');
-		expect(html).toContain('Votre astreinte s’affichera ici avec le planning.');
+		expect(html).not.toContain('Bientôt');
+		expect(html).not.toContain('Ma prochaine astreinte');
+	});
+
+	it('la carte astreinte en tête, compacte, vers le Planning ; l’équipe écrite', () => {
+		const periodes = [{ debut: '2026-11-20T18:00', fin: '2026-11-23T06:00' }, { debut: '2026-11-23T18:00', fin: '2026-11-27T06:00' }];
+		const a = { debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes };
+		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant: '2026-11-01T10:00' });
+		expect(html).toMatch(/<a[^>]*class="carte compacte[^"]*"[^>]*href="\/planning"/);
+		expect(html).toContain('Votre équipe est d’astreinte dans 19 jours');
+		expect(html).toContain('Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
+		expect(html).toContain('Équipe 3');
+		expect(html.indexOf('Ma prochaine astreinte')).toBeLessThan(html.indexOf('Raccourcis'));
 	});
 
 	it('plusieurs casquettes : rangée de liens, la choisie marquée, le compteur dans le libellé', () => {
@@ -90,7 +102,7 @@ describe('accueil', () => {
 
 	it('chef d’équipe : vide avec une phrase vraie', () => {
 		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 0 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider: [] } });
-		expect(html).toContain('Votre astreinte s’affichera ici avec le planning.');
+		expect(html).not.toContain('Bientôt');
 		expect(html).toContain('Aucun remplacement à valider.');
 	});
 

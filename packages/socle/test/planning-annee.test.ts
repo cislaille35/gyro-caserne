@@ -5,6 +5,8 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { chargerPlanningFictif } from '../src/planning/fictif.ts';
+import { planningDuMatin } from '../src/planning/manoeuvres.ts';
+import { repondreEvenement } from '../src/index.ts';
 import { ajouterVacances, changerSemaines, enregistrerManoeuvre, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances, supprimerManoeuvre } from '../src/planning/annee.ts';
 import { affectationEquipe, attribution, equipe, journal, manoeuvre, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -176,6 +178,18 @@ describe('le planning vu par l’agent', () => {
 		expect(p.prochaine.astreinte).toMatchObject({ debut: '2027-01-08T18:00' });
 	});
 
+	it('début janvier : la semaine en cours commencée fin décembre reste la prochaine astreinte', async () => {
+		const { base, chef, alice, ids } = await publiee();
+		await changerSemaines(base, chef, 2026, { '2026-12-25': ids[1]! }, maintenant, reglage);
+		await publierAnnee(base, chef, 2026, maintenant);
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		await publierAnnee(base, chef, 2027, maintenant);
+		const p = await planningDe(base, alice, 2027, '2027-01-01T10:00', reglage);
+		if (!p.publiee) throw new Error('attendu publié');
+		expect(p.prochaine.astreinte).toMatchObject({ debut: '2026-12-25T18:00', enCours: true });
+		expect(p.semaines[0]!.debut).toBe('2027-01-01');
+	});
+
 	it('après publication : ses semaines suivent son équipe à la date ; prochaine astreinte et manœuvre', async () => {
 		const { base, chef, alice, ids } = await publiee();
 		await publierAnnee(base, chef, 2026, maintenant);
@@ -187,12 +201,27 @@ describe('le planning vu par l’agent', () => {
 		expect(miennes).not.toContain('2026-12-04');
 		expect(miennes).toContain('2026-12-11');
 		expect(p.monEquipe).toBe(ids[0]);
-		expect(p.prochaine.astreinte).toEqual({ debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipeId: ids[0], enCours: false });
-		expect(p.prochaine.manoeuvre).toMatchObject({ theme: 'Sport + SAP', debut: '2026-11-15T08:30' });
+		expect(p.prochaine.astreinte).toMatchObject({ debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipeId: ids[0], enCours: false });
+		expect(p.prochaine.astreinte!.periodes[0]).toEqual({ debut: '2026-11-06T18:00', fin: '2026-11-09T06:00' });
+		expect(p.prochaine.manoeuvre).toMatchObject({ theme: 'Sport + SAP', debut: '2026-11-15T08:30', publicationId: null, reponse: null });
 		// Noël 2026 : semaine du 18 décembre, index 50 → équipe 3 ; Nouvel An : équipe 4. Alice (équipe 2) n'en tient aucune.
 		expect(p.prochaine.fete).toBeNull();
 		expect(p.manoeuvres).toHaveLength(2);
 		expect(p.feries).toHaveLength(11);
+	});
+
+	it('la prochaine manœuvre annoncée porte sa publication et ma réponse', async () => {
+		const { base, chef, alice } = await publiee();
+		await publierAnnee(base, chef, 2026, maintenant);
+		await planningDuMatin(base, '2026-11-02T08:00');
+		const avant = await planningDe(base, alice, 2026, '2026-11-02T09:00', reglage);
+		if (!avant.publiee) throw new Error('attendu publié');
+		const id = avant.prochaine.manoeuvre!.publicationId!;
+		expect(id).toBeGreaterThan(0);
+		await repondreEvenement(base, alice, id, 'absent', '2026-11-02T09:00');
+		const apres = await planningDe(base, alice, 2026, '2026-11-02T09:00', reglage);
+		if (!apres.publiee) throw new Error('attendu publié');
+		expect(apres.prochaine.manoeuvre).toMatchObject({ publicationId: id, reponse: 'absent' });
 	});
 
 	it('une astreinte en cours est la prochaine ; la garde de fête de son équipe est annoncée', async () => {
