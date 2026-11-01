@@ -6,7 +6,7 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 
 ## Les notions
 
-- **Période** : une tranche de son astreinte, prise dans le planning. Une **nuit** en semaine (18 h – 6 h), une **garde de 24 h** le week-end ou un férié (6 h – 6 h), la nuit du vendredi de relève ; « Tout le week-end » coche d'un geste les tranches qui se suivent. Pas d'heure à saisir.
+- **Période** : une tranche de son astreinte, prise dans le planning. Une **nuit** en semaine (18 h – 6 h), une **garde de 24 h** le week-end ou un férié (6 h – 6 h), la nuit du vendredi de relève ; des raccourcis (« Ce soir », « Le week-end », « Toute la semaine ») les choisissent d'un geste. Pas d'heure à saisir.
 - **Remplacement** : céder une ou plusieurs périodes. Plusieurs périodes se prennent **en bloc** ; pour les céder à des collègues différents, on fait plusieurs demandes.
   - **Ciblé** : à un seul collègue, lui seul la reçoit et doit accepter. S'il refuse, le demandeur l'**ouvre à tous** d'un geste.
   - **Ouvert** : envoyé à tous les **disponibles** (ni d'astreinte, ni déjà remplaçants, ni demandeurs à ce moment-là). Le **premier** qui accepte l'emporte, jamais deux.
@@ -16,7 +16,7 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 
 ## Le déroulé
 
-1. Depuis le Planning ou Moi : « Me faire remplacer ». L'agent coche ses périodes, choisit « à tous » ou « à un collègue », ou « Échanger ».
+1. « Me faire remplacer » (carte astreinte de l'Accueil et du Planning, chaque jour de la vue Semaine, page Remplacements) ouvre un parcours en 3 étapes : **Quand ?** (la semaine, puis ses jours en bande, les périodes passées ou déjà demandées visibles mais inactives), **À qui ?** (« Tout le monde », avec le nombre de prévenus, ou un collègue libre, avec l'aptitude qui lui manque), **Vérifier et envoyer** (une phrase récapitulative). L'échange suit le même parcours en 4 étapes (ma période, le collègue, sa période, vérifier).
 2. Le ou les collègues reçoivent la demande (cloche, téléphone, « À ne pas manquer » de l'accueil).
 3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef d'équipe. Sinon c'est conclu, et le chef d'équipe est **informé**.
 4. Conclu : le planning montre « X remplace Y » sur la période, l'agenda des deux agents suit, et les deux sont invités à **mettre à jour leur disponibilité dans l'appli du SDIS**, qui fait foi pour l'alerte.
