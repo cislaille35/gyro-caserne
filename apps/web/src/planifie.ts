@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -32,7 +32,11 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// Les manœuvres du planning s'annoncent le matin, pas en pleine nuit : à 8 h (Paris), et à 8 h 10 si le passage de 8 h a manqué.
 				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
 				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
-				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) ctx.waitUntil(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
+				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) {
+					ctx.waitUntil(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
+					// Les rappels des vacances d'été : chacun n'est envoyé qu'une fois.
+					ctx.waitUntil(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', e)));
+				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes.
 				if (maintenant[15] === '0') ctx.waitUntil(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
 				return;

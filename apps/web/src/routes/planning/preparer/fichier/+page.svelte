@@ -175,8 +175,8 @@
 					</section>
 				{/if}
 				<div class="actions">
-					{#if !apercu.erreurs.length && !rien}<Bouton desactive={occupe} onclick={valider}>Valider<span class="cache"> l’import</span></Bouton>{/if}
-					<Bouton variante="secondaire" desactive={occupe} onclick={abandonner}>Abandonner<span class="cache"> l’import</span></Bouton>
+					{#if !apercu.erreurs.length && !rien}<Bouton desactive={occupe} onclick={valider}>Valider<span class="cache">{' '}l’import</span></Bouton>{/if}
+					<Bouton variante="secondaire" desactive={occupe} onclick={abandonner}>Abandonner<span class="cache">{' '}l’import</span></Bouton>
 				</div>
 			</div>
 		</Carte>

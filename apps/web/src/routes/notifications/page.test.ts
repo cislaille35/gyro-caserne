@@ -50,6 +50,11 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*href="\/remplacements\?onglet=a-valider"[^>]*>[\s\S]*?1 remplacement à valider/);
 	});
 
+	it('un avis de l’été : vers son lien, son titre et son texte', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 4, type: 'ete', quoi: 'rappel', titre: 'Vos vacances d’été', texte: 'Donnez vos vacances d’été avant le 15/05/2027.', url: '/moi/vacances', creeLe: '2027-04-15T08:00', lue: false }] });
+		expect(page).toMatch(/<a[^>]*href="\/moi\/vacances"[^>]*>[\s\S]*?Non lu, [\s\S]*?Vos vacances d’été[\s\S]*?avant le 15\/05\/2027/);
+	});
+
 	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
 		const page = html({ aValider: 2 });
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);

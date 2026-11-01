@@ -37,6 +37,7 @@ export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
 export { chargerPlanningFictif } from './planning/fictif.ts';
 export { apercuPlanning, appliquerPlanning, donneesFichierPlanning, FEUILLES as FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from './planning/fichier.ts';
+export { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEte, reponsesEte, retirerMesVacances, toutLete, type EteVue } from './planning/ete.ts';
 export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
 export { armement, ENGIN_CALCULE, enregistrerArmement, LIBELLES_NIVEAU, LIBELLES_POSTE, lireArmement, NIVEAUX, POSTES, postesDe, type Engin, type Niveau, type Poste, type Postes, type ReglageArmement } from './armement.ts';
 export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';

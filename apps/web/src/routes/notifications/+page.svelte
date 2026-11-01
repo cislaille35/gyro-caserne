@@ -161,6 +161,16 @@
 							</span>
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
+					{:else if l.type === 'ete'}
+						<a class="ligne" class:non-lue={!l.lue} href={l.url}>
+							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8 M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							<span class="corps">
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
+								<span class="extrait">{l.texte}</span>
+								<span class="moment">{moment(l)}</span>
+							</span>
+							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+						</a>
 					{:else}
 						<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
 							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
