@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { accueilDe, apercusDesMurs, monAnniversaire, prenomDe } from '@gyro-caserne/socle';
-import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!acteur) redirect(303, '/connexion');
 	const aujourdhui = aujourdhuiParis();
 	const [accueil, prenom, aNePasManquer, anniversaire] = await Promise.all([
-		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui),
+		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui, maintenantParis()),
 		prenomDe(base, acteur),
 		aNePasManquerDe(base, acteur),
 		monAnniversaire(base, acteur, aujourdhui)

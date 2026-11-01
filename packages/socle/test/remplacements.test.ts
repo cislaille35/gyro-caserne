@@ -6,6 +6,12 @@ import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { enregistrerManoeuvre, planningDe, publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { planningDuMatin } from '../src/planning/manoeuvres.ts';
+import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
+import { enTeteDe, filDeNotifications, toutMarquerLu } from '../src/notifications.ts';
+import { aNePasManquer } from '../src/a-ne-pas-manquer.ts';
+import { accueilDe } from '../src/casquettes.ts';
+import { changerStatut } from '../src/actions/personnes.ts';
+import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { repondreEvenement } from '../src/actions/interactions.ts';
 import { lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
 import { demandeVue, nombreRemplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
@@ -138,7 +144,10 @@ describe('demande ouverte', () => {
 		const id = await demanderRemplacement(base, elodie, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
 		await accepterDemande(base, bruno, id, maintenant, reglage);
 		expect(await avisDe(n.chef)).toEqual(['recue', 'a_valider']);
+		expect((await enTeteDe(base, chef, '2026-11-01', maintenant)).remplacementsAValider).toBe(1);
+		expect((await enTeteDe(base, elodie, '2026-11-01', maintenant)).remplacementsAValider).toBe(0);
 		await valider(base, chef, id, maintenant, reglage);
+		expect((await enTeteDe(base, chef, '2026-11-01', maintenant)).remplacementsAValider).toBe(0);
 	});
 
 	it('désistement : le titulaire redevient responsable, prévenu, la demande repart', async () => {
@@ -235,6 +244,10 @@ describe('lectures', () => {
 		expect(pourElodie.aValider.map((v) => [v.id, v.manque, v.gestes.valider])).toEqual([[ouverte, ['CA1'], true]]);
 		expect(await nombreRemplacementsAValider(base, elodie, maintenant)).toBe(1);
 		expect(await nombreRemplacementsAValider(base, bruno, maintenant)).toBe(0);
+		// La cloche compte en SQL, avec la même règle.
+		expect((await enTeteDe(base, elodie, '2026-11-01', maintenant)).remplacementsAValider).toBe(1);
+		expect((await enTeteDe(base, bruno, '2026-11-01', maintenant)).remplacementsAValider).toBe(0);
+		expect((await filDeNotifications(base, elodie, maintenant)).remplacementsAValider).toBe(1);
 		expect((await remplacementsDe(base, bruno, maintenant, reglage)).miennes.map((v) => [v.moi, v.gestes.desister])).toEqual([['remplacant', true]]);
 		void n;
 	});
@@ -295,5 +308,71 @@ describe('échange de manœuvre', () => {
 		const une = echangerPlace([1], 10, 20);
 		expect(une).toEqual({ equipes: [1], ajoutes: [20], retires: [10] });
 		expect(echangerPlace(une, 20, 10)).toEqual({ equipes: [1], ajoutes: [], retires: [] });
+	});
+});
+
+describe('effets d’un remplacement conclu', () => {
+	it('planning : « X remplace Y » sur la période ; agenda : la nuit passe du titulaire au remplaçant', async () => {
+		const { base, alice, chloe, bruno } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		const vu = (p: Awaited<ReturnType<typeof planningDe>>) => (p.publiee ? p.remplacements : []);
+		expect(vu(await planningDe(base, alice, 2026, maintenant, reglage))).toEqual([{ ...nuitLundi9, titulaire: 'Alice Test', remplacant: 'Chloe Test', moi: 'cede' }]);
+		expect(vu(await planningDe(base, chloe, 2026, maintenant, reglage))[0]!.moi).toBe('prend');
+		expect(vu(await planningDe(base, bruno, 2026, maintenant, reglage))[0]!.moi).toBeNull();
+
+		const agenda = async (qui: Acteur) => (await agendaDe(base, await monLienAgenda(base, qui, maintenant), maintenant, reglage))!;
+		const deAlice = await agenda(alice);
+		expect(deAlice).toContain('DTSTART:20261110T170000Z');
+		expect(deAlice).toContain('DTEND:20261109T050000Z');
+		expect(deAlice).not.toContain('DTSTART:20261109T170000Z');
+		const deChloe = await agenda(chloe);
+		expect(deChloe).toContain('SUMMARY:Remplacement de Alice Test');
+		expect(deChloe).toContain('DTSTART:20261109T170000Z');
+	});
+});
+
+describe('cloche, accueil, tâche planifiée, départ', () => {
+	it('la cloche dit l’avis ; le chef compte la demande à valider jusqu’à sa décision ; À décider de sa casquette', async () => {
+		const { base, alice, bruno, elodie, n } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		const fil = await filDeNotifications(base, bruno, maintenant);
+		expect(fil.nonLues).toBe(1);
+		expect(fil.lignes[0]).toMatchObject({ type: 'remplacement', demandeId: id, quoi: 'recue', titre: 'Demande de remplacement', texte: 'Alice Test · nuit du lundi 9 novembre', lue: false });
+		expect((await aNePasManquer(base, bruno, '2026-11-01', maintenant)).remplacements).toEqual([{ id, titre: 'Alice Test cherche un remplaçant', sous: 'nuit du lundi 9 novembre', debut: nuitLundi9.debut }]);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		expect((await aNePasManquer(base, bruno, '2026-11-01', maintenant)).remplacements).toEqual([]);
+		const accueil = await accueilDe(base, elodie, null, '2026-11-01', maintenant);
+		expect(accueil.choisie).toBe(`equipe:${(await base.select().from(equipe).orderBy(equipe.ordreRotation))[0]!.id}`);
+		expect(accueil.contenu).toEqual({ type: 'equipe', aDecider: [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: `/remplacements/${id}` }] });
+		await valider(base, elodie, id, maintenant, reglage);
+		expect((await accueilDe(base, elodie, null, '2026-11-01', maintenant)).contenu).toEqual({ type: 'equipe', aDecider: [] });
+		await toutMarquerLu(base, bruno, maintenant);
+		expect((await filDeNotifications(base, bruno, maintenant)).nonLues).toBe(0);
+		void n;
+	});
+
+	it('expire au début de la période, prévenue une fois ; relancée une fois la veille', async () => {
+		const { base, alice, n, demande, avisDe } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		expect(await remplacementsDuMoment(base, '2026-11-08T07:50')).toEqual({ expirees: 0, relances: 0 });
+		expect(await remplacementsDuMoment(base, '2026-11-08T08:00')).toEqual({ expirees: 0, relances: 1 });
+		expect(await remplacementsDuMoment(base, '2026-11-08T08:10')).toEqual({ expirees: 0, relances: 0 });
+		expect(await avisDe(n.alice)).toEqual(['relance']);
+		expect(await avisDe(n.elodie)).toEqual(['relance']);
+		expect(await remplacementsDuMoment(base, '2026-11-09T18:00')).toEqual({ expirees: 1, relances: 0 });
+		expect(await remplacementsDuMoment(base, '2026-11-09T18:10')).toEqual({ expirees: 0, relances: 0 });
+		expect((await demande(id)).etat).toBe('expiree');
+		expect(await avisDe(n.alice)).toEqual(['relance', 'expiree']);
+	});
+
+	it('départ : ses demandes sont annulées ; celles où il remplaçait repartent', async () => {
+		const { base, alice, chloe, n, demande, chef } = await jeu();
+		const ouverte = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, ouverte, maintenant, reglage);
+		const sienne = await demanderRemplacement(base, chloe, { periodes: [{ debut: '2026-11-23T18:00', fin: '2026-11-24T06:00' }], cibleId: null }, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.chloe, 'parti', maintenant);
+		expect(await demande(ouverte)).toMatchObject({ etat: 'attente', remplacantId: null });
+		expect((await demande(sienne)).etat).toBe('annulee');
 	});
 });

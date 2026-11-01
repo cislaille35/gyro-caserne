@@ -38,7 +38,7 @@ describe('load de /', () => {
 			casquettes: [{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 }],
 			choisie: 'astreinte',
 			contenu: { type: 'astreinte' },
-			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] },
+			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] },
 			anniversaire: false,
 			aujourdhui: aujourdhuiParis()
 		});

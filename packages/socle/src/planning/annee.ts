@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { enCours, exigerDate, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
+import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { equipesConvoquees, type Convocation } from '../murs.ts';
@@ -281,6 +282,8 @@ export type PlanningAgent =
 			feries: { date: string; nom: string }[];
 			fetes: { noel: number | null; nouvelAn: number | null };
 			monEquipe: number | null;
+			// Les remplacements conclus de l'année ; `moi` : je cède ma période, ou je prends celle d'un autre.
+			remplacements: { debut: string; fin: string; titulaire: string; remplacant: string; moi: 'cede' | 'prend' | null }[];
 			prochaine: {
 				astreinte: { debut: string; fin: string; equipeId: number; enCours: boolean } | null;
 				manoeuvre: ManoeuvreVue | null;
@@ -297,8 +300,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4)))}-01-01`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
-	const [[annees, changees, manoeuvres, vacances, equipes], affectations, gerer] = await Promise.all([
-		base.batch(lectures(base, debutLecture, finLecture)).then(([a, c, m, v, e]) => [a, c, m, v, e] as const),
+	const [[annees, changees, manoeuvres, vacances, equipes, , conclues], affectations, gerer] = await Promise.all([
+		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
@@ -337,6 +340,9 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		feries: feries(annee),
 		fetes: fetes(annee, semainesAnnee),
 		monEquipe: equipeLe(affectations, aujourdhui),
+		remplacements: effectifs(conclues)
+			.filter((r) => r.fin > `${annee}-01-01` && r.debut < `${annee + 1}-01-01`)
+			.map(({ debut, fin, titulaire, remplacant, titulaireId, remplacantId }) => ({ debut, fin, titulaire, remplacant, moi: titulaireId === moi ? ('cede' as const) : remplacantId === moi ? ('prend' as const) : null })),
 		prochaine: {
 			astreinte: prochaineSemaine
 				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16) }

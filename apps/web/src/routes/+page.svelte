@@ -109,8 +109,13 @@
 				{/if}
 				{@render liens('Gérer', gerer)}
 			{:else}
-				{#if (data.contenu.type === 'role' || data.contenu.type === 'comite') && data.contenu.aDecider.length > 0}
+				{#if (data.contenu.type === 'role' || data.contenu.type === 'comite' || data.contenu.type === 'equipe') && data.contenu.aDecider.length > 0}
 					{@render decider(data.contenu.aDecider)}
+				{/if}
+				{#if data.contenu.type === 'equipe' && data.contenu.aDecider.length === 0}
+					<ListeRangees titre="À décider">
+						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
+					</ListeRangees>
 				{/if}
 				{#if data.contenu.type === 'astreinte' || data.contenu.type === 'equipe'}
 					<ListeRangees titre={casquette?.nom ?? 'Mon astreinte'}>

@@ -4,12 +4,19 @@ import Page from './+page.svelte';
 
 const astreinte = { id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 };
 const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile', compte: 2 };
-const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] };
+const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] };
 const page = (data: Record<string, unknown>, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, aNePasManquer: vide, ...data }, form } }).body;
 
 describe('accueil', () => {
+	it('une demande de remplacement reçue : dans « À ne pas manquer », vers la demande', () => {
+		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...vide, remplacements: [{ id: 4, titre: 'Alice Test cherche un remplaçant', sous: 'nuit du lundi 9 novembre', debut: '2026-11-09T18:00' }] } });
+		expect(html).toMatch(/href="\/remplacements\/4"[^>]*>[\s\S]*?Alice Test cherche un remplaçant/);
+		expect(html).toContain('nuit du lundi 9 novembre · Accepter ou refuser');
+		expect(html).not.toContain('Tout est à jour');
+	});
+
 	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; astreinte vide sans fausses données', () => {
 		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
 		expect(html).toContain('Bonjour Alice');
@@ -82,8 +89,15 @@ describe('accueil', () => {
 	});
 
 	it('chef d’équipe : vide avec une phrase vraie', () => {
-		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 0 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe' } });
+		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 0 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider: [] } });
 		expect(html).toContain('Votre astreinte s’affichera ici avec le planning.');
+		expect(html).toContain('Aucun remplacement à valider.');
+	});
+
+	it('chef d’équipe : les remplacements à valider « À décider »', () => {
+		const aDecider = [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: '/remplacements/3' }];
+		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider } });
+		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider · Alice Test/);
 	});
 
 	it('rôle : ce qu’il permet, en phrases', () => {

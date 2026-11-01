@@ -5,6 +5,8 @@ import { ajouterJours, exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES, type ReponseEvenement } from './listes.ts';
 import { estConvoque, estMembre, mursEtAppartenances, type CleMur, type Mur } from './murs.ts';
+import { requetePourMoi } from './remplacements/lectures.ts';
+import { texteDemande } from './remplacements/tranches.ts';
 import { personne, priseConnaissance, profil, publication, reponseEvenement, visiteMur, voteSondage } from './schema.ts';
 
 export type ItemANePasManquer = { id: number; cle: CleMur; nomMur: string; titre: string };
@@ -14,6 +16,8 @@ export type ANePasManquer = {
 	sondages: ItemANePasManquer[];
 	epinglees: ItemANePasManquer[];
 	nouveautes: { cle: CleMur; nom: string; nombre: number }[];
+	// Les demandes de remplacement reçues qui attendent une réponse.
+	remplacements: { id: number; titre: string; sous: string; debut: string }[];
 };
 
 const RECENT = 30;
@@ -32,7 +36,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	exigerDate(aujourdhui);
 	exigerDateHeure(maintenant, 'Date');
 	const { murs, appartenances } = await mursEtAppartenances(base, acteur, aujourdhui);
-	if (murs.length === 0) return { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] };
+	if (murs.length === 0) return { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] };
 
 	// Le super administrateur n'a pas de fiche : 0 ne désigne personne.
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
@@ -47,7 +51,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	const aTraiter = murs.filter((m) => !m.lectureSeule && estMembre(appartenances, m.cle)).map((m) => m.cle);
 	const surSesMurs = inArray(publication.mur, aTraiter);
 
-	const [annonces, evenements, sondages, epinglees, nouveautes] = await base.batch([
+	const [annonces, evenements, sondages, epinglees, nouveautes, remplacements] = await base.batch([
 		base
 			.select(champs)
 			.from(publication)
@@ -77,7 +81,8 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.from(publication)
 			.leftJoin(visiteMur, and(eq(visiteMur.personneId, moi), eq(visiteMur.mur, publication.mur)))
 			.where(and(pasDeMoi, sql`${publication.creeLe} > coalesce(${visiteMur.vueLe}, ${ajouterJours(aujourdhui, -SANS_VISITE)})`))
-			.groupBy(publication.mur)
+			.groupBy(publication.mur),
+		requetePourMoi(base, moi, maintenant)
 	]);
 
 	const parCle = new Map<string, Mur>(murs.map((m) => [m.cle, m]));
@@ -91,6 +96,12 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.map((p) => ({ ...item(p), debut: p.debut!, demain: p.debut!.slice(0, 10) === demain, reponse: p.reponse })),
 		sondages: sondages.map(item),
 		epinglees: epinglees.filter((p) => parCle.has(p.mur)).map(item),
+		remplacements: remplacements.map((r) => ({
+			id: r.id,
+			titre: r.genre === 'remplacement' ? `${r.prenom} ${r.nom} cherche un remplaçant` : `${r.prenom} ${r.nom} propose un échange`,
+			sous: r.genre === 'manoeuvre' ? 'Échange de manœuvre' : texteDemande(JSON.parse(r.periodes)),
+			debut: r.debut
+		})),
 		nouveautes: murs.flatMap((m) => {
 			const nombre = nouveautes.find((n) => n.mur === m.cle)?.nombre ?? 0;
 			return nombre > 0 ? [{ cle: m.cle, nom: m.nom, nombre }] : [];

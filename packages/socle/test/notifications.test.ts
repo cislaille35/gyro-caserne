@@ -244,11 +244,11 @@ describe('le fil et la cloche', () => {
 		const { base, e2, chef, bruno } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const avant = base.requetes;
-		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur } });
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur } });
 		expect(base.requetes - avant).toBe(1);
-		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null } });
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null } });
 		const ensuite = base.requetes;
-		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, visage: null });
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: null });
 		expect(base.requetes).toBe(ensuite);
 	});
 

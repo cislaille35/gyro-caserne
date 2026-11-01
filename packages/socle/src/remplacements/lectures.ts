@@ -184,7 +184,7 @@ export async function nombreRemplacementsAValider(base: Base, acteur: Acteur, ma
 }
 
 // Les demandes à valider par l'acteur, pour l'accueil et la cloche. Une requête.
-export async function remplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<{ id: number; texte: string }[]> {
+export async function remplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<{ id: number; equipeId: number | null; texte: string }[]> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return [];
 	const [demandes, chefs, personnes] = await base.batch([
@@ -204,7 +204,7 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 	};
 	return demandes
 		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId).includes(acteur.id))
-		.map((d) => ({ id: d.id, texte: `Remplacement à valider · ${nom(d.demandeurId)} · ${texteDemande(periodesDe(d.periodes))}` }));
+		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider · ${nom(d.demandeurId)} · ${texteDemande(periodesDe(d.periodes))}` }));
 }
 
 // Les demandes reçues qui attendent une réponse de l'acteur (À ne pas manquer). Une requête.

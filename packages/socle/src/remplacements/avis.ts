@@ -1,24 +1,11 @@
 import { and, inArray, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import type { AvisRemplacement } from '../listes.ts';
+import { TITRES_AVIS } from './titres.ts';
 import { mettreEnFile } from '../notifications.ts';
 import { avisRemplacement, personne } from '../schema.ts';
 
 // Ce qu'une personne apprend d'une demande : une ligne dans sa cloche et un envoi au téléphone (lieu « remplacements » : seul « tout » le coupe).
-
-export const TITRES_AVIS: Record<AvisRemplacement, string> = {
-	recue: 'Demande de remplacement',
-	acceptee: 'Remplacement accepté',
-	refusee: 'Remplacement refusé',
-	a_valider: 'Remplacement à valider',
-	validee: 'Remplacement validé',
-	refus_chef: 'Remplacement refusé par le chef',
-	desistement: 'Désistement',
-	expiree: 'Demande expirée',
-	annulee: 'Remplacement annulé',
-	relance: 'Toujours sans remplaçant',
-	informe: 'Remplacement conclu'
-};
 
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 

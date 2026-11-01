@@ -44,6 +44,12 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/miennes#reservation-9"[^>]*>[\s\S]*?Non lu, [\s\S]*?Bancs : demande refusée[\s\S]*?du 12 au 13 nov\. · Déjà prêtés[\s\S]*?<\/a>/);
 	});
 
+	it('un avis de remplacement : vers la demande, son titre et ses périodes ; les remplacements à valider en tête', () => {
+		const page = html({ nonLues: 1, remplacementsAValider: 1, lignes: [{ id: 3, type: 'remplacement', demandeId: 8, quoi: 'recue', titre: 'Demande de remplacement', texte: 'Alice Test · nuit du lundi 9 novembre', creeLe: '2026-10-31T09:00', lue: false }] });
+		expect(page).toMatch(/<a[^>]*href="\/remplacements\/8"[^>]*>[\s\S]*?Non lu, [\s\S]*?Demande de remplacement[\s\S]*?Alice Test · nuit du lundi 9 novembre/);
+		expect(page).toMatch(/<a[^>]*href="\/remplacements\?onglet=a-valider"[^>]*>[\s\S]*?1 remplacement à valider/);
+	});
+
 	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
 		const page = html({ aValider: 2 });
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);
