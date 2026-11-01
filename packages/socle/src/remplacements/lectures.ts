@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import type { EtatDemande, GenreDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
 import { demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
-import { disponibles, EN_COURS, lireContexte, manque, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
+import { disponibles, EN_COURS, lireContexte, manque, mesTranches, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
 // Ce que montrent les écrans : Pour moi, Mes demandes, À valider, l'historique, le détail d'une demande.
@@ -224,3 +224,13 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 			)
 		)
 		.orderBy(demandeRemplacement.debut);
+
+// L'écran « Me faire remplacer » : mes tranches à venir par semaine, les collègues, et celles du collègue choisi pour un échange.
+export async function pourDemander(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage, echangeAvec: number | null = null) {
+	exigerDateHeure(maintenant, 'Date');
+	const moi = moiDe(acteur);
+	const ctx = await lireContexte(base, maintenant, reglage);
+	const collegues = ctx.agents.filter((a) => a.id !== moi).sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
+	const avec = collegues.find((a) => a.id === echangeAvec) ?? null;
+	return { semaines: mesTranches(ctx, moi), collegues, avec, semainesAvec: avec ? mesTranches(ctx, avec.id) : [] };
+}

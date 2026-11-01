@@ -38,6 +38,6 @@ export { chargerPlanningFictif } from './planning/fictif.ts';
 export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
 export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
 export { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';
-export { demandeVue, nombreRemplacementsAValider, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
+export { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
 export { disponibles, lireContexte, mesTranches } from './remplacements/contexte.ts';
 export { remplacementsDuMoment } from './remplacements/moment.ts';
