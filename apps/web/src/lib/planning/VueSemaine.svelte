@@ -51,7 +51,7 @@
 	<ol role="list" class="jours">
 		{#each jours as j (j.date)}
 			<li id="jour-{j.date}" class:aujourdhui={j.date === maintenant.slice(0, 10)}>
-				<h3>{majuscule(jourLong(j.date))}{#if j.date === maintenant.slice(0, 10)}<span class="auj"> · aujourd’hui</span>{/if}</h3>
+				<h3>{majuscule(jourLong(j.date))}{#if j.date === maintenant.slice(0, 10)}<span class="auj">&nbsp;· aujourd’hui</span>{/if}</h3>
 				<p class="plages">
 					{#if j.plages.length}
 						<span class="masque">Astreinte : </span>{#each j.plages as p, i (i)}<span class="plage">{p}</span>{/each}

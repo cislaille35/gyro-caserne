@@ -26,7 +26,7 @@
 	const CALENDRIER = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
 	const action = $derived(p.peutPreparer ? { href: `/planning/preparer?annee=${p.annee}`, libelle: 'Préparer l’année', dessin: CALENDRIER } : undefined);
 	const equipe = (id: number) => (p.publiee ? p.equipes.find((e) => e.id === id) : undefined) ?? { id, nom: 'Équipe archivée', couleur: '#8a949e' };
-	const FETES = { noel: 'Noël', nouvel_an: 'Nouvel An' } as const;
+	const FETES = { noel: 'de Noël', nouvel_an: 'du Nouvel An' } as const;
 	const VUES = [
 		['semaine', 'Semaine'],
 		['mois', 'Mois'],
@@ -133,7 +133,7 @@
 						</li>
 					{/if}
 					{#if fete}
-						<li><Rangee titre="Garde de {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}." icone="etoile" /></li>
+						<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}." icone="etoile" /></li>
 					{/if}
 					{#each demandes as d (d.v.id)}
 						<li>
@@ -201,12 +201,13 @@
 	}
 	.vues {
 		display: flex;
-		gap: 8px;
-		flex-wrap: wrap;
+		gap: 6px;
 	}
 	.vues a {
+		flex: 1;
+		justify-content: center;
 		min-height: var(--cible);
-		padding: 0 18px;
+		padding: 0 8px;
 		border-radius: 999px;
 		display: inline-flex;
 		align-items: center;

@@ -45,8 +45,10 @@
 </svelte:head>
 
 {#snippet retour(cible: string)}
-	<div role="alert">{#if concerne(cible) && form?.message}<p class="echec">{form.message}</p>{/if}</div>
-	<div role="status">{#if concerne(cible) && form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
+	<div class="retours">
+		<div role="alert">{#if concerne(cible) && form?.message}<p class="echec">{form.message}</p>{/if}</div>
+		<div role="status">{#if concerne(cible) && form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
+	</div>
 {/snippet}
 
 {#snippet sansRoulement()}
@@ -765,6 +767,10 @@
 		height: 12px;
 		border-radius: 6px;
 		background: var(--equipe);
+	}
+	/* Sans message, les zones annoncées ne creusent pas d'écart. */
+	.retours:not(:has(p)) {
+		margin-top: -14px;
 	}
 	.echec,
 	.succes {

@@ -22,8 +22,9 @@
 			<span class="rebours" aria-hidden="true"><strong>{p.jours}</strong>jours</span>
 		{/if}
 		<div class="textes">
-			<p class="titre">{p.titre}</p>
-			<p class="quand">{p.quand.charAt(0).toUpperCase() + p.quand.slice(1)}</p>
+			<!-- Au Planning, la phrase est déjà dans l'en-tête : la carte donne les dates. -->
+			{#if compacte}<p class="titre">{p.titre}</p>{/if}
+			<p class="quand" class:titre={!compacte}>{p.quand.charAt(0).toUpperCase() + p.quand.slice(1)}</p>
 			{#if p.plage}<p class="plage">{p.plage}</p>{/if}
 		</div>
 	</div>
@@ -123,6 +124,7 @@
 	}
 	.quand {
 		font-weight: 600;
+		text-wrap: balance;
 	}
 	.plage {
 		color: var(--doux);
