@@ -40,6 +40,6 @@ export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, en
 export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
 export { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';
 export { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
-export { disponibles, lireContexte, mesTranches } from './remplacements/contexte.ts';
+export { bandesDe, candidats, disponibles, lireContexte, mesTranches, type EtatTranche } from './remplacements/contexte.ts';
 export { remplacementsDuMoment } from './remplacements/moment.ts';
 export { chargerAptitudesFictives, chargerRemplacementsFictifs } from './remplacements/fictif.ts';

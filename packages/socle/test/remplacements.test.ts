@@ -14,8 +14,8 @@ import { changerStatut } from '../src/actions/personnes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { chargerAptitudesFictives } from '../src/remplacements/fictif.ts';
 import { repondreEvenement } from '../src/actions/interactions.ts';
-import { lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
-import { demandeVue, nombreRemplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
+import { bandesDe, lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
+import { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsDe } from '../src/remplacements/lectures.ts';
 import { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from '../src/remplacements/demandes.ts';
 import { affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, abonnementPush, equipe, manoeuvre, personne, profil, publication, reponseEvenement, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -504,5 +504,45 @@ describe('retours de revue, second passage', () => {
 		await changerStatut(base, base.photos, chef, n.alice, 'parti', maintenant);
 		expect((await demande(id)).etat).toBe('annulee');
 		expect(await avisDe(n.bruno)).toEqual(['recue', 'annulee']);
+	});
+});
+
+describe('parcours guidé', () => {
+	it('la semaine entière, même les nuits passées ou déjà demandées, avec leur état', async () => {
+		const { base, alice, n } = await jeu();
+		await demanderRemplacement(base, alice, { periodes: [nuitMardi10], cibleId: null }, maintenant, reglage);
+		const ctx = await lireContexte(base, '2026-11-09T20:00', reglage);
+		const [semaine] = bandesDe(ctx, n.alice);
+		expect(semaine!.semaine).toBe('2026-11-06');
+		expect(semaine!.tranches.map((t) => [t.debut.slice(0, 10), t.etat])).toEqual([
+			['2026-11-06', 'passee'],
+			['2026-11-07', 'passee'],
+			['2026-11-08', 'passee'],
+			['2026-11-09', 'passee'],
+			['2026-11-10', 'prise'],
+			['2026-11-11', 'libre'],
+			['2026-11-12', 'libre']
+		]);
+	});
+
+	it('les collègues libres sur les périodes choisies : équipe, aptitudes, ce qui manque ; seulement des périodes à soi', async () => {
+		const { base, alice, ids } = await jeu();
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9, { debut: '2026-11-20T18:00', fin: '2026-11-21T06:00' }] });
+		expect(lu.choisies).toEqual([nuitLundi9]);
+		expect(lu.candidats.map((c) => [c.prenom, c.equipe?.id ?? null, c.aptitudes, c.manque])).toEqual([
+			['Chloe', ids[2], ['CA1'], []],
+			['Bruno', ids[1], [], ['CA1']],
+			['Chef', null, [], ['CA1']]
+		]);
+		expect((await pourDemander(base, alice, maintenant, reglage)).candidats).toEqual([]);
+	});
+
+	it('échange : les collègues qui ont une période à donner, et ses périodes vues par moi', async () => {
+		const { base, alice, n } = await jeu();
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], avec: n.bruno });
+		expect(lu.echangeables.map((c) => c.prenom)).toEqual(['Chloe', 'Bruno']);
+		expect(lu.avec?.prenom).toBe('Bruno');
+		expect(lu.semainesAvec[0]!.semaine).toBe('2026-11-13');
+		expect(lu.semainesAvec[0]!.tranches.every((t) => t.etat === 'libre')).toBe(true);
 	});
 });
