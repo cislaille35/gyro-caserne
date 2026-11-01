@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CarteDemande from '#lib/remplacements/CarteDemande.svelte';
-	import { titreDemande } from '#lib/remplacements/textes.ts';
+	import Frise from '#lib/remplacements/Frise.svelte';
+	import { frise, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
@@ -20,14 +21,19 @@
 
 <div class="page">
 	<EnTetePage titre={v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
-	<p class="reussite" class:masque={!form?.succes} role="status">{form?.succes ?? ''}</p>
+	<p class="reussite" class:masque={!form?.succes && !data.envoyee} role="status">{form?.succes ?? (data.envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
-	<CarteDemande {v} detail={false} niveau={2} />
+	<section class="carte" aria-labelledby="titre-frise">
+		<h2 id="titre-frise" class="masque">Où en est la demande</h2>
+		<Frise pas={frise(v)} />
+	</section>
 
 	{#if sdis}
 		<p class="sdis"><strong>À faire :</strong> mettez à jour votre disponibilité dans l’appli du SDIS. C’est elle qui fait foi pour l’alerte.</p>
 	{/if}
+
+	<CarteDemande {v} detail={false} niveau={2} />
 
 	{#if v.moi === 'demandeur' && v.ouverte && v.etat === 'attente'}
 		<ListeRangees titre="Disponibles" compte={data.disponibles.length}>
@@ -62,6 +68,12 @@
 	}
 	.doux {
 		color: var(--doux);
+	}
+	.carte {
+		padding: 16px;
+		background: var(--surface);
+		border: 1px solid var(--trait-doux);
+		border-radius: var(--rayon-grand);
 	}
 	.sdis {
 		padding: 12px 14px;

@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { blocs, majuscule } from './textes.ts';
+import type { VueDemande } from '@gyro-caserne/socle';
+import { frise, majuscule } from './textes.ts';
+
+const bruno = { id: 2, prenom: 'Bruno', nom: 'Test' };
+const v = (o: Partial<VueDemande>) => ({ genre: 'remplacement', etat: 'attente', cible: null, remplacant: null, manque: [], ...o }) as VueDemande;
+const lire = (d: VueDemande) => frise(d).map((p) => `${p.libelle} (${p.etat})`);
 
 describe('textes des remplacements', () => {
-	it('blocs : les tranches libres qui se suivent, à partir de deux', () => {
-		const t = (debut: string, fin: string, prise = false) => ({ debut, fin, prise });
-		expect(
-			blocs([t('2026-11-06T18:00', '2026-11-07T06:00', true), t('2026-11-07T06:00', '2026-11-08T06:00'), t('2026-11-08T06:00', '2026-11-09T06:00'), t('2026-11-09T18:00', '2026-11-10T06:00')])
-		).toEqual([{ debut: '2026-11-07T06:00', fin: '2026-11-09T06:00' }]);
-		expect(majuscule('nuit du lundi')).toBe('Nuit du lundi');
+	it('majuscule', () => expect(majuscule('nuit du lundi')).toBe('Nuit du lundi'));
+
+	it('frise : en attente, acceptée, validée par le chef si besoin, conclue', () => {
+		expect(lire(v({}))).toEqual(['Envoyée (fait)', 'En attente d’un collègue (en-cours)', 'Conclue (a-venir)']);
+		expect(lire(v({ cible: bruno }))).toEqual(['Envoyée (fait)', 'En attente de Bruno Test (en-cours)', 'Conclue (a-venir)']);
+		expect(lire(v({ etat: 'a_valider', remplacant: bruno, manque: ['CA1'] }))).toEqual(['Envoyée (fait)', 'Acceptée par Bruno Test (fait)', 'À valider par le chef (en-cours)', 'Conclue (a-venir)']);
+		expect(lire(v({ etat: 'conclue', remplacant: bruno, manque: ['CA1'] }))).toEqual(['Envoyée (fait)', 'Acceptée par Bruno Test (fait)', 'Validée par le chef (fait)', 'Conclue (fait)']);
+		expect(lire(v({ etat: 'conclue', remplacant: bruno }))).toEqual(['Envoyée (fait)', 'Acceptée par Bruno Test (fait)', 'Conclue (fait)']);
+	});
+
+	it('frise : refusée, annulée, expirée s’arrêtent là', () => {
+		expect(lire(v({ etat: 'refusee', cible: bruno }))).toEqual(['Envoyée (fait)', 'Refusée par Bruno Test (arret)']);
+		expect(lire(v({ etat: 'annulee' }))).toEqual(['Envoyée (fait)', 'Annulée (arret)']);
+		expect(lire(v({ etat: 'expiree', genre: 'echange', cible: bruno }))).toEqual(['Proposée (fait)', 'Expirée (arret)']);
 	});
 });

@@ -546,7 +546,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		}
 		await base.insert(affectationEquipe).values({ personneId: agent.id, equipeId: ids[0]!, debut: '2020-01-01' });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
-		const nuit = (await pourDemander(base, deLAgent.acteur, maintenantParis(), centre.astreinte)).semaines[0]!.tranches[0]!;
+		const nuit = (await pourDemander(base, deLAgent.acteur, maintenantParis(), centre.astreinte)).semaines.flatMap((s) => s.tranches).find((t) => t.etat === 'libre')!;
 		const demander = await compter(async () => {
 			await expect((actionsDemander as any).default({ locals: deLAgent, request: new Request('http://x', { method: 'POST', body: new URLSearchParams([['periode', `${nuit.debut}|${nuit.fin}`], ['pour', 'tous']]) }) })).rejects.toMatchObject({ status: 303 });
 		});

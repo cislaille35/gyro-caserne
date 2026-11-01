@@ -30,13 +30,18 @@ export function suite(v: VueDemande): string | null {
 	return null;
 }
 
-// Les tranches libres qui se suivent (un week-end, un férié) : à cocher d'un geste, à partir de deux.
-export function blocs<T extends { debut: string; fin: string; prise: boolean }>(tranches: T[]): { debut: string; fin: string }[] {
-	const groupes: T[][] = [];
-	for (const t of tranches.filter((x) => !x.prise)) {
-		const dernier = groupes.at(-1);
-		if (dernier && dernier.at(-1)!.fin === t.debut) dernier.push(t);
-		else groupes.push([t]);
-	}
-	return groupes.filter((g) => g.length > 1).map((g) => ({ debut: g[0]!.debut, fin: g.at(-1)!.fin }));
+export type Pas = { libelle: string; etat: 'fait' | 'en-cours' | 'a-venir' | 'arret' };
+
+// La frise d'une demande : Envoyée → Acceptée par X → Validée par le chef (si une aptitude manque) → Conclue ;
+// ou elle s'arrête : Refusée, Annulée, Expirée.
+export function frise(v: VueDemande): Pas[] {
+	const qui = v.remplacant ?? v.cible;
+	const pas: Pas[] = [{ libelle: v.genre === 'remplacement' ? 'Envoyée' : 'Proposée', etat: 'fait' }];
+	const acceptee = v.remplacant !== null && !['attente', 'refusee'].includes(v.etat);
+	if (v.etat === 'refusee') return [...pas, { libelle: qui ? `Refusée par ${nom(qui)}` : 'Refusée', etat: 'arret' }];
+	pas.push(acceptee ? { libelle: `Acceptée par ${nom(v.remplacant)}`, etat: 'fait' } : { libelle: qui && v.cible ? `En attente de ${nom(qui)}` : 'En attente d’un collègue', etat: v.etat === 'attente' ? 'en-cours' : 'a-venir' });
+	if (v.etat === 'annulee' || v.etat === 'expiree') return [...pas.filter((p) => p.etat === 'fait'), { libelle: v.etat === 'annulee' ? 'Annulée' : 'Expirée', etat: 'arret' }];
+	if (v.etat === 'a_valider' || v.manque.length > 0) pas.push({ libelle: v.etat === 'a_valider' ? 'À valider par le chef' : 'Validée par le chef', etat: v.etat === 'a_valider' ? 'en-cours' : v.etat === 'conclue' ? 'fait' : 'a-venir' });
+	pas.push({ libelle: 'Conclue', etat: v.etat === 'conclue' ? 'fait' : 'a-venir' });
+	return pas;
 }
