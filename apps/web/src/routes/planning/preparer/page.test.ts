@@ -5,45 +5,97 @@ import { calculerAnnee, feries } from '@gyro-caserne/socle';
 import Page from './+page.svelte';
 
 const equipes = [1, 2, 3, 4].map((id) => ({ id, nom: `Équipe ${id}`, couleur: '#d4a017' }));
+const semaines = calculerAnnee(2027, centre.astreinte, [1, 2, 3, 4], new Map());
 const preparation = (autres: Record<string, unknown> = {}) => ({
 	annee: 2027,
 	publiee: null,
 	ordre: [1, 2, 3, 4],
 	ordrePropose: [1, 2, 3, 4],
-	semaines: calculerAnnee(2027, centre.astreinte, [1, 2, 3, 4], new Map()),
-	manoeuvres: [{ id: 5, debut: '2027-03-07T08:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: [1, 2], petitDejeuner: true, annulee: false, publiee: true }],
-	vacances: [],
+	semaines,
+	manoeuvres: [{ id: 5, debut: '2027-03-07T08:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: [1, 2], convocation: [1, 2], petitDejeuner: true, annulee: false, publiee: true, publicationId: 9 }],
+	vacances: [{ id: 3, nom: 'Vacances d’hiver', debut: '2027-02-13', fin: '2027-03-01' }],
 	feries: feries(2027),
-	fetes: { noel: 1, nouvelAn: 1, attendues: { noel: [3], nouvelAn: [1, 2] }, historique: [{ annee: 2026, fete: 'noel', equipeId: 1 }] },
+	// Noël 2027 : semaine du 24 décembre, Équipe 4.
+	fetes: { noel: 4, nouvelAn: 1, attendues: { noel: [2], nouvelAn: [1, 3] }, historique: [{ annee: 2026, fete: 'noel', equipeId: 1 }] },
 	equipes,
 	...autres
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const page = (p = preparation(), form: unknown = null) => render(Page as any, { props: { data: { preparation: p, annees: [2026, 2027] }, form } }).body;
+const page = (data: Record<string, unknown> = {}, form: unknown = null) =>
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	render(Page as any, { props: { data: { preparation: preparation(), annees: [2026, 2027], etape: 'roulement', apercu: semaines.slice(0, 6), manoeuvre: null, semaine: null, proposer: null, ...data }, form } }).body;
 
-describe('Préparer l’année', () => {
-	it('non publiée : le bouton de publication ; publiée : la date', () => {
-		expect(page()).toContain('Publier l’année 2027');
-		expect(page(preparation({ publiee: '2026-11-01T10:00' }))).toContain('Publiée');
+describe('Préparer l’année en cinq étapes', () => {
+	it('la progression et l’étiquette Brouillon / Publiée à chaque étape', () => {
+		for (const etape of ['roulement', 'fetes', 'manoeuvres', 'reperes', 'publier']) {
+			const html = page({ etape });
+			expect(html).toContain('Brouillon');
+			expect(html).toMatch(new RegExp(`href="\\?annee=2027&amp;etape=${etape}"[^>]*aria-current="step"`));
+		}
+		expect(page({ etape: 'fetes' })).toContain('Étape 2 sur 5');
+		expect(page({ preparation: preparation({ publiee: '2026-11-01T10:00' }) })).toContain('Publiée');
 	});
 
-	it('Noël hors de son tour est signalé, le Nouvel An non', () => {
+	it('Roulement : monter et descendre au clavier, sans liste déroulante ; l’aperçu des premières semaines', () => {
 		const html = page();
-		expect(html).toContain('Hors de son tour : c’est à Équipe 3 de tenir Noël.');
-		expect(html).not.toContain('de tenir le Nouvel An');
-		expect(html).toContain('Noël 2026 : Équipe 1');
+		expect(html).toMatch(/<button[^>]*name="deplacer"[^>]*value="1:monter"[^>]*aria-label="Monter Équipe 2"/);
+		expect(html).toMatch(/<button[^>]*value="0:monter"[^>]*disabled/);
+		expect(html).not.toContain('<select');
+		expect(html).toContain('Aperçu');
+		expect((html.match(/class="numero-s[^"]*">S\d+/g) ?? []).length).toBe(6);
+		expect(html).not.toContain('Valider ce roulement');
+		expect(page({ preparation: preparation({ ordre: [] }) })).toContain('Valider ce roulement');
 	});
 
-	it('une liste déroulante par semaine, étiquetée ; les manœuvres et leur état', () => {
-		const html = page();
-		expect(html).toMatch(/<label for="semaine-2027-01-01"[^>]*>S53 · 1er – 8 janv\./);
-		expect(html).toContain('Feux de forêt');
-		expect(html).toContain('Annoncée');
-		expect(html).toContain('Équipe 1, Équipe 2');
+	it('Fêtes : hors de son tour, l’échange proposé à accepter', () => {
+		const html = page({ etape: 'fetes' });
+		expect(html).toContain('Hors de son tour : c’est à Équipe 2 de tenir Noël.');
+		expect(html).toContain('href="?annee=2027&amp;etape=fetes&amp;proposer=noel"');
+		expect(html).toContain('Noël 2026');
+		const propose = page({ etape: 'fetes', proposer: 'noel' });
+		expect(propose).toContain('Accepter l’échange');
+		expect(propose).toMatch(/name="semaine-2027-12-24" value="2"/);
+		expect(propose).toMatch(/name="semaine-2027-12-10" value="4"/);
+	});
+
+	it('Manœuvres : des rangées ; ajout et modification dans un panneau', () => {
+		const html = page({ etape: 'manoeuvres' });
+		expect(html).toContain('href="?annee=2027&amp;etape=manoeuvres&amp;manoeuvre=5"');
+		expect(html).toContain('Ajouter une manœuvre');
+		expect(html).not.toContain('class="panneau');
+		const panneau = page({ etape: 'manoeuvres', manoeuvre: 5 });
+		expect(panneau).toMatch(/<section class="panneau[^"]*"/);
+		expect(panneau).toContain('Modifier la manœuvre');
+		expect(panneau).toContain('action="/planning/preparer/manoeuvre?/enregistrer"');
+		expect(panneau).toContain('value="Feux de forêt"');
+		expect(page({ etape: 'manoeuvres', manoeuvre: 'nouvelle' })).toContain('Ajouter la manœuvre');
+	});
+
+	it('Repères : fériés repliés, vacances en rangées et ajout', () => {
+		const html = page({ etape: 'reperes' });
+		expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*>Jours fériés/);
+		expect(html).not.toMatch(/<details[^>]*open/);
+		expect(html).toContain('Vacances d’hiver');
+		expect(html).toContain('action="?/vacances&amp;annee=2027&amp;etape=reperes"');
+	});
+
+	it('Vérifier et publier : la grille des semaines, l’équipe écrite ; une semaine ouvre le choix d’équipe', () => {
+		const html = page({ etape: 'publier' });
+		expect(html).not.toContain('<select');
+		expect(html).toContain('href="?annee=2027&amp;etape=publier&amp;semaine=2027-01-01"');
+		expect((html.match(/class="nom[^"]*">Équipe 4</g) ?? []).length).toBe(13);
+		expect(html).toContain('Récapitulatif');
+		expect(html).toContain('Publier l’année 2027');
+		const choix = page({ etape: 'publier', semaine: '2027-01-01' });
+		expect(choix).toMatch(/<section class="panneau[^"]*"/);
+		expect(choix).toMatch(/<button[^>]*name="semaine-2027-01-01"[^>]*value="1"[^>]*aria-pressed="true"/);
+		expect(choix).toMatch(/<button[^>]*name="semaine-2027-01-01"[^>]*value="3"[^>]*aria-pressed="false"/);
+	});
+
+	it('sans roulement, les étapes qui en dépendent le disent', () => {
+		expect(page({ etape: 'publier', preparation: preparation({ ordre: [], semaines: [] }) })).toContain('Réglez d’abord le roulement');
 	});
 
 	it('le message d’erreur va au bon formulaire', () => {
-		const html = page(preparation(), { cible: 'roulement', message: 'Mettez chaque équipe une fois.' });
-		expect(html).toContain('Mettez chaque équipe une fois.');
+		expect(page({}, { cible: 'roulement', message: 'Mettez chaque équipe une fois.' })).toContain('Mettez chaque équipe une fois.');
 	});
 });

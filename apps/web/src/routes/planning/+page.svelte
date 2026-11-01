@@ -86,7 +86,7 @@
 		} catch {
 			return;
 		}
-		if (retenue && retenue !== data.vue && VUES.some(([v]) => v === retenue)) goto(lien({ vue: retenue }), { replaceState: true });
+		if (retenue && retenue !== data.vue && VUES.some(([v]) => v === retenue)) goto(lien({ vue: retenue }), { replace: true, reset: false });
 	});
 </script>
 
