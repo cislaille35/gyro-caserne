@@ -229,8 +229,9 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 		.orderBy(demandeRemplacement.debut);
 
 // Le parcours « Me faire remplacer » ou « Échanger » : mes semaines (toutes leurs tranches), les collègues libres sur les périodes
-// choisies (gardées seulement si elles sont à moi et libres), et pour un échange les collègues qui ont une période à me donner.
-export async function pourDemander(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage, choix: { periodes?: Periode[]; avec?: number | null } = {}) {
+// choisies (gardées seulement si elles sont à moi et libres). Pour un échange : les collègues qui ont une période à me donner,
+// ses semaines vues par moi, et les aptitudes contrôlées du collègue qui me manquent pour ses périodes (`periodesAvec`).
+export async function pourDemander(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage, choix: { periodes?: Periode[]; echange?: boolean; avec?: number | null; periodesAvec?: Periode[] } = {}) {
 	exigerDateHeure(maintenant, 'Date');
 	const moi = moiDe(acteur);
 	const ctx = await lireContexte(base, maintenant, reglage);
@@ -238,7 +239,10 @@ export async function pourDemander(base: Base, acteur: Acteur, maintenant: strin
 	const libres = semaines.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre');
 	const choisies = libres.filter((t) => (choix.periodes ?? []).some((p) => p.debut === t.debut && p.fin === t.fin)).map(({ debut, fin }) => ({ debut, fin }));
 	const libresPour = candidats(ctx, moi, choisies);
-	const echangeables = libresPour.filter((c) => bandesDe(ctx, c.id, moi).some((s) => s.tranches.some((t) => t.etat === 'libre')));
+	const echangeables = choix.echange ? libresPour.filter((c) => bandesDe(ctx, c.id, moi).some((s) => s.tranches.some((t) => t.etat === 'libre'))) : [];
 	const avec = echangeables.find((c) => c.id === choix.avec) ?? null;
-	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec: avec ? bandesDe(ctx, avec.id, moi) : [] };
+	const semainesAvec = avec ? bandesDe(ctx, avec.id, moi) : [];
+	const siennes = semainesAvec.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre' && (choix.periodesAvec ?? []).some((p) => p.debut === t.debut && p.fin === t.fin));
+	const manqueMoi = avec && siennes[0] ? manque(ctx, avec.id, moi, siennes[0].debut.slice(0, 10)) : [];
+	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec, manqueMoi };
 }

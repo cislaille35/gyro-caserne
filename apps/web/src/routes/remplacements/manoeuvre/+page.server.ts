@@ -15,16 +15,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (acteur.type !== 'personne') redirect(303, '/remplacements');
 	const q = url.searchParams;
 	const lu = await ouRefus(manoeuvresEchangeables(locals.base, acteur, maintenantParis(), centre.astreinte), 'Réservé aux agents du centre.');
-	const mienne = lu.miennes.find((m) => m.id === entier(q.get('mienne'))) ?? (lu.miennes.length === 1 ? lu.miennes[0]! : null);
+	const demandee = q.has('mienne') ? (lu.miennes.find((m) => m.id === entier(q.get('mienne'))) ?? null) : null;
+	// Venue du planning, une manœuvre qui ne s'échange pas (tout le centre, déjà passée) : on le dit, et l'agent choisit.
+	const introuvable = q.has('mienne') && demandee === null;
+	const mienne = demandee ?? (lu.miennes.length === 1 && !introuvable ? lu.miennes[0]! : null);
+	// Les collègues qui peuvent prendre ma place : pas ceux déjà convoqués à ma manœuvre.
+	const collegues = mienne ? lu.collegues.filter((x) => !x.aussiA.includes(mienne.id)) : lu.collegues;
 	const [c, m] = (q.get('sienne') ?? '').split(':').map((x) => entier(x));
-	const collegue = lu.collegues.find((x) => x.id === c) ?? null;
+	const collegue = collegues.find((x) => x.id === c) ?? null;
 	const sienne = collegue?.manoeuvres.find((x) => x.id === m) ? { collegue, manoeuvre: collegue.manoeuvres.find((x) => x.id === m)! } : null;
-	const court = lu.miennes.length === 1 || (q.get('depuis') === 'planning' && mienne !== null);
+	const court = mienne !== null && (lu.miennes.length === 1 || q.get('depuis') === 'planning');
 	const ordre = court ? (['sienne', 'verifier'] as const) : (['mienne', 'sienne', 'verifier'] as const);
 	const faite = { mienne: mienne !== null, sienne: sienne !== null, verifier: false };
-	const demandee = ordre.find((e) => e === q.get('etape')) ?? ordre[0];
-	const manquante = ordre.slice(0, ordre.indexOf(demandee as never)).find((e) => !faite[e]);
-	return { ...lu, mienne, sienne, court, etape: manquante ?? demandee, message: manquante && q.has('etape') ? (manquante === 'mienne' ? 'Choisissez votre manœuvre.' : 'Choisissez la manœuvre d’un collègue.') : null };
+	const etapeDemandee = ordre.find((e) => e === q.get('etape')) ?? ordre[0];
+	const manquante = ordre.slice(0, ordre.indexOf(etapeDemandee as never)).find((e) => !faite[e]);
+	const message = introuvable ? 'Cette manœuvre ne s’échange pas (elle convoque tout le centre, ou elle est passée) : choisissez-en une autre.' : manquante && q.has('etape') ? (manquante === 'mienne' ? 'Choisissez votre manœuvre.' : 'Choisissez la manœuvre d’un collègue.') : null;
+	return { miennes: lu.miennes, collegues, mienne, sienne, court, etape: manquante ?? etapeDemandee, message };
 };
 
 export const actions: Actions = {

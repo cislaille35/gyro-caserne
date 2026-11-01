@@ -157,6 +157,12 @@ describe('onglet Planning', () => {
 		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-06&amp;jour=2026-11-09"');
 		expect((html.match(/href="\/remplacements\/demander\?semaine=2026-11-06&amp;jour=/g) ?? []).length).toBe(7);
 		expect(page({ semaine: '2026-11-13' })).not.toContain('jour=2026-11-16');
+		// Le samedi à 10 h, la garde de 24 h a commencé : plus de lien ce jour-là ; le dimanche, si.
+		const samedi = page({ maintenant: '2026-11-07T10:00' });
+		expect(samedi).not.toContain('jour=2026-11-07');
+		expect(samedi).toContain('jour=2026-11-08');
+		// Le lundi à 10 h, la nuit de 18 h est encore à venir.
+		expect(page({ maintenant: '2026-11-09T10:00' })).toContain('jour=2026-11-09');
 	});
 
 	it('À venir : « Je ne peux pas : échanger ma place » sur une manœuvre d’équipe, pas sur une manœuvre de tout le centre', () => {
@@ -176,6 +182,7 @@ describe('onglet Planning', () => {
 			expect(html).not.toContain(['data', 'sveltekit', 'noscroll'].join('-'));
 			expect(html).toMatch(/aria-label="(Semaine|Mois) précédente?"[^>]*data-sveltekit-reset="false"|data-sveltekit-reset="false"[^>]*aria-label="(Semaine|Mois) précédente?"/);
 		}
-		expect(page({ vue: 'mois' })).toMatch(/href="\?annee=2026&amp;vue=semaine&amp;semaine=2026-11-06#jour-2026-11-11"[^>]*data-sveltekit-reset="false"/);
+		// Un jour du mois mène à sa semaine et fait défiler jusqu'à ce jour (pas en haut de page) : la navigation par défaut suit l'ancre.
+		expect(page({ vue: 'mois' })).toMatch(/href="\?annee=2026&amp;vue=semaine&amp;semaine=2026-11-06#jour-2026-11-11"(?![^>]*reset)[^>]*>/);
 	});
 });

@@ -50,4 +50,8 @@ describe('page d’une demande', () => {
 		expect(html).toMatch(/Conclue<span class="masque[^"]*"> : fait/);
 		expect(html).toContain('mettez à jour votre disponibilité dans l’appli du SDIS');
 	});
+
+	it('« Demande envoyée » n’est dit qu’au demandeur', () => {
+		expect(page({ demande: demande({ moi: 'destinataire' }), envoyee: true })).not.toContain('Demande envoyée.');
+	});
 });

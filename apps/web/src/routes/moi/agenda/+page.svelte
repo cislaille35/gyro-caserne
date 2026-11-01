@@ -4,11 +4,19 @@
 
 	let { data, form } = $props();
 
-	let copie = $state(false);
+	let copie = $state<'' | 'ok' | 'echec'>('');
+	// Copie refusée par le navigateur : le lien est sélectionné, à copier à la main.
 	async function copier() {
 		if (!data.lien) return;
-		await navigator.clipboard.writeText(data.lien).catch(() => {});
-		copie = true;
+		try {
+			await navigator.clipboard.writeText(data.lien);
+			copie = 'ok';
+		} catch {
+			copie = 'echec';
+			const champ = document.getElementById('lien') as HTMLInputElement | null;
+			champ?.focus();
+			champ?.select();
+		}
 	}
 	const AGENDA = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M12 13v5 M9.5 15.5h5';
 </script>
@@ -36,7 +44,9 @@
 				>
 				<Bouton variante="secondaire" onclick={copier}>Copier le lien</Bouton>
 			</div>
-			<div role="status">{#if copie}<p class="succes">Lien copié : collez-le dans votre agenda.</p>{/if}</div>
+			<div role="status">
+				{#if copie === 'ok'}<p class="succes">Lien copié : collez-le dans votre agenda.</p>{:else if copie === 'echec'}<p class="succes">Copie impossible ici : le lien est sélectionné ci-dessous, copiez-le à la main.</p>{/if}
+			</div>
 			<label for="lien">Votre lien personnel</label>
 			<input id="lien" type="text" readonly value={data.lien} onfocus={(e) => e.currentTarget.select()} />
 		</section>

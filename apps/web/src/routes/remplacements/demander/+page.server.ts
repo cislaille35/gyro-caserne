@@ -19,7 +19,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const q = url.searchParams;
 	const mode = q.get('mode') === 'echange' ? ('echange' as const) : ('remplacement' as const);
 	const avecId = entier(q.get('avec'));
-	const lu = await ouRefus(pourDemander(locals.base, acteur, maintenant, centre.astreinte, { periodes: lirePeriodes(q.getAll('p')), avec: mode === 'echange' ? avecId : null }), 'Réservé aux agents du centre.');
+	const lu = await ouRefus(
+		pourDemander(locals.base, acteur, maintenant, centre.astreinte, { periodes: lirePeriodes(q.getAll('p')), echange: mode === 'echange', avec: mode === 'echange' ? avecId : null, periodesAvec: lirePeriodes(q.getAll('ps')) }),
+		'Réservé aux agents du centre.'
+	);
 
 	// La semaine ouverte : demandée, celle du jour pré-sélectionné, celle des périodes choisies, ou la seule.
 	const jour = DATE.test(q.get('jour') ?? '') ? q.get('jour')! : null;
@@ -50,14 +53,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Revenu en arrière faute de choix : on le dit (seulement si l'agent avait demandé à avancer).
 	const message = manquante && q.has('etape') ? MESSAGES[manquante] : null;
 
-	return { mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '' };
+	return { mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '', manqueMoi: lu.manqueMoi };
 };
 
 const MESSAGES: Record<Etape, string> = {
-	quand: 'Touchez au moins un jour.',
+	quand: 'Choisissez au moins un jour.',
 	qui: 'Choisissez « Tout le monde » ou un collègue.',
 	avec: 'Choisissez le collègue avec qui échanger.',
-	sienne: 'Touchez au moins un jour de son astreinte.',
+	sienne: 'Choisissez au moins un jour de son astreinte.',
 	verifier: ''
 };
 
@@ -70,14 +73,14 @@ export const actions: Actions = {
 		const maintenant = maintenantParis();
 		const periodes = lirePeriodes(textes(f, 'periode'));
 		const mot = typeof f.get('mot') === 'string' ? (f.get('mot') as string) : null;
-		if (periodes.length === 0) return fail(400, { message: 'Touchez au moins un jour.' });
+		if (periodes.length === 0) return fail(400, { message: 'Choisissez au moins un jour.' });
 		let id: number;
 		try {
 			if (f.get('mode') === 'echange') {
 				const collegue = entier(typeof f.get('avec') === 'string' ? (f.get('avec') as string) : null);
 				const periodesCible = lirePeriodes(textes(f, 'periodeCible'));
 				if (collegue === null) return fail(400, { message: 'Choisissez le collègue avec qui échanger.' });
-				if (periodesCible.length === 0) return fail(400, { message: 'Touchez au moins un jour de son astreinte.' });
+				if (periodesCible.length === 0) return fail(400, { message: 'Choisissez au moins un jour de son astreinte.' });
 				id = await proposerEchange(locals.base, acteur, { periodes, cibleId: collegue, periodesCible, mot }, maintenant, centre.astreinte);
 			} else {
 				const pour = f.get('pour');

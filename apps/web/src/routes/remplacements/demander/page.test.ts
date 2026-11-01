@@ -20,7 +20,7 @@ const autre = { semaine: '2026-12-04', equipeId: 1, tranches: [t('2026-12-04T18:
 const bruno = { id: 2, prenom: 'Bruno', nom: 'Martin', equipe: { nom: 'Équipe 2', couleur: '#1e6fd9' }, aptitudes: ['COD1'], manque: ['CA1'] };
 const chloe = { id: 3, prenom: 'Chloé', nom: 'Petit', equipe: { nom: 'Équipe 3', couleur: '#2f9e44' }, aptitudes: ['CA1'], manque: [] };
 const nuit = { debut: '2026-11-09T18:00', fin: '2026-11-10T06:00' };
-const base = { mode: 'remplacement', maintenant: '2026-11-07T10:00', etape: 'quand', message: null, semaines: [semaine, autre], semaine: null, choisies: [], candidats: [], echangeables: [], pour: null, avec: null, semainesAvec: [], semaineAvec: null, choisiesAvec: [], recherche: '' };
+const base = { manqueMoi: [], mode: 'remplacement', maintenant: '2026-11-07T10:00', etape: 'quand', message: null, semaines: [semaine, autre], semaine: null, choisies: [], candidats: [], echangeables: [], pour: null, avec: null, semainesAvec: [], semaineAvec: null, choisiesAvec: [], recherche: '' };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const page = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { ...base, ...data }, form } }).body;
 
@@ -35,7 +35,7 @@ describe('Me faire remplacer : parcours guidé', () => {
 	});
 
 	it('étape 1, semaine choisie : la bande de 7 jours avec la plage ; passée et déjà demandée inactives, raison écrite ; raccourcis', () => {
-		const html = page({ semaine, choisies: [semaine.tranches[1]] });
+		const html = page({ semaine, choisies: [semaine.tranches[1]], maintenant: '2026-11-10T10:00' });
 		expect(html.match(/type="checkbox"/g)).toHaveLength(7);
 		expect(html.match(/disabled/g)).toHaveLength(2);
 		expect(html).toContain('Passée');
@@ -64,7 +64,7 @@ describe('Me faire remplacer : parcours guidé', () => {
 		expect(html).toContain('Étape 3 sur 3');
 		expect(html).toContain('Vous demandez à être remplacé la nuit du lundi 9 novembre (18 h – 6 h).');
 		expect(html).toContain('2 collègues disponibles sont prévenus.');
-		expect(html).toContain('Votre chef d’équipe sera informé.');
+		expect(html).toContain('Votre chef d’équipe sera informé dès qu’un collègue accepte.');
 		expect(html).toMatch(/<form method="POST"[\s\S]*name="periode" value="2026-11-09T18:00\|2026-11-10T06:00"[\s\S]*name="pour" value="tous"[\s\S]*Envoyer la demande/);
 	});
 
@@ -87,5 +87,24 @@ describe('Me faire remplacer : parcours guidé', () => {
 
 	it('sans astreinte à venir : un vide qui mène au planning', () => {
 		expect(page({ semaines: [] })).toContain('Aucune astreinte à venir.');
+	});
+
+	it('ouverte à tous sans aucun collègue libre : le dit franchement, pas d’envoi', () => {
+		const html = page({ etape: 'verifier', semaine, choisies: [nuit], candidats: [], pour: 'tous' });
+		expect(html).toContain('personne ne recevrait la demande');
+		expect(html).toContain('Prévenez directement votre chef d’équipe.');
+		expect(html).not.toContain('Envoyer la demande');
+	});
+
+	it('échange : l’aptitude qui me manque pour ses périodes est dite aussi', () => {
+		const siennes = [{ debut: '2026-11-14T06:00', fin: '2026-11-15T06:00' }];
+		const html = page({ mode: 'echange', etape: 'verifier', semaine, choisies: [nuit], avec: { ...chloe, manque: [] }, echangeables: [chloe], choisiesAvec: siennes, manqueMoi: ['CA1'] });
+		expect(html).toContain('Il vous manque CA1 pour ses périodes : votre chef d’équipe devra valider.');
+	});
+
+	it('le nom lu de chaque jour est le texte montré', () => {
+		const html = page({ semaine });
+		expect(html).toMatch(/<span class="nom-jour[^"]*">lundi<\/span>/);
+		expect(html).not.toMatch(/<span class="texte[^"]*" aria-hidden/);
 	});
 });

@@ -80,7 +80,7 @@
 						{#each l.jours as j (j.date)}
 							{@const du = parJour.filter((x) => x.date === j.date)}
 							<td class:hors={!j.dansLeMois} class:aujourdhui={j.date === maintenant.slice(0, 10)}>
-								<a href={lienJour(l.semaine.debut, j.date)} data-sveltekit-reset="false">
+								<a href={lienJour(l.semaine.debut, j.date)}>
 									<span class="jour" aria-hidden="true">{Number(j.date.slice(8, 10))}</span>
 									<span class="masque">{jourLong(j.date)}{du.map((x) => `, ${SIGNES[x.genre]}`).join('')}{vacancesLe(j.date) ? ', vacances' : ''}</span>
 									<span class="signes" aria-hidden="true">

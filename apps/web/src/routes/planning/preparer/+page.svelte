@@ -139,12 +139,12 @@
 							<p><PastilleEquipe nom={e.nom} couleur={e.couleur} /></p>
 							{#if horsTour(f)}
 								<p class="avertissement">Hors de son tour : c’est à {noms(attendues(f))} de tenir {f === 'noel' ? 'Noël' : 'le Nouvel An'}.</p>
-								{#if data.proposer !== f}<a class="lien-secondaire" href={ici({ proposer: f })} data-sveltekit-reset="false">Proposer un échange de semaines</a>{/if}
+								{#if data.proposer !== f}<a class="lien-secondaire" href="{ici({ proposer: f })}#proposition-{f}">Proposer un échange de semaines</a>{/if}
 							{:else if attendues(f).length}
 								<p class="doux">Dans son tour.</p>
 							{/if}
 							{#if data.proposer === f}
-								<div class="proposition" role="region" aria-label="Échange proposé">
+								<div class="proposition" id="proposition-{f}" role="region" aria-label="Échange proposé">
 									{#if proposition}
 										{@const a = equipe(proposition.autre.equipeId)}
 										<p>Échanger la semaine {proposition.fete.numero} ({duAu(proposition.fete.debut, finDeSemaine(proposition.fete.debut))}, {e.nom}) avec la semaine {proposition.autre.numero} ({duAu(proposition.autre.debut, finDeSemaine(proposition.autre.debut))}, {a.nom}) : {a.nom} tiendrait {FETES[f]}.</p>

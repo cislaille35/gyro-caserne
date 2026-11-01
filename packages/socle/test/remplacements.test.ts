@@ -273,6 +273,7 @@ describe('échange de manœuvre', () => {
 		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
 		expect(choix.miennes.map((m) => m.id)).toEqual([m1]);
 		expect(choix.collegues.find((c) => c.id === n.bruno)?.manoeuvres.map((m) => m.id)).toEqual([m2]);
+		expect(choix.collegues.find((c) => c.id === n.bruno)?.aussiA).toEqual([]);
 		const id = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: m2 }, maintenant, reglage);
 		expect(await accepterDemande(base, bruno, id, maintenant, reglage)).toBe('conclue');
 		expect(await demande(id)).toMatchObject({ etat: 'conclue', remplacantId: n.bruno });
@@ -539,10 +540,31 @@ describe('parcours guidé', () => {
 
 	it('échange : les collègues qui ont une période à donner, et ses périodes vues par moi', async () => {
 		const { base, alice, n } = await jeu();
-		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], avec: n.bruno });
+		expect((await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9] })).echangeables).toEqual([]);
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: n.bruno });
 		expect(lu.echangeables.map((c) => c.prenom)).toEqual(['Chloe', 'Bruno']);
 		expect(lu.avec?.prenom).toBe('Bruno');
 		expect(lu.semainesAvec[0]!.semaine).toBe('2026-11-13');
 		expect(lu.semainesAvec[0]!.tranches.every((t) => t.etat === 'libre')).toBe(true);
+		expect(lu.manqueMoi).toEqual([]);
+	});
+
+	it('échange : les aptitudes contrôlées du collègue qui me manquent pour ses périodes', async () => {
+		const { base, n, david } = await jeu();
+		// David (sans aptitude) prend une nuit de Chloé (CA1).
+		const lu = await pourDemander(base, david, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: n.chloe, periodesAvec: [{ debut: '2026-11-23T18:00', fin: '2026-11-24T06:00' }] });
+		expect(lu.avec?.prenom).toBe('Chloe');
+		expect(lu.manqueMoi).toEqual(['CA1']);
+	});
+});
+
+describe('échange de manœuvre, parcours court', () => {
+	it('un collègue déjà convoqué à ma manœuvre est signalé (il ne peut pas y prendre ma place)', async () => {
+		const { base, alice, ids, n } = await jeu();
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const commune = await enregistrerManoeuvre(base, qui, { debut: '2026-11-08T08:30', theme: 'Commune', lieu: 'Caserne', convoques: [ids[0]!, ids[1]!], petitDejeuner: false }, maintenant);
+		await enregistrerManoeuvre(base, qui, { debut: '2026-11-15T08:30', theme: 'Équipe 2', lieu: 'Caserne', convoques: [ids[1]!], petitDejeuner: false }, maintenant);
+		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
+		expect(choix.collegues.find((c) => c.id === n.bruno)?.aussiA).toEqual([commune]);
 	});
 });

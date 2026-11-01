@@ -27,6 +27,10 @@
 	const vacances = $derived(reperesDe(semaine, donnees, mode).filter((r) => r.genre === 'vacances'));
 	const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 	const mienne = $derived(mode === 'moi' && semaine.mienne);
+	// Une période commence-t-elle encore ce jour-là ? Au début d'une plage, ou à l'heure de coupure (fin de la première nuit) si une garde court.
+	const coupure = $derived(semaine.periodes[0]!.fin.slice(11, 16));
+	const encoreCeJour = (date: string) =>
+		semaine.periodes.some((p) => (p.debut.startsWith(date) && p.debut > maintenant) || (p.debut < `${date}T${coupure}` && `${date}T${coupure}` < p.fin && `${date}T${coupure}` > maintenant));
 </script>
 
 <section class="vue" aria-labelledby="titre-semaine">
@@ -64,7 +68,7 @@
 						{#each j.reperes as r, i (i)}<li class={r.genre}><span class="signe">{SIGNES[r.genre]}&nbsp;:</span> {r.texte}</li>{/each}
 					</ul>
 				{/if}
-				{#if mienne && j.plages.length && j.date >= maintenant.slice(0, 10)}
+				{#if mienne && j.plages.length && encoreCeJour(j.date)}
 					<a class="remplacer-jour" href="/remplacements/demander?semaine={semaine.debut}&jour={j.date}">Me faire remplacer<span class="masque">{` : ${jourLong(j.date)}`}</span></a>
 				{/if}
 			</li>

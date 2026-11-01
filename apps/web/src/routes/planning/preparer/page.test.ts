@@ -49,7 +49,7 @@ describe('Préparer l’année en cinq étapes', () => {
 	it('Fêtes : hors de son tour, l’échange proposé à accepter', () => {
 		const html = page({ etape: 'fetes' });
 		expect(html).toContain('Hors de son tour : c’est à Équipe 2 de tenir Noël.');
-		expect(html).toContain('href="?annee=2027&amp;etape=fetes&amp;proposer=noel"');
+		expect(html).toContain('href="?annee=2027&amp;etape=fetes&amp;proposer=noel#proposition-noel"');
 		expect(html).toContain('Noël 2026');
 		const propose = page({ etape: 'fetes', proposer: 'noel' });
 		expect(propose).toContain('Accepter l’échange');

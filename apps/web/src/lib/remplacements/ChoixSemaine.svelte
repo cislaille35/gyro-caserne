@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { duAu, finDeSemaine, jourLong } from '../planning/dates.ts';
+	import { duAu, finDeSemaine } from '../planning/dates.ts';
 	import { pluriel } from '../pluriel.ts';
 	import { cle, plage, raccourcis, RAISONS, type Periode, type Tranche } from './guide.ts';
 
@@ -27,7 +27,7 @@
 
 	const libres = (s: { tranches: Tranche[] }) => s.tranches.filter((t) => t.etat === 'libre').length;
 	const format = (options: Intl.DateTimeFormatOptions, iso: string) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
-	const jourCourt = (iso: string) => format({ weekday: 'short' }, iso).replace('.', '');
+	const jourEntier = (iso: string) => format({ weekday: 'long' }, iso);
 	const dateCourte = (iso: string) => format({ day: 'numeric', month: 'short' }, iso);
 	const coche = (t: Tranche) => choisies.some((p) => cle(p) === cle(t));
 	const rac = $derived(ouverte ? raccourcis(ouverte.tranches, maintenant) : []);
@@ -62,9 +62,9 @@
 				<li>
 					<label class="jour" class:inactive>
 						<input type="checkbox" name={nom} value={cle(t)} checked={!inactive && coche(t)} disabled={inactive} />
-						<span class="masque">{jourLong(t.debut)}, {plage(t)}{inactive ? ` : ${RAISONS[t.etat as Exclude<Tranche['etat'], 'libre'>]}` : ''}</span>
-						<span class="texte" aria-hidden="true">
-							<span class="nom-jour">{jourCourt(t.debut)}</span>
+						<!-- Le nom lu est le texte montré (aux deux tailles). -->
+						<span class="texte">
+							<span class="nom-jour">{jourEntier(t.debut)}</span>
 							<span class="date">{dateCourte(t.debut)}</span>
 							<span class="plage">{plage(t)}</span>
 							{#if inactive}<span class="raison">{RAISONS[t.etat as Exclude<Tranche['etat'], 'libre'>]}</span>{/if}
@@ -209,7 +209,7 @@
 	.nom-jour {
 		font-weight: 700;
 		text-transform: capitalize;
-		min-width: 2.5em;
+		min-width: 5.5em;
 	}
 	.date {
 		font-weight: 600;
@@ -230,8 +230,10 @@
 		color: var(--doux);
 	}
 	@media (min-width: 900px) {
+		/* Une colonne par période : 7 d'ordinaire, 8 quand la relève tombe un jour férié. */
 		.jours {
-			grid-template-columns: repeat(7, minmax(0, 1fr));
+			grid-auto-flow: column;
+			grid-auto-columns: minmax(0, 1fr);
 		}
 		.jour {
 			flex-direction: column;

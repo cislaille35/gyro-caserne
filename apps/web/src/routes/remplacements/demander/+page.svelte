@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import ChoixSemaine from '#lib/remplacements/ChoixSemaine.svelte';
 	import ListeCollegues from '#lib/remplacements/ListeCollegues.svelte';
 	import Progression from '#lib/remplacements/Progression.svelte';
@@ -8,6 +9,10 @@
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
+	// Après chaque étape, le clavier et le lecteur d'écran repartent du titre de l'étape.
+	afterNavigate(({ type }) => {
+		if (type !== 'enter') document.getElementById('titre-etape')?.focus();
+	});
 	const echange = $derived(data.mode === 'echange');
 	const liste = $derived(etapes(data.mode));
 	const index = $derived(liste.findIndex((e) => e.id === data.etape));
@@ -43,17 +48,23 @@
 
 	const cible = $derived(data.pour && data.pour !== 'tous' ? data.pour : null);
 	const manque = $derived(echange ? (data.avec?.manque ?? []) : (cible?.manque ?? []));
-	const chef = $derived(manque.length > 0 ? `Il lui manque ${manque.join(', ')} : votre chef d’équipe devra valider.` : 'Votre chef d’équipe sera informé.');
+	const manqueMoi = $derived(echange ? data.manqueMoi : []);
+	const informe = 'Votre chef d’équipe sera informé dès qu’un collègue accepte.';
+	const chef = $derived(
+		[manque.length > 0 ? `Il lui manque ${manque.join(', ')}` : '', manqueMoi.length > 0 ? `il vous manque ${manqueMoi.join(', ')} pour ses périodes` : '']
+			.filter(Boolean)
+			.join(' et ')
+	);
+	const phraseChef = $derived(chef ? `${chef.charAt(0).toUpperCase()}${chef.slice(1)} : votre chef d’équipe devra valider.` : echange || cible ? 'Votre chef d’équipe sera informé quand il aura accepté.' : informe);
+	// Ouverte à tous sans aucun collègue libre : personne ne la recevrait.
+	const personne = $derived(!echange && !cible && data.candidats.length === 0);
 	const recap = $derived.by(() => {
 		const miennes = phrasePeriodes(data.choisies);
-		if (echange && data.avec) return [`Vous proposez à ${nom(data.avec)} d’échanger : vous lui donnez ${miennes}, ${data.avec.prenom} vous donne ${phrasePeriodes(data.choisiesAvec)}.`, `${data.avec.prenom} doit accepter.`, chef];
-		if (cible) return [`Vous demandez à ${nom(cible)} de vous remplacer ${miennes}.`, `${cible.prenom} doit accepter.`, chef];
+		if (echange && data.avec) return [`Vous proposez à ${nom(data.avec)} d’échanger : vous lui donnez ${miennes}, ${data.avec.prenom} vous donne ${phrasePeriodes(data.choisiesAvec)}.`, `${data.avec.prenom} doit accepter.`, phraseChef];
+		if (cible) return [`Vous demandez à ${nom(cible)} de vous remplacer ${miennes}.`, `${cible.prenom} doit accepter.`, phraseChef];
 		const n = data.candidats.length;
-		return [
-			`Vous demandez à être remplacé ${miennes}.`,
-			n > 0 ? `${pluriel(n, 'collègue disponible est prévenu', 'collègues disponibles sont prévenus')}.` : 'Aucun collègue n’est libre pour l’instant : personne ne sera prévenu.',
-			'Votre chef d’équipe sera informé.'
-		];
+		if (n === 0) return [`Vous voulez être remplacé ${miennes}.`, 'Aucun collègue n’est libre sur ces périodes pour l’instant : personne ne recevrait la demande.', 'Prévenez directement votre chef d’équipe.'];
+		return [`Vous demandez à être remplacé ${miennes}.`, `${pluriel(n, 'collègue disponible est prévenu', 'collègues disponibles sont prévenus')}.`, informe];
 	});
 	const message = $derived(form?.message ?? data.message ?? '');
 </script>
@@ -106,11 +117,11 @@
 		<p class="erreur" class:masque={!message} role="alert">{message}</p>
 
 		<section class="carte" aria-labelledby="titre-etape">
-			<h2 id="titre-etape">{liste[index]?.titre}</h2>
+			<h2 id="titre-etape" tabindex="-1">{liste[index]?.titre}</h2>
 
 			{#if data.etape === 'quand'}
-				<p class="doux">{echange ? 'Touchez les jours de votre astreinte que vous donnez.' : 'Choisissez la semaine, puis touchez les jours où vous ne pouvez pas être d’astreinte.'}</p>
-				<form method="GET" class="formulaire">
+				<p class="doux">{echange ? 'Choisissez les jours de votre astreinte que vous donnez.' : 'Choisissez la semaine, puis les jours où vous ne pouvez pas être d’astreinte.'}</p>
+				<form method="GET" class="formulaire" data-sveltekit-reset="false">
 					{@render garder(['p'])}
 					{#if data.semaine}<input type="hidden" name="semaine" value={data.semaine.semaine} />{/if}
 					<ChoixSemaine
@@ -128,22 +139,22 @@
 				<p class="autre"><a href={autreMode}>{echange ? 'Plutôt me faire remplacer ?' : 'Plutôt échanger avec un collègue ?'}</a></p>
 			{:else if data.etape === 'qui'}
 				{@render resume()}
-				<form method="GET" class="formulaire">
+				<form method="GET" class="formulaire" data-sveltekit-reset="false">
 					{@render garder(['pour'])}
 					<ListeCollegues collegues={data.candidats} name="pour" choisi={data.pour === 'tous' ? 'tous' : (data.pour?.id ?? null)} recherche={data.recherche} etape="qui" tous={data.candidats.length} legende="Qui prévenir ?" />
 					{@render boutons('Continuer')}
 				</form>
 			{:else if data.etape === 'avec'}
 				{@render resume()}
-				<form method="GET" class="formulaire">
+				<form method="GET" class="formulaire" data-sveltekit-reset="false">
 					{@render garder(['avec', 'ps'])}
 					<ListeCollegues collegues={data.echangeables} name="avec" choisi={data.avec?.id ?? null} recherche={data.recherche} etape="avec" legende="Avec qui échanger ?" />
 					{@render boutons('Continuer')}
 				</form>
 			{:else if data.etape === 'sienne' && data.avec}
 				{@render resume()}
-				<p class="doux">Touchez les jours de l’astreinte de {nom(data.avec)} que vous prenez.</p>
-				<form method="GET" class="formulaire">
+				<p class="doux">Choisissez les jours de l’astreinte de {nom(data.avec)} que vous prenez.</p>
+				<form method="GET" class="formulaire" data-sveltekit-reset="false">
 					{@render garder(['ps'])}
 					{#if data.semaineAvec}<input type="hidden" name="semaineAvec" value={data.semaineAvec.semaine} />{/if}
 					<ChoixSemaine
@@ -171,10 +182,12 @@
 					{:else}
 						<input type="hidden" name="pour" value={etat.pour ?? 'tous'} />
 					{/if}
-					<label for="mot" class="libelle">Un mot pour {echange || cible ? 'votre collègue' : 'vos collègues'} (facultatif)</label>
-					<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
+					{#if !personne}
+						<label for="mot" class="libelle">Un mot pour {echange || cible ? 'votre collègue' : 'vos collègues'} (facultatif)</label>
+						<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
+					{/if}
 					<div class="boutons">
-						<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>
+						{#if !personne}<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>{/if}
 						{#if precedente}<a class="bouton secondaire" href={lienEtape(precedente)}>Retour</a>{/if}
 					</div>
 				</form>
@@ -196,6 +209,9 @@
 	}
 	h2 {
 		font: 700 1.5rem var(--police-titre);
+	}
+	h2:focus {
+		outline: none;
 	}
 	.carte {
 		display: flex;

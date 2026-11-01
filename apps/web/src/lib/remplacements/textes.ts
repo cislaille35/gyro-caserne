@@ -38,7 +38,11 @@ export function frise(v: VueDemande): Pas[] {
 	const qui = v.remplacant ?? v.cible;
 	const pas: Pas[] = [{ libelle: v.genre === 'remplacement' ? 'Envoyée' : 'Proposée', etat: 'fait' }];
 	const acceptee = v.remplacant !== null && !['attente', 'refusee'].includes(v.etat);
-	if (v.etat === 'refusee') return [...pas, { libelle: qui ? `Refusée par ${nom(qui)}` : 'Refusée', etat: 'arret' }];
+	// Refusée par le collègue visé : le demandeur peut encore l'ouvrir à tous, elle n'est pas finie.
+	if (v.etat === 'refusee') {
+		const par = qui ? `Refusée par ${nom(qui)}` : 'Refusée';
+		return [...pas, v.gestes.ouvrir ? { libelle: `${par} : vous pouvez l’ouvrir à tous`, etat: 'en-cours' } : { libelle: par, etat: 'arret' }];
+	}
 	pas.push(acceptee ? { libelle: `Acceptée par ${nom(v.remplacant)}`, etat: 'fait' } : { libelle: qui && v.cible ? `En attente de ${nom(qui)}` : 'En attente d’un collègue', etat: v.etat === 'attente' ? 'en-cours' : 'a-venir' });
 	if (v.etat === 'annulee' || v.etat === 'expiree') return [...pas.filter((p) => p.etat === 'fait'), { libelle: v.etat === 'annulee' ? 'Annulée' : 'Expirée', etat: 'arret' }];
 	if (v.etat === 'a_valider' || v.manque.length > 0) pas.push({ libelle: v.etat === 'a_valider' ? 'À valider par le chef' : 'Validée par le chef', etat: v.etat === 'a_valider' ? 'en-cours' : v.etat === 'conclue' ? 'fait' : 'a-venir' });

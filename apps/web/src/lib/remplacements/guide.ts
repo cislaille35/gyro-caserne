@@ -1,5 +1,6 @@
 import { reunir, texteTranche, type EtatTranche } from '@gyro-caserne/socle';
 import { heure } from '../murs/quand.ts';
+import { jourLong } from '../planning/dates.ts';
 
 // Le parcours guidé « Me faire remplacer » / « Échanger », sans affichage : jours de la bande, raccourcis, phrase récapitulative.
 
@@ -41,24 +42,27 @@ const heures = (p: Periode) => (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.deb
 // « 18 h – 6 h », « 24 h ».
 export const plage = (p: Periode) => (heures(p) === 24 ? '24 h' : `${heure(p.debut)} – ${heure(p.fin)}`);
 
-// Vendredi, samedi, dimanche.
-const duWeekEnd = (p: Periode) => [5, 6, 0].includes(new Date(`${p.debut.slice(0, 10)}T00:00:00Z`).getUTCDay());
+const plusJours = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 // Les raccourcis, sur les seules périodes libres ; un raccourci qui répète le précédent, ou une seule période, ne sert à rien.
+// Le week-end : le vendredi, le samedi et le dimanche du début de la semaine (pas le vendredi de la relève suivante).
 export function raccourcis(tranches: Tranche[], maintenant: string): { libelle: string; periodes: Periode[] }[] {
 	const libres = tranches.filter((t) => t.etat === 'libre').map(({ debut, fin }) => ({ debut, fin }));
+	const lundi = tranches[0] ? plusJours(tranches[0].debut.slice(0, 10), 3) : '';
 	const liste = [
-		{ libelle: 'Ce soir', periodes: libres.filter((t) => t.debut.slice(0, 10) === maintenant.slice(0, 10)) },
-		{ libelle: 'Le week-end', periodes: libres.filter(duWeekEnd) },
+		{ libelle: 'Ce soir', periodes: libres.filter((t) => t.debut.slice(0, 10) === maintenant.slice(0, 10) && t.debut.slice(11, 16) >= '17:00') },
+		{ libelle: 'Le week-end', periodes: libres.filter((t) => t.debut.slice(0, 10) < lundi) },
 		{ libelle: 'Toute la semaine', periodes: libres.length > 1 ? libres : [] }
 	];
 	return liste.filter((r, i) => r.periodes.length > 0 && !(r.libelle !== 'Ce soir' && libres.length === 1) && !liste.slice(0, i).some((x) => x.periodes.map(cle).join() === r.periodes.map(cle).join()));
 }
 
-// « la nuit du lundi 9 novembre (18 h – 6 h) », « la garde de 24 h du samedi 7 novembre », « du samedi 7 novembre, 6 h au lundi 9 novembre, 6 h ».
+// « la nuit du lundi 9 novembre (18 h – 6 h) », « la garde de 24 h du samedi 7 novembre », « du samedi 7 novembre, 6 h au lundi 9 novembre, 6 h »,
+// « le vendredi 25 décembre, de 6 h à 18 h » (relève un jour férié).
 export function phrasePeriodes(periodes: Periode[]): string {
 	const textes = reunir(periodes.map(({ debut, fin }) => ({ debut, fin }))).map((p) => {
 		const texte = texteTranche(p);
+		if (p.debut.slice(0, 10) === p.fin.slice(0, 10)) return `le ${jourLong(p.debut)}, de ${heure(p.debut)} à ${heure(p.fin)}`;
 		if (texte.startsWith('nuit')) return `la ${texte} (${plage(p)})`;
 		if (texte.startsWith('24 h')) return `la garde de ${texte}`;
 		return texte;

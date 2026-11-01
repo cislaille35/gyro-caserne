@@ -12,6 +12,7 @@
 	let { data, form } = $props();
 	const v = $derived(data.demande);
 	const nom = (q: { prenom: string; nom: string }) => `${q.prenom} ${q.nom}`.trim();
+	const envoyee = $derived(data.envoyee && v.moi === 'demandeur');
 	const sdis = $derived(v.etat === 'conclue' && v.genre !== 'manoeuvre' && (v.moi === 'demandeur' || v.moi === 'remplacant'));
 </script>
 
@@ -21,7 +22,7 @@
 
 <div class="page">
 	<EnTetePage titre={v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
-	<p class="reussite" class:masque={!form?.succes && !data.envoyee} role="status">{form?.succes ?? (data.envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
+	<p class="reussite" class:masque={!form?.succes && !envoyee} role="status">{form?.succes ?? (envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
 	<section class="carte" aria-labelledby="titre-frise">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import centre from '$centre';
-import { demanderRemplacement, pourDemander } from '@gyro-caserne/socle';
+import { demanderRemplacement, enregistrerManoeuvre, pourDemander } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { actions, load } from './+page.server';
 import { actions as actionsDetail, load as detail } from './[id]/+page.server';
@@ -44,14 +44,14 @@ describe('/remplacements', () => {
 	it('rien de coché : un message ; destinataire non choisi : un message', async () => {
 		const jeu = await preparer();
 		const nuit = await premiereNuit(jeu);
-		expect(await envoyer(actionsDemander, 'default', locaux(jeu.base, jeu.alice), [['pour', 'tous']])).toMatchObject({ status: 400, data: { message: 'Touchez au moins un jour.' } });
+		expect(await envoyer(actionsDemander, 'default', locaux(jeu.base, jeu.alice), [['pour', 'tous']])).toMatchObject({ status: 400, data: { message: 'Choisissez au moins un jour.' } });
 		expect(await envoyer(actionsDemander, 'default', locaux(jeu.base, jeu.alice), [['periode', `${nuit.debut}|${nuit.fin}`]])).toMatchObject({ status: 400, data: { message: 'Choisissez « Tout le monde » ou un collègue.' } });
 	});
 
 	it('parcours : une étape demandée sans les précédentes revient à celle qui manque, en le disant ; le jour venu du planning est pré-choisi', async () => {
 		const jeu = await preparer();
 		const nuit = await premiereNuit(jeu);
-		expect(await charger(demander, locaux(jeu.base, jeu.alice), '/remplacements/demander?etape=verifier')).toMatchObject({ etape: 'quand', message: 'Touchez au moins un jour.' });
+		expect(await charger(demander, locaux(jeu.base, jeu.alice), '/remplacements/demander?etape=verifier')).toMatchObject({ etape: 'quand', message: 'Choisissez au moins un jour.' });
 		const p = encodeURIComponent(`${nuit.debut}|${nuit.fin}`);
 		expect(await charger(demander, locaux(jeu.base, jeu.alice), `/remplacements/demander?p=${p}&etape=verifier`)).toMatchObject({ etape: 'qui', message: 'Choisissez « Tout le monde » ou un collègue.' });
 		const duJour = await charger(demander, locaux(jeu.base, jeu.alice), `/remplacements/demander?jour=${nuit.debut.slice(0, 10)}`);
@@ -87,6 +87,28 @@ describe('/remplacements', () => {
 	it('échanger une manœuvre : rien à échanger sans manœuvre par équipe', async () => {
 		const jeu = await preparer();
 		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), '/remplacements/manoeuvre')).toMatchObject({ miennes: [], collegues: [], mienne: null });
+	});
+
+	it('échanger ma place à une manœuvre : lancé depuis le planning, parcours court ; une manœuvre qui ne s’échange pas est signalée', async () => {
+		const jeu = await preparer();
+		const jour = (n: number) => `${new Date(Date.parse(`${maintenantParis().slice(0, 10)}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)}T08:30`;
+		const m1 = await enregistrerManoeuvre(jeu.base, jeu.chef, { debut: jour(5), theme: 'Secourisme', lieu: 'Caserne', convoques: [jeu.ids[0]!], petitDejeuner: false }, maintenantParis());
+		const m2 = await enregistrerManoeuvre(jeu.base, jeu.chef, { debut: jour(6), theme: 'Incendie', lieu: 'Caserne', convoques: [jeu.ids[1]!], petitDejeuner: false }, maintenantParis());
+		const tous = await enregistrerManoeuvre(jeu.base, jeu.chef, { debut: jour(7), theme: 'Sainte Barbe', lieu: 'Caserne', convoques: 'tous', petitDejeuner: false }, maintenantParis());
+		const court = await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${m1}&depuis=planning`);
+		expect(court).toMatchObject({ court: true, etape: 'sienne', mienne: { id: m1 }, message: null });
+		expect(court.collegues.flatMap((c: { manoeuvres: { id: number }[] }) => c.manoeuvres.map((m) => m.id))).toContain(m2);
+		const bruno = court.collegues.find((c: { prenom: string }) => c.prenom === 'Bruno');
+		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${m1}&depuis=planning&sienne=${bruno.id}:${m2}&etape=verifier`)).toMatchObject({ etape: 'verifier', sienne: { manoeuvre: { id: m2 } } });
+		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${m1}&depuis=planning&etape=verifier`)).toMatchObject({ etape: 'sienne', message: 'Choisissez la manœuvre d’un collègue.' });
+		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${tous}&depuis=planning`)).toMatchObject({ court: false, mienne: null, etape: 'mienne', message: expect.stringContaining('ne s’échange pas') });
+	});
+
+	it('parcours : une semaine inconnue revient aux cartes ; changer de semaine oublie les jours choisis', async () => {
+		const jeu = await preparer();
+		const page = await charger(demander, locaux(jeu.base, jeu.alice), '/remplacements/demander?semaine=1999-01-01');
+		expect(page.semaine).toBeNull();
+		expect(page.etape).toBe('quand');
 	});
 
 	it('super administrateur : pas de demande, page sans liste', async () => {

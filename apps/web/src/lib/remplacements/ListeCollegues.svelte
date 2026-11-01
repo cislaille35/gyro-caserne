@@ -28,7 +28,10 @@
 
 	// svelte-ignore state_referenced_locally
 	let filtre = $state(recherche);
-	const visibles = $derived(collegues.filter((c) => !plat(filtre) || plat(`${c.prenom} ${c.nom}`).includes(plat(filtre)) || c.id === choisi));
+	// Le choix en cours reste affiché même si la recherche ne le trouve plus.
+	// svelte-ignore state_referenced_locally
+	let coche = $state<string>(choisi === null ? (tous !== null ? 'tous' : '') : String(choisi));
+	const visibles = $derived(collegues.filter((c) => !plat(filtre) || plat(`${c.prenom} ${c.nom}`).includes(plat(filtre)) || String(c.id) === coche));
 	const sous = (c: Collegue) => [c.equipe?.nom, c.aptitudes.length ? c.aptitudes.join(', ') : 'Pas d’aptitude inscrite'].filter(Boolean).join(' · ');
 </script>
 
@@ -36,7 +39,7 @@
 	<legend>{legende}</legend>
 	{#if tous !== null}
 		<label class="rangee">
-			<input type="radio" {name} value="tous" checked={choisi === 'tous' || choisi === null} />
+			<input type="radio" {name} value="tous" checked={coche === 'tous'} onchange={() => (coche = 'tous')} />
 			<span class="corps">
 				<span class="titre">Tout le monde</span>
 				<span class="sous">{tous > 0 ? `${pluriel(tous, 'collègue disponible prévenu', 'collègues disponibles prévenus')} en même temps. Le premier qui accepte vous remplace.` : 'Aucun collègue n’est libre sur ces périodes pour l’instant.'}</span>
@@ -58,7 +61,7 @@
 		{#each visibles as c (c.id)}
 			<li>
 				<label class="rangee">
-					<input type="radio" {name} value={c.id} checked={choisi === c.id || (tous === null && visibles.length === 1)} />
+					<input type="radio" {name} value={c.id} checked={coche === String(c.id) || (tous === null && visibles.length === 1)} onchange={() => (coche = String(c.id))} />
 					<Visage prenom={c.prenom} nom={c.nom} couleur={c.equipe?.couleur ?? null} taille={40} />
 					<span class="corps">
 						<span class="titre">{c.prenom} {c.nom}</span>

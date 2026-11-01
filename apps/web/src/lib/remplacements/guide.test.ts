@@ -21,6 +21,8 @@ describe('parcours guidé', () => {
 
 	it('raccourcis : ce soir si une nuit libre commence aujourd’hui, le week-end, toute la semaine ; jamais une période inactive', () => {
 		const r = raccourcis(semaine, '2026-11-10T09:00');
+		// Ce soir : une garde de 24 h qui commence ce matin n'est pas « ce soir ».
+		expect(raccourcis(semaine, '2026-11-08T01:00').map((x) => x.libelle)).toEqual(['Le week-end', 'Toute la semaine']);
 		expect(r.map((x) => [x.libelle, x.periodes.length])).toEqual([
 			['Ce soir', 1],
 			['Le week-end', 2],
@@ -29,6 +31,22 @@ describe('parcours guidé', () => {
 		expect(raccourcis(semaine, '2026-11-09T09:00').map((x) => x.libelle)).toEqual(['Le week-end', 'Toute la semaine']);
 		// Une seule période libre : pas de raccourci qui la répète.
 		expect(raccourcis([t('2026-11-12T18:00', '2026-11-13T06:00')], '2026-11-01T09:00').map((x) => x.libelle)).toEqual([]);
+	});
+
+	it('semaine de 8 périodes (relève le vendredi 25 décembre, férié) : le week-end ne prend pas le vendredi de la relève', () => {
+		const noel = [
+			t('2026-12-18T18:00', '2026-12-19T06:00'),
+			t('2026-12-19T06:00', '2026-12-20T06:00'),
+			t('2026-12-20T06:00', '2026-12-21T06:00'),
+			t('2026-12-21T18:00', '2026-12-22T06:00'),
+			t('2026-12-22T18:00', '2026-12-23T06:00'),
+			t('2026-12-23T18:00', '2026-12-24T06:00'),
+			t('2026-12-24T18:00', '2026-12-25T06:00'),
+			t('2026-12-25T06:00', '2026-12-25T18:00')
+		];
+		expect(raccourcis(noel, '2026-12-01T09:00').find((r) => r.libelle === 'Le week-end')!.periodes).toHaveLength(3);
+		expect(phrasePeriodes([noel[7]!])).toBe('le vendredi 25 décembre, de 6 h à 18 h');
+		expect(plage(noel[7]!)).toBe('6 h – 18 h');
 	});
 
 	it('la phrase : les nuits avec leurs heures, les gardes de 24 h, les périodes qui se suivent réunies', () => {

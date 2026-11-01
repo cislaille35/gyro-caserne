@@ -3,7 +3,7 @@ import type { VueDemande } from '@gyro-caserne/socle';
 import { frise, majuscule } from './textes.ts';
 
 const bruno = { id: 2, prenom: 'Bruno', nom: 'Test' };
-const v = (o: Partial<VueDemande>) => ({ genre: 'remplacement', etat: 'attente', cible: null, remplacant: null, manque: [], ...o }) as VueDemande;
+const v = (o: Partial<VueDemande>) => ({ genre: 'remplacement', etat: 'attente', cible: null, remplacant: null, manque: [], gestes: { ouvrir: false }, ...o }) as VueDemande;
 const lire = (d: VueDemande) => frise(d).map((p) => `${p.libelle} (${p.etat})`);
 
 describe('textes des remplacements', () => {
@@ -19,6 +19,7 @@ describe('textes des remplacements', () => {
 
 	it('frise : refusée, annulée, expirée s’arrêtent là', () => {
 		expect(lire(v({ etat: 'refusee', cible: bruno }))).toEqual(['Envoyée (fait)', 'Refusée par Bruno Test (arret)']);
+		expect(lire(v({ etat: 'refusee', cible: bruno, gestes: { ouvrir: true } as VueDemande['gestes'] }))).toEqual(['Envoyée (fait)', 'Refusée par Bruno Test : vous pouvez l’ouvrir à tous (en-cours)']);
 		expect(lire(v({ etat: 'annulee' }))).toEqual(['Envoyée (fait)', 'Annulée (arret)']);
 		expect(lire(v({ etat: 'expiree', genre: 'echange', cible: bruno }))).toEqual(['Proposée (fait)', 'Expirée (arret)']);
 	});
