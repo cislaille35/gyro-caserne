@@ -30,13 +30,13 @@ export function suite(v: VueDemande): string | null {
 	return null;
 }
 
-// Les tranches qui se suivent (un week-end, un férié) : à cocher d'un geste. Seulement à partir de deux tranches libres.
+// Les tranches libres qui se suivent (un week-end, un férié) : à cocher d'un geste, à partir de deux.
 export function blocs<T extends { debut: string; fin: string; prise: boolean }>(tranches: T[]): { debut: string; fin: string }[] {
 	const groupes: T[][] = [];
-	for (const t of tranches) {
+	for (const t of tranches.filter((x) => !x.prise)) {
 		const dernier = groupes.at(-1);
 		if (dernier && dernier.at(-1)!.fin === t.debut) dernier.push(t);
 		else groupes.push([t]);
 	}
-	return groupes.filter((g) => g.length > 1 && g.every((t) => !t.prise)).map((g) => ({ debut: g[0]!.debut, fin: g.at(-1)!.fin }));
+	return groupes.filter((g) => g.length > 1).map((g) => ({ debut: g[0]!.debut, fin: g.at(-1)!.fin }));
 }

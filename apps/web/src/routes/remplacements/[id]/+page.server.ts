@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return await demandeVue(locals.base, acteur, id, maintenantParis(), centre.astreinte);
 	} catch (erreur) {
 		if (erreur instanceof DonneeInvalide) error(404, 'Demande introuvable');
-		if (erreur instanceof RefusDroit) error(403, 'Cette demande ne vous concerne pas.');
+		if (erreur instanceof RefusDroit) error(403, 'Cette demande ne vous concerne pas, ou elle a déjà été prise par un collègue.');
 		throw erreur;
 	}
 };

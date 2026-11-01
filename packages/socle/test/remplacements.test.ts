@@ -305,6 +305,15 @@ describe('échange de manœuvre', () => {
 		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.david, manoeuvreCibleId: m2 }, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
 	});
 
+	it('départ du demandeur : un échange de manœuvre conclu reste tel quel, sans avis', async () => {
+		const { base, alice, bruno, chef, n, m1, m2, demande, avisDe } = await avecManoeuvres();
+		const id = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: m2 }, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.alice, 'parti', maintenant);
+		expect((await demande(id)).etat).toBe('conclue');
+		expect(await avisDe(n.bruno)).toEqual(['recue']);
+	});
+
 	it('echangerPlace : un retour en arrière efface les exceptions', () => {
 		const une = echangerPlace([1], 10, 20);
 		expect(une).toEqual({ equipes: [1], ajoutes: [20], retires: [10] });
@@ -469,5 +478,31 @@ describe('retours de revue', () => {
 		await accepterDemande(base, alice, c, maintenant, reglage);
 		await changerStatut(base, base.photos, chef, n.bruno, 'parti', maintenant);
 		expect(await avisDe(n.alice)).toContain('annulee');
+	});
+});
+
+describe('retours de revue, second passage', () => {
+	it('refus du chef : la demande ouverte est renvoyée aux autres disponibles', async () => {
+		const { base, alice, bruno, elodie, n, avisDe } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		await refuserValidation(base, elodie, id, null, maintenant, reglage);
+		expect(await avisDe(n.chloe)).toEqual(['recue', 'recue']);
+		expect(await avisDe(n.bruno)).toEqual(['recue', 'refus_chef']);
+	});
+
+	it('accepter demande le droit de demander un remplacement', async () => {
+		const { base, alice, n } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: n.bruno }, maintenant, reglage);
+		await base.update(personne).set({ profilId: null }).where(eq(personne.id, n.bruno));
+		await expect(accepterDemande(base, { type: 'personne', id: n.bruno }, id, maintenant, reglage)).rejects.toThrow(RefusDroit);
+	});
+
+	it('départ du demandeur : la cible d’une demande en attente est prévenue', async () => {
+		const { base, alice, chef, n, avisDe, demande } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: n.bruno }, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.alice, 'parti', maintenant);
+		expect((await demande(id)).etat).toBe('annulee');
+		expect(await avisDe(n.bruno)).toEqual(['recue', 'annulee']);
 	});
 });

@@ -247,7 +247,8 @@ async function accepterManoeuvre(base: Base, d: LigneDemande, moi: number, ctx: 
 		...avis(base, valideurs(ctx.chefs, d.equipeId, d.demandeurId, moi), d.id, 'informe', texte, url(d.id), maintenant, si)
 	]);
 	const [apres] = await base.select({ etat: demandeRemplacement.etat, remplacantId: demandeRemplacement.remplacantId }).from(demandeRemplacement).where(eq(demandeRemplacement.id, d.id));
-	if (apres?.etat !== 'conclue' || apres.remplacantId !== moi) throw new DonneeInvalide('Échange impossible : une convocation a changé, réessayez');
+	if (apres?.etat !== 'attente' && apres?.remplacantId !== moi) throw dejaTraitee();
+	if (apres?.etat !== 'conclue') throw new DonneeInvalide('Échange impossible : une convocation a changé, réessayez');
 	return 'conclue';
 }
 
@@ -440,7 +441,9 @@ export async function refuserValidation(base: Base, acteur: Acteur, id: number, 
 	await base.batch([
 		...rouvrir(base, ctx, d, destinataires, moi, propre ?? 'Refusé par le chef d’équipe', maintenant),
 		journalDemande(base, moi, 'refuser_validation', id, {}, maintenant),
-		...avis(base, [d.demandeurId, d.remplacantId!], id, 'refus_chef', texte, url(id), maintenant, rouverte(d, maintenant))
+		...avis(base, [d.demandeurId], id, 'refus_chef', texte, url(id), maintenant, rouverte(d, maintenant)),
+		// Le remplaçant écarté ne voit plus la demande : son avis mène à « Pour moi ».
+		...avis(base, [d.remplacantId!], id, 'refus_chef', texte, URL_POUR_MOI, maintenant, rouverte(d, maintenant))
 	]);
 }
 

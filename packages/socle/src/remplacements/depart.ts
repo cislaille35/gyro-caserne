@@ -11,16 +11,16 @@ const EN_COURS = ['attente', 'refusee', 'a_valider', 'conclue'] as const;
 // celles où elle remplaçait repartent (une demande ouverte attend un autre collègue, une ciblée passe « refusée »), le titulaire prévenu.
 export async function remplacementsAuDepart(base: Base, personneId: number, maintenant: string) {
 	const aVenir = sql`${demandeRemplacement.debut} > ${maintenant}`;
+	// Un échange de manœuvre conclu a déjà déplacé les convocations : il reste tel quel.
+	const pasManoeuvreConclue = sql`not (${demandeRemplacement.genre} = 'manoeuvre' and ${demandeRemplacement.etat} = 'conclue')`;
 	const touchees = await base
 		.select()
 		.from(demandeRemplacement)
-		.where(and(or(eq(demandeRemplacement.demandeurId, personneId), eq(demandeRemplacement.remplacantId, personneId)), inArray(demandeRemplacement.etat, [...EN_COURS]), aVenir));
+		.where(and(or(eq(demandeRemplacement.demandeurId, personneId), eq(demandeRemplacement.remplacantId, personneId)), inArray(demandeRemplacement.etat, [...EN_COURS]), aVenir, pasManoeuvreConclue));
 	const texte = (d: (typeof touchees)[number]) => texteDemande(periodesDe(d.periodes)) || 'Échange de manœuvre';
 	const prevenir = touchees.flatMap((d) =>
 		d.demandeurId === personneId
-			? d.remplacantId !== null && ['a_valider', 'conclue'].includes(d.etat)
-				? avis(base, [d.remplacantId], d.id, 'annulee', `Départ du demandeur · ${texte(d)}`, `/remplacements/${d.id}`, maintenant)
-				: []
+			? avis(base, [...(d.remplacantId !== null && ['a_valider', 'conclue'].includes(d.etat) ? [d.remplacantId] : []), ...(d.cibleId !== null && d.etat === 'attente' ? [d.cibleId] : [])], d.id, 'annulee', `Départ du demandeur · ${texte(d)}`, `/remplacements/${d.id}`, maintenant)
 			: d.genre === 'manoeuvre'
 				? []
 				: avis(base, [d.demandeurId], d.id, 'desistement', `Départ de votre remplaçant · ${texte(d)} · vous redevenez responsable`, `/remplacements/${d.id}`, maintenant)
@@ -29,8 +29,7 @@ export async function remplacementsAuDepart(base: Base, personneId: number, main
 		base
 			.update(demandeRemplacement)
 			.set({ etat: 'annulee', motif: 'Départ du demandeur', trancheeLe: maintenant })
-			.where(and(eq(demandeRemplacement.demandeurId, personneId), inArray(demandeRemplacement.etat, [...EN_COURS]), aVenir)),
-		// Un échange de manœuvre conclu a déjà déplacé les convocations : il reste tel quel.
+			.where(and(eq(demandeRemplacement.demandeurId, personneId), inArray(demandeRemplacement.etat, [...EN_COURS]), aVenir, pasManoeuvreConclue)),
 		base
 			.update(demandeRemplacement)
 			.set({

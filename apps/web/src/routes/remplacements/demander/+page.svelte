@@ -20,12 +20,12 @@
 		<fieldset class="semaine" id="{nomChamp}-{s.semaine}">
 			<legend>{aQui} semaine du {duAu(s.semaine, finDeSemaine(s.semaine))}</legend>
 			{#each blocs(s.tranches) as b (b.debut)}
-				<label class="case bloc"><input type="checkbox" name="{nomChamp}-bloc" value="{b.debut}|{b.fin}" /> Tout : {texteDemande([b])}</label>
+				<label class="case bloc"><input type="checkbox" name="{nomChamp}-bloc" value="{b.debut}|{b.fin}" /> <span>Tout : {texteDemande([b])}</span></label>
 			{/each}
 			{#each s.tranches as t (t.debut)}
 				<label class="case" class:prise={t.prise}>
 					<input type="checkbox" name={nomChamp} value="{t.debut}|{t.fin}" disabled={t.prise} />
-					{majuscule(texteTranche(t))}{#if t.prise}<span class="note"> · déjà dans une demande</span>{/if}
+					<span>{majuscule(texteTranche(t))}{#if t.prise}<span class="note"> · déjà dans une demande</span>{/if}</span>
 				</label>
 			{/each}
 		</fieldset>
@@ -65,7 +65,7 @@
 					<h2 id="t-miennes">{echange ? 'Ce que je donne' : 'Mes périodes'}</h2>
 					{@render semaines(data.semaines, 'periode', 'Ma')}
 				</section>
-	
+
 				{#if echange}
 					{#if data.avec}
 						<input type="hidden" name="collegue" value={data.avec.id} />
@@ -92,14 +92,12 @@
 						</select>
 					</fieldset>
 				{/if}
-	
+
 				<div class="carte">
 					<label for="mot" class="libelle">Un mot (facultatif)</label>
 					<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
 				</div>
-				{#if !echange || data.avec}
-					<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>
-				{/if}
+				<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>
 			</form>
 		{/if}
 	{/if}
