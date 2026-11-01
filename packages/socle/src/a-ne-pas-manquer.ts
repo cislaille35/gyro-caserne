@@ -58,13 +58,13 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.select({ ...champs, debut: publication.debut, convoques: publication.convoques, reponse: reponseEvenement.reponse })
 			.from(publication)
 			.leftJoin(reponseEvenement, and(eq(reponseEvenement.publicationId, publication.id), eq(reponseEvenement.personneId, moi)))
-			.where(and(surSesMurs, gt(publication.debut, maintenant)))
+			.where(and(surSesMurs, gt(publication.debut, maintenant), isNull(publication.annuleeLe)))
 			.orderBy(asc(publication.debut), asc(publication.id)),
 		base
 			.select(champs)
 			.from(publication)
 			.leftJoin(voteSondage, and(eq(voteSondage.publicationId, publication.id), eq(voteSondage.personneId, moi)))
-			.where(and(surSesMurs, sql`${publication.sondageQuestion} is not null`, ouvert, recent, isNull(voteSondage.publicationId)))
+			.where(and(surSesMurs, sql`${publication.sondageQuestion} is not null`, ouvert, recent, isNull(voteSondage.publicationId), isNull(publication.annuleeLe)))
 			.orderBy(desc(publication.creeLe), desc(publication.id)),
 		base
 			.select(champs)

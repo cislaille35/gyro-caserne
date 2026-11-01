@@ -11,7 +11,7 @@ import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } fr
 import { departDesGroupes } from '../messagerie.ts';
 import { effacerNotificationsDe } from '../notifications.ts';
 import { annulerAuDepart } from '../reservations.ts';
-import { affectationEquipe, attribution, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
+import { affectationEquipe, attribution, cleAgenda, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
 
@@ -187,7 +187,7 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 		...roles,
 		...groupes.ecritures,
 		// Au départ, ses appareils, son fil et ses coupures de notifications.
-		...(statut === 'parti' ? effacerNotificationsDe(base, personneId) : []),
+		...(statut === 'parti' ? [...effacerNotificationsDe(base, personneId), base.delete(cleAgenda).where(eq(cleAgenda.personneId, personneId))] : []),
 		// Au départ, ses réservations à venir sont annulées.
 		...(statut === 'parti' ? [annulerAuDepart(base, personneId, maintenant)] : [])
 	] as const;

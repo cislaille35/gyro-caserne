@@ -75,6 +75,7 @@ export async function repondreEvenement(base: Base, acteur: Acteur, id: number, 
 	if (!(REPONSES_EVENEMENT as readonly string[]).includes(reponse)) throw new DonneeInvalide('Réponse inconnue');
 	const { ligne, cle, appartenances, moi } = await pourAgir(base, acteur, id, aujourdhui);
 	if (ligne.debut === null) throw new DonneeInvalide('Pas un événement');
+	if (ligne.annuleeLe !== null) throw new DonneeInvalide('Cet événement est annulé');
 	if (ligne.debut.slice(0, 16) <= maintenant.slice(0, 16)) throw new DonneeInvalide('Cet événement est passé');
 	if (!estConvoque(appartenances, cle, JSON.parse(ligne.convoques ?? '"tous"'))) throw refusMur(cle, 'lire', 'Vous n’êtes pas convoqué à cet événement');
 	await base.insert(reponseEvenement).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse } });
@@ -84,6 +85,7 @@ export async function repondreEvenement(base: Base, acteur: Acteur, id: number, 
 export async function voter(base: Base, acteur: Acteur, id: number, reponse: number, maintenant: string): Promise<void> {
 	const { ligne, moi } = await pourAgir(base, acteur, id, exigerDateHeure(maintenant, 'Date'));
 	if (ligne.sondageReponses === null) throw new DonneeInvalide('Pas de sondage');
+	if (ligne.annuleeLe !== null) throw new DonneeInvalide('Cet événement est annulé');
 	const etat = etatSondage(ligne.sondageOuverture, ligne.sondageCloture, maintenant);
 	if (etat === 'avenir') throw new DonneeInvalide('Sondage pas encore ouvert');
 	if (etat === 'ferme') throw new DonneeInvalide('Sondage fermé');

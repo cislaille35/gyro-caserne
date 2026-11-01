@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { ajouterRessource, attribution, chargerJeuDeDepart, comite, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, ajouterRessource, attribution, changerSemaines, chargerJeuDeDepart, comite, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -34,6 +34,9 @@ import { actions as actionsReserver, load as pageReserver } from './reservations
 import { actions as actionsMiennes, load as miennes } from './reservations/miennes/+page.server';
 import { actions as actionsAValider, load as pageAValider } from './reservations/a-valider/+page.server';
 import { load as pageMateriel } from './reservations/materiel/+page.server';
+import { load as planning } from './planning/+page.server';
+import { actions as actionsPreparer, load as preparer } from './planning/preparer/+page.server';
+import { load as pageManoeuvre } from './planning/preparer/manoeuvre/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -146,6 +149,41 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			expect(data.aPourvoir).toBeGreaterThan(0);
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/planning et /planning/preparer : une année publiée, 20 manœuvres, 30 semaines changées ; chaque action', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const equipes = await base.select().from(equipe);
+		const ids = equipes.map((e) => e.id);
+		const annee = Number(maintenantParis().slice(0, 4));
+		const m = maintenantParis();
+		for (const a of [annee, annee + 1]) await reglerRoulement(base, locals.acteur, a, ids, m);
+		await publierAnnee(base, locals.acteur, annee, m);
+		const semaines = (await preparerAnnee(base, locals.acteur, annee, m, centre.astreinte)).semaines;
+		await changerSemaines(base, locals.acteur, annee, Object.fromEntries(semaines.slice(0, 30).map((s) => [s.debut, ids[0]!])), m, centre.astreinte);
+		for (let i = 0; i < 20; i++) await enregistrerManoeuvre(base, locals.acteur, { debut: `${annee + 1}-0${(i % 9) + 1}-1${i % 9}T08:30`, theme: `M${i}`, lieu: 'Caserne', convoques: 'tous', petitDejeuner: true }, m);
+		await base.insert(affectationEquipe).values({ personneId: agent.id, equipeId: ids[1]!, debut: '2020-01-01' });
+		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
+		for (const l of [locals, deLAgent]) {
+			const n = await compter(async () => {
+				await (racine as any)({ locals: l });
+				expect((await (planning as any)({ locals: l, url: new URL('http://localhost/planning') })).planning.publiee).toBe(true);
+			});
+			expect(n).toBeLessThanOrEqual(BUDGET);
+		}
+		const url = new URL(`http://localhost/planning/preparer?annee=${annee}`);
+		const page = () => (preparer as any)({ locals, url });
+		expect(await compter(async () => { await (racine as any)({ locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (pageManoeuvre as any)({ locals, url: new URL('http://localhost/planning/preparer/manoeuvre?id=1') }); })).toBeLessThanOrEqual(BUDGET);
+		const semainesForm = semaines.map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
+		for (const [nom, corps] of [['semaines', semainesForm], ['roulement', ids.map((id): [string, string] => ['ordre', String(id)])]] as const) {
+			const n = await compter(async () => {
+				expect(await (actionsPreparer as any)[nom]({ locals, url, request: await requeteFormulaire(corps as [string, string][]) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals });
+				await page();
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
 	});
 
 	it('/moi : la carte d’identité', async () => {

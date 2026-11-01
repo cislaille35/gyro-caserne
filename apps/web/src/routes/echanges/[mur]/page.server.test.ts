@@ -55,7 +55,7 @@ describe('un mur', () => {
 
 	it('donne les équipes à convoquer, sauf sur un mur d’équipe', async () => {
 		const { base, alice, e1 } = await preparer();
-		expect((await charger(locaux(base, alice), 'vie')).equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3']);
+		expect((await charger(locaux(base, alice), 'vie')).equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 		expect((await charger(locaux(base, alice), `equipe:${e1.id}`)).equipes).toEqual([]);
 	});
 });

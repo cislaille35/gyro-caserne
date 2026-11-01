@@ -29,6 +29,8 @@ export interface Centre {
 		fin: { jour: JourSemaine; heure: string };
 		/** Une date de prise d'astreinte connue (AAAA-MM-JJ) et l'équipe qui l'a prise */
 		reference: { date: string; equipe: number };
+		/** En semaine, hors week-end et jours fériés, l'astreinte ne couvre que ces heures (par exemple 18:00 à 06:00) ; sans ce réglage, elle est continue */
+		semaine?: { debut: string; fin: string };
 	};
 	/** Durée de conservation des messages de la messagerie, en mois (12 si omise) ; ensuite, ils sont effacés */
 	conservationMessagesMois?: number;
@@ -62,6 +64,9 @@ export function erreursCentre(centre: Centre): string[] {
 	for (const [nom, moment] of [['début', debut], ['fin', fin]] as const) {
 		if (!JOURS.includes(moment.jour)) erreurs.push(`astreinte, ${nom} : jour « ${moment.jour} » inconnu`);
 		if (!heure.test(moment.heure)) erreurs.push(`astreinte, ${nom} : heure « ${moment.heure} » au format HH:MM attendue`);
+	}
+	for (const h of centre.astreinte.semaine ? [centre.astreinte.semaine.debut, centre.astreinte.semaine.fin] : []) {
+		if (!heure.test(h)) erreurs.push(`astreinte en semaine : heure « ${h} » au format HH:MM attendue`);
 	}
 	const date = new Date(`${reference.date}T12:00:00Z`);
 	// Une date impossible (31 avril) serait reportée au jour suivant : on vérifie qu'elle se relit à l'identique

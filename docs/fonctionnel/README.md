@@ -7,6 +7,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Accès et attributions | [acces-et-attributions.md](acces-et-attributions.md) |
 | Fiche agent | [fiche-agent.md](fiche-agent.md) |
 | Astreinte et rotation | [astreinte-et-rotation.md](astreinte-et-rotation.md) |
+| Planning de l'année | [planning-de-l-annee.md](planning-de-l-annee.md) |
 | Composition des gardes | [composition-des-gardes.md](composition-des-gardes.md) |
 | Disponibilités et absences | [disponibilites-et-absences.md](disponibilites-et-absences.md) |
 | Remplacements et échanges | [remplacements-et-echanges.md](remplacements-et-echanges.md) |
@@ -24,6 +25,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 - **Accès et attributions** : connexion, profils, rôles et comités (page « Réglages »), nominations depuis la fiche ou la page « Nominations ».
 - **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil et le choix de l'affichage.
 - **Réservations** (Caserne → Réservations) : la VL et le matériel de l'amicale, calendrier, demandes à valider, notifications.
+- **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; « Mon année » et « Toutes les équipes » ; abonnement d'agenda ; manœuvres annoncées toutes seules sur « Le centre ».
 - **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » en tête de l'accueil et la cloche.
 
 Les autres fonctions ne sont pas encore livrées : leurs pages décrivent la cible. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).

@@ -14,8 +14,10 @@ export default defineCentre({
 		{ numero: 4, nom: 'Équipe 4', couleur: '#3fa34d' }
 	],
 	astreinte: {
-		debut: { jour: 'vendredi', heure: '17:30' },
+		debut: { jour: 'vendredi', heure: '18:00' },
 		fin: { jour: 'vendredi', heure: '06:00' },
+		// En semaine, de 18 h à 6 h ; le week-end et les jours fériés, 24 h sur 24
+		semaine: { debut: '18:00', fin: '06:00' },
 		// Planning 2026 : le vendredi 16/01/2026, c'est l'équipe 1
 		reference: { date: '2026-01-16', equipe: 1 }
 	}

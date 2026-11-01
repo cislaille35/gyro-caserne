@@ -80,7 +80,7 @@ describe('/agents/[id] : accès', () => {
 		expect(data.fiche).toMatchObject({ id: agent, prenom: 'Alice', email: 'alice@exemple.fr', naissance: '1990-05-01' });
 		expect(data.profils.map((p: { nom: string }) => p.nom)).toContain('Agent');
 		expect(data.grades.length).toBeGreaterThan(0);
-		expect(data.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3']);
+		expect(data.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 		expect(data.raison).toBeNull();
 
 		const parAdjoint = await lire(locaux(base, { type: 'personne', id: adjoint }), chef);

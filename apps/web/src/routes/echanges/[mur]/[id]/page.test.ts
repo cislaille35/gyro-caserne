@@ -13,6 +13,7 @@ const publication: PublicationVue = {
 	modifieeLe: null,
 	epinglee: false,
 	commentairesFermes: false,
+	annulee: false,
 	photos: [],
 	jaime: 0,
 	commentaires: 3,

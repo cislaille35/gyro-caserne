@@ -1,5 +1,5 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations } from '@gyro-caserne/socle';
-import { aujourdhuiParis } from './lib/aujourdhui.ts';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin } from '@gyro-caserne/socle';
+import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
 
@@ -29,6 +29,10 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 			const base = creerBaseD1(env.BASE);
 			if (controleur.cron !== CRON_NUIT) {
 				ctx.waitUntil(envoyerLot(base, clesVapid(env)));
+				// Les manœuvres du planning s'annoncent le matin, pas en pleine nuit : à 8 h (Paris), et à 8 h 10 si le passage de 8 h a manqué.
+				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
+				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
+				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) ctx.waitUntil(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);

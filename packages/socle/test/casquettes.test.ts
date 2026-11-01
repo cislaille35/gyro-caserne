@@ -167,6 +167,7 @@ describe('aDecider', () => {
 		expect(await aDecider(base, acteur(chef), aujourdhui)).toEqual([
 			{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Équipe 3 sans chef d’équipe', lien: '/nominations' },
+			{ texte: 'Équipe 4 sans chef d’équipe', lien: '/nominations' },
 			{ texte: 'Référent pharmacie : aucun titulaire', lien: '/nominations' },
 			{ texte: '2 fiches à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' }
 		]);

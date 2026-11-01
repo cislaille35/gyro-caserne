@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations } from '@gyro-caserne/socle';
+import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -46,5 +46,20 @@ describe('avecPlanifie', () => {
 		expect(envoyerLot).toHaveBeenCalledOnce();
 		expect(vi.mocked(envoyerLot).mock.calls[0]![1]).toBeNull();
 		expect(effacerAnciens).not.toHaveBeenCalled();
+	});
+
+	it('le matin, à 8 h et 8 h 10 à Paris : les manœuvres du planning (annonces et relances), pas la nuit', async () => {
+		await lancer('* * * * *', '2026-11-15T07:00:00Z');
+		expect(planningDuMatin).toHaveBeenCalledOnce();
+		expect(vi.mocked(planningDuMatin).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
+		await lancer('* * * * *', '2026-11-15T07:10:00Z');
+		expect(planningDuMatin).toHaveBeenCalledOnce();
+		expect(envoyerLot).toHaveBeenCalledOnce();
+		for (const quand of ['2026-11-15T07:05:00Z', '2026-11-15T06:59:00Z', '2026-07-15T07:00:00Z']) {
+			await lancer('* * * * *', quand);
+			expect(planningDuMatin, quand).not.toHaveBeenCalled();
+		}
+		await lancer('30 3 * * *', '2026-11-15T03:30:00Z');
+		expect(planningDuMatin).not.toHaveBeenCalled();
 	});
 });

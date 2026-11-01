@@ -19,6 +19,12 @@ const exemple: Centre = {
 };
 
 describe('erreursCentre', () => {
+	it('accepte et contrôle les heures d’astreinte en semaine', () => {
+		const avec = (semaine: { debut: string; fin: string }) => ({ ...exemple, astreinte: { ...exemple.astreinte, semaine } });
+		expect(erreursCentre(avec({ debut: '18:00', fin: '06:00' }))).toEqual([]);
+		expect(erreursCentre(avec({ debut: '18h', fin: '06:00' }))).toEqual(['astreinte en semaine : heure « 18h » au format HH:MM attendue']);
+	});
+
 	it('accepte un centre bien décrit', () => {
 		expect(erreursCentre(exemple)).toEqual([]);
 	});

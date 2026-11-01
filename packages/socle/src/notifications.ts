@@ -4,9 +4,9 @@ import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
 import { aLaMessagerie } from './messagerie.ts';
-import { agentsDuJour, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
+import { agentsDuJour, estConvoque, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
-import { abonnementPush, affectationEquipe, avisReservation, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reservation, ressource } from './schema.ts';
+import { abonnementPush, affectationEquipe, avisReservation, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -116,6 +116,26 @@ export async function notifierPublication(base: Base, id: number, maintenant: st
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: `${nomDuMur(p.mur, equipes, comites)} · ${nomComplet(auteurs[0], p.auteur)}`, texte: extrait(p.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
+	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
+}
+
+// Une publication du planning (manœuvre annoncée, changée, annulée ou relancée) : ses convoqués du jour seulement,
+// ou ceux qui n'ont pas encore répondu. Une lecture, une écriture.
+export async function notifierConvoques(base: Base, id: number, maintenant: string, message: { titre: string; texte: string; seulementSansReponse: boolean }): Promise<void> {
+	const aujourdhui = exigerDateHeure(maintenant, 'Date');
+	const [lignes, agents, affectations, tenues, reponses] = await base.batch([
+		base.select({ mur: publication.mur, convoques: publication.convoques }).from(publication).where(eq(publication.id, id)),
+		...lecturesAgents(base, aujourdhui),
+		base.select({ personneId: reponseEvenement.personneId }).from(reponseEvenement).where(eq(reponseEvenement.publicationId, id))
+	]);
+	const p = lignes[0];
+	if (!p) return;
+	const convoques = JSON.parse(p.convoques ?? '"tous"') as 'tous' | number[];
+	const ids = agentsDuJour([agents, affectations, tenues], aujourdhui)
+		.filter((x) => estConvoque(x.a, p.mur, convoques) && !(message.seulementSansReponse && reponses.some((r) => r.personneId === x.id)))
+		.map((x) => x.id);
+	if (ids.length === 0) return;
+	const donnees = { titre: message.titre, texte: extrait(message.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
 	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
 }
 
@@ -254,7 +274,7 @@ function deMurs(
 				cle: l.mur as CleMur,
 				nomMur: nomDuMur(l.mur, equipes, comites),
 				publicationId: l.publicationId,
-				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
+				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur === 'planning' ? { prenom: 'Planning', nom: 'du centre', couleur: null } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
 				extrait: extrait(l.texte),
 				creeLe: l.creeLe,
 				lue: l.lueLe !== null
