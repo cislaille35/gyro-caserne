@@ -87,7 +87,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	return {
 		annonces: annonces.map(item),
 		evenements: evenements
-			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"')))
+			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi))
 			.map((p) => ({ ...item(p), debut: p.debut!, demain: p.debut!.slice(0, 10) === demain, reponse: p.reponse })),
 		sondages: sondages.map(item),
 		epinglees: epinglees.filter((p) => parCle.has(p.mur)).map(item),

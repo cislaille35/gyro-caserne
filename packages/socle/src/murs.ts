@@ -95,9 +95,18 @@ export async function audiences(base: Base, cles: CleMur[], aujourdhui: string):
 	return new Map(cles.map((cle) => [cle, membresDe(agents, cle).length]));
 }
 
-// Convoqué : membre du mur et, si des équipes sont convoquées, membre en cours ou chef de l'une d'elles.
-export function estConvoque(a: Appartenances, cle: string, convoques: 'tous' | number[]): boolean {
-	return estMembre(a, cle) && (convoques === 'tous' || convoques.some((id) => a.membreEquipe.has(id) || a.chefEquipe.has(id)));
+// La convocation d'un événement : tout le mur, des équipes, ou des équipes avec des agents ajoutés ou retirés (échanges de manœuvre).
+export type Convocation = 'tous' | number[] | { equipes: number[]; ajoutes: number[]; retires: number[] };
+export const equipesConvoquees = (c: Convocation): 'tous' | number[] => (c === 'tous' || Array.isArray(c) ? c : c.equipes);
+
+// Convoqué : membre du mur et, si des équipes sont convoquées, membre en cours ou chef de l'une d'elles, sauf retiré ; ou ajouté.
+export function estConvoque(a: Appartenances, cle: string, convoques: Convocation, personneId: number | null): boolean {
+	if (!estMembre(a, cle)) return false;
+	if (convoques === 'tous') return true;
+	const exceptions = Array.isArray(convoques) ? null : convoques;
+	if (exceptions && personneId !== null && exceptions.retires.includes(personneId)) return false;
+	if (exceptions && personneId !== null && exceptions.ajoutes.includes(personneId)) return true;
+	return (exceptions ? exceptions.equipes : (convoques as number[])).some((id) => a.membreEquipe.has(id) || a.chefEquipe.has(id));
 }
 
 // Droits déduits de l'appartenance du jour : rien n'est enregistré par mur. Une seule requête (un batch).

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
@@ -6,7 +6,9 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import type { EtatDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
-import { demandeRemplacement, destinataireRemplacement, personne } from '../schema.ts';
+import type { Convocation } from '../murs.ts';
+import { convoque, equipeLe } from '../planning/annee.ts';
+import { demandeRemplacement, destinataireRemplacement, manoeuvre, personne, publication, reponseEvenement } from '../schema.ts';
 import { avis } from './avis.ts';
 import { astreintesDe, disponible, disponibles, lireContexte, manque, mesTranches, periodesDe, valideurs, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
@@ -122,6 +124,130 @@ export async function proposerEchange(base: Base, acteur: Acteur, d: { periodes:
 	return lignes[0]!.id;
 }
 
+// Les manœuvres à venir, non annulées, convoquées par équipe : les seules qui s'échangent.
+const lireManoeuvres = (base: Base, maintenant: string) =>
+	base
+		.select({ id: manoeuvre.id, debut: manoeuvre.debut, theme: manoeuvre.theme, convoques: manoeuvre.convoques, publicationId: manoeuvre.publicationId })
+		.from(manoeuvre)
+		.where(and(isNull(manoeuvre.annuleeLe), gt(manoeuvre.debut, maintenant.slice(0, 16))));
+type ManoeuvreLue = Awaited<ReturnType<typeof lireManoeuvres>>[number];
+
+const convoqueA = (ctx: Contexte, m: ManoeuvreLue, id: number) => {
+	const c = JSON.parse(m.convoques) as Convocation;
+	return c !== 'tous' && convoque(c, equipeLe(ctx.affectations.filter((a) => a.personneId === id), m.debut.slice(0, 10)), id);
+};
+
+// Pour l'écran : mes manœuvres échangeables, et celles de chaque collègue (où je ne suis pas convoqué).
+export async function manoeuvresEchangeables(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage) {
+	const moi = moiDe(acteur);
+	const [ctx, manoeuvres] = await Promise.all([lireContexte(base, maintenant, reglage), lireManoeuvres(base, maintenant)]);
+	const vue = (m: ManoeuvreLue) => ({ id: m.id, debut: m.debut, theme: m.theme });
+	const miennes = manoeuvres.filter((m) => convoqueA(ctx, m, moi));
+	return {
+		miennes: miennes.map(vue),
+		collegues: ctx.agents
+			.filter((a) => a.id !== moi)
+			.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, manoeuvres: manoeuvres.filter((m) => convoqueA(ctx, m, a.id) && !convoqueA(ctx, m, moi)).map(vue) }))
+			.filter((a) => a.manoeuvres.length > 0)
+			.sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'))
+	};
+}
+
+// Chacun convoqué à la manœuvre de l'autre : vérifié à la proposition et à l'acceptation.
+function exigerEchangeManoeuvre(ctx: Contexte, manoeuvres: ManoeuvreLue[], d: { demandeurId: number; cibleId: number; manoeuvreId: number; manoeuvreCibleId: number }) {
+	const m1 = manoeuvres.find((m) => m.id === d.manoeuvreId);
+	const m2 = manoeuvres.find((m) => m.id === d.manoeuvreCibleId);
+	if (!m1 || !m2 || m1.id === m2.id) throw new DonneeInvalide('Manœuvre inconnue, passée ou annulée');
+	if (JSON.parse(m1.convoques) === 'tous' || JSON.parse(m2.convoques) === 'tous') throw new DonneeInvalide('Une manœuvre de tout le centre ne s’échange pas');
+	const ok = convoqueA(ctx, m1, d.demandeurId) && !convoqueA(ctx, m2, d.demandeurId) && convoqueA(ctx, m2, d.cibleId) && !convoqueA(ctx, m1, d.cibleId);
+	if (!ok) throw new DonneeInvalide('Chacun doit être convoqué à sa manœuvre, et pas à celle de l’autre');
+	return { m1, m2 };
+}
+
+// Échanger sa place à une manœuvre contre celle d'un collègue à une autre. Pas de validation : le chef d'équipe est informé.
+export async function proposerEchangeManoeuvre(base: Base, acteur: Acteur, d: { manoeuvreId: number; cibleId: number; manoeuvreCibleId: number; mot?: string | null }, maintenant: string, reglage: Reglage): Promise<number> {
+	const moi = await exigerDemander(base, acteur, maintenant);
+	const [ctx, manoeuvres] = await Promise.all([lireContexte(base, maintenant, reglage), lireManoeuvres(base, maintenant)]);
+	if (!Number.isInteger(d.cibleId) || d.cibleId === moi || !ctx.agents.some((a) => a.id === d.cibleId)) throw new DonneeInvalide('Collègue inconnu');
+	const { m1, m2 } = exigerEchangeManoeuvre(ctx, manoeuvres, { demandeurId: moi, cibleId: d.cibleId, manoeuvreId: d.manoeuvreId, manoeuvreCibleId: d.manoeuvreCibleId });
+	const deja = ctx.demandes.some((x) => x.genre === 'manoeuvre' && x.etat === 'attente' && x.demandeurId === moi && x.manoeuvreId === m1.id);
+	if (deja) throw new DonneeInvalide('Échange déjà proposé pour cette manœuvre');
+	const mot = motDe(d.mot);
+	const texte = `${nomDe(ctx, moi)} propose d’échanger la manœuvre « ${m1.theme} » contre « ${m2.theme} »`;
+	const [lignes] = await base.batch([
+		base
+			.insert(demandeRemplacement)
+			.values({
+				genre: 'manoeuvre',
+				demandeurId: moi,
+				cibleId: d.cibleId,
+				manoeuvreId: m1.id,
+				manoeuvreCibleId: m2.id,
+				equipeId: equipeLe(ctx.affectations.filter((a) => a.personneId === moi), m1.debut.slice(0, 10)),
+				debut: [m1.debut, m2.debut].sort()[0]!,
+				mot,
+				etat: 'attente',
+				creeLe: maintenant
+			})
+			.returning({ id: demandeRemplacement.id }),
+		ecrireDestinataires(base, derniere, [d.cibleId]),
+		journalDemande(base, moi, 'proposer_echange_manoeuvre', derniere, { manoeuvreId: m1.id, manoeuvreCibleId: m2.id }, maintenant),
+		...avis(base, [d.cibleId], derniere, 'recue', texte, URL_POUR_MOI, maintenant)
+	]);
+	return lignes[0]!.id;
+}
+
+// L'un prend la place de l'autre : retiré de sa convocation, ajouté à celle de l'autre.
+export function echangerPlace(c: Convocation, part: number, vient: number): Convocation {
+	if (c === 'tous') return c;
+	const x = Array.isArray(c) ? { equipes: c, ajoutes: [] as number[], retires: [] as number[] } : c;
+	const ajoutes = x.ajoutes.filter((id) => id !== part);
+	const retires = x.retires.filter((id) => id !== vient);
+	if (!x.ajoutes.includes(part)) retires.push(part);
+	if (!x.retires.includes(vient)) ajoutes.push(vient);
+	return { equipes: x.equipes, ajoutes, retires };
+}
+
+// Les convocations et les réponses suivent : chacun est noté présent à sa nouvelle manœuvre.
+function ecrituresManoeuvre(base: Base, m: ManoeuvreLue, part: number, vient: number) {
+	const convoques = JSON.stringify(echangerPlace(JSON.parse(m.convoques) as Convocation, part, vient));
+	return [
+		base.update(manoeuvre).set({ convoques }).where(eq(manoeuvre.id, m.id)),
+		...(m.publicationId === null
+			? []
+			: [
+					base.update(publication).set({ convoques }).where(eq(publication.id, m.publicationId)),
+					base.delete(reponseEvenement).where(and(eq(reponseEvenement.publicationId, m.publicationId), eq(reponseEvenement.personneId, part))),
+					base
+						.insert(reponseEvenement)
+						.values({ publicationId: m.publicationId, personneId: vient, reponse: 'present' })
+						.onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse: 'present' } })
+				])
+	] as const;
+}
+
+async function accepterManoeuvre(base: Base, d: LigneDemande, moi: number, ctx: Contexte, maintenant: string): Promise<'conclue'> {
+	const manoeuvres = await lireManoeuvres(base, maintenant);
+	const { m1, m2 } = exigerEchangeManoeuvre(ctx, manoeuvres, { demandeurId: d.demandeurId, cibleId: moi, manoeuvreId: d.manoeuvreId!, manoeuvreCibleId: d.manoeuvreCibleId! });
+	const [r] = await base.batch([
+		base
+			.update(demandeRemplacement)
+			.set({ etat: 'conclue', remplacantId: moi, accepteeLe: maintenant, trancheePar: `personne:${moi}`, trancheeLe: maintenant })
+			.where(and(eq(demandeRemplacement.id, d.id), eq(demandeRemplacement.etat, 'attente')))
+			.returning({ id: demandeRemplacement.id }),
+		journalDemande(base, moi, 'accepter_echange_manoeuvre', d.id, {}, maintenant)
+	]);
+	if (r.length === 0) throw dejaTraitee();
+	const texte = `${nomDe(ctx, moi)} prend « ${m1.theme} », ${nomDe(ctx, d.demandeurId)} prend « ${m2.theme} »`;
+	await base.batch([
+		...ecrituresManoeuvre(base, m1, d.demandeurId, moi),
+		...ecrituresManoeuvre(base, m2, moi, d.demandeurId),
+		...avis(base, [d.demandeurId], d.id, 'acceptee', texte, url(d.id), maintenant),
+		...avis(base, valideurs(ctx.chefs, d.equipeId, d.demandeurId), d.id, 'informe', texte, url(d.id), maintenant)
+	]);
+	return 'conclue';
+}
+
 // La demande, lue dans le contexte ; elle doit être en cours.
 async function lireDemande(base: Base, id: number, maintenant: string, reglage: Reglage) {
 	if (!Number.isInteger(id) || id < 1) throw new DonneeInvalide('Demande introuvable');
@@ -152,6 +278,7 @@ export async function accepterDemande(base: Base, acteur: Acteur, id: number, ma
 	if (!recue || (d.cibleId !== null && d.cibleId !== moi)) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous est pas adressée');
 	if (d.etat !== 'attente') throw new DonneeInvalide(d.remplacantId === null ? 'Cette demande n’est plus ouverte' : 'Déjà prise par un collègue');
 	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
+	if (d.genre === 'manoeuvre') return accepterManoeuvre(base, d, moi, ctx, maintenant);
 	const periodes = periodesDe(d.periodes);
 	const date = d.debut.slice(0, 10);
 	let manquantes: string[];
@@ -247,7 +374,7 @@ function rouvrir(base: Base, d: LigneDemande, qui: number, motif: string | null,
 			.update(destinataireRemplacement)
 			.set({ refuseLe: maintenant })
 			.where(and(eq(destinataireRemplacement.demandeId, d.id), eq(destinataireRemplacement.personneId, d.remplacantId ?? 0)))
-	];
+	] as const;
 }
 
 const rouverte = (d: LigneDemande, maintenant: string) => decidee(d.id, d.genre === 'remplacement' && d.cibleId === null ? 'attente' : 'refusee', maintenant);
@@ -319,6 +446,7 @@ export async function annulerDemande(base: Base, acteur: Acteur, id: number, mai
 		exigerValideur(ctx, d, moi);
 	}
 	if (!['attente', 'refusee', 'a_valider', 'conclue'].includes(d.etat)) throw dejaTraitee();
+	if (d.genre === 'manoeuvre' && d.etat === 'conclue') throw new DonneeInvalide('Un échange de manœuvre conclu ne s’annule pas');
 	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
 	const prevenus = [...new Set([...(parLeDemandeur ? [] : [d.demandeurId]), ...(d.remplacantId !== null && ['a_valider', 'conclue'].includes(d.etat) ? [d.remplacantId] : [])])];
 	await base.batch([

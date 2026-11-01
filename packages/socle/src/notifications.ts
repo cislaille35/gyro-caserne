@@ -4,7 +4,7 @@ import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
 import { aLaMessagerie } from './messagerie.ts';
-import { agentsDuJour, estConvoque, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
+import { agentsDuJour, estConvoque, type Convocation, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { abonnementPush, affectationEquipe, avisReservation, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource } from './schema.ts';
 
@@ -130,9 +130,9 @@ export async function notifierConvoques(base: Base, id: number, maintenant: stri
 	]);
 	const p = lignes[0];
 	if (!p) return;
-	const convoques = JSON.parse(p.convoques ?? '"tous"') as 'tous' | number[];
+	const convoques = JSON.parse(p.convoques ?? '"tous"') as Convocation;
 	const ids = agentsDuJour([agents, affectations, tenues], aujourdhui)
-		.filter((x) => estConvoque(x.a, p.mur, convoques) && !(message.seulementSansReponse && reponses.some((r) => r.personneId === x.id)))
+		.filter((x) => estConvoque(x.a, p.mur, convoques, x.id) && !(message.seulementSansReponse && reponses.some((r) => r.personneId === x.id)))
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: message.titre, texte: extrait(message.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };

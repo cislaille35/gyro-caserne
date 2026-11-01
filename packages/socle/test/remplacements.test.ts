@@ -4,11 +4,13 @@ import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
+import { enregistrerManoeuvre, planningDe, publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
+import { planningDuMatin } from '../src/planning/manoeuvres.ts';
+import { repondreEvenement } from '../src/actions/interactions.ts';
 import { lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
 import { demandeVue, nombreRemplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
-import { accepterDemande, annulerDemande, demanderRemplacement, desister, ouvrirATous, proposerEchange, refuserDemande, refuserValidation, valider } from '../src/remplacements/demandes.ts';
-import { affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, abonnementPush, equipe, personne, profil, responsabilite } from '../src/schema.ts';
+import { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from '../src/remplacements/demandes.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, abonnementPush, equipe, manoeuvre, personne, profil, publication, reponseEvenement, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -235,5 +237,63 @@ describe('lectures', () => {
 		expect(await nombreRemplacementsAValider(base, bruno, maintenant)).toBe(0);
 		expect((await remplacementsDe(base, bruno, maintenant, reglage)).miennes.map((v) => [v.moi, v.gestes.desister])).toEqual([['remplacant', true]]);
 		void n;
+	});
+});
+
+describe('échange de manœuvre', () => {
+	async function avecManoeuvres() {
+		const j = await jeu();
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const m1 = await enregistrerManoeuvre(j.base, qui, { debut: '2026-11-08T08:30', theme: 'Secourisme', lieu: 'Caserne', convoques: [j.ids[0]!], petitDejeuner: false }, maintenant);
+		const m2 = await enregistrerManoeuvre(j.base, qui, { debut: '2026-11-15T08:30', theme: 'Incendie', lieu: 'Caserne', convoques: [j.ids[1]!], petitDejeuner: false }, maintenant);
+		const tous = await enregistrerManoeuvre(j.base, qui, { debut: '2026-11-22T08:30', theme: 'Sainte Barbe', lieu: 'Caserne', convoques: 'tous', petitDejeuner: false }, maintenant);
+		// La première est déjà annoncée sur « Le centre », Alice a répondu absente.
+		await planningDuMatin(j.base, '2026-11-01T08:00');
+		const [pub] = await j.base.select().from(manoeuvre).where(eq(manoeuvre.id, m1));
+		await repondreEvenement(j.base, j.alice, pub!.publicationId!, 'absent', maintenant);
+		return { ...j, qui, m1, m2, tous, pub1: pub!.publicationId! };
+	}
+
+	it('accepté : chacun convoqué à la place de l’autre, publication et réponses suivent, le chef est informé', async () => {
+		const { base, alice, bruno, n, m1, m2, pub1, avisDe, demande } = await avecManoeuvres();
+		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
+		expect(choix.miennes.map((m) => m.id)).toEqual([m1]);
+		expect(choix.collegues.find((c) => c.id === n.bruno)?.manoeuvres.map((m) => m.id)).toEqual([m2]);
+		const id = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: m2 }, maintenant, reglage);
+		expect(await accepterDemande(base, bruno, id, maintenant, reglage)).toBe('conclue');
+		expect(await demande(id)).toMatchObject({ etat: 'conclue', remplacantId: n.bruno });
+		const [p] = await base.select().from(publication).where(eq(publication.id, pub1));
+		expect(JSON.parse(p!.convoques!)).toEqual({ equipes: [expect.any(Number)], ajoutes: [n.bruno], retires: [n.alice] });
+		expect((await base.select().from(reponseEvenement).where(eq(reponseEvenement.publicationId, pub1))).map((r) => [r.personneId, r.reponse])).toEqual([[n.bruno, 'present']]);
+		expect(await avisDe(n.elodie)).toEqual(['informe']);
+		const planning = await planningDe(base, alice, 2026, maintenant, reglage);
+		expect(planning.publiee && planning.prochaine.manoeuvre?.id).toBe(m2);
+		const deBruno = await planningDe(base, bruno, 2026, maintenant, reglage);
+		expect(deBruno.publiee && deBruno.prochaine.manoeuvre?.id).toBe(m1);
+		await expect(annulerDemande(base, { type: 'personne', id: n.elodie }, id, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('Un échange de manœuvre conclu ne s’annule pas'));
+	});
+
+	it('modifiée par le chef, la manœuvre garde l’échange ; passée à « tout le centre », il tombe', async () => {
+		const { base, alice, bruno, n, m1, m2, qui } = await avecManoeuvres();
+		const id = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: m2 }, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		const [e1, e3] = [(await base.select().from(equipe).orderBy(equipe.ordreRotation)).map((e) => e.id)[0]!, (await base.select().from(equipe).orderBy(equipe.ordreRotation)).map((e) => e.id)[2]!];
+		await enregistrerManoeuvre(base, qui, { id: m1, debut: '2026-11-08T08:30', theme: 'Secourisme', lieu: 'Caserne', convoques: [e1, e3], petitDejeuner: false }, maintenant);
+		expect(JSON.parse((await base.select().from(manoeuvre).where(eq(manoeuvre.id, m1)))[0]!.convoques)).toEqual({ equipes: [e1, e3], ajoutes: [n.bruno], retires: [n.alice] });
+		await enregistrerManoeuvre(base, qui, { id: m1, debut: '2026-11-08T08:30', theme: 'Secourisme', lieu: 'Caserne', convoques: 'tous', petitDejeuner: false }, maintenant);
+		expect(JSON.parse((await base.select().from(manoeuvre).where(eq(manoeuvre.id, m1)))[0]!.convoques)).toBe('tous');
+	});
+
+	it('refusé si une manœuvre convoque tout le centre, ou si l’un n’est pas convoqué', async () => {
+		const { base, alice, n, m1, m2, tous } = await avecManoeuvres();
+		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: tous }, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('Une manœuvre de tout le centre ne s’échange pas'));
+		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: m2, cibleId: n.bruno, manoeuvreCibleId: m1 }, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
+		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.david, manoeuvreCibleId: m2 }, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
+	});
+
+	it('echangerPlace : un retour en arrière efface les exceptions', () => {
+		const une = echangerPlace([1], 10, 20);
+		expect(une).toEqual({ equipes: [1], ajoutes: [20], retires: [10] });
+		expect(echangerPlace(une, 20, 10)).toEqual({ equipes: [1], ajoutes: [], retires: [] });
 	});
 });

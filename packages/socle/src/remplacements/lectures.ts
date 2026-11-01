@@ -89,7 +89,7 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 			accepter: pourMoi,
 			refuser: pourMoi,
 			ouvrir: avenir && d.demandeurId === moi && d.genre === 'remplacement' && d.cibleId !== null && ['attente', 'refusee'].includes(d.etat),
-			annuler: avenir && enCours && ((d.demandeurId === moi && ['attente', 'refusee'].includes(d.etat)) || estValideur),
+			annuler: avenir && enCours && !(d.genre === 'manoeuvre' && d.etat === 'conclue') && ((d.demandeurId === moi && ['attente', 'refusee'].includes(d.etat)) || estValideur),
 			desister: avenir && d.remplacantId === moi && d.genre !== 'manoeuvre' && ['a_valider', 'conclue'].includes(d.etat),
 			valider: avenir && estValideur && d.etat === 'a_valider'
 		}

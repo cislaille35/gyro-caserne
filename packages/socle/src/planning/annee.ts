@@ -3,6 +3,7 @@ import type { Base } from '../base.ts';
 import { enCours, exigerDate, exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
+import { equipesConvoquees, type Convocation } from '../murs.ts';
 import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
@@ -12,7 +13,8 @@ import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type
 
 export type Convoques = 'tous' | number[];
 export type DonneesManoeuvre = { id?: number; debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
-export type ManoeuvreVue = { id: number; debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean; annulee: boolean; publiee: boolean };
+// `convoques` : les équipes ; `convocation` : avec les agents ajoutés ou retirés par un échange.
+export type ManoeuvreVue = { id: number; debut: string; theme: string; lieu: string; convoques: Convoques; convocation: Convocation; petitDejeuner: boolean; annulee: boolean; publiee: boolean };
 export type Vacances = { id: number; nom: string; debut: string; fin: string };
 export type EquipePlanning = { id: number; nom: string; couleur: string };
 
@@ -40,7 +42,8 @@ export const vueManoeuvre = (m: typeof manoeuvre.$inferSelect): ManoeuvreVue => 
 	debut: m.debut,
 	theme: m.theme,
 	lieu: m.lieu,
-	convoques: JSON.parse(m.convoques) as Convoques,
+	convoques: equipesConvoquees(JSON.parse(m.convoques) as Convocation),
+	convocation: JSON.parse(m.convoques) as Convocation,
 	petitDejeuner: m.petitDejeuner === 1,
 	annulee: m.annuleeLe !== null,
 	publiee: m.publicationId !== null
@@ -206,7 +209,7 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 		return lignes[0]!.id;
 	}
 	const [existante] = await base
-		.select({ annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture })
+		.select({ annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture })
 		.from(manoeuvre)
 		.leftJoin(publication, eq(publication.id, manoeuvre.publicationId))
 		.where(eq(manoeuvre.id, d.id));
@@ -214,6 +217,9 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 	// Déjà annoncée : sa publication suit (les convoqués sont prévenus par manoeuvreChangee). Même date : le sondage garde sa clôture ;
 	// nouvelle date : la clôture est recalculée et la relance pourra repartir.
 	const memeDate = existante.debut === valeurs.debut;
+	// Les échanges entre agents restent, tant que la manœuvre ne convoque pas tout le centre.
+	const avant = JSON.parse(existante.convoques) as Convocation;
+	if (!Array.isArray(avant) && avant !== 'tous' && valeurs.convoques !== '"tous"') valeurs.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(valeurs.convoques) });
 	const cloture = memeDate ? existante.cloture : null;
 	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(valeurs, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
 	await base.batch([base.update(manoeuvre).set({ ...valeurs, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, d.id)), ...suivre, journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id)]);
@@ -254,7 +260,13 @@ export function anneesPubliees(annees: (typeof anneePlanning.$inferSelect)[], ch
 // L'équipe de la personne à une date, d'après ses affectations.
 export const equipeLe = (affectations: { equipeId: number; debut: string; fin: string | null }[], date: string) => affectations.find((a) => enCours(a.debut, a.fin, date))?.equipeId ?? null;
 
-export const convoque = (convoques: Convoques, equipeId: number | null) => convoques === 'tous' || (equipeId !== null && convoques.includes(equipeId));
+// Convoqué : son équipe l'est, sauf s'il a cédé sa place ; ou il a pris celle d'un autre.
+export function convoque(c: Convocation, equipeId: number | null, personneId: number): boolean {
+	if (c === 'tous') return true;
+	if (!Array.isArray(c) && c.retires.includes(personneId)) return false;
+	if (!Array.isArray(c) && c.ajoutes.includes(personneId)) return true;
+	return equipeId !== null && (Array.isArray(c) ? c : c.equipes).includes(equipeId);
+}
 
 export type PlanningAgent =
 	| { publiee: false; annee: number; peutPreparer: boolean }
@@ -299,7 +311,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
 	const prochaineSemaine = toutes.find((s) => mienne(s) && s.periodes.at(-1)!.fin > maintenant);
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
-	const convoqueA = (m: ManoeuvreVue) => convoque(m.convoques, equipeLe(affectations, m.debut.slice(0, 10)));
+	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
 	const prochaineManoeuvre = vues.find((m) => m.debut >= maintenant.slice(0, 16) && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
 	let fete: { fete: Fete; date: string } | null = null;
 	for (const [a, s] of [...publiees.entries()].sort(([x], [y]) => x - y)) {
