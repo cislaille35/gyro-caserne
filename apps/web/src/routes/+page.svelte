@@ -53,6 +53,26 @@
 
 {#snippet gyro()}<GyroAccueil taille={72} />{/snippet}
 
+{#snippet decider(liste: { texte: string; lien: string }[])}
+	<ListeRangees titre="À décider" compte={liste.length}>
+		{#each liste.slice(0, VISIBLES) as element, i (i)}
+			<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
+		{/each}
+		{#snippet pied()}
+			{#if liste.length > VISIBLES}
+				<details class="autres">
+					<summary>Voir {liste.length - VISIBLES > 1 ? `les ${liste.length - VISIBLES} autres` : 'l’autre'}</summary>
+					<ul role="list">
+						{#each liste.slice(VISIBLES) as element, i (i)}
+							<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
+						{/each}
+					</ul>
+				</details>
+			{/if}
+		{/snippet}
+	</ListeRangees>
+{/snippet}
+
 {#snippet liens(titre: string, liste: Lien[])}
 	<ListeRangees {titre}>
 		{#each liste as l (l.href)}
@@ -76,25 +96,8 @@
 
 		<div class="colonne">
 			{#if data.contenu.type === 'centre'}
-				{@const decider = data.contenu.aDecider}
-				{#if decider.length > 0}
-					<ListeRangees titre="À décider" compte={decider.length}>
-						{#each decider.slice(0, VISIBLES) as element (element.texte)}
-							<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
-						{/each}
-						{#snippet pied()}
-							{#if decider.length > VISIBLES}
-								<details class="autres">
-									<summary>Voir {decider.length - VISIBLES > 1 ? `les ${decider.length - VISIBLES} autres` : 'l’autre'}</summary>
-									<ul role="list">
-										{#each decider.slice(VISIBLES) as element (element.texte)}
-											<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
-										{/each}
-									</ul>
-								</details>
-							{/if}
-						{/snippet}
-					</ListeRangees>
+				{#if data.contenu.aDecider.length > 0}
+					{@render decider(data.contenu.aDecider)}
 				{:else}
 					<ListeRangees titre="À décider">
 						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
@@ -102,6 +105,9 @@
 				{/if}
 				{@render liens('Gérer', gerer)}
 			{:else}
+				{#if (data.contenu.type === 'role' || data.contenu.type === 'comite') && data.contenu.aDecider.length > 0}
+					{@render decider(data.contenu.aDecider)}
+				{/if}
 				{#if data.contenu.type === 'astreinte' || data.contenu.type === 'equipe'}
 					<ListeRangees titre={casquette?.nom ?? 'Mon astreinte'}>
 						<li>

@@ -6,7 +6,7 @@ const { default: Page } = await import('./+page.svelte');
 
 const html = (data: Record<string, unknown>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { lignes: [], nonLues: 0, aujourdhui: '2026-10-31', signalements: [], ...data } } }).body;
+	render(Page as any, { props: { data: { lignes: [], nonLues: 0, aujourdhui: '2026-10-31', signalements: [], aValider: 0, ...data } } }).body;
 
 describe('page des notifications', () => {
 	it('rien de reçu : une phrase, pas de liste vide, pas de « Tout marquer comme lu »', () => {
@@ -37,6 +37,18 @@ describe('page des notifications', () => {
 		expect(page.match(/Non lu, /g)).toHaveLength(1);
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/toutLu"[\s\S]*?Tout marquer comme lu/);
 		expect(page).toContain('1 notification non lue.');
+	});
+
+	it('un avis de réservation : vers « Mes réservations », ce qui a été décidé, la période et le motif', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 5, type: 'reservation', reservationId: 9, quoi: 'refusee', ressource: 'Bancs', periode: 'du 12 au 13 nov.', motif: 'Déjà prêtés', creeLe: '2026-10-31T09:00', lue: false }] });
+		expect(page).toMatch(/<a[^>]*href="\/reservations\/miennes#reservation-9"[^>]*>[\s\S]*?Non lu, [\s\S]*?Bancs : demande refusée[\s\S]*?du 12 au 13 nov\. · Déjà prêtés[\s\S]*?<\/a>/);
+	});
+
+	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
+		const page = html({ aValider: 2 });
+		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);
+		expect(page).not.toContain('Rien de nouveau');
+		expect(html({ aValider: 1 })).toContain('1 demande de réservation à valider');
 	});
 
 	it('tout lu : plus de bouton « Tout marquer comme lu »', () => {

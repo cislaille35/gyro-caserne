@@ -51,6 +51,11 @@ describe('/caserne', () => {
 		expect(html({ peutNominations: false, peutReglages: false, agents: 1, aPourvoir: null })).toContain('1 agent<');
 	});
 
+	it('« Réservations » pour tous, vers la VL et le matériel', () => {
+		const page = html({});
+		expect(page).toMatch(/href="\/reservations"[\s\S]*?Réservations[\s\S]*?La VL et le matériel de l’amicale/);
+	});
+
 	it('« Engins » et « Comités » annoncés sans fausses données', () => {
 		const page = html({ peutNominations: false, peutReglages: false });
 		expect(page).toContain('Engins');

@@ -165,7 +165,23 @@ Spec : [2026-10-31-notifications-design.md](../superpowers/specs/2026-10-31-noti
 - `notifierPublication`, `notifierCommentaire`, `notifierMessage` (1 lecture + 1 écriture) : destinataires du moment (lecteurs du mur par `lecturesAgents` ; auteur de la publication s'il lit encore le mur ; membres qui ont la messagerie), jamais l'auteur ; le fil (pas pour les messages) et la file, sans les appareils coupés. Listes d'identifiants passées en un seul paramètre JSON (`json_each`) : sous les 100 paramètres de D1, même à 150 agents.
 - `filDeNotifications` (1) : 50 lignes, non-lues ; `enTeteDe` (1) : non-lues et visage de l'en-tête. `lireMur` marque lues les publications du mur, `lirePublication` la publication et ses commentaires, dans leur batch (sans requête de plus) ; `toutMarquerLu`.
 - `couper`, `estCoupe`, `mesNotifications` (1) ; `abonner` (services push connus seulement : Google, Mozilla, Apple, Microsoft, pour que le Worker ne poste jamais ailleurs ; dix appareils au plus par agent ; un appareil repris perd les envois en file de l'ancien titulaire), `desabonner`.
-- `prendreEnvois` (1 batch : lecture puis suppression des mêmes lignes, jamais pris deux fois) et `oublierAbonnements` (404/410), pour `envoyerLot` de l'appli. `effacerVieillesNotifications` (ménage de nuit). Au départ (`changerStatut` → `parti`), abonnements, fil et coupures sont effacés.
+- `prendreEnvois` (1 batch : lecture puis suppression des mêmes lignes, jamais pris deux fois) et `oublierAbonnements` (404/410), pour `envoyerLot` de l'appli. `effacerVieillesNotifications` (ménage de nuit). Au départ (`changerStatut` → `parti`), abonnements, fil (avis de réservation compris) et coupures sont effacés.
+
+## Réservations
+
+Spec : [2026-10-31-reservations-design.md](../superpowers/specs/2026-10-31-reservations-design.md). Migration additive `0011` (tables, puis à la main : la VL gérée par « Référent engins » et `RESERVER` pour les profils « Agent » et « Réserve citoyenne », insertions gardées comme `0001`).
+
+| Table | Contenu |
+|---|---|
+| `ressource` | Nom, `forme` (`jours` avec un `stock`, ou `creneau` sans stock), icône, `ouverte_reserve`, gérée par **un** rôle (`geree_par_responsabilite_id`) **ou** un comité (`geree_par_comite_id`), `retiree_le` |
+| `reservation` | Ressource, personne (le compte), `nom_demandeur` et `telephone` (réserve citoyenne), `debut`, `fin` (jours `AAAA-MM-JJ` inclus ; créneau `AAAA-MM-JJTHH:MM`, fin exclue), `quantite`, `mot`, `etat` (`attente`, `acceptee`, `refusee`, `annulee`), `tranchee_par`, `tranchee_le`, `motif` |
+| `avis_reservation` | Ce que le demandeur apprend (accord, refus, annulation) : sa ligne dans la cloche, `lue_le` |
+
+- `reservations-calcul.ts` (pur, partagé avec l'écran Réserver) : `chevauche`, `restantParJour` (attente et acceptée comptent), `periodeCourte`.
+- `reservations.ts` : une seule règle de gestion, `gere` (SQL) : la personne a accès et tient aujourd'hui le rôle gestionnaire, ou un rôle de portée comité dans le comité gestionnaire (non dissous, rôle non archivé) ; le super administrateur gère tout. Réserver exige `RESERVER` sur la ressource (le centre la couvre) ; un profil extérieur (réserve citoyenne) ne voit et ne réserve que les ressources ouvertes, nom du demandeur obligatoire.
+- `reserver` (créneau libre : acceptée ; sinon en attente, décidé dans l'écriture même par un `CASE WHEN EXISTS`, pour que deux demandes simultanées ne soient pas toutes deux acceptées ; jours : en attente, refus si le stock manque), `accepter` (VL : annule les acceptées qui chevauchent ; matériel : revérifie le stock), `refuser`, `annuler` (le demandeur avant le début ; qui gère, une réservation en cours de validité), `ajouterRessource` (pour un comité de l'acteur), `modifierRessource` (le stock ne descend pas sous ce qui est accepté un jour à venir), `retirerRessource` (annule les réservations à venir), `annulerAuDepart` (dans le batch de `changerStatut` → `parti`). Chaque action et son journal en un `batch`, avec les avis et la mise en file des envois au téléphone (lieu `reservations` : seul « tout » le coupe ; jamais à qui tranche sa propre demande ; avis et envoi conditionnés à la décision réellement écrite : deux gestionnaires qui tranchent en même temps ne font pas deux avis contradictoires).
+- Lectures : `ressourcesDe`, `calendrier`, `mesReservations` (marque lus les avis), `aValider`, `acceptees`, `nombreAValider` (1 requête : la cloche), `ressourcesAGerer`. Une demande dont la période est passée ne compte plus à valider. Les casquettes d'un rôle ou d'un comité gestionnaire comptent leurs demandes (« À décider »).
+- `effacerVieillesReservations` : ménage de nuit, réservations finies depuis plus d'un an. `chargerMaterielFictif` : bancs, tables, barnum de l'amicale, pour les comptes de test et le développement local.
 
 ## Fichier de l'effectif
 

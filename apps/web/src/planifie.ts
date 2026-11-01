@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -34,7 +34,9 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 			const quand = new Date(controleur.scheduledTime);
 			const avant = limiteDeConservation(quand, centre.conservationMessagesMois);
 			const notifications = aujourdhuiParis(new Date(quand.getTime() - CONSERVATION_NOTIFICATIONS_JOURS * 86_400_000));
-			ctx.waitUntil(Promise.all([effacerAnciens(base, creerBasePhotos(env.PHOTOS), avant), effacerVieillesNotifications(base, notifications)]));
+			// Les réservations sont gardées un an après leur fin.
+			const reservations = limiteDeConservation(quand, 12);
+			ctx.waitUntil(Promise.all([effacerAnciens(base, creerBasePhotos(env.PHOTOS), avant), effacerVieillesNotifications(base, notifications), effacerVieillesReservations(base, reservations)]));
 		}
 	};
 }

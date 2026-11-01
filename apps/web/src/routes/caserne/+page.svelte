@@ -10,6 +10,7 @@
 
 	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
+		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale', icone: 'cle' as const },
 		...(data.peutNominations
 			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
 			: []),

@@ -10,6 +10,7 @@ import { ligneJournal } from '../journal.ts';
 import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } from '../listes.ts';
 import { departDesGroupes } from '../messagerie.ts';
 import { effacerNotificationsDe } from '../notifications.ts';
+import { annulerAuDepart } from '../reservations.ts';
 import { affectationEquipe, attribution, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
@@ -186,7 +187,9 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 		...roles,
 		...groupes.ecritures,
 		// Au départ, ses appareils, son fil et ses coupures de notifications.
-		...(statut === 'parti' ? effacerNotificationsDe(base, personneId) : [])
+		...(statut === 'parti' ? effacerNotificationsDe(base, personneId) : []),
+		// Au départ, ses réservations à venir sont annulées.
+		...(statut === 'parti' ? [annulerAuDepart(base, personneId, maintenant)] : [])
 	] as const;
 	// Sans accès, la personne est déconnectée tout de suite, et ses liens en attente ne valent plus rien.
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) await base.batch(ecritures);

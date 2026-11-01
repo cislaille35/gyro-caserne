@@ -109,6 +109,7 @@ describe('rubriqueDe', () => {
 		expect(rubriqueDe('/agents')).toBe('/caserne');
 		expect(rubriqueDe('/agents/12')).toBe('/caserne');
 		expect(rubriqueDe('/nominations')).toBe('/caserne');
+		expect(rubriqueDe('/reservations/3/reserver')).toBe('/caserne');
 		expect(rubriqueDe('/reglages')).toBe('/caserne');
 		expect(rubriqueDe('/echanges')).toBe('/echanges');
 		expect(rubriqueDe('/profil')).toBe('/moi');

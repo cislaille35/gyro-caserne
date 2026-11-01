@@ -287,7 +287,7 @@ describe('le fil et la cloche', () => {
 		for (let i = 0; i < 52; i++) await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: `Note ${i}` }, maintenant), maintenant);
 		const { lignes, nonLues } = await filDeNotifications(base, acteur(bruno), maintenant);
 		expect(lignes).toHaveLength(50);
-		expect(lignes[0]!.extrait).toBe('Note 51');
+		expect(lignes[0]).toMatchObject({ extrait: 'Note 51' });
 		expect(nonLues).toBe(52);
 	});
 });

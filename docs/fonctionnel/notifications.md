@@ -10,7 +10,8 @@ Tout ce qui concerne l'agent, et seulement cela, jamais à l'auteur lui-même :
 
 - **une publication** sur un mur qu'il lit. Le périmètre du mur fait foi : une publication du mur de l'équipe 2 ne va qu'à l'équipe 2. Le chef de centre et son adjoint, qui lisent tous les murs, reçoivent tout ;
 - **un commentaire** sous une de ses publications ;
-- **un message** dans une de ses conversations (au téléphone seulement : les messages ont déjà leur pastille sur Échanges).
+- **un message** dans une de ses conversations (au téléphone seulement : les messages ont déjà leur pastille sur Échanges) ;
+- **une réservation** : une demande à trancher chez qui gère la ressource, l'accord, le refus ou l'annulation chez le demandeur (voir [Réservations](reservations.md)).
 
 Seul qui peut lire la publication ou la conversation **au moment de l'envoi** est prévenu.
 
@@ -31,8 +32,9 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## La cloche
 
-- Un fil : une ligne par publication ou commentaire reçu, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
+- Un fil : une ligne par publication, commentaire ou réponse à une réservation, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
 - Le chiffre compte les **non lues**. Ouvrir un mur marque lues ses publications ; ouvrir une publication la marque lue avec ses commentaires. « Tout marquer comme lu » en haut du fil.
+- Pour qui gère une ressource, les demandes de réservation à trancher restent en tête et comptent tant que personne n'a tranché (elles sonnent une fois au téléphone).
 - Pour qui modère, les messages signalés restent en tête et comptent tant qu'ils ne sont pas traités (sans notification au téléphone). Le super administrateur ne voit qu'eux.
 - « À ne pas manquer » (répondre à un sondage, à un événement) reste sur l'Accueil.
 
@@ -44,7 +46,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## Ce que la fonction ne fait pas (encore)
 
-Réservations (lot suivant), rappels programmés, courriels, réactions qui notifient.
+Rappels programmés, courriels, réactions qui notifient.
 
 ## Exemple
 

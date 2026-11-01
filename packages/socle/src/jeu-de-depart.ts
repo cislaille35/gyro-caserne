@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { Centre } from '@gyro-caserne/centre';
 import type { Base } from './base.ts';
 import type { Droit, ResponsabiliteSysteme } from './listes.ts';
-import { comite, equipe, grade, profil, profilDroit, responsabilite, responsabiliteDroit } from './schema.ts';
+import { comite, equipe, grade, profil, profilDroit, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
 
 const DROITS_AGENT: Droit[] = [
 	'VOIR_PLANNING',
@@ -14,7 +14,8 @@ const DROITS_AGENT: Droit[] = [
 	'DEMANDER_REMPLACEMENT',
 	'DECLARER_DISPONIBILITE',
 	'UTILISER_MESSAGERIE',
-	'PRENDRE_EN_CHARGE_ANOMALIE'
+	'PRENDRE_EN_CHARGE_ANOMALIE',
+	'RESERVER'
 ];
 
 const GRADES = [
@@ -79,7 +80,11 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 			{ nom: 'Agent', typePersonne: 'agent' },
 			{ nom: 'Réserve citoyenne', typePersonne: 'exterieur' }
 		]),
-		base.insert(profilDroit).values(DROITS_AGENT.map((droit) => ({ profilId: idProfil('Agent'), droit, perimetreType: 'centre' as const, perimetreId: null }))),
+		base.insert(profilDroit).values([
+			...DROITS_AGENT.map((droit) => ({ profilId: idProfil('Agent'), droit, perimetreType: 'centre' as const, perimetreId: null })),
+			// Le compte partagé de la réserve citoyenne réserve ce qui lui est ouvert (la VL).
+			{ profilId: idProfil('Réserve citoyenne'), droit: 'RESERVER' as const, perimetreType: 'centre' as const, perimetreId: null }
+		]),
 		base.insert(comite).values([
 			{ nom: NOM_COMITE_CENTRE, theme: 'centre' },
 			{ nom: 'Amicale', theme: 'amicale' }
@@ -97,6 +102,8 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 			RESPONSABILITES.flatMap((r) => r.droits.map((droit) => ({ responsabiliteId: idResponsabilite(r.nom), droit, verrouille: r.verrouilles ? 1 : 0 })))
 		),
 		...(centre.equipes.length > 0 ? [base.insert(equipe).values(centre.equipes.map((e) => ({ nom: e.nom, couleur: e.couleur, ordreRotation: e.numero })))] : []),
+		// La VL du centre, renommable, gérée par le référent engins. La migration 0011 l'ajoute aux bases déjà remplies.
+		base.insert(ressource).values({ nom: 'VL', forme: 'creneau', stock: null, icone: 'camion', ouverteReserve: 1, gereeParResponsabiliteId: idResponsabilite('Référent engins'), creeLe: sql`strftime('%Y-%m-%dT%H:%M', 'now')` }),
 		base.insert(grade).values(GRADES.map(([code, libelle], i) => ({ code, libelle, ordre: i + 1 })))
 	]);
 }
