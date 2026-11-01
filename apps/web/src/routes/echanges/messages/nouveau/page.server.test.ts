@@ -27,9 +27,9 @@ describe('nouveau message', () => {
 		expect(personnes[0].couleur).not.toBeNull();
 	});
 
-	it('pour vous : le chef d’équipe, le groupe de l’équipe et ceux des comités, avec leurs liens de création', async () => {
+	it('pour vous : le chef de garde, le groupe de l’équipe et ceux des comités, avec leurs liens de création', async () => {
 		const { base, alice, bruno, e1 } = await preparer();
-		await nommer(base, bruno.id, 'Chef d’équipe', 'equipe', e1.id);
+		await nommer(base, bruno.id, 'Chef de garde', 'equipe', e1.id);
 		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
 		await nommer(base, alice.id, 'Membre de comité', 'comite', amicale!.id);
 		await nommer(base, bruno.id, 'Membre de comité', 'comite', amicale!.id);

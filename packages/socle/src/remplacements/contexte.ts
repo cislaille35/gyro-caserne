@@ -44,7 +44,7 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 
 export type Contexte = Awaited<ReturnType<typeof lireContexte>>;
 
-// Les chefs en fonction (chefs d'équipe, chef de centre et adjoint) : ceux qui valident.
+// Les chefs en fonction (chefs de garde, chef de centre et adjoint) : ceux qui valident.
 export function requeteChefs(base: Base, aujourdhui: string) {
 	return base
 		.select({ personneId: attribution.personneId, systeme: responsabilite.systeme, equipeId: attribution.perimetreId })

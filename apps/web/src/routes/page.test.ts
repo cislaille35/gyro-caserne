@@ -62,14 +62,14 @@ describe('accueil', () => {
 			choisie: 'centre',
 			peutNominations: true,
 			peutReglages: true,
-			contenu: { type: 'centre', aDecider: [{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' }] }
+			contenu: { type: 'centre', aDecider: [{ texte: 'Équipe 2 sans chef de garde', lien: '/nominations' }] }
 		});
 		expect(html).toContain('À décider');
 		expect(html.match(/<ul[^>]*>/g)!.every((ul) => ul.includes('role="list"'))).toBe(true);
 		// À décider : une alerte, pas seulement une couleur.
 		expect(html).toMatch(/<a[^>]*class="rangee[^"]*alerte[^"]*"[^>]*href="\/nominations"/);
 		expect(html).toContain('class="signe');
-		expect(html).toMatch(/<a[^>]*href="\/nominations"[^>]*>[\s\S]*?Équipe 2 sans chef d’équipe/);
+		expect(html).toMatch(/<a[^>]*href="\/nominations"[^>]*>[\s\S]*?Équipe 2 sans chef de garde/);
 		for (const [href, titre] of [['/agents', 'Agents'], ['/nominations', 'Nominations'], ['/reglages', 'Réglages']]) {
 			expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>[\\s\\S]*?${titre}`));
 		}
@@ -101,15 +101,15 @@ describe('accueil', () => {
 		expect(deux).toContain('2 publications vous attendent.');
 	});
 
-	it('chef d’équipe : vide avec une phrase vraie', () => {
-		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 0 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider: [] } });
+	it('chef de garde : vide avec une phrase vraie', () => {
+		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 0 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider: [] } });
 		expect(html).not.toContain('Bientôt');
 		expect(html).toContain('Aucun remplacement à valider.');
 	});
 
-	it('chef d’équipe : les remplacements à valider « À décider »', () => {
+	it('chef de garde : les remplacements à valider « À décider »', () => {
 		const aDecider = [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: '/remplacements/3' }];
-		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider } });
+		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider } });
 		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider · Alice Test/);
 	});
 

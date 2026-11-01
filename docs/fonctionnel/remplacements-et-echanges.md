@@ -2,7 +2,7 @@
 
 ## À quoi ça sert
 
-Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli, au lieu d'écrire à tout le monde. Le chef d'équipe sait qui tient quoi ; le planning et l'agenda suivent.
+Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli, au lieu d'écrire à tout le monde. Le chef de garde sait qui tient quoi ; le planning et l'agenda suivent.
 
 ## Les notions
 
@@ -18,7 +18,7 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 
 1. « Me faire remplacer » (carte astreinte de l'Accueil et du Planning, chaque jour de la vue Semaine, page Remplacements) ouvre un parcours en 3 étapes : **Quand ?** (la semaine, puis ses jours en bande, les périodes passées ou déjà demandées visibles mais inactives), **À qui ?** (« Tout le monde », avec le nombre de prévenus, ou un collègue libre, avec l'aptitude qui lui manque), **Vérifier et envoyer** (une phrase récapitulative). L'échange suit le même parcours en 4 étapes (ma période, le collègue, sa période, vérifier).
 2. Le ou les collègues reçoivent la demande (cloche, téléphone, « À ne pas manquer » de l'accueil).
-3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef d'équipe. Sinon c'est conclu, et le chef d'équipe est **informé**.
+3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef de garde. Sinon c'est conclu, et le chef de garde est **informé**.
 4. Conclu : le planning montre « X remplace Y » sur la période, l'agenda des deux agents suit, et les deux sont invités à **mettre à jour leur disponibilité dans l'appli du SDIS**, qui fait foi pour l'alerte.
 
 ## Les règles
@@ -27,7 +27,7 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 - **Refus du chef** : la demande repart comme au départ (une demande ouverte attend un autre collègue, le remplaçant refusé ne la revoit plus ; une demande ciblée passe « refusée »). Le remplaçant et le demandeur sont prévenus.
 - **Désistement** du remplaçant avant le début : le titulaire **redevient responsable**, il est prévenu, la demande repart de la même façon.
 - **Annuler** : le demandeur, tant que personne n'a accepté ; ensuite le remplaçant se désiste, ou le chef annule.
-- **Délais** : on ne demande pas une période commencée. Une demande non conclue **expire au début** de sa première période ; le titulaire reste responsable. La **veille**, à 8 h, une demande sans remplaçant est relancée au demandeur et au chef d'équipe.
+- **Délais** : on ne demande pas une période commencée. Une demande non conclue **expire au début** de sa première période ; le titulaire reste responsable. La **veille**, à 8 h, une demande sans remplaçant est relancée au demandeur et au chef de garde.
 - **Départ** d'un agent : ses demandes sont annulées ; celles où il remplaçait repartent.
 - **Notifications** : coupées seulement par l'interrupteur général.
 

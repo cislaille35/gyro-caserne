@@ -55,10 +55,10 @@ describe('ceQueJePeuxAttribuer', () => {
 		await dissoudreComite(base, superAdmin, (await base.select().from(comite).where(eq(comite.nom, 'Bureau')))[0]!.id, aujourdhui);
 
 		const liste = await ceQueJePeuxAttribuer(base, superAdmin, aujourdhui);
-		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre' }, { nom: 'Chef de centre adjoint' }, { nom: 'Chef d’équipe' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent technique' }]));
+		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre' }, { nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent technique' }]));
 		const parNom = (nom: string) => liste.find((l) => l.nom === nom)!;
 		expect(parNom('Chef de centre')).toMatchObject({ responsabiliteId: r('Chef de centre'), portee: 'centre', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }] });
-		expect(parNom('Chef d’équipe').perimetres.map((p) => p.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 4']);
+		expect(parNom('Chef de garde').perimetres.map((p) => p.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 4']);
 		expect(parNom('Membre de comité').perimetres.map((p) => p.nom)).toEqual(['Amicale', 'Comité du centre']);
 		// L'icône de chaque rôle, même règle que partout (iconeDuRole).
 		expect(parNom('Référent engins').icone).toBe('camion');
@@ -70,7 +70,7 @@ describe('ceQueJePeuxAttribuer', () => {
 	it('le chef de centre : tout sauf le chef de centre', async () => {
 		const { base, chef } = await jeu();
 		const liste = await ceQueJePeuxAttribuer(base, chef, aujourdhui);
-		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre adjoint' }, { nom: 'Chef d’équipe' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent pharmacie' }, { nom: 'Référent technique' }]));
+		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent pharmacie' }, { nom: 'Référent technique' }]));
 	});
 
 	it('l’adjoint : ni le chef de centre ni un adjoint', async () => {
@@ -193,14 +193,14 @@ describe('attributionsDe', () => {
 		const { base, r, chef, simpleId, nommer, amicale, equipes } = await jeu();
 		await nommer(simpleId, 'Référent engins', centre, '2025-01-01', '2025-12-31');
 		await nommer(simpleId, 'Membre de comité', amicale, '2026-01-01', aujourdhui);
-		await attribuer(base, chef, { personneId: simpleId, responsabiliteId: r('Chef d’équipe'), perimetre: { type: 'equipe', id: equipes[1]!.id }, debut: '2026-12-01' }, aujourdhui);
+		await attribuer(base, chef, { personneId: simpleId, responsabiliteId: r('Chef de garde'), perimetre: { type: 'equipe', id: equipes[1]!.id }, debut: '2026-12-01' }, aujourdhui);
 
 		const { enCours, aVenir, passees } = await attributionsDe(base, chef, simpleId, aujourdhui);
 		expect(enCours).toEqual([
 			{ id: expect.any(Number), responsabilite: { id: r('Membre de comité'), nom: 'Membre de comité', icone: 'groupe' }, perimetre: { type: 'comite', id: amicale.id, nom: 'Amicale' }, debut: '2026-01-01', fin: aujourdhui, saisiePar: 'Super administrateur', peutTerminer: true }
 		]);
 		expect(aVenir).toEqual([
-			{ id: expect.any(Number), responsabilite: { id: r('Chef d’équipe'), nom: 'Chef d’équipe', icone: 'casque' }, perimetre: { type: 'equipe', id: equipes[1]!.id, nom: 'Équipe 2' }, debut: '2026-12-01', fin: null, saisiePar: 'Chef Test', peutTerminer: true }
+			{ id: expect.any(Number), responsabilite: { id: r('Chef de garde'), nom: 'Chef de garde', icone: 'casque' }, perimetre: { type: 'equipe', id: equipes[1]!.id, nom: 'Équipe 2' }, debut: '2026-12-01', fin: null, saisiePar: 'Chef Test', peutTerminer: true }
 		]);
 		expect(passees).toEqual([
 			{ id: expect.any(Number), responsabilite: { id: r('Référent engins'), nom: 'Référent engins', icone: 'camion' }, perimetre: { type: 'centre', id: null, nom: null }, debut: '2025-01-01', fin: '2025-12-31', saisiePar: 'Super administrateur', peutTerminer: false }

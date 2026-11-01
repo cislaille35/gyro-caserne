@@ -8,7 +8,7 @@ Savoir, pour chaque moment de l'astreinte, **quels engins peuvent partir** avec 
 
 - **Places d'un type d'engin** (liste ouverte, réglée par le centre) : chaque place demande une aptitude.
   - VSAV : 1 chef d'agrès (CA1), 1 conducteur (COD1), 1 équipier (SAP).
-  - FPT : 1 CA2, 1 conducteur (COD1), 1 chef d'équipe (CE), 3 équipiers (INC).
+  - FPT : 1 CA2, 1 conducteur (COD1), 1 chef d’équipe (CE), 3 équipiers (INC).
 - **Équivalences d'aptitudes**, réglées par le centre : une aptitude peut en couvrir d'autres. Par exemple, un CA2 peut tenir une place de CA1 ou de CE.
 - **Agents disponibles** à un moment donné : l'équipe d'astreinte, moins les absents, plus les remplaçants et les renforts. Seuls les agents au statut « opérationnel » comptent, et uniquement avec leurs aptitudes **valides à cette date**.
 

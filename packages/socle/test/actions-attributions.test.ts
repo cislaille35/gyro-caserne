@@ -21,7 +21,7 @@ async function jeu() {
 	const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre' }).returning();
 	const [chefEquipe] = await base
 		.insert(responsabilite)
-		.values({ nom: 'Chef d’équipe', nature: 'fonction', typePerimetre: 'equipe', systeme: 'chef_equipe', comiteAttributeurId: bureau!.id })
+		.values({ nom: 'Chef de garde', nature: 'fonction', typePerimetre: 'equipe', systeme: 'chef_equipe', comiteAttributeurId: bureau!.id })
 		.returning();
 	const [rapporteur] = await base.insert(responsabilite).values({ nom: 'Rapporteur', nature: 'mission', typePerimetre: 'comite' }).returning();
 	await base.insert(responsabiliteDroit).values([
@@ -46,7 +46,7 @@ describe('attribuer', () => {
 		expect(ligne).toMatchObject({ personneId: cible, perimetreType: 'centre', perimetreId: null, saisiePar: 'super:admin@exemple.fr', saisieLe: aujourdhui });
 	});
 
-	it('le rapporteur de l’amicale ne peut pas nommer un chef d’équipe', async () => {
+	it('le rapporteur de l’amicale ne peut pas nommer un chef de garde', async () => {
 		const { base, chefEquipe, rapporteur, amicale, bureau, nouvelle } = await jeu();
 		const rappAmicale = await nouvelle('amicale@exemple.fr');
 		const rappBureau = await nouvelle('bureau@exemple.fr');

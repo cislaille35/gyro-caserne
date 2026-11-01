@@ -65,7 +65,7 @@ describe('donneesFichier', () => {
 		const donnees = await donneesFichier(base, chef, aujourdhui, false);
 		expect(donnees.entetes).toEqual([
 			...ENTETES,
-			'Chef d’équipe',
+			'Chef de garde',
 			'Référent engins',
 			'Référent pharmacie',
 			'Référent technique',
@@ -78,7 +78,7 @@ describe('donneesFichier', () => {
 			Équipe: 'equipes',
 			Statut: 'statuts',
 			Profil: 'profils',
-			'Chef d’équipe': 'oui',
+			'Chef de garde': 'oui',
 			'Référent engins': 'oui',
 			'Référent pharmacie': 'oui',
 			'Référent technique': 'oui',
@@ -100,7 +100,7 @@ describe('donneesFichier', () => {
 			.update(personne)
 			.set({ telephone: '0600000000', naissance: '1990-03-01', dateGrade: '2020-12-31', entreeCentre: '2015-09-01', engagementSpv: '2016-01-15' })
 			.where(eq(personne.id, id));
-		await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 2 });
+		await nommer(id, resp('Chef de garde'), { type: 'equipe', id: 2 });
 		await nommer(id, resp('Membre de comité'), { type: 'comite', id: amicale.id });
 		await nommer(id, resp('Référent engins'), { type: 'centre' }, '2026-10-26');
 		const [ca1] = await base.select().from(aptitude).where(eq(aptitude.nom, 'CA1'));
@@ -122,7 +122,7 @@ describe('donneesFichier', () => {
 			Naissance: '01/03/1990',
 			'Entrée au centre': '01/09/2015',
 			'Engagement SPV': '15/01/2016',
-			'Chef d’équipe': 'Oui',
+			'Chef de garde': 'Oui',
 			'Référent engins': '',
 			'Référent pharmacie': '',
 			'Référent technique': '',

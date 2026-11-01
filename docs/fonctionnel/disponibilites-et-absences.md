@@ -17,7 +17,7 @@ Savoir qui sera vraiment là pendant l'astreinte, pour que la composition des ga
 ## Les règles
 
 - Une absence retire l'agent de la composition sur la tranche concernée. Un renfort l'y ajoute.
-- Les chefs d'équipe sont prévenus quand une absence rend un engin surveillé incapable de partir : voir Composition des gardes.
+- Les chefs de garde sont prévenus quand une absence rend un engin surveillé incapable de partir : voir Composition des gardes.
 - Partout, l'écran affiche : **« Indicatif pour l'organisation du centre. La disponibilité qui fait foi reste celle déclarée au CTA. »**
 
 ## Ce que la fonction ne fait pas
@@ -27,4 +27,4 @@ Savoir qui sera vraiment là pendant l'astreinte, pour que la composition des ga
 
 ## Exemple
 
-Paul, de l'équipe 3, n'est pas d'astreinte cette semaine, mais il est libre mardi soir. Il déclare un renfort de 19h à 6h. La nuit de mardi, l'équipe d'astreinte manquait d'un conducteur : avec Paul, qui est COD1, le VSAV peut partir. Le chef d'équipe voit le renfort dans la composition.
+Paul, de l'équipe 3, n'est pas d'astreinte cette semaine, mais il est libre mardi soir. Il déclare un renfort de 19h à 6h. La nuit de mardi, l'équipe d'astreinte manquait d'un conducteur : avec Paul, qui est COD1, le VSAV peut partir. Le chef de garde voit le renfort dans la composition.

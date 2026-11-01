@@ -30,7 +30,7 @@
 	{#if v.motif && v.etat !== 'conclue'}<p class="motif">Motif : {v.motif}</p>{/if}
 	{#if reste}<p class="suite">{reste}</p>{/if}
 	{#if v.gestes.accepter && v.manquePourMoi.length > 0}
-		<p class="avertissement"><strong>Attention :</strong> il vous manque {v.manquePourMoi.join(', ')}. Si vous acceptez, le chef d’équipe devra valider.</p>
+		<p class="avertissement"><strong>Attention :</strong> il vous manque {v.manquePourMoi.join(', ')}. Si vous acceptez, le chef de garde devra valider.</p>
 	{/if}
 
 	{#if Object.values(v.gestes).some(Boolean) || detail}

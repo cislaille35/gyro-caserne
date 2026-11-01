@@ -32,7 +32,7 @@ export type DonneesPublication = {
 export type PublicationVue = {
 	id: number;
 	cle: CleMur;
-	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef d’équipe. Null pour un auteur parti ou le super administrateur.
+	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef de garde. Null pour un auteur parti ou le super administrateur.
 	// `ecrireA` : l'auteur, à qui l'acteur peut répondre en privé (il a la messagerie, et ce n'est pas l'acteur) ; null sinon.
 	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null; ecrireA: number | null };
 	type: TypePublication;

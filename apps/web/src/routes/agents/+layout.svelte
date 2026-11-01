@@ -19,7 +19,7 @@
 	const enfant = $derived(page.url.pathname !== '/agents');
 	const agents = (n: number) => pluriel(n, 'agent');
 	const resume = (n: number, equipe: { chefs: string[] } | null) =>
-		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef d’équipe` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
+		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef de garde` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Les partis restent repliés, sauf quand on les cherche.
 	const ouvert = (cle: string) => cle !== 'partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
 	const filtres = $derived(

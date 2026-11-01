@@ -18,7 +18,7 @@ describe('iconeDuRole', () => {
 	it('sinon selon le thème, qui découle de la portée', () => {
 		expect(iconeDuRole(role({ nom: 'Chef de centre', systeme: 'chef_centre' }))).toBe('etoile');
 		expect(iconeDuRole(role({ nom: 'Chef de centre adjoint', systeme: 'chef_centre_adjoint' }))).toBe('etoile');
-		expect(iconeDuRole(role({ nom: 'Chef d’équipe', systeme: 'chef_equipe', portee: 'equipe' }))).toBe('casque');
+		expect(iconeDuRole(role({ nom: 'Chef de garde', systeme: 'chef_equipe', portee: 'equipe' }))).toBe('casque');
 		expect(iconeDuRole(role({ nom: 'Rapporteur de comité', portee: 'comite' }))).toBe('groupe');
 		expect(iconeDuRole(role({ nom: 'Référent sport' }))).toBe('outil');
 	});

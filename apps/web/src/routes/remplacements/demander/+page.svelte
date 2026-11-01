@@ -49,13 +49,13 @@
 	const cible = $derived(data.pour && data.pour !== 'tous' ? data.pour : null);
 	const manque = $derived(echange ? (data.avec?.manque ?? []) : (cible?.manque ?? []));
 	const manqueMoi = $derived(echange ? data.manqueMoi : []);
-	const informe = 'Votre chef d’équipe sera informé dès qu’un collègue accepte.';
+	const informe = 'Votre chef de garde sera informé dès qu’un collègue accepte.';
 	const chef = $derived(
 		[manque.length > 0 ? `Il lui manque ${manque.join(', ')}` : '', manqueMoi.length > 0 ? `il vous manque ${manqueMoi.join(', ')} pour ses périodes` : '']
 			.filter(Boolean)
 			.join(' et ')
 	);
-	const phraseChef = $derived(chef ? `${chef.charAt(0).toUpperCase()}${chef.slice(1)} : votre chef d’équipe devra valider.` : echange || cible ? 'Votre chef d’équipe sera informé quand il aura accepté.' : informe);
+	const phraseChef = $derived(chef ? `${chef.charAt(0).toUpperCase()}${chef.slice(1)} : votre chef de garde devra valider.` : echange || cible ? 'Votre chef de garde sera informé quand il aura accepté.' : informe);
 	// Ouverte à tous sans aucun collègue libre : personne ne la recevrait.
 	const personne = $derived(!echange && !cible && data.candidats.length === 0);
 	const recap = $derived.by(() => {
@@ -63,7 +63,7 @@
 		if (echange && data.avec) return [`Vous proposez à ${nom(data.avec)} d’échanger : vous lui donnez ${miennes}, ${data.avec.prenom} vous donne ${phrasePeriodes(data.choisiesAvec)}.`, `${data.avec.prenom} doit accepter.`, phraseChef];
 		if (cible) return [`Vous demandez à ${nom(cible)} de vous remplacer ${miennes}.`, `${cible.prenom} doit accepter.`, phraseChef];
 		const n = data.candidats.length;
-		if (n === 0) return [`Vous voulez être remplacé ${miennes}.`, 'Aucun collègue n’est libre sur ces périodes pour l’instant : personne ne recevrait la demande.', 'Prévenez directement votre chef d’équipe.'];
+		if (n === 0) return [`Vous voulez être remplacé ${miennes}.`, 'Aucun collègue n’est libre sur ces périodes pour l’instant : personne ne recevrait la demande.', 'Prévenez directement votre chef de garde.'];
 		return [`Vous demandez à être remplacé ${miennes}.`, `${pluriel(n, 'collègue disponible est prévenu', 'collègues disponibles sont prévenus')}.`, informe];
 	});
 	const message = $derived(form?.message ?? data.message ?? '');

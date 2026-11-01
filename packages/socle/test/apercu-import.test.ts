@@ -145,7 +145,7 @@ describe('apercuImport : modifications', () => {
 		const { base, acteur, nouvelle, nommer, resp, amicale } = await jeu();
 		const id = await nouvelle('Léa', 'Durand', { equipeId: 1 });
 		await nommer(id, resp('Membre de comité'), { type: 'comite', id: amicale.id });
-		await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 1 });
+		await nommer(id, resp('Chef de garde'), { type: 'equipe', id: 1 });
 		const apercu = await apercuImport(base, acteur, await exporter(base, acteur), aujourdhui, reservees);
 		expect(apercu).toMatchObject({ modifications: [], erreurs: [], operations: [], departs: [], perimees: [] });
 	});
@@ -180,7 +180,7 @@ describe('apercuImport : modifications', () => {
 	it('passage à « Parti » : seul le statut change, équipe et rôles suivent le départ', async () => {
 		const { base, acteur, nouvelle, nommer, resp } = await jeu();
 		const id = await nouvelle('Léa', 'Durand', { equipeId: 1 });
-		await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 1 });
+		await nommer(id, resp('Chef de garde'), { type: 'equipe', id: 1 });
 		const fichier = await exporter(base, acteur);
 		changer(fichier, id, { Statut: 'Parti', Équipe: 'Équipe 2' });
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
@@ -206,10 +206,10 @@ describe('apercuImport : modifications', () => {
 		expect(apercu.modifications.map((m) => m.changements.map((c) => c.colonne))).toEqual([['Téléphone'], ['Prénom']]);
 	});
 
-	it('chef d’équipe qui change d’équipe : terminer l’ancien rôle, attribuer le nouveau', async () => {
+	it('chef de garde qui change d’équipe : terminer l’ancien rôle, attribuer le nouveau', async () => {
 		const { base, acteur, nouvelle, nommer, resp } = await jeu();
 		const id = await nouvelle('Léa', 'Durand', { equipeId: 1 });
-		const ancien = await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 1 });
+		const ancien = await nommer(id, resp('Chef de garde'), { type: 'equipe', id: 1 });
 		const fichier = await exporter(base, acteur);
 		changer(fichier, id, { Équipe: 'Équipe 2' });
 
@@ -218,7 +218,7 @@ describe('apercuImport : modifications', () => {
 		expect(apercu.operations).toEqual([
 			{ ligne: 2, type: 'equipe', personneId: id, equipeId: 2 },
 			{ ligne: 2, type: 'terminer', attributionId: ancien },
-			{ ligne: 2, type: 'attribuer', personne: { id }, responsabiliteId: resp('Chef d’équipe'), perimetre: { type: 'equipe', id: 2 } }
+			{ ligne: 2, type: 'attribuer', personne: { id }, responsabiliteId: resp('Chef de garde'), perimetre: { type: 'equipe', id: 2 } }
 		]);
 	});
 
@@ -271,9 +271,9 @@ describe('apercuImport : erreurs', () => {
 	it('rôle d’équipe tenu sur une autre équipe : erreur', async () => {
 		const { base, acteur, nouvelle, nommer, resp } = await jeu();
 		const id = await nouvelle('Léa', 'Durand', { equipeId: 1 });
-		await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 2 });
+		await nommer(id, resp('Chef de garde'), { type: 'equipe', id: 2 });
 		const apercu = await apercuImport(base, acteur, await exporter(base, acteur), aujourdhui, reservees);
-		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'Chef d’équipe', message: 'rôle tenu sur une autre équipe : à traiter à l’écran' }]);
+		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'Chef de garde', message: 'rôle tenu sur une autre équipe : à traiter à l’écran' }]);
 		expect(apercu.operations).toEqual([]);
 	});
 
@@ -366,19 +366,19 @@ describe('apercuImport : erreurs', () => {
 		expect(apercu.erreurs).toEqual([{ ligne: 2, colonne: 'Référent engins', message: 'Vous ne pouvez pas retirer ce rôle' }]);
 	});
 
-	it('même N° sur deux lignes, chef d’équipe sans équipe, arrivée « Parti », téléphone trop long', async () => {
+	it('même N° sur deux lignes, chef de garde sans équipe, arrivée « Parti », téléphone trop long', async () => {
 		const { base, acteur, nouvelle } = await jeu();
 		const lea = await nouvelle('Léa', 'Durand');
 		const fichier = await exporter(base, acteur);
 		const copie = ajouter(fichier, { ...arrivee, 'N°': String(lea) });
-		const sansEquipe = ajouter(fichier, { ...arrivee, 'E-mail': 'a@exemple.fr', 'Chef d’équipe': 'Oui' });
+		const sansEquipe = ajouter(fichier, { ...arrivee, 'E-mail': 'a@exemple.fr', 'Chef de garde': 'Oui' });
 		const partie = ajouter(fichier, { ...arrivee, 'E-mail': 'b@exemple.fr', Statut: 'Parti' });
 		const telephone = ajouter(fichier, { ...arrivee, 'E-mail': 'c@exemple.fr', Téléphone: '0'.repeat(21) });
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
 		expect(apercu.erreurs).toEqual([
 			{ ligne: 2, colonne: 'N°', message: `Même N° qu’à la ligne ${copie}` },
 			{ ligne: copie, colonne: 'N°', message: 'Même N° qu’à la ligne 2' },
-			{ ligne: sansEquipe, colonne: 'Chef d’équipe', message: 'Indiquez l’équipe' },
+			{ ligne: sansEquipe, colonne: 'Chef de garde', message: 'Indiquez l’équipe' },
 			{ ligne: partie, colonne: 'Statut', message: 'Un nouvel agent ne peut pas être « Parti »' },
 			{ ligne: telephone, colonne: 'Téléphone', message: 'Téléphone trop long' }
 		]);

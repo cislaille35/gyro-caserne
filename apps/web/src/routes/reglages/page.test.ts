@@ -24,7 +24,7 @@ const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => 
 });
 const responsabilites = [
 	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
-	role(2, 'Chef d’équipe', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
+	role(2, 'Chef de garde', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
 	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
 	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
@@ -46,13 +46,13 @@ const groupe = (page: string, titre: string) => page.slice(page.indexOf(`>${titr
 describe('page Réglages', () => {
 	it('range les rôles par thème en rangées sous des rubriques comptées ; les archivés repliés', () => {
 		const page = html(Page, { data });
-		for (const titre of ['Chef de centre et adjoint', 'Chefs d’équipe', 'Référents', 'Comités', 'Profils', 'Archivés']) expect(page).toContain(`>${titre}<`);
+		for (const titre of ['Chef de centre et adjoint', 'Chefs de garde', 'Référents', 'Comités', 'Profils', 'Archivés']) expect(page).toContain(`>${titre}<`);
 		expect(page.match(/aria-expanded=/g)).toHaveLength(1);
 		expect(page).toMatch(/aria-expanded="false"[\s\S]*Archivés/);
 		expect(groupe(page, 'Référents')).toMatch(/Référents(<!--[^>]*-->)* <span class="compte[^"]*">3</);
 		expect(ligne(page, 7)).toContain('--icone-camion-fond');
 		expect(groupe(page, 'Chef de centre et adjoint')).toContain('Chef de centre');
-		expect(groupe(page, 'Chefs d’équipe')).toContain('Chef d’équipe');
+		expect(groupe(page, 'Chefs de garde')).toContain('Chef de garde');
 	});
 
 	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte, « Personnalisé » en pastille', () => {

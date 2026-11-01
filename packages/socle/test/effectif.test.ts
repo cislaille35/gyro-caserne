@@ -183,7 +183,7 @@ describe('vueEffectif', () => {
 });
 
 describe('estGestionnaire et listeGestion', () => {
-	it('refuse l’agent ordinaire et le chef d’équipe', async () => {
+	it('refuse l’agent ordinaire et le chef de garde', async () => {
 		const { base, nouvelle, fonction } = await jeu();
 		const simple = await nouvelle('Simple', 'Agent', { equipeId: 1 });
 		const chefEquipe = await nouvelle('Chef', 'Equipe', { equipeId: 1 });
@@ -221,7 +221,7 @@ describe('estGestionnaire et listeGestion', () => {
 			['Partis', ['Away']]
 		]);
 		expect(liste.groupes[0]).toMatchObject({ equipe: { chefs: ['L. Durand'] } });
-		expect(liste.groupes[0]!.personnes[0]).toEqual({ id: lea, prenom: 'Léa', nom: 'Durand', email: 'léa.durand@exemple.fr', grade: 'Jeune sapeur-pompier', statut: 'operationnel', roles: ['Chef d’équipe (Équipe 1)'], aCompleter: false });
+		expect(liste.groupes[0]!.personnes[0]).toEqual({ id: lea, prenom: 'Léa', nom: 'Durand', email: 'léa.durand@exemple.fr', grade: 'Jeune sapeur-pompier', statut: 'operationnel', roles: ['Chef de garde (Équipe 1)'], aCompleter: false });
 	});
 
 	it('cherche dans le nom, le prénom et l’e-mail (casse ignorée)', async () => {

@@ -20,7 +20,7 @@ async function jeu() {
 	]);
 	const [agent] = await base.insert(profil).values({ nom: 'Agent', typePersonne: 'agent' }).returning();
 	const [ext] = await base.insert(profil).values({ nom: 'Extérieur', typePersonne: 'exterieur' }).returning();
-	const [chefEquipe] = await base.insert(responsabilite).values({ nom: 'Chef d’équipe', nature: 'fonction', typePerimetre: 'equipe' }).returning();
+	const [chefEquipe] = await base.insert(responsabilite).values({ nom: 'Chef de garde', nature: 'fonction', typePerimetre: 'equipe' }).returning();
 	await base.insert(responsabiliteDroit).values({ responsabiliteId: chefEquipe!.id, droit: 'GERER_ACCES' });
 	const [chef] = await base.insert(personne).values({ email: 'chef@exemple.fr', prenom: 'C', nom: 'E', profilId: agent!.id }).returning();
 	await base.insert(attribution).values({
@@ -61,7 +61,7 @@ describe('ajouterPersonne', () => {
 		expect(p!.email).toBe('dupont@exemple.fr');
 	});
 
-	it('un chef d’équipe ajoute un agent à son équipe', async () => {
+	it('un chef de garde ajoute un agent à son équipe', async () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		const [aff] = await base.select().from(affectationEquipe).where(eq(affectationEquipe.personneId, id));
@@ -78,7 +78,7 @@ describe('ajouterPersonne', () => {
 		await expect(ajouterPersonne(base, chef, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: ext.id, equipeId: 1 }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
 	});
 
-	it('refuse un profil plus large que les droits du chef d’équipe', async () => {
+	it('refuse un profil plus large que les droits du chef de garde', async () => {
 		const { base, chef } = await jeu();
 		const [large] = await base.insert(profil).values({ nom: 'Large', typePersonne: 'agent' }).returning();
 		await base.insert(profilDroit).values({ profilId: large!.id, droit: 'GERER_ACCES', perimetreType: 'centre' });
@@ -138,7 +138,7 @@ describe('ajouterPersonne', () => {
 });
 
 describe('changerStatut', () => {
-	it('le chef d’équipe change le statut d’un membre de son équipe, pas d’un autre', async () => {
+	it('le chef de garde change le statut d’un membre de son équipe, pas d’un autre', async () => {
 		const { base, agent, chef } = await jeu();
 		const dans = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		const hors = await ajouterPersonne(base, superAdmin, { email: 'b@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 2 }, aujourdhui, []);
@@ -148,7 +148,7 @@ describe('changerStatut', () => {
 		await expect(changerStatut(base, base.photos, chef, hors, 'suspendu', midi)).rejects.toBeInstanceOf(RefusDroit);
 	});
 
-	it('le chef d’équipe ne peut pas suspendre le chef de centre affecté à son équipe', async () => {
+	it('le chef de garde ne peut pas suspendre le chef de centre affecté à son équipe', async () => {
 		const { base, agent, chef } = await jeu();
 		const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre', systeme: 'chef_centre' }).returning();
 		const haut = await ajouterPersonne(base, superAdmin, { email: 'haut@exemple.fr', prenom: 'H', nom: 'C', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
@@ -207,7 +207,7 @@ describe('changerStatut', () => {
 		expect((await base.select().from(session)).map((s) => s.id)).toEqual(['s2']);
 	});
 
-	it('lever une suspension exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre', async () => {
+	it('lever une suspension exige GERER_ACCES sur le centre : pas le chef de garde, mais le chef de centre', async () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
 		await changerStatut(base, base.photos, chef, id, 'suspendu', midi);
@@ -256,7 +256,7 @@ describe('changerStatut', () => {
 		expect(statuts.find((s) => s.id === adjoint)!.statut).toBe('suspendu');
 	});
 
-	it('faire revenir un « parti » exige GERER_ACCES sur le centre : pas le chef d’équipe, mais le chef de centre et l’adjoint', async () => {
+	it('faire revenir un « parti » exige GERER_ACCES sur le centre : pas le chef de garde, mais le chef de centre et l’adjoint', async () => {
 		const { base, agent, chef } = await jeu();
 		const { chefCentre, adjoint } = await direction(base, agent.id);
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, aujourdhui, []);
@@ -264,7 +264,7 @@ describe('changerStatut', () => {
 		await expect(changerStatut(base, base.photos, chef, id, 'operationnel', midi)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(changerStatut(base, base.photos, chef, id, 'suspendu', midi)).rejects.toBeInstanceOf(RefusDroit);
 		await changerStatut(base, base.photos, { type: 'personne', id: chefCentre }, id, 'operationnel', midi);
-		// Le départ a retiré l'agent de son équipe : le chef d'équipe n'a plus de prise tant qu'on ne l'a pas réaffecté.
+		// Le départ a retiré l'agent de son équipe : le chef de garde n'a plus de prise tant qu'on ne l'a pas réaffecté.
 		await expect(changerStatut(base, base.photos, chef, id, 'parti', midi)).rejects.toBeInstanceOf(RefusDroit);
 		await affecterEquipe(base, superAdmin, id, 1, aujourdhui, aujourdhui);
 		await changerStatut(base, base.photos, chef, id, 'parti', midi);
@@ -366,7 +366,7 @@ describe('affecterEquipe', () => {
 		expect(lignes.find((l) => l.equipeId === 2)).toMatchObject({ debut: '2026-03-01', fin: null });
 	});
 
-	it('refuse le chef d’équipe : il faut le droit sur le centre', async () => {
+	it('refuse le chef de garde : il faut le droit sur le centre', async () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await expect(affecterEquipe(base, chef, id, 2, '2026-03-01', aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
@@ -442,7 +442,7 @@ describe('modifierFiche', () => {
 		return { ...j, id };
 	}
 
-	it('refuse un agent ordinaire et un chef d’équipe, sans rien écrire', async () => {
+	it('refuse un agent ordinaire et un chef de garde, sans rien écrire', async () => {
 		const { base, agent, chef, id } = await avecAgent();
 		const ordinaire = await ajouterPersonne(base, superAdmin, { email: 'o@exemple.fr', prenom: 'O', nom: 'O', profilId: agent.id }, aujourdhui, []);
 		await expect(modifierFiche(base, { type: 'personne', id: ordinaire }, id, { nom: 'Grand' }, aujourdhui, [])).rejects.toBeInstanceOf(RefusDroit);
@@ -632,7 +632,7 @@ describe('retirerEquipe', () => {
 		await expect(retirerEquipe(base, superAdmin, id, aujourdhui)).rejects.toThrow('Aucune équipe en cours');
 	});
 
-	it('refuse le chef d’équipe : il faut le droit sur le centre', async () => {
+	it('refuse le chef de garde : il faut le droit sur le centre', async () => {
 		const { base, agent, chef } = await jeu();
 		const id = await ajouterPersonne(base, superAdmin, { email: 'a@exemple.fr', prenom: 'A', nom: 'B', profilId: agent.id, equipeId: 1 }, '2026-01-01', []);
 		await expect(retirerEquipe(base, chef, id, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);

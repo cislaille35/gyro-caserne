@@ -44,7 +44,7 @@ export const gestesRemplacement = {
 		} catch (erreur) {
 			return refus(erreur);
 		}
-		return { succes: etat === 'a_valider' ? 'Accepté : le chef d’équipe doit maintenant valider. Vous serez prévenu.' : 'Accepté : c’est conclu. Pensez à mettre à jour votre disponibilité dans l’appli du SDIS.' };
+		return { succes: etat === 'a_valider' ? 'Accepté : le chef de garde doit maintenant valider. Vous serez prévenu.' : 'Accepté : c’est conclu. Pensez à mettre à jour votre disponibilité dans l’appli du SDIS.' };
 	},
 	refuser: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => refuserDemande(b, a, id, m(), r), 'Demande refusée.'),
 	ouvrir: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => ouvrirATous(b, a, id, m(), r), 'Demande ouverte à tous les disponibles.'),

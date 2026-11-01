@@ -315,7 +315,7 @@ function deMurs(
 }
 
 // L'en-tête de chaque page : le nombre de non-lues et le visage de la personne. Une requête ; aucune pour le super administrateur.
-// `remplacementsAValider` : les demandes de remplacement que la personne doit trancher (chef d'équipe, ou chef de centre à défaut).
+// `remplacementsAValider` : les demandes de remplacement que la personne doit trancher (chef de garde, ou chef de centre à défaut).
 export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<{ nonLues: number; remplacementsAValider: number; visage: { prenom: string; nom: string; couleur: string | null } | null }> {
 	exigerDate(aujourdhui);
 	if (acteur.type !== 'personne') return { nonLues: 0, remplacementsAValider: 0, visage: null };

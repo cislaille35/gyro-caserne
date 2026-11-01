@@ -558,7 +558,7 @@ describe('lireMur', () => {
 	it('audience : membres naturels du mur ce jour-là (équipe : membres et chef ; Le centre : agents avec accès, sans les extérieurs)', async () => {
 		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
 		const chefEquipe = await nouvelle('Chefequipe');
-		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(chefEquipe, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await affecter(agent, e1.id);
 		await affecter(autre, e1.id);
 		const [reserve] = await base.select().from(profil).where(eq(profil.typePersonne, 'exterieur'));
@@ -576,8 +576,8 @@ describe('lireMur', () => {
 		const adjoint = await nouvelle('Adjoint');
 		await nommer(adjoint, 'Chef de centre adjoint', { type: 'centre' });
 		const chefEquipe = await nouvelle('Chefequipe');
-		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
-		await nommer(chef, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(chefEquipe, 'Chef de garde', { type: 'equipe', id: e1.id });
+		await nommer(chef, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await affecter(chef, e1.id);
 		await affecter(autre, e1.id);
 		for (const qui of [chef, adjoint, chefEquipe, agent, autre]) await publier(base, base.photos, acteur(qui), 'vie', message(), maintenant);
@@ -587,7 +587,7 @@ describe('lireMur', () => {
 		expect(auteurs).toEqual([
 			{ prenom: 'Chef', nom: 'Test', couleur: e1.couleur, role: 'Chef de centre', ecrireA: chef },
 			{ prenom: 'Adjoint', nom: 'Test', couleur: null, role: 'Adjoint', ecrireA: adjoint },
-			{ prenom: 'Chefequipe', nom: 'Test', couleur: null, role: 'Chef d’équipe', ecrireA: chefEquipe },
+			{ prenom: 'Chefequipe', nom: 'Test', couleur: null, role: 'Chef de garde', ecrireA: chefEquipe },
 			{ prenom: 'Agent', nom: 'Test', couleur: null, role: null, ecrireA: null },
 			{ prenom: 'Autre', nom: 'Test', couleur: null, role: null, ecrireA: null }
 		]);
@@ -596,7 +596,7 @@ describe('lireMur', () => {
 	it('prise de connaissance : faites parmi les membres naturels, sur les attendus ; l’auteur n’est pas attendu', async () => {
 		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
 		const chefEquipe = await nouvelle('Chefequipe');
-		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(chefEquipe, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await affecter(agent, e1.id);
 		await affecter(autre, e1.id);
 		const id = await publier(base, base.photos, acteur(chef), `equipe:${e1.id}`, { type: 'annonce', texte: 'Lire', priseDeConnaissance: true }, maintenant);

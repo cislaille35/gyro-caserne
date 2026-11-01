@@ -28,10 +28,10 @@ async function jeu() {
 }
 
 describe('droit GERER_COMITES', () => {
-	it('refuse un agent et un chef d’équipe', async () => {
+	it('refuse un agent et un chef de garde', async () => {
 		const { base, nouvelle, donner } = await jeu();
 		const agent: Acteur = { type: 'personne', id: await nouvelle('agent@exemple.fr') };
-		const chefEquipe = await donner('chef@exemple.fr', 'Chef d’équipe', { type: 'equipe', id: 1 });
+		const chefEquipe = await donner('chef@exemple.fr', 'Chef de garde', { type: 'equipe', id: 1 });
 		for (const acteur of [agent, chefEquipe]) {
 			await expect(listerComites(base, acteur, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 			await expect(creerComite(base, acteur, { nom: 'Sport', theme: 'sport' }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);

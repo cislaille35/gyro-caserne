@@ -24,7 +24,7 @@ export function titreDemande(v: VueDemande): string {
 
 // Ce qui reste à faire, dit en clair.
 export function suite(v: VueDemande): string | null {
-	if (v.etat === 'a_valider') return `Le chef d’équipe doit valider : il manque ${v.manque.join(', ')} au remplaçant.`;
+	if (v.etat === 'a_valider') return `Le chef de garde doit valider : il manque ${v.manque.join(', ')} au remplaçant.`;
 	if (v.etat === 'refusee' && v.moi === 'demandeur') return v.gestes.ouvrir ? 'Refusée : vous pouvez l’ouvrir à tous les disponibles.' : 'Refusée.';
 	if (v.etat === 'expiree') return 'Personne n’a été trouvé à temps : le titulaire reste responsable.';
 	return null;

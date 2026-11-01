@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, GENRES_DEMANDE, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, GENRES_DEMANDE, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -660,6 +660,77 @@ export const avisRemplacement = sqliteTable(
 		lueLe: text('lue_le')
 	},
 	(t) => [check('avis_remplacement_quoi', checkDans('quoi', AVIS_REMPLACEMENT)), index('avis_remplacement_personne').on(t.personneId, t.lueLe)]
+);
+
+// Règles d'armement (armement.ts) : une seule ligne, `valeur` JSON { engins, niveaux }. Absente : les règles par défaut.
+export const reglageArmement = sqliteTable('reglage_armement', {
+	id: integer('id').primaryKey(),
+	valeur: text('valeur').notNull()
+});
+
+// L'été d'une année (planning/ete.ts) : `debut` et `fin`, jours de relève de la première et de la dernière semaine.
+// Ouvert par le chef : les agents donnent leurs vacances jusqu'à `date_limite`. `publiee_le` : la répartition est visible.
+export const ete = sqliteTable('ete', {
+	annee: integer('annee').primaryKey(),
+	debut: text('debut').notNull(),
+	fin: text('fin').notNull(),
+	dateLimite: text('date_limite').notNull(),
+	publieeLe: text('publiee_le'),
+	rappelMoisLe: text('rappel_mois_le'),
+	rappelSemaineLe: text('rappel_semaine_le')
+});
+
+// La réponse d'un agent pour l'été : `tout_ete`, disponible tout l'été ; sinon ses vacances sont dans vacances_agent.
+export const reponseEte = sqliteTable(
+	'reponse_ete',
+	{
+		annee: integer('annee').notNull(),
+		personneId: versPersonne(),
+		toutEte: integer('tout_ete').notNull().default(0),
+		modifieeLe: text('modifiee_le').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.annee, t.personneId] }), check('reponse_ete_tout_ete', sql`${sql.identifier('tout_ete')} IN (0, 1)`)]
+);
+
+export const vacancesAgent = sqliteTable(
+	'vacances_agent',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		annee: integer('annee').notNull(),
+		debut: text('debut').notNull(),
+		fin: text('fin').notNull()
+	},
+	(t) => [index('vacances_agent_annee').on(t.annee, t.personneId)]
+);
+
+// Une plage de l'été (nuit de semaine, 24 h de week-end ou de férié) : les écarts à l'équipe de base de la semaine,
+// en JSON d'identifiants : `ajoutes` (renforts), `retires` (vacances, ou retirés par le chef).
+export const plageEte = sqliteTable(
+	'plage_ete',
+	{
+		debut: text('debut').primaryKey(),
+		fin: text('fin').notNull(),
+		annee: integer('annee').notNull(),
+		ajoutes: text('ajoutes').notNull().default('[]'),
+		retires: text('retires').notNull().default('[]')
+	},
+	(t) => [index('plage_ete_annee').on(t.annee)]
+);
+
+// La cloche de l'été.
+export const avisEte = sqliteTable(
+	'avis_ete',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		quoi: text('quoi', { enum: AVIS_ETE }).notNull(),
+		texte: text('texte').notNull(),
+		url: text('url').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [check('avis_ete_quoi', checkDans('quoi', AVIS_ETE)), index('avis_ete_personne').on(t.personneId, t.lueLe)]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

@@ -46,7 +46,7 @@
 					<li>
 						<a class="ligne grande" href={c.lien}>
 							<Visage prenom={c.prenom} nom={c.nom} couleur={c.couleur} taille={48} />
-							<span class="textes"><strong class="nom">{c.prenom} {c.nom}</strong><span class="sous">votre chef d’équipe</span></span>
+							<span class="textes"><strong class="nom">{c.prenom} {c.nom}</strong><span class="sous">votre chef de garde</span></span>
 						</a>
 					</li>
 				{/each}

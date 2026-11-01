@@ -57,7 +57,7 @@
 
 <div class="liste">
 	{@render theme('Chef de centre et adjoint', commandement)}
-	{@render theme('Chefs d’équipe', equipes)}
+	{@render theme('Chefs de garde', equipes)}
 	{@render theme('Référents', referents)}
 
 	{#if comites.length > 0 || rolesComite.length > 0}

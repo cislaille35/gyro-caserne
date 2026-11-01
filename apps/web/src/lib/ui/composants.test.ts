@@ -388,7 +388,7 @@ describe('Rangee', () => {
 		expect(page).toContain('<span>Contenu</span>');
 	});
 	it('alerte : une icône en plus de la couleur', () => {
-		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef d’équipe', alerte: true });
+		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef de garde', alerte: true });
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});

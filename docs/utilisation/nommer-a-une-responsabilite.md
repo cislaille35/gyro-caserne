@@ -5,7 +5,7 @@ Réservé à qui peut attribuer au moins une responsabilité : chef de centre, a
 ## Nommer
 
 1. Ouvrez l'onglet « Caserne », puis « Nominations ».
-2. Trouvez la carte du rôle (par exemple « Chef d’équipe »). La recherche en haut trouve un rôle ou un agent.
+2. Trouvez la carte du rôle (par exemple « Chef de garde »). La recherche en haut trouve un rôle ou un agent.
 3. Appuyez sur « Nommer » : un volet s'ouvre. Choisissez l'agent, puis l'équipe ou le comité si on vous le demande.
 4. Le rôle commence aujourd'hui, sans date de fin. Pour d'autres dates, ouvrez « Changer les dates ».
 5. Appuyez sur « Nommer ». Le volet se ferme, le message « Rôle attribué » apparaît, et l'agent rejoint les titulaires.

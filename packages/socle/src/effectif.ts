@@ -79,7 +79,7 @@ async function rolesCourants(base: Base, aujourdhui: string): Promise<Map<number
 
 const parNom = (a: { nom: string; prenom: string }, b: { nom: string; prenom: string }) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr');
 
-// Chefs d'équipe en cours de chaque équipe, « A. Martin » ; un agent parti ne compte pas.
+// Chefs de garde en cours de chaque équipe, « A. Martin » ; un agent parti ne compte pas.
 async function chefsDEquipe(base: Base, aujourdhui: string): Promise<Map<number, string[]>> {
 	const lignes = await base
 		.select({ equipeId: attribution.perimetreId, prenom: personne.prenom, nom: personne.nom })

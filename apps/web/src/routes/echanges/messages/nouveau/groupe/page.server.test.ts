@@ -21,7 +21,7 @@ describe('nouveau groupe : les membres', () => {
 
 	it('?equipe= : les membres du jour de l’équipe cochés, le nom de l’équipe proposé', async () => {
 		const { base, alice, e1 } = await preparer();
-		const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Chef d’équipe'));
+		const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Chef de garde'));
 		const [claire] = await base.insert(personne).values({ email: 'claire@exemple.fr', prenom: 'Claire', nom: 'Test', profilId: (await base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
 		await base.insert(attribution).values({ personneId: claire!.id, responsabiliteId: r!.id, perimetreType: 'equipe', perimetreId: e1.id, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 		const d = await charger(locaux(base, alice), `?equipe=${e1.id}`);

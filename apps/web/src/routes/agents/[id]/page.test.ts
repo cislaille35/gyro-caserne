@@ -218,20 +218,20 @@ describe('page fiche agent', () => {
 			peutTerminer
 		});
 		const attributions = {
-			enCours: [ligne(1, 'Référent engins', true), ligne(2, 'Chef d’équipe', false, { type: 'equipe', id: 1, nom: 'Équipe 1' })],
+			enCours: [ligne(1, 'Référent engins', true), ligne(2, 'Chef de garde', false, { type: 'equipe', id: 1, nom: 'Équipe 1' })],
 			aVenir: [ligne(3, 'Référent pharmacie', true)],
 			passees: [ligne(4, 'Membre de comité', false, { type: 'comite', id: 2, nom: 'Amicale' })]
 		};
 		const peutAttribuer = [
 			{ responsabiliteId: 5, nom: 'Référent engins', portee: 'centre', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }] },
-			{ responsabiliteId: 6, nom: 'Chef d’équipe', portee: 'equipe', perimetres: [{ type: 'equipe', id: 1, nom: 'Équipe 1' }] }
+			{ responsabiliteId: 6, nom: 'Chef de garde', portee: 'equipe', perimetres: [{ type: 'equipe', id: 1, nom: 'Équipe 1' }] }
 		];
 
 		it('affiche les trois listes, la passée repliée, et « Terminer » seulement si permis', () => {
 			const page = html({ data: { ...data, attributions, peutAttribuer: [] }, form: null });
 			for (const titre of ['En cours', 'À venir', 'Passées']) expect(page).toContain(titre);
 			expect(page).toContain('Référent engins');
-			expect(page).toContain('Chef d’équipe — Équipe 1');
+			expect(page).toContain('Chef de garde — Équipe 1');
 			expect(page).toMatch(/<details(?![^>]*open)[^>]*>(<!--[^>]*-->)*\s*<summary[^>]*>Passées/);
 			expect(page.match(/action="\?\/terminer"/g)).toHaveLength(2);
 			expect(page.match(/name="attributionId"/g)).toHaveLength(4);

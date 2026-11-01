@@ -72,10 +72,10 @@ describe('load de /', () => {
 		expect(await appeler({ acteur: alice, base })).toMatchObject({ choisie: 'centre' });
 	});
 
-	it('par défaut, rien n’attend : la principale (chef d’équipe avant astreinte)', async () => {
+	it('par défaut, rien n’attend : la principale (chef de garde avant astreinte)', async () => {
 		const { base, alice, nommer } = await jeu();
 		const [equipe1] = await base.select().from(equipe).limit(1);
-		await nommer('Chef d’équipe', { type: 'equipe', id: equipe1!.id });
+		await nommer('Chef de garde', { type: 'equipe', id: equipe1!.id });
 		await nommer('Référent pharmacie', { type: 'centre' });
 		expect(await appeler({ acteur: alice, base })).toMatchObject({ choisie: `equipe:${equipe1!.id}`, contenu: { type: 'equipe' } });
 	});

@@ -22,7 +22,7 @@ async function jeuDeDonnees() {
 		{ profilId: agent!.id, droit: 'VOIR_PLANNING', perimetreType: 'centre' },
 		{ profilId: exterieur!.id, droit: 'VOIR_ANNUAIRE', perimetreType: 'centre' }
 	]);
-	const [chefEquipe] = await base.insert(responsabilite).values({ nom: 'Chef d’équipe', nature: 'fonction', typePerimetre: 'equipe' }).returning();
+	const [chefEquipe] = await base.insert(responsabilite).values({ nom: 'Chef de garde', nature: 'fonction', typePerimetre: 'equipe' }).returning();
 	const [chefCentre] = await base.insert(responsabilite).values({ nom: 'Chef de centre', nature: 'fonction', typePerimetre: 'centre' }).returning();
 	await base.insert(responsabiliteDroit).values([
 		{ responsabiliteId: chefEquipe!.id, droit: 'VALIDER_REMPLACEMENT' },

@@ -22,12 +22,12 @@ describe('page d’un rôle', () => {
 
 	it('rôle système : lecture seule, et le serveur refuse toute modification', async () => {
 		const { base, chef, resp, droitsDe } = await preparer();
-		const chefEq = await resp('Chef d’équipe');
+		const chefEq = await resp('Chef de garde');
 		const data = await charger(load, locaux(base, chef), { id: String(chefEq.id) });
 		expect(data.raison).toContain('système');
 		const avant = await droitsDe(chefEq.id);
 		for (const nom of ['enregistrer', 'revenir', 'detail']) {
-			const r = await agir(nom, locaux(base, chef), chefEq.id, [...fiche('Chef d’équipe'), ['niveau-planning', '3'], ['droits', 'VOIR_PLANNING'], ['domaine', 'tout']]);
+			const r = await agir(nom, locaux(base, chef), chefEq.id, [...fiche('Chef de garde'), ['niveau-planning', '3'], ['droits', 'VOIR_PLANNING'], ['domaine', 'tout']]);
 			expect(r).toMatchObject({ status: 400, data: { message: expect.stringContaining('système') } });
 		}
 		expect(await droitsDe(chefEq.id)).toEqual(avant);
@@ -170,7 +170,7 @@ describe('page d’un rôle', () => {
 		expect(await agir('archiver', locaux(base, referent), engins.id, [])).toMatchObject({ status: 400, data: { cible: 'archiver', message: expect.stringContaining('confirme') } });
 		expect(await agir('archiver', locaux(base, referent), engins.id, [['confirmation', 'oui']])).toMatchObject({ succes: expect.any(String) });
 		expect((await resp('Référent engins')).archiveeLe).not.toBeNull();
-		const sys = await resp('Chef d’équipe');
+		const sys = await resp('Chef de garde');
 		expect(await agir('archiver', locaux(base, referent), sys.id, [['confirmation', 'oui']])).toMatchObject({ status: 400, data: { message: expect.stringContaining('système') } });
 	});
 });

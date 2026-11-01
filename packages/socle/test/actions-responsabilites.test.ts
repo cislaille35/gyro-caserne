@@ -36,10 +36,10 @@ async function jeu() {
 const nouvelleResp = { nom: 'Référent sport', nature: 'mission' as const, portee: 'centre' as const, attributeur: { type: 'chef_centre' as const }, droits: ['GERER_PLANNING' as const] };
 
 describe('droit GERER_LISTES', () => {
-	it('refuse un agent et un chef d’équipe', async () => {
+	it('refuse un agent et un chef de garde', async () => {
 		const { base, nouvelle, donner, resp } = await jeu();
 		const agent: Acteur = { type: 'personne', id: await nouvelle('agent@exemple.fr') };
-		const chefEquipe = await donner('ce@exemple.fr', 'Chef d’équipe', { type: 'equipe', id: 1 });
+		const chefEquipe = await donner('ce@exemple.fr', 'Chef de garde', { type: 'equipe', id: 1 });
 		const engins = await resp('Référent engins');
 		for (const acteur of [agent, chefEquipe]) {
 			await expect(listerResponsabilites(base, acteur, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
@@ -53,7 +53,7 @@ describe('droit GERER_LISTES', () => {
 		const { base, referent, resp } = await jeu();
 		const id = await creerResponsabilite(base, referent, nouvelleResp, aujourdhui);
 		await expect(modifierResponsabilite(base, referent, id, { droits: ['GERER_PLANNING', 'GERER_STOCK'] }, aujourdhui)).resolves.toBeUndefined();
-		await expect(modifierResponsabilite(base, referent, (await resp('Chef d’équipe')).id, { nom: 'Chef d’agrès' }, aujourdhui)).resolves.toBeUndefined();
+		await expect(modifierResponsabilite(base, referent, (await resp('Chef de garde')).id, { nom: 'Chef d’agrès' }, aujourdhui)).resolves.toBeUndefined();
 		await expect(archiverResponsabilite(base, referent, id, aujourdhui)).resolves.toBeUndefined();
 	});
 });
@@ -130,7 +130,7 @@ describe('listerResponsabilites', () => {
 		const parNom = (nom: string) => liste.find((r) => r.nom === nom)!;
 		expect(parNom('Membre de comité')).toMatchObject({ nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: [], systeme: null, archiveeLe: null, titulaires: 1, protegee: false });
 		expect(parNom('Référent engins').attributeur).toEqual({ type: 'comite', id: (await comite_(NOM_COMITE_CENTRE)).id });
-		expect(parNom('Chef d’équipe')).toMatchObject({ systeme: 'chef_equipe', protegee: false, droits: [{ droit: 'VALIDER_REMPLACEMENT', verrouille: true }, { droit: 'VOIR_MOTIFS_ABSENCE', verrouille: true }] });
+		expect(parNom('Chef de garde')).toMatchObject({ systeme: 'chef_equipe', protegee: false, droits: [{ droit: 'VALIDER_REMPLACEMENT', verrouille: true }, { droit: 'VOIR_MOTIFS_ABSENCE', verrouille: true }] });
 		expect(parNom('Référent technique')).toMatchObject({ attributeur: { type: 'chef_centre' }, titulaires: 1, protegee: true });
 		expect(parNom('Rapporteur de comité').protegee).toBe(true);
 		expect((await listerResponsabilites(base, chef, aujourdhui)).every((r) => !r.protegee)).toBe(true);
@@ -225,7 +225,7 @@ describe('modifierResponsabilite', () => {
 
 	it('ne retire jamais un droit verrouillé, même pour le super administrateur', async () => {
 		const { base, resp, droitsDe } = await jeu();
-		const chefEquipe = await resp('Chef d’équipe');
+		const chefEquipe = await resp('Chef de garde');
 		await expect(modifierResponsabilite(base, superAdmin, chefEquipe.id, { droits: ['VALIDER_REMPLACEMENT'] }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Droit verrouillé : impossible de le retirer'));
 		expect(await droitsDe(chefEquipe.id)).toEqual(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE']);
 		await modifierResponsabilite(base, superAdmin, chefEquipe.id, { droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE', 'GERER_PLANNING'] }, aujourdhui);
@@ -265,7 +265,7 @@ describe('modifierResponsabilite', () => {
 
 	it('ne change pas la portée d’une responsabilité système', async () => {
 		const { base, resp } = await jeu();
-		const chefEquipe = await resp('Chef d’équipe');
+		const chefEquipe = await resp('Chef de garde');
 		await expect(modifierResponsabilite(base, superAdmin, chefEquipe.id, { portee: 'centre', attributeur: { type: 'chef_centre' } }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 	});
 
@@ -303,7 +303,7 @@ describe('archiverResponsabilite', () => {
 
 	it('refuse une responsabilité système, inconnue ou déjà archivée', async () => {
 		const { base, resp } = await jeu();
-		for (const nom of ['Chef de centre', 'Chef de centre adjoint', 'Chef d’équipe']) {
+		for (const nom of ['Chef de centre', 'Chef de centre adjoint', 'Chef de garde']) {
 			await expect(archiverResponsabilite(base, superAdmin, (await resp(nom)).id, aujourdhui)).rejects.toThrow(new DonneeInvalide('Une responsabilité système ne s’archive pas'));
 		}
 		await expect(archiverResponsabilite(base, superAdmin, 999, aujourdhui)).rejects.toThrow(new DonneeInvalide('Responsabilité inconnue'));

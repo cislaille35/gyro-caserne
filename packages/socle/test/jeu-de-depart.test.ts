@@ -73,7 +73,7 @@ describe('chargerJeuDeDepart', () => {
 		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
 			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, droitsChefCentre],
 			['Chef de centre adjoint', 'fonction', 'chef_centre_adjoint', 'centre', null, droitsChefCentre],
-			['Chef d’équipe', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
+			['Chef de garde', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
 			['Membre de comité', 'mission', null, 'comite', null, []],
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
 			['Référent engins', 'mission', null, 'centre', idCentre, [['TRAITER_ANOMALIE', 0], ['GERER_FICHES', 0]]],

@@ -80,15 +80,15 @@ describe('casquettesDe', () => {
 		expect((await casquettesDe(base, superAdmin, aujourdhui)).map((c) => c.id)).toEqual(['centre']);
 	});
 
-	it('chef d’équipe, référent pharmacie et membre de l’Amicale : quatre casquettes dans l’ordre', async () => {
+	it('chef de garde, référent pharmacie et membre de l’Amicale : quatre casquettes dans l’ordre', async () => {
 		const { base, role, idComite, nouvelle, nommer } = await jeu();
 		const alice = await nouvelle('Alice');
 		const [equipe1] = await base.select().from(equipe).where(eq(equipe.nom, 'Équipe 1'));
 		await nommer(alice, role('Membre de comité'), { type: 'comite', id: idComite('Amicale') });
 		await nommer(alice, role('Référent pharmacie'), { type: 'centre' });
-		await nommer(alice, role('Chef d’équipe'), { type: 'equipe', id: equipe1!.id });
+		await nommer(alice, role('Chef de garde'), { type: 'equipe', id: equipe1!.id });
 		expect(await casquettesDe(base, acteur(alice), aujourdhui)).toEqual([
-			{ id: `equipe:${equipe1!.id}`, nom: 'Chef d’équipe · Équipe 1', icone: 'casque', compte: 0 },
+			{ id: `equipe:${equipe1!.id}`, nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 0 },
 			{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 },
 			{ id: `role:${role('Référent pharmacie')}`, nom: 'Référent pharmacie', icone: 'croix', compte: 0 },
 			{ id: `comite:${idComite('Amicale')}`, nom: 'Amicale', icone: 'groupe', compte: 0 }
@@ -150,13 +150,13 @@ describe('aDecider', () => {
 		const idEquipe = (nom: string) => equipes.find((e) => e.nom === nom)!.id;
 		const chef = await nouvelle('Claire');
 		await nommer(chef, role('Chef de centre'), { type: 'centre' });
-		await nommer(chef, role('Chef d’équipe'), { type: 'equipe', id: idEquipe('Équipe 1') });
-		await nommer(chef, role('Chef d’équipe'), { type: 'equipe', id: idEquipe('Équipe 2') }, { debut: '2025-01-01', fin: '2025-12-31' });
+		await nommer(chef, role('Chef de garde'), { type: 'equipe', id: idEquipe('Équipe 1') });
+		await nommer(chef, role('Chef de garde'), { type: 'equipe', id: idEquipe('Équipe 2') }, { debut: '2025-01-01', fin: '2025-12-31' });
 		await nommer(chef, role('Référent engins'), { type: 'centre' });
 		await base.update(responsabilite).set({ archiveeLe: '2026-06-01' }).where(eq(responsabilite.id, role('Référent technique')));
 		// Un agent parti ne tient plus rien.
 		const parti = await nouvelle('Ancien', { statut: 'parti' });
-		await nommer(parti, role('Chef d’équipe'), { type: 'equipe', id: idEquipe('Équipe 3') });
+		await nommer(parti, role('Chef de garde'), { type: 'equipe', id: idEquipe('Équipe 3') });
 		await nommer(parti, role('Référent pharmacie'), { type: 'centre' });
 		await nouvelle('Sansgrade', { complete: false });
 		await nouvelle('Sansdate', { complete: false });
@@ -165,9 +165,9 @@ describe('aDecider', () => {
 
 		// « Membre de comité » et « Rapporteur de comité » n'ont aucun titulaire, mais ne sont pas listés. En septembre, pas encore de planning à préparer.
 		expect(await aDecider(base, acteur(chef), '2026-09-25')).toEqual([
-			{ texte: 'Équipe 2 sans chef d’équipe', lien: '/nominations' },
-			{ texte: 'Équipe 3 sans chef d’équipe', lien: '/nominations' },
-			{ texte: 'Équipe 4 sans chef d’équipe', lien: '/nominations' },
+			{ texte: 'Équipe 2 sans chef de garde', lien: '/nominations' },
+			{ texte: 'Équipe 3 sans chef de garde', lien: '/nominations' },
+			{ texte: 'Équipe 4 sans chef de garde', lien: '/nominations' },
 			{ texte: 'Référent pharmacie : aucun titulaire', lien: '/nominations' },
 			{ texte: '2 fiches à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' }
 		]);
@@ -178,8 +178,8 @@ describe('aDecider', () => {
 		await nouvelle('Claire');
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.nom, 'Équipe 3'));
 		const textes = (await aDecider(base, superAdmin, aujourdhui)).map((e) => e.texte);
-		expect(textes).toContain('Équipe 1 sans chef d’équipe');
-		expect(textes).not.toContain('Équipe 3 sans chef d’équipe');
+		expect(textes).toContain('Équipe 1 sans chef de garde');
+		expect(textes).not.toContain('Équipe 3 sans chef de garde');
 	});
 
 	it('une seule fiche : au singulier ; rien à décider : liste vide', async () => {
@@ -309,7 +309,7 @@ describe('accueilDe', () => {
 
 		const [equipe1] = await base.select().from(equipe).limit(1);
 		const alice = await nouvelle('Alice');
-		await nommer(alice, role('Chef d’équipe'), { type: 'equipe', id: equipe1!.id });
+		await nommer(alice, role('Chef de garde'), { type: 'equipe', id: equipe1!.id });
 		expect(await accueilDe(base, acteur(alice), null, aujourdhui)).toMatchObject({ choisie: `equipe:${equipe1!.id}`, contenu: { type: 'equipe' } });
 	});
 });

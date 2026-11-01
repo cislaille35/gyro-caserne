@@ -111,7 +111,7 @@ export async function ajouterPersonne(
 	}
 	const leProfil = await exigerProfil(base, donnees.profilId);
 
-	// Le chef d'équipe n'agit que sur un agent de son équipe.
+	// Le chef de garde n'agit que sur un agent de son équipe.
 	const vise: Perimetre = leProfil.typePersonne === 'agent' && donnees.equipeId !== undefined ? { type: 'equipe', id: donnees.equipeId } : centre;
 	await exiger(base, acteur, vise, aujourdhui);
 

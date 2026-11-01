@@ -123,12 +123,12 @@ describe('annuaire', () => {
 		const eloise = await nouvelle('Éloïse', 'Émery', { surnom: 'Lolo' });
 		await affecter(manon, e1.id);
 		await affecter(romain, e2.id);
-		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e2.id });
+		await nommer(romain, 'Chef de garde', { type: 'equipe', id: e2.id });
 		const avant = base.requetes;
 		const liste = await annuaire(base, acteur(manon), aujourdhui);
 		expect(base.requetes - avant).toBe(1);
 		expect(liste).toEqual([
-			{ id: romain, prenom: 'Romain', nom: 'Bernard', surnom: null, equipe: { numero: e2.ordreRotation, couleur: e2.couleur }, role: 'Chef d’équipe' },
+			{ id: romain, prenom: 'Romain', nom: 'Bernard', surnom: null, equipe: { numero: e2.ordreRotation, couleur: e2.couleur }, role: 'Chef de garde' },
 			{ id: chef, prenom: 'Chef', nom: 'Centre', surnom: null, equipe: null, role: 'Chef de centre' },
 			{ id: eloise, prenom: 'Éloïse', nom: 'Émery', surnom: 'Lolo', equipe: null, role: null }
 		]);
@@ -686,7 +686,7 @@ describe('groupes', () => {
 	it('infosConversation : membres avec équipe, rôle et animation ; en une requête ; membres seulement', async () => {
 		const { base, nommer, affecter, manon, romain, claire, chef, e1 } = await jeuGroupe();
 		await affecter(manon, e1.id);
-		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(romain, 'Chef de garde', { type: 'equipe', id: e1.id });
 		// Le téléphone n'est donné que si la personne le montre.
 		await base.update(personne).set({ telephone: '06 11 22 33 44', telephoneVisible: 1 }).where(eq(personne.id, manon));
 		await base.update(personne).set({ telephone: '06 99 99 99 99', telephoneVisible: 0 }).where(eq(personne.id, claire));
@@ -707,7 +707,7 @@ describe('groupes', () => {
 					nom: 'Bernard',
 					animateur: true,
 					equipe: null,
-					role: 'Chef d’équipe',
+					role: 'Chef de garde',
 					telephone: null
 				},
 				{
@@ -791,7 +791,7 @@ describe('groupes', () => {
 		await affecter(claire, e1.id);
 		await affecter(partie, e1.id);
 		await affecter(lea, e2.id);
-		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(romain, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await nommer(lea, 'Membre de comité', { type: 'comite', id: amicale!.id });
 		await nommer(claire, 'Rapporteur de comité', {
 			type: 'comite',
@@ -819,7 +819,7 @@ describe('groupes', () => {
 		}
 	});
 
-	it('pourVous : mon chef d’équipe, mon équipe et mes comités en cours, seulement s’ils ont du sens ; en 1 requête', async () => {
+	it('pourVous : mon chef de garde, mon équipe et mes comités en cours, seulement s’ils ont du sens ; en 1 requête', async () => {
 		const { base, nouvelle, nommer, affecter, manon, romain, claire, lea, e1, e2 } = await jeuGroupe();
 		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
 		const [dissous] = await base.insert(comite).values({ nom: 'Ancien', theme: 'centre', dissousLe: '2026-01-01' }).returning();
@@ -828,8 +828,8 @@ describe('groupes', () => {
 		await affecter(manon, e1.id);
 		await affecter(claire, e1.id);
 		await affecter(lea, e2.id);
-		await nommer(romain, 'Chef d’équipe', { type: 'equipe', id: e1.id });
-		await nommer(suspendu, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(romain, 'Chef de garde', { type: 'equipe', id: e1.id });
+		await nommer(suspendu, 'Chef de garde', { type: 'equipe', id: e1.id });
 		for (const p of [manon, lea]) await nommer(p, 'Membre de comité', { type: 'comite', id: amicale!.id });
 		await nommer(manon, 'Membre de comité', { type: 'comite', id: dissous!.id });
 		await nommer(lea, 'Membre de comité', { type: 'comite', id: dissous!.id });
@@ -843,7 +843,7 @@ describe('groupes', () => {
 			equipes: [{ id: e1.id, numero: e1.ordreRotation, nom: e1.nom, couleur: e1.couleur, membres: 2 }],
 			comites: [{ id: amicale!.id, nom: 'Amicale', icone: 'coeur', membres: 1 }]
 		});
-		// Le chef d'équipe : son équipe, sans chef au-dessus de lui.
+		// Le chef de garde : son équipe, sans chef au-dessus de lui.
 		expect(await pourVous(base, acteur(romain), aujourdhui)).toMatchObject({ chefs: [], equipes: [{ id: e1.id, membres: 2 }], comites: [] });
 		// Seul dans son équipe : rien.
 		expect(await pourVous(base, acteur(lea), aujourdhui)).toMatchObject({ chefs: [], equipes: [], comites: [{ id: amicale!.id, membres: 1 }] });

@@ -19,7 +19,7 @@ type Compte = { role: string; prenom: string; nom: string; profil: 'Agent' | 'R�
 export const COMPTES_DE_TEST: Compte[] = [
 	{ role: 'chef', prenom: 'Claire', nom: 'Chef', profil: 'Agent', responsabilite: 'Chef de centre' },
 	{ role: 'adjoint', prenom: 'Antoine', nom: 'Adjoint', profil: 'Agent', responsabilite: 'Chef de centre adjoint' },
-	{ role: 'chef-equipe', prenom: 'Élodie', nom: 'Chef-Équipe', profil: 'Agent', equipe: 1, responsabilite: 'Chef d’équipe' },
+	{ role: 'chef-equipe', prenom: 'Élodie', nom: 'Chef-Équipe', profil: 'Agent', equipe: 1, responsabilite: 'Chef de garde' },
 	{ role: 'agent', prenom: 'Thomas', nom: 'Agent', profil: 'Agent', equipe: 1 },
 	{ role: 'rapporteur', prenom: 'Romain', nom: 'Rapporteur', profil: 'Agent', equipe: 2, responsabilite: 'Rapporteur de comité', comite: 'Amicale' },
 	{ role: 'membre', prenom: 'Manon', nom: 'Membre', profil: 'Agent', equipe: 3, responsabilite: 'Membre de comité', comite: 'Amicale' },

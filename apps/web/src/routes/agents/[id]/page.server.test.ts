@@ -236,7 +236,7 @@ describe('/agents/[id] : responsabilités', () => {
 		await base.insert(affectationEquipe).values({ personneId: agent, equipeId: equipe2!.id, debut: '2026-01-01' });
 		const data = await lire(locaux(base, super_), agent);
 		expect(data.attributions).toEqual({ enCours: [], aVenir: [], passees: [] });
-		const chefEquipe = data.peutAttribuer.find((r: { nom: string }) => r.nom === 'Chef d’équipe');
+		const chefEquipe = data.peutAttribuer.find((r: { nom: string }) => r.nom === 'Chef de garde');
 		expect(chefEquipe.perimetres.map((p: { id: number }) => p.id)[0]).toBe(equipe2!.id);
 		expect(chefEquipe.perimetres.map((p: { id: number }) => p.id)).toContain(equipe1.id);
 		expect(data.peutAttribuer.map((r: { nom: string }) => r.nom)).toContain('Référent engins');
@@ -255,7 +255,7 @@ describe('/agents/[id] : responsabilités', () => {
 
 	it('attribue un rôle d\'équipe avec son périmètre', async () => {
 		const { base, agent, equipe1 } = await preparer();
-		const responsabiliteId = String(await idDe(base, 'Chef d’équipe'));
+		const responsabiliteId = String(await idDe(base, 'Chef de garde'));
 		await agir('attribuer', locaux(base, super_), agent, { responsabiliteId, perimetre: String(equipe1.id), debut: '2026-02-01', fin: '2026-03-01' });
 		expect(await rolesDe(base, agent)).toMatchObject([{ perimetreType: 'equipe', perimetreId: equipe1.id, debut: '2026-02-01', fin: '2026-03-01' }]);
 	});
