@@ -4,18 +4,19 @@ import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts'
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
+import type { ReponseEvenement } from '../listes.ts';
 import { equipesConvoquees, type Convocation } from '../murs.ts';
 import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
-import { affectationEquipe, anneePlanning, equipe, gardeFete, manoeuvre, publication, semaineChangee, vacancesScolaires } from '../schema.ts';
+import { affectationEquipe, anneePlanning, equipe, gardeFete, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesPublication } from './manoeuvres.ts';
-import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Reglage, type SemaineCalculee } from './calendrier.ts';
+import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
 export type Convoques = 'tous' | number[];
 export type DonneesManoeuvre = { id?: number; debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
 // `convoques` : les équipes ; `convocation` : avec les agents ajoutés ou retirés par un échange.
-export type ManoeuvreVue = { id: number; debut: string; theme: string; lieu: string; convoques: Convoques; convocation: Convocation; petitDejeuner: boolean; annulee: boolean; publiee: boolean };
+export type ManoeuvreVue = { id: number; debut: string; theme: string; lieu: string; convoques: Convoques; convocation: Convocation; petitDejeuner: boolean; annulee: boolean; publiee: boolean; publicationId: number | null };
 export type Vacances = { id: number; nom: string; debut: string; fin: string };
 export type EquipePlanning = { id: number; nom: string; couleur: string };
 
@@ -47,7 +48,8 @@ export const vueManoeuvre = (m: typeof manoeuvre.$inferSelect): ManoeuvreVue => 
 	convocation: JSON.parse(m.convoques) as Convocation,
 	petitDejeuner: m.petitDejeuner === 1,
 	annulee: m.annuleeLe !== null,
-	publiee: m.publicationId !== null
+	publiee: m.publicationId !== null,
+	publicationId: m.publicationId
 });
 
 // Les lectures communes à la préparation et à la consultation : années, semaines changées, manœuvres, vacances, équipes, historique des fêtes.
@@ -285,8 +287,9 @@ export type PlanningAgent =
 			// Les remplacements conclus de l'année ; `moi` : je cède ma période, ou je prends celle d'un autre.
 			remplacements: { debut: string; fin: string; titulaire: string; remplacant: string; moi: 'cede' | 'prend' | null }[];
 			prochaine: {
-				astreinte: { debut: string; fin: string; equipeId: number; enCours: boolean } | null;
-				manoeuvre: ManoeuvreVue | null;
+				astreinte: { debut: string; fin: string; equipeId: number; enCours: boolean; periodes: Periode[] } | null;
+				// `reponse` : la mienne, si la manœuvre est déjà annoncée.
+				manoeuvre: (ManoeuvreVue & { reponse: ReponseEvenement | null }) | null;
 				fete: { fete: Fete; date: string } | null;
 			};
 	  };
@@ -316,6 +319,9 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
 	const prochaineManoeuvre = vues.find((m) => m.debut >= maintenant.slice(0, 16) && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
+	const [reponse] = prochaineManoeuvre?.publicationId
+		? await base.select({ reponse: reponseEvenement.reponse }).from(reponseEvenement).where(and(eq(reponseEvenement.publicationId, prochaineManoeuvre.publicationId), eq(reponseEvenement.personneId, moi)))
+		: [];
 	let fete: { fete: Fete; date: string } | null = null;
 	for (const [a, s] of [...publiees.entries()].sort(([x], [y]) => x - y)) {
 		const f = fetes(a, s);
@@ -345,9 +351,9 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 			.map(({ debut, fin, titulaire, remplacant, titulaireId, remplacantId }) => ({ debut, fin, titulaire, remplacant, moi: titulaireId === moi ? ('cede' as const) : remplacantId === moi ? ('prend' as const) : null })),
 		prochaine: {
 			astreinte: prochaineSemaine
-				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16) }
+				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16), periodes: prochaineSemaine.periodes }
 				: null,
-			manoeuvre: prochaineManoeuvre ?? null,
+			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null } : null,
 			fete
 		}
 	};
