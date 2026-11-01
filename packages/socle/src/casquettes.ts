@@ -5,6 +5,7 @@ import { RefusDroit } from './erreurs.ts';
 import { iconeDuRole, type NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
 import { periodeCourte } from './reservations-calcul.ts';
+import { remplacementsAValider } from './remplacements/lectures.ts';
 import { attribution, comite, equipe, personne, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
@@ -13,7 +14,7 @@ export type ADecider = { texte: string; lien: string };
 export type ContenuCasquette =
 	| { type: 'centre'; aDecider: ADecider[] }
 	| { type: 'astreinte' }
-	| { type: 'equipe' }
+	| { type: 'equipe'; aDecider: ADecider[] }
 	| { type: 'role'; permet: string[]; aDecider: ADecider[] }
 	| { type: 'comite'; membres: { personneId: number; prenom: string; nom: string; role: string }[]; aDecider: ADecider[] };
 export type Accueil = { casquettes: Casquette[]; choisie: string; contenu: ContenuCasquette };
@@ -70,10 +71,23 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 
 // Les casquettes et ce qui est à décider : pour « Le centre », l'organisation ; pour un rôle ou un comité qui gère une ressource,
 // les demandes de réservation en attente. Chaque lecture une seule fois.
-async function lire(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
+// Les remplacements à valider vont à la casquette Chef d'équipe de leur équipe, sinon à « Le centre ».
+async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
-	const aDecider = liste.some((c) => c.id === 'centre') ? await lireADecider(base, aujourdhui) : null;
-	const reservations = await demandesParCasquette(base, liste, aujourdhui);
+	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
+	const [organisation, reservations, remplacements] = await Promise.all([
+		liste.some((c) => c.id === 'centre') ? lireADecider(base, aujourdhui) : null,
+		demandesParCasquette(base, liste, aujourdhui),
+		chef ? remplacementsAValider(base, acteur, maintenant) : []
+	]);
+	const versCentre: ADecider[] = [];
+	for (const r of remplacements) {
+		const cle = `equipe:${r.equipeId}`;
+		const item = { texte: r.texte, lien: `/remplacements/${r.id}` };
+		if (liste.some((c) => c.id === cle)) reservations.set(cle, [...(reservations.get(cle) ?? []), item]);
+		else versCentre.push(item);
+	}
+	const aDecider = organisation === null ? null : [...versCentre, ...organisation];
 	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : (reservations.get(c.id)?.length ?? 0) })), aDecider, reservations };
 }
 
@@ -117,20 +131,21 @@ async function demandesParCasquette(base: Base, liste: Omit<Casquette, 'compte'>
 	return parCasquette;
 }
 
-// Ordre : centre, chef d’équipe, astreinte, référents, comités. Comptent : « Le centre », et les rôles et comités qui gèrent une ressource.
-export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string): Promise<Casquette[]> {
-	return (await lire(base, acteur, aujourdhui)).casquettes;
+// Ordre : centre, chef d’équipe, astreinte, référents, comités. Comptent : « Le centre », les chefs d'équipe (remplacements à valider),
+// et les rôles et comités qui gèrent une ressource.
+export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<Casquette[]> {
+	return (await lire(base, acteur, aujourdhui, maintenant)).casquettes;
 }
 
 export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string): Promise<ADecider[]> {
-	const lu = (await lire(base, acteur, aujourdhui)).aDecider;
+	const lu = (await lire(base, acteur, aujourdhui, `${aujourdhui}T00:00`)).aDecider;
 	if (lu === null) throw new RefusDroit('GERER_ACCES', { type: 'centre' }, 'Réservé au chef de centre et à son adjoint');
 	return lu;
 }
 
 // L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
-export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string): Promise<Accueil> {
-	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui);
+export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<Accueil> {
+	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui, maintenant);
 	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
 	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui) };
 }
@@ -197,7 +212,7 @@ async function contenu(base: Base, id: string, aDecider: ADecider[] | null, rese
 	if (id === 'centre') return { type: 'centre', aDecider: aDecider! };
 	if (id === 'astreinte') return { type: 'astreinte' };
 	const [type, numero] = id.split(':') as ['equipe' | 'role' | 'comite', string];
-	if (type === 'equipe') return { type: 'equipe' };
+	if (type === 'equipe') return { type: 'equipe', aDecider: reservations };
 
 	if (type === 'role') {
 		const droits = (await base.select({ droit: responsabiliteDroit.droit }).from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, Number(numero)))).map((d) => d.droit);

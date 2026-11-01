@@ -25,6 +25,14 @@ describe('/moi', () => {
 		expect(page.indexOf('Claire Chef')).toBeLessThan(page.indexOf('href="/profil"'));
 	});
 
+	it('mes aptitudes, celle qui ne vaut pas aujourd’hui dite en texte', () => {
+		const aptitudes = [
+			{ aptitudeId: 1, nom: 'CA2', valide: true },
+			{ aptitudeId: 4, nom: 'COD1', valide: false }
+		];
+		expect(html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: null, equipe: null }, aptitudes })).toContain('Aptitudes : CA2, COD1 (pas valable aujourd’hui)');
+	});
+
 	it('la carte du super administrateur', () => {
 		expect(html({ estPersonne: false, identite: null })).toContain('Super administrateur');
 		// Sans grade ni équipe : son rôle.
@@ -42,8 +50,8 @@ describe('/moi', () => {
 		const { base, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		expect(await charger(alice)).toEqual({ identite: { prenom: 'Alice', nom: 'Test', grade: null, role: null, equipe: { nom: expect.any(String), couleur: expect.stringMatching(/^#/) } } });
-		expect(await charger({ type: 'super', email: 'a@b.fr' })).toEqual({ identite: null });
+		expect(await charger(alice)).toEqual({ identite: { prenom: 'Alice', nom: 'Test', grade: null, role: null, equipe: { nom: expect.any(String), couleur: expect.stringMatching(/^#/) } }, aptitudes: [] });
+		expect(await charger({ type: 'super', email: 'a@b.fr' })).toEqual({ identite: null, aptitudes: [] });
 	});
 
 	it('super administrateur : pas de « Mon profil »', () => {

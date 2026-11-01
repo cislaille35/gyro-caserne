@@ -6,7 +6,7 @@ import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
 import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from '../commun.ts';
-import { accesMur, agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
+import { accesMur, agentsDuJour, equipesConvoquees, estConvoque, type Convocation, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
 import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
@@ -367,7 +367,8 @@ async function vuesDe(
 		const sesReponses = reponses.filter((r) => r.publicationId === p.id);
 		const sesVotes = votes.filter((v) => v.publicationId === p.id);
 		const choix: string[] = p.sondageReponses ? JSON.parse(p.sondageReponses) : [];
-		const convoques: Convoques = JSON.parse(p.convoques ?? '"tous"');
+		const convocation: Convocation = JSON.parse(p.convoques ?? '"tous"');
+		const convoques = equipesConvoquees(convocation);
 		const droits = droitsSur(acteur, mur, p);
 		const monVote = sesVotes.find((v) => v.deMoi === 1)?.reponse ?? null;
 		const etat = etatSondage(p.sondageOuverture, p.sondageCloture, maintenant);
@@ -394,7 +395,7 @@ async function vuesDe(
 							debut: p.debut,
 							lieu: p.lieu ?? '',
 							convoques,
-							convoque: estConvoque(appartenances, cle, convoques),
+							convoque: estConvoque(appartenances, cle, convocation, moi),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
 							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>,
 							presents: presents

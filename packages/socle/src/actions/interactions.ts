@@ -6,10 +6,10 @@ import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, type ReponseEvenement } from '../listes.ts';
-import { agentsDuJour, estConvoque, exigerMur, lecturesAgents, membresDe, refusMur } from '../murs.ts';
+import { agentsDuJour, estConvoque, type Convocation, exigerMur, lecturesAgents, membresDe, refusMur } from '../murs.ts';
 import { commentaire, jaime, personne, priseConnaissance, publication, reponseEvenement, voteSondage } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
-import { cible, commentaireVu, etatSondage, type Convoques } from './publications.ts';
+import { cible, commentaireVu, etatSondage } from './publications.ts';
 
 export type Personne = { id: number; prenom: string; nom: string };
 export type CommentaireVue = { id: number; auteur: { prenom: string; nom: string }; texte: string; creeLe: string; supprimable: boolean };
@@ -77,7 +77,7 @@ export async function repondreEvenement(base: Base, acteur: Acteur, id: number, 
 	if (ligne.debut === null) throw new DonneeInvalide('Pas un événement');
 	if (ligne.annuleeLe !== null) throw new DonneeInvalide('Cet événement est annulé');
 	if (ligne.debut.slice(0, 16) <= maintenant.slice(0, 16)) throw new DonneeInvalide('Cet événement est passé');
-	if (!estConvoque(appartenances, cle, JSON.parse(ligne.convoques ?? '"tous"'))) throw refusMur(cle, 'lire', 'Vous n’êtes pas convoqué à cet événement');
+	if (!estConvoque(appartenances, cle, JSON.parse(ligne.convoques ?? '"tous"'), moi)) throw refusMur(cle, 'lire', 'Vous n’êtes pas convoqué à cet événement');
 	await base.insert(reponseEvenement).values({ publicationId: id, personneId: moi, reponse }).onConflictDoUpdate({ target: [reponseEvenement.publicationId, reponseEvenement.personneId], set: { reponse } });
 }
 
@@ -108,7 +108,7 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 	exigerDate(aujourdhui);
 	const { ligne, cle, droits } = await cible(base, acteur, id, aujourdhui);
 	if (!droits.supprimer) throw refusMur(cle, 'moderer');
-	const convoques: Convoques | null = ligne.debut === null ? null : JSON.parse(ligne.convoques ?? '"tous"');
+	const convoques: Convocation | null = ligne.debut === null ? null : JSON.parse(ligne.convoques ?? '"tous"');
 
 	const [agents, affectations, tenues, prises, reponses] = await base.batch([
 		...lecturesAgents(base, aujourdhui),
@@ -142,7 +142,7 @@ export async function suiviPublication(base: Base, acteur: Acteur, id: number, a
 			present: parReponse('present'),
 			absent: parReponse('absent'),
 			incertain: parReponse('incertain'),
-			sans_reponse: parAgent.filter((x) => estConvoque(x.a, cle, convoques) && !reponses.some((r) => r.personneId === x.id)).map(seule).sort(parNom)
+			sans_reponse: parAgent.filter((x) => estConvoque(x.a, cle, convoques, x.id) && !reponses.some((r) => r.personneId === x.id)).map(seule).sort(parNom)
 		};
 	}
 	return suivi;

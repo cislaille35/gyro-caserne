@@ -26,7 +26,7 @@
 	const refus = (id: number) => (form?.cible === `publication:${id}` ? form.message : undefined);
 
 	const r = $derived(regrouper(a));
-	const rien = $derived(r.annonces.length + r.evenements.length + r.sondages.length + r.epinglees.length + r.nouveautes.length === 0);
+	const rien = $derived(r.annonces.length + r.evenements.length + r.sondages.length + r.epinglees.length + r.nouveautes.length + (a.remplacements?.length ?? 0) === 0);
 	// Sans JavaScript, la page revient sur la casquette choisie.
 	const action = (nom: string) => `?casquette=${encodeURIComponent(casquette)}&/${nom}`;
 
@@ -47,6 +47,13 @@
 	<Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." />
 {:else}
 	<ListeRangees titre="À ne pas manquer" ancre="a-ne-pas-manquer">
+		{#each a.remplacements ?? [] as d (d.id)}
+			<li>
+				<Rangee href="/remplacements/{d.id}" titre={d.titre} sous="{d.sous} · Accepter ou refuser" alerte>
+					{#snippet tete()}<TuileDate iso={d.debut} />{/snippet}
+				</Rangee>
+			</li>
+		{/each}
 		{#each r.evenements as e (e.id)}
 			<li>
 				<Rangee href={lien(e)} titre={e.titre} sous="{debut(e.debut)} · {e.nomMur}">

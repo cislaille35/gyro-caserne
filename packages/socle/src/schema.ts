@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_RESERVATION, checkDans, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, GENRES_DEMANDE, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -568,6 +568,99 @@ export const cleAgenda = sqliteTable('cle_agenda', {
 	cle: text('cle').notNull(),
 	creeLe: text('cree_le').notNull()
 });
+
+// Aptitudes du centre (aptitudes.ts) : `controlee`, vérifiée lors d'un remplacement. `retiree_le` : plus proposée, gardée pour l'historique.
+export const aptitude = sqliteTable(
+	'aptitude',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		nom: text('nom').notNull().unique(),
+		controlee: integer('controlee').notNull().default(0),
+		ordre: integer('ordre').notNull(),
+		retireeLe: text('retiree_le')
+	},
+	() => [check('aptitude_controlee', sql`${sql.identifier('controlee')} IN (0, 1)`)]
+);
+
+// L'aptitude d'un agent, datée ; sans expiration, elle vaut tant qu'on ne la retire pas.
+export const aptitudeAgent = sqliteTable(
+	'aptitude_agent',
+	{
+		personneId: versPersonne(),
+		aptitudeId: integer('aptitude_id')
+			.notNull()
+			.references(() => aptitude.id),
+		obtenueLe: text('obtenue_le').notNull(),
+		expireLe: text('expire_le')
+	},
+	(t) => [primaryKey({ columns: [t.personneId, t.aptitudeId] })]
+);
+
+// Remplacements (remplacements/). `periodes` : JSON [{ debut, fin }] du demandeur ; `periodes_cible` : celles du collègue (échange).
+// Échange de manœuvre : `manoeuvre_id` (celle du demandeur) contre `manoeuvre_cible_id`. `debut` : le premier début, où la demande expire.
+// `equipe_id` : l'équipe dont le chef valide. `manque` : JSON, aptitudes contrôlées manquantes notées à l'acceptation.
+export const demandeRemplacement = sqliteTable(
+	'demande_remplacement',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		genre: text('genre', { enum: GENRES_DEMANDE }).notNull(),
+		demandeurId: integer('demandeur_id')
+			.notNull()
+			.references(() => personne.id),
+		cibleId: integer('cible_id').references(() => personne.id),
+		periodes: text('periodes').notNull().default('[]'),
+		periodesCible: text('periodes_cible'),
+		manoeuvreId: integer('manoeuvre_id').references(() => manoeuvre.id),
+		manoeuvreCibleId: integer('manoeuvre_cible_id').references(() => manoeuvre.id),
+		equipeId: integer('equipe_id').references(() => equipe.id),
+		debut: text('debut').notNull(),
+		mot: text('mot'),
+		etat: text('etat', { enum: ETATS_DEMANDE }).notNull(),
+		remplacantId: integer('remplacant_id').references(() => personne.id),
+		manque: text('manque'),
+		creeLe: text('cree_le').notNull(),
+		accepteeLe: text('acceptee_le'),
+		trancheePar: text('tranchee_par'),
+		trancheeLe: text('tranchee_le'),
+		motif: text('motif'),
+		relanceLe: text('relance_le')
+	},
+	(t) => [
+		check('demande_remplacement_genre', checkDans('genre', GENRES_DEMANDE)),
+		check('demande_remplacement_etat', checkDans('etat', ETATS_DEMANDE)),
+		index('demande_remplacement_etat').on(t.etat, t.debut),
+		index('demande_remplacement_demandeur').on(t.demandeurId)
+	]
+);
+
+// Qui a reçu la demande (le collègue visé, ou les disponibles) ; `refuse_le` : il l'a écartée.
+export const destinataireRemplacement = sqliteTable(
+	'destinataire_remplacement',
+	{
+		demandeId: integer('demande_id')
+			.notNull()
+			.references(() => demandeRemplacement.id, { onDelete: 'cascade' }),
+		personneId: versPersonne(),
+		refuseLe: text('refuse_le')
+	},
+	(t) => [primaryKey({ columns: [t.demandeId, t.personneId] }), index('destinataire_remplacement_personne').on(t.personneId)]
+);
+
+// Ce qu'une personne apprend d'une demande : sa ligne dans la cloche.
+export const avisRemplacement = sqliteTable(
+	'avis_remplacement',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		demandeId: integer('demande_id')
+			.notNull()
+			.references(() => demandeRemplacement.id, { onDelete: 'cascade' }),
+		quoi: text('quoi', { enum: AVIS_REMPLACEMENT }).notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [check('avis_remplacement_quoi', checkDans('quoi', AVIS_REMPLACEMENT)), index('avis_remplacement_personne').on(t.personneId, t.lueLe)]
+);
 
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';

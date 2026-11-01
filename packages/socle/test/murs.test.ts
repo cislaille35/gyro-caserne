@@ -231,12 +231,15 @@ describe('membres naturels et convoqués (règle partagée avec le suivi)', () =
 		expect(['centre', 'vie', 'equipe:1', 'equipe:2', 'comite:7', 'comite:8'].map((c) => estMembre(membre, c))).toEqual([true, true, true, false, true, false]);
 		const chefEquipe = appartenances([], [tenue('equipe', 2, 'chef_equipe')], aujourdhui);
 		expect(estMembre(chefEquipe, 'equipe:2')).toBe(true);
-		expect(estConvoque(chefEquipe, 'centre', [2])).toBe(true);
-		expect(estConvoque(chefEquipe, 'centre', [1])).toBe(false);
+		expect(estConvoque(chefEquipe, 'centre', [2], 5)).toBe(true);
+		expect(estConvoque(chefEquipe, 'centre', [1], 5)).toBe(false);
+		// Échange de manœuvre : retiré de son équipe, ou ajouté à une autre.
+		expect(estConvoque(chefEquipe, 'centre', { equipes: [2], ajoutes: [], retires: [5] }, 5)).toBe(false);
+		expect(estConvoque(chefEquipe, 'centre', { equipes: [1], ajoutes: [5], retires: [] }, 5)).toBe(true);
 		const chef = appartenances([], [tenue('centre', null, 'chef_centre')], aujourdhui);
 		expect(chef.tous).toBe(true);
 		expect(['centre', 'equipe:1', 'comite:7'].map((c) => estMembre(chef, c))).toEqual([true, false, false]);
-		expect(estConvoque(chef, 'comite:7', 'tous')).toBe(false);
+		expect(estConvoque(chef, 'comite:7', 'tous', 6)).toBe(false);
 		// Une tenue hors de la portée de sa responsabilité ne compte pas.
 		expect(estMembre(appartenances([], [{ ...tenue('comite', 7), portee: 'centre' }], aujourdhui), 'comite:7')).toBe(false);
 	});

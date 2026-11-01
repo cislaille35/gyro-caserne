@@ -68,6 +68,7 @@
 		identite: [fiche.email, fiche.telephone].filter(Boolean).join(' · '),
 		parcours: [fiche.grade?.libelle ?? 'Aucun grade', fiche.entreeCentre && `au centre depuis ${fiche.entreeCentre.slice(0, 4)}`].filter(Boolean).join(' · '),
 		equipe: `${fiche.equipe?.nom ?? 'Aucune équipe'} · ${LIBELLES_STATUT[fiche.statut]}`,
+		aptitudes: data.aptitudes.length ? data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (expirée)`)).join(' · ') : 'Aucune aptitude',
 		roles: [enCours.length ? enCours.map(intitule).join(' · ') : 'Aucun rôle en cours', data.attributions.aVenir.length && `${data.attributions.aVenir.length} à venir`].filter(Boolean).join(' · '),
 		depart: fiche.statut === 'parti' ? 'A quitté le centre' : (data.raison ?? 'Fin des rôles, données personnelles effacées')
 	});
@@ -78,7 +79,7 @@
 	const blocOuvert = $derived.by(() => {
 		if (form?.cible) return 'roles';
 		if (!generale) return null;
-		if (generale.succes) return generale.bloc ?? null;
+		if (generale.succes || generale.bloc === 'aptitudes') return generale.bloc ?? null;
 		// Les champs en erreur, ou à défaut ceux envoyés, désignent le formulaire.
 		const champs = Object.keys({ ...valeurs, ...erreurs });
 		if (champs.includes('confirmation') || valeurs.statut === 'parti') return 'depart';
@@ -351,6 +352,40 @@
 			</div>
 		</Groupe>
 
+		<Groupe titre="Aptitudes" icone="etoile" resume={resumes.aptitudes} ouvert={blocOuvert === 'aptitudes'}>
+			<div class="bloc">
+				{#if data.aptitudes.length === 0}
+					<p>Aucune aptitude enregistrée.</p>
+				{:else}
+					<ul class="roles">
+						{#each data.aptitudes as a (a.aptitudeId)}
+							<li>
+								<div>
+									<strong>{a.nom}{#if !a.valide}<span class="expiree">Pas valable aujourd’hui</span>{/if}</strong>
+									<span class="note">obtenue le {date(a.obtenueLe)}{a.expireLe ? `, expire le ${date(a.expireLe)}` : ''}{a.controlee ? ' · contrôlée en remplacement' : ''}</span>
+								</div>
+								{#if !data.raison}
+									<form method="POST" action={action('oterAptitude')} class="terminer">
+										<input type="hidden" name="aptitudeId" value={a.aptitudeId} />
+										<Bouton type="submit" variante="secondaire">Retirer<span class="masque"> {a.nom}</span></Bouton>
+									</form>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+				{#if !data.raison && data.aptitudesDuCentre.length > 0}
+					<form method="POST" action={action('aptitude')} class="nomination">
+						<h3>Ajouter ou corriger une aptitude</h3>
+						<Choix id="aptitude" name="aptitudeId" libelle="Aptitude" valeur={String(data.aptitudesDuCentre[0]!.id)} options={data.aptitudesDuCentre.map((a) => ({ valeur: String(a.id), libelle: a.nom }))} />
+						<Champ id="obtenue" name="obtenueLe" type="date" libelle="Obtenue le" requis valeur={aujourdhuiIso} />
+						<Champ id="expire" name="expireLe" type="date" libelle="Expire le" aide="Facultative : sans date, l’aptitude vaut jusqu’à ce qu’on la retire." />
+						<Bouton type="submit">Enregistrer l’aptitude</Bouton>
+					</form>
+				{/if}
+			</div>
+		</Groupe>
+
 		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} couleur="var(--rouge)" ouvert={blocOuvert === 'depart'}>
 			<div class="bloc">
 				{#if data.raison}
@@ -405,6 +440,16 @@
 	}
 	form :global(button) {
 		align-self: flex-start;
+	}
+	.expiree {
+		margin-left: 6px;
+		padding: 0 8px;
+		border-radius: 999px;
+		border: 1px solid var(--statut-alerte-trait);
+		background: var(--statut-alerte-fond);
+		color: var(--statut-alerte-texte);
+		font-size: 0.8125rem;
+		font-weight: 600;
 	}
 	.bloc {
 		display: flex;

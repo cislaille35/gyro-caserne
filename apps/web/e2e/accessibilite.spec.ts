@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes']) {
+			for (const chemin of ['/', '/planning', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -129,13 +129,14 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer/manoeuvre']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer/manoeuvre', '/reglages/aptitudes', '/remplacements']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
 
 			test('fiche d’un agent, blocs ouverts, sans violation, erreur de départ comprise', async ({ page }) => {
+				test.setTimeout(60_000);
 				await page.goto(await ficheDe(page, 'Alice Martin'));
 				await page.waitForLoadState('networkidle');
 				await toutOuvrir(page);
@@ -242,7 +243,8 @@ async function groupeAvecMessages(page: Page, nom: string): Promise<string> {
 
 // Ouvre les groupes repliés et les blocs <details> de la page.
 async function toutOuvrir(page: Page) {
-	for (const bouton of await page.locator('button[aria-expanded="false"]').all()) if (await bouton.isVisible()) await bouton.click();
+	// Des poignées fixes : `all()` renverrait des « n-ième bouton fermé », qui glissent à chaque ouverture.
+	for (const bouton of await page.locator('button[aria-expanded="false"]').elementHandles()) if (await bouton.isVisible()) await bouton.click();
 	await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
 }
 

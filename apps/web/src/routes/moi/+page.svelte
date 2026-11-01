@@ -40,6 +40,9 @@
 			<div class="qui">
 				<p class="nom">{id.prenom} {id.nom}</p>
 				{#if details || id.role}<p class="doux">{details || id.role}</p>{/if}
+				{#if data.aptitudes?.length}
+					<p class="aptitudes">Aptitudes : {data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (pas valable aujourd’hui)`)).join(', ')}</p>
+				{/if}
 			</div>
 		{:else if !data.estPersonne}
 			<IconeRole icone="cle" taille={52} />
@@ -57,6 +60,8 @@
 		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
 		{#if data.estPersonne}
 			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" icone="livre" dessin={DESSINS.profil} /></li>
+			<li><Rangee href="/remplacements/demander" titre="Me faire remplacer" sous="Une nuit, une garde, un week-end ; ou un échange" icone="casque" /></li>
+			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" icone="groupe" /></li>
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" icone="camion" dessin={CALENDRIER} /></li>
 			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
 		{/if}
@@ -94,6 +99,11 @@
 	.qui p {
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+	.aptitudes {
+		margin-top: 4px !important;
+		font-size: 0.9375rem;
+		font-weight: 600;
 	}
 	.nom {
 		font: 700 1.5rem/1.15 var(--police-titre);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, ajouterRessource, attribution, changerSemaines, chargerJeuDeDepart, comite, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, ajouterRessource, pourDemander, attribution, changerSemaines, chargerJeuDeDepart, comite, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -37,6 +37,11 @@ import { load as pageMateriel } from './reservations/materiel/+page.server';
 import { load as planning } from './planning/+page.server';
 import { actions as actionsPreparer, load as preparer } from './planning/preparer/+page.server';
 import { load as pageManoeuvre } from './planning/preparer/manoeuvre/+page.server';
+import { actions as actionsRemplacements, load as remplacements } from './remplacements/+page.server';
+import { load as demandeRemplacementPage } from './remplacements/[id]/+page.server';
+import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
+import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
+import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -521,5 +526,47 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await (pageAValider as any)({ locals: gestion });
 		});
 		expect(a, 'accepter').toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/remplacements : demander (150 disponibles), accepter, chaque page ; réglages des aptitudes', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const ids = (await base.select().from(equipe)).map((e) => e.id);
+		const annee = Number(maintenantParis().slice(0, 4));
+		for (const a of [annee, annee + 1]) {
+			await reglerRoulement(base, locals.acteur, a, ids, maintenantParis());
+			await publierAnnee(base, locals.acteur, a, maintenantParis());
+		}
+		await base.insert(affectationEquipe).values({ personneId: agent.id, equipeId: ids[0]!, debut: '2020-01-01' });
+		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
+		const nuit = (await pourDemander(base, deLAgent.acteur, maintenantParis(), centre.astreinte)).semaines[0]!.tranches[0]!;
+		const demander = await compter(async () => {
+			await expect((actionsDemander as any).default({ locals: deLAgent, request: new Request('http://x', { method: 'POST', body: new URLSearchParams([['periode', `${nuit.debut}|${nuit.fin}`], ['pour', 'tous']]) }) })).rejects.toMatchObject({ status: 303 });
+		});
+		expect(demander, 'demander').toBeLessThanOrEqual(BUDGET);
+		for (const [nom, page, l, url] of [
+			['demander', pageDemander, deLAgent, '/remplacements/demander'],
+			['manoeuvre', pageEchangeManoeuvre, deLAgent, '/remplacements/manoeuvre'],
+			['liste', remplacements, locals, '/remplacements'],
+			['aptitudes', reglagesAptitudes, locals, '/reglages/aptitudes']
+		] as const) {
+			const n = await compter(async () => {
+				await (racine as any)({ locals: l });
+				await (page as any)({ locals: l, url: new URL(`http://localhost${url}`) });
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
+		const { pourMoi } = await (remplacements as any)({ locals, url: new URL('http://localhost/remplacements') });
+		const id = String(pourMoi[0].id);
+		const accepter = await compter(async () => {
+			expect(await (actionsRemplacements as any).accepter({ locals, request: new Request('http://x', { method: 'POST', body: new URLSearchParams([['id', id]]) }) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals });
+			await (remplacements as any)({ locals, url: new URL('http://localhost/remplacements') });
+		});
+		expect(accepter, 'accepter').toBeLessThanOrEqual(BUDGET);
+		const detail = await compter(async () => {
+			await (racine as any)({ locals: deLAgent });
+			await (demandeRemplacementPage as any)({ locals: deLAgent, params: { id } });
+		});
+		expect(detail, 'détail').toBeLessThanOrEqual(BUDGET);
 	});
 });

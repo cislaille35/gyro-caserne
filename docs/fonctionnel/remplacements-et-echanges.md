@@ -2,34 +2,43 @@
 
 ## À quoi ça sert
 
-Permettre à un agent de se faire remplacer ou d'échanger, simplement entre collègues, tout en gardant les chefs informés et la composition des gardes juste.
+Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli, au lieu d'écrire à tout le monde. Le chef d'équipe sait qui tient quoi ; le planning et l'agenda suivent.
 
 ## Les notions
 
-- **Remplacement** : un agent d'astreinte cède tout ou partie de son créneau (une semaine entière ou des tranches) à un collègue.
-- **Échange**, deux cas seulement :
-  - **un week-end d'astreinte** : deux agents de deux équipes différentes échangent un week-end complet, tel que le centre le définit (voir Astreinte et rotation) ;
-  - **une manœuvre** : deux agents échangent leur participation à une manœuvre.
+- **Période** : une tranche de son astreinte, prise dans le planning. Une **nuit** en semaine (18 h – 6 h), une **garde de 24 h** le week-end ou un férié (6 h – 6 h), la nuit du vendredi de relève ; « Tout le week-end » coche d'un geste les tranches qui se suivent. Pas d'heure à saisir.
+- **Remplacement** : céder une ou plusieurs périodes. Plusieurs périodes se prennent **en bloc** ; pour les céder à des collègues différents, on fait plusieurs demandes.
+  - **Ciblé** : à un seul collègue, lui seul la reçoit et doit accepter. S'il refuse, le demandeur l'**ouvre à tous** d'un geste.
+  - **Ouvert** : envoyé à tous les **disponibles** (ni d'astreinte, ni déjà remplaçants, ni demandeurs à ce moment-là). Le **premier** qui accepte l'emporte, jamais deux.
+- **Échange de périodes** : « je prends ton week-end, tu prends le mien », en même temps. Pas de dette à rendre plus tard.
+- **Échange de manœuvre** : un agent convoqué à une manœuvre échange sa place avec un collègue convoqué à une autre. Chacun est convoqué à la place de l'autre (la publication de la manœuvre et l'agenda suivent ; chacun est noté présent à sa nouvelle manœuvre). Pas pour une manœuvre de tout le centre.
+- **Aptitudes** : la liste du centre (CA2, CA1, CE, COD1, COD2, INC, SAP, DIV, FDF1, FDF2 par défaut), chacune **contrôlée en remplacement** ou non (par défaut : commandement et conduite). Chaque agent a les siennes, datées (obtention, expiration facultative).
 
 ## Le déroulé
 
-1. Le demandeur crée la demande. Il peut désigner un collègue, ou la laisser ouverte à tous ceux qui peuvent la prendre.
-2. Un collègue accepte. **L'accord des deux agents suffit** : aucune validation n'est demandée.
-3. **Le chef d'équipe concerné est informé**, avec l'effet sur la composition : « VSAV toujours armable », ou « attention, le FPT n'a plus de conducteur ».
-4. Les créneaux sont mis à jour : le remplaçant compte dans la composition, le titulaire n'y compte plus.
+1. Depuis le Planning ou Moi : « Me faire remplacer ». L'agent coche ses périodes, choisit « à tous » ou « à un collègue », ou « Échanger ».
+2. Le ou les collègues reçoivent la demande (cloche, téléphone, « À ne pas manquer » de l'accueil).
+3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef d'équipe. Sinon c'est conclu, et le chef d'équipe est **informé**.
+4. Conclu : le planning montre « X remplace Y » sur la période, l'agenda des deux agents suit, et les deux sont invités à **mettre à jour leur disponibilité dans l'appli du SDIS**, qui fait foi pour l'alerte.
 
 ## Les règles
 
-- **Désistement** : si le remplaçant se désiste, la demande redevient ouverte et le **titulaire redevient responsable**. Le titulaire et le chef d'équipe sont prévenus.
-- **Annulation** : le demandeur peut annuler tant que personne n'a accepté. Après, il faut l'accord du remplaçant.
-- Un remplacement qui casse la composition reste possible : l'appli **prévient**, mais ne bloque pas.
-- Un centre peut exiger une validation par le chef d'équipe (droit `VALIDER_REMPLACEMENT` sur l'équipe). Ce réglage est désactivé par défaut, et désactivé à Laillé.
+- **Qui valide** : le chef de l'équipe d'astreinte du demandeur. Si le demandeur est lui-même chef de son équipe, ou si l'équipe n'a pas de chef : le chef de centre ou son adjoint. Une demande à valider reste comptée dans sa cloche tant qu'il n'a pas tranché.
+- **Refus du chef** : la demande repart comme au départ (une demande ouverte attend un autre collègue, le remplaçant refusé ne la revoit plus ; une demande ciblée passe « refusée »). Le remplaçant et le demandeur sont prévenus.
+- **Désistement** du remplaçant avant le début : le titulaire **redevient responsable**, il est prévenu, la demande repart de la même façon.
+- **Annuler** : le demandeur, tant que personne n'a accepté ; ensuite le remplaçant se désiste, ou le chef annule.
+- **Délais** : on ne demande pas une période commencée. Une demande non conclue **expire au début** de sa première période ; le titulaire reste responsable. La **veille**, à 8 h, une demande sans remplaçant est relancée au demandeur et au chef d'équipe.
+- **Départ** d'un agent : ses demandes sont annulées ; celles où il remplaçait repartent.
+- **Notifications** : coupées seulement par l'interrupteur général.
 
 ## Ce que la fonction ne fait pas
 
-- Pas de compteur de « dette » entre agents. Un échange est simplement un double remplacement.
-- Pas d'échange d'une semaine entière : dans ce cas, on fait un remplacement.
+- Pas de composition minimale d'une garde, ni d'alerte de garde incomplète.
+- Pas de disponibilités ni d'absences déclarées, pas de compteur d'équité, pas de rappel d'échéance des aptitudes (lots suivants).
+- Pas de seconde vague : tous les disponibles sont prévenus en même temps (ceux qui ont les aptitudes contrôlées du demandeur sont en tête de sa liste).
 
-## Exemple
+## Exemples
 
-Julie, de l'équipe 1, ne peut pas assurer le week-end du 14 novembre. Marc, de l'équipe 3, accepte d'échanger avec son week-end du 28. L'échange est valable dès l'accord de Marc. Les chefs des équipes 1 et 3 sont informés, et l'appli leur indique que les deux week-ends restent armables.
+- Julie (équipe 1, CA1) ne peut pas tenir la nuit du lundi 9 novembre. Elle l'ouvre à tous. Marc (équipe 3, CA1) accepte le premier : c'est conclu, le chef de l'équipe 1 est informé, le planning dit « Marc remplace Julie ».
+- Si c'est Paul (sans CA1) qui accepte, l'appli l'avertit ; le remplacement attend le chef de l'équipe 1. Il refuse : la demande repart, Paul ne la revoit plus.
+- Julie et Bruno (équipe 2) échangent la nuit du 9 contre celle du 16. Bruno accepte : chacun tient la nuit de l'autre.

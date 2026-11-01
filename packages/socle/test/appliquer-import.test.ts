@@ -7,7 +7,7 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { donneesFichier } from '../src/fichier-effectif.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, attribution, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-27';
@@ -114,6 +114,18 @@ describe('appliquerOperation : chaque type', () => {
 		const [ligne] = await base.select().from(attribution).where(eq(attribution.id, a));
 		expect(ligne!.fin).toBe('2026-10-26');
 		expect(await journalDe('attribution', a)).toEqual(['terminer_attribution']);
+	});
+
+	it('aptitude : donnée le jour de l’import, ou retirée', async () => {
+		const { base, appliquer, nouvelle, journalDe } = await jeu();
+		const id = await nouvelle('Léa', 'Durand');
+		const [ca1] = await base.select().from(aptitude).where(eq(aptitude.nom, 'CA1'));
+		await appliquer({ ligne: 2, type: 'aptitude', personne: { id }, aptitudeId: ca1!.id, oui: true });
+		expect(await base.select().from(aptitudeAgent)).toEqual([{ personneId: id, aptitudeId: ca1!.id, obtenueLe: aujourdhui, expireLe: null }]);
+		await appliquer({ ligne: 2, type: 'aptitude', personne: { id }, aptitudeId: ca1!.id, oui: false });
+		expect(await base.select().from(aptitudeAgent)).toEqual([]);
+		expect(await journalDe('personne', id)).toEqual(['donner_aptitude', 'oter_aptitude']);
+		await expect(appliquer({ ligne: 2, type: 'aptitude', personne: { id }, aptitudeId: ca1!.id, oui: 'oui' } as never)).rejects.toThrow(DonneeInvalide);
 	});
 
 	it('les erreurs des actions remontent telles quelles', async () => {

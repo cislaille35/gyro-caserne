@@ -25,6 +25,11 @@
 	<TirerPourActualiser />
 	<EnTetePage titre="Planning {p.annee}" phrase="Les astreintes et les manœuvres de l’année." {action} />
 
+	<nav class="raccourcis" aria-label="Remplacements">
+		<a href="/remplacements/demander">Me faire remplacer</a>
+		<a href="/remplacements">Remplacements</a>
+	</nav>
+
 	<nav class="annees" aria-label="Années">
 		<a href={lien(p.annee - 1, data.vue)}>‹ {p.annee - 1}</a>
 		<a href={lien(p.annee + 1, data.vue)}>{p.annee + 1} ›</a>
@@ -71,7 +76,7 @@
 			<a href={lien(p.annee, 'equipes')} aria-current={data.vue === 'equipes' ? 'page' : undefined}>Toutes les équipes</a>
 		</nav>
 
-		<Annee annee={p.annee} vue={data.vue === 'equipes' ? 'equipes' : 'moi'} semaines={p.semaines} equipes={p.equipes} manoeuvres={p.manoeuvres} vacances={p.vacances} feries={p.feries} />
+		<Annee annee={p.annee} vue={data.vue === 'equipes' ? 'equipes' : 'moi'} semaines={p.semaines} equipes={p.equipes} manoeuvres={p.manoeuvres} vacances={p.vacances} feries={p.feries} remplacements={p.remplacements} maintenant={data.maintenant} />
 	{/if}
 </div>
 
@@ -96,6 +101,12 @@
 		justify-content: space-between;
 		max-width: 44rem;
 	}
+	.raccourcis {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+	.raccourcis a,
 	.annees a,
 	.vues a {
 		min-height: var(--cible);

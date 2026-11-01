@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, attribution, chargerJeuDeDepart, equipe, grade, personne, profil, responsabilite } from '@gyro-caserne/socle';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, chargerJeuDeDepart, equipe, grade, personne, profil, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { actions, load } from './+page.server';
@@ -37,7 +37,7 @@ const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhot
 const lire = (locals: unknown, id: number) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(load as any)({ locals, params: { id: String(id) } });
-const agir = (nom: 'fiche' | 'equipe' | 'statut' | 'attribuer' | 'terminer' | 'finir', locals: unknown, id: number, corps: Record<string, string>) =>
+const agir = (nom: 'fiche' | 'equipe' | 'statut' | 'attribuer' | 'terminer' | 'finir' | 'aptitude' | 'oterAptitude', locals: unknown, id: number, corps: Record<string, string>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, params: { id: String(id) }, request: new Request('http://x', { method: 'POST', body: new URLSearchParams(corps) }) });
 const lirePersonne = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => (await base.select().from(personne).where(eq(personne.id, id)))[0]!;
@@ -362,5 +362,19 @@ describe('/agents/[id] : responsabilités', () => {
 			expect(ailleurs).toMatchObject({ status: 400 });
 			expect((await rolesDe(base, chef))[0]!.fin).toBeNull();
 		});
+	});
+});
+
+describe('/agents/[id] : aptitudes', () => {
+	it('donner avec ses dates, refuser une expiration avant l’obtention, ôter ; un agent ordinaire est refusé', async () => {
+		const { base, chef, agent } = await preparer();
+		const [ca1] = await base.select().from(aptitude).where(eq(aptitude.nom, 'CA1'));
+		const locals = locaux(base, { type: 'personne', id: chef });
+		expect(await agir('aptitude', locals, agent, { aptitudeId: String(ca1!.id), obtenueLe: '2020-03-01', expireLe: '' })).toEqual({ succes: true, message: 'Aptitude enregistrée', bloc: 'aptitudes' });
+		expect((await lire(locals, agent)).aptitudes).toMatchObject([{ nom: 'CA1', obtenueLe: '2020-03-01', expireLe: null, valide: true, controlee: true }]);
+		expect(await agir('aptitude', locals, agent, { aptitudeId: String(ca1!.id), obtenueLe: '2020-03-01', expireLe: '2019-01-01' })).toMatchObject({ status: 400, data: { message: 'La date d’expiration doit suivre la date d’obtention.', bloc: 'aptitudes' } });
+		await agir('oterAptitude', locals, agent, { aptitudeId: String(ca1!.id) });
+		expect(await base.select().from(aptitudeAgent)).toEqual([]);
+		await expect(agir('aptitude', locaux(base, { type: 'personne', id: agent }), agent, { aptitudeId: String(ca1!.id), obtenueLe: '2020-03-01' })).rejects.toMatchObject({ status: 403 });
 	});
 });

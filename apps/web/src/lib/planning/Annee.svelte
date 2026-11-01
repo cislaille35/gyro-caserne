@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EquipePlanning, ManoeuvreVue, SemaineCalculee, Vacances } from '@gyro-caserne/socle';
+	import { texteTranche, type EquipePlanning, type ManoeuvreVue, type SemaineCalculee, type Vacances } from '@gyro-caserne/socle';
 	import { heure } from '../murs/quand.ts';
 	import { dansLaSemaine, duAu, finDeSemaine, jourLong, semainesParMois } from './dates.ts';
 
@@ -12,7 +12,9 @@
 		equipes,
 		manoeuvres,
 		vacances,
-		feries
+		feries,
+		remplacements = [],
+		maintenant = ''
 	}: {
 		annee: number;
 		vue: 'moi' | 'equipes';
@@ -21,6 +23,8 @@
 		manoeuvres: (ManoeuvreVue & { convoque: boolean })[];
 		vacances: Vacances[];
 		feries: { date: string; nom: string }[];
+		remplacements?: { debut: string; fin: string; titulaire: string; remplacant: string; moi: 'cede' | 'prend' | null }[];
+		maintenant?: string;
 	} = $props();
 
 	const equipe = (id: number) => equipes.find((e) => e.id === id) ?? { id, nom: 'Équipe archivée', couleur: '#8a949e' };
@@ -29,7 +33,7 @@
 	const avantPremiere = $derived(feries.filter((f) => f.date < premiere));
 	const contient = (s: SemaineCalculee, moment: string) => s.periodes.some((p) => p.debut <= moment && moment < p.fin);
 
-	type Repere = { genre: 'ferie' | 'vacances' | 'manoeuvre' | 'fete'; texte: string };
+	type Repere = { genre: 'ferie' | 'vacances' | 'manoeuvre' | 'fete' | 'remplacement'; texte: string };
 	function reperes(s: SemaineCalculee): Repere[] {
 		const fin = finDeSemaine(s.debut);
 		const liste: Repere[] = [];
@@ -39,11 +43,20 @@
 			if (!dansLaSemaine(m.debut, s.debut) || (vue === 'moi' && !m.convoque)) continue;
 			liste.push({ genre: 'manoeuvre', texte: `« ${m.theme} », ${jourLong(m.debut)}, ${heure(m.debut)}` });
 		}
+		for (const r of remplacements) {
+			if (!s.periodes.some((p) => p.debut <= r.debut && r.debut < p.fin)) continue;
+			if (vue === 'moi' && r.moi === null) continue;
+			const quand = texteTranche(r);
+			const texte = r.moi === 'cede' ? `${r.remplacant} me remplace, ${quand}` : r.moi === 'prend' ? `je remplace ${r.titulaire}, ${quand}` : `${r.remplacant} remplace ${r.titulaire}, ${quand}`;
+			liste.push({ genre: 'remplacement', texte });
+		}
 		if (contient(s, `${annee}-12-25T12:00`)) liste.push({ genre: 'fete', texte: 'Garde de Noël' });
 		if (contient(s, `${annee}-12-31T23:00`)) liste.push({ genre: 'fete', texte: 'Garde du Nouvel An' });
 		return liste;
 	}
-	const SIGNES: Record<Repere['genre'], string> = { ferie: 'Férié', vacances: 'Vacances', manoeuvre: 'Manœuvre', fete: 'Fête' };
+	const SIGNES: Record<Repere['genre'], string> = { ferie: 'Férié', vacances: 'Vacances', manoeuvre: 'Manœuvre', fete: 'Fête', remplacement: 'Remplacement' };
+	// Ma semaine pas encore finie : je peux demander à être remplacé.
+	const aVenir = (s: SemaineCalculee) => maintenant !== '' && s.periodes.at(-1)!.fin > maintenant;
 </script>
 
 <div class="annee">
@@ -68,6 +81,9 @@
 							<ul class="reperes" role="list">
 								{#each r as x, i (i)}<li class={x.genre}><span class="signe">{SIGNES[x.genre]}&nbsp;:</span> {x.texte}</li>{/each}
 							</ul>
+						{/if}
+						{#if vue === 'moi' && s.mienne && aVenir(s)}
+							<a class="remplacer" href="/remplacements/demander#periode-{s.debut}">Me faire remplacer<span class="masque">{` : semaine ${s.numero}`}</span></a>
 						{/if}
 					</li>
 				{/each}
@@ -174,6 +190,18 @@
 	}
 	.manoeuvre .signe {
 		color: var(--statut-info-texte);
+	}
+	.remplacement .signe {
+		color: var(--statut-alerte-texte);
+	}
+	.remplacer {
+		display: inline-flex;
+		align-items: center;
+		min-height: 32px;
+		margin-top: 4px;
+		color: var(--encre);
+		font-size: 0.875rem;
+		font-weight: 600;
 	}
 	.vacances .signe {
 		color: var(--statut-ok-texte);

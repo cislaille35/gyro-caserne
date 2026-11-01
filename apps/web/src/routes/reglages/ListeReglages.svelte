@@ -77,6 +77,12 @@
 		</ListeRangees>
 	{/if}
 
+	{#if data.responsabilites}
+		<ListeRangees titre="Listes du centre">
+			<li><Rangee href="/reglages/aptitudes" courant={courant('/reglages/aptitudes')} icone="etoile" titre="Aptitudes" sous="CA, conduite, spécialités ; celles contrôlées en remplacement" /></li>
+		</ListeRangees>
+	{/if}
+
 	{#if data.profils}
 		<ListeRangees titre="Profils" compte={data.profils.length}>
 			{#each data.profils as p (p.id)}

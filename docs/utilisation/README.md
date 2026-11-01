@@ -28,3 +28,8 @@ Format d'une page :
 - [Comment couper les notifications d'un mur ou d'une conversation ?](couper-les-notifications.md)
 - [Comment réserver la VL ou du matériel de l'amicale ?](reserver-la-vl-ou-du-materiel.md)
 - [Comment accepter ou refuser une demande de réservation ?](valider-une-reservation.md)
+- [Comment me faire remplacer ?](me-faire-remplacer.md)
+- [Comment accepter ou refuser un remplacement ?](repondre-a-une-demande-de-remplacement.md)
+- [Comment valider un remplacement ?](valider-un-remplacement.md)
+- [Comment échanger une manœuvre ?](echanger-une-manoeuvre.md)
+- [Comment saisir les aptitudes d'un agent ?](saisir-les-aptitudes.md)

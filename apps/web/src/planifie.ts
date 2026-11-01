@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -33,6 +33,8 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
 				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
 				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) ctx.waitUntil(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
+				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes.
+				if (maintenant[15] === '0') ctx.waitUntil(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);

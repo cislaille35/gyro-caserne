@@ -11,6 +11,7 @@ import { STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS, type StatutOperationnel } fr
 import { departDesGroupes } from '../messagerie.ts';
 import { effacerNotificationsDe } from '../notifications.ts';
 import { annulerAuDepart } from '../reservations.ts';
+import { remplacementsAuDepart } from '../remplacements/depart.ts';
 import { affectationEquipe, attribution, cleAgenda, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
@@ -176,6 +177,7 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
 	// Au départ, il quitte aussi ses groupes de messagerie.
 	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, maintenant) : { ecritures: [], photos: [] };
+	const remplacements = statut === 'parti' ? await remplacementsAuDepart(base, personneId, maintenant) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
@@ -186,6 +188,7 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 		...retrait,
 		...roles,
 		...groupes.ecritures,
+		...remplacements,
 		// Au départ, ses appareils, son fil et ses coupures de notifications.
 		...(statut === 'parti' ? [...effacerNotificationsDe(base, personneId), base.delete(cleAgenda).where(eq(cleAgenda.personneId, personneId))] : []),
 		// Au départ, ses réservations à venir sont annulées.

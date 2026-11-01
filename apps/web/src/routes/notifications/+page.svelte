@@ -11,7 +11,7 @@
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
-	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; remplacementsAValider?: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// Le fil, du plus récent au plus ancien : « Aujourd'hui », puis « Plus tôt ».
 	const groupes = $derived(
@@ -78,9 +78,14 @@
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
 
-{#if data.aValider > 0}
+{#if data.aValider > 0 || (data.remplacementsAValider ?? 0) > 0}
 	<ListeRangees titre="À trancher">
-		<li><Rangee href="/reservations/a-valider" titre="{pluriel(data.aValider, 'demande')} de réservation à valider" sous="Accepter ou refuser, d’un geste." icone="cle" alerte /></li>
+		{#if (data.remplacementsAValider ?? 0) > 0}
+			<li><Rangee href="/remplacements?onglet=a-valider" titre="{pluriel(data.remplacementsAValider ?? 0, 'remplacement')} à valider" sous="Une aptitude contrôlée manque au remplaçant : à vous de trancher." icone="casque" alerte /></li>
+		{/if}
+		{#if data.aValider > 0}
+			<li><Rangee href="/reservations/a-valider" titre="{pluriel(data.aValider, 'demande')} de réservation à valider" sous="Accepter ou refuser, d’un geste." icone="cle" alerte /></li>
+		{/if}
 	</ListeRangees>
 {/if}
 
@@ -146,6 +151,16 @@
 							</span>
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
+					{:else if l.type === 'remplacement'}
+						<a class="ligne" class:non-lue={!l.lue} href="/remplacements/{l.demandeId}">
+							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 8h13l-3-3 M20 16H7l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							<span class="corps">
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
+								<span class="extrait">{l.texte}</span>
+								<span class="moment">{moment(l)}</span>
+							</span>
+							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+						</a>
 					{:else}
 						<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
 							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
@@ -162,7 +177,7 @@
 		</ul>
 	</section>
 {:else}
-	{#if data.signalements.length === 0 && data.aValider === 0}
+	{#if data.signalements.length === 0 && data.aValider === 0 && !data.remplacementsAValider}
 		<Vide titre="Rien de nouveau pour vous." texte="Les publications de vos murs et les commentaires sous les vôtres arriveront ici." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
 	{/if}
 {/each}

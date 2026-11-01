@@ -99,7 +99,7 @@ describe('à ne pas manquer', () => {
 		expect(deE1.nouveautes).toEqual([{ cle, nom: e1.nom, nombre: 4 }]);
 
 		const deE2 = await aNePasManquer(base, acteur(autre), aujourdhui, maintenant);
-		expect(deE2).toEqual({ annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] });
+		expect(deE2).toEqual({ annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] });
 
 		// Le chef de centre lit le mur, mais n'en est pas membre : ni annonce, ni événement, ni sondage à traiter.
 		const duChef = await aNePasManquer(base, acteur(chef), aujourdhui, maintenant);
@@ -175,7 +175,7 @@ describe('à ne pas manquer', () => {
 		const exterieur = await nouvelle('Exterieur', {}, 'exterieur');
 		await publier(base, base.photos, acteur(chef), 'centre', annonce(), maintenant);
 		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-02T19:00'), maintenant);
-		const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] };
+		const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] };
 		expect(await aNePasManquer(base, acteur(parti), aujourdhui, maintenant)).toEqual(vide);
 		expect(await aNePasManquer(base, acteur(exterieur), aujourdhui, maintenant)).toEqual(vide);
 		const duSuper = await aNePasManquer(base, superAdmin, aujourdhui, maintenant);

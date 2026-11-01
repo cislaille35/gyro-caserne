@@ -5,7 +5,7 @@ import type { Acteur } from './droits.ts';
 import { estGestionnaire } from './effectif.ts';
 import { RefusDroit } from './erreurs.ts';
 import { STATUTS_OPERATIONNELS, type StatutOperationnel } from './listes.ts';
-import { affectationEquipe, attribution, comite, equipe, grade, journal, personne, profil, responsabilite } from './schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, equipe, grade, journal, personne, profil, responsabilite } from './schema.ts';
 
 export const ENTETES = ['N°', 'E-mail', 'Prénom', 'Nom', 'Grade', 'Date de grade', 'Équipe', 'Statut', 'Profil', 'Téléphone', 'Naissance', 'Entrée au centre', 'Engagement SPV'] as const;
 
@@ -45,6 +45,9 @@ export function dateIso(texte: string): string | null {
 	return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === iso ? iso : null;
 }
 
+// Une colonne par aptitude du centre : « Oui » ou vide.
+export const colonneAptitude = (nom: string) => `Aptitude : ${nom}`;
+
 const SYSTEMES_SANS_COLONNE = ['chef_centre', 'chef_centre_adjoint'];
 
 export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: string, modele: boolean): Promise<DonneesFichier> {
@@ -52,7 +55,7 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 
 	// Toutes les lectures d'un bloc : une seule requête comptée.
 	// Pas de jointure à noms de colonnes en double : dans un batch, D1 n'en garde qu'une.
-	const [grades, equipes, profils, responsabilites, comites, personnes, affectations, attributions, [dernierJournal], [dernierePersonne]] = await base.batch([
+	const [grades, equipes, profils, responsabilites, comites, personnes, affectations, attributions, [dernierJournal], [dernierePersonne], aptitudes, aptitudesAgents] = await base.batch([
 		base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
@@ -66,7 +69,9 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 			.where(and(lte(attribution.debut, aujourdhui), or(isNull(attribution.fin), gte(attribution.fin, aujourdhui)))),
 		base.select({ id: max(journal.id) }).from(journal),
-		base.select({ id: max(personne.id) }).from(personne)
+		base.select({ id: max(personne.id) }).from(personne),
+		base.select({ id: aptitude.id, nom: aptitude.nom }).from(aptitude).where(isNull(aptitude.retireeLe)).orderBy(asc(aptitude.ordre), asc(aptitude.id)),
+		base.select({ personneId: aptitudeAgent.personneId, aptitudeId: aptitudeAgent.aptitudeId }).from(aptitudeAgent)
 	]);
 
 	const parNom = (a: { nom: string }, b: { nom: string }) => a.nom.localeCompare(b.nom, 'fr');
@@ -86,7 +91,8 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 	const colonnesListe: DonneesFichier['colonnesListe'] = { Grade: 'grades', Équipe: 'equipes', Statut: 'statuts', Profil: 'profils' };
 	for (const r of colonnesRoles) colonnesListe[r.nom] = 'oui';
 	for (const c of colonnesComites) colonnesListe[`Comité : ${c.nom}`] = 'rolesComite';
-	const entetes = [...ENTETES, ...colonnesRoles.map((r) => r.nom), ...colonnesComites.map((c) => `Comité : ${c.nom}`)];
+	for (const a of aptitudes) colonnesListe[colonneAptitude(a.nom)] = 'oui';
+	const entetes = [...ENTETES, ...colonnesRoles.map((r) => r.nom), ...colonnesComites.map((c) => `Comité : ${c.nom}`), ...aptitudes.map((a) => colonneAptitude(a.nom))];
 
 	if (modele) return { entetes, listes, colonnesListe, lignes: [], repere: null };
 
@@ -130,7 +136,8 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 						.map((a) => nomRoleComite.get(a.responsabiliteId)!)
 						.sort((x, y) => x.localeCompare(y, 'fr'))
 						.join(', ')
-				)
+				),
+				...aptitudes.map((a) => (aptitudesAgents.some((x) => x.personneId === p.id && x.aptitudeId === a.id) ? 'Oui' : ''))
 			];
 		});
 

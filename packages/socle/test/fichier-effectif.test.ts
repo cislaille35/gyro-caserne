@@ -5,11 +5,12 @@ import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { dateFichier, dateIso, donneesFichier, ENTETES } from '../src/fichier-effectif.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, attribution, comite, grade, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, grade, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import type { StatutOperationnel } from '../src/listes.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-27';
+const APTITUDES = ['CA2', 'CA1', 'CE', 'COD1', 'COD2', 'INC', 'SAP', 'DIV', 'FDF1', 'FDF2'];
 
 async function jeu() {
 	const base = await baseDeTest();
@@ -69,7 +70,8 @@ describe('donneesFichier', () => {
 			'Référent pharmacie',
 			'Référent technique',
 			'Comité : Amicale',
-			'Comité : Comité du centre'
+			'Comité : Comité du centre',
+			...APTITUDES.map((a) => `Aptitude : ${a}`)
 		]);
 		expect(donnees.colonnesListe).toEqual({
 			Grade: 'grades',
@@ -81,7 +83,8 @@ describe('donneesFichier', () => {
 			'Référent pharmacie': 'oui',
 			'Référent technique': 'oui',
 			'Comité : Amicale': 'rolesComite',
-			'Comité : Comité du centre': 'rolesComite'
+			'Comité : Comité du centre': 'rolesComite',
+			...Object.fromEntries(APTITUDES.map((a) => [`Aptitude : ${a}`, 'oui']))
 		});
 		expect(donnees.listes.equipes).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 		expect(donnees.listes.statuts).toEqual(['Opérationnel', 'Stagiaire', 'Inapte temporaire', 'Suspendu', 'Parti']);
@@ -100,6 +103,8 @@ describe('donneesFichier', () => {
 		await nommer(id, resp('Chef d’équipe'), { type: 'equipe', id: 2 });
 		await nommer(id, resp('Membre de comité'), { type: 'comite', id: amicale.id });
 		await nommer(id, resp('Référent engins'), { type: 'centre' }, '2026-10-26');
+		const [ca1] = await base.select().from(aptitude).where(eq(aptitude.nom, 'CA1'));
+		await base.insert(aptitudeAgent).values({ personneId: id, aptitudeId: ca1!.id, obtenueLe: '2020-01-01' });
 
 		const donnees = await donneesFichier(base, chef, aujourdhui, false);
 		const ligne = Object.fromEntries(donnees.entetes.map((e, i) => [e, donnees.lignes[0]![i]]));
@@ -122,7 +127,8 @@ describe('donneesFichier', () => {
 			'Référent pharmacie': '',
 			'Référent technique': '',
 			'Comité : Amicale': 'Membre de comité',
-			'Comité : Comité du centre': ''
+			'Comité : Comité du centre': '',
+			...Object.fromEntries(APTITUDES.map((a) => [`Aptitude : ${a}`, a === 'CA1' ? 'Oui' : '']))
 		});
 	});
 
