@@ -6,6 +6,10 @@ on:
     paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch: # relance manuelle (onglet Actions → Run workflow)
   workflow_call: # appelé par deployer.yml avant chaque déploiement
+    inputs:
+      complet:
+        type: boolean
+        default: true
 
 # Lecture seule : la vérification ne modifie rien dans le dépôt
 permissions:
@@ -16,10 +20,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# PR en brouillon : vérification rapide (tests, compilation).
-# Vérification complète (types, accessibilité) quand la PR passe « prête », à la relance manuelle et avant chaque déploiement.
+# PR en brouillon et préprod : vérification rapide (tests, compilation) ; la PR fusionnée a déjà eu la complète.
+# Vérification complète (types, accessibilité) quand la PR passe « prête », à la relance manuelle et avant la production.
 env:
-  COMPLET: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+  COMPLET: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) || github.event_name == 'workflow_dispatch' || inputs.complet == true }}
 
 jobs:
   verifier:
