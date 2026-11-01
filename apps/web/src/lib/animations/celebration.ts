@@ -5,16 +5,16 @@ import type { Tenue } from '../gyro/tenues.ts';
 export type Moment = { cle: string; texte: string; tenue: Tenue };
 
 export function momentAnniversaire(estLeJour: boolean, aujourdhui: string): Moment | null {
-	return estLeJour ? { cle: `anniversaire:${aujourdhui}`, texte: 'Joyeux anniversaire !', tenue: 'anniversaire' } : null;
+	return estLeJour ? { cle: `anniversaire:${aujourdhui}`, texte: 'Joyeux anniversaire\u00a0!', tenue: 'anniversaire' } : null;
 }
 
 export function momentPremiereReservation(reservations: { etat: string }[]): Moment | null {
 	const acceptees = reservations.filter((r) => r.etat === 'acceptee').length;
-	return acceptees === 1 ? { cle: 'premiere-reservation', texte: 'Votre première réservation est acceptée !', tenue: 'victoire' } : null;
+	return acceptees === 1 ? { cle: 'premiere-reservation', texte: 'Votre première réservation est acceptée\u00a0!', tenue: 'victoire' } : null;
 }
 
 export function momentPlanningPublie(annee: number | null): Moment | null {
-	return annee === null ? null : { cle: `planning-publie:${annee}`, texte: `Le planning ${annee} est publié. Bravo !`, tenue: 'victoire' };
+	return annee === null ? null : { cle: `planning-publie:${annee}`, texte: `Planning ${annee} publié. Bravo\u00a0!`, tenue: 'victoire' };
 }
 
 // « Réduire les animations » et l'affichage sobre coupent la fête.

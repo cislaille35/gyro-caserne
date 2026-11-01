@@ -5,13 +5,14 @@
 	import { aCelebrer, lireVus, noterVu, type Moment } from './celebration.ts';
 
 	// Un vrai moment, fêté une fois par personne (mémoire du navigateur), fermable, et qui se retire seul.
+	// Elle ne bloque rien : le doigt passe au travers, sauf sur « Fermer ».
 	// annoncer : faux quand la page dit déjà la nouvelle aux lecteurs d'écran.
 	let { moment, qui, annoncer = true }: { moment: Moment | null; qui: string; annoncer?: boolean } = $props();
 
 	const affichage = lireAffichageContexte();
 	const DUREE = 6000;
 	let fete = $state<Moment | null>(null);
-	let survol = false;
+	let focus = false;
 	// Déjà montrés sur cette page : utile quand la mémoire du navigateur manque.
 	const montres: string[] = [];
 	let minuteur: ReturnType<typeof setTimeout> | undefined;
@@ -51,7 +52,7 @@
 	function retirerPlusTard() {
 		clearTimeout(minuteur);
 		minuteur = setTimeout(() => {
-			if (survol) retirerPlusTard();
+			if (focus) retirerPlusTard();
 			else fete = null;
 		}, DUREE);
 	}
@@ -66,21 +67,15 @@
 
 <svelte:window onkeydown={(e) => fete && e.key === 'Escape' && fermer()} />
 
-{#if annoncer}<div class="masque" role="status">{fete?.texte ?? ''}</div>{/if}
+<!-- Annonce discrète, sans rôle « status » : la page garde sa seule zone d'état pour ses formulaires. -->
+{#if annoncer}<div class="masque" aria-live="polite">{fete?.texte ?? ''}</div>{/if}
 {#if fete}
-	<div
-		class="fete"
-		role="presentation"
-		onpointerenter={() => (survol = true)}
-		onpointerleave={() => (survol = false)}
-		onfocusin={() => (survol = true)}
-		onfocusout={() => (survol = false)}
-	>
+	<div class="fete" role="presentation" onfocusin={() => (focus = true)} onfocusout={() => (focus = false)}>
 		<div class="scene" aria-hidden="true">
 			{#each confettis as c, i (i)}
 				<span class="confetti" style:left="{c.x}%" style:background={c.c} style:animation-delay="{c.d}s"></span>
 			{/each}
-			<span class="gyro"><Gyro tenue={fete.tenue} taille={88} decoratif /></span>
+			<span class="gyro"><Gyro tenue={fete.tenue} taille={112} decoratif /></span>
 		</div>
 		<p class="texte">{fete.texte}</p>
 		<button type="button" class="fermer" aria-label="Fermer" onclick={fermer}>
@@ -104,6 +99,7 @@
 		background: var(--surface);
 		color: var(--encre);
 		box-shadow: 0 10px 30px rgb(20 27 36 / 0.25);
+		pointer-events: none;
 		translate: -50% 0;
 		animation: entree 0.4s ease-out both;
 	}
@@ -116,7 +112,7 @@
 	.scene {
 		position: relative;
 		width: 100%;
-		height: 96px;
+		height: 112px;
 		overflow: hidden;
 		display: flex;
 		justify-content: center;
@@ -150,6 +146,7 @@
 		font-size: 1.25rem;
 		font-weight: 700;
 		text-align: center;
+		text-wrap: balance;
 	}
 	.fermer {
 		position: absolute;
@@ -164,6 +161,7 @@
 		background: none;
 		color: var(--doux);
 		cursor: pointer;
+		pointer-events: auto;
 	}
 	.fermer:hover {
 		color: var(--encre);

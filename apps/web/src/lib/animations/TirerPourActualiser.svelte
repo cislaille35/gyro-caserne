@@ -5,7 +5,7 @@
 	import { SEUIL, consigne, declenche, forceDuJet, tirage as tirageDe } from './tirage.ts';
 
 	// Tirer la page vers le bas pour la relire : la lance arrose de plus en plus fort.
-	// Au doigt seulement ; jamais sur un écran d'urgence. Sans geste, recharger la page suffit.
+	// Au doigt seulement ; jamais sur un écran d'urgence. Sans geste, recharger la page suffit : rien n'est donc annoncé.
 	// « Réduire les animations » ou l'affichage sobre : une simple consigne, sans lance ni mouvement.
 	const affichage = lireAffichageContexte();
 	let tirage = $state(0);
@@ -86,7 +86,6 @@
 		<span class="consigne">{consigne(tirage, actualise)}</span>
 	</div>
 {/if}
-<p class="masque" role="status">{actualise ? 'Actualisation…' : ''}</p>
 
 <style>
 	.tirer {
@@ -96,7 +95,7 @@
 		justify-content: flex-end;
 		overflow: hidden;
 		max-height: 120px;
-		margin-top: -0.5rem;
+		margin: -0.5rem 0 0.5rem;
 		transition: height 0.2s ease;
 	}
 	.tirer.simple {
