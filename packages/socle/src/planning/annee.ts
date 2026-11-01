@@ -301,7 +301,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(await aLeDroit(base, acteur, 'VOIR_PLANNING', { type: 'centre' }, aujourdhui))) throw new RefusDroit('VOIR_PLANNING', { type: 'centre' });
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
-	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4)))}-01-01`;
+	// Dès la mi-décembre de l'année d'avant : une semaine commencée fin décembre peut être encore en cours.
+	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4))) - 1}-12-18`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
 	const [[annees, changees, manoeuvres, vacances, equipes, , conclues], affectations, gerer] = await Promise.all([
 		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`)]),

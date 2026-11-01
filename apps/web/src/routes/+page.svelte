@@ -41,7 +41,7 @@
 	]);
 	// Hors « Le centre » : de quoi aller vite là où l'on va le plus.
 	const raccourcis: Lien[] = $derived([
-		{ href: '/planning', titre: 'Planning', texte: 'Astreintes, manœuvres et remplacements', icone: 'casque', dessin: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4' },
+		{ href: '/planning', titre: 'Planning', texte: 'Astreintes, manœuvres et remplacements', icone: 'cle', dessin: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4' },
 		{ href: '/echanges', titre: 'Échanges', texte: 'Les murs du centre et vos messages', icone: 'camion', dessin: DESSINS.echanges },
 		{ href: '/agents', titre: 'L’effectif', texte: 'Qui est qui au centre', icone: 'casque' },
 		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Téléphone, contact d’urgence', icone: 'livre' as const, dessin: DESSINS.profil }] : [])

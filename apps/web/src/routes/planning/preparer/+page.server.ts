@@ -1,5 +1,7 @@
+import { fail } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { ajouterVacances, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances } from '@gyro-caserne/socle';
+import { ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { deplacer, etapeDe } from '#lib/planning/preparer.ts';
 import { champ, echecPlanning, nombres } from '#lib/server/formulaire-planning.ts';
@@ -50,6 +52,9 @@ export const actions: Actions = {
 		const f = await request.formData();
 		const [rang, sens] = champ(f, 'deplacer').split(':');
 		const ordre = deplacer(nombres(f, 'ordre'), Number(rang), sens === 'monter' ? -1 : 1);
+		// Une année publiée ne change plus de roulement d'un geste : ses semaines se changent une à une.
+		const [ligne] = await locals.base.select({ publieeLe: anneePlanning.publieeLe }).from(anneePlanning).where(eq(anneePlanning.annee, anneeDe(url)));
+		if (ligne?.publieeLe) return fail(400, { cible: 'roulement', message: 'Année publiée : changez plutôt l’équipe d’une semaine, à l’étape « Vérifier et publier ».' });
 		return agir(locals, 'roulement', 'Roulement enregistré.', (m) => reglerRoulement(locals.base, locals.acteur!, anneeDe(url), ordre, m));
 	},
 	semaines: async ({ locals, request, url }) => {

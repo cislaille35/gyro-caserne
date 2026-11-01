@@ -21,4 +21,9 @@ describe('page d’une manœuvre', () => {
 		expect(html).toContain('Annuler la manœuvre');
 		expect(html).toContain('la publication sera mise à jour');
 	});
+
+	it('un refus en modifiant garde l’identifiant : pas de doublon au renvoi', () => {
+		const html = page(null, { cible: 'manoeuvre', message: 'Cette date est déjà passée.', valeurs: { id: '3', date: '2020-01-01', heure: '08:30', theme: 'Feux', lieu: 'Bois', pour: 'tous', petitDejeuner: '', equipes: [] } });
+		expect(html).toMatch(/<input type="hidden" name="id" value="3"/);
+	});
 });

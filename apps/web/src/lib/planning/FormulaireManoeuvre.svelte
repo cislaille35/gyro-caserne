@@ -33,7 +33,7 @@
 	{:else}
 		<form method="POST" action="/planning/preparer/manoeuvre?/enregistrer" class="carte">
 			<div role="alert">{#if form?.cible === 'manoeuvre' && form.message}<p class="echec">{form.message}</p>{/if}</div>
-			{#if m}<input type="hidden" name="id" value={m.id} />{/if}
+			{#if m || saisi('id', '')}<input type="hidden" name="id" value={m?.id ?? saisi('id', '')} />{/if}
 			<div class="deux">
 				<Champ id="date" name="date" type="date" libelle="Date" requis valeur={saisi('date', m ? m.debut.slice(0, 10) : '')} />
 				<Champ id="heure" name="heure" type="time" libelle="Heure de début" requis valeur={saisi('heure', m ? m.debut.slice(11, 16) : '08:30')} />

@@ -11,7 +11,9 @@
 
 	onMount(() => tete.focus());
 	const touche = (e: KeyboardEvent) => {
-		if (e.key === 'Escape') goto(fermer, { reset: false });
+		// Pas pendant une saisie : Échap ne doit pas perdre ce qui a été tapé.
+		const cible = e.target as HTMLElement | null;
+		if (e.key === 'Escape' && !cible?.closest('input, textarea, select')) goto(fermer, { reset: false });
 	};
 </script>
 

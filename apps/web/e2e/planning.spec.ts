@@ -21,7 +21,7 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByRole('heading', { level: 1, name: `Préparer ${annee}` })).toBeVisible();
 		await expect(page.getByText('Publiée', { exact: true })).toBeVisible();
 		await expect(page.getByText('Étape 1 sur 5')).toBeVisible();
-		await expect(page.getByRole('button', { name: /^Monter / }).first()).toBeVisible();
+		await expect(page.getByText('Année publiée : le roulement ne change plus.')).toBeVisible();
 		await sansViolation(page);
 
 		for (const etape of ['Fêtes', 'Repères', 'Vérifier et publier']) {

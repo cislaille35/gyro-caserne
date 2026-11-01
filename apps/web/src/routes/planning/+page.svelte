@@ -41,18 +41,28 @@
 	const MEMOIRE = 'planning-vue';
 	const lien = (params: Record<string, string | number>) => `?${new URLSearchParams(Object.entries({ annee: p.annee, ...params }).map(([k, v]) => [k, String(v)]))}`;
 
+	const mode = $derived(p.publiee && (p.monEquipe !== null || p.semaines.some((s) => s.mienne)) ? ('moi' as const) : ('equipes' as const));
 	// La carte : ma semaine en cours ou la prochaine ; sans équipe, l'équipe de la semaine.
 	const carte = $derived.by((): Astreinte | null => {
 		if (!p.publiee) return null;
 		const a = p.prochaine.astreinte;
 		if (a) return { ...a, equipe: equipe(a.equipeId), mienne: true };
+		// Avec une équipe et sans prochaine astreinte : l'année suivante n'est pas publiée.
+		if (mode === 'moi') return null;
 		const s = p.semaines.find((x) => x.periodes[0]!.debut <= m && m < x.periodes.at(-1)!.fin);
 		return s ? { debut: s.periodes[0]!.debut, fin: s.periodes.at(-1)!.fin, periodes: s.periodes, equipe: equipe(s.equipeId), enCours: true, mienne: false } : null;
 	});
-	const phrase = $derived(!p.publiee ? `Le planning ${p.annee} n’est pas encore publié.` : carte ? `${phraseAstreinte(carte, m).titre}.` : 'Les astreintes et les manœuvres de l’année.');
+	const phrase = $derived(
+		!p.publiee
+			? `Le planning ${p.annee} n’est pas encore publié.`
+			: carte
+				? `${phraseAstreinte(carte, m).titre}.`
+				: mode === 'moi'
+					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
+					: 'Les astreintes et les manœuvres de l’année.'
+	);
 
 	const donnees = $derived(p.publiee ? { annee: p.annee, feries: p.feries, vacances: p.vacances, manoeuvres: p.manoeuvres, remplacements: p.remplacements } : null);
-	const mode = $derived(p.publiee && (p.monEquipe !== null || p.semaines.some((s) => s.mienne)) ? ('moi' as const) : ('equipes' as const));
 	const indexSemaine = $derived(p.publiee ? p.semaines.findIndex((s) => s.debut === data.semaine) : -1);
 	const semaine = $derived(p.publiee && indexSemaine >= 0 ? p.semaines[indexSemaine]! : null);
 	const precedente = $derived(indexSemaine > 0 && p.publiee ? lien({ vue: 'semaine', semaine: p.semaines[indexSemaine - 1]!.debut }) : `?annee=${p.annee - 1}&vue=semaine&semaine=derniere`);
@@ -117,7 +127,7 @@
 							<Rangee titre={manoeuvre.theme} sous="Manœuvre · {momentLong(manoeuvre.debut)} · {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ' · petit-déjeuner' : ''}">
 								{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
 								{#if manoeuvre.publicationId}
-									<form method="POST" action="?/repondre&annee={p.annee}" use:enhance={() => async ({ update }) => update({ reset: false })}>
+									<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={() => async ({ update }) => update({ reset: false })}>
 										<input type="hidden" name="id" value={manoeuvre.publicationId} />
 										<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
 										<div role="group" aria-labelledby="reponse-manoeuvre" class="boutons">

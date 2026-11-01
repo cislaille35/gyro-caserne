@@ -83,26 +83,36 @@
 		{#if data.etape === 'roulement'}
 			<p class="doux">L’ordre des équipes, semaine après semaine. La première semaine commence le {jourLong(data.apercu[0]?.debut ?? `${p.annee}-01-01`)}.{p.ordre.length ? '' : ' Ordre proposé d’après la référence du centre : validez-le ou changez-le.'}</p>
 			{@render retour('roulement')}
-			<form method="POST" action={action('deplacer')} use:enhance={garder}>
-				{#each ordre as id (id)}<input type="hidden" name="ordre" value={id} />{/each}
+			{#if p.publiee}
+				<p class="encadre">Année publiée : le roulement ne change plus. Pour changer l’équipe d’une semaine, passez par « <a href={vers('publier')}>Vérifier et publier</a> ».</p>
 				<ol role="list" class="ordre">
 					{#each ordre as id, i (id)}
 						{@const e = equipe(id)}
-						<li style:--equipe={e.couleur}>
-							<span class="rang">{i === 0 ? '1re semaine' : `${i + 1}e`}</span>
-							<PastilleEquipe nom={e.nom} couleur={e.couleur} />
-							<span class="gestes">
-								<button type="submit" name="deplacer" value="{i}:monter" disabled={i === 0} aria-label="Monter {e.nom}"
-									><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6" /></svg></button
-								>
-								<button type="submit" name="deplacer" value="{i}:descendre" disabled={i === ordre.length - 1} aria-label="Descendre {e.nom}"
-									><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg></button
-								>
-							</span>
-						</li>
+						<li style:--equipe={e.couleur}><span class="rang">{i === 0 ? '1re semaine' : `${i + 1}e`}</span><PastilleEquipe nom={e.nom} couleur={e.couleur} /></li>
 					{/each}
 				</ol>
-			</form>
+			{:else}
+				<form method="POST" action={action('deplacer')} use:enhance={garder}>
+					{#each ordre as id (id)}<input type="hidden" name="ordre" value={id} />{/each}
+					<ol role="list" class="ordre">
+						{#each ordre as id, i (id)}
+							{@const e = equipe(id)}
+							<li style:--equipe={e.couleur}>
+								<span class="rang">{i === 0 ? '1re semaine' : `${i + 1}e`}</span>
+								<PastilleEquipe nom={e.nom} couleur={e.couleur} />
+								<span class="gestes">
+									<button type="submit" name="deplacer" value="{i}:monter" disabled={i === 0} aria-label="Monter {e.nom}"
+										><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6" /></svg></button
+									>
+									<button type="submit" name="deplacer" value="{i}:descendre" disabled={i === ordre.length - 1} aria-label="Descendre {e.nom}"
+										><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg></button
+									>
+								</span>
+							</li>
+						{/each}
+					</ol>
+				</form>
+			{/if}
 			{#if !p.ordre.length}
 				<form method="POST" action={action('roulement')} use:enhance={garder}>
 					{#each ordre as id (id)}<input type="hidden" name="ordre" value={id} />{/each}

@@ -98,4 +98,10 @@ describe('Préparer l’année en cinq étapes', () => {
 	it('le message d’erreur va au bon formulaire', () => {
 		expect(page({}, { cible: 'roulement', message: 'Mettez chaque équipe une fois.' })).toContain('Mettez chaque équipe une fois.');
 	});
+
+	it('année publiée : le roulement ne se déplace plus, l’étape 5 change une semaine', () => {
+		const html = page({ preparation: preparation({ publiee: '2026-11-01T10:00' }) });
+		expect(html).not.toContain('name="deplacer"');
+		expect(html).toContain('Année publiée : le roulement ne change plus.');
+	});
 });

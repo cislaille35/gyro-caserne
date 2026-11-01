@@ -55,6 +55,18 @@ describe('/planning/preparer', () => {
 		expect(await envoyer(actions, 'deplacer', locaux(base, chef), [...ordre, ['deplacer', '3:descendre']], q)).toMatchObject({ succes: expect.any(String) });
 	});
 
+	it('année publiée : déplacer une équipe est refusé ; accepter l’échange change deux semaines', async () => {
+		const { base, chef, annee, ids } = await preparer();
+		const l = locaux(base, chef);
+		const q = `?annee=${annee}`;
+		const ordre = ids.map((id): [string, string] => ['ordre', String(id)]);
+		expect(await envoyer(actions, 'deplacer', l, [...ordre, ['deplacer', '1:monter']], q)).toMatchObject({ status: 400, data: { cible: 'roulement' } });
+		const [a, b] = (await charger(load, l, q)).preparation.semaines;
+		expect(await envoyer(actions, 'semaines', l, [[`semaine-${a.debut}`, String(b.equipeId)], [`semaine-${b.debut}`, String(a.equipeId)]], q)).toMatchObject({ succes: expect.any(String) });
+		const [a2, b2] = (await charger(load, l, q)).preparation.semaines;
+		expect([a2.equipeId, b2.equipeId]).toEqual([b.equipeId, a.equipeId]);
+	});
+
 	it('refuse un roulement avec une équipe en double, sur le bon formulaire', async () => {
 		const { base, chef, ids } = await preparer({ publiee: false });
 		expect(await envoyer(actions, 'roulement', locaux(base, chef), [['ordre', String(ids[0])], ['ordre', String(ids[0])]])).toMatchObject({ status: 400, data: { cible: 'roulement', message: expect.stringContaining('une fois') } });

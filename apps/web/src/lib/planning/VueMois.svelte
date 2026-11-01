@@ -42,6 +42,9 @@
 					liste.push(r);
 				}
 			}
+		// Avant la première relève de janvier, les jours sont à la semaine de l'année d'avant.
+		const premiere = semaines[0]?.debut ?? '';
+		for (const f of donnees.feries) if (f.date.startsWith(prefixe) && f.date < premiere) liste.push({ genre: 'ferie', texte: f.nom, date: f.date });
 		return liste.sort((a, b) => a.date.localeCompare(b.date));
 	});
 	const vacancesLe = (date: string) => donnees.vacances.some((v) => v.debut <= date && date <= v.fin);
@@ -216,7 +219,6 @@
 	}
 	.hors a {
 		color: var(--doux);
-		opacity: 0.75;
 	}
 	.aujourdhui .jour {
 		min-width: 26px;

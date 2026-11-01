@@ -62,12 +62,16 @@ export function plagesDuJour(date: string, periodes: PeriodePlanning[]): string[
 	return plages;
 }
 
-// La semaine jour par jour, du jour de relève à la veille de la suivante.
+// La semaine jour par jour, du jour de relève à la veille de la suivante ; jusqu'au vendredi soir si la relève tombe un férié (Noël).
 export function joursDeLaSemaine(s: SemaineCalculee, d: Donnees, mode: Mode): { date: string; plages: string[]; reperes: Repere[] }[] {
 	const reperes = reperesDe(s, d, mode, true);
+	const fin = finDeSemaine(s.debut);
 	const jours = [];
-	for (let date = s.debut; date < finDeSemaine(s.debut); date = lendemain(date)) {
-		jours.push({ date, plages: plagesDuJour(date, s.periodes), reperes: reperes.filter((r) => r.date === date) });
+	for (let date = s.debut; date <= s.periodes.at(-1)!.fin.slice(0, 10); date = lendemain(date)) {
+		const plages = plagesDuJour(date, s.periodes);
+		if (date >= fin && plages.length === 0) break;
+		const feries = date >= fin ? d.feries.filter((f) => f.date === date).map((f): Repere => ({ genre: 'ferie', texte: f.nom, date })) : [];
+		jours.push({ date, plages, reperes: [...feries, ...reperes.filter((r) => r.date === date)] });
 	}
 	return jours;
 }

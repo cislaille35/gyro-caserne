@@ -63,7 +63,7 @@ describe('onglet Planning', () => {
 		const html = page({ remplacements: { ...vides, pourMoi: [demande] } });
 		expect(html).toMatch(/<h2[^>]*>À venir/);
 		expect(html).toContain('Sport + SAP');
-		expect(html).toMatch(/action="\?\/repondre&amp;annee=2026"/);
+		expect(html).toMatch(/action="\?\/repondre&amp;annee=2026&amp;/);
 		expect(html).toMatch(/<button[^>]*value="present"[^>]*aria-pressed="true"/);
 		expect(html).toMatch(/<button[^>]*value="absent"[^>]*aria-pressed="false"/);
 		expect(html).toContain('href="/remplacements/7"');
@@ -123,5 +123,19 @@ describe('onglet Planning', () => {
 		expect(html).toContain('Les équipes en 2026');
 		expect(html).not.toContain('Seulement mes semaines');
 		expect((html.match(/<span class="equipe[^"]*">Équipe 4<\/span>/g) ?? []).length).toBe(13);
+	});
+
+	it('Mois de janvier : les fériés d’avant la première relève sont dits', () => {
+		expect(page({ vue: 'mois', mois: 1 })).toMatch(/Jour de l’an, jeudi 1er janvier/);
+	});
+
+	it('agent d’équipe sans prochaine astreinte (année suivante pas publiée) : pas de carte, la phrase le dit', () => {
+		const html = page({ maintenant: '2026-12-30T10:00', planning: { ...publiee, prochaine: { ...publiee.prochaine, astreinte: null } } });
+		expect(html).toContain('Le planning 2027 n’est pas encore publié.');
+		expect(html).not.toContain('Cette semaine :');
+	});
+
+	it('répondre sans JavaScript garde la vue', () => {
+		expect(page({ vue: 'mois', mois: 11 })).toMatch(/action="\?\/repondre&amp;annee=2026&amp;vue=mois&amp;semaine=2026-11-06&amp;mois=11"/);
 	});
 });

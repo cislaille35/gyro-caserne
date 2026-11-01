@@ -67,4 +67,13 @@ describe('vues du planning', () => {
 			)
 		).toBe('1 astreinte');
 	});
+
+	it('Noël 2026 tombe un vendredi de relève : la semaine va jusqu’au vendredi 18 h, avec la garde de Noël', () => {
+		const jours = joursDeLaSemaine(semaine('2026-12-18'), d, 'equipes');
+		const noel = jours.find((j) => j.date === '2026-12-25')!;
+		expect(noel.plages).toEqual(['jusqu’à 18 h']);
+		expect(noel.reperes.map((r) => r.texte)).toEqual(['Noël', 'Garde de Noël']);
+		// Une semaine ordinaire s'arrête au jeudi.
+		expect(joursDeLaSemaine(semaine('2026-11-06'), d, 'equipes')).toHaveLength(7);
+	});
 });

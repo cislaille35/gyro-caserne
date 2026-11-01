@@ -178,6 +178,18 @@ describe('le planning vu par l’agent', () => {
 		expect(p.prochaine.astreinte).toMatchObject({ debut: '2027-01-08T18:00' });
 	});
 
+	it('début janvier : la semaine en cours commencée fin décembre reste la prochaine astreinte', async () => {
+		const { base, chef, alice, ids } = await publiee();
+		await changerSemaines(base, chef, 2026, { '2026-12-25': ids[1]! }, maintenant, reglage);
+		await publierAnnee(base, chef, 2026, maintenant);
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		await publierAnnee(base, chef, 2027, maintenant);
+		const p = await planningDe(base, alice, 2027, '2027-01-01T10:00', reglage);
+		if (!p.publiee) throw new Error('attendu publié');
+		expect(p.prochaine.astreinte).toMatchObject({ debut: '2026-12-25T18:00', enCours: true });
+		expect(p.semaines[0]!.debut).toBe('2027-01-01');
+	});
+
 	it('après publication : ses semaines suivent son équipe à la date ; prochaine astreinte et manœuvre', async () => {
 		const { base, chef, alice, ids } = await publiee();
 		await publierAnnee(base, chef, 2026, maintenant);
