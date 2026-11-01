@@ -7,7 +7,9 @@ import { astreinteDe } from '../src/planning/astreinte.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
 import { ajouterMesVacances, reglerEte } from '../src/planning/ete.ts';
 import { ajusterPlage, eteAPreparer, proposer, proposerEte, publierEte, texteManque } from '../src/planning/repartition.ts';
-import { bandesDe, disponible, lireContexte } from '../src/remplacements/contexte.ts';
+import { bandesDe, disponible, lireContexte, valideurs } from '../src/remplacements/contexte.ts';
+import { demanderRemplacement } from '../src/remplacements/demandes.ts';
+import { attribution, responsabilite } from '../src/schema.ts';
 import { avisEte, demandeRemplacement, plageEte } from '../src/schema.ts';
 import type { Poste } from '../src/armement.ts';
 import { jeuEte } from './jeu-ete.ts';
@@ -178,10 +180,64 @@ describe('été : proposer, ajuster, publier', () => {
 		await appliquerPlanning(base, chef, 2027, lu, maintenant, reglage);
 		const [ven] = await base.select().from(plageEte).where(eq(plageEte.debut, VEN));
 		expect(JSON.parse(ven!.ajoutes)).toEqual([p.hugo]);
-		const fautif = { feuilles: { Été: [{ numero: 2, cellules: ['999', 'X', '', 'X'] }] }, entetes: { Été: ['N°', 'Agent', 'Équipe', '24/06 nuit'] } };
+		// Un agent parti depuis l'export : sa ligne est ignorée ; un N° qui n'en est pas un est une erreur.
+		const fautif = { feuilles: { Été: [{ numero: 2, cellules: ['999', 'X', '', 'X'] }, { numero: 3, cellules: ['Alice', 'X', '', 'X'] }] }, entetes: { Été: ['N°', 'Agent', 'Équipe', '24/06 nuit'] } };
 		expect((await apercuPlanning(base, chef, 2027, fautif, maintenant, reglage)).erreurs).toEqual([
 			{ feuille: 'Été', ligne: 1, message: 'Colonne « 24/06 nuit » : pas une plage de l’été' },
-			{ feuille: 'Été', ligne: 2, message: 'N° « 999 » : agent inconnu' }
+			{ feuille: 'Été', ligne: 3, message: 'N° « Alice » : agent inconnu' }
 		]);
+	});
+
+	it('changer la période efface la proposition ; publier exige une plage pour chaque semaine ; 16 semaines au plus', async () => {
+		const { base, chef } = await jeu();
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await reglerEte(base, chef, 2027, { debut: '2027-06-25', fin: '2027-07-02', dateLimite: '2027-05-15' }, maintenant, reglage);
+		expect(await base.select().from(plageEte)).toEqual([]);
+		await expect(publierEte(base, chef, 2027, maintenant, reglage)).rejects.toThrow('Proposez d’abord l’été');
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		// Même période, autre date limite : la proposition reste.
+		await reglerEte(base, chef, 2027, { debut: '2027-06-25', fin: '2027-07-02', dateLimite: '2027-05-20' }, maintenant, reglage);
+		expect(await base.select().from(plageEte)).toHaveLength(14);
+		await expect(reglerEte(base, chef, 2027, { debut: '2027-01-01', fin: '2027-06-25', dateLimite: '2027-05-15' }, maintenant, reglage)).rejects.toThrow('Été trop long');
+	});
+
+	it('publier deux fois ne prévient qu’une fois ; remettre un agent de l’équipe : « de nouveau d’astreinte »', async () => {
+		const { base, chef, p } = await jeu();
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await ajusterPlage(base, chef, 2027, MAR, p.fred, false, maintenant, reglage);
+		await publierEte(base, chef, 2027, maintenant, reglage);
+		await publierEte(base, chef, 2027, '2027-03-01T10:05', reglage);
+		expect((await base.select().from(avisEte).where(eq(avisEte.personneId, p.alice)))).toHaveLength(1);
+		await base.delete(avisEte);
+		await ajusterPlage(base, chef, 2027, MAR, p.fred, true, maintenant, reglage);
+		expect((await base.select().from(avisEte)).map((x) => x.texte)).toEqual(['Vous êtes de nouveau d’astreinte : nuit du mardi 29 juin.']);
+	});
+
+	it('un agent en vacances présent sur une plage (vacances données après la proposition) est signalé ; ?plage= sans proposition ne détaille rien', async () => {
+		const { base, chef, p, a } = await jeu();
+		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage, LUN)).detail).toBeNull();
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await ajouterMesVacances(base, a(p.eva), 2027, { debut: '2027-06-29', fin: '2027-06-29' }, maintenant);
+		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).conflits).toEqual(['nuit du mardi 29 juin : Eva Test est en vacances, mais présent']);
+	});
+
+	it('été non publié : un agent en vacances n’est déjà plus disponible pour un remplacement', async () => {
+		const { base, p } = await jeu();
+		const ctx = await lireContexte(base, '2027-06-20T10:00', reglage);
+		expect(disponible(ctx, p.gina, [{ debut: LUN, fin: '2027-06-29T06:00' }])).toBe(false);
+		expect(disponible(ctx, p.hugo, [{ debut: LUN, fin: '2027-06-29T06:00' }])).toBe(true);
+	});
+
+	it('un renfort qui demande un remplacement : c’est le chef de garde de l’équipe de la semaine qui valide', async () => {
+		const { base, chef, p, a, ids } = await jeu();
+		const [role] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_equipe'));
+		await base.insert(attribution).values({ personneId: p.denis, responsabiliteId: role!.id, perimetreType: 'equipe', perimetreId: ids[1]!, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		await publierEte(base, chef, 2027, maintenant, reglage);
+		const id = await demanderRemplacement(base, a(p.alice), { periodes: [{ debut: LUN, fin: '2027-06-29T06:00' }], cibleId: null }, '2027-06-20T10:00', reglage);
+		const [d] = await base.select().from(demandeRemplacement).where(eq(demandeRemplacement.id, id));
+		expect(d!.equipeId).toBe(ids[1]);
+		const ctx = await lireContexte(base, '2027-06-20T10:00', reglage);
+		expect(valideurs(ctx.chefs, d!.equipeId, p.alice)).toEqual([p.denis]);
 	});
 });

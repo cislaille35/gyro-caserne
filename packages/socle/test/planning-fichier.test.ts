@@ -141,4 +141,33 @@ describe('fichier du planning', () => {
 		await expect(appliquerPlanning(base, chef, 2027, lu, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
 		expect(await base.select().from(manoeuvre)).toEqual([]);
 	});
+
+	it('un fichier sans onglet Manœuvres ni Vacances scolaires : appliqué, il n’y touche pas', async () => {
+		const { base, chef, ids } = await jeu();
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		await enregistrerManoeuvre(base, chef, { debut: '2027-03-07T08:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: 'tous', petitDejeuner: false }, maintenant);
+		await ajouterVacances(base, chef, { nom: 'Vacances d’hiver', debut: '2027-02-13', fin: '2027-03-01' }, maintenant);
+		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
+		const lu = relu(d, (f) => {
+			delete f['Manœuvres'];
+			delete f['Vacances scolaires'];
+			f['Semaines']![1]![3] = f['Semaines']![2]![3]!;
+		});
+		await appliquerPlanning(base, chef, 2027, lu, maintenant, reglage);
+		expect(await base.select().from(semaineChangee)).toHaveLength(1);
+		expect(await base.select().from(manoeuvre)).toHaveLength(1);
+		expect(await base.select().from(vacancesScolaires)).toHaveLength(1);
+	});
+
+	it('des colonnes déplacées dans un onglet : erreur en ligne 1, l’onglet n’est pas lu', async () => {
+		const { base, chef, ids } = await jeu();
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		const lu: FichierPlanningLu = {
+			feuilles: { Manœuvres: [{ numero: 2, cellules: ['', '02/05/2027', '08:30', 'Caserne', 'Incendie', 'Toutes', 'Non'] }] },
+			entetes: { Manœuvres: ['Réf.', 'Date', 'Heure', 'Lieu', 'Thème', 'Équipes', 'Petit-déjeuner'] }
+		};
+		const apercu = await apercuPlanning(base, chef, 2027, lu, maintenant, reglage);
+		expect(apercu.erreurs).toEqual([{ feuille: 'Manœuvres', ligne: 1, message: 'Colonnes attendues, dans l’ordre : Réf., Date, Heure, Thème, Lieu, Équipes, Petit-déjeuner' }]);
+		expect(apercu.manoeuvres.ajoutees).toEqual([]);
+	});
 });

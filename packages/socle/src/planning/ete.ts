@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
@@ -8,7 +8,9 @@ import type { AvisEte } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
 import { mettreEnFile, TITRES_ETE } from '../notifications.ts';
 import { requeteChefs } from '../remplacements/contexte.ts';
-import { avisEte, ete, personne, reponseEte, vacancesAgent } from '../schema.ts';
+import { avisEte, ete, personne, plageEte, reponseEte, vacancesAgent } from '../schema.ts';
+import { ligneJournal } from '../journal.ts';
+import { nomActeur } from '../actions/personnes.ts';
 import { exigerAnnee } from './annee.ts';
 import { semainesDe, type Reglage } from './calendrier.ts';
 
@@ -18,6 +20,7 @@ export type EteVue = { annee: number; debut: string; fin: string; dateLimite: st
 export type Reponse = 'tout' | 'vacances' | null;
 
 const PERIODES_MAX = 10;
+const SEMAINES_MAX = 16;
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 
 // Du jour de relève de la première semaine au jour de relève qui suit la dernière.
@@ -42,17 +45,25 @@ export async function reglerEte(base: Base, acteur: Acteur, annee: number, d: { 
 	const releves = semainesDe(annee, reglage).map((s) => s.debut);
 	if (!releves.includes(d.debut) || !releves.includes(d.fin)) throw new DonneeInvalide('Jour de relève attendu');
 	if (d.fin < d.debut) throw new DonneeInvalide('Fin avant le début');
+	if (releves.indexOf(d.fin) - releves.indexOf(d.debut) >= SEMAINES_MAX) throw new DonneeInvalide(`Été trop long : ${SEMAINES_MAX} semaines au plus`);
 	exigerDate(d.dateLimite);
 	const [existant] = await base.select().from(ete).where(eq(ete.annee, annee));
 	if (existant?.publieeLe && (existant.debut !== d.debut || existant.fin !== d.fin)) throw new DonneeInvalide('Été publié : la période ne change plus');
 	const valeurs = { debut: d.debut, fin: d.fin, dateLimite: d.dateLimite };
 	// Une nouvelle date limite relance les rappels.
 	const rappels = existant && existant.dateLimite !== d.dateLimite ? { rappelMoisLe: null, rappelSemaineLe: null } : {};
-	await base.insert(ete).values({ annee, ...valeurs }).onConflictDoUpdate({ target: ete.annee, set: { ...valeurs, ...rappels } });
+	// Une autre période : la proposition déjà faite ne vaut plus, elle est à refaire.
+	const autrePeriode = existant && (existant.debut !== d.debut || existant.fin !== d.fin);
+	await base.batch([
+		base.insert(ete).values({ annee, ...valeurs }).onConflictDoUpdate({ target: ete.annee, set: { ...valeurs, ...rappels } }),
+		...(autrePeriode ? [base.delete(plageEte).where(eq(plageEte.annee, annee))] : []),
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'regler_ete', cibleType: 'planning', cibleId: null, details: { annee, ...valeurs } }, maintenant)
+	]);
 }
 
 // Écritures à placer dans un batch : la ligne de la cloche et l'envoi au téléphone (lieu « planning » : seul « tout » le coupe).
-export function avis(base: Base, ids: number[], quoi: AvisEte, texte: string, url: string, maintenant: string) {
+// `si` : une condition vérifiée à l'écriture (la publication a bien eu lieu).
+export function avis(base: Base, ids: number[], quoi: AvisEte, texte: string, url: string, maintenant: string, si?: SQL) {
 	if (ids.length === 0) return [];
 	return [
 		base.insert(avisEte).select(
@@ -67,9 +78,9 @@ export function avis(base: Base, ids: number[], quoi: AvisEte, texte: string, ur
 					lueLe: sql<string | null>`null`.as('lue_le')
 				})
 				.from(personne)
-				.where(inArray(personne.id, parmi(ids)))
+				.where(and(inArray(personne.id, parmi(ids)), si))
 		),
-		mettreEnFile(base, ids, 'planning', { titre: TITRES_ETE[quoi], texte, url, tag: `ete:${quoi}` }, maintenant)
+		mettreEnFile(base, ids, 'planning', { titre: TITRES_ETE[quoi], texte, url, tag: `ete:${quoi}` }, maintenant, si)
 	] as const;
 }
 

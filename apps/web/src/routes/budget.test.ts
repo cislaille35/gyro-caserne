@@ -45,6 +45,9 @@ import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
 import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
 import { load as mesVacancesPage } from './moi/vacances/+page.server';
 import { load as reglagesArmement } from './reglages/armement/+page.server';
+import { GET as donneesPlanning } from './planning/preparer/fichier/donnees/+server';
+import { POST as apercuPlanning } from './planning/preparer/fichier/apercu/+server';
+import { POST as appliquerPlanning } from './planning/preparer/fichier/appliquer/+server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -175,6 +178,18 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}
+		// Le fichier du planning, onglet Été compris : exporter, prévisualiser, appliquer.
+		const corps = async () => {
+			const d = await (await (donneesPlanning as any)({ locals, url: new URL(`http://localhost/planning/preparer/fichier/donnees?annee=${annee}`) })).json();
+			const feuilles = Object.fromEntries(d.feuilles.map((f: { nom: string; lignes: string[][] }) => [f.nom, f.lignes.map((cellules, i) => ({ numero: i + 2, cellules }))]));
+			const entetes = Object.fromEntries(d.feuilles.map((f: { nom: string; entetes: string[] }) => [f.nom, f.entetes]));
+			return JSON.stringify({ annee, lu: { feuilles, entetes } });
+		};
+		const poster = (route: unknown, texte: string) => (route as any)({ locals: { ...locals, enArrierePlan: () => {} }, request: new Request('http://x', { method: 'POST', body: texte, headers: { 'content-type': 'application/json' } }) });
+		let texte = '';
+		expect(await compter(async () => { texte = await corps(); }), 'exporter').toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect((await poster(apercuPlanning, texte)).status).toBe(200); }), 'aperçu').toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect((await poster(appliquerPlanning, texte)).status).toBe(200); }), 'appliquer').toBeLessThanOrEqual(BUDGET);
 		const [premiere] = await base.select().from(plageEte).orderBy(plageEte.debut);
 		const ouverte = new URL(`${url}&plage=${premiere!.debut}`);
 		const n = await compter(async () => {

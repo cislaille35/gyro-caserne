@@ -1,4 +1,6 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
+
+const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 import type { Base } from '../base.ts';
 import { texte } from '../commun.ts';
 import type { Acteur } from '../droits.ts';
@@ -98,6 +100,17 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 	const equipes = actives(p);
 	const parNom = (nom: string) => p.equipes.find((e) => e.nom.toLocaleLowerCase('fr') === nom.trim().toLocaleLowerCase('fr'));
 	const m = maintenant.slice(0, 16);
+
+	lu = { ...lu, feuilles: { ...lu.feuilles } };
+	// Les colonnes de chaque onglet, dans l'ordre de l'export : une colonne déplacée décalerait les données.
+	for (const cle of ['semaines', 'manoeuvres', 'vacances'] as const) {
+		const lues = lu.entetes?.[FEUILLES[cle]];
+		const attendues = ENTETES_PLANNING[cle];
+		if (lu.feuilles[FEUILLES[cle]] && lues && attendues.some((t, i) => (lues[i] ?? '').trim() !== t)) {
+			erreurs.push({ feuille: FEUILLES[cle], ligne: 1, message: `Colonnes attendues, dans l’ordre : ${attendues.join(', ')}` });
+			delete lu.feuilles[FEUILLES[cle]];
+		}
+	}
 
 	// Semaines : l'équipe voulue pour chaque jour de relève.
 	const semaines = semainesDe(p, reglage);
@@ -249,11 +262,11 @@ export async function appliquerPlanning(base: Base, acteur: Acteur, annee: numbe
 		);
 	});
 	for (const v of a.ajouts) ecritures.push(base.insert(manoeuvre).values(v));
-	const lues = a.modifications.length ? await base.select({ id: manoeuvre.id, ...colonnesExistante }).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(inArray(manoeuvre.id, a.modifications.map((x) => x.id))) : [];
+	const lues = a.modifications.length ? await base.select({ id: manoeuvre.id, ...colonnesExistante }).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(inArray(manoeuvre.id, parmi(a.modifications.map((x) => x.id)))) : [];
 	for (const { id, ...v } of a.modifications) ecritures.push(...ecrituresModification(base, id, lues.find((x) => x.id === id)!, v, maintenant));
 	for (const x of a.retraits) ecritures.push(...ecrituresRetrait(base, x.id, x.publicationId, maintenant));
 	for (const v of a.apercu.vacances.ajoutees) ecritures.push(base.insert(vacancesScolaires).values(v));
-	if (a.vacancesRetirees.length) ecritures.push(base.delete(vacancesScolaires).where(inArray(vacancesScolaires.id, a.vacancesRetirees)));
+	if (a.vacancesRetirees.length) ecritures.push(base.delete(vacancesScolaires).where(inArray(vacancesScolaires.id, parmi(a.vacancesRetirees))));
 	ecritures.push(...a.ecrituresEte());
 	const { semaines, manoeuvres, vacances } = a.apercu;
 	const details = { annee, ete: a.apercu.ete.ajouts + a.apercu.ete.retraits, semaines: semaines.length, manoeuvres: manoeuvres.ajoutees.length + manoeuvres.modifiees.length + manoeuvres.retirees.length, vacances: vacances.ajoutees.length + vacances.retirees.length };

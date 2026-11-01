@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
@@ -96,7 +96,7 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 			base.select().from(reponseEte).where(eq(reponseEte.annee, annee)),
 			base.select().from(plageEte).where(eq(plageEte.annee, annee)).orderBy(asc(plageEte.debut)),
 			base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe).orderBy(asc(equipe.ordreRotation)),
-			requeteConclues(base, `${annee}-06-01`, `${annee}-09-30`)
+			requeteConclues(base, `${annee}-01-01`, `${annee}-12-31`)
 		]),
 		lireArmement(base)
 	]);
@@ -160,7 +160,9 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 			else if (enVacances(lu.vacances, r.remplacantId, r)) conflits.push(`${texteTranche(r)} : ${r.remplacant} remplace ${r.titulaire}, mais est en vacances`);
 		}
 	}
-	const ouverte = plage ? lu.plagesEte.find((p) => p.debut === plage) : undefined;
+	// Un agent en vacances qui se retrouve présent (équipe changée, vacances données après la proposition).
+	for (const v of vues) for (const x of v.presents) if (enVacances(lu.vacances, x.id, v)) conflits.push(`${texteTranche(v)} : ${x.prenom} ${x.nom} est en vacances, mais présent`);
+	const ouverte = plage && proposee ? lu.plagesEte.find((p) => p.debut === plage) : undefined;
 	const detail = ouverte
 		? {
 				...vues.find((v) => v.debut === ouverte.debut)!,
@@ -223,7 +225,7 @@ export async function ajusterPlage(base: Base, acteur: Acteur, annee: number, de
 	if (present && !deBase) ajoutes.push(personneId);
 	if (!present && deBase) retires.push(personneId);
 	const equipeNom = lu.equipes.find((x) => x.id === p.equipeId)?.nom ?? 'l’équipe';
-	const texte = present ? `Vous êtes en renfort de l’${equipeNom} : ${texteTranche(p)}.` : `Vous n’êtes plus d’astreinte : ${texteTranche(p)}.`;
+	const texte = !present ? `Vous n’êtes plus d’astreinte : ${texteTranche(p)}.` : deBase ? `Vous êtes de nouveau d’astreinte : ${texteTranche(p)}.` : `Vous êtes en renfort de l’${equipeNom} : ${texteTranche(p)}.`;
 	await base.batch([
 		base.update(plageEte).set({ ajoutes: JSON.stringify(ajoutes), retires: JSON.stringify(retires) }).where(eq(plageEte.debut, debut)),
 		journal(base, acteur, present ? 'ajouter_plage_ete' : 'retirer_plage_ete', { debut, personneId }, maintenant),
@@ -237,8 +239,10 @@ export async function publierEte(base: Base, acteur: Acteur, annee: number, main
 	exigerAnnee(annee);
 	const aujourdhui = await exigerGestion(base, acteur, maintenant);
 	const lu = await lireEte(base, annee, aujourdhui, reglage);
-	if (!lu.e || lu.plages.length === 0) throw new DonneeInvalide('Proposez d’abord l’été');
+	if (!lu.e || lu.plages.length === 0 || lu.plagesEte.some((p) => !lu.plages.some((x) => x.debut === p.debut))) throw new DonneeInvalide('Proposez d’abord l’été');
 	if (lu.e.publiee) return;
+	// Les avis ne partent que si c'est cette publication-ci qui a eu lieu (deux clics ne préviennent pas deux fois).
+	const si = sql`exists (select 1 from ${ete} where ${ete.annee} = ${annee} and ${ete.publieeLe} = ${maintenant})`;
 	const textes = new Map<number, string[]>();
 	const dire = (id: number, t: string) => textes.set(id, [...(textes.get(id) ?? []), t]);
 	for (const s of lu.semaines) {
@@ -251,7 +255,7 @@ export async function publierEte(base: Base, acteur: Acteur, annee: number, main
 	await base.batch([
 		base.update(ete).set({ publieeLe: maintenant }).where(and(eq(ete.annee, annee), isNull(ete.publieeLe))),
 		journal(base, acteur, 'publier_ete', { annee }, maintenant),
-		...[...textes].flatMap(([id, t]) => avis(base, [id], 'repartition', `Planning d’été : ${t.join(' ; ')}.`, '/planning', maintenant))
+		...[...textes].flatMap(([id, t]) => avis(base, [id], 'repartition', `Planning d’été : ${t.join(' ; ')}.`, '/planning', maintenant, si))
 	]);
 }
 
@@ -288,10 +292,12 @@ export async function analyserFeuilleEte(base: Base, annee: number, entetes: str
 	const changements: { debut: string; personneId: number; present: boolean }[] = [];
 	for (const l of lignes) {
 		const id = Number(l.cellules[0]);
-		if (!lu.agents.some((a) => a.id === id)) {
+		if (!/^\d+$/.test((l.cellules[0] ?? '').trim())) {
 			erreurs.push({ ligne: l.numero, message: `N° « ${l.cellules[0] ?? ''} » : agent inconnu` });
 			continue;
 		}
+		// Parti depuis l'export : sa ligne ne compte plus.
+		if (!lu.agents.some((a) => a.id === id)) continue;
 		colonnes.forEach((p, i) => {
 			if (!p) return;
 			const voulu = (l.cellules[ENTETES_ETE.length + i] ?? '').trim() !== '';
