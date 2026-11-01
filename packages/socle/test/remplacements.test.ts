@@ -14,8 +14,8 @@ import { changerStatut } from '../src/actions/personnes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { chargerAptitudesFictives } from '../src/remplacements/fictif.ts';
 import { repondreEvenement } from '../src/actions/interactions.ts';
-import { lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
-import { demandeVue, nombreRemplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
+import { bandesDe, lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
+import { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsDe } from '../src/remplacements/lectures.ts';
 import { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from '../src/remplacements/demandes.ts';
 import { affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, abonnementPush, equipe, manoeuvre, personne, profil, publication, reponseEvenement, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -273,6 +273,7 @@ describe('échange de manœuvre', () => {
 		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
 		expect(choix.miennes.map((m) => m.id)).toEqual([m1]);
 		expect(choix.collegues.find((c) => c.id === n.bruno)?.manoeuvres.map((m) => m.id)).toEqual([m2]);
+		expect(choix.collegues.find((c) => c.id === n.bruno)?.aussiA).toEqual([]);
 		const id = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.bruno, manoeuvreCibleId: m2 }, maintenant, reglage);
 		expect(await accepterDemande(base, bruno, id, maintenant, reglage)).toBe('conclue');
 		expect(await demande(id)).toMatchObject({ etat: 'conclue', remplacantId: n.bruno });
@@ -504,5 +505,66 @@ describe('retours de revue, second passage', () => {
 		await changerStatut(base, base.photos, chef, n.alice, 'parti', maintenant);
 		expect((await demande(id)).etat).toBe('annulee');
 		expect(await avisDe(n.bruno)).toEqual(['recue', 'annulee']);
+	});
+});
+
+describe('parcours guidé', () => {
+	it('la semaine entière, même les nuits passées ou déjà demandées, avec leur état', async () => {
+		const { base, alice, n } = await jeu();
+		await demanderRemplacement(base, alice, { periodes: [nuitMardi10], cibleId: null }, maintenant, reglage);
+		const ctx = await lireContexte(base, '2026-11-09T20:00', reglage);
+		const [semaine] = bandesDe(ctx, n.alice);
+		expect(semaine!.semaine).toBe('2026-11-06');
+		expect(semaine!.tranches.map((t) => [t.debut.slice(0, 10), t.etat])).toEqual([
+			['2026-11-06', 'passee'],
+			['2026-11-07', 'passee'],
+			['2026-11-08', 'passee'],
+			['2026-11-09', 'passee'],
+			['2026-11-10', 'prise'],
+			['2026-11-11', 'libre'],
+			['2026-11-12', 'libre']
+		]);
+	});
+
+	it('les collègues libres sur les périodes choisies : équipe, aptitudes, ce qui manque ; seulement des périodes à soi', async () => {
+		const { base, alice, ids } = await jeu();
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9, { debut: '2026-11-20T18:00', fin: '2026-11-21T06:00' }] });
+		expect(lu.choisies).toEqual([nuitLundi9]);
+		expect(lu.candidats.map((c) => [c.prenom, c.equipe?.id ?? null, c.aptitudes, c.manque])).toEqual([
+			['Chloe', ids[2], ['CA1'], []],
+			['Bruno', ids[1], [], ['CA1']],
+			['Chef', null, [], ['CA1']]
+		]);
+		expect((await pourDemander(base, alice, maintenant, reglage)).candidats).toEqual([]);
+	});
+
+	it('échange : les collègues qui ont une période à donner, et ses périodes vues par moi', async () => {
+		const { base, alice, n } = await jeu();
+		expect((await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9] })).echangeables).toEqual([]);
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: n.bruno });
+		expect(lu.echangeables.map((c) => c.prenom)).toEqual(['Chloe', 'Bruno']);
+		expect(lu.avec?.prenom).toBe('Bruno');
+		expect(lu.semainesAvec[0]!.semaine).toBe('2026-11-13');
+		expect(lu.semainesAvec[0]!.tranches.every((t) => t.etat === 'libre')).toBe(true);
+		expect(lu.manqueMoi).toEqual([]);
+	});
+
+	it('échange : les aptitudes contrôlées du collègue qui me manquent pour ses périodes', async () => {
+		const { base, n, david } = await jeu();
+		// David (sans aptitude) prend une nuit de Chloé (CA1).
+		const lu = await pourDemander(base, david, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: n.chloe, periodesAvec: [{ debut: '2026-11-23T18:00', fin: '2026-11-24T06:00' }] });
+		expect(lu.avec?.prenom).toBe('Chloe');
+		expect(lu.manqueMoi).toEqual(['CA1']);
+	});
+});
+
+describe('échange de manœuvre, parcours court', () => {
+	it('un collègue déjà convoqué à ma manœuvre est signalé (il ne peut pas y prendre ma place)', async () => {
+		const { base, alice, ids, n } = await jeu();
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const commune = await enregistrerManoeuvre(base, qui, { debut: '2026-11-08T08:30', theme: 'Commune', lieu: 'Caserne', convoques: [ids[0]!, ids[1]!], petitDejeuner: false }, maintenant);
+		await enregistrerManoeuvre(base, qui, { debut: '2026-11-15T08:30', theme: 'Équipe 2', lieu: 'Caserne', convoques: [ids[1]!], petitDejeuner: false }, maintenant);
+		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
+		expect(choix.collegues.find((c) => c.id === n.bruno)?.aussiA).toEqual([commune]);
 	});
 });

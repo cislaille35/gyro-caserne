@@ -35,9 +35,22 @@ test.describe('remplacements', () => {
 			await page.getByRole('link', { name: 'Me faire remplacer' }).first().click();
 			await expect(page.getByRole('heading', { level: 1, name: 'Me faire remplacer' })).toBeVisible();
 			await sansViolation(page);
-			await page.locator('input[name="periode"]:not([disabled])').first().check();
-			await page.getByLabel('À tous les collègues disponibles').check();
+			// Étape 1 : la semaine de la carte est ouverte ; toucher un jour libre.
+			await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
+			await page.locator('input[name="p"]:not([disabled])').first().check();
+			await page.getByRole('button', { name: 'Continuer' }).click();
+			// Étape 2 : « Tout le monde » est choisi d'office.
+			await expect(page.getByText('Étape 2 sur 3')).toBeVisible();
+			await expect(page.getByLabel(/Tout le monde/)).toBeChecked();
+			await sansViolation(page);
+			await page.getByRole('button', { name: 'Continuer' }).click();
+			// Étape 3 : la phrase, puis Envoyer.
+			await expect(page.getByText('Étape 3 sur 3')).toBeVisible();
+			await expect(page.getByText(/^Vous demandez à être remplacé/)).toBeVisible();
+			await sansViolation(page);
 			await page.getByRole('button', { name: 'Envoyer la demande' }).click();
+			await expect(page.getByText('Demande envoyée.', { exact: false })).toBeVisible();
+			await expect(page.getByRole('list', { name: 'Où en est la demande' })).toBeVisible();
 			await expect(page.getByRole('heading', { level: 2, name: 'Ouverte à tous les disponibles' })).toBeVisible();
 			await expect(page.getByRole('heading', { level: 2, name: /Disponibles/ })).toBeVisible();
 			await sansViolation(page);

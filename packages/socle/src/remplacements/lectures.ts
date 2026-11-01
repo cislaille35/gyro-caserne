@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import type { EtatDemande, GenreDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
 import { demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
-import { disponibles, EN_COURS, lireContexte, manque, mesTranches, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
+import { bandesDe, candidats, disponibles, EN_COURS, lireContexte, manque, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
 // Ce que montrent les écrans : Pour moi, Mes demandes, À valider, l'historique, le détail d'une demande.
@@ -228,12 +228,21 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 		)
 		.orderBy(demandeRemplacement.debut);
 
-// L'écran « Me faire remplacer » : mes tranches à venir par semaine, les collègues, et celles du collègue choisi pour un échange.
-export async function pourDemander(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage, echangeAvec: number | null = null) {
+// Le parcours « Me faire remplacer » ou « Échanger » : mes semaines (toutes leurs tranches), les collègues libres sur les périodes
+// choisies (gardées seulement si elles sont à moi et libres). Pour un échange : les collègues qui ont une période à me donner,
+// ses semaines vues par moi, et les aptitudes contrôlées du collègue qui me manquent pour ses périodes (`periodesAvec`).
+export async function pourDemander(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage, choix: { periodes?: Periode[]; echange?: boolean; avec?: number | null; periodesAvec?: Periode[] } = {}) {
 	exigerDateHeure(maintenant, 'Date');
 	const moi = moiDe(acteur);
 	const ctx = await lireContexte(base, maintenant, reglage);
-	const collegues = ctx.agents.filter((a) => a.id !== moi).sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
-	const avec = collegues.find((a) => a.id === echangeAvec) ?? null;
-	return { semaines: mesTranches(ctx, moi), collegues, avec, semainesAvec: avec ? mesTranches(ctx, avec.id) : [] };
+	const semaines = bandesDe(ctx, moi);
+	const libres = semaines.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre');
+	const choisies = libres.filter((t) => (choix.periodes ?? []).some((p) => p.debut === t.debut && p.fin === t.fin)).map(({ debut, fin }) => ({ debut, fin }));
+	const libresPour = candidats(ctx, moi, choisies);
+	const echangeables = choix.echange ? libresPour.filter((c) => bandesDe(ctx, c.id, moi).some((s) => s.tranches.some((t) => t.etat === 'libre'))) : [];
+	const avec = echangeables.find((c) => c.id === choix.avec) ?? null;
+	const semainesAvec = avec ? bandesDe(ctx, avec.id, moi) : [];
+	const siennes = semainesAvec.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre' && (choix.periodesAvec ?? []).some((p) => p.debut === t.debut && p.fin === t.fin));
+	const manqueMoi = avec && siennes[0] ? manque(ctx, avec.id, moi, siennes[0].debut.slice(0, 10)) : [];
+	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec, manqueMoi };
 }

@@ -147,7 +147,8 @@ export async function manoeuvresEchangeables(base: Base, acteur: Acteur, mainten
 		miennes: miennes.map(vue),
 		collegues: ctx.agents
 			.filter((a) => a.id !== moi)
-			.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, manoeuvres: manoeuvres.filter((m) => convoqueA(ctx, m, a.id) && !convoqueA(ctx, m, moi)).map(vue) }))
+			// `aussiA` : mes manœuvres où il est aussi convoqué (il ne peut pas y prendre ma place).
+			.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, manoeuvres: manoeuvres.filter((m) => convoqueA(ctx, m, a.id) && !convoqueA(ctx, m, moi)).map(vue), aussiA: miennes.filter((m) => convoqueA(ctx, m, a.id)).map((m) => m.id) }))
 			.filter((a) => a.manoeuvres.length > 0)
 			.sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'))
 	};

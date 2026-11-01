@@ -60,4 +60,13 @@ describe('page Remplacements', () => {
 		expect(html).toMatch(/action="\?\/valider"/);
 		expect(html).toMatch(/action="\?\/refuserValidation"[\s\S]*?Motif \(facultatif\)/);
 	});
+
+	it('« Me faire remplacer » est un vrai bouton écrit ; les deux échanges à côté ; Mes demandes vides : le déroulé en 3 lignes', () => {
+		const html = page({ onglet: 'miennes' });
+		expect(html).toMatch(/<a class="principal[^"]*" href="\/remplacements\/demander">[\s\S]*?Me faire remplacer<\/a>/);
+		expect(html).toContain('href="/remplacements/demander?mode=echange"');
+		expect(html).toContain('Échanger ma place à une manœuvre');
+		expect(html).toContain('Comment ça marche ?');
+		expect(html.match(/<ol[^>]*>[\s\S]*?<\/ol>/)![0].match(/<li>/g)).toHaveLength(3);
+	});
 });

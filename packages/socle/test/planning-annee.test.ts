@@ -178,6 +178,17 @@ describe('le planning vu par l’agent', () => {
 		expect(p.prochaine.astreinte).toMatchObject({ debut: '2027-01-08T18:00' });
 	});
 
+	it('garde de fête : celle que son équipe tient vraiment, même l’année suivante (31 décembre 2027, un vendredi)', async () => {
+		const { base, chef, bruno, ids } = await publiee();
+		await publierAnnee(base, chef, 2026, maintenant);
+		// 2027 : semaine 52 (index 52 % 4 = 0) → équipe 2, celle de Bruno ; Noël 2027 (index 51) → équipe 1.
+		await reglerRoulement(base, chef, 2027, [ids[1]!, ids[2]!, ids[3]!, ids[0]!], maintenant);
+		await publierAnnee(base, chef, 2027, maintenant);
+		const p = await planningDe(base, bruno, 2026, maintenant, reglage);
+		if (!p.publiee) throw new Error('attendu publié');
+		expect(p.prochaine.fete).toEqual({ fete: 'nouvel_an', date: '2027-12-31' });
+	});
+
 	it('début janvier : la semaine en cours commencée fin décembre reste la prochaine astreinte', async () => {
 		const { base, chef, alice, ids } = await publiee();
 		await changerSemaines(base, chef, 2026, { '2026-12-25': ids[1]! }, maintenant, reglage);

@@ -78,8 +78,13 @@ test.describe('agent : mon année et mon agenda', () => {
 		await expect(page.getByRole('heading', { level: 2, name: /Ma prochaine astreinte|Mon astreinte en cours/ })).toBeVisible();
 		await expect(page.getByRole('heading', { level: 2, name: /^Semaine \d+/ })).toBeVisible();
 		await sansViolation(page);
-		await page.getByRole('link', { name: 'Semaine suivante' }).click();
+		// Les flèches ne font pas remonter la page.
+		const fleche = page.getByRole('link', { name: 'Semaine suivante' });
+		await fleche.scrollIntoViewIfNeeded();
+		const avant = await page.evaluate(() => window.scrollY);
+		await fleche.click();
 		await expect(page).toHaveURL(/semaine=/);
+		if (avant > 0) expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 
 		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Mois' }).click();
 		await expect(page.getByRole('table')).toBeVisible();
@@ -110,7 +115,7 @@ test.describe('agent : mon année et mon agenda', () => {
 
 		await page.goto('/moi');
 		await page.getByRole('link', { name: /Ajouter à mon agenda/ }).click();
-		const lien = await page.getByLabel('Lien d’abonnement').inputValue();
+		const lien = await page.getByLabel('Votre lien personnel').inputValue();
 		expect(lien).toMatch(/\/agenda\/\d+-[A-Za-z0-9_-]{43}\.ics$/);
 		const fichier = await page.request.get(lien);
 		expect(fichier.status()).toBe(200);
@@ -119,7 +124,7 @@ test.describe('agent : mon année et mon agenda', () => {
 		await sansViolation(page);
 		await page.getByRole('button', { name: 'Changer le lien' }).click();
 		await expect(page.getByText('Nouveau lien créé')).toBeVisible();
-		expect(await page.getByLabel('Lien d’abonnement').inputValue()).not.toBe(lien);
+		expect(await page.getByLabel('Votre lien personnel').inputValue()).not.toBe(lien);
 		expect((await page.request.get(lien)).status()).toBe(404);
 	});
 });

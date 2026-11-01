@@ -14,7 +14,7 @@
 					href="?casquette={encodeURIComponent(c.id)}"
 					aria-current={c.id === choisie ? 'true' : undefined}
 					aria-label={c.compte > 0 ? `${c.nom}, ${c.compte} en attente` : undefined}
-					data-sveltekit-noscroll
+					data-sveltekit-reset="false"
 					data-sveltekit-replacestate
 				>
 					<IconeRole icone={c.icone} taille={28} />

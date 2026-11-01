@@ -3,7 +3,8 @@
 	import PastilleEquipe from '../ui/PastilleEquipe.svelte';
 	import { phraseAstreinte } from './astreinte.ts';
 
-	// La carte astreinte, à la couleur de l'équipe (toujours nommée). Compacte à l'Accueil : toute la carte mène au Planning.
+	// La carte astreinte, à la couleur de l'équipe (toujours nommée). Compacte à l'Accueil : la phrase en tête et « Voir le planning ».
+	// Les mêmes gestes partout, au téléphone comme à l'ordinateur.
 	let { a, maintenant, compacte = false }: { a: Astreinte; maintenant: string; compacte?: boolean } = $props();
 
 	const p = $derived(phraseAstreinte(a, maintenant));
@@ -30,26 +31,24 @@
 	</div>
 {/snippet}
 
-{#if compacte}
-	<a class="carte compacte" href="/planning" style:--equipe={a.equipe.couleur}>
-		{@render corps()}
-		<span class="voir">Voir le planning<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg></span>
-	</a>
-{:else}
-	<section class="carte" style:--equipe={a.equipe.couleur} aria-label={rubrique}>
-		{@render corps()}
-		{#if a.mienne}
-			<div class="gestes">
-				<a href="/remplacements/demander#periode-{a.debut.slice(0, 10)}"
-					><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={REMPLACER} /></svg>Me faire remplacer</a
-				>
-				<a href="/moi/agenda"
-					><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={AGENDA} /></svg>Ajouter à mon agenda</a
-				>
-			</div>
+<section class="carte" class:compacte style:--equipe={a.equipe.couleur} aria-label={rubrique}>
+	{@render corps()}
+	<div class="gestes">
+		{#if compacte}
+			<a href="/planning"
+				>Voir le planning<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg></a
+			>
 		{/if}
-	</section>
-{/if}
+		{#if a.mienne}
+			<a href="/remplacements/demander?semaine={a.debut.slice(0, 10)}"
+				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={REMPLACER} /></svg>Me faire remplacer</a
+			>
+			<a href="/moi/agenda"
+				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={AGENDA} /></svg>Ajouter à mon agenda</a
+			>
+		{/if}
+	</div>
+</section>
 
 <style>
 	.carte {
@@ -63,12 +62,6 @@
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 		color: var(--encre);
 		text-decoration: none;
-	}
-	a.carte:hover {
-		box-shadow: 0 2px 12px color-mix(in srgb, var(--encre) 10%, transparent);
-	}
-	a.carte:hover .voir {
-		text-decoration: underline;
 	}
 	p {
 		margin: 0;
@@ -128,13 +121,6 @@
 	}
 	.plage {
 		color: var(--doux);
-	}
-	.voir {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		font-weight: 600;
-		font-size: 0.9375rem;
 	}
 	.gestes {
 		display: flex;

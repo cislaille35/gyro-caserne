@@ -31,5 +31,5 @@ Format d'une page :
 - [Comment me faire remplacer ?](me-faire-remplacer.md)
 - [Comment accepter ou refuser un remplacement ?](repondre-a-une-demande-de-remplacement.md)
 - [Comment valider un remplacement ?](valider-un-remplacement.md)
-- [Comment échanger une manœuvre ?](echanger-une-manoeuvre.md)
+- [Comment échanger ma place à une manœuvre ?](echanger-une-manoeuvre.md)
 - [Comment saisir les aptitudes d'un agent ?](saisir-les-aptitudes.md)

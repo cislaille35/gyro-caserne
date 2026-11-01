@@ -1,10 +1,11 @@
 # Comment ajouter le planning à mon agenda ?
 
-Une seule fois : ensuite, l'agenda se met à jour tout seul.
+Votre planning s'affiche dans l'agenda de votre téléphone et se met à jour tout seul (astreintes, manœuvres, remplacements). Une seule fois.
 
-1. Appuyez sur votre visage en haut à droite (« Moi »), puis sur « Ajouter à mon agenda ».
-2. **iPhone** : appuyez sur « Ouvrir dans l'agenda », puis « S'abonner » et « Ajouter ».
-3. **Google Agenda** : appuyez sur « Copier le lien ». Sur un ordinateur, dans Google Agenda : « Autres agendas », « + », « À partir de l'URL », collez le lien, puis « Ajouter l'agenda ».
-4. **Outlook** : copiez le lien, puis « Ajouter un calendrier », « S'abonner à partir du web », collez-le et « Importer ».
+1. Appuyez sur votre visage en haut à droite (« Moi »), puis sur « Ajouter à mon agenda » (aussi sur la carte de votre astreinte).
+2. Appuyez sur le bouton « Ajouter à mon agenda », puis confirmez l'abonnement dans votre agenda.
+3. Si rien ne s'ouvre : « Copier le lien », puis suivez le mode d'emploi de votre application (Google Agenda, iPhone, Outlook) sur la même page. Celui de votre téléphone est déjà ouvert.
 
-Le lien est personnel : ne le partagez pas. Perdu ou partagé ? Appuyez sur « Changer le lien » : l'ancien cesse de marcher ; ajoutez le nouveau à votre agenda.
+L'agenda peut mettre quelques heures à se mettre à jour ; l'appli est toujours à jour.
+
+Le lien est personnel : ne le partagez pas. Perdu ou partagé ? « Changer le lien » : l'ancien cesse de marcher ; ajoutez le nouveau à votre agenda.

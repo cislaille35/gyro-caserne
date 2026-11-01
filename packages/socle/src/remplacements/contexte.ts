@@ -6,7 +6,7 @@ import { lecturesAgents } from '../murs.ts';
 import type { Periode, Reglage, SemaineCalculee } from '../planning/calendrier.ts';
 import { anneesPubliees, equipeLe } from '../planning/annee.ts';
 import { validesLe } from '../aptitudes.ts';
-import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, attribution, demandeRemplacement, personne, responsabilite, semaineChangee } from '../schema.ts';
+import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, attribution, demandeRemplacement, equipe, personne, responsabilite, semaineChangee } from '../schema.ts';
 import { chevauche, tranchesDe } from './tranches.ts';
 
 // Ce qu'il faut savoir pour décider d'une demande, lu d'un seul bloc : les semaines publiées, les équipes de chacun,
@@ -20,7 +20,7 @@ export const periodesDe = (json: string | null): Periode[] => (json ? (JSON.pars
 
 export async function lireContexte(base: Base, maintenant: string, reglage: Reglage) {
 	const aujourdhui = maintenant.slice(0, 10);
-	const [annees, changees, affectations, demandes, agents, aptitudes, chefs] = await base.batch([
+	const [annees, changees, affectations, demandes, agents, aptitudes, chefs, equipes] = await base.batch([
 		base.select().from(anneePlanning),
 		base.select().from(semaineChangee),
 		base.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe),
@@ -35,10 +35,11 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 			.from(aptitudeAgent)
 			.innerJoin(aptitude, eq(aptitude.id, aptitudeAgent.aptitudeId))
 			.where(isNull(aptitude.retireeLe)),
-		requeteChefs(base, aujourdhui)
+		requeteChefs(base, aujourdhui),
+		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe)
 	]);
 	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs };
+	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes };
 }
 
 export type Contexte = Awaited<ReturnType<typeof lireContexte>>;
@@ -134,4 +135,41 @@ export function mesTranches(ctx: Contexte, id: number): { semaine: string; equip
 				.map((t) => ({ ...t, prise: !sansEngagement(ctx, id, [t]) }))
 		}))
 		.filter((s) => s.tranches.length > 0);
+}
+
+export type EtatTranche = 'libre' | 'prise' | 'passee' | 'occupe';
+
+// Le parcours guidé : ses semaines d'astreinte des douze prochaines semaines, avec toutes leurs tranches, même passées ou
+// déjà demandées (l'écran les montre inactives, avec la raison). `pour` : qui les prendrait (échange) ; « occupe » s'il n'est pas libre.
+export function bandesDe(ctx: Contexte, id: number, pour: number | null = null): { semaine: string; equipeId: number; tranches: (Periode & { etat: EtatTranche })[] }[] {
+	const limite = `${ajouterJours(ctx.maintenant.slice(0, 10), SEMAINES_PROPOSEES * 7)}T00:00`;
+	const etat = (t: Periode): EtatTranche => (t.debut <= ctx.maintenant ? 'passee' : !sansEngagement(ctx, id, [t]) ? 'prise' : pour !== null && !disponible(ctx, pour, [t]) ? 'occupe' : 'libre');
+	return astreintesDe(ctx, id)
+		.filter((s) => s.periodes.at(-1)!.fin > ctx.maintenant && s.periodes[0]!.debut < limite)
+		.map((s) => ({ semaine: s.debut, equipeId: s.equipeId, tranches: tranchesDe(s.periodes, ctx.reglage).map((t) => ({ ...t, etat: etat(t) })) }))
+		.filter((s) => s.tranches.some((t) => t.etat !== 'passee'));
+}
+
+// Les collègues libres sur ces périodes : leur équipe du jour, leurs aptitudes valables, et les aptitudes contrôlées du demandeur qui leur manquent.
+// Ceux à qui rien ne manque d'abord, puis par nom.
+export function candidats(ctx: Contexte, demandeurId: number, periodes: Periode[]) {
+	if (periodes.length === 0) return [];
+	const date = periodes[0]!.debut.slice(0, 10);
+	const aujourdhui = ctx.maintenant.slice(0, 10);
+	return ctx.agents
+		.filter((a) => a.id !== demandeurId && disponible(ctx, a.id, periodes))
+		.map((a) => {
+			const siennes = ctx.aptitudes.filter((x) => x.personneId === a.id).sort((x, y) => x.ordre - y.ordre);
+			const valides = validesLe(siennes, date);
+			const equipeId = equipeLe(affectationsDe(ctx, a.id), aujourdhui);
+			return {
+				id: a.id,
+				prenom: a.prenom,
+				nom: a.nom,
+				equipe: ctx.equipes.find((e) => e.id === equipeId) ?? null,
+				aptitudes: siennes.filter((x) => valides.has(x.aptitudeId)).map((x) => x.nom),
+				manque: manque(ctx, demandeurId, a.id, date)
+			};
+		})
+		.sort((a, b) => Number(a.manque.length > 0) - Number(b.manque.length > 0) || a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
 }

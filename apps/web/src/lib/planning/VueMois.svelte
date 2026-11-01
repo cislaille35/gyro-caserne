@@ -50,9 +50,9 @@
 
 <section class="vue" aria-labelledby="titre-mois">
 	<div class="navigation">
-		<a href={precedent} class="fleche" aria-label="Mois précédent" data-sveltekit-noscroll>‹</a>
+		<a href={precedent} class="fleche" aria-label="Mois précédent" data-sveltekit-reset="false">‹</a>
 		<h2 id="titre-mois">{moisDeLAnnee[mois - 1]} {donnees.annee}</h2>
-		<a href={suivant} class="fleche" aria-label="Mois suivant" data-sveltekit-noscroll>›</a>
+		<a href={suivant} class="fleche" aria-label="Mois suivant" data-sveltekit-reset="false">›</a>
 	</div>
 
 	{#if lignes.length}
@@ -80,7 +80,7 @@
 						{#each l.jours as j (j.date)}
 							{@const du = parJour.filter((x) => x.date === j.date)}
 							<td class:hors={!j.dansLeMois} class:aujourdhui={j.date === maintenant.slice(0, 10)}>
-								<a href={lienJour(l.semaine.debut, j.date)} data-sveltekit-noscroll>
+								<a href={lienJour(l.semaine.debut, j.date)}>
 									<span class="jour" aria-hidden="true">{Number(j.date.slice(8, 10))}</span>
 									<span class="masque">{jourLong(j.date)}{du.map((x) => `, ${SIGNES[x.genre]}`).join('')}{vacancesLe(j.date) ? ', vacances' : ''}</span>
 									<span class="signes" aria-hidden="true">

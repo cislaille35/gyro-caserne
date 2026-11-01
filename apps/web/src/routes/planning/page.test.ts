@@ -46,7 +46,7 @@ describe('onglet Planning', () => {
 		expect(html).toContain('Votre équipe est d’astreinte dans 5 jours.');
 		expect(html).toContain('Ma prochaine astreinte');
 		expect(html).toContain('Du ven. 6 nov. 18 h au ven. 13 nov. 6 h');
-		expect(html).toContain('href="/remplacements/demander#periode-2026-11-06"');
+		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-06"');
 		expect(html).toContain('Ajouter à mon agenda');
 	});
 
@@ -150,5 +150,39 @@ describe('onglet Planning', () => {
 
 	it('répondre sans JavaScript garde la vue', () => {
 		expect(page({ vue: 'mois', mois: 11 })).toMatch(/action="\?\/repondre&amp;annee=2026&amp;vue=mois&amp;semaine=2026-11-06&amp;mois=11"/);
+	});
+
+	it('Semaine : « Me faire remplacer » sur chacun de mes jours à venir, le jour pré-choisi', () => {
+		const html = page({});
+		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-06&amp;jour=2026-11-09"');
+		expect((html.match(/href="\/remplacements\/demander\?semaine=2026-11-06&amp;jour=/g) ?? []).length).toBe(7);
+		expect(page({ semaine: '2026-11-13' })).not.toContain('jour=2026-11-16');
+		// Le samedi à 10 h, la garde de 24 h a commencé : plus de lien ce jour-là ; le dimanche, si.
+		const samedi = page({ maintenant: '2026-11-07T10:00' });
+		expect(samedi).not.toContain('jour=2026-11-07');
+		expect(samedi).toContain('jour=2026-11-08');
+		// Le lundi à 10 h, la nuit de 18 h est encore à venir.
+		expect(page({ maintenant: '2026-11-09T10:00' })).toContain('jour=2026-11-09');
+	});
+
+	it('À venir : « Je ne peux pas : échanger ma place » sur une manœuvre d’équipe, pas sur une manœuvre de tout le centre', () => {
+		expect(page({})).toContain('href="/remplacements/manoeuvre?mienne=1&amp;depuis=planning"');
+		const tous = { ...publiee, prochaine: { ...publiee.prochaine, manoeuvre: { ...manoeuvre, convocation: 'tous', reponse: null } } };
+		expect(page({ planning: tous })).not.toContain('échanger ma place');
+	});
+
+	it('garde de fête : la date dite avec l’année quand ce n’est pas l’année en cours', () => {
+		const fete = (date: string) => ({ ...publiee, prochaine: { ...publiee.prochaine, fete: { fete: 'nouvel_an', date } } });
+		expect(page({ planning: fete('2027-12-31') })).toContain('Votre équipe la tient, le vendredi 31 décembre 2027.');
+		expect(page({ planning: fete('2026-12-31') })).toContain('Votre équipe la tient, le jeudi 31 décembre.');
+	});
+
+	it('flèches, jours et puces ne font pas remonter la page (SvelteKit 3 ignore « noscroll »)', () => {
+		for (const html of [page({}), page({ vue: 'mois' })]) {
+			expect(html).not.toContain(['data', 'sveltekit', 'noscroll'].join('-'));
+			expect(html).toMatch(/aria-label="(Semaine|Mois) précédente?"[^>]*data-sveltekit-reset="false"|data-sveltekit-reset="false"[^>]*aria-label="(Semaine|Mois) précédente?"/);
+		}
+		// Un jour du mois mène à sa semaine et fait défiler jusqu'à ce jour (pas en haut de page) : la navigation par défaut suit l'ancre.
+		expect(page({ vue: 'mois' })).toMatch(/href="\?annee=2026&amp;vue=semaine&amp;semaine=2026-11-06#jour-2026-11-11"(?![^>]*reset)[^>]*>/);
 	});
 });
