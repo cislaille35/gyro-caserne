@@ -77,6 +77,7 @@ export type EtatReservation = (typeof ETATS_RESERVATION)[number];
 
 export const AVIS_RESERVATION = ['acceptee', 'refusee', 'annulee'] as const;
 export type AvisReservation = (typeof AVIS_RESERVATION)[number];
+export const FETES = ['noel', 'nouvel_an'] as const;
 
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];

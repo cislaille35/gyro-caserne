@@ -13,6 +13,7 @@ const pub = (p: Partial<PublicationVue> = {}): PublicationVue => ({
 	modifieeLe: null,
 	epinglee: false,
 	commentairesFermes: false,
+	annulee: false,
 	photos: [],
 	jaime: 0,
 	commentaires: 0,
@@ -89,6 +90,17 @@ describe('page d’un mur', () => {
 		expect(page).toContain('src="/echanges/photo/7"');
 		expect(page).toContain('alt="Photo 2 sur 2, publiée par Alice Martin"');
 		expect(page).toContain('2 j’aime · 1 commentaire');
+	});
+
+	it('une manœuvre annulée par le planning : « Annulée », plus de réponse ; signée « Planning du centre »', () => {
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] };
+		const auteur = { prenom: 'Planning', nom: 'du centre', couleur: null, role: null, ecrireA: null };
+		const ouverte = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement })] });
+		expect(ouverte).toContain('Planning du centre');
+		expect(ouverte).toContain('aria-label="Votre réponse"');
+		const annulee = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement, annulee: true })] });
+		expect(annulee).toContain('Annulée');
+		expect(annulee).not.toContain('aria-label="Votre réponse"');
 	});
 
 	it('gestes selon les droits', () => {

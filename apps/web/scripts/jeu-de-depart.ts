@@ -1,10 +1,10 @@
 // Remplit la base du centre (CENTRE, « exemple » par défaut) avec le jeu de départ.
-// Par défaut, la base locale de développement, avec en plus une personne fictive, test@exemple.fr.
+// Par défaut, la base locale de développement, avec en plus des personnes fictives (dont test@exemple.fr) et un planning fictif.
 // Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerComptesDeTest, chargerMaterielFictif, chargerJeuDeDepart, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
@@ -68,6 +68,8 @@ try {
 				if (nouvelle && sonEquipe) await base.insert(affectationEquipe).values({ personneId: nouvelle.id, equipeId: sonEquipe.id, debut: '2026-01-01' });
 			}
 			await chargerMaterielFictif(base, maintenantParis());
+			// Un planning fictif : l'année en cours et la suivante publiées, quelques manœuvres.
+			await chargerPlanningFictif(base, description, maintenantParis());
 		}
 		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
 		if (boite !== undefined) await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));

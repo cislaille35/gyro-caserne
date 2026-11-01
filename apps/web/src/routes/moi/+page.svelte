@@ -9,6 +9,7 @@
 	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data } = $props();
+	const CALENDRIER = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
 
 	const id = $derived(data.identite);
 	// En partant, ni les brouillons ni les notifications de ce compte ne restent sur l'appareil (il peut être partagé).
@@ -56,6 +57,7 @@
 		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
 		{#if data.estPersonne}
 			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" icone="livre" dessin={DESSINS.profil} /></li>
+			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" icone="camion" dessin={CALENDRIER} /></li>
 			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
 		{/if}
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>

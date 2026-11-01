@@ -10,7 +10,7 @@ Savoir à tout moment qui est d'astreinte ou de garde, pour la semaine en cours 
   - Le type est **l'astreinte** (à domicile, avec un délai de départ) ou **la garde postée** (présence au centre).
   - Le titulaire est **une équipe** ou **un agent**.
 - **Deux façons de créer les créneaux** :
-  1. **Rotation d'équipes** : le centre règle le cycle (jours et heures de prise et de fin, ordre des équipes, une date de référence) et ses **exceptions** (« le vendredi 25 décembre, c'est l'équipe 3 »). C'est le fonctionnement de Laillé : du vendredi 17h30 au vendredi 6h.
+  1. **Rotation d'équipes** : le centre règle le cycle (jours et heures de prise et de fin, ordre des équipes, une date de référence) et ses **exceptions** (« le vendredi 25 décembre, c'est l'équipe 3 »). C'est le fonctionnement de Laillé : du vendredi 18 h au vendredi 6 h. Le roulement de chaque année est livré : voir [Planning de l'année](planning-de-l-annee.md).
   2. **Planning nominatif** : le responsable remplit les créneaux de garde postée à partir des disponibilités déclarées. Il est prévu dans le modèle, mais il sera livré quand un centre en aura besoin.
 - **Week-end** : une partie du créneau d'astreinte que le centre définit (par défaut, du vendredi 17h30 au lundi 6h). Il sert aux échanges de week-end.
 - **Plafonds** (réglages du centre) : semaines d'astreinte par an, nuits consécutives, heures de garde par an… L'appli **prévient** quand un plafond est dépassé, mais ne bloque pas.
@@ -35,4 +35,4 @@ Savoir à tout moment qui est d'astreinte ou de garde, pour la semaine en cours 
 
 ## Exemple
 
-Laillé a 4 équipes, avec une prise le vendredi à 17h30 et une fin le vendredi suivant à 6h. Le vendredi 16 janvier 2026, c'est l'équipe 1. Pour Noël, le chef de centre ajoute une exception : le vendredi 25 décembre, c'est l'équipe 3. La rotation reprend normalement ensuite.
+Laillé a 4 équipes, avec une prise le vendredi à 18 h et une fin le vendredi suivant à 6h. Le vendredi 16 janvier 2026, c'est l'équipe 1. Pour Noël, le chef de centre ajoute une exception : le vendredi 25 décembre, c'est l'équipe 3. La rotation reprend normalement ensuite.

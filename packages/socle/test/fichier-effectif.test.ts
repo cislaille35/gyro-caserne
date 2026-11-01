@@ -83,7 +83,7 @@ describe('donneesFichier', () => {
 			'Comité : Amicale': 'rolesComite',
 			'Comité : Comité du centre': 'rolesComite'
 		});
-		expect(donnees.listes.equipes).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3']);
+		expect(donnees.listes.equipes).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 		expect(donnees.listes.statuts).toEqual(['Opérationnel', 'Stagiaire', 'Inapte temporaire', 'Suspendu', 'Parti']);
 		expect(donnees.listes.profils).toEqual(['Agent', 'Réserve citoyenne']);
 		expect(donnees.listes.rolesComite).toEqual(['Membre de comité', 'Rapporteur de comité']);

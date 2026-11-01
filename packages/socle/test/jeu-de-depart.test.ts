@@ -20,7 +20,8 @@ describe('chargerJeuDeDepart', () => {
 		expect(equipes.map((e) => [e.nom, e.couleur, e.ordreRotation])).toEqual([
 			['Équipe 1', '#d4a017', 1],
 			['Équipe 2', '#c2185b', 2],
-			['Équipe 3', '#1565c0', 3]
+			['Équipe 3', '#1565c0', 3],
+			['Équipe 4', '#2e7d32', 4]
 		]);
 	});
 
@@ -92,7 +93,7 @@ describe('chargerJeuDeDepart', () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
 		await chargerJeuDeDepart(base, centreExemple);
-		expect(await base.select().from(equipe)).toHaveLength(3);
+		expect(await base.select().from(equipe)).toHaveLength(4);
 		expect(await base.select().from(profil)).toHaveLength(2);
 		expect(await base.select().from(comite)).toHaveLength(2);
 		expect(await base.select().from(responsabilite)).toHaveLength(8);

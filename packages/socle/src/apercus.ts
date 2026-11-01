@@ -61,7 +61,7 @@ export async function apercusDesMurs(base: Base, acteur: Acteur, aujourdhui: str
 		const p = lesDernieres.find((x) => x.mur === m.cle);
 		if (p) {
 			const a = auteurVu(p.auteur, lesAuteurs.find((x) => `personne:${x.id}` === p.auteur));
-			r.derniere = { auteur: p.auteur.startsWith('super:') ? 'Super administrateur' : a.prenom || a.nom, texte: surUneLigne(p.texte), creeLe: p.creeLe };
+			r.derniere = { auteur: p.auteur.startsWith('super:') ? 'Super administrateur' : p.auteur === 'planning' ? 'Planning du centre' : a.prenom || a.nom, texte: surUneLigne(p.texte), creeLe: p.creeLe };
 		}
 		return r;
 	});

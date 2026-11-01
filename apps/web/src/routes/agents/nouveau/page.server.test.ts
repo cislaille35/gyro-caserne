@@ -38,7 +38,7 @@ describe('/agents/nouveau', () => {
 		const { base, profilAgent } = await preparer();
 		const data = await lire(locaux(base, super_));
 		expect(data.profilParDefaut).toBe(String(profilAgent.id));
-		expect(data.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3']);
+		expect(data.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 		expect(data.grades.length).toBeGreaterThan(0);
 	});
 

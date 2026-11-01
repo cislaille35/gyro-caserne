@@ -58,7 +58,7 @@ describe('ceQueJePeuxAttribuer', () => {
 		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre' }, { nom: 'Chef de centre adjoint' }, { nom: 'Chef d’équipe' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent technique' }]));
 		const parNom = (nom: string) => liste.find((l) => l.nom === nom)!;
 		expect(parNom('Chef de centre')).toMatchObject({ responsabiliteId: r('Chef de centre'), portee: 'centre', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }] });
-		expect(parNom('Chef d’équipe').perimetres.map((p) => p.nom)).toEqual(['Équipe 1', 'Équipe 2']);
+		expect(parNom('Chef d’équipe').perimetres.map((p) => p.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 4']);
 		expect(parNom('Membre de comité').perimetres.map((p) => p.nom)).toEqual(['Amicale', 'Comité du centre']);
 		// L'icône de chaque rôle, même règle que partout (iconeDuRole).
 		expect(parNom('Référent engins').icone).toBe('camion');

@@ -183,6 +183,17 @@ Spec : [2026-10-31-reservations-design.md](../superpowers/specs/2026-10-31-reser
 - Lectures : `ressourcesDe`, `calendrier`, `mesReservations` (marque lus les avis), `aValider`, `acceptees`, `nombreAValider` (1 requête : la cloche), `ressourcesAGerer`. Une demande dont la période est passée ne compte plus à valider. Les casquettes d'un rôle ou d'un comité gestionnaire comptent leurs demandes (« À décider »).
 - `effacerVieillesReservations` : ménage de nuit, réservations finies depuis plus d'un an. `chargerMaterielFictif` : bancs, tables, barnum de l'amicale, pour les comptes de test et le développement local.
 
+## Planning de l'année
+
+Spec : [2026-11-01-planning-annee-design.md](../superpowers/specs/2026-11-01-planning-annee-design.md). Migration additive `0012`. Décision : [0013](../decisions/0013-planning-de-l-annee.md). Dossier `src/planning/`.
+
+- Tables : `annee_planning` (année, `ordre` du roulement en JSON, `publiee_le`), `semaine_changee` (jour de relève, équipe), `manoeuvre` (début, thème, lieu, convoqués en JSON, petit-déjeuner, `annulee_le`, `publication_id`, `relance_le`), `vacances_scolaires`, `garde_fete` (historique saisi : année, `noel` ou `nouvel_an`, équipe), `cle_agenda` (personne, clé secrète) ; colonne `publication.annulee_le`.
+- `calendrier.ts` (sans base) : `feries`, `semainesDe`, `periodesDeLaSemaine` (heures réelles d'après `astreinte.semaine`), `calculerAnnee`, `equipeA`, `fetes`, `tourDesFetes`.
+- `annee.ts` : `preparerAnnee` et les actions du chef (`GERER_PLANNING`, une ligne de journal chacune) ; `planningDe` pour l'agent (`VOIR_PLANNING`) : équipe de l'agent à la date de chaque relève, prochaine astreinte, manœuvre et fête. Changer ou annuler une manœuvre annoncée met sa publication à jour dans le même batch.
+- `manoeuvres.ts` : `planningDuMatin` (appelé à 8 h et 8 h 10 par `planifie.ts`) annonce à 14 jours ou moins et relance le mercredi ; `manoeuvreChangee` prévient les convoqués (`notifierConvoques` dans `notifications.ts`). Auteur `planning`, affiché « Planning du centre ».
+- `agenda.ts` : `monLienAgenda`, `changerLienAgenda`, `agendaDe` (iCalendar, UTC, lignes pliées à 75 octets). La clé est effacée au départ de l'agent.
+- `fictif.ts` : `chargerPlanningFictif`, pour le jeu de départ local et la préprod.
+
 ## Fichier de l'effectif
 
 Trois modules, tous réservés aux gestionnaires (`estGestionnaire`, sinon `RefusDroit`), 50 requêtes au plus par appel. Le classeur `.xlsx` est écrit et lu dans le navigateur ([interface.md](interface.md)) : le socle ne voit que des lignes de texte.

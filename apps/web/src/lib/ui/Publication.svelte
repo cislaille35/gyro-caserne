@@ -106,7 +106,7 @@
 					{@render signature()}
 				</span>
 				{#if p.epinglee && !prise}<Pastille ton="info">Épinglée</Pastille>{/if}
-				{#if p.type === 'evenement'}<Pastille ton="info">Événement</Pastille>{:else if p.type === 'annonce' && !prise}<Pastille ton="alerte">Annonce</Pastille>{/if}
+				{#if p.annulee}<Pastille ton="danger">Annulée</Pastille>{:else if p.type === 'evenement'}<Pastille ton="info">Événement</Pastille>{:else if p.type === 'annonce' && !prise}<Pastille ton="alerte">Annonce</Pastille>{/if}
 			</p>
 		{/if}
 
@@ -126,7 +126,7 @@
 				{/if}
 				<span class="doux">{pluriel(e.compte.present, 'présent')} · {pluriel(e.compte.absent, 'absent')} · {pluriel(e.compte.incertain, 'incertain')}</span>
 			</p>
-			{#if agir && e.convoque}
+			{#if agir && e.convoque && !p.annulee}
 				<form method="POST" action="?/repondre" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={p.id} />
 					<div role="group" aria-label="Votre réponse" class="reponses">

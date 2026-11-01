@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_RESERVATION, checkDans, DROITS, ETATS_RESERVATION, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_RESERVATION, checkDans, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -227,7 +227,9 @@ export const publication = sqliteTable(
 		sondageReponses: text('sondage_reponses'),
 		// Dates du sondage (« AAAA-MM-JJTHH:MM », heure de Paris) ; vides pour un sondage publié sans dates.
 		sondageOuverture: text('sondage_ouverture'),
-		sondageCloture: text('sondage_cloture')
+		sondageCloture: text('sondage_cloture'),
+		// Manœuvre annulée (planning) : la publication reste, marquée « Annulée ».
+		annuleeLe: text('annulee_le')
 	},
 	(t) => [
 		check('publication_type', checkDans('type', TYPES_PUBLICATION)),
@@ -502,6 +504,70 @@ export const avisReservation = sqliteTable(
 	},
 	(t) => [check('avis_reservation_quoi', checkDans('quoi', AVIS_RESERVATION)), index('avis_reservation_personne').on(t.personneId, t.lueLe)]
 );
+
+// Planning de l'année (planning/annee.ts). `ordre` : JSON, identifiants des équipes dans l'ordre du roulement, la première tient la première semaine.
+// `publiee_le` nul : l'année n'est pas encore visible des agents.
+export const anneePlanning = sqliteTable('annee_planning', {
+	annee: integer('annee').primaryKey(),
+	ordre: text('ordre').notNull().default('[]'),
+	publieeLe: text('publiee_le')
+});
+
+// Une semaine dont le chef a changé l'équipe, désignée par son jour de relève.
+export const semaineChangee = sqliteTable('semaine_changee', {
+	debut: text('debut').primaryKey(),
+	equipeId: integer('equipe_id')
+		.notNull()
+		.references(() => equipe.id)
+});
+
+// `convoques` : JSON, « tous » ou identifiants d'équipes. `publication_id` : son annonce sur « Le centre », une fois publiée (tâche de nuit).
+export const manoeuvre = sqliteTable(
+	'manoeuvre',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		debut: text('debut').notNull(),
+		theme: text('theme').notNull(),
+		lieu: text('lieu').notNull(),
+		convoques: text('convoques').notNull(),
+		petitDejeuner: integer('petit_dejeuner').notNull().default(0),
+		annuleeLe: text('annulee_le'),
+		publicationId: integer('publication_id').references(() => publication.id, { onDelete: 'set null' }),
+		relanceLe: text('relance_le'),
+		// Annoncée sur « Le centre » : jamais une seconde fois, même si la publication est supprimée.
+		annonceeLe: text('annoncee_le')
+	},
+	(t) => [check('manoeuvre_petit_dejeuner', sql`${sql.identifier('petit_dejeuner')} IN (0, 1)`), index('manoeuvre_debut').on(t.debut)]
+);
+
+export const vacancesScolaires = sqliteTable('vacances_scolaires', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	nom: text('nom').notNull(),
+	debut: text('debut').notNull(),
+	fin: text('fin').notNull()
+});
+
+// Qui a tenu Noël et le Nouvel An les années passées (saisi par le chef), pour le tour des fêtes.
+export const gardeFete = sqliteTable(
+	'garde_fete',
+	{
+		annee: integer('annee').notNull(),
+		fete: text('fete', { enum: FETES }).notNull(),
+		equipeId: integer('equipe_id')
+			.notNull()
+			.references(() => equipe.id)
+	},
+	(t) => [primaryKey({ columns: [t.annee, t.fete] }), check('garde_fete_fete', checkDans('fete', FETES))]
+);
+
+// La clé secrète du lien d'agenda d'une personne : la changer invalide l'ancien lien.
+export const cleAgenda = sqliteTable('cle_agenda', {
+	personneId: integer('personne_id')
+		.primaryKey()
+		.references(() => personne.id),
+	cle: text('cle').notNull(),
+	creeLe: text('cree_le').notNull()
+});
 
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';

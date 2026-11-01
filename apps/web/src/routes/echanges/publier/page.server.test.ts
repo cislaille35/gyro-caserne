@@ -45,7 +45,7 @@ describe('page Publier', () => {
 		expect(data.choisi).toBeNull();
 		const duChef = await charger(locaux(base, chef));
 		expect(duChef.murs[0]).toMatchObject({ cle: 'centre', peutModerer: true });
-		expect(duChef.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3']);
+		expect(duChef.equipes.map((e: { nom: string }) => e.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 3', 'Équipe 4']);
 	});
 
 	it('?mur= présélectionne un mur proposé ; inconnu ou interdit : aucun', async () => {

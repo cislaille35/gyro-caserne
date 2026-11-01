@@ -41,6 +41,8 @@ export type PublicationVue = {
 	modifieeLe: string | null;
 	epinglee: boolean;
 	commentairesFermes: boolean;
+	// Une manœuvre annulée par le planning : la publication reste, on n'y répond plus.
+	annulee: boolean;
 	photos: number[];
 	jaime: number;
 	commentaires: number;
@@ -244,7 +246,7 @@ export async function lirePublication(base: Base, acteur: Acteur, id: number, ma
 }
 
 export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
-	auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
+	auteur === 'planning' ? { prenom: 'Planning', nom: 'du centre' } : auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
 
 // Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
 function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {
@@ -380,6 +382,7 @@ async function vuesDe(
 			modifieeLe: p.modifieeLe,
 			epinglee: p.epinglee === 1,
 			commentairesFermes: p.commentairesFermes === 1,
+			annulee: p.annuleeLe !== null,
 			photos: photos.filter((ph) => ph.publicationId === p.id).map((ph) => ph.id),
 			jaime: j?.n ?? 0,
 			commentaires: commentaires.find((c) => c.publicationId === p.id)?.n ?? 0,

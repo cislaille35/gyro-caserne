@@ -38,7 +38,7 @@ describe('chargerComptesDeTest', () => {
 	it('donne à chaque compte les murs de son profil', async () => {
 		const base = await jeu();
 		const cles = async (role: string) => (await mursDuCompte(base, role)).map((m) => m.cle);
-		expect((await cles('chef')).length).toBe(7);
+		expect((await cles('chef')).length).toBe(8);
 		expect(await cles('agent')).toEqual(['centre', 'vie', 'equipe:1']);
 		expect(await cles('exterieur')).toEqual([]);
 		const amicale = (await mursDuCompte(base, 'rapporteur')).find((m) => m.nom === 'Amicale');
@@ -95,7 +95,7 @@ describe('chargerComptesDeTest', () => {
 		await ajouterPersonne(base, { type: 'super', email: 'admin@exemple.fr' }, { email: 'caserne+chef@exemple.fr', prenom: 'Claire', nom: 'Chef', profilId: agent!.id }, aujourdhui, []);
 		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 		const avant = (await base.select().from(publication)).length;
-		expect((await mursDuCompte(base, 'chef')).length).toBe(7);
+		expect((await mursDuCompte(base, 'chef')).length).toBe(8);
 		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', '2026-12-29T10:00');
 		expect((await base.select().from(publication)).length).toBe(avant);
 	});

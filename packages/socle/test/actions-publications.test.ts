@@ -414,6 +414,7 @@ describe('lireMur', () => {
 			modifieeLe: null,
 			epinglee: false,
 			commentairesFermes: false,
+			annulee: false,
 			photos,
 			jaime: 2,
 			commentaires: 1,
