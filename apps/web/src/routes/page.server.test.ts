@@ -6,6 +6,7 @@ import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { actions, load } from './+page.server';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { requeteFormulaire, preparer } from './echanges/de-test.ts';
+import { preparer as preparerPlanning } from './planning/de-test.ts';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -40,8 +41,18 @@ describe('load de /', () => {
 			contenu: { type: 'astreinte' },
 			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] },
 			anniversaire: false,
-			aujourdhui: aujourdhuiParis()
+			aujourdhui: aujourdhuiParis(),
+			astreinte: null,
+			maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
 		});
+	});
+
+	it('planning publié : la carte astreinte de l’agent ; sans équipe, l’équipe de la semaine', async () => {
+		const { base, alice, chef } = await preparerPlanning();
+		const l = (acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
+		expect((await appeler(l(alice))).astreinte).toMatchObject({ mienne: true, equipe: { nom: 'Équipe 1' } });
+		const deChef = (await appeler(l(chef))).astreinte;
+		if (deChef) expect(deChef).toMatchObject({ mienne: false, enCours: true });
 	});
 
 	it('dit si c’est l’anniversaire de l’agent, pour la fête du jour', async () => {

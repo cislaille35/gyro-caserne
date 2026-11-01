@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
@@ -9,7 +10,6 @@
 	import Casquettes from '#lib/ui/Casquettes.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
-	import Pastille from '#lib/ui/Pastille.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
@@ -41,6 +41,7 @@
 	]);
 	// Hors « Le centre » : de quoi aller vite là où l'on va le plus.
 	const raccourcis: Lien[] = $derived([
+		{ href: '/planning', titre: 'Planning', texte: 'Astreintes, manœuvres et remplacements', icone: 'casque', dessin: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4' },
 		{ href: '/echanges', titre: 'Échanges', texte: 'Les murs du centre et vos messages', icone: 'camion', dessin: DESSINS.echanges },
 		{ href: '/agents', titre: 'L’effectif', texte: 'Qui est qui au centre', icone: 'casque' },
 		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Téléphone, contact d’urgence', icone: 'livre' as const, dessin: DESSINS.profil }] : [])
@@ -90,6 +91,8 @@
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
+	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} compacte />{/if}
+
 	<div class="masque" role="status">{annonceSucces}</div>
 	<div class="masque" role="alert">{annonceEchec}</div>
 
@@ -117,15 +120,7 @@
 						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
 					</ListeRangees>
 				{/if}
-				{#if data.contenu.type === 'astreinte' || data.contenu.type === 'equipe'}
-					<ListeRangees titre={casquette?.nom ?? 'Mon astreinte'}>
-						<li>
-							<Rangee titre="Bientôt ici" sous="Votre astreinte s’affichera ici avec le planning." icone="casque" discret>
-								{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
-							</Rangee>
-						</li>
-					</ListeRangees>
-				{:else if data.contenu.type === 'role'}
+				{#if data.contenu.type === 'role'}
 					<ListeRangees titre="Ce que ce rôle permet">
 						{#each data.contenu.permet as permis (permis)}
 							<li><Rangee titre={permis} icone={casquette?.icone ?? 'etoile'} /></li>

@@ -176,6 +176,14 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n).toBeLessThanOrEqual(BUDGET);
 		}
+		// L'accueil avec la carte astreinte : l'agent et le chef de centre.
+		for (const l of [locals, deLAgent]) {
+			const n = await compter(async () => {
+				await (racine as any)({ locals: l });
+				expect((await (accueil as any)({ locals: l, url: new URL('http://localhost/') })).astreinte).not.toBeNull();
+			});
+			expect(n, 'accueil').toBeLessThanOrEqual(BUDGET);
+		}
 		const url = new URL(`http://localhost/planning/preparer?annee=${annee}`);
 		const page = () => (preparer as any)({ locals, url });
 		expect(await compter(async () => { await (racine as any)({ locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
