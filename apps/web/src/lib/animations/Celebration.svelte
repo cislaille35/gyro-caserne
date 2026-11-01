@@ -13,6 +13,8 @@
 	const DUREE = 6000;
 	let fete = $state<Moment | null>(null);
 	let focus = false;
+	// Où rendre le focus quand « Fermer » disparaît.
+	let retour: HTMLElement | null = null;
 	// Déjà montrés sur cette page : utile quand la mémoire du navigateur manque.
 	const montres: string[] = [];
 	let minuteur: ReturnType<typeof setTimeout> | undefined;
@@ -37,6 +39,7 @@
 	};
 
 	// Seulement dans le navigateur : la page rendue par le serveur ne fête jamais rien.
+	// Un autre moment arrivé pendant une fête attend la page suivante (cas rare).
 	$effect(() => {
 		const m = moment;
 		if (!m || untrack(() => fete)) return;
@@ -59,18 +62,32 @@
 
 	function fermer() {
 		clearTimeout(minuteur);
+		const avaitLeFocus = focus;
 		fete = null;
+		focus = false;
+		if (avaitLeFocus) (retour ?? document.getElementById('contenu'))?.focus();
+		retour = null;
+	}
+
+	function entree(e: FocusEvent) {
+		if (!focus && e.relatedTarget instanceof HTMLElement) retour = e.relatedTarget;
+		focus = true;
+	}
+
+	// Échap ferme la fête, sauf si elle sert déjà à une fenêtre ou un menu de la page.
+	function touche(e: KeyboardEvent) {
+		if (fete && e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('dialog[open]')) fermer();
 	}
 
 	onDestroy(() => clearTimeout(minuteur));
 </script>
 
-<svelte:window onkeydown={(e) => fete && e.key === 'Escape' && fermer()} />
+<svelte:window onkeydown={touche} />
 
 <!-- Annonce discrète, sans rôle « status » : la page garde sa seule zone d'état pour ses formulaires. -->
 {#if annoncer}<div class="masque" aria-live="polite">{fete?.texte ?? ''}</div>{/if}
 {#if fete}
-	<div class="fete" role="presentation" onfocusin={() => (focus = true)} onfocusout={() => (focus = false)}>
+	<div class="fete" role="presentation" onfocusin={entree} onfocusout={() => (focus = false)}>
 		<div class="scene" aria-hidden="true">
 			{#each confettis as c, i (i)}
 				<span class="confetti" style:left="{c.x}%" style:background={c.c} style:animation-delay="{c.d}s"></span>

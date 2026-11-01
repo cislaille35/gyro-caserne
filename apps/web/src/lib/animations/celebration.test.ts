@@ -20,11 +20,13 @@ describe('moments à célébrer', () => {
 		expect(momentAnniversaire(false, '2026-11-01')).toBeNull();
 	});
 
-	it('première réservation acceptée : seulement quand il n’y en a qu’une', () => {
+	it('première réservation acceptée : une seule acceptée, et elle est à venir', () => {
 		const r = (etat: string) => ({ etat });
-		expect(momentPremiereReservation([r('acceptee'), r('attente')])).toMatchObject({ cle: 'premiere-reservation' });
-		expect(momentPremiereReservation([r('attente'), r('refusee')])).toBeNull();
-		expect(momentPremiereReservation([r('acceptee'), r('acceptee')])).toBeNull();
+		expect(momentPremiereReservation([r('acceptee'), r('attente')], [r('annulee')])).toMatchObject({ cle: 'premiere-reservation' });
+		expect(momentPremiereReservation([r('attente'), r('refusee')], [])).toBeNull();
+		expect(momentPremiereReservation([r('acceptee')], [r('acceptee')])).toBeNull();
+		// Acceptée il y a longtemps : trop tard pour la fêter.
+		expect(momentPremiereReservation([], [r('acceptee')])).toBeNull();
 	});
 
 	it('année du planning publiée : par année', () => {

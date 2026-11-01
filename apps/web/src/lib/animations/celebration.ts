@@ -1,5 +1,6 @@
 import type { Niveau } from '../affichage.ts';
 import type { Tenue } from '../gyro/tenues.ts';
+import { calme } from './tirage.ts';
 
 // Les vrais moments, fêtés une fois par personne : la clé dit lequel.
 export type Moment = { cle: string; texte: string; tenue: Tenue };
@@ -8,9 +9,10 @@ export function momentAnniversaire(estLeJour: boolean, aujourdhui: string): Mome
 	return estLeJour ? { cle: `anniversaire:${aujourdhui}`, texte: 'Joyeux anniversaire\u00a0!', tenue: 'anniversaire' } : null;
 }
 
-export function momentPremiereReservation(reservations: { etat: string }[]): Moment | null {
-	const acceptees = reservations.filter((r) => r.etat === 'acceptee').length;
-	return acceptees === 1 ? { cle: 'premiere-reservation', texte: 'Votre première réservation est acceptée\u00a0!', tenue: 'victoire' } : null;
+// Une seule réservation acceptée, et elle est à venir : une acceptée il y a longtemps ne se fête plus.
+export function momentPremiereReservation(aVenir: { etat: string }[], passees: { etat: string }[]): Moment | null {
+	const acceptee = (r: { etat: string }) => r.etat === 'acceptee';
+	return aVenir.filter(acceptee).length === 1 && !passees.some(acceptee) ? { cle: 'premiere-reservation', texte: 'Votre première réservation est acceptée\u00a0!', tenue: 'victoire' } : null;
 }
 
 export function momentPlanningPublie(annee: number | null): Moment | null {
@@ -19,7 +21,7 @@ export function momentPlanningPublie(annee: number | null): Moment | null {
 
 // « Réduire les animations » et l'affichage sobre coupent la fête.
 export function aCelebrer(moment: Moment | null, vus: string[], o: { niveau: Niveau; reduit: boolean }): boolean {
-	return moment !== null && !o.reduit && o.niveau !== 'sobre' && !vus.includes(moment.cle);
+	return moment !== null && !calme(o.niveau, o.reduit) && !vus.includes(moment.cle);
 }
 
 // Mémoire du navigateur : peut manquer (navigation privée, stockage bloqué) ; on ne fait alors simplement rien.

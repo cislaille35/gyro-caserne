@@ -68,7 +68,7 @@
 	{/if}
 </div>
 <!-- La page dit déjà la réussite : la fête ne la répète pas aux lecteurs d’écran. -->
-<Celebration moment={momentPremiereReservation([...data.aVenir, ...data.passees])} qui={data.qui} annoncer={false} />
+<Celebration moment={momentPremiereReservation(data.aVenir, data.passees)} qui={data.qui} annoncer={false} />
 
 <style>
 	.page,

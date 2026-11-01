@@ -1,8 +1,13 @@
+<script lang="ts" module>
+	// Plusieurs écrans peuvent se croiser pendant une navigation : on compte ceux qui sont montés.
+	let montes = 0;
+</script>
+
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { lireAffichageContexte } from '../gyro/niveau.ts';
-	import { SEUIL, consigne, declenche, forceDuJet, tirage as tirageDe } from './tirage.ts';
+	import { SEUIL, calme, consigne, declenche, forceDuJet, peutTirer, tirage as tirageDe } from './tirage.ts';
 
 	// Tirer la page vers le bas pour la relire : la lance arrose de plus en plus fort.
 	// Au doigt seulement ; jamais sur un écran d'urgence. Sans geste, recharger la page suffit : rien n'est donc annoncé.
@@ -12,16 +17,15 @@
 	let actualise = $state(false);
 	let simple = $state(false);
 
-	// Un geste commencé dans un champ, une fenêtre ouverte ou plus bas dans la page n'est pas un tirage.
-	const horsJeu = (cible: EventTarget | null) =>
+	const dansUnChamp = (cible: EventTarget | null) =>
 		cible instanceof Element && cible.closest('input, textarea, select, [contenteditable], dialog') !== null;
 
 	onMount(() => {
 		let depart: { x: number; y: number } | null = null;
 		const debut = (e: TouchEvent) => {
-			const ok = window.scrollY <= 0 && !actualise && e.touches.length === 1 && !horsJeu(e.target);
+			const ok = peutTirer({ defile: window.scrollY, actualise, doigts: e.touches.length, dansUnChamp: dansUnChamp(e.target) });
 			depart = ok ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
-			simple = affichage.niveau === 'sobre' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+			simple = calme(affichage.niveau, matchMedia('(prefers-reduced-motion: reduce)').matches);
 		};
 		const bouge = (e: TouchEvent) => {
 			if (depart === null) return;
@@ -33,20 +37,23 @@
 			if (declenche(tirage)) {
 				actualise = true;
 				tirage = SEUIL;
-				await Promise.all([invalidateAll(), new Promise((r) => setTimeout(r, simple ? 0 : 900))]);
-				actualise = false;
+				try {
+					await Promise.all([invalidateAll(), new Promise((r) => setTimeout(r, simple ? 0 : 900))]);
+				} finally {
+					actualise = false;
+				}
 			}
 			tirage = 0;
 		};
 		// Le navigateur ne tire pas la page en même temps (Chrome sur Android).
-		const avant = document.documentElement.style.overscrollBehaviorY;
+		montes++;
 		document.documentElement.style.overscrollBehaviorY = 'contain';
 		window.addEventListener('touchstart', debut, { passive: true });
 		window.addEventListener('touchmove', bouge, { passive: true });
 		window.addEventListener('touchend', fin);
 		window.addEventListener('touchcancel', fin);
 		return () => {
-			document.documentElement.style.overscrollBehaviorY = avant;
+			if (--montes === 0) document.documentElement.style.overscrollBehaviorY = '';
 			window.removeEventListener('touchstart', debut);
 			window.removeEventListener('touchmove', bouge);
 			window.removeEventListener('touchend', fin);
