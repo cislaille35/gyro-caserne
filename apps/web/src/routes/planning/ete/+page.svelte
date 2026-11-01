@@ -30,9 +30,12 @@
 	<title>Été {e.annee} · Planning · Gyro Caserne</title>
 </svelte:head>
 
-{#snippet retour(cible: string)}
-	<div role="alert">{#if concerne(cible) && form?.message}<p class="echec">{form.message}</p>{/if}</div>
-	<div role="status">{#if concerne(cible) && form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
+{#snippet retour(cibles: string[])}
+	{@const vise = cibles.some(concerne)}
+	<div class="retours">
+		<div role="alert">{#if vise && form?.message}<p class="echec">{form.message}</p>{/if}</div>
+		<div role="status">{#if vise && form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
+	</div>
 {/snippet}
 
 {#snippet statut()}
@@ -49,7 +52,7 @@
 		{:else}
 			<p>Fixez la période (en semaines d’astreinte entières) et la date limite : les agents pourront donner leurs vacances dans « Moi → Mes vacances ».</p>
 		{/if}
-		{@render retour('regler')}
+		{@render retour(['regler'])}
 		<form method="POST" action={action('regler')} use:enhance={garder} class="periode">
 			<label>Première relève <input type="date" name="debut" required value={reglage.debut} disabled={e.ete?.publiee} /></label>
 			<label>Dernière relève <input type="date" name="fin" required value={derniereReleve} disabled={e.ete?.publiee} /></label>
@@ -81,8 +84,7 @@
 
 		<section class="carte" aria-labelledby="titre-repartition">
 			<h2 id="titre-repartition">3. Répartition</h2>
-			{@render retour('repartition')}
-			{@render retour('plage')}
+			{@render retour(['repartition', 'plage'])}
 			{#if e.sansRoulement}
 				<p class="encadre">Réglez d’abord le roulement de {e.annee}. <a href="/planning/preparer?annee={e.annee}">Préparer {e.annee}</a></p>
 			{:else if !e.ete.publiee}
@@ -109,11 +111,16 @@
 			{/if}
 
 			{#if e.proposee}
+				<p class="doux">Touchez une semaine pour voir ses plages ; celles où le FPT n’est pas armé sont ouvertes d’office.</p>
 				{#each e.semaines as s (s.debut)}
 					{@const eq = equipe(s.equipeId)}
-					<section class="semaine" aria-labelledby="s-{s.debut}" style:--equipe={eq.couleur}>
-						<h3 id="s-{s.debut}">Semaine du {jourLong(s.debut)} <PastilleEquipe nom={eq.nom} couleur={eq.couleur} /></h3>
-						<ol class="plages" role="list">
+					{@const armees = s.plages.filter((p) => p.arme).length}
+					<details class="semaine" open={armees < s.plages.length} style:--equipe={eq.couleur}>
+						<summary>
+							<h3 id="s-{s.debut}">Semaine du {jourLong(s.debut)}</h3>
+							<span class="resume"><PastilleEquipe nom={eq.nom} couleur={eq.couleur} /> <span class:manque={armees < s.plages.length}>{armees === s.plages.length ? `FPT armé sur ${s.plages.length === 1 ? 'la plage' : `les ${s.plages.length} plages`}` : `FPT non armé sur ${pluriel(s.plages.length - armees, 'plage', 'plages')}`}</span></span>
+						</summary>
+						<ol class="plages" role="list" aria-labelledby="s-{s.debut}">
 							{#each s.plages as p (p.debut)}
 								<li class="plage" class:non-arme={!p.arme}>
 									<a href={ici({ plage: p.debut })} class="tete"><span class="jour">{libellePlage(p)}</span><span class="masque">{' '}: modifier</span></a>
@@ -124,11 +131,11 @@
 								</li>
 							{/each}
 						</ol>
-					</section>
+					</details>
 				{/each}
 
 				{#if !e.ete.publiee}
-					{@render retour('publier')}
+					{@render retour(['publier'])}
 					<form method="POST" action={action('publier')} class="publier">
 						<p class="doux">Publier : le planning, l’agenda et les remplacements suivent la répartition ; les renforts sont prévenus.</p>
 						<Bouton type="submit">Publier l’été {e.annee}</Bouton>
@@ -143,8 +150,8 @@
 	{@const d = e.detail}
 	<Panneau titre={libellePlage(d)} fermer={ici()}>
 		<p class="arme">{texteArme(d.arme, d.manque)}</p>
-		{@render retour('plage')}
-		<h3>Présents ({d.presents.length})</h3>
+		{@render retour(['plage'])}
+		<h3 class="sous-titre">Présents ({d.presents.length})</h3>
 		<ul class="liste" role="list">
 			{#each d.presents as x (x.id)}
 				<li>
@@ -156,7 +163,7 @@
 				</li>
 			{/each}
 		</ul>
-		<h3>Ajouter un agent</h3>
+		<h3 class="sous-titre">Ajouter un agent</h3>
 		<ul class="liste" role="list">
 			{#each d.candidats as x (x.id)}
 				<li>
@@ -203,6 +210,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+	}
+	/* Vides, les zones de message ne creusent pas d'espace. */
+	.retours:not(:has(p)) {
+		margin-bottom: -12px;
+	}
+	.retours:has(p) {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.sous-titre {
+		margin-top: 16px;
 	}
 	.doux {
 		color: var(--doux);
@@ -259,11 +278,30 @@
 		padding-left: 20px;
 	}
 	.semaine {
+		border-top: 1px solid var(--trait-doux);
+	}
+	.semaine summary {
+		min-height: var(--cible);
+		padding: 10px 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding-top: 12px;
-		border-top: 1px solid var(--trait-doux);
+		gap: 4px;
+		cursor: pointer;
+	}
+	.resume {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.9375rem;
+		color: var(--doux);
+	}
+	.resume .manque {
+		color: var(--texte);
+		font-weight: 700;
+	}
+	.semaine[open] .plages {
+		margin-bottom: 12px;
 	}
 	.plages {
 		margin: 0;
@@ -309,12 +347,19 @@
 		color: var(--sur-accent, #fff);
 		font-weight: 800;
 	}
+	/* Les présents à la suite, séparés par des virgules : la carte reste courte au téléphone. */
 	.presents {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+		display: flex;
+		flex-wrap: wrap;
 		font-size: 0.9375rem;
 		overflow-wrap: anywhere;
+	}
+	.presents li:not(:last-child)::after {
+		content: ',';
+		margin-right: 0.35em;
 	}
 	.etiquette {
 		margin-left: 6px;

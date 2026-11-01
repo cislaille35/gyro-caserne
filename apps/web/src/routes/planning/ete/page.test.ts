@@ -41,6 +41,12 @@ describe('Été : le tableau du chef', () => {
 		expect(html).toContain('FPT armé : non, manque CA tout engins');
 		expect(html).toMatch(/Alice Test<span class="etiquette[^"]*">renfort<\/span>/);
 		expect(html).toContain('1 plage impossible');
+		// Une semaine par repli, ouvert d'office quand le FPT n'est pas armé partout ; le résumé le dit en texte.
+		expect(html).toMatch(/<details class="semaine[^"]*" open/);
+		expect(html).toContain('FPT non armé sur 1 plage');
+		const armee = page(ete({ semaines: [{ debut: '2027-06-25', equipeId: 2, plages: [plage('2027-06-25T18:00', '2027-06-26T06:00', true)] }], impossibles: [] }));
+		expect(armee).toContain('FPT armé sur la plage');
+		expect(armee).not.toMatch(/<details class="semaine[^"]*" open/);
 		expect(html).toContain('Publier l’été 2027');
 	});
 

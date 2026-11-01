@@ -16,7 +16,7 @@ describe('Mes vacances', () => {
 		expect(html).toContain('Vous n’avez encore rien donné.');
 		expect(html).toContain('Je suis disponible tout l’été');
 		expect(html).toMatch(/<input type="date" name="debut" required="" min="2027-06-25" max="2027-09-02"/);
-		expect(html).toContain('À donner avant le samedi 15 mai.');
+		expect(html).toContain('Été 2027 : 25 juin – 2 sept. ; à donner avant le samedi 15 mai.');
 	});
 
 	it('des périodes : chacune se retire, avec un nom accessible ; publié, le chef est prévenu d’un changement', () => {

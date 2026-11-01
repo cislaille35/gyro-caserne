@@ -21,15 +21,17 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Mes vacances" phrase={e ? `Été ${e.annee} : ${duAu(e.debut, dernierJour(e.fin))}. À donner avant le ${jourLong(e.dateLimite)}.` : 'Vos vacances d’été, pour le planning.'} retour={{ href: '/moi', libelle: 'Moi' }} />
+	<EnTetePage titre="Mes vacances" phrase={e ? `Été ${e.annee} : ${duAu(e.debut, dernierJour(e.fin))} ; à donner avant le ${jourLong(e.dateLimite)}.` : 'Vos vacances d’été, pour le planning.'} retour={{ href: '/moi', libelle: 'Moi' }} />
 
 	{#if !v}
 		<p class="encadre">Réservé aux agents ayant une fiche.</p>
 	{:else if !e}
 		<p class="encadre">La saisie des vacances d’été n’est pas encore ouverte : le chef vous préviendra.</p>
 	{:else}
-		<div role="status">{#if form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
-		<div role="alert">{#if form?.message}<p class="echec">{form.message}</p>{/if}</div>
+		<div class="retours">
+			<div role="status">{#if form?.succes}<p class="succes">{form.succes}</p>{/if}</div>
+			<div role="alert">{#if form?.message}<p class="echec">{form.message}</p>{/if}</div>
+		</div>
 
 		<section class="carte" aria-labelledby="titre-reponse">
 			<h2 id="titre-reponse">Ma réponse</h2>
@@ -92,6 +94,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+	}
+	.retours:has(p) {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.retours:not(:has(p)) {
+		margin-bottom: -16px;
 	}
 	.doux {
 		color: var(--doux);
