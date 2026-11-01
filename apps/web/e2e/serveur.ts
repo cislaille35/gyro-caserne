@@ -22,7 +22,7 @@ function adresse(): string {
 export const ADRESSE = adresse();
 // En CI (ou avec COMPILEE=1), l'appli compilée par `pnpm build`, servie par Wrangler comme en ligne : bien plus rapide que le serveur
 // de développement, qui prépare chaque page à sa première visite. Sans CI, le serveur de développement, qui n'attend pas de compilation.
-const COMPILEE = Boolean(process.env.CI || process.env.COMPILEE);
+const COMPILEE = Boolean(process.env.CI) || process.env.COMPILEE === '1';
 export const ETAT_CONNECTE = fileURLToPath(new URL('../test-results/connecte.json', import.meta.url));
 export const SUPER = 'admin@exemple.fr';
 export const ETAT_SUPER = fileURLToPath(new URL('../test-results/super.json', import.meta.url));
@@ -63,6 +63,7 @@ function verifierSecrets() {
 }
 
 export default async function preparer(config: FullConfig) {
+	if (COMPILEE && !existsSync(`${appli}.svelte-kit/cloudflare/_worker.js`)) throw new Error('Appli pas compilée : lancez `pnpm build` avant les tests (COMPILEE=1).');
 	secretsDeTest();
 	verifierSecrets();
 	rmSync(`${centre}.wrangler`, { recursive: true, force: true });
@@ -71,11 +72,10 @@ export default async function preparer(config: FullConfig) {
 	mkdirSync(fileURLToPath(new URL('../test-results', import.meta.url)), { recursive: true });
 	const journal = createWriteStream(JOURNAL);
 	const port = new URL(ADRESSE).port;
-	// Wrangler lit .dev.vars à côté de la config du centre et la base locale là où `pnpm base-locale` l'a créée ; il ne lance pas les tâches planifiées.
+	// Wrangler lit .dev.vars à côté de la config du centre et la base locale là où `pnpm base-locale` l'a créée ; sans `--test-scheduled`, il ne lance pas les tâches planifiées.
 	const commande = COMPILEE
 		? ['exec', 'wrangler', 'dev', '--config', `${centre}wrangler.jsonc`, '--port', port, '--persist-to', `${centre}.wrangler/state`, '--show-interactive-dev-session=false']
 		: ['dev', '--port', port, '--strictPort'];
-	if (COMPILEE && !existsSync(`${appli}.svelte-kit/cloudflare/_worker.js`)) throw new Error('Appli pas compilée : lancez `pnpm build` avant les tests (COMPILEE=1).');
 	const serveur = spawn('pnpm', commande, { cwd: appli, detached: true, env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
 	serveur.stdout.pipe(journal);
 	serveur.stderr.pipe(journal);

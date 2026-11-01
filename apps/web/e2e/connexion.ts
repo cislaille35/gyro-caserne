@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -13,19 +13,28 @@ function dernierLien(email: string): string | null {
 }
 
 // Se connecter comme un agent : demander un lien, le lire dans le journal, l'ouvrir.
+// Un lien par minute et par adresse : si un test précédent vient d'en demander un pour la même adresse, on redemande une minute plus tard.
 export async function connecter(page: Page, email: string): Promise<void> {
 	const avant = dernierLien(email);
-	await page.goto('/connexion');
-	await page.getByLabel('Adresse e-mail').fill(email);
-	await page.getByRole('button', { name: 'Recevoir un lien de connexion' }).click();
-	await expect(page.getByRole('status')).toContainText('un lien vient de partir');
-
 	let lien: string | null = null;
-	await expect(() => {
-		lien = dernierLien(email);
-		expect(lien).not.toBeNull();
-		expect(lien).not.toBe(avant);
-	}).toPass({ timeout: 30_000 });
+	for (let essai = 1; !lien; essai++) {
+		await page.goto('/connexion');
+		await page.getByLabel('Adresse e-mail').fill(email);
+		await page.getByRole('button', { name: 'Recevoir un lien de connexion' }).click();
+		await expect(page.getByRole('status')).toContainText('un lien vient de partir');
+		try {
+			await expect(() => {
+				const nouveau = dernierLien(email);
+				expect(nouveau).not.toBeNull();
+				expect(nouveau).not.toBe(avant);
+				lien = nouveau;
+			}).toPass({ timeout: 15_000 });
+		} catch (erreur) {
+			if (essai > 1) throw erreur;
+			test.info().setTimeout(test.info().timeout + 75_000);
+			await page.waitForTimeout(50_000);
+		}
+	}
 
 	await page.goto(lien!);
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(/^Bonjour/);
