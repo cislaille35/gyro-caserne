@@ -6,14 +6,17 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins } from '#lib/server/auth.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
+import { formulaireEgare } from '#lib/server/resoumission.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const refus = envoiRefuse(event.request, event.url.pathname);
 	if (refus) return refus;
 	event.locals.affichage = lireAffichage(event.cookies);
-	const resoudre: typeof resolve = (evenement, options) =>
-		resolve(evenement, { ...options, transformPageChunk: ({ html }) => appliquerAffichage(html, event.locals.affichage) });
+	const resoudre: typeof resolve = async (evenement, options) => {
+		const reponse = await resolve(evenement, { ...options, transformPageChunk: ({ html }) => appliquerAffichage(html, event.locals.affichage) });
+		return formulaireEgare(event.request, event.url, reponse) ?? reponse;
+	};
 
 	if (building) return resoudre(event);
 	const base = creerBaseD1(env.BASE);
