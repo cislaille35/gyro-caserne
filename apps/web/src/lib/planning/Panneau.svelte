@@ -13,25 +13,26 @@
 	const sortir = () => goto(fermer, { reset: false });
 
 	onMount(() => {
-		// Ce qui l'a ouvert : l'élément qui a le focus, sinon le lien vers cette adresse.
+		// Ce qui l'a ouvert : l'élément qui a le focus, sinon un lien vers cette adresse. Retrouvé à la fermeture, la page ayant pu être redessinée.
 		const actif = document.activeElement;
-		const ouvreur =
-			actif instanceof HTMLElement && actif !== document.body && !fenetre.contains(actif)
-				? actif
-				: [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].find((a) => a.href === location.href && !fenetre.contains(a));
+		const adresse = actif instanceof HTMLAnchorElement && !fenetre.contains(actif) ? actif.href : location.href;
 		if (fenetre.open) fenetre.close();
 		fenetre.showModal();
 		tete.focus();
 		return () => {
 			setTimeout(() => {
-				if (ouvreur?.isConnected && (document.activeElement === document.body || document.activeElement === null)) ouvreur.focus();
+				if (document.activeElement !== document.body && document.activeElement !== null) return;
+				[...document.querySelectorAll<HTMLAnchorElement>('a[href]')].find((a) => a.href === adresse && a.checkVisibility())?.focus();
 			});
 		};
 	});
-	// Pas pendant une saisie : Échap ne doit pas perdre ce qui a été tapé.
+	// Échap ferme, sauf pendant une saisie : il ne doit pas perdre ce qui a été tapé.
+	const touche = (e: KeyboardEvent) => {
+		if (e.key === 'Escape' && (e.target as HTMLElement).closest('input, textarea, select')) e.preventDefault();
+	};
 	const annuler = (e: Event) => {
 		e.preventDefault();
-		if (!document.activeElement?.closest('input, textarea, select')) sortir();
+		sortir();
 	};
 	// Fermée par le navigateur (sans passer par « annuler ») : l'adresse suit.
 	const fermee = () => {
@@ -43,10 +44,10 @@
 	};
 </script>
 
-<a class="voile" href={fermer} tabindex="-1" aria-hidden="true" data-sveltekit-noscroll></a>
+<a class="voile" href={fermer} tabindex="-1" aria-hidden="true" data-sveltekit-reset="false"></a>
 <!-- Le clic vise le voile ; au clavier, Échap ferme. -->
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
-<dialog class="panneau" open aria-labelledby={id} bind:this={fenetre} oncancel={annuler} onclose={fermee} onclick={toucher}>
+<dialog class="panneau" open aria-labelledby={id} bind:this={fenetre} onkeydown={touche} oncancel={annuler} onclose={fermee} onclick={toucher}>
 	<div class="tete">
 		<h2 {id} tabindex="-1" bind:this={tete}>{titre}</h2>
 		<a class="fermer" href={fermer} data-sveltekit-reset="false"

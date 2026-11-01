@@ -129,6 +129,7 @@ describe('onglet Planning', () => {
 		expect((html.match(/<tbody/g) ?? []).length).toBe(5);
 		expect(html).toMatch(/<tbody[^>]*>\s*<tr[^>]*><th scope="rowgroup" colspan="7"[^>]*>[\s\S]*?S45[\s\S]*?Équipe 1[\s\S]*?Mon astreinte/);
 		expect(html).not.toContain('scope="row"');
+		for (const semaine of html.split('<tbody').slice(1)) expect((semaine.split('</tbody>')[0]!.match(/<td/g) ?? []).length).toBe(7);
 	});
 
 	it('Mois de décembre : le signe « Fête » le 25 et le 31, même quand la relève tombe à Noël', () => {

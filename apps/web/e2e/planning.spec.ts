@@ -35,6 +35,7 @@ test.describe('chef : préparer l’année', () => {
 		await sansViolation(page);
 		await page.getByRole('link', { name: 'Fermer' }).click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toHaveCount(0);
+		await expect(page.locator('a.case').first()).toBeFocused();
 
 		await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: 'Manœuvres' }).click();
 		// Au clavier : le panneau est modal (focus dedans, page inerte), Échap le ferme et rend le focus à son lien.
@@ -51,6 +52,10 @@ test.describe('chef : préparer l’année', () => {
 		await expect(panneau).toHaveCount(0);
 		await expect(ajouter).toBeFocused();
 		await page.keyboard.press('Enter');
+		await expect(panneau).toBeVisible();
+		// Échap pendant une saisie ne ferme pas : ce qui a été tapé reste.
+		await page.getByLabel('Thème').fill('Brouillon');
+		await page.keyboard.press('Escape');
 		await expect(panneau).toBeVisible();
 		await page.getByLabel('Date').fill(`${annee + 1}-03-07`);
 		await page.getByLabel('Heure de début').fill('08:30');

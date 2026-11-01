@@ -57,7 +57,7 @@
 
 	{#if lignes.length}
 		<table>
-			<caption class="masque">{moisDeLAnnee[mois - 1]} {donnees.annee}, une ligne par semaine d’astreinte</caption>
+			<caption class="masque">{moisDeLAnnee[mois - 1]} {donnees.annee}, une bande par semaine d’astreinte au-dessus de ses jours</caption>
 			<thead>
 				<tr>
 					{#each lignes[0]!.jours as j (j.date)}<th scope="col">{court(j.date)}</th>{/each}
@@ -160,8 +160,8 @@
 		align-items: baseline;
 		flex-wrap: wrap;
 		gap: 2px 8px;
-		padding: 4px 10px;
-		border-left: 6px solid var(--equipe);
+		padding: 4px 10px 4px 14px;
+		box-shadow: inset 6px 0 0 var(--equipe);
 		border-radius: 10px 10px 0 0;
 		background: color-mix(in srgb, var(--equipe) 22%, var(--surface));
 		line-height: 1.2;
@@ -190,8 +190,9 @@
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 		border-bottom: 1px solid color-mix(in srgb, var(--equipe) 40%, transparent);
 	}
+	/* La barre de l'équipe en ombre intérieure : elle ne prend pas de largeur aux cases (44 px à 360 px). */
 	td:first-child {
-		border-left: 6px solid var(--equipe);
+		box-shadow: inset 6px 0 0 var(--equipe);
 		border-radius: 0 0 0 10px;
 	}
 	td:last-child {
