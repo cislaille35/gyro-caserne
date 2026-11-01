@@ -203,6 +203,17 @@ Spec : [2026-11-01-remplacements-design.md](../superpowers/specs/2026-11-01-remp
 - `remplacements/tranches.ts` : calculs purs (tranches, soustraction, textes). `contexte.ts` : une lecture en un batch (semaines publiées, affectations, demandes en cours, agents, aptitudes, chefs) et les règles sans requête (`disponible`, `manque`, `valideurs`, `mesTranches`). `demandes.ts` : les gestes, chacun conditionné à l'état attendu. `lectures.ts` : écrans, à valider. `effectifs.ts` : les remplacements conclus pour le planning et l'agenda. `avis.ts`, `moment.ts` (expiration, relance ; appelé toutes les dix minutes par `planifie.ts`), `depart.ts`, `fictif.ts`.
 - Convocation d'une manœuvre : `Convocation` (`murs.ts`) accepte `{ equipes, ajoutes, retires }` ; `estConvoque` et `convoque` prennent l'identifiant de la personne.
 
+## Planning d'été, armement et fichier du planning
+
+Spec : [2026-11-01-planning-ete-design.md](../superpowers/specs/2026-11-01-planning-ete-design.md). Migration `0014` : tables additives, plus le libellé du rôle système `chef_equipe` (« Chef de garde », identifiant inchangé). Décision : [0015](../decisions/0015-planning-d-ete.md).
+
+- Tables : `reglage_armement` (une ligne, JSON `{ engins, niveaux }`), `ete` (année, `debut` et `fin` en jours de relève, `date_limite`, `publiee_le`, dates des deux rappels), `reponse_ete` (année, personne, `tout_ete`), `vacances_agent` (personne, année, du, au), `plage_ete` (début, fin, année, `ajoutes` et `retires` en JSON), `avis_ete` (la cloche : `rappel`, `repartition`, `vacances_changees`, texte, lien).
+- `armement.ts` : postes (`ca2`, `ca1`, `cod1`, `ce`, `agent`), niveaux reliés aux aptitudes, `postesDe`, `armement` (appariement exact, une personne par poste), `lireArmement`, `enregistrerArmement` (`GERER_LISTES`).
+- `planning/ete.ts` : `periodeParDefaut`, `reglerEte` (`GERER_PLANNING`), `mesVacances`, `ajouterMesVacances`, `retirerMesVacances`, `toutLete`, `reponsesEte`, `rappelsEte` (à 8 h par `planifie.ts`), `avis`.
+- `planning/repartition.ts` : `proposer` (calcul pur), `eteAPreparer`, `proposerEte`, `ajusterPlage`, `publierEte`, et l'onglet Été du fichier (`feuilleEte`, `analyserFeuilleEte`).
+- `planning/plages.ts` : `requetePlagesPubliees`, `heuresDe` (les heures d'une personne dans une semaine, été publié compris), `enVacances`. Lu par `planningDe`, `astreinteDe`, `agendaDe` et `lireContexte` (où `astreintesDe` rend les heures de la personne, et `disponible` écarte un agent en vacances).
+- `planning/fichier.ts` : `donneesFichierPlanning`, `apercuPlanning`, `appliquerPlanning` (un seul batch ; rend les manœuvres annoncées changées, pour `manoeuvreChangee`).
+
 ## Fichier de l'effectif
 
 Trois modules, tous réservés aux gestionnaires (`estGestionnaire`, sinon `RefusDroit`), 50 requêtes au plus par appel. Le classeur `.xlsx` est écrit et lu dans le navigateur ([interface.md](interface.md)) : le socle ne voit que des lignes de texte.

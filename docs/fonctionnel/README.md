@@ -8,6 +8,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Fiche agent | [fiche-agent.md](fiche-agent.md) |
 | Astreinte et rotation | [astreinte-et-rotation.md](astreinte-et-rotation.md) |
 | Planning de l'année | [planning-de-l-annee.md](planning-de-l-annee.md) |
+| Planning d'été | [planning-d-ete.md](planning-d-ete.md) |
 | Composition des gardes | [composition-des-gardes.md](composition-des-gardes.md) |
 | Disponibilités et absences | [disponibilites-et-absences.md](disponibilites-et-absences.md) |
 | Remplacements et échanges | [remplacements-et-echanges.md](remplacements-et-echanges.md) |
@@ -27,6 +28,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 - **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil et le choix de l'affichage.
 - **Réservations** (Caserne → Réservations) : la VL et le matériel de l'amicale, calendrier, demandes à valider, notifications.
 - **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; « Mon année » et « Toutes les équipes » ; abonnement d'agenda ; manœuvres annoncées toutes seules sur « Le centre ».
+- **Planning d'été** : vacances des agents (Moi → Mes vacances), proposition qui arme le FPT, tableau de l'été à ajuster puis publier ; règles d'armement réglables ; fichier du planning (exporter l'année, importer avec aperçu) ; le rôle « Chef d'équipe » devient « Chef de garde ».
 - **Fêtes de Gyro et actualisation** : l'icône aux couleurs des équipes ; tirer pour actualiser ; anniversaire, première réservation et année publiée fêtés une fois.
 - **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » en tête de l'accueil et la cloche.
 

@@ -12,6 +12,28 @@ async function sansViolation(page: Page) {
 test.describe('chef : préparer l’année', () => {
 	test.use({ storageState: ETAT_SUPER });
 
+	test('été : ouvrir, proposer, ouvrir une plage dans le panneau', async ({ page }) => {
+		test.setTimeout(90_000);
+		const annee = new Date().getFullYear();
+		await page.goto(`/planning/preparer?annee=${annee}`);
+		await page.getByRole('link', { name: `Été ${annee}` }).click();
+		await expect(page.getByRole('heading', { level: 1, name: `Été ${annee}` })).toBeVisible();
+		await page.getByRole('button', { name: /Ouvrir la saisie des vacances|Enregistrer/ }).click();
+		await expect(page.getByRole('heading', { level: 2, name: '2. Vacances des agents' })).toBeVisible();
+		// Les deux tailles d'écran jouent ce test : l'une a pu proposer, voire publier, avant l'autre.
+		const proposer = page.getByRole('button', { name: /Proposer la répartition|Recalculer la proposition/ });
+		if (await proposer.count()) {
+			await proposer.click();
+			await expect(page.getByText(/Répartition proposée/)).toBeVisible();
+		}
+		await expect(page.getByText(/FPT armé : (oui|non)/).first()).toBeVisible();
+		await sansViolation(page);
+		await page.locator('a.tete').first().click();
+		await expect(page.getByRole('dialog')).toBeVisible();
+		await expect(page.getByRole('heading', { level: 3, name: 'Ajouter un agent' })).toBeVisible();
+		await sansViolation(page);
+	});
+
 	test('les cinq étapes, une semaine ouverte, ajouter une manœuvre dans le panneau', async ({ page }) => {
 		test.setTimeout(90_000);
 		const annee = new Date().getFullYear();

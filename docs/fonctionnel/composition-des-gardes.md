@@ -1,5 +1,7 @@
 # Composition des gardes
 
+> Déjà livré : les règles d'armement par engin (Réglages → « Armement des engins ») et le calcul « FPT armé » du [planning d'été](planning-d-ete.md). Le reste de cette page est à venir.
+
 ## À quoi ça sert
 
 Savoir, pour chaque moment de l'astreinte, **quels engins peuvent partir** avec les agents disponibles, et prévenir à l'avance quand un engin ne peut pas partir.
