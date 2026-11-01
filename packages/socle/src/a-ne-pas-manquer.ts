@@ -101,9 +101,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 // Agents (ni partis, ni suspendus, ni extérieurs) dont la date de naissance est inscrite et l'affichage activé. Jamais l'âge.
 // Né un 29 février : fêté le 28 février les années non bissextiles.
 export async function anniversairesDuJour(base: Base, aujourdhui: string): Promise<{ prenom: string; nom: string }[]> {
-	exigerDate(aujourdhui);
-	const jour = aujourdhui.slice(5);
-	const jours = jour === '02-28' && ajouterJours(aujourdhui, 1).endsWith('03-01') ? ['02-28', '02-29'] : [jour];
+	const jours = joursFetes(aujourdhui);
 	return base
 		.select({ prenom: personne.prenom, nom: personne.nom })
 		.from(personne)
@@ -117,4 +115,21 @@ export async function anniversairesDuJour(base: Base, aujourdhui: string): Promi
 			)
 		)
 		.orderBy(asc(personne.nom), asc(personne.prenom));
+}
+
+// L'agent connecté fête-t-il son anniversaire aujourd'hui ? Mêmes règles : date inscrite et affichage activé.
+export async function monAnniversaire(base: Base, acteur: Acteur, aujourdhui: string): Promise<boolean> {
+	const jours = joursFetes(aujourdhui);
+	if (acteur.type !== 'personne') return false;
+	const [fiche] = await base
+		.select({ id: personne.id })
+		.from(personne)
+		.where(and(eq(personne.id, acteur.id), inArray(sql`substr(${personne.naissance}, 6, 5)`, jours), eq(personne.anniversaireVisible, 1)));
+	return fiche !== undefined;
+}
+
+function joursFetes(aujourdhui: string): string[] {
+	exigerDate(aujourdhui);
+	const jour = aujourdhui.slice(5);
+	return jour === '02-28' && ajouterJours(aujourdhui, 1).endsWith('03-01') ? ['02-28', '02-29'] : [jour];
 }

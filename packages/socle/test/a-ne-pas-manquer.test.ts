@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
-import { aNePasManquer, anniversairesDuJour } from '../src/a-ne-pas-manquer.ts';
+import { aNePasManquer, anniversairesDuJour, monAnniversaire } from '../src/a-ne-pas-manquer.ts';
 import { prendreConnaissance, repondreEvenement, voter } from '../src/actions/interactions.ts';
 import { epingler, etatSondage, lireMur, publier } from '../src/actions/publications.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
@@ -243,5 +243,27 @@ describe('anniversaires du jour', () => {
 		expect((await anniversairesDuJour(base, '2027-02-28')).map((p) => p.prenom).sort()).toEqual(['Bissextile', 'Veille']);
 		expect((await anniversairesDuJour(base, '2028-02-28')).map((p) => p.prenom)).toEqual(['Veille']);
 		expect((await anniversairesDuJour(base, '2028-02-29')).map((p) => p.prenom)).toEqual(['Bissextile']);
+	});
+});
+
+describe('mon anniversaire', () => {
+	it('vrai le jour même, si l’affichage est activé ; faux sans date, un autre jour ou pour le super administrateur', async () => {
+		const { base, nouvelle } = await jeu();
+		const fete = await nouvelle('Zoe', { naissance: '1990-10-28' });
+		const cache = await nouvelle('Cache', { naissance: '1990-10-28', anniversaireVisible: 0 });
+		const sansDate = await nouvelle('Sansdate');
+		expect(await monAnniversaire(base, acteur(fete), aujourdhui)).toBe(true);
+		expect(await monAnniversaire(base, acteur(fete), '2026-10-29')).toBe(false);
+		expect(await monAnniversaire(base, acteur(cache), aujourdhui)).toBe(false);
+		expect(await monAnniversaire(base, acteur(sansDate), aujourdhui)).toBe(false);
+		expect(await monAnniversaire(base, superAdmin, aujourdhui)).toBe(false);
+	});
+
+	it('29 février : fêté le 28 février les années non bissextiles', async () => {
+		const { base, nouvelle } = await jeu();
+		const ne = await nouvelle('Bissextile', { naissance: '2000-02-29' });
+		expect(await monAnniversaire(base, acteur(ne), '2027-02-28')).toBe(true);
+		expect(await monAnniversaire(base, acteur(ne), '2028-02-28')).toBe(false);
+		expect(await monAnniversaire(base, acteur(ne), '2028-02-29')).toBe(true);
 	});
 });
