@@ -12,6 +12,11 @@ describe('formulaire renvoyé par Safari à une page qui ne l’attend pas', () 
 		expect(reponse?.headers.get('location')).toBe('/?casquette=centre');
 	});
 
+	it('reste sur le site, même pour une adresse qui commence par //', () => {
+		const reponse = formulaireEgare(envoi('http://x//autre.fr/x'), new URL('http://x//autre.fr/x'), introuvable());
+		expect(reponse?.headers.get('location')).toBe('/autre.fr/x');
+	});
+
 	it('ne touche pas à un geste nommé, même refusé en 404 (publication disparue)', () => {
 		expect(formulaireEgare(envoi('http://x/?casquette=centre&/repondre'), new URL('http://x/?casquette=centre&/repondre'), introuvable())).toBeNull();
 	});

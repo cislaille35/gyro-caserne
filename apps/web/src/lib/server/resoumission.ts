@@ -4,5 +4,6 @@ export function formulaireEgare(request: Request, url: URL, reponse: Response): 
 	if (request.method !== 'POST' || reponse.status !== 404) return null;
 	if (request.headers.has('x-sveltekit-action') || !request.headers.get('accept')?.includes('text/html')) return null;
 	if ([...url.searchParams.keys()].some((cle) => cle.startsWith('/'))) return null;
-	return new Response(null, { status: 303, headers: { location: url.pathname + url.search } });
+	// Un seul « / » en tête : « //site » mènerait ailleurs.
+	return new Response(null, { status: 303, headers: { location: '/' + url.pathname.replace(/^\/+/, '') + url.search } });
 }
