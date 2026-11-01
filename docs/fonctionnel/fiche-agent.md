@@ -54,8 +54,8 @@ Bloc « Rôles » : rôles en cours, à venir et passés (repliés) de l'agent, 
 
 Pour charger ou changer l'effectif en masse dans Excel ou LibreOffice. Réservé au chef de centre, à l'adjoint et au super administrateur (lien « Fichier de l'effectif » en tête de la liste). Mode d'emploi : [Comment importer l'effectif ?](../utilisation/importer-l-effectif.md).
 
-- **Modèle vierge** (premier chargement) ou **export** (mises à jour) : une ligne par agent, partis et extérieurs compris, sauf le chef de centre et l'adjoint en fonction. Colonnes : n°, e-mail, prénom, nom, grade, date de grade, équipe, statut, profil, téléphone, naissance, entrée au centre, engagement SPV ; puis une colonne par responsabilité (« Oui » ou vide) et une par comité (« Comité : Amicale », avec « Membre de comité », « Rapporteur de comité »… ou vide). Listes déroulantes, dates en JJ/MM/AAAA.
-- **Import** : un aperçu d'abord, rien n'est écrit avant « Valider ». Ligne sans n° : arrivée. Ligne avec n° : modification. Agent absent du fichier : départ (statut « Parti », mêmes effets qu'à l'écran ; jamais de suppression). Case de responsabilité remplie : rôle attribué dès aujourd'hui ; vidée : rôle terminé aujourd'hui.
+- **Modèle vierge** (premier chargement) ou **export** (mises à jour) : une ligne par agent, partis et extérieurs compris, sauf le chef de centre et l'adjoint en fonction. Colonnes : n°, e-mail, prénom, nom, grade, date de grade, équipe, statut, profil, téléphone, naissance, entrée au centre, engagement SPV ; puis une colonne par responsabilité (« Oui » ou vide), une par comité (« Comité : Amicale », avec « Membre de comité », « Rapporteur de comité »… ou vide) et une par aptitude (« Aptitude : CA2 », « Oui » ou vide). Listes déroulantes, dates en JJ/MM/AAAA.
+- **Import** : un aperçu d'abord, rien n'est écrit avant « Valider ». Ligne sans n° : arrivée. Ligne avec n° : modification. Agent absent du fichier : départ (statut « Parti », mêmes effets qu'à l'écran ; jamais de suppression). Case de responsabilité remplie : rôle attribué dès aujourd'hui ; vidée : rôle terminé aujourd'hui. Case d'aptitude remplie : aptitude obtenue aujourd'hui (les dates se corrigent sur la fiche) ; vidée : aptitude retirée.
 - **Aperçu** : les départs en tête, avec leur nombre et leurs noms (un fichier tronqué se voit tout de suite), puis arrivées, modifications champ par champ, erreurs ligne par ligne, lignes périmées et colonnes inconnues (ignorées).
 - **Erreurs** : e-mail déjà pris (avec le n° de l'agent), valeur hors liste, date invalide, profil manquant, rôle d'équipe sur une autre équipe, deux rôles dans un même comité, adresse d'un super administrateur… Ces lignes ne sont pas appliquées ; le reste l'est.
 - **Fichier périmé** : un agent modifié dans l'appli après l'export (fiche, équipe, statut ou rôles, import compris) n'est ni modifié ni mis au départ. On réexporte avant chaque import. Une modification faite à l'écran entre l'aperçu et « Valider » n'est pas détectée.
@@ -63,7 +63,9 @@ Pour charger ou changer l'effectif en masse dans Excel ou LibreOffice. Réservé
 
 Exemple : à la rentrée, le chef de centre exporte l'effectif, ajoute deux lignes sans n° pour les nouvelles recrues, passe trois agents de Sapeur à Caporal et supprime la ligne d'un agent qui a déménagé. L'aperçu annonce « 1 départ » avec son nom, « 2 arrivées », « 3 modifications » (« Grade : Sapeur → Caporal »). Il valide ; le compte rendu confirme, et il réexportera avant le prochain import.
 
-Pas encore là : photo, aptitudes, champs du centre, rappels.
+**Aptitudes** : section de la fiche, saisie par qui gère les fiches (`GERER_ACCES`) : aptitude, date d'obtention, date d'expiration facultative. Une aptitude expirée ne compte plus ; elle est dite « pas valable aujourd'hui ». L'agent voit les siennes dans Moi. La liste du centre se règle dans Réglages → Aptitudes. Voir [Remplacements et échanges](remplacements-et-echanges.md).
+
+Pas encore là : photo, champs du centre, rappels (dont l'échéance des aptitudes).
 
 ## Ce que la fonction ne fait pas
 

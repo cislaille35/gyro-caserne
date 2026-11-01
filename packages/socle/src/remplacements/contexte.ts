@@ -121,11 +121,11 @@ export function valideurs(chefs: Chef[], equipeId: number | null, demandeurId: n
 	return deLEquipe.length > 0 ? deLEquipe : ids((c) => c.systeme === 'chef_centre' || c.systeme === 'chef_centre_adjoint');
 }
 
-// Les tranches d'astreinte à venir de la personne (douze semaines), par semaine ; `prise` : déjà dans une demande en cours.
+// Les tranches d'astreinte de la personne dans les douze semaines à venir, par semaine ; `prise` : déjà dans une demande en cours.
 export function mesTranches(ctx: Contexte, id: number): { semaine: string; equipeId: number; tranches: (Periode & { prise: boolean })[] }[] {
+	const limite = `${ajouterJours(ctx.maintenant.slice(0, 10), SEMAINES_PROPOSEES * 7)}T00:00`;
 	return astreintesDe(ctx, id)
-		.filter((s) => s.periodes.at(-1)!.fin > ctx.maintenant)
-		.slice(0, SEMAINES_PROPOSEES)
+		.filter((s) => s.periodes.at(-1)!.fin > ctx.maintenant && s.periodes[0]!.debut < limite)
 		.map((s) => ({
 			semaine: s.debut,
 			equipeId: s.equipeId,

@@ -76,10 +76,22 @@ CREATE TABLE `destinataire_remplacement` (
 CREATE INDEX `destinataire_remplacement_personne` ON `destinataire_remplacement` (`personne_id`);--> statement-breakpoint
 -- Ajouté à la main, pour les bases déjà remplies par le jeu de départ (une base vide les recevra du jeu de départ) :
 -- les aptitudes du modèle métier ; commandement et conduite contrôlées en remplacement.
-INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`)
-SELECT x.nom, x.controlee, x.ordre FROM (
-	SELECT 'CA2' AS nom, 1 AS controlee, 1 AS ordre UNION ALL SELECT 'CA1', 1, 2 UNION ALL SELECT 'CE', 1, 3
-	UNION ALL SELECT 'COD1', 1, 4 UNION ALL SELECT 'COD2', 1, 5
-	UNION ALL SELECT 'INC', 0, 6 UNION ALL SELECT 'SAP', 0, 7 UNION ALL SELECT 'DIV', 0, 8 UNION ALL SELECT 'FDF1', 0, 9 UNION ALL SELECT 'FDF2', 0, 10
-) x
-WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude`);
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'CA2', 1, 1 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'CA2');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'CA1', 1, 2 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'CA1');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'CE', 1, 3 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'CE');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'COD1', 1, 4 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'COD1');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'COD2', 1, 5 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'COD2');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'INC', 0, 6 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'INC');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'SAP', 0, 7 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'SAP');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'DIV', 0, 8 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'DIV');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'FDF1', 0, 9 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'FDF1');
+--> statement-breakpoint
+INSERT INTO `aptitude` (`nom`, `controlee`, `ordre`) SELECT 'FDF2', 0, 10 WHERE EXISTS (SELECT 1 FROM `profil`) AND NOT EXISTS (SELECT 1 FROM `aptitude` WHERE `nom` = 'FDF2');

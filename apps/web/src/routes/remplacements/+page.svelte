@@ -9,7 +9,7 @@
 		data.personne
 			? [
 					{ id: 'pour-moi', libelle: 'Pour moi', n: data.pourMoi.length },
-					{ id: 'miennes', libelle: 'Mes demandes', n: data.miennes.length },
+					{ id: 'miennes', libelle: 'Mes demandes', n: 0 },
 					...(data.avecValider ? [{ id: 'a-valider', libelle: 'À valider', n: data.aValider.length }] : []),
 					{ id: 'historique', libelle: 'Historique', n: 0 }
 				]

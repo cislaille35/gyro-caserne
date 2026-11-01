@@ -12,6 +12,7 @@ import { aNePasManquer } from '../src/a-ne-pas-manquer.ts';
 import { accueilDe } from '../src/casquettes.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
+import { chargerAptitudesFictives } from '../src/remplacements/fictif.ts';
 import { repondreEvenement } from '../src/actions/interactions.ts';
 import { lireContexte, disponibles, mesTranches } from '../src/remplacements/contexte.ts';
 import { demandeVue, nombreRemplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
@@ -374,5 +375,15 @@ describe('cloche, accueil, tâche planifiée, départ', () => {
 		await changerStatut(base, base.photos, chef, n.chloe, 'parti', maintenant);
 		expect(await demande(ouverte)).toMatchObject({ etat: 'attente', remplacantId: null });
 		expect((await demande(sienne)).etat).toBe('annulee');
+	});
+});
+
+describe('données fictives', () => {
+	it('des aptitudes par prénom ; relançable sans doublon', async () => {
+		const { base, n } = await jeu();
+		await chargerAptitudesFictives(base, maintenant);
+		await chargerAptitudesFictives(base, maintenant);
+		const siennes = await base.select().from(aptitudeAgent).where(eq(aptitudeAgent.personneId, n.alice));
+		expect(siennes).toHaveLength(3);
 	});
 });

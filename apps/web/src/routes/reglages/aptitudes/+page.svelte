@@ -3,7 +3,6 @@
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
-	import Pastille from '#lib/ui/Pastille.svelte';
 
 	let { data, form } = $props();
 	const pour = (cible: string) => (form?.cible === cible ? form : null);
@@ -23,17 +22,18 @@
 	<ul class="liste" role="list">
 		{#each data.aptitudes as a (a.id)}
 			{@const cible = `aptitude:${a.id}`}
-			<li class="carte">
-				<form method="POST" action="?/enregistrer" use:enhance class="ligne">
+			<li class="rangee">
+				<form method="POST" action="?/enregistrer" use:enhance class="compacte">
 					<input type="hidden" name="id" value={a.id} />
-					<Champ id="nom-{a.id}" name="nom" libelle="Nom" requis maxlength={20} valeur={pour(cible)?.valeurs?.nom ?? a.nom} erreur={erreurNom(cible)} />
-					<label class="case"><input type="checkbox" name="controlee" value="oui" checked={a.controlee} /> Contrôlée en remplacement</label>
-					<div class="gestes">
-						<Bouton type="submit" variante="secondaire">Enregistrer<span class="masque"> {a.nom}</span></Bouton>
-						<button type="submit" class="retirer" formaction="?/retirer">Retirer<span class="masque"> {a.nom}</span></button>
-					</div>
+					<label class="masque" for="nom-{a.id}">Nom de l’aptitude {a.nom}</label>
+					<input id="nom-{a.id}" class="nom" name="nom" required maxlength="20" value={pour(cible)?.valeurs?.nom ?? a.nom} aria-invalid={erreurNom(cible) ? 'true' : undefined} aria-describedby={erreurNom(cible) ? `erreur-${a.id}` : undefined} />
+					<label class="case"><input type="checkbox" name="controlee" value="oui" checked={a.controlee} /> Contrôlée<span class="masque"> en remplacement : {a.nom}</span></label>
+					<span class="gestes">
+						<button type="submit" class="petit">Enregistrer<span class="masque"> {a.nom}</span></button>
+						<button type="submit" class="petit" formaction="?/retirer">Retirer<span class="masque"> {a.nom}</span></button>
+					</span>
 				</form>
-				{#if a.controlee}<p class="etat"><Pastille ton="info">Contrôlée</Pastille></p>{/if}
+				{#if erreurNom(cible)}<p id="erreur-{a.id}" class="echec" role="alert">{erreurNom(cible)}</p>{/if}
 				{#if pour(cible)?.message}<p class="echec" role="alert">{pour(cible)?.message}</p>{/if}
 			</li>
 		{/each}
@@ -70,7 +70,44 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		background: var(--surface);
+		border: 1px solid var(--trait-doux);
+		border-radius: var(--rayon-grand);
+	}
+	.rangee {
+		padding: 10px 14px;
+	}
+	.rangee + .rangee {
+		border-top: 1px solid var(--trait-doux);
+	}
+	.compacte {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px 14px;
+	}
+	.nom {
+		width: 7.5em;
+		min-height: var(--cible);
+		padding: 0 12px;
+		border: 2px solid var(--doux);
+		border-radius: var(--rayon-petit);
+		background: var(--surface);
+		color: var(--encre);
+		font: 700 1rem var(--police);
+	}
+	.petit {
+		min-height: var(--cible);
+		padding: 0 14px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--encre);
+		font: 600 0.9375rem var(--police);
+		cursor: pointer;
+	}
+	.compacte .gestes {
+		margin-left: auto;
 	}
 	.carte {
 		display: flex;
@@ -102,16 +139,6 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10px;
-	}
-	.retirer {
-		min-height: var(--cible);
-		padding: 0 16px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		background: transparent;
-		color: var(--encre);
-		font: 600 1rem var(--police);
-		cursor: pointer;
 	}
 	.succes {
 		padding: 12px 16px;

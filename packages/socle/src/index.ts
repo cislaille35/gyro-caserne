@@ -41,3 +41,4 @@ export { accepterDemande, annulerDemande, demanderRemplacement, desister, echang
 export { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
 export { disponibles, lireContexte, mesTranches } from './remplacements/contexte.ts';
 export { remplacementsDuMoment } from './remplacements/moment.ts';
+export { chargerAptitudesFictives, chargerRemplacementsFictifs } from './remplacements/fictif.ts';

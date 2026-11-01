@@ -32,7 +32,7 @@ describe('migration 0013', () => {
 		sqlite.exec(`INSERT INTO profil (nom, type_personne) VALUES ('Agent', 'agent');`);
 		appliquer(sqlite, fichier0013);
 		const [suite] = readFileSync(new URL(fichier0013, dossier), 'utf8').split('-- Ajouté à la main').slice(1);
-		sqlite.exec(`--${suite}`);
+		for (const instruction of `--${suite}`.split('--> statement-breakpoint')) sqlite.exec(instruction);
 		expect(sqlite.prepare('SELECT count(*) AS n FROM aptitude').get()).toEqual({ n: 10 });
 	});
 });
