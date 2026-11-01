@@ -17,6 +17,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		affichage: locals.affichage,
 		connecte: acteur !== null,
 		estPersonne: acteur?.type === 'personne',
+		// Qui regarde, pour les fêtes déjà vues sur ce navigateur.
+		qui: acteur === null ? '' : acteur.type === 'personne' ? `p${acteur.id}` : 'super',
 		peutReglages,
 		peutNominations,
 		cloche,

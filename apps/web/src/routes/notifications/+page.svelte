@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import type { LigneFil, Signalement } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
@@ -64,6 +65,7 @@
 </svelte:head>
 
 <div class="page">
+<TirerPourActualiser />
 <EnTetePage titre="Notifications" {phrase}>
 	{#snippet secondaire()}
 		{#if data.nonLues > 0}

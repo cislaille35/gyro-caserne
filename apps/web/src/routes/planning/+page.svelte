@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import Annee from '#lib/planning/Annee.svelte';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -21,6 +22,7 @@
 </svelte:head>
 
 <div class="page">
+	<TirerPourActualiser />
 	<EnTetePage titre="Planning {p.annee}" phrase="Les astreintes et les manœuvres de l’année." {action} />
 
 	<nav class="annees" aria-label="Années">

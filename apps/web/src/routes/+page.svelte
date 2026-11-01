@@ -1,4 +1,7 @@
 <script lang="ts">
+	import Celebration from '#lib/animations/Celebration.svelte';
+	import { momentAnniversaire } from '#lib/animations/celebration.ts';
+	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { nombreAFaire } from '#lib/a-faire.ts';
@@ -82,6 +85,7 @@
 {/snippet}
 
 <div class="page">
+	<TirerPourActualiser />
 	<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
@@ -142,6 +146,7 @@
 		</div>
 	</div>
 </div>
+<Celebration moment={momentAnniversaire(data.anniversaire === true, data.aujourdhui)} qui={data.qui} />
 
 <style>
 	.page {

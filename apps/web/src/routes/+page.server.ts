@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { accueilDe, apercusDesMurs, prenomDe } from '@gyro-caserne/socle';
+import { accueilDe, apercusDesMurs, monAnniversaire, prenomDe } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
@@ -8,10 +8,12 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { acteur, base } = locals;
 	if (!acteur) redirect(303, '/connexion');
-	const [accueil, prenom, aNePasManquer] = await Promise.all([
-		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhuiParis()),
+	const aujourdhui = aujourdhuiParis();
+	const [accueil, prenom, aNePasManquer, anniversaire] = await Promise.all([
+		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui),
 		prenomDe(base, acteur),
-		aNePasManquerDe(base, acteur)
+		aNePasManquerDe(base, acteur),
+		monAnniversaire(base, acteur, aujourdhui)
 	]);
 	// Les nouveautés montrent la pastille de leur mur : lue seulement s'il y en a.
 	const apercus = aNePasManquer.nouveautes.length > 0 ? await apercusDesMurs(base, acteur, aujourdhuiParis()) : [];
@@ -19,7 +21,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const m = apercus.find((x) => x.cle === n.cle);
 		return { ...n, icone: m?.icone ?? null, couleur: m?.couleur ?? null, numero: m?.numero ?? null };
 	});
-	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes } };
+	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui };
 };
 
 // « À ne pas manquer » : prise de connaissance et réponse à un événement sur place. Le socle vérifie les droits.

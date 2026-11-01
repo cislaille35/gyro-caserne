@@ -27,6 +27,13 @@ describe('load du layout', () => {
 		expect(await appeler(null)).toMatchObject({ connecte: false, estPersonne: false });
 	});
 
+	it('dit qui regarde, pour les fêtes déjà vues sur ce navigateur', async () => {
+		const base = await baseDeTest();
+		expect((await appeler({ type: 'personne', id: 7 }, base)).qui).toBe('p7');
+		expect((await appeler(super_, base)).qui).toBe('super');
+		expect((await appeler(null)).qui).toBe('');
+	});
+
 	it('propose « Réglages » au super administrateur, au référent technique et au chef de centre, pas aux autres', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centre);
