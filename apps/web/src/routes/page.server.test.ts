@@ -4,7 +4,7 @@ import centreExemple from '../../../../centres/exemple/centre.ts';
 import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { actions, load } from './+page.server';
-import { maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
+import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { requeteFormulaire, preparer } from './echanges/de-test.ts';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
@@ -38,8 +38,16 @@ describe('load de /', () => {
 			casquettes: [{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 }],
 			choisie: 'astreinte',
 			contenu: { type: 'astreinte' },
-			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] }
+			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [] },
+			anniversaire: false,
+			aujourdhui: aujourdhuiParis()
 		});
+	});
+
+	it('dit si c’est l’anniversaire de l’agent, pour la fête du jour', async () => {
+		const { base, alice } = await jeu();
+		await base.update(personne).set({ naissance: `1990${aujourdhuiParis().slice(4)}` }).where(eq(personne.id, alice.id));
+		expect(await appeler({ acteur: alice, base })).toMatchObject({ anniversaire: true, aujourdhui: aujourdhuiParis() });
 	});
 
 	it('super administrateur : pas de prénom, « Le centre »', async () => {

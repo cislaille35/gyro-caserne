@@ -18,6 +18,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Murs (salons) | [salons.md](salons.md) |
 | Messagerie | [messagerie.md](messagerie.md) |
 | Notifications | [notifications.md](notifications.md) |
+| Fêtes de Gyro et actualisation | [fetes-et-actualisation.md](fetes-et-actualisation.md) |
 
 ## Ce qui est livré
 
@@ -26,6 +27,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 - **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil et le choix de l'affichage.
 - **Réservations** (Caserne → Réservations) : la VL et le matériel de l'amicale, calendrier, demandes à valider, notifications.
 - **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; « Mon année » et « Toutes les équipes » ; abonnement d'agenda ; manœuvres annoncées toutes seules sur « Le centre ».
+- **Fêtes de Gyro et actualisation** : l'icône aux couleurs des équipes ; tirer pour actualiser ; anniversaire, première réservation et année publiée fêtés une fois.
 - **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » en tête de l'accueil et la cloche.
 
 Les autres fonctions ne sont pas encore livrées : leurs pages décrivent la cible. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).

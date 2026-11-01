@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
@@ -99,6 +100,7 @@
 {#if surMessages}
 	{@render children()}
 {:else}
+	<TirerPourActualiser />
 	<div class="echanges" class:sur-un-mur={actif !== undefined} class:avec-journee={journee}>
 		<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
 		<nav class="murs" aria-label="Murs">

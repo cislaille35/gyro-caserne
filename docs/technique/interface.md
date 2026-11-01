@@ -136,6 +136,13 @@ Dans `src/lib/gyro/` :
 - `moment.ts` : tenue du moment, à l'heure de Paris. Priorité : fête du jour, nuit (23 h-6 h), p'tit-déj (6 h-10 h), calendriers (novembre et décembre), saison, normal.
 - `GyroAccueil.svelte` : sur l'accueil, Gyro est un bouton (le dessin ne contient donc aucun texte : un texte visible contredirait le nom du bouton, WCAG 2.5.3) ; cinq appuis en 2 s (doigt, Entrée ou Espace) allument son gyrophare et affichent « pin-pon ! ».
 
+### Tirer pour actualiser et célébrations
+
+Dans `src/lib/animations/` :
+
+- `TirerPourActualiser.svelte` (logique dans `tirage.ts`) : au doigt seulement, en haut de l'accueil, d'Échanges (murs, pas la messagerie), des notifications et du planning. Au-delà de 80 px (doigt freiné à 0,6), relâcher relit la page (`invalidateAll`). Un geste surtout de côté, commencé dans un champ ou une fenêtre, ou page défilée, est ignoré. « Réduire les animations » ou niveau Sobre : une simple consigne, sans lance. Tant qu'un écran l'a, `overscroll-behavior-y: contain` (compté au niveau du module) évite que Chrome tire la page en même temps. Rien n'est annoncé : sans geste, recharger la page suffit. Jamais sur un écran d'urgence.
+- `Celebration.svelte` (logique dans `celebration.ts`) : Gyro et ses confettis pour trois moments, une fois par moment et par personne (`localStorage`, clé `gyro.celebrations.<qui>`, 50 moments gardés, lecture et écriture protégées) : l'anniversaire de l'agent sur l'accueil (`monAnniversaire` du socle, une fois par jour), la première réservation acceptée (« Mes réservations », quand une seule est acceptée et qu'elle est à venir), l'année du planning publiée (« Préparer l'année », après « Publier »). Décidée dans le navigateur seulement, jamais rendue par le serveur. Fermable (bouton, qui rend le focus là où il était, ou Échap si aucune fenêtre n'est ouverte), se retire après 6 s (pas tant que le focus y est), ne bloque rien (le doigt passe au travers, sauf sur « Fermer »). Annoncée par une zone `aria-live` discrète, sauf quand la page dit déjà la nouvelle. Aucune avec « réduire les animations » ou le niveau Sobre.
+
 ### Ajouter une tenue
 
 1. Dans `tenues.ts`, ajouter la tenue à `TENUES` avec son libellé (lu par les lecteurs d'écran), et si besoin ses yeux, sa bouche et son décalage.

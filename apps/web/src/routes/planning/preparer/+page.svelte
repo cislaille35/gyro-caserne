@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Celebration from '#lib/animations/Celebration.svelte';
+	import { momentPlanningPublie } from '#lib/animations/celebration.ts';
 	import { duAu, finDeSemaine, jourLong, momentLong, semainesParMois } from '#lib/planning/dates.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -198,6 +200,7 @@
 		</form>
 	</section>
 </div>
+<Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
 	.page {

@@ -1,11 +1,13 @@
 <script lang="ts">
+	import Celebration from '#lib/animations/Celebration.svelte';
+	import { momentPremiereReservation } from '#lib/animations/celebration.ts';
 	import type { VueReservation } from '@gyro-caserne/socle';
 	import { enhance } from '$app/forms';
 	import CarteReservation from '#lib/ui/CarteReservation.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data, form }: { data: { aVenir: VueReservation[]; passees: VueReservation[]; reservee: 'attente' | 'acceptee' | null; confirmer: number | null; aujourdhui: string }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { aVenir: VueReservation[]; passees: VueReservation[]; reservee: 'attente' | 'acceptee' | null; confirmer: number | null; aujourdhui: string; qui: string }; form?: { message?: string; succes?: string } | null } = $props();
 
 	const REUSSITE = { attente: 'Demande envoyée : vous serez prévenu de la réponse.', acceptee: 'Réservation acceptée : elle est à vous.' };
 	const succes = $derived(form?.succes ?? (data.reservee ? REUSSITE[data.reservee] : ''));
@@ -65,6 +67,8 @@
 		</section>
 	{/if}
 </div>
+<!-- La page dit déjà la réussite : la fête ne la répète pas aux lecteurs d’écran. -->
+<Celebration moment={momentPremiereReservation(data.aVenir, data.passees)} qui={data.qui} annoncer={false} />
 
 <style>
 	.page,
