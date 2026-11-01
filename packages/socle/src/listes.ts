@@ -79,6 +79,14 @@ export const AVIS_RESERVATION = ['acceptee', 'refusee', 'annulee'] as const;
 export type AvisReservation = (typeof AVIS_RESERVATION)[number];
 export const FETES = ['noel', 'nouvel_an'] as const;
 
+// Remplacements : céder une ou des périodes, échanger des périodes, échanger une manœuvre.
+export const GENRES_DEMANDE = ['remplacement', 'echange', 'manoeuvre'] as const;
+export type GenreDemande = (typeof GENRES_DEMANDE)[number];
+export const ETATS_DEMANDE = ['attente', 'a_valider', 'conclue', 'refusee', 'annulee', 'expiree'] as const;
+export type EtatDemande = (typeof ETATS_DEMANDE)[number];
+export const AVIS_REMPLACEMENT = ['recue', 'acceptee', 'refusee', 'a_valider', 'validee', 'refus_chef', 'desistement', 'expiree', 'annulee', 'relance', 'informe'] as const;
+export type AvisRemplacement = (typeof AVIS_REMPLACEMENT)[number];
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 

@@ -35,3 +35,8 @@ export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPrepa
 export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
 export { chargerPlanningFictif } from './planning/fictif.ts';
+export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
+export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
+export { accepterDemande, annulerDemande, demanderRemplacement, desister, ouvrirATous, proposerEchange, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';
+export { demandeVue, nombreRemplacementsAValider, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
+export { disponibles, lireContexte, mesTranches } from './remplacements/contexte.ts';

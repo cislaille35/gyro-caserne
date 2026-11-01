@@ -1,5 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { attribuer, terminerAttribution } from './actions/attributions.ts';
+import { donnerAptitude, oterAptitude } from './aptitudes.ts';
 import { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, retirerEquipe } from './actions/personnes.ts';
 import type { Operation, RefPersonne } from './apercu-import.ts';
 import type { Base, BasePhotos } from './base.ts';
@@ -78,6 +79,9 @@ function lire(brute: unknown): Operation {
 			return { ligne, type: op.type, personne: personneDe(op.personne), responsabiliteId: identifiant(op.responsabiliteId), perimetre: perimetreDe(op.perimetre) };
 		case 'terminer':
 			return { ligne, type: op.type, attributionId: identifiant(op.attributionId) };
+		case 'aptitude':
+			if (typeof op.oui !== 'boolean') throw malFormee();
+			return { ligne, type: op.type, personne: personneDe(op.personne), aptitudeId: identifiant(op.aptitudeId), oui: op.oui };
 		default:
 			throw new DonneeInvalide('Opération inconnue');
 	}
@@ -112,7 +116,7 @@ export async function appliquerOperation(
 	const op = lire(brute);
 	const creees = objet(nouvelles);
 	let vise: number | null = null;
-	if (op.type === 'attribuer') {
+	if (op.type === 'attribuer' || op.type === 'aptitude') {
 		if ('id' in op.personne) vise = op.personne.id;
 		else if (Object.hasOwn(creees, op.personne.ligne)) vise = identifiant(creees[op.personne.ligne]);
 		else throw new DonneeInvalide('Agent de la ligne non créé');
@@ -140,6 +144,10 @@ export async function appliquerOperation(
 			await attribuer(base, acteur, { personneId: vise!, responsabiliteId: op.responsabiliteId, perimetre: op.perimetre, debut: aujourdhui }, aujourdhui);
 			break;
 		}
+		case 'aptitude':
+			if (op.oui) await donnerAptitude(base, acteur, vise!, { aptitudeId: op.aptitudeId, obtenueLe: aujourdhui, expireLe: null }, maintenant);
+			else await oterAptitude(base, acteur, vise!, op.aptitudeId, maintenant);
+			break;
 		case 'terminer': {
 			const [ligne] = await base
 				.select({ personneId: attribution.personneId, systeme: responsabilite.systeme })

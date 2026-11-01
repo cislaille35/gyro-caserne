@@ -7,9 +7,9 @@ import { enCours, exigerDate } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { estGestionnaire } from './effectif.ts';
 import { RefusDroit } from './erreurs.ts';
-import { dateFichier, dateIso, ENTETES, LIBELLES_STATUT, type Repere } from './fichier-effectif.ts';
+import { colonneAptitude, dateFichier, dateIso, ENTETES, LIBELLES_STATUT, type Repere } from './fichier-effectif.ts';
 import { STATUTS_OPERATIONNELS, type StatutOperationnel } from './listes.ts';
-import { affectationEquipe, attribution, comite, equipe, grade, journal, personne, profil, responsabilite } from './schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, equipe, grade, journal, personne, profil, responsabilite } from './schema.ts';
 
 export type FichierLu = { entetes: string[]; lignes: { numero: number; cellules: string[] }[]; repere: Repere | null };
 
@@ -23,6 +23,7 @@ export type Operation = { ligne: number } & (
 	| { type: 'statut'; personneId: number; statut: StatutOperationnel }
 	| { type: 'attribuer'; personne: RefPersonne; responsabiliteId: number; perimetre: Perimetre }
 	| { type: 'terminer'; attributionId: number }
+	| { type: 'aptitude'; personne: RefPersonne; aptitudeId: number; oui: boolean }
 );
 
 export type Apercu = {
@@ -78,7 +79,7 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 
 	const repere = fichier.repere;
 	// Toutes les lectures d'un bloc : une seule requête comptée.
-	const [grades, equipes, profils, responsabilites, comites, personnes, affectations, attributions, recentes] = await base.batch([
+	const [grades, equipes, profils, responsabilites, comites, personnes, affectations, attributions, recentes, aptitudes, aptitudesAgents] = await base.batch([
 		base.select({ id: grade.id, libelle: grade.libelle }).from(grade),
 		base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe),
 		base.select({ id: profil.id, nom: profil.nom }).from(profil),
@@ -94,7 +95,9 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		base
 			.select({ cibleType: journal.cibleType, cibleId: journal.cibleId, details: journal.details })
 			.from(journal)
-			.where(and(gt(journal.id, repere?.journal ?? Number.MAX_SAFE_INTEGER), inArray(journal.cibleType, ['personne', 'attribution'])))
+			.where(and(gt(journal.id, repere?.journal ?? Number.MAX_SAFE_INTEGER), inArray(journal.cibleType, ['personne', 'attribution']))),
+		base.select({ id: aptitude.id, nom: aptitude.nom }).from(aptitude).where(isNull(aptitude.retireeLe)),
+		base.select({ personneId: aptitudeAgent.personneId, aptitudeId: aptitudeAgent.aptitudeId }).from(aptitudeAgent)
 	]);
 	const peutAttribuer = await regleDAttribution(base, acteur, aujourdhui);
 
@@ -131,8 +134,14 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 	const rolesComite = responsabilites.filter((r) => r.typePerimetre === 'comite');
 	const colonnesRoles: { entete: string; role: Responsabilite }[] = [];
 	const colonnesComites: { entete: string; comiteId: number }[] = [];
+	const colonnesAptitudes: { entete: string; aptitudeId: number }[] = [];
 	for (const e of entetes) {
 		if (!e || (ENTETES as readonly string[]).includes(e)) continue;
+		const lAptitude = aptitudes.find((a) => colonneAptitude(a.nom) === e);
+		if (lAptitude) {
+			colonnesAptitudes.push({ entete: e, aptitudeId: lAptitude.id });
+			continue;
+		}
 		const role = responsabilites.find((r) => r.nom === e && (r.typePerimetre === 'centre' || r.typePerimetre === 'equipe') && !PROTEGES.includes(r.systeme ?? ''));
 		const leComite = e.startsWith('Comité : ') ? comites.find((c) => `Comité : ${c.nom}` === e) : undefined;
 		if (role) colonnesRoles.push({ entete: e, role });
@@ -213,6 +222,8 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 
 		const roles = colonnesRoles.map((c) => ({ ...c, valeur: v(c.entete), oui: minuscules(v(c.entete)) === 'oui' }));
 		for (const r of roles) if (r.valeur && !r.oui) erreur(r.entete, 'Indiquez « Oui » ou laissez vide');
+		const aptitudesVoulues = colonnesAptitudes.map((c) => ({ ...c, valeur: v(c.entete), oui: minuscules(v(c.entete)) === 'oui' }));
+		for (const a of aptitudesVoulues) if (a.valeur && !a.oui) erreur(a.entete, 'Indiquez « Oui » ou laissez vide');
 		const roleComite = colonnesComites.map((c) => {
 			const valeur = v(c.entete);
 			const role = valeur ? rolesComite.find((r) => minuscules(r.nom) === minuscules(valeur)) : undefined;
@@ -309,6 +320,13 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 				if (c.role && !tenues.some((a) => a.responsabiliteId === c.role!.id)) demander(c.entete, c.role, { type: 'comite', id: c.comiteId });
 				const avant = tenues.length === 1 ? rolesComite.find((r) => r.id === tenues[0]!.responsabiliteId)!.nom : '';
 				if (avant !== (c.role?.nom ?? '')) changements.push({ colonne: c.entete, avant, apres: c.role?.nom ?? '' });
+			}
+			// Une aptitude cochée est obtenue le jour de l'import ; ses dates se règlent sur la fiche.
+			for (const a of aptitudesVoulues) {
+				const tenue = fiche !== undefined && aptitudesAgents.some((x) => x.personneId === fiche.id && x.aptitudeId === a.aptitudeId);
+				if (a.oui === tenue || (a.valeur && !a.oui)) continue;
+				attribuer.push({ ligne, type: 'aptitude', personne: personneVisee, aptitudeId: a.aptitudeId, oui: a.oui });
+				changements.push({ colonne: a.entete, avant: tenue ? 'Oui' : '', apres: a.oui ? 'Oui' : '' });
 			}
 		}
 

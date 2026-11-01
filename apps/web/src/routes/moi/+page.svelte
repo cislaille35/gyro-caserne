@@ -40,6 +40,9 @@
 			<div class="qui">
 				<p class="nom">{id.prenom} {id.nom}</p>
 				{#if details || id.role}<p class="doux">{details || id.role}</p>{/if}
+				{#if data.aptitudes?.length}
+					<p class="aptitudes">Aptitudes : {data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (pas valable aujourd’hui)`)).join(', ')}</p>
+				{/if}
 			</div>
 		{:else if !data.estPersonne}
 			<IconeRole icone="cle" taille={52} />
@@ -94,6 +97,11 @@
 	.qui p {
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+	.aptitudes {
+		margin-top: 4px !important;
+		font-size: 0.9375rem;
+		font-weight: 600;
 	}
 	.nom {
 		font: 700 1.5rem/1.15 var(--police-titre);

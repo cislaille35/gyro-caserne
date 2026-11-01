@@ -27,13 +27,13 @@ const fiche = {
 	protection: null
 };
 const aucun = { enCours: [], aVenir: [], passees: [] };
-const data = { aujourdhui: '2026-10-27', attributions: aucun, peutAttribuer: [], fiche, raison: null, grades: [], profils: [{ id: 1, nom: 'Agent' }], equipes: [{ id: 1, nom: 'Équipe 1' }], statuts: ['operationnel', 'suspendu', 'parti'] };
+const data = { aujourdhui: '2026-10-27', attributions: aucun, peutAttribuer: [], fiche, raison: null, grades: [], profils: [{ id: 1, nom: 'Agent' }], equipes: [{ id: 1, nom: 'Équipe 1' }], statuts: ['operationnel', 'suspendu', 'parti'], aptitudes: [], aptitudesDuCentre: [{ id: 1, nom: 'CA2', controlee: true, ordre: 1 }] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (props: Record<string, unknown>) => render(Page as any, { props }).body;
 // Le bouton d'un bloc (Groupe) : titre et résumé y sont écrits.
 const bloc = (page: string, titre: string) => page.match(new RegExp(`<button[^>]*aria-expanded="(true|false)"[^>]*>(?:(?!</button>)[\\s\\S])*class="titre[^"]*">${titre}<(?:(?!</button>)[\\s\\S])*</button>`))!;
 const ouvert = (page: string, titre: string) => bloc(page, titre)[1] === 'true';
-const BLOCS = ['Identité et contact', 'Parcours', 'Équipe et statut', 'Rôles', 'Départ du centre'];
+const BLOCS = ['Identité et contact', 'Parcours', 'Équipe et statut', 'Rôles', 'Aptitudes', 'Départ du centre'];
 
 describe('page fiche agent', () => {
 	describe('en-tête', () => {
@@ -77,13 +77,14 @@ describe('page fiche agent', () => {
 	});
 
 	describe('blocs', () => {
-		it('cinq blocs fermés, chacun avec son résumé', () => {
+		it('six blocs fermés, chacun avec son résumé', () => {
 			const page = html({ data, form: null });
 			for (const titre of BLOCS) expect(ouvert(page, titre)).toBe(false);
 			expect(bloc(page, 'Identité et contact')[0]).toContain('alice@exemple.fr');
 			expect(bloc(page, 'Parcours')[0]).toContain('Aucun grade');
 			expect(bloc(page, 'Équipe et statut')[0]).toContain('Aucune équipe · Opérationnel');
 			expect(bloc(page, 'Rôles')[0]).toContain('Aucun rôle en cours');
+			expect(bloc(page, 'Aptitudes')[0]).toContain('Aucune aptitude');
 			expect(bloc(page, 'Départ du centre')[0]).toContain('Fin des rôles, données personnelles effacées');
 		});
 
@@ -320,9 +321,23 @@ describe('la liste garde sa recherche et son filtre après un enregistrement', (
 			const page = html({ data: { ...data, peutAttribuer }, form: null });
 			const actions = [...page.matchAll(/action="([^"]*)"/g)].map((m) => m[1]);
 			expect(actions.length).toBeGreaterThanOrEqual(5);
-			for (const action of actions) expect(action).toMatch(/^\?\/(fiche|equipe|statut|attribuer|terminer|finir)&amp;texte=al&amp;filtre=a-completer$/);
+			for (const action of actions) expect(action).toMatch(/^\?\/(fiche|equipe|statut|attribuer|terminer|finir|aptitude|oterAptitude)&amp;texte=al&amp;filtre=a-completer$/);
 		} finally {
 			Object.assign(etat.page, { url: new URL('http://x/agents/3') });
 		}
+	});
+});
+
+describe('page fiche agent : aptitudes', () => {
+	it('liste les aptitudes, dit en texte celle qui ne vaut pas aujourd’hui, et propose d’en ajouter', () => {
+		const aptitudes = [
+			{ aptitudeId: 1, nom: 'CA2', controlee: true, obtenueLe: '2020-01-01', expireLe: null, valide: true },
+			{ aptitudeId: 4, nom: 'COD1', controlee: true, obtenueLe: '2020-01-01', expireLe: '2026-01-01', valide: false }
+		];
+		const page = html({ data: { ...data, aptitudes }, form: null });
+		expect(bloc(page, 'Aptitudes')[0]).toContain('CA2 · COD1 (expirée)');
+		expect(page).toContain('Pas valable aujourd’hui');
+		expect(page).toContain('expire le 01/01/2026');
+		expect(page).toContain('Enregistrer l’aptitude');
 	});
 });

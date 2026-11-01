@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { vueEffectif } from '@gyro-caserne/socle';
+import { aptitudesDe, vueEffectif } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -7,12 +7,13 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	const { acteur, base } = locals;
 	if (!acteur) redirect(303, '/connexion');
-	if (acteur.type === 'super') return { identite: null };
-	for (const g of await vueEffectif(base, aujourdhuiParis())) {
+	if (acteur.type === 'super') return { identite: null, aptitudes: [] };
+	const [groupes, aptitudes] = await Promise.all([vueEffectif(base, aujourdhuiParis()), aptitudesDe(base, acteur, acteur.id, aujourdhuiParis())]);
+	for (const g of groupes) {
 		const p = g.personnes.find((x) => x.id === acteur.id);
-		if (p) return { identite: { prenom: p.prenom, nom: p.nom, grade: p.grade, role: p.roles[0] ?? null, equipe: g.equipe ? { nom: g.titre, couleur: g.equipe.couleur } : null } };
+		if (p) return { identite: { prenom: p.prenom, nom: p.nom, grade: p.grade, role: p.roles[0] ?? null, equipe: g.equipe ? { nom: g.titre, couleur: g.equipe.couleur } : null }, aptitudes };
 	}
-	return { identite: null };
+	return { identite: null, aptitudes };
 };
 
 export const actions: Actions = {

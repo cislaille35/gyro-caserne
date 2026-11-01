@@ -9,7 +9,7 @@ import { RefusDroit } from '../src/erreurs.ts';
 import { donneesFichier, ENTETES } from '../src/fichier-effectif.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import type { StatutOperationnel } from '../src/listes.ts';
-import { affectationEquipe, attribution, comite, equipe, grade, journal, personne, profil, profilDroit, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, equipe, grade, journal, personne, profil, profilDroit, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-27';
@@ -240,6 +240,30 @@ describe('apercuImport : modifications', () => {
 			{ colonne: 'Référent engins', avant: 'Oui', apres: '' },
 			{ colonne: 'Comité : Amicale', avant: 'Membre de comité', apres: 'Rapporteur de comité' }
 		]);
+	});
+});
+
+describe('apercuImport : aptitudes', () => {
+	it('« Oui » ajoute l’aptitude, vide la retire, autre valeur en erreur', async () => {
+		const { base, acteur, nouvelle } = await jeu();
+		const id = await nouvelle('Léa', 'Durand');
+		const autre = await nouvelle('Marc', 'Petit');
+		const [ca1, sap] = await Promise.all(['CA1', 'SAP'].map(async (n) => (await base.select().from(aptitude).where(eq(aptitude.nom, n)))[0]!.id));
+		await base.insert(aptitudeAgent).values({ personneId: id, aptitudeId: sap!, obtenueLe: '2020-01-01' });
+		const fichier = await exporter(base, acteur);
+		changer(fichier, id, { 'Aptitude : CA1': 'oui', 'Aptitude : SAP': '' });
+		changer(fichier, autre, { 'Aptitude : CA1': 'peut-être' });
+
+		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
+		expect(apercu.operations).toEqual([
+			{ ligne: expect.any(Number), type: 'aptitude', personne: { id }, aptitudeId: ca1, oui: true },
+			{ ligne: expect.any(Number), type: 'aptitude', personne: { id }, aptitudeId: sap, oui: false }
+		]);
+		expect(apercu.modifications[0]!.changements).toEqual([
+			{ colonne: 'Aptitude : CA1', avant: '', apres: 'Oui' },
+			{ colonne: 'Aptitude : SAP', avant: 'Oui', apres: '' }
+		]);
+		expect(apercu.erreurs).toEqual([{ ligne: expect.any(Number), colonne: 'Aptitude : CA1', message: 'Indiquez « Oui » ou laissez vide' }]);
 	});
 });
 

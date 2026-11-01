@@ -3,6 +3,9 @@ import { asc, eq } from 'drizzle-orm';
 import {
 	affecterEquipe,
 	annuaire,
+	aptitudesEtListe,
+	donnerAptitude,
+	oterAptitude,
 	attributionsDe,
 	ceQueJePeuxAttribuer,
 	changerStatut,
@@ -57,16 +60,26 @@ async function peutEcrire(locals: App.Locals, acteur: Acteur, id: number, aujour
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { acteur, aujourdhui, fiche } = await lireFiche(locals, params.id);
 	const { base } = locals;
+	const [[grades, profils, equipes], aptitudes] = await Promise.all([
+		base.batch([
+			base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
+			base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
+			base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation))
+		]),
+		aptitudesEtListe(base, acteur, fiche.id, aujourdhui)
+	]);
 	return {
 		aujourdhui,
 		fiche,
 		raison: await raisonDeProtection(locals, acteur, fiche, aujourdhui),
 		ecrire: await peutEcrire(locals, acteur, fiche.id, aujourdhui),
-		grades: await base.select({ id: grade.id, libelle: grade.libelle }).from(grade).orderBy(asc(grade.ordre)),
-		profils: await base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
-		equipes: await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
+		grades,
+		profils,
+		equipes,
 		statuts: [...STATUTS_OPERATIONNELS],
 		attributions: await attributionsDe(base, acteur, fiche.id, aujourdhui),
+		aptitudes: aptitudes.siennes,
+		aptitudesDuCentre: aptitudes.liste,
 		// On ne nomme pas une personne partie. Les équipes : celle de la personne d'abord, c'est le choix le plus probable.
 		peutAttribuer:
 			fiche.statut === 'parti'
@@ -84,7 +97,42 @@ const rolesDeLaFiche = (base: App.Locals['base'], acteur: Acteur, id: number, au
 	return [...enCours, ...aVenir].some((a) => a.id === attributionId);
 };
 
+const PHRASES_APTITUDE: Record<string, string> = {
+	'Aptitude inconnue': 'Choisissez une aptitude de la liste.',
+	'Expiration avant l’obtention': 'La date d’expiration doit suivre la date d’obtention.'
+};
+
+// Les aptitudes : donner (ou corriger ses dates), ôter.
+async function geste(locals: App.Locals, brut: string, faire: (acteur: Acteur, id: number) => Promise<void>, message: string) {
+	const { acteur, id } = await lireFiche(locals, brut);
+	try {
+		await faire(acteur, id);
+	} catch (erreur) {
+		if (erreur instanceof DonneeInvalide) return fail(400, { message: PHRASES_APTITUDE[erreur.message] ?? (erreur.message.startsWith('Date invalide') ? 'Indiquez une date valide.' : `${erreur.message}.`), bloc: 'aptitudes' });
+		throw erreur;
+	}
+	return { succes: true, message, bloc: 'aptitudes' };
+}
+
 export const actions: Actions = {
+	aptitude: async ({ locals, params, request }) => {
+		const formulaire = await request.formData();
+		const aptitudeId = Number(formulaire.get('aptitudeId'));
+		const expire = String(formulaire.get('expireLe') ?? '');
+		return geste(
+			locals,
+			params.id,
+			(acteur, id) => donnerAptitude(locals.base, acteur, id, { aptitudeId, obtenueLe: String(formulaire.get('obtenueLe') ?? ''), expireLe: expire || null }, maintenantParis()),
+			'Aptitude enregistrée'
+		);
+	},
+
+	oterAptitude: async ({ locals, params, request }) => {
+		const formulaire = await request.formData();
+		const aptitudeId = Number(formulaire.get('aptitudeId'));
+		return geste(locals, params.id, (acteur, id) => oterAptitude(locals.base, acteur, id, aptitudeId, maintenantParis()), 'Aptitude retirée');
+	},
+
 	fiche: async ({ locals, params, request }) => {
 		const { acteur, aujourdhui, id } = await lireFiche(locals, params.id);
 		const { champs, erreurs, valeurs } = lireFormulaire(await request.formData());
