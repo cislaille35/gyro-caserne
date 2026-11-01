@@ -16,6 +16,8 @@
 	let debut = $state(depart('debut', enCreneau ? `${jour}T09:00` : jour));
 	let fin = $state(depart('fin', enCreneau ? `${jour}T12:00` : jour));
 	let quantite = $state(depart('quantite', '1'));
+	// Lié comme les dates : un mot tapé avant que la page soit prête n'est pas effacé.
+	let mot = $state(depart('mot', ''));
 	const dispo = $derived(disponibilite(r, data.prises, { debut, fin, quantite: String(quantite) }, data.maintenant));
 </script>
 
@@ -55,7 +57,7 @@
 		</fieldset>
 		<div class="champ-mot">
 			<label for="reserver-mot">Un mot (facultatif)</label>
-			<textarea id="reserver-mot" name="mot" maxlength="200" rows="3">{depart('mot', '')}</textarea>
+			<textarea id="reserver-mot" name="mot" maxlength="200" rows="3" bind:value={mot}></textarea>
 		</div>
 		<Bouton type="submit">{creneau ? 'Réserver' : 'Demander'}</Bouton>
 	</form>

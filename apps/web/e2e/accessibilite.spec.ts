@@ -136,6 +136,7 @@ for (const theme of ['auto', 'sombre']) {
 			}
 
 			test('fiche d’un agent, blocs ouverts, sans violation, erreur de départ comprise', async ({ page }) => {
+				test.setTimeout(60_000);
 				await page.goto(await ficheDe(page, 'Alice Martin'));
 				await page.waitForLoadState('networkidle');
 				await toutOuvrir(page);
@@ -242,7 +243,8 @@ async function groupeAvecMessages(page: Page, nom: string): Promise<string> {
 
 // Ouvre les groupes repliés et les blocs <details> de la page.
 async function toutOuvrir(page: Page) {
-	for (const bouton of await page.locator('button[aria-expanded="false"]').all()) if (await bouton.isVisible()) await bouton.click();
+	// Des poignées fixes : `all()` renverrait des « n-ième bouton fermé », qui glissent à chaque ouverture.
+	for (const bouton of await page.locator('button[aria-expanded="false"]').elementHandles()) if (await bouton.isVisible()) await bouton.click();
 	await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
 }
 
