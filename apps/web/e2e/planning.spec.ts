@@ -69,7 +69,8 @@ test.describe('agent : mon année et mon agenda', () => {
 
 		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' }).click();
 		await expect(page.getByRole('heading', { level: 3, name: 'Décembre' })).toBeVisible();
-		await expect(page.getByText('Mon astreinte', { exact: true }).first()).toBeVisible();
+		// Le mois en cours est déplié ; les autres, repliés, cachent leurs semaines.
+		await expect(page.locator('details[open]').getByText('Mon astreinte', { exact: true }).first()).toBeVisible();
 		await page.getByRole('switch', { name: 'Seulement mes semaines' }).check();
 		await sansViolation(page);
 
