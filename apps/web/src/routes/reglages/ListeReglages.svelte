@@ -80,6 +80,7 @@
 	{#if data.responsabilites}
 		<ListeRangees titre="Listes du centre">
 			<li><Rangee href="/reglages/aptitudes" courant={courant('/reglages/aptitudes')} icone="etoile" titre="Aptitudes" sous="CA, conduite, spécialités ; celles contrôlées en remplacement" /></li>
+			<li><Rangee href="/reglages/armement" courant={courant('/reglages/armement')} icone="camion" titre="Armement des engins" sous="L’équipage de chaque engin ; le FPT guide le planning d’été" /></li>
 		</ListeRangees>
 	{/if}
 
