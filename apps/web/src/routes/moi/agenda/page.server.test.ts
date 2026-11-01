@@ -5,7 +5,7 @@ import { actions, load } from './+page.server';
 import { locaux, preparer } from '../../planning/de-test.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const charger = (locals: unknown) => (load as any)({ locals, url: new URL('https://caserne.exemple.fr/moi/agenda') });
+const charger = (locals: unknown, ua = '') => (load as any)({ locals, url: new URL('https://caserne.exemple.fr/moi/agenda'), request: new Request('https://caserne.exemple.fr/moi/agenda', { headers: { 'user-agent': ua } }) });
 
 describe('/moi/agenda', () => {
 	it('demande la connexion ; le super administrateur n’a pas d’agenda', async () => {
@@ -30,5 +30,12 @@ describe('/moi/agenda', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		expect(await (actions.changer as any)({ locals: locaux(base, alice) })).toEqual({ change: true });
 		expect((await charger(locaux(base, alice))).lien).not.toBe(lien);
+	});
+
+	it('reconnaît simplement le téléphone : iPhone, Android, sinon rien', async () => {
+		const { base, alice } = await preparer();
+		expect((await charger(locaux(base, alice), 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')).appareil).toBe('iphone');
+		expect((await charger(locaux(base, alice), 'Mozilla/5.0 (Linux; Android 15; Pixel 9)')).appareil).toBe('android');
+		expect((await charger(locaux(base, alice), 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).appareil).toBeNull();
 	});
 });
