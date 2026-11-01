@@ -161,12 +161,34 @@
 		border-top: 1px solid var(--trait-doux);
 		padding-top: 4px;
 	}
+	/* Le signe « + » / « – » dit que la rubrique s'ouvre (il remplace le triangle, que la mise en page masque). */
 	summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
 		font: 700 1.125rem var(--police-titre);
 		cursor: pointer;
+		list-style: none;
+	}
+	summary::-webkit-details-marker {
+		display: none;
+	}
+	summary::after {
+		content: '+' / '';
+		flex: none;
+		width: 32px;
+		height: 32px;
+		border: 1px solid var(--trait);
+		border-radius: 50%;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font: 600 1.25rem var(--police);
+	}
+	details[open] summary::after {
+		content: '–' / '';
 	}
 	details ol {
 		padding-bottom: 8px;
