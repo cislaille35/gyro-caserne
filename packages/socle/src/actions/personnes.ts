@@ -177,6 +177,7 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 	const roles = statut === 'parti' ? finirOuSupprimer(base, attribution, eq(attribution.personneId, personneId), aujourdhui) : [];
 	// Au départ, il quitte aussi ses groupes de messagerie.
 	const groupes = statut === 'parti' ? await departDesGroupes(base, personneId, maintenant) : { ecritures: [], photos: [] };
+	const remplacements = statut === 'parti' ? await remplacementsAuDepart(base, personneId, maintenant) : [];
 	const ecritures = [
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
@@ -187,10 +188,11 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 		...retrait,
 		...roles,
 		...groupes.ecritures,
+		...remplacements,
 		// Au départ, ses appareils, son fil et ses coupures de notifications.
 		...(statut === 'parti' ? [...effacerNotificationsDe(base, personneId), base.delete(cleAgenda).where(eq(cleAgenda.personneId, personneId))] : []),
 		// Au départ, ses réservations à venir sont annulées.
-		...(statut === 'parti' ? [annulerAuDepart(base, personneId, maintenant), ...remplacementsAuDepart(base, personneId, maintenant)] : [])
+		...(statut === 'parti' ? [annulerAuDepart(base, personneId, maintenant)] : [])
 	] as const;
 	// Sans accès, la personne est déconnectée tout de suite, et ses liens en attente ne valent plus rien.
 	if ((STATUTS_AVEC_ACCES as readonly string[]).includes(statut)) await base.batch(ecritures);

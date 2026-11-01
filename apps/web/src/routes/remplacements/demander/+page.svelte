@@ -58,47 +58,50 @@
 			</form>
 		{/if}
 
-		<form method="POST" class="formulaire">
-			<input type="hidden" name="mode" value={data.mode} />
-			<section class="carte" aria-labelledby="t-miennes">
-				<h2 id="t-miennes">{echange ? 'Ce que je donne' : 'Mes périodes'}</h2>
-				{@render semaines(data.semaines, 'periode', 'Ma')}
-			</section>
-
-			{#if echange}
-				{#if data.avec}
-					<input type="hidden" name="collegue" value={data.avec.id} />
-					<section class="carte" aria-labelledby="t-siennes">
-						<h2 id="t-siennes">Ce que je prends à {nom(data.avec)}</h2>
-						{#if data.semainesAvec.length === 0}
-							<p class="doux">{nom(data.avec)} n’a pas d’astreinte libre dans les douze prochaines semaines.</p>
-						{:else}
-							{@render semaines(data.semainesAvec, 'periodeCible', 'Sa')}
-						{/if}
-					</section>
+		{#if !echange || data.avec}
+			<form method="POST" class="formulaire">
+				<input type="hidden" name="mode" value={data.mode} />
+				<section class="carte" aria-labelledby="t-miennes">
+					<h2 id="t-miennes">{echange ? 'Ce que je donne' : 'Mes périodes'}</h2>
+					{@render semaines(data.semaines, 'periode', 'Ma')}
+				</section>
+	
+				{#if echange}
+					{#if data.avec}
+						<input type="hidden" name="collegue" value={data.avec.id} />
+						<section class="carte" aria-labelledby="t-siennes">
+							<h2 id="t-siennes">Ce que je prends à {nom(data.avec)}</h2>
+							{#if data.semainesAvec.length === 0}
+								<p class="doux">{nom(data.avec)} n’a pas d’astreinte libre dans les douze prochaines semaines.</p>
+							{:else}
+								{@render semaines(data.semainesAvec, 'periodeCible', 'Sa')}
+							{/if}
+						</section>
+					{/if}
+				{:else}
+					<fieldset class="carte">
+						<legend>À qui la demander ?</legend>
+						<label class="case"><input type="radio" name="pour" value="tous" bind:group={pour} /> À tous les collègues disponibles</label>
+						<p class="aide">Le premier qui accepte vous remplace. Ceux qui ont vos aptitudes contrôlées sont en tête de liste.</p>
+						<label class="case"><input type="radio" name="pour" value="collegue" bind:group={pour} /> À un collègue en particulier</label>
+						<label for="collegue" class="libelle">Collègue</label>
+						<p class="aide-champ">Il doit être libre sur ces périodes : ni d’astreinte, ni déjà remplaçant.</p>
+						<select id="collegue" name="collegue">
+							<option value="">Choisir un collègue</option>
+							{#each data.collegues as c (c.id)}<option value={c.id}>{nom(c)}</option>{/each}
+						</select>
+					</fieldset>
 				{/if}
-			{:else}
-				<fieldset class="carte">
-					<legend>À qui la demander ?</legend>
-					<label class="case"><input type="radio" name="pour" value="tous" bind:group={pour} /> À tous les collègues disponibles</label>
-					<p class="aide">Le premier qui accepte vous remplace. Ceux qui ont vos aptitudes contrôlées sont en tête de liste.</p>
-					<label class="case"><input type="radio" name="pour" value="collegue" bind:group={pour} /> À un collègue en particulier</label>
-					<label for="collegue" class="libelle">Collègue</label>
-					<select id="collegue" name="collegue">
-						<option value="">Choisir un collègue</option>
-						{#each data.collegues as c (c.id)}<option value={c.id}>{nom(c)}</option>{/each}
-					</select>
-				</fieldset>
-			{/if}
-
-			<div class="carte">
-				<label for="mot" class="libelle">Un mot (facultatif)</label>
-				<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
-			</div>
-			{#if !echange || data.avec}
-				<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>
-			{/if}
-		</form>
+	
+				<div class="carte">
+					<label for="mot" class="libelle">Un mot (facultatif)</label>
+					<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
+				</div>
+				{#if !echange || data.avec}
+					<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>
+				{/if}
+			</form>
+		{/if}
 	{/if}
 </div>
 
@@ -169,6 +172,11 @@
 	.doux,
 	.aide {
 		color: var(--doux);
+	}
+	.aide-champ {
+		margin-top: -6px;
+		color: var(--doux);
+		font-size: 0.9375rem;
 	}
 	.aide {
 		margin: -6px 0 4px 32px;

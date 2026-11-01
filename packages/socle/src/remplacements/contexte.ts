@@ -114,9 +114,9 @@ export function disponibles(ctx: Contexte, demandeurId: number, periodes: Period
 		.sort((a, b) => Number(b.aptitudes) - Number(a.aptitudes) || a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
 }
 
-// Qui valide : les chefs de l'équipe, sauf le demandeur ; à défaut, le chef de centre et son adjoint.
-export function valideurs(chefs: Chef[], equipeId: number | null, demandeurId: number): number[] {
-	const ids = (garde: (c: Chef) => boolean) => [...new Set(chefs.filter((c) => garde(c) && c.personneId !== demandeurId).map((c) => c.personneId))];
+// Qui valide : les chefs de l'équipe, ni demandeur ni remplaçant ; à défaut, le chef de centre et son adjoint.
+export function valideurs(chefs: Chef[], equipeId: number | null, demandeurId: number, remplacantId: number | null = null): number[] {
+	const ids = (garde: (c: Chef) => boolean) => [...new Set(chefs.filter((c) => garde(c) && c.personneId !== demandeurId && c.personneId !== remplacantId).map((c) => c.personneId))];
 	const deLEquipe = ids((c) => c.systeme === 'chef_equipe' && c.equipeId === equipeId);
 	return deLEquipe.length > 0 ? deLEquipe : ids((c) => c.systeme === 'chef_centre' || c.systeme === 'chef_centre_adjoint');
 }

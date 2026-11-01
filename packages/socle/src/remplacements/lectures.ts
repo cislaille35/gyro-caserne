@@ -50,7 +50,7 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 	const m = (id: number | null) => lu.manoeuvres.find((x) => x.id === id) ?? null;
 	const avenir = d.debut > maintenant;
 	const recue = lu.destinataires.some((x) => x.demandeId === d.id && x.personneId === moi && x.refuseLe === null);
-	const estValideur = valideurs(chefs, d.equipeId, d.demandeurId).includes(moi);
+	const estValideur = valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi);
 	const pourMoi = d.etat === 'attente' && avenir && recue && d.demandeurId !== moi && (d.cibleId === null || d.cibleId === moi);
 	const periodes = periodesDe(d.periodes);
 	const periodesCible = periodesDe(d.periodesCible);
@@ -168,13 +168,16 @@ export async function demandeVue(base: Base, acteur: Acteur, id: number, mainten
 	const d = lignes[0];
 	if (!d) throw new DonneeInvalide('Demande introuvable');
 	const v = vue(d, moi, { personnes, manoeuvres, destinataires }, ctx.chefs, ctx, maintenant.slice(0, 16));
-	if (v.moi === null && d.cibleId !== moi && !destinataires.some((x) => x.personneId === moi)) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous concerne pas');
+	// Un destinataire qui n'a pas pris la demande ne la voit que tant qu'elle attend : ensuite, elle ne regarde que les intéressés.
+	const partie = d.demandeurId === moi || d.remplacantId === moi || d.cibleId === moi || valideurs(ctx.chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi);
+	const recue = destinataires.some((x) => x.personneId === moi && x.refuseLe === null) && d.etat === 'attente';
+	if (!partie && !recue) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous concerne pas');
 	const voitDisponibles = v.moi === 'demandeur' && d.genre === 'remplacement' && d.etat === 'attente' && d.debut > maintenant.slice(0, 16);
 	return {
 		demande: v,
 		disponibles: voitDisponibles && d.cibleId === null ? disponibles(ctx, d.demandeurId, v.periodes, d.id) : [],
 		recue: d.cibleId === null ? destinataires.filter((x) => x.refuseLe === null).length : null,
-		valideurs: valideurs(ctx.chefs, d.equipeId, d.demandeurId).map((x) => personnes.find((p) => p.id === x) ?? inconnu(x))
+		valideurs: valideurs(ctx.chefs, d.equipeId, d.demandeurId, d.remplacantId).map((x) => personnes.find((p) => p.id === x) ?? inconnu(x))
 	};
 }
 
@@ -203,7 +206,7 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 		return p ? `${p.prenom} ${p.nom}` : '';
 	};
 	return demandes
-		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId).includes(acteur.id))
+		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(acteur.id))
 		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider · ${nom(d.demandeurId)} · ${texteDemande(periodesDe(d.periodes))}` }));
 }
 

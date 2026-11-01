@@ -387,3 +387,87 @@ describe('données fictives', () => {
 		expect(siennes).toHaveLength(3);
 	});
 });
+
+describe('retours de revue', () => {
+	it('un échange ne peut pas reprendre une période déjà cédée', async () => {
+		const { base, alice, bruno, chloe, n } = await jeu();
+		const echange = await proposerEchange(base, alice, { periodes: [nuitLundi9], cibleId: n.bruno, periodesCible: [nuitLundi16] }, maintenant, reglage);
+		const cession = await demanderRemplacement(base, bruno, { periodes: [nuitLundi16], cibleId: n.chloe }, maintenant, reglage);
+		await accepterDemande(base, chloe, cession, maintenant, reglage);
+		await expect(accepterDemande(base, bruno, echange, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('Échange impossible : l’un de vous n’est plus libre'));
+	});
+
+	it('un chef ne valide pas le remplacement qu’il tient lui-même', async () => {
+		const { base, alice, chef, n, avisDe, nommer, ids } = await jeu();
+		// Le chef de centre (sans équipe) remplace Alice ; l'équipe 1 perd son chef : c'est l'adjoint qui valide.
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await base.delete(attribution).where(eq(attribution.personneId, n.elodie));
+		const [adjoint] = await base.insert(personne).values({ email: 'adjoint@exemple.fr', prenom: 'Adjoint', nom: 'Test' }).returning();
+		await nommer(adjoint!.id, 'chef_centre_adjoint', null);
+		expect(await accepterDemande(base, chef, id, maintenant, reglage)).toBe('a_valider');
+		await expect(valider(base, chef, id, maintenant, reglage)).rejects.toThrow(RefusDroit);
+		expect((await enTeteDe(base, chef, '2026-11-01', maintenant)).remplacementsAValider).toBe(0);
+		expect((await enTeteDe(base, { type: 'personne', id: adjoint!.id }, '2026-11-01', maintenant)).remplacementsAValider).toBe(1);
+		expect(await avisDe(adjoint!.id)).toEqual(['a_valider']);
+		void ids;
+	});
+
+	it('désistement : la demande ouverte est renvoyée aux destinataires encore disponibles', async () => {
+		const { base, alice, chloe, n, avisDe } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		await desister(base, chloe, id, maintenant, reglage);
+		expect(await avisDe(n.bruno)).toEqual(['recue', 'recue']);
+		expect(await avisDe(n.chloe)).toEqual(['recue']);
+	});
+
+	it('après acceptation, un destinataire qui ne l’a pas prise ne voit plus la demande', async () => {
+		const { base, alice, bruno, chloe } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await demandeVue(base, bruno, id, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		await expect(demandeVue(base, bruno, id, maintenant, reglage)).rejects.toThrow(RefusDroit);
+	});
+
+	it('annulée par le demandeur, la cible est prévenue ; annulée par le chef, le remplaçant et le demandeur le sont', async () => {
+		const { base, alice, chloe, elodie, n, avisDe } = await jeu();
+		const ciblee = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: n.bruno }, maintenant, reglage);
+		await annulerDemande(base, alice, ciblee, maintenant, reglage);
+		expect(await avisDe(n.bruno)).toEqual(['recue', 'annulee']);
+		const ouverte = await demanderRemplacement(base, alice, { periodes: [nuitMardi10], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, ouverte, maintenant, reglage);
+		await annulerDemande(base, elodie, ouverte, maintenant, reglage);
+		expect(await avisDe(n.chloe)).toContain('annulee');
+		expect(await avisDe(n.alice)).toContain('annulee');
+	});
+
+	it('refus du chef après le début : refusé ; expiration d’une demande à valider : remplaçant et chef prévenus', async () => {
+		const { base, alice, bruno, elodie, n, avisDe } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		await expect(refuserValidation(base, elodie, id, null, '2026-11-09T18:30', reglage)).rejects.toThrow(new DonneeInvalide('Période déjà commencée'));
+		await remplacementsDuMoment(base, '2026-11-09T18:00');
+		expect(await avisDe(n.bruno)).toContain('expiree');
+		expect(await avisDe(n.elodie)).toEqual(['a_valider', 'expiree']);
+	});
+
+	it('pas de relance pour un échange', async () => {
+		const { base, alice, n } = await jeu();
+		await proposerEchange(base, alice, { periodes: [nuitLundi9], cibleId: n.bruno, periodesCible: [nuitLundi16] }, maintenant, reglage);
+		expect(await remplacementsDuMoment(base, '2026-11-08T08:00')).toEqual({ expirees: 0, relances: 0 });
+	});
+
+	it('départ du remplaçant : le titulaire est prévenu ; départ du demandeur : le remplaçant l’est', async () => {
+		const { base, alice, bruno, chloe, chef, n, avisDe } = await jeu();
+		const a = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, a, maintenant, reglage);
+		const b = await demanderRemplacement(base, bruno, { periodes: [nuitLundi16], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, b, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.chloe, 'parti', maintenant);
+		expect(await avisDe(n.alice)).toEqual(['acceptee', 'recue', 'desistement']);
+		const c = await demanderRemplacement(base, bruno, { periodes: [{ debut: '2026-11-17T18:00', fin: '2026-11-18T06:00' }], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, alice, c, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.bruno, 'parti', maintenant);
+		expect(await avisDe(n.alice)).toContain('annulee');
+	});
+});

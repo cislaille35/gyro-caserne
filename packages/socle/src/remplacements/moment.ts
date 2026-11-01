@@ -9,7 +9,8 @@ import { texteDemande } from './tranches.ts';
 const RELANCE = '08:00';
 
 // Toutes les dix minutes (voir planifie.ts) : une demande non conclue expire au début de sa première période ;
-// la veille, à partir de 8 h, une demande sans remplaçant est relancée une fois, au demandeur et au chef d'équipe.
+// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef d'équipe.
+// Expirée à valider : le remplaçant et le chef sont prévenus aussi.
 export async function remplacementsDuMoment(base: Base, maintenant: string): Promise<{ expirees: number; relances: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const m = maintenant.slice(0, 16);
@@ -24,7 +25,7 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 			? base
 					.select()
 					.from(demandeRemplacement)
-					.where(and(sansRemplacant, isNull(demandeRemplacement.relanceLe), sql`substr(${demandeRemplacement.debut}, 1, 10) = ${demain}`))
+					.where(and(sansRemplacant, eq(demandeRemplacement.genre, 'remplacement'), isNull(demandeRemplacement.relanceLe), sql`substr(${demandeRemplacement.debut}, 1, 10) = ${demain}`))
 			: base.select().from(demandeRemplacement).where(sql`0`),
 		requeteChefs(base, aujourdhui),
 		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne)
@@ -41,7 +42,7 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 				.update(demandeRemplacement)
 				.set({ etat: 'expiree', trancheePar: 'planning', trancheeLe: maintenant })
 				.where(and(eq(demandeRemplacement.id, d.id), eq(demandeRemplacement.etat, d.etat))),
-			...avis(base, [d.demandeurId, ...(d.etat === 'a_valider' && d.remplacantId !== null ? [d.remplacantId] : [])], d.id, 'expiree', `${texteDemande(periodesDe(d.periodes)) || 'Échange de manœuvre'} · le titulaire reste responsable`, `/remplacements/${d.id}`, maintenant, si)
+			...avis(base, [d.demandeurId, ...(d.etat === 'a_valider' && d.remplacantId !== null ? [d.remplacantId, ...valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId)] : [])], d.id, 'expiree', `${texteDemande(periodesDe(d.periodes)) || 'Échange de manœuvre'} · le titulaire reste responsable`, `/remplacements/${d.id}`, maintenant, si)
 		);
 	}
 	for (const d of aRelancer) {
@@ -49,7 +50,7 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 		ecritures.push(
 			base.update(demandeRemplacement).set({ relanceLe: maintenant }).where(and(eq(demandeRemplacement.id, d.id), isNull(demandeRemplacement.relanceLe))),
 			...avis(base, [d.demandeurId], d.id, 'relance', `Personne n’a encore accepté : ${texte}`, `/remplacements/${d.id}`, maintenant),
-			...avis(base, valideurs(chefs, d.equipeId, d.demandeurId), d.id, 'relance', `${nom(d.demandeurId)} n’a pas encore de remplaçant demain · ${texte}`, `/remplacements/${d.id}`, maintenant)
+			...avis(base, valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId), d.id, 'relance', `${nom(d.demandeurId)} n’a pas encore de remplaçant demain · ${texte}`, `/remplacements/${d.id}`, maintenant)
 		);
 	}
 	const [premiere, ...autres] = ecritures;
