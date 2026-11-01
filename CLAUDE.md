@@ -28,7 +28,7 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
 - Une branche par sujet : `fonction/…`, `correctif/…`, `doc/…`, `technique/…`.
 - Commits en français, clairs.
 - Fin de développement :
-  1. **review** par un sous-agent. Claude choisit le modèle : rapide pour un petit changement, le plus capable pour une fonction, la sécurité, les données ou la base, et le plus capable en cas de doute. La review vérifie aussi que chaque comportement a son test. Chaque retour est traité, et la review est refaite si le code a changé ;
+  1. **review** par un sous-agent, **une seule par lot**, à la fin. Claude choisit le modèle : rapide pour un petit changement, le plus capable pour une fonction, la sécurité, les données ou la base, et le plus capable en cas de doute. La review vérifie aussi que chaque comportement a son test. Chaque retour est traité en une vague ; la review n'est refaite que si une correction change le fonctionnement ;
   2. **PR** : sa description est le compte rendu (voir plus bas) ;
   3. le porteur valide ou refuse ;
   4. Claude fusionne la PR en **un seul commit** (squash) et le confirme.
@@ -85,7 +85,8 @@ La machine de développement est petite (2 Go de mémoire) et peut redémarrer. 
 
 - **commit et push à chaque étape verte** : un redémarrage ne coûte que l'étape en cours ;
 - **commande lourde** (types, compilation, installation) : toujours en cage mémoire et avec une limite de temps, pour qu'elle échoue seule au lieu de tout bloquer ;
-- **PR ouverte en brouillon dès le premier push** : la CI y fait la vérification rapide ; la complète (types, accessibilité) part quand la PR passe « prête » ou à la demande. En local, on garde les tests rapides.
+- **PR ouverte en brouillon dès le premier push** : la CI y fait la vérification rapide ; la complète (types, accessibilité) part quand la PR passe « prête » ou à la demande, **une fois par lot** (minutes GitHub comptées). En local, on garde les tests rapides et les types ; les tests dans le navigateur (Playwright) ne tournent qu'en CI, jamais sur la machine de développement.
+- **Aller vite** : un plan court (une page de tâches) ; des captures des seuls écrans principaux du lot (téléphone en clair, ordinateur en sombre) ; un seul lot à la fois quand deux lots touchent les mêmes écrans ou la base.
 
 ## Compte rendu
 
