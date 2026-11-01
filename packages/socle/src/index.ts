@@ -36,6 +36,7 @@ export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts
 export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
 export { chargerPlanningFictif } from './planning/fictif.ts';
+export { apercuPlanning, appliquerPlanning, donneesFichierPlanning, FEUILLES as FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from './planning/fichier.ts';
 export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
 export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
 export { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';

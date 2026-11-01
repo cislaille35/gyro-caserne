@@ -66,6 +66,8 @@
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
+	<p class="par-fichier"><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></p>
+
 	<nav class="etapes" aria-label="Étapes">
 		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
 		<ol role="list">
@@ -329,6 +331,16 @@
 <Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
+	.par-fichier {
+		margin: 0;
+	}
+	.par-fichier a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
+		font-weight: 700;
+		color: var(--texte);
+	}
 	.page {
 		display: flex;
 		flex-direction: column;

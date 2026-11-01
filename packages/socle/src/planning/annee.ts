@@ -211,39 +211,43 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 		]);
 		return lignes[0]!.id;
 	}
-	const [existante] = await base
-		.select({ annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture })
-		.from(manoeuvre)
-		.leftJoin(publication, eq(publication.id, manoeuvre.publicationId))
-		.where(eq(manoeuvre.id, d.id));
+	const [existante] = await base.select(colonnesExistante).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(eq(manoeuvre.id, d.id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
+	await base.batch([...ecrituresModification(base, d.id, existante, valeurs, maintenant), journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id)]);
+	return d.id;
+}
+
+// Ce qu'il faut savoir d'une manœuvre enregistrée pour la modifier.
+export const colonnesExistante = { annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture };
+type Existante = { annuleeLe: string | null; publicationId: number | null; debut: string; convoques: string; ouverture: string | null; cloture: string | null };
+type Valeurs = Awaited<ReturnType<typeof exigerManoeuvre>>;
+
+// Les écritures d'une modification (à la main ou par le fichier).
+export function ecrituresModification(base: Base, id: number, existante: Existante, valeurs: Valeurs, maintenant: string) {
 	// Déjà annoncée : sa publication suit (les convoqués sont prévenus par manoeuvreChangee). Même date : le sondage garde sa clôture ;
 	// nouvelle date : la clôture est recalculée et la relance pourra repartir.
 	const memeDate = existante.debut === valeurs.debut;
 	// Les échanges entre agents restent, tant que la manœuvre ne convoque pas tout le centre.
 	const avant = JSON.parse(existante.convoques) as Convocation;
-	if (!Array.isArray(avant) && avant !== 'tous' && valeurs.convoques !== '"tous"') valeurs.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(valeurs.convoques) });
+	const v = { ...valeurs };
+	if (!Array.isArray(avant) && avant !== 'tous' && v.convoques !== '"tous"') v.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(v.convoques) });
 	const cloture = memeDate ? existante.cloture : null;
-	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(valeurs, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
-	await base.batch([base.update(manoeuvre).set({ ...valeurs, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, d.id)), ...suivre, journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id)]);
-	return d.id;
+	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(v, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
+	return [base.update(manoeuvre).set({ ...v, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, id)), ...suivre];
 }
+
+// Retirer : déjà annoncée, elle est annulée et sa publication le dit ; sinon, elle est effacée.
+export const ecrituresRetrait = (base: Base, id: number, publicationId: number | null, maintenant: string) =>
+	publicationId !== null
+		? [base.update(manoeuvre).set({ annuleeLe: maintenant }).where(eq(manoeuvre.id, id)), base.update(publication).set({ annuleeLe: maintenant, modifieeLe: maintenant }).where(eq(publication.id, publicationId))]
+		: [base.delete(manoeuvre).where(eq(manoeuvre.id, id))];
 
 export async function supprimerManoeuvre(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
 	await exigerGestion(base, acteur, maintenant);
 	const [existante] = await base.select().from(manoeuvre).where(eq(manoeuvre.id, id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
 	if (existante.debut <= maintenant.slice(0, 16)) throw new DonneeInvalide('Manœuvre passée');
-	// Déjà annoncée : elle est annulée, sa publication reste et le dit.
-	if (existante.publicationId !== null) {
-		await base.batch([
-			base.update(manoeuvre).set({ annuleeLe: maintenant }).where(eq(manoeuvre.id, id)),
-			base.update(publication).set({ annuleeLe: maintenant, modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId)),
-			journalPlanning(base, acteur, 'annuler_manoeuvre', {}, maintenant, id)
-		]);
-		return;
-	}
-	await base.batch([base.delete(manoeuvre).where(eq(manoeuvre.id, id)), journalPlanning(base, acteur, 'supprimer_manoeuvre', {}, maintenant, id)]);
+	await base.batch([...ecrituresRetrait(base, id, existante.publicationId, maintenant), journalPlanning(base, acteur, existante.publicationId !== null ? 'annuler_manoeuvre' : 'supprimer_manoeuvre', {}, maintenant, id)]);
 }
 
 export async function publierAnnee(base: Base, acteur: Acteur, annee: number, maintenant: string): Promise<void> {
