@@ -55,7 +55,7 @@
 				<label for="engin">Engin</label>
 				<select id="engin" name="engin" required>
 					<option value="" disabled selected={choisi === ''}>Choisir l’engin</option>
-					{#each data.engins as e (e.id)}<option value={e.id} selected={String(e.id) === choisi}>{e.nom} · {e.type}</option>{/each}
+					{#each data.engins as e (e.id)}<option value={e.id} selected={String(e.id) === choisi}>{e.nom === e.type ? e.nom : `${e.nom} · ${e.type}`}</option>{/each}
 				</select>
 			</div>
 			<div class="champ">

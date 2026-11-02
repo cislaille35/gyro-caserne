@@ -41,9 +41,16 @@
 		return autresCoches ? `${autresCoches} ${autresCoches > 1 ? 'agents' : 'agent'}` : 'personne';
 	});
 	const panneauParticipants = $derived(page.url.searchParams.has('participants'));
+	// Les autres agents : avec JavaScript, seuls les cochés et ceux que la recherche trouve ; sans, tous.
 	let cherche = $state('');
+	let avecJs = $state(false);
+	// Cochés dans le panneau, pour qu'ils restent visibles quand la recherche change.
+	let touches = $state<number[]>([]);
+	$effect(() => {
+		avecJs = true;
+	});
 	const sansAccent = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
-	const trouve = (nom: string) => !cherche.trim() || sansAccent(nom).includes(sansAccent(cherche.trim()));
+	const montre = (a: { id: number; nom: string }) => !avecJs || coche(a.id) || touches.includes(a.id) || (cherche.trim() !== '' && sansAccent(a.nom).includes(sansAccent(cherche.trim())));
 	const fermerParticipants = $derived(`/engins/${data.engin.id}/prise`);
 	const enregistrerParticipants: SubmitFunction = () => async ({ result, update }) => {
 		if (result.type === 'success') await goto(fermerParticipants, { invalidateAll: true });
@@ -270,7 +277,7 @@
 				{#if nbRetrouves}{pluriel(nbRetrouves, 'signalement retrouvé sera clos', 'signalements retrouvés seront clos')}.{/if}
 				L’engin reste disponible : seuls le référent engins et les chefs décident d’une indisponibilité.
 			</p>
-			<p>La prise sera au nom de : <strong>{noms.join(', ') || 'vous'}</strong>. <a href="?participants" data-sveltekit-noscroll>Modifier les participants</a></p>
+			<p class="valider-participants">La prise sera au nom de : <strong>{noms.join(', ') || 'vous'}</strong>. <a href="?participants" data-sveltekit-noscroll>Modifier les participants</a></p>
 			<form method="POST" action="?/valider" use:enhance>
 				<input type="hidden" name="prise" value={p.id} />
 				<Bouton type="submit">Valider la prise</Bouton>
@@ -305,11 +312,11 @@
 					<fieldset>
 						<legend>{astreinte.length ? 'Un remplaçant, un renfort' : 'Agents du centre'}</legend>
 						<div class="champ">
-							<label for="cherche-agent">Chercher un agent</label>
+							<label for="cherche-agent">Chercher un agent <span class="doux">(nom ou prénom)</span></label>
 							<input id="cherche-agent" type="search" autocomplete="off" bind:value={cherche} />
 						</div>
 						<div class="pastilles">
-							{#each autres as a (a.id)}<label class="pastille-choix" hidden={!trouve(a.nom) && !coche(a.id)}><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.id === data.moi ? `${a.nom} (vous)` : a.nom}</label>{/each}
+							{#each autres as a (a.id)}<label class="pastille-choix" hidden={!montre(a)}><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} onchange={() => (touches = [...touches, a.id])} /> {a.id === data.moi ? `${a.nom} (vous)` : a.nom}</label>{/each}
 						</div>
 					</fieldset>
 					<div><Bouton type="submit">Enregistrer les participants</Bouton></div>
@@ -476,6 +483,9 @@
 		border-radius: var(--rayon-petit);
 		color: var(--encre);
 		text-decoration: none;
+	}
+	.valider-participants a {
+		color: inherit;
 	}
 	.rangee-participants:hover {
 		background: var(--fond);
