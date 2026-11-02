@@ -52,11 +52,11 @@ describe('load de /', () => {
 		const { base, alice } = await jeu();
 		const maintenant = maintenantParis().slice(0, 16);
 		await base.insert(releve).values([
-			{ cle: 'meteo', donnees: JSON.stringify({ temperature: 11.6, code: 80, rafales: 45, jour: true }), majLe: maintenant },
+			{ cle: 'meteo', donnees: JSON.stringify({ temperature: 11.6, code: 80, rafales: 45 }), majLe: maintenant },
 			{ cle: 'vigilance', donnees: JSON.stringify({ jours: [{ date: aujourdhuiParis(), niveau: 3, phenomenes: ['orages'] }], rouge: false }), majLe: maintenant }
 		]);
 		expect((await appeler({ acteur: alice, base })).meteo).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', jour: true },
+			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
 			vigilance: { niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] }
 		});
 	});

@@ -11,7 +11,7 @@ L'Accueil dit le temps qu'il fait au centre, et prévient quand Météo-France p
 
 ## La vigilance Météo-France
 
-- Pour le département du centre (`departement` dans `centre.ts`, par exemple `35`), aujourd'hui et demain.
+- Pour le département du centre en métropole (`departement` dans `centre.ts`, par exemple `35`), aujourd'hui et demain. La vigilance « vagues-submersion » du littoral (zones côtières à part) et l'outre-mer ne sont pas lus.
 - Dès l'orange, un bandeau en tête de l'Accueil, une ligne par jour : « Vigilance orange orages, aujourd'hui », « Vigilance rouge vent violent, demain », avec le lien vers vigilance.meteofrance.fr. Le niveau est toujours écrit en toutes lettres.
 - Au passage au rouge, tous les agents reçoivent une notification sur leur téléphone (« Vigilance rouge »), une seule fois par épisode : tant que le rouge dure, rien n'est renvoyé.
 - Il faut la clé de l'API Vigilance de Météo-France (secret `VIGILANCE_CLE`, voir [installer un centre](../technique/installer-un-centre.md)). Sans elle, tout le reste fonctionne, sans bandeau.

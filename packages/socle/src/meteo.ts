@@ -10,10 +10,10 @@ import { personne, releve } from './schema.ts';
 export const AMBIANCES = ['clair', 'nuageux', 'pluie', 'orage', 'neige', 'vent', 'brouillard', 'chaleur', 'gel'] as const;
 export type Ambiance = (typeof AMBIANCES)[number];
 
-export type Meteo = { temperature: number; code: number; rafales: number | null; jour: boolean };
+export type Meteo = { temperature: number; code: number; rafales: number | null };
 export type JourVigilance = { date: string; niveau: number; phenomenes: string[] };
 export type Releves = { meteo: Meteo | null; vigilance: JourVigilance[] | null };
-export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string; jour: boolean } | null; vigilance: { niveau: number; lignes: string[] } | null };
+export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string } | null; vigilance: { niveau: number; lignes: string[] } | null };
 
 export const URL_VIGILANCE = 'https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours';
 const UNE_HEURE = 60;
@@ -57,13 +57,13 @@ export function texteMeteo(m: Meteo): string {
 const nombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 export const urlOpenMeteo = (p: { latitude: number; longitude: number }) =>
-	`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code,wind_gusts_10m,is_day&wind_speed_unit=kmh&timezone=auto`;
+	`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code,wind_gusts_10m&wind_speed_unit=kmh`;
 
 // La réponse d'Open-Meteo ; null si elle n'a pas la forme attendue.
 export function lireOpenMeteo(json: unknown): Meteo | null {
 	const c = (json as { current?: Record<string, unknown> } | null)?.current;
 	if (!c || !nombre(c.temperature_2m) || !nombre(c.weather_code)) return null;
-	return { temperature: c.temperature_2m, code: c.weather_code, rafales: nombre(c.wind_gusts_10m) ? c.wind_gusts_10m : null, jour: c.is_day !== 0 };
+	return { temperature: c.temperature_2m, code: c.weather_code, rafales: nombre(c.wind_gusts_10m) ? c.wind_gusts_10m : null };
 }
 
 // Phénomènes de la vigilance Météo-France, par numéro.
@@ -85,8 +85,8 @@ export function lireVigilance(json: unknown, departement: string, aujourdhui: st
 	const periodes = (json as { product?: { periods?: unknown } } | null)?.product?.periods;
 	if (!Array.isArray(periodes)) return null;
 	const jours: JourVigilance[] = [];
-	for (const [i, p] of periodes.entries()) {
-		const echeance = p?.echeance ?? (i === 0 ? 'J' : i === 1 ? 'J1' : null);
+	for (const p of periodes) {
+		const echeance = p?.echeance;
 		if (echeance !== 'J' && echeance !== 'J1') continue;
 		const domaines = p?.timelaps?.domain_ids;
 		if (!Array.isArray(domaines)) return null;
@@ -97,13 +97,14 @@ export function lireVigilance(json: unknown, departement: string, aujourdhui: st
 		const niveau: number = d.max_color_id;
 		const phenomenes = items
 			.filter((x) => niveau > 1 && x.phenomenon_max_color_id === niveau)
-			.map((x) => PHENOMENES[String(x.phenomenon_id)])
+			.map((x) => Number(x.phenomenon_id))
+			.sort((a, b) => a - b)
+			.map((n) => PHENOMENES[String(n)])
 			.filter((x): x is string => x !== undefined);
-		jours.push({ date: echeance === 'J' ? aujourdhui : ajouterJours(aujourdhui, 1), niveau, phenomenes: [...new Set(phenomenes)].sort((a, b) => numero(a) - numero(b)) });
+		jours.push({ date: echeance === 'J' ? aujourdhui : ajouterJours(aujourdhui, 1), niveau, phenomenes: [...new Set(phenomenes)] });
 	}
 	return jours.length > 0 ? jours : null;
 }
-const numero = (nom: string) => Number(Object.entries(PHENOMENES).find(([, n]) => n === nom)?.[0]);
 
 const COULEURS: Record<number, string> = { 3: 'orange', 4: 'rouge' };
 const quand = (date: string, aujourdhui: string) => (date === aujourdhui ? 'aujourd’hui' : 'demain');
@@ -112,7 +113,7 @@ const ligneVigilance = (j: JourVigilance, aujourdhui: string) =>
 
 // Ce que montre l'Accueil : la ligne météo et l'ambiance ; la vigilance, dès l'orange, aujourd'hui et demain.
 export function vueMeteo(r: Releves, aujourdhui: string): VueMeteo {
-	const meteo = r.meteo ? { ambiance: classer(r.meteo.code, r.meteo.temperature, r.meteo.rafales), texte: texteMeteo(r.meteo), jour: r.meteo.jour } : null;
+	const meteo = r.meteo ? { ambiance: classer(r.meteo.code, r.meteo.temperature, r.meteo.rafales), texte: texteMeteo(r.meteo) } : null;
 	const jours = (r.vigilance ?? []).filter((j) => j.date >= aujourdhui && j.date <= ajouterJours(aujourdhui, 1) && j.niveau >= 3);
 	const vigilance = jours.length ? { niveau: Math.max(...jours.map((j) => j.niveau)), lignes: jours.map((j) => ligneVigilance(j, aujourdhui)) } : null;
 	return { meteo, vigilance };
@@ -141,7 +142,10 @@ export async function relevesDe(base: Base, maintenant: string): Promise<Releves
 async function demander(recuperer: typeof fetch, url: string, entetes: Record<string, string> = {}): Promise<unknown> {
 	try {
 		const r = await recuperer(url, { headers: { accept: 'application/json', ...entetes }, signal: AbortSignal.timeout(8000) });
-		return r.ok ? await r.json() : null;
+		if (r.ok) return await r.json();
+		// Le code seul (une clé refusée donne 401), jamais la clé.
+		console.warn('Météo refusée', url.split('?')[0], r.status);
+		return null;
 	} catch (e) {
 		console.warn('Météo indisponible', url.split('?')[0], e);
 		return null;

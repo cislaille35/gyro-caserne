@@ -61,7 +61,7 @@
 
 {#snippet meteo()}
 	{#if data.meteo.meteo}
-		<p class="meteo"><span class="masque">{'Temps au centre : '}</span><span class="source">{data.meteo.meteo.texte}</span> <a class="source" href="https://open-meteo.com/" rel="external noopener">Météo : Open-Meteo</a></p>
+		<p class="meteo"><span class="masque">{'Temps au centre : '}</span><span class="source">{data.meteo.meteo.texte}</span> <a class="source" href="https://open-meteo.com/" rel="external">Météo : Open-Meteo</a></p>
 	{/if}
 {/snippet}
 
@@ -100,7 +100,7 @@
 			<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z M12 10v4 M12 17h.01" /></svg>
 			<div>
 				{#each data.meteo.vigilance.lignes as ligne (ligne)}<p class="ligne">{ligne}</p>{/each}
-				<a href="https://vigilance.meteofrance.fr/" rel="external noopener">Consignes sur vigilance.meteofrance.fr</a>
+				<a href="https://vigilance.meteofrance.fr/" rel="external">Consignes sur vigilance.meteofrance.fr</a>
 			</div>
 		</section>
 	{/if}

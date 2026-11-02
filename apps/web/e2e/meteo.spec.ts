@@ -12,15 +12,20 @@ function releves() {
 	const paris = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date()).replace(' ', 'T');
 	const jour = paris.slice(0, 10);
 	const demain = new Date(Date.parse(`${jour}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-	const meteo = JSON.stringify({ temperature: 11.6, code: 80, rafales: 45, jour: true });
+	const meteo = JSON.stringify({ temperature: 11.6, code: 80, rafales: 45 });
 	const vigilance = JSON.stringify({ jours: [{ date: jour, niveau: 3, phenomenes: ['orages'] }, { date: demain, niveau: 4, phenomenes: ['vent violent'] }], rouge: true });
-	const sql = `INSERT OR REPLACE INTO releve (cle, donnees, maj_le) VALUES ('meteo', '${meteo}', '${paris}'), ('vigilance', '${vigilance}', '${paris}');`;
+	executer(`INSERT OR REPLACE INTO releve (cle, donnees, maj_le) VALUES ('meteo', '${meteo}', '${paris}'), ('vigilance', '${vigilance}', '${paris}');`);
+}
+
+function executer(sql: string) {
 	execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'BASE', '--local', '--config', `${centre}wrangler.jsonc`, '--persist-to', `${centre}.wrangler/state`, '--command', sql], { cwd: appli, stdio: 'ignore' });
 }
 
 test.describe('météo et vigilance', () => {
 	test.use({ storageState: ETAT_CONNECTE });
-	test.beforeAll(releves);
+	test.beforeEach(releves);
+	// Les autres tests de l'Accueil retrouvent un Accueil sans météo.
+	test.afterAll(() => executer('DELETE FROM releve;'));
 
 	for (const theme of ['auto', 'sombre']) {
 		test(`accueil, thème ${theme} : ligne météo, mention Open-Meteo, bandeau de vigilance, sans violation`, async ({ context, page }) => {
@@ -32,6 +37,18 @@ test.describe('météo et vigilance', () => {
 			await expect(bandeau.getByRole('link', { name: /vigilance\.meteofrance\.fr/ })).toBeVisible();
 			await expect(page.getByText('12 °C · averses · rafales 45 km/h')).toBeVisible();
 			await expect(page.getByRole('link', { name: 'Météo : Open-Meteo' })).toBeVisible();
+			const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+			expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
+		});
+	}
+
+	// Les ambiances claires (brouillard, gel) passent derrière le texte : contraste vérifié en thème sombre.
+	for (const [ambiance, temps] of [['brouillard', { temperature: 6, code: 45, rafales: 10 }], ['gel', { temperature: -3, code: 0, rafales: 10 }]] as const) {
+		test(`ambiance ${ambiance}, thème sombre : sans violation`, async ({ context, page }) => {
+			executer(`UPDATE releve SET donnees = '${JSON.stringify(temps)}' WHERE cle = 'meteo';`);
+			await context.addCookies([{ name: 'theme', value: 'sombre', url: ADRESSE }]);
+			await page.goto('/');
+			await expect(page.locator(`.meteo.m-${ambiance}`)).toHaveCount(1);
 			const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 			expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 		});

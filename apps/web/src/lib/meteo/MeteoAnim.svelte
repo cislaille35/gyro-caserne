@@ -107,8 +107,8 @@
 	.givre {
 		position: absolute;
 		inset: 0;
-		background: radial-gradient(ellipse at 0 0, rgba(255, 255, 255, 0.55), transparent 40%),
-			radial-gradient(ellipse at 100% 100%, rgba(255, 255, 255, 0.4), transparent 35%);
+		background: radial-gradient(ellipse at 0 0, rgba(255, 255, 255, 0.35), transparent 40%),
+			radial-gradient(ellipse at 100% 100%, rgba(255, 255, 255, 0.25), transparent 35%);
 	}
 	/* Vent */
 	.feuille {
@@ -149,7 +149,7 @@
 		left: -50%;
 		width: 200%;
 		height: 45%;
-		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent 60%);
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent 60%);
 		filter: blur(6px);
 		animation: brume 14s ease-in-out infinite alternate;
 	}

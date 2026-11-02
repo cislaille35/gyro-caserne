@@ -12,15 +12,13 @@ const page = (data: Record<string, unknown>, form: unknown = null, niveau = 'viv
 
 describe('accueil, météo et vigilance', () => {
 	const base = { casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } };
-	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', jour: true }, vigilance: null };
+	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' }, vigilance: null };
 
 	it('la ligne météo sous « Bonjour », avec la mention Open-Meteo ; l’ambiance décorative', () => {
 		const html = page({ ...base, meteo: pluie });
 		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C · averses · rafales 45 km\/h<\/span> <a class="source/);
 		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
-		// Gyro sort le parapluie (sauf la nuit, au p'tit-déj ou un jour de fête).
-		expect(html).toMatch(/sous son parapluie|endormi|croissant|calendriers|Noël|nouvelle année|roi|crêpe|poisson|bal|citrouille|Sainte-Barbe/);
 	});
 
 	it('affichage Sobre : la ligne reste, sans ambiance', () => {
@@ -32,7 +30,7 @@ describe('accueil, météo et vigilance', () => {
 	it('sans relevé : ni ligne, ni mention, ni ambiance, ni bandeau', () => {
 		const html = page(base);
 		expect(html).not.toContain('Open-Meteo');
-		expect(html).not.toContain('aria-hidden="true" class="meteo');
+		expect(html).not.toMatch(/class="meteo m-/);
 		expect(html).not.toContain('Vigilance');
 	});
 

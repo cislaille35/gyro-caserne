@@ -48,9 +48,9 @@ describe('erreursCentre', () => {
 	});
 
 	it('accepte un département (vigilance Météo-France) et refuse un numéro inconnu', () => {
-		for (const departement of ['35', '01', '2A', '2B', '974']) expect(erreursCentre({ ...exemple, departement })).toEqual([]);
-		for (const departement of ['3', '350', '20', '2C', 'ille'])
-			expect(erreursCentre({ ...exemple, departement })).toEqual([`département « ${departement} » : numéro attendu, par exemple 35, 2A ou 974`]);
+		for (const departement of ['35', '01', '2A', '2B', '95']) expect(erreursCentre({ ...exemple, departement })).toEqual([]);
+		for (const departement of ['3', '350', '20', '2C', '974', 'ille'])
+			expect(erreursCentre({ ...exemple, departement })).toEqual([`département « ${departement} » : numéro de métropole attendu, par exemple 35 ou 2A`]);
 	});
 
 	it('repère une position hors des limites', () => {

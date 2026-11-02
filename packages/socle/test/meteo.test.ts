@@ -11,7 +11,7 @@ const lieu = { position: { latitude: 48.1, longitude: -1.7 }, departement: '35' 
 
 // Réponse d'Open-Meteo (champ `current`), valeurs fictives.
 const openMeteo = (current: Record<string, number>) => ({ latitude: 48.1, longitude: -1.7, current: { time: '2026-11-02T10:00', interval: 900, ...current } });
-const averses = openMeteo({ temperature_2m: 11.6, weather_code: 80, wind_gusts_10m: 45.2, is_day: 1 });
+const averses = openMeteo({ temperature_2m: 11.6, weather_code: 80, wind_gusts_10m: 45.2 });
 
 // Réponse de l'API Vigilance (cartevigilance/encours), réduite à ce qui sert ; d'après le descriptif technique de Météo-France.
 const phenomenes = (couleurs: Record<number, number>) => Object.entries(couleurs).map(([id, c]) => ({ phenomenon_id: id, phenomenon_max_color_id: c }));
@@ -44,15 +44,15 @@ describe('classer', () => {
 
 describe('texteMeteo', () => {
 	it('température arrondie, temps, rafales dès 40 km/h', () => {
-		expect(texteMeteo({ temperature: 11.6, code: 80, rafales: 45.2, jour: true })).toBe('12 °C · averses · rafales 45 km/h');
-		expect(texteMeteo({ temperature: -0.4, code: 0, rafales: 12, jour: true })).toBe('0 °C · ciel dégagé');
-		expect(texteMeteo({ temperature: 9, code: 999, rafales: null, jour: true })).toBe('9 °C');
+		expect(texteMeteo({ temperature: 11.6, code: 80, rafales: 45.2 })).toBe('12 °C · averses · rafales 45 km/h');
+		expect(texteMeteo({ temperature: -0.4, code: 0, rafales: 12 })).toBe('0 °C · ciel dégagé');
+		expect(texteMeteo({ temperature: 9, code: 999, rafales: null })).toBe('9 °C');
 	});
 });
 
 describe('lireOpenMeteo', () => {
 	it('lit le temps du moment', () => {
-		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2, jour: true });
+		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2 });
 	});
 	it('rend null sur une réponse inattendue', () => {
 		expect(lireOpenMeteo(null)).toBeNull();
@@ -73,6 +73,10 @@ describe('lireVigilance', () => {
 		expect(lireVigilance(vigilance({ 3: 7 }), '35', '2026-11-02')).toBeNull();
 		expect(lireVigilance({ product: { periods: 'non' } }, '35', '2026-11-02')).toBeNull();
 		expect(lireVigilance('<html>', '35', '2026-11-02')).toBeNull();
+		// Sans échéance J ou J1, on ne devine pas le jour.
+		const sansEcheance = vigilance({ 3: 3 });
+		for (const p of sansEcheance.product.periods) delete (p as { echeance?: string }).echeance;
+		expect(lireVigilance(sansEcheance, '35', '2026-11-02')).toBeNull();
 	});
 	it('vert partout : aucun phénomène', () => {
 		expect(lireVigilance(vigilance({}), '35', '2026-11-02')?.[0]).toEqual({ date: '2026-11-02', niveau: 1, phenomenes: [] });
@@ -80,7 +84,7 @@ describe('lireVigilance', () => {
 });
 
 describe('vueMeteo', () => {
-	const meteo = { temperature: 11.6, code: 80, rafales: 45.2, jour: true };
+	const meteo = { temperature: 11.6, code: 80, rafales: 45.2 };
 	it('la ligne, l’ambiance et la vigilance dès l’orange, jour par jour', () => {
 		const jours = [
 			{ date: '2026-11-01', niveau: 4, phenomenes: ['vent violent'] },
@@ -88,7 +92,7 @@ describe('vueMeteo', () => {
 			{ date: '2026-11-03', niveau: 4, phenomenes: ['orages'] }
 		];
 		expect(vueMeteo({ meteo, vigilance: jours }, '2026-11-02')).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', jour: true },
+			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
 			vigilance: { niveau: 4, lignes: ['Vigilance orange pluie-inondation et orages, aujourd’hui', 'Vigilance rouge orages, demain'] }
 		});
 	});
@@ -118,7 +122,7 @@ describe('mettreAJourReleves et relevesDe', () => {
 		expect(appels).toHaveLength(1);
 		expect(appels[0]!.url).toContain('latitude=48.1&longitude=-1.7');
 		const avant = base.requetes;
-		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2, jour: true }, vigilance: null });
+		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2 }, vigilance: null });
 		expect(base.requetes - avant).toBe(1);
 	});
 
