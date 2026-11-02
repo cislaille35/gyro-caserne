@@ -38,9 +38,15 @@
 	const concerne = (cible: string) => form?.cible === cible;
 	const garder = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
 	// Un panneau (période, recalcul) se ferme une fois l'action réussie.
-	const fermer = () => async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string } }) => {
+	// Le message de réussite est gardé : la navigation qui ferme le panneau efface `form`.
+	let reussite = $state('');
+	const fermer = () => async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string; data?: Record<string, unknown> } }) => {
+		reussite = '';
 		await update({ reset: false });
-		if (result.type === 'success') await goto(ici(), { replaceState: true });
+		if (result.type === 'success') {
+			await goto(ici(), { replaceState: true });
+			reussite = String(result.data?.succes ?? '');
+		}
 	};
 </script>
 
@@ -79,9 +85,10 @@
 
 	<section class="etape" aria-labelledby="titre-etape">
 		<h2 id="titre-etape" tabindex="-1">{ETAPES_ETE[rang]!.libelle}</h2>
+		<div role="status">{#if reussite && !form}<p class="succes">{reussite}</p>{/if}</div>
 
 		{#if data.etape === 'periode'}
-			{@render retour(['regler'])}
+			{@render retour(data.panneau === 'periode' ? [] : ['regler'])}
 			<div class="carte ligne">
 				<p class="phrase">{phrasePeriode(reglage.debut, reglage.fin, reglage.dateLimite)}</p>
 				{#if !reglage.publiee}<a class="lien-bouton" href={ici({ panneau: 'periode' })} data-sveltekit-reset="false">Modifier<span class="masque">{' '}la période</span></a>{/if}
@@ -140,7 +147,7 @@
 				</ul>
 			{/if}
 		{:else if data.etape === 'repartition'}
-			{@render retour(['repartition', 'plage'])}
+			{@render retour(e.detail ? ['repartition'] : ['repartition', 'plage'])}
 			{#if !e.ete}
 				<p class="encadre">Ouvrez d’abord la saisie des vacances. <a href={vers('periode')}>Aller à la période</a></p>
 			{:else if e.sansRoulement}

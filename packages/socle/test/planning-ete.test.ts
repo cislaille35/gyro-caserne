@@ -84,8 +84,12 @@ describe('Mes vacances', () => {
 		expect((await eteAPreparer(base, chef, 2027, '2027-03-01T18:00', reglage)).relanceeAujourdhui).toBe(true);
 		expect((await eteAPreparer(base, chef, 2027, '2027-03-02T08:00', reglage)).relanceeAujourdhui).toBe(false);
 		expect(await relancerEte(base, chef, 2027, '2027-03-02T08:00')).toBe(1);
+		// Le jour d'un rappel automatique, la relance est inutile.
+		expect(await rappelsEte(base, '2027-04-15T08:00')).toBe(1);
+		await expect(relancerEte(base, chef, 2027, '2027-04-15T10:00')).rejects.toThrow('Déjà relancés aujourd’hui');
 		const avis = await base.select().from(avisEte);
 		expect(avis.map((x) => [x.personneId, x.quoi])).toEqual([
+			[bruno, 'rappel'],
 			[bruno, 'rappel'],
 			[bruno, 'rappel']
 		]);

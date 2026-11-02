@@ -11,7 +11,7 @@ import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
 import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesPublication } from './manoeuvres.ts';
-import { avis } from './ete.ts';
+import { avis } from './avis.ts';
 import { jourEnLettres, texteDemande } from '../remplacements/tranches.ts';
 import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
@@ -172,7 +172,8 @@ const ETATS_EN_JEU = ['attente', 'a_valider', 'conclue'] as const;
 async function demandesDeSemaines(base: Base, semaines: SemaineCalculee[]) {
 	if (semaines.length === 0) return [];
 	const bornes = (s: SemaineCalculee) => ({ debut: s.periodes[0]?.debut ?? `${s.debut}T00:00`, fin: s.periodes.at(-1)?.fin ?? `${ajouterJours(s.debut, 7)}T00:00` });
-	const du = ajouterJours(semaines.map((s) => s.debut).sort()[0]!, -14);
+	// Une demande (un échange surtout) peut commencer bien avant la semaine : on lit large, le recoupement fait le tri.
+	const du = ajouterJours(semaines.map((s) => s.debut).sort()[0]!, -366);
 	const au = ajouterJours(semaines.map((s) => s.debut).sort().at(-1)!, 7);
 	const nom = (colonne: SQLWrapper) => sql<string>`coalesce((select p.prenom || ' ' || p.nom from personne p where p.id = ${colonne}), '')`;
 	const lignes = await base
@@ -214,10 +215,13 @@ export async function avisSemainesChangees(base: Base, changements: { semaine: S
 	const nomEquipe = (id: number) => equipes.find((e) => e.id === id)?.nom ?? 'une autre équipe';
 	return changements.flatMap(({ semaine: s, apres }) => {
 		const phrase = `la semaine du ${jourEnLettres(s.debut)} passe de l’${nomEquipe(s.equipeId)} à l’${nomEquipe(apres)}`;
-		const ids = agents.filter((a) => [s.equipeId, apres].includes(equipeLe(affectations.filter((x) => x.personneId === a.id), s.debut) ?? 0)).map((a) => a.id);
+		const touchees = demandes.filter((d) => d.semaine === s.debut);
+		// Qui a un remplacement touché reçoit cet avis-là, pas en plus celui de son équipe.
+		const parRemplacement = new Set(touchees.flatMap((d) => d.personnes));
+		const ids = agents.filter((a) => !parRemplacement.has(a.id) && [s.equipeId, apres].includes(equipeLe(affectations.filter((x) => x.personneId === a.id), s.debut) ?? 0)).map((a) => a.id);
 		return [
 			...avis(base, ids, 'semaine', `${phrase[0]!.toUpperCase()}${phrase.slice(1)}.`, '/planning', maintenant),
-			...demandes.filter((d) => d.semaine === s.debut).flatMap((d) => avis(base, d.personnes, 'semaine', `Votre remplacement (${d.quand}) est touché : ${phrase}. Voyez-le avec votre chef de garde.`, '/remplacements', maintenant))
+			...touchees.flatMap((d) => avis(base, [...new Set(d.personnes)], 'semaine', `Votre remplacement (${d.quand}) est touché : ${phrase}. Voyez-le avec votre chef de garde.`, '/remplacements', maintenant))
 		];
 	});
 }

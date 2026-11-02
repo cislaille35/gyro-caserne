@@ -1,17 +1,18 @@
-import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { dateFichier } from '../fichier-effectif.ts';
-import type { AvisEte } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
-import { mettreEnFile, TITRES_ETE } from '../notifications.ts';
 import { requeteChefs } from '../remplacements/contexte.ts';
-import { avisEte, ete, journal, personne, plageEte, reponseEte, vacancesAgent } from '../schema.ts';
+import { ete, journal, personne, plageEte, reponseEte, vacancesAgent } from '../schema.ts';
 import { ligneJournal } from '../journal.ts';
 import { nomActeur } from '../actions/personnes.ts';
 import { exigerAnnee } from './annee.ts';
+import { avis } from './avis.ts';
+
+export { avis };
 import { semainesDe, type Reglage } from './calendrier.ts';
 
 // L'été : la période et la date limite (le chef), les vacances des agents, les rappels.
@@ -21,7 +22,6 @@ export type Reponse = 'tout' | 'vacances' | null;
 
 const PERIODES_MAX = 10;
 const SEMAINES_MAX = 16;
-const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 
 // Du jour de relève de la première semaine au jour de relève qui suit la dernière.
 export const vueEte = (e: typeof ete.$inferSelect): EteVue => ({ annee: e.annee, debut: e.debut, fin: ajouterJours(e.fin, 7), dateLimite: e.dateLimite, publiee: e.publieeLe !== null });
@@ -59,29 +59,6 @@ export async function reglerEte(base: Base, acteur: Acteur, annee: number, d: { 
 		...(autrePeriode ? [base.delete(plageEte).where(eq(plageEte.annee, annee))] : []),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'regler_ete', cibleType: 'planning', cibleId: null, details: { annee, ...valeurs } }, maintenant)
 	]);
-}
-
-// Écritures à placer dans un batch : la ligne de la cloche et l'envoi au téléphone (lieu « planning » : seul « tout » le coupe).
-// `si` : une condition vérifiée à l'écriture (la publication a bien eu lieu).
-export function avis(base: Base, ids: number[], quoi: AvisEte, texte: string, url: string, maintenant: string, si?: SQL) {
-	if (ids.length === 0) return [];
-	return [
-		base.insert(avisEte).select(
-			base
-				.select({
-					id: sql<number | null>`null`.as('id'),
-					personneId: personne.id,
-					quoi: sql<string>`${quoi}`.as('quoi'),
-					texte: sql<string>`${texte}`.as('texte'),
-					url: sql<string>`${url}`.as('url'),
-					creeLe: sql<string>`${maintenant}`.as('cree_le'),
-					lueLe: sql<string | null>`null`.as('lue_le')
-				})
-				.from(personne)
-				.where(and(inArray(personne.id, parmi(ids)), si))
-		),
-		mettreEnFile(base, ids, 'planning', { titre: TITRES_ETE[quoi], texte, url, tag: `ete:${quoi}` }, maintenant, si)
-	] as const;
 }
 
 const moiDe = (acteur: Acteur) => {
@@ -239,12 +216,15 @@ export async function relancerEte(base: Base, acteur: Acteur, annee: number, mai
 	const e = lignesEte[0];
 	if (!e) throw new DonneeInvalide('Été pas encore ouvert');
 	if (e.publieeLe) throw new DonneeInvalide('Été déjà publié');
-	if (deja.length) throw new DonneeInvalide('Déjà relancés aujourd’hui');
+	// Déjà relancés aujourd'hui, à la main ou par le rappel automatique.
+	if (deja.length || [e.rappelMoisLe, e.rappelSemaineLe].some((d) => d?.startsWith(aujourdhui))) throw new DonneeInvalide('Déjà relancés aujourd’hui');
 	const ids = agentsDeLete(agents, affectations, aujourdhui).filter((a) => !reponses.some((r) => r.personneId === a.id)).map((a) => a.id);
 	if (ids.length === 0) throw new DonneeInvalide('Tout le monde a répondu');
+	// Deux clics en même temps : seule la relance écrite la première envoie les rappels.
+	const seuleRelance = sql`(select count(*) from ${journal} where ${journal.action} = 'relancer_ete' and ${journal.quand} >= ${aujourdhui} and json_extract(${journal.details}, '$.annee') = ${annee}) = 1`;
 	await base.batch([
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'relancer_ete', cibleType: 'planning', cibleId: null, details: { annee, agents: ids.length } }, maintenant),
-		...avis(base, ids, 'rappel', `Donnez vos vacances d’été avant le ${dateFichier(e.dateLimite)} : vos dates, ou « disponible tout l’été ».`, '/moi/vacances', maintenant)
+		...avis(base, ids, 'rappel', `Donnez vos vacances d’été avant le ${dateFichier(e.dateLimite)} : vos dates, ou « disponible tout l’été ».`, '/moi/vacances', maintenant, seuleRelance)
 	]);
 	return ids.length;
 }

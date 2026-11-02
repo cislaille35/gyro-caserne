@@ -34,7 +34,8 @@ describe('Armement des engins', () => {
 		expect(html).toMatch(/<dialog[^>]*>/);
 		expect(html).toMatch(/aria-label="Un poste CE de moins \(1 actuellement\)"/);
 		expect(html).toMatch(/aria-label="Un poste CE de plus \(1 actuellement\)"/);
-		expect(html).toMatch(/aria-label="Un poste CA tout engins de moins \(0 actuellement\)"[^>]*disabled/);
+		expect(html).toMatch(/aria-label="Un poste CA tout engins de moins \(0 actuellement\)"[^>]*aria-disabled="true"/);
+		expect(html).toMatch(/aria-label="Un poste CE de moins \(1 actuellement\)"[^>]*aria-disabled="false"/);
 		expect(html).toMatch(/<input type="hidden" name="VSAV-ce" value="1"/);
 		expect(html).toMatch(/role="status"/);
 	});

@@ -21,9 +21,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Année publiée, une semaine ouverte : commencée (elle ne change plus), et les remplacements qu'un changement toucherait.
 	const ouverte = preparation.semaines.find((x) => x.debut === url.searchParams.get('semaine'));
 	const m = maintenantParis();
+	const commencee = ouverte ? (ouverte.periodes[0]?.debut ?? ouverte.debut) <= m.slice(0, 16) : false;
 	const semaineTouche =
 		ouverte && preparation.publiee
-			? { commencee: (ouverte.periodes[0]?.debut ?? ouverte.debut) <= m.slice(0, 16), remplacements: (await remplacementsDeSemaine(base, acteur, annee, ouverte.debut, m, centre.astreinte)).map(({ texte, conclu }) => ({ texte, conclu })) }
+			? { commencee, remplacements: commencee ? [] : (await remplacementsDeSemaine(base, acteur, annee, ouverte.debut, m, centre.astreinte)).map(({ texte, conclu }) => ({ texte, conclu })) }
 			: null;
 	const nombre = (cle: string) => (/^\d+$/.test(url.searchParams.get(cle) ?? '') ? Number(url.searchParams.get(cle)) : null);
 	return {

@@ -79,8 +79,24 @@ describe('changer l’équipe d’une semaine', () => {
 		await changerSemaines(base, chef, 2027, { [S]: apres }, maintenant, reglage);
 		const touche = expect.stringMatching(/^Votre remplacement \(nuit du lundi 12 juillet\) est touché : la semaine du vendredi 9 juillet passe de l’Équipe \d à l’Équipe \d\. Voyez-le avec votre chef de garde\.$/);
 		expect(await avisDe(base, dAutre)).toEqual([touche]);
-		expect(await avisDe(base, deAvant)).toHaveLength(3);
+		// Une personne d'une des équipes qui a un remplacement dans la semaine : un avis par remplacement, pas en plus celui de l'équipe.
+		expect(await avisDe(base, deAvant)).toHaveLength(2);
+		expect((await avisDe(base, deAvant)).every((t) => t.startsWith('Votre remplacement'))).toBe(true);
 		expect(await avisDe(base, deApres)).toHaveLength(1);
+	});
+
+	it('un échange dont une partie tombe dans la semaine est touché, même si l’autre est bien avant', async () => {
+		const { base, chef, deAvant, dAutre } = await jeu();
+		const avant = { debut: '2027-06-14T18:00', fin: '2027-06-15T06:00' };
+		const dedans = { debut: '2027-07-12T18:00', fin: '2027-07-13T06:00' };
+		await base.insert(demandeRemplacement).values({ genre: 'echange', demandeurId: dAutre, remplacantId: deAvant, periodes: JSON.stringify([avant]), periodesCible: JSON.stringify([dedans]), debut: avant.debut, etat: 'conclue', creeLe: maintenant });
+		expect(await remplacementsDeSemaine(base, chef, 2027, S, maintenant, reglage)).toEqual([{ texte: 'Nuit du lundi 12 juillet : Autre Test échange avec Avant Test', conclu: true, personnes: [dAutre, deAvant] }]);
+	});
+
+	it('un même choix peut garder une semaine commencée et changer une semaine à venir', async () => {
+		const { base, chef, apres } = await jeu();
+		const passee = (await preparerAnnee(base, chef, 2027, maintenant, reglage)).semaines.find((s) => s.debut === '2027-07-02')!;
+		await changerSemaines(base, chef, 2027, { [passee.debut]: passee.equipeId, '2027-07-16': apres }, '2027-07-12T10:00', reglage);
 	});
 });
 

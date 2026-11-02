@@ -169,7 +169,8 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 		ouverte && vue
 			? (() => {
 					const date = ouverte.debut.slice(0, 10);
-					const tenus = postesTenus(fpt, vue.presents.map((x) => ({ id: x.id, postes: lu.postes(x.id, date) })));
+					// Dans l'ordre des ids : le poste affiché ne change pas d'un chargement à l'autre.
+					const tenus = postesTenus(fpt, [...vue.presents].sort((a, b) => a.id - b.id).map((x) => ({ id: x.id, postes: lu.postes(x.id, date) })));
 					return {
 						...vue,
 						presents: vue.presents.map((x) => ({ ...x, poste: tenus.get(x.id) ?? null })),

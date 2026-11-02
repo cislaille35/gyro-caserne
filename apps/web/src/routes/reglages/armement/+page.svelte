@@ -20,14 +20,23 @@
 		if (ouvert) postes = { ...ouvert.postes };
 	});
 	const total = $derived(POSTES.reduce((n, p) => n + postes[p], 0));
+	// Le − s'arrête à zéro et à un poste en tout ; le + à huit en tout. Les boutons restent focalisables (aria-disabled).
+	const bloque = (p: Poste, de: number) => (de < 0 ? postes[p] === 0 || total <= 1 : total >= POSTES_MAX);
 	const changer = (p: Poste, de: number) => {
+		if (bloque(p, de)) return;
 		postes[p] += de;
 		annonce = `${LIBELLES_POSTES[p]} : ${postes[p]}`;
 	};
 	// Le panneau se ferme une fois enregistré.
-	const fermer = () => async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string } }) => {
+	// Le message de réussite est gardé : la navigation qui ferme le panneau efface `form`.
+	let reussite = $state('');
+	const fermer = () => async ({ update, result }: { update: (o?: { reset?: boolean }) => Promise<void>; result: { type: string; data?: Record<string, unknown> } }) => {
+		reussite = '';
 		await update({ reset: false });
-		if (result.type === 'success') await goto('?', { replaceState: true });
+		if (result.type === 'success') {
+			await goto('?', { replaceState: true });
+			reussite = String(result.data?.succes ?? '');
+		}
 	};
 	const garder = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
 </script>
@@ -37,8 +46,8 @@
 </svelte:head>
 
 {#snippet retours()}
-	<div role="status" class="masque">{form?.succes ?? ''}</div>
-	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
+	<div role="status" class="masque">{form?.succes ?? reussite}</div>
+	{#if form?.succes ?? reussite}<p class="succes">{form?.succes ?? reussite}</p>{/if}
 	{#if form?.message}<p class="echec" role="alert">{form.message}</p>{/if}
 {/snippet}
 
@@ -88,9 +97,9 @@
 					<li>
 						<span class="nom" id="poste-{p}">{LIBELLES_POSTES[p]}</span>
 						<span class="reglage" role="group" aria-labelledby="poste-{p}">
-							<button type="button" class="pas" aria-label="Un poste {LIBELLES_POSTES[p]} de moins ({postes[p]} actuellement)" disabled={postes[p] === 0} onclick={() => changer(p, -1)}>−</button>
+							<button type="button" class="pas" aria-label="Un poste {LIBELLES_POSTES[p]} de moins ({postes[p]} actuellement)" aria-disabled={bloque(p, -1)} onclick={() => changer(p, -1)}>−</button>
 							<output class="valeur" aria-hidden="true">{postes[p]}</output>
-							<button type="button" class="pas" aria-label="Un poste {LIBELLES_POSTES[p]} de plus ({postes[p]} actuellement)" disabled={total >= POSTES_MAX} onclick={() => changer(p, 1)}>+</button>
+							<button type="button" class="pas" aria-label="Un poste {LIBELLES_POSTES[p]} de plus ({postes[p]} actuellement)" aria-disabled={bloque(p, 1)} onclick={() => changer(p, 1)}>+</button>
 						</span>
 						<input type="hidden" name="{ouvert.nom}-{p}" value={postes[p]} />
 					</li>
@@ -238,7 +247,7 @@
 		font: 700 1.25rem/1 var(--police-titre);
 		cursor: pointer;
 	}
-	.pas:disabled {
+	.pas[aria-disabled='true'] {
 		opacity: 0.4;
 		cursor: not-allowed;
 	}
