@@ -5,9 +5,47 @@ import Page from './+page.svelte';
 const astreinte = { id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 };
 const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile', compte: 2 };
 const vide = { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] };
-const page = (data: Record<string, unknown>, form: unknown = null) =>
+const sansMeteo = { meteo: null, vigilance: null };
+const page = (data: Record<string, unknown>, form: unknown = null, niveau = 'vivant') =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, aNePasManquer: vide, ...data }, form } }).body;
+	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, aNePasManquer: vide, meteo: sansMeteo, ...data }, form }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
+
+describe('accueil, météo et vigilance', () => {
+	const base = { casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } };
+	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', jour: true }, vigilance: null };
+
+	it('la ligne météo sous « Bonjour », avec la mention Open-Meteo ; l’ambiance décorative', () => {
+		const html = page({ ...base, meteo: pluie });
+		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span>12 °C · averses · rafales 45 km\/h<span aria-hidden="true"> · <\/span>/);
+		expect(html).toMatch(/<a href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
+		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
+		// Gyro sort le parapluie (sauf la nuit, au p'tit-déj ou un jour de fête).
+		expect(html).toMatch(/sous son parapluie|endormi|croissant|calendriers|Noël|nouvelle année|roi|crêpe|poisson|bal|citrouille|Sainte-Barbe/);
+	});
+
+	it('affichage Sobre : la ligne reste, sans ambiance', () => {
+		const html = page({ ...base, meteo: pluie }, null, 'sobre');
+		expect(html).toContain('12 °C · averses');
+		expect(html).not.toContain('m-pluie');
+	});
+
+	it('sans relevé : ni ligne, ni mention, ni ambiance, ni bandeau', () => {
+		const html = page(base);
+		expect(html).not.toContain('Open-Meteo');
+		expect(html).not.toContain('aria-hidden="true" class="meteo');
+		expect(html).not.toContain('Vigilance');
+	});
+
+	it('vigilance : bandeau en tête, le niveau écrit, lien vers Météo-France ; rouge marqué', () => {
+		const orange = page({ ...base, meteo: { meteo: null, vigilance: { niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] } } });
+		expect(orange).toMatch(/<section class="vigilance[^"]*" aria-label="Vigilance météo">[\s\S]*Vigilance orange orages, aujourd’hui[\s\S]*href="https:\/\/vigilance.meteofrance.fr\/"/);
+		expect(orange.indexOf('Vigilance orange')).toBeLessThan(orange.indexOf('Bonjour Alice'));
+		expect(orange).not.toMatch(/class="vigilance[^"]*rouge/);
+		const rouge = page({ ...base, meteo: { meteo: null, vigilance: { niveau: 4, lignes: ['Vigilance orange orages, aujourd’hui', 'Vigilance rouge orages, demain'] } } });
+		expect(rouge).toMatch(/class="vigilance[^"]*rouge/);
+		expect(rouge).toContain('Vigilance rouge orages, demain');
+	});
+});
 
 describe('accueil', () => {
 	it('une demande de remplacement reçue : dans « À ne pas manquer », vers la demande', () => {

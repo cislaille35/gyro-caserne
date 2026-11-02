@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import centre from '$centre';
-import { accueilDe, astreinteDe, apercusDesMurs, monAnniversaire, prenomDe } from '@gyro-caserne/socle';
+import { accueilDe, astreinteDe, apercusDesMurs, monAnniversaire, prenomDe, relevesDe, vueMeteo } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
@@ -11,12 +11,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!acteur) redirect(303, '/connexion');
 	const aujourdhui = aujourdhuiParis();
 	const maintenant = maintenantParis().slice(0, 16);
-	const [accueil, prenom, aNePasManquer, anniversaire, astreinte] = await Promise.all([
+	const [accueil, prenom, aNePasManquer, anniversaire, astreinte, releves] = await Promise.all([
 		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui, maintenant, centre.astreinte),
 		prenomDe(base, acteur),
 		aNePasManquerDe(base, acteur),
 		monAnniversaire(base, acteur, aujourdhui),
-		acteur.type === 'personne' ? astreinteDe(base, acteur, maintenant, centre.astreinte) : null
+		acteur.type === 'personne' ? astreinteDe(base, acteur, maintenant, centre.astreinte) : null,
+		// La météo et la vigilance du centre (relevés de la tâche planifiée).
+		relevesDe(base, maintenant)
 	]);
 	// Les nouveautés montrent la pastille de leur mur : lue seulement s'il y en a.
 	const apercus = aNePasManquer.nouveautes.length > 0 ? await apercusDesMurs(base, acteur, aujourdhuiParis()) : [];
@@ -24,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const m = apercus.find((x) => x.cle === n.cle);
 		return { ...n, icone: m?.icone ?? null, couleur: m?.couleur ?? null, numero: m?.numero ?? null };
 	});
-	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, maintenant };
+	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, maintenant, meteo: vueMeteo(releves, aujourdhui) };
 };
 
 // « À ne pas manquer » : prise de connaissance et réponse à un événement sur place. Le socle vérifie les droits.

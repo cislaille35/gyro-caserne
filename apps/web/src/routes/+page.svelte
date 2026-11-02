@@ -4,6 +4,7 @@
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
+	import MeteoAnim from '#lib/meteo/MeteoAnim.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { nombreAFaire } from '#lib/a-faire.ts';
 	import ANePasManquer from '#lib/ui/ANePasManquer.svelte';
@@ -22,6 +23,7 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
+	const ambiance = $derived(data.meteo.meteo?.ambiance ?? null);
 	const aFaire = $derived(nombreAFaire(data.aNePasManquer));
 	const phrase = $derived(
 		[
@@ -55,7 +57,13 @@
 	<title>Accueil · Gyro Caserne</title>
 </svelte:head>
 
-{#snippet gyro()}<GyroAccueil taille={72} />{/snippet}
+{#snippet gyro()}<GyroAccueil taille={72} {ambiance} />{/snippet}
+
+{#snippet meteo()}
+	{#if data.meteo.meteo}
+		<p class="meteo"><span class="masque">{'Temps au centre : '}</span>{data.meteo.meteo.texte}<span aria-hidden="true">{' · '}</span><a href="https://open-meteo.com/" rel="external noopener">Météo : Open-Meteo</a></p>
+	{/if}
+{/snippet}
 
 {#snippet decider(liste: { texte: string; lien: string }[])}
 	<ListeRangees titre="À décider" compte={liste.length}>
@@ -87,7 +95,21 @@
 
 <div class="page">
 	<TirerPourActualiser />
-	<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
+	{#if data.meteo.vigilance}
+		<section class="vigilance" class:rouge={data.meteo.vigilance.niveau === 4} aria-label="Vigilance météo">
+			<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z M12 10v4 M12 17h.01" /></svg>
+			<div>
+				{#each data.meteo.vigilance.lignes as ligne (ligne)}<p class="ligne">{ligne}</p>{/each}
+				<a href="https://vigilance.meteofrance.fr/" rel="external noopener">Consignes sur vigilance.meteofrance.fr</a>
+			</div>
+		</section>
+	{/if}
+	<div class="ciel">
+		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} />{/if}
+		<div class="devant">
+			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
+		</div>
+	</div>
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
@@ -153,6 +175,57 @@
 		display: flex;
 		flex-direction: column;
 		gap: 18px;
+	}
+	/* L'ambiance passe derrière l'en-tête, déborde un peu sur les côtés, sans gêner la lecture. */
+	.ciel {
+		position: relative;
+		margin: -12px -16px 0;
+		padding: 12px 16px 0;
+		border-radius: var(--rayon-grand);
+		overflow: hidden;
+	}
+	.devant {
+		position: relative;
+		z-index: 1;
+	}
+	.meteo {
+		margin: 4px 0 0;
+		color: var(--doux);
+		font-size: 0.9375rem;
+	}
+	.meteo a {
+		color: var(--doux);
+		font-size: 0.8125rem;
+		white-space: nowrap;
+	}
+	.vigilance {
+		display: flex;
+		gap: 12px;
+		align-items: flex-start;
+		padding: 12px 16px;
+		border: 1px solid var(--statut-alerte-trait);
+		border-left-width: 6px;
+		border-radius: var(--rayon-grand);
+		background: var(--statut-alerte-fond);
+		color: var(--statut-alerte-texte);
+	}
+	.vigilance.rouge {
+		border-color: var(--statut-danger-trait);
+		background: var(--statut-danger-fond);
+		color: var(--statut-danger-texte);
+	}
+	.vigilance svg {
+		flex: none;
+		margin-top: 2px;
+	}
+	.vigilance .ligne {
+		margin: 0;
+		font-weight: 700;
+	}
+	.vigilance a {
+		display: inline-block;
+		margin-top: 4px;
+		color: inherit;
 	}
 	.colonnes,
 	.colonne {

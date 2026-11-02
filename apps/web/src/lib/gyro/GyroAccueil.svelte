@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import type { Ambiance } from '@gyro-caserne/socle';
 	import GyroDuMoment from './GyroDuMoment.svelte';
 	import { cinqTouches } from './cinqTouches.ts';
 	import { DUREE_ACCUEIL } from './mouvement.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from './niveau.ts';
+	import { tenueDuMoment } from './moment.ts';
 
-	let { taille = 160 }: { taille?: number } = $props();
+	// `ambiance` : le temps au centre, qui habille Gyro.
+	let { taille = 160, ambiance = null }: { taille?: number; ambiance?: Ambiance | null } = $props();
 
 	const affichage = lireAffichageContexte();
 	let appuis: number[] = [];
@@ -35,7 +38,7 @@
 {#if gyroSelonNiveau(affichage.niveau).visible}
 	<div class="accueil" data-pret={pret || undefined}>
 		<button type="button" aria-label="Faire réagir Gyro" onclick={appuyer}>
-			<GyroDuMoment {taille} decoratif duree={DUREE_ACCUEIL} bind:enMouvement tenue={surprise ? 'chargement' : undefined} />
+			<GyroDuMoment {taille} decoratif duree={DUREE_ACCUEIL} bind:enMouvement tenue={surprise ? 'chargement' : tenueDuMoment(new Date(), ambiance)} />
 		</button>
 		<p class="pinpon" aria-live="polite">{surprise ? 'pin-pon !' : ''}</p>
 	</div>

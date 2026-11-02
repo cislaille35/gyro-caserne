@@ -5,10 +5,11 @@
 	import { DESSINS } from './icones-roles.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
-	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rouge, icône et libellé).
+	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, complément sous la phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rouge, icône et libellé).
 	let {
 		titre,
 		phrase,
+		complement,
 		gyro = false,
 		tete,
 		retour,
@@ -17,6 +18,7 @@
 	}: {
 		titre: string;
 		phrase?: string;
+		complement?: Snippet;
 		gyro?: boolean;
 		tete?: Snippet;
 		retour?: { href: string; libelle: string };
@@ -39,6 +41,7 @@
 		<div class="titres">
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
+			{#if complement}{@render complement()}{/if}
 		</div>
 		{#if secondaire || action}
 			<div class="actions">
