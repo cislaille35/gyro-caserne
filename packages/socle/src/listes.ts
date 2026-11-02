@@ -96,6 +96,11 @@ export type SituationEngin = (typeof SITUATIONS_ENGIN)[number];
 // Écrit par la décision du référent engins, du chef de garde ou du chef de centre (lot anomalies).
 export const ETATS_ENGIN = ['disponible', 'indisponible'] as const;
 export type EtatEngin = (typeof ETATS_ENGIN)[number];
+// Prise de garde : un brouillon sur le serveur, puis validée. Un écart : manquant, abîmé ou à remplacer.
+export const ETATS_PRISE = ['en_cours', 'validee'] as const;
+export type EtatPrise = (typeof ETATS_PRISE)[number];
+export const GENRES_ECART = ['manquant', 'abime', 'a_remplacer'] as const;
+export type GenreEcart = (typeof GENRES_ECART)[number];
 
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
