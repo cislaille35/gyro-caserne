@@ -192,7 +192,7 @@ Spec : [2026-11-01-planning-annee-design.md](../superpowers/specs/2026-11-01-pla
 - `annee.ts` : `preparerAnnee` et les actions du chef (`GERER_PLANNING`, une ligne de journal chacune) ; `planningDe` pour l'agent (`VOIR_PLANNING`) : équipe de l'agent à la date de chaque relève, prochaine astreinte, manœuvre et fête. Changer ou annuler une manœuvre annoncée met sa publication à jour dans le même batch.
 - `manoeuvres.ts` : `planningDuMatin` (appelé à 8 h et 8 h 10 par `planifie.ts`) annonce à 14 jours ou moins et relance le mercredi ; `manoeuvreChangee` prévient les convoqués (`notifierConvoques` dans `notifications.ts`). Auteur `planning`, affiché « Planning du centre ».
 - `agenda.ts` : `monLienAgenda`, `changerLienAgenda`, `agendaDe` (iCalendar, UTC, lignes pliées à 75 octets). La clé est effacée au départ de l'agent.
-- `fictif.ts` : `chargerPlanningFictif`, pour le jeu de départ local et la préprod.
+- `fictif.ts` : `chargerPlanningFictif`, pour le jeu de départ local et la préprod ; `chargerEteFictif` : l'été qui vient (celui de l'an prochain à partir de septembre), ouvert, avec un équipage fictif de six agents par équipe, des vacances et des réponses, proposé si l'année a son roulement. Le FPT est armé presque partout ; du lundi au jeudi de la 6e semaine, tous les CA tout engins sont en vacances : quatre plages à revoir. Rien si cet été est déjà ouvert.
 
 ## Remplacements et aptitudes
 

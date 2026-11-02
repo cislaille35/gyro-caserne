@@ -3,8 +3,9 @@
 // Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
+// Avec les fictifs ou les comptes de test : un été fictif à préparer (relançable).
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerComptesDeTest, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, chargerRemplacementsFictifs, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
+import { affectationEquipe, chargerComptesDeTest, chargerEteFictif, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, chargerRemplacementsFictifs, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
@@ -75,6 +76,8 @@ try {
 		}
 		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
 		if (boite !== undefined) await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
+		// Un été fictif à préparer (vacances, proposition, plages à revoir), après les comptes de test : leurs CA tout engins y partent aussi.
+		if (avecFictifs || boite !== undefined) await chargerEteFictif(base, maintenantParis(), description.astreinte);
 		const lieu = enLigne ? 'en ligne' : 'locale';
 		console.log(`Base ${lieu} de « ${centre} » prête${avecFictifs ? ', avec les personnes fictives (dont test@exemple.fr)' : ''}${boite !== undefined ? ', avec les comptes de test' : ''}.`);
 	} finally {

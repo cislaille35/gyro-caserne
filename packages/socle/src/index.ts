@@ -35,7 +35,7 @@ export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPrepa
 export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts';
 export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
-export { chargerPlanningFictif } from './planning/fictif.ts';
+export { chargerEteFictif, chargerPlanningFictif } from './planning/fictif.ts';
 export { apercuPlanning, appliquerPlanning, donneesFichierPlanning, FEUILLES as FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from './planning/fichier.ts';
 export { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEte, relancerEte, reponsesEte, retirerMesVacances, toutLete, type EteVue } from './planning/ete.ts';
 export { ajusterPlage, eteAPreparer, proposerEte, publierEte } from './planning/repartition.ts';

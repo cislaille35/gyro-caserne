@@ -47,9 +47,9 @@ pnpm test         # tests
 pnpm build        # compilation
 ```
 
-La préprod (centre fictif `exemple`, en ligne) reçoit les mêmes personnes fictives : `CENTRE=exemple pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne --avec-fictifs`. Cette option est refusée pour tout autre centre.
+La préprod (centre fictif `exemple`, en ligne) reçoit les mêmes personnes fictives (et l’été fictif) : `CENTRE=exemple pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne --avec-fictifs`. Cette option est refusée pour tout autre centre.
 
-Pour essayer chaque profil en préprod : lancer l'action GitHub **Comptes de test** (onglet Actions, « Run workflow ») avec la boîte de la caserne, par exemple `caserne@exemple.fr`. Elle crée un compte par profil, de `caserne+chef@exemple.fr` à `caserne+exterieur@exemple.fr` (liste dans `packages/socle/src/comptes-de-test.ts`), quelques publications, le matériel de l’amicale et une demande de réservation ; relancée, elle complète sans dupliquer. Les liens de connexion arrivent tous dans cette boîte. En local : `pnpm --filter @gyro-caserne/web jeu-de-depart --comptes-de-test=<boîte>`. Refusé pour tout autre centre qu'`exemple`.
+Pour essayer chaque profil en préprod : lancer l'action GitHub **Comptes de test** (onglet Actions, « Run workflow ») avec la boîte de la caserne, par exemple `caserne@exemple.fr`. Elle crée un compte par profil, de `caserne+chef@exemple.fr` à `caserne+exterieur@exemple.fr` (liste dans `packages/socle/src/comptes-de-test.ts`), quelques publications, le matériel de l’amicale, une demande de réservation et un été fictif à préparer (vacances, proposition, quelques plages à revoir) ; relancée, elle complète sans dupliquer. Les liens de connexion arrivent tous dans cette boîte. En local : `pnpm --filter @gyro-caserne/web jeu-de-depart --comptes-de-test=<boîte>`. Refusé pour tout autre centre qu'`exemple`.
 
 Après une mise à jour qui refond les migrations (avant tout déploiement, elles peuvent être réécrites), repartir d'une base locale neuve : effacer `centres/<id>/.wrangler/state`, puis relancer `base-locale` et `jeu-de-depart`.
 
