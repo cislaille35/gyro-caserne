@@ -156,7 +156,9 @@
 												{/if}
 											</form>
 										</div>
-									{:else}
+									{/if}
+									<!-- Retrouvé, l'élément peut avoir un nouvel écart. -->
+									{#if !o || s?.retrouves.includes(o.id)}
 										{#if ecart}
 											<div class="encadre">
 												<span class="signale"><strong>{texteEcart(ecart, el.quantite)}</strong></span>

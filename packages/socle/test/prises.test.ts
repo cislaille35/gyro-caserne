@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { eq, sql } from 'drizzle-orm';
+import { describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { enregistrerEngin } from '../src/engins.ts';
 import { lireFiche, modifierFicheEngin } from '../src/fiches.ts';
@@ -56,6 +56,15 @@ describe('relève', () => {
 		expect(releveDe(avant, reglage)).toBe(`2026-11-06T${reglage.debut.heure}`);
 		expect(releveDe('2026-11-06T08:00', reglage)).toBe(RELEVE);
 	});
+
+	it('aux bornes : l’heure exacte, la minute avant l’avance, le passage d’année', () => {
+		expect(releveDe('2026-10-30T18:00', reglage)).toBe(RELEVE);
+		expect(releveDe('2026-11-06T15:59', reglage)).toBe(RELEVE);
+		expect(releveDe('2026-11-06T16:00', reglage)).toBe('2026-11-06T18:00');
+		// Le vendredi 1er janvier 2027 : la relève appartient à 2027.
+		expect(releveDe('2027-01-01T08:00', reglage)).toBe('2026-12-25T18:00');
+		expect(releveDe('2027-01-02T10:00', reglage)).toBe('2027-01-01T18:00');
+	});
 });
 
 describe('gestes du brouillon (sans base)', () => {
@@ -86,8 +95,8 @@ describe('gestes du brouillon (sans base)', () => {
 describe('prise de garde', () => {
 	it('commencer : une seule prise par engin et par relève, la version de fiche est marquée utilisée', async () => {
 		const j = await jeu();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
-		expect(await commencerPrise(j.base, j.chefDeGarde, j.vsav, '2026-10-30T18:12', reglage)).toBe(id);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		expect(await commencerPrise(j.base, j.base.photos, j.chefDeGarde, j.vsav, '2026-10-30T18:12', reglage)).toBe(id);
 		const [v] = await j.base.select().from(ficheVersion).where(eq(ficheVersion.id, j.fiche.version.id));
 		expect(v!.utilisee).toBe(1);
 		const vue = await lirePrise(j.base, j.chefDeGarde, j.vsav, '2026-10-30T18:15', reglage);
@@ -98,15 +107,15 @@ describe('prise de garde', () => {
 
 	it('réservée à qui a FAIRE_PRISE_DE_GARDE ; un engin parti n’a pas de prise', async () => {
 		const j = await jeu();
-		await expect(commencerPrise(j.base, j.sansProfil, j.vsav, PENDANT, reglage)).rejects.toThrow();
-		await expect(commencerPrise(j.base, j.superAdmin, j.vsav, PENDANT, reglage)).rejects.toThrow('Réservé aux agents');
+		await expect(commencerPrise(j.base, j.base.photos, j.sansProfil, j.vsav, PENDANT, reglage)).rejects.toThrow();
+		await expect(commencerPrise(j.base, j.base.photos, j.superAdmin, j.vsav, PENDANT, reglage)).rejects.toThrow('Réservé aux agents');
 		await enregistrerEngin(j.base, j.referent, { id: j.fpt, nom: 'FPT', immatriculation: '', typeId: j.types.FPT, situation: 'parti', provenance: '' }, PENDANT);
-		await expect(commencerPrise(j.base, j.alice, j.fpt, PENDANT, reglage)).rejects.toThrow('Engin parti');
+		await expect(commencerPrise(j.base, j.base.photos, j.alice, j.fpt, PENDANT, reglage)).rejects.toThrow('Engin parti');
 	});
 
 	it('passer la main : un collègue reprend le brouillon ; la fiche peut changer, la prise garde sa version', async () => {
 		const j = await jeu();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.chefDeGarde, id, { quoi: 'zone', zone: j.cabine.ref, vue: true }, '2026-10-30T18:20', reglage);
 		await modifierFicheEngin(j.base, j.referent, j.types.VSAV, { quoi: 'retirer_zone', zone: j.cabine.ref }, '2026-10-30T18:21');
 		const vue = await lirePrise(j.base, j.alice, j.vsav, '2026-10-30T18:22', reglage);
@@ -117,7 +126,7 @@ describe('prise de garde', () => {
 
 	it('valider : toutes les zones vues ; les écarts deviennent des anomalies ; la prise est au nom des participants', async () => {
 		const j = await jeu();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'ecart', element: j.gilets.ref, genre: 'manquant', manque: 1, note: 'Un gilet', photo: jpeg() }, PENDANT, reglage);
 		await expect(validerPrise(j.base, j.alice, id, '2026-10-30T18:30', reglage)).rejects.toThrow('Zones à voir');
 		await toutVoir(j, id);
@@ -136,7 +145,7 @@ describe('prise de garde', () => {
 
 	it('la relève suivante voit les écarts ouverts ; retrouvé, l’anomalie est close par la prise, jamais en silence', async () => {
 		const j = await jeu();
-		const premiere = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const premiere = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, premiere, { quoi: 'ecart', element: j.gilets.ref, genre: 'manquant', manque: 1, note: '' }, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, premiere, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: 'Grésille' }, PENDANT, reglage);
 		await toutVoir(j, premiere);
@@ -146,7 +155,7 @@ describe('prise de garde', () => {
 		const vue = await lirePrise(j.base, j.chefDeGarde, j.vsav, suivante, reglage);
 		expect(vue.prise).toBeNull();
 		expect(vue.ouvertes.map((o) => o.libelle)).toEqual([j.radio.libelle, j.gilets.libelle]);
-		const id = await commencerPrise(j.base, j.chefDeGarde, j.vsav, suivante, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.chefDeGarde, j.vsav, suivante, reglage);
 		const gilets = vue.ouvertes.find((o) => o.ref === j.gilets.ref)!;
 		await gestePrise(j.base, j.base.photos, j.chefDeGarde, id, { quoi: 'retrouve', anomalie: gilets.id, oui: true }, suivante, reglage);
 		await toutVoir(j, id, suivante);
@@ -161,7 +170,7 @@ describe('prise de garde', () => {
 
 	it('une relève passée ne se reprend pas ; abandonner efface le brouillon et ses photos', async () => {
 		const j = await jeu();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		await expect(gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'zone', zone: j.cabine.ref, vue: true }, '2026-11-06T18:10', reglage)).rejects.toThrow('Relève passée');
 		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '', photo: jpeg() }, PENDANT, reglage);
 		expect(await j.base.photos.select().from(octets)).toHaveLength(1);
@@ -172,7 +181,7 @@ describe('prise de garde', () => {
 
 	it('photo d’un écart : changée ou retirée, l’ancienne est effacée ; servie à qui voit les engins', async () => {
 		const j = await jeu();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		const ecart = { quoi: 'ecart' as const, element: j.radio.ref, genre: 'abime' as const, manque: null, note: '' };
 		await gestePrise(j.base, j.base.photos, j.alice, id, { ...ecart, photo: jpeg() }, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, id, { ...ecart, note: 'garde la photo' }, PENDANT, reglage);
@@ -190,6 +199,104 @@ describe('prise de garde', () => {
 	});
 });
 
+describe('à plusieurs sur le même brouillon', () => {
+	// Un collègue écrit entre la lecture et l'écriture : le compteur de la prise avance `fois` fois juste après la lecture.
+	function collegue(j: Awaited<ReturnType<typeof jeu>>, id: number, fois: number) {
+		const batch = j.base.batch.bind(j.base);
+		const espion = vi.spyOn(j.base, 'batch');
+		for (let i = 0; i < fois; i++)
+			espion.mockImplementationOnce((async (q: Parameters<typeof batch>[0]) => {
+				const r = await batch(q);
+				await j.base.update(priseGarde).set({ compteur: sql`${priseGarde.compteur} + 1` }).where(eq(priseGarde.id, id));
+				return r;
+			}) as unknown as typeof batch);
+		return espion;
+	}
+
+	it('un conflit : le geste est refait sur la saisie relue', async () => {
+		const j = await jeu();
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		collegue(j, id, 1);
+		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'zone', zone: j.cabine.ref, vue: true }, PENDANT, reglage);
+		expect((await lirePrise(j.base, j.alice, j.vsav, PENDANT, reglage)).prise!.saisie.zones).toEqual([j.cabine.ref]);
+	});
+
+	it('deux conflits : refusé, et la photo envoyée est effacée', async () => {
+		const j = await jeu();
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		collegue(j, id, 2);
+		await expect(gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '', photo: jpeg() }, PENDANT, reglage)).rejects.toThrow('Prise changée entre-temps');
+		expect(await j.base.photos.select().from(octets)).toHaveLength(0);
+	});
+
+	it('une validation croisée par un geste : rien n’est écrit', async () => {
+		const j = await jeu();
+		const avant = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, '2026-10-23T18:10', reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, avant, { quoi: 'ecart', element: j.gilets.ref, genre: 'manquant', manque: 1, note: '' }, '2026-10-23T18:10', reglage);
+		await toutVoir(j, avant, '2026-10-23T18:10');
+		await validerPrise(j.base, j.alice, avant, '2026-10-23T18:20', reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		const [ouverte] = await j.base.select().from(anomalie);
+		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'retrouve', anomalie: ouverte!.id, oui: true }, PENDANT, reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
+		await toutVoir(j, id);
+		collegue(j, id, 1);
+		await expect(validerPrise(j.base, j.alice, id, PENDANT, reglage)).rejects.toThrow('Prise changée entre-temps');
+		const lignes = await j.base.select().from(anomalie);
+		expect(lignes).toHaveLength(1);
+		expect(lignes[0]!.closeLe).toBeNull();
+		expect((await j.base.select().from(priseGarde).where(eq(priseGarde.id, id)))[0]!.etat).toBe('en_cours');
+		// Deux validations : la seconde le dit.
+		vi.restoreAllMocks();
+		await validerPrise(j.base, j.alice, id, PENDANT, reglage);
+		await expect(validerPrise(j.base, j.chefDeGarde, id, PENDANT, reglage)).rejects.toThrow('Prise déjà validée');
+	});
+});
+
+describe('garde-fous du brouillon', () => {
+	it('un brouillon d’une relève passée est effacé à la prise suivante, ses photos aussi', async () => {
+		const j = await jeu();
+		const vieux = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, '2026-10-23T18:10', reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, vieux, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '', photo: jpeg() }, '2026-10-23T18:10', reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		expect((await j.base.select().from(priseGarde)).map((p) => p.id)).toEqual([id]);
+		expect(await j.base.photos.select().from(octets)).toHaveLength(0);
+	});
+
+	it('la prise d’un autre engin est refusée ; un engin parti entre-temps aussi', async () => {
+		const j = await jeu();
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		const zone = { quoi: 'zone' as const, zone: j.cabine.ref, vue: true };
+		await expect(gestePrise(j.base, j.base.photos, j.alice, id, zone, PENDANT, reglage, j.fpt)).rejects.toThrow('Prise inconnue');
+		await expect(validerPrise(j.base, j.alice, id, PENDANT, reglage, j.fpt)).rejects.toThrow('Prise inconnue');
+		await expect(abandonnerPrise(j.base, j.base.photos, j.alice, id, PENDANT, j.fpt)).rejects.toThrow('Prise inconnue');
+		await gestePrise(j.base, j.base.photos, j.alice, id, zone, PENDANT, reglage, j.vsav);
+		await enregistrerEngin(j.base, j.referent, { id: j.vsav, nom: 'VSAV 1', immatriculation: '', typeId: j.types.VSAV, situation: 'parti', provenance: '' }, PENDANT);
+		await expect(gestePrise(j.base, j.base.photos, j.alice, id, zone, PENDANT, reglage)).rejects.toThrow('Engin parti');
+	});
+
+	it('retrouvé, un élément peut recevoir un nouvel écart : l’ancien est clos, le nouveau ouvert', async () => {
+		const j = await jeu();
+		const avant = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, '2026-10-23T18:10', reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, avant, { quoi: 'ecart', element: j.gilets.ref, genre: 'manquant', manque: 1, note: '' }, '2026-10-23T18:10', reglage);
+		await toutVoir(j, avant, '2026-10-23T18:10');
+		await validerPrise(j.base, j.alice, avant, '2026-10-23T18:20', reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		const [ancienne] = await j.base.select().from(anomalie);
+		const nouvel = { quoi: 'ecart' as const, element: j.gilets.ref, genre: 'abime' as const, manque: null, note: 'Déchiré' };
+		await expect(gestePrise(j.base, j.base.photos, j.alice, id, nouvel, PENDANT, reglage)).rejects.toThrow('Élément déjà signalé');
+		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'retrouve', anomalie: ancienne!.id, oui: true }, PENDANT, reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, id, nouvel, PENDANT, reglage);
+		await toutVoir(j, id);
+		await validerPrise(j.base, j.alice, id, PENDANT, reglage);
+		const lignes = await j.base.select().from(anomalie);
+		expect(lignes.map((l) => [l.genre, l.closeLe !== null])).toEqual([
+			['manquant', true],
+			['abime', false]
+		]);
+	});
+});
+
 describe('la relève et le retard', () => {
 	// Planning publié : l'équipe d'astreinte de la relève est connue.
 	async function avecPlanning() {
@@ -203,7 +310,7 @@ describe('la relève et le retard', () => {
 
 	it('chaque engin : prise faite (par quelle équipe, quand), en cours ou à faire ; écarts ouverts comptés', async () => {
 		const j = await avecPlanning();
-		const id = await commencerPrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		const id = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
 		await toutVoir(j, id);
 		await validerPrise(j.base, j.alice, id, '2026-10-30T18:40', reglage);
@@ -215,6 +322,14 @@ describe('la relève et le retard', () => {
 		expect(vsav.prise).toMatchObject({ etat: 'validee', valideeLe: '2026-10-30T18:40', equipe: r.releve.equipe!.nom });
 		expect(vsav.ouvertes).toBe(1);
 		expect(r.engins.find((e) => e.engin.id === j.fpt)!.prise).toBeNull();
+	});
+
+	it('la relève du 1er janvier 2027 prend l’équipe du planning 2027', async () => {
+		const j = await avecPlanning();
+		expect((await prisesDeLaReleve(j.base, j.alice, '2027-01-01T19:00', reglage)).releve.equipe).toBeNull();
+		await reglerRoulement(j.base, j.superAdmin, 2027, j.equipes.map((e) => e.id), '2026-10-01T10:00');
+		await publierAnnee(j.base, j.superAdmin, 2027, '2026-10-01T10:00');
+		expect((await prisesDeLaReleve(j.base, j.alice, '2027-01-01T19:00', reglage)).releve).toMatchObject({ debut: '2027-01-01T18:00', equipe: { nom: expect.stringMatching(/^Équipe/) } });
 	});
 
 	it('en retard trois heures après la relève : au chef de garde de l’équipe d’astreinte, jamais d’indisponibilité', async () => {

@@ -160,11 +160,14 @@ async function nomsDe(base: Base, ids: number[]): Promise<Map<number, string>> {
 
 // Commencer la prise d'un engin pour la relève en cours ; si un collègue l'a déjà commencée, c'est la sienne qu'on reprend.
 // La version de fiche suivie est marquée utilisée : la modifier en crée une nouvelle, la prise garde la sienne.
-export async function commencerPrise(base: Base, acteur: Acteur, enginId: number, maintenant: string, reglage: Reglage): Promise<number> {
+// Un brouillon d'une relève passée, jamais validé, ne se reprend plus : il est effacé, ses photos aussi.
+export async function commencerPrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, enginId: number, maintenant: string, reglage: Reglage): Promise<number> {
 	const moi = await exigerPrise(base, acteur, maintenant);
 	const releve = releveDe(maintenant, reglage);
-	const [[e], [version], annees, changees, equipes] = await base.batch([
+	const passes = and(eq(priseGarde.enginId, enginId), eq(priseGarde.etat, 'en_cours'), ne(priseGarde.releve, releve));
+	const [[e], anciens, [version], annees, changees, equipes] = await base.batch([
 		base.select({ situation: engin.situation, typeId: engin.typeId }).from(engin).where(eq(engin.id, enginId)),
+		base.select({ saisie: priseGarde.saisie }).from(priseGarde).where(passes),
 		base.select({ id: sql<number>`max(${ficheVersion.id})` }).from(ficheVersion).innerJoin(engin, eq(engin.typeId, ficheVersion.typeId)).where(eq(engin.id, enginId)),
 		...lecturesEquipe(base, releve)
 	]);
@@ -173,7 +176,8 @@ export async function commencerPrise(base: Base, acteur: Acteur, enginId: number
 	if (!version?.id) throw new DonneeInvalide('Type inconnu');
 	const equipeId = equipeDe(releve, annees, changees, equipes, reglage)?.id ?? null;
 	const saisie: Saisie = { ...SAISIE_VIDE, participants: [moi] };
-	const [, , [ligne]] = await base.batch([
+	const [, , , [ligne]] = await base.batch([
+		base.delete(priseGarde).where(passes),
 		base
 			.insert(priseGarde)
 			.values({ enginId, releve, versionId: version.id, equipeId, saisie: JSON.stringify(saisie), commenceePar: moi, commenceeLe: maintenant, modifieePar: moi, modifieeLe: maintenant })
@@ -181,6 +185,7 @@ export async function commencerPrise(base: Base, acteur: Acteur, enginId: number
 		base.update(ficheVersion).set({ utilisee: 1 }).where(sql`${ficheVersion.id} = (SELECT ${priseGarde.versionId} FROM ${priseGarde} WHERE ${priseGarde.enginId} = ${enginId} AND ${priseGarde.releve} = ${releve})`),
 		base.select({ id: priseGarde.id }).from(priseGarde).where(and(eq(priseGarde.enginId, enginId), eq(priseGarde.releve, releve)))
 	]);
+	await effacerPhotos(basePhotos, anciens.flatMap((a) => photosDe(lireSaisie(a.saisie))));
 	return ligne!.id;
 }
 
@@ -201,7 +206,8 @@ export function appliquerGestePrise(saisie: Saisie, geste: GestePrise, ctx: { zo
 		}
 		case 'ecart': {
 			const e = element(geste.element);
-			if (ctx.ouvertes.some((o) => o.ref === e.ref)) throw new DonneeInvalide('Élément déjà signalé');
+			// Un élément encore signalé : on dit d'abord s'il est retrouvé ; retrouvé, il peut avoir un nouvel écart.
+			if (ctx.ouvertes.some((o) => o.ref === e.ref && !saisie.retrouves.includes(o.id))) throw new DonneeInvalide('Élément déjà signalé');
 			if (!(GENRES_ECART as readonly string[]).includes(geste.genre)) throw new DonneeInvalide('Écart inconnu');
 			const note = typeof geste.note === 'string' ? geste.note.trim().replace(/\s+/g, ' ') : '';
 			if (note.length > LIMITES_PRISE.note) throw new DonneeInvalide('Note trop longue');
@@ -231,16 +237,18 @@ export function appliquerGestePrise(saisie: Saisie, geste: GestePrise, ctx: { zo
 }
 
 // Le brouillon d'une prise et ce qu'il faut pour en vérifier un geste : une requête.
-async function lireBrouillon(base: Base, id: number) {
+// `enginId` : l'engin de la page ; une prise d'un autre engin est refusée.
+async function lireBrouillon(base: Base, id: number, enginId?: number) {
 	const version = sql<number>`(SELECT ${priseGarde.versionId} FROM ${priseGarde} WHERE ${priseGarde.id} = ${id})`;
 	const [[p], zones, elements, ouvertes, agents] = await base.batch([
-		base.select().from(priseGarde).where(eq(priseGarde.id, id)),
+		base.select({ prise: priseGarde, situation: engin.situation }).from(priseGarde).innerJoin(engin, eq(engin.id, priseGarde.enginId)).where(eq(priseGarde.id, id)),
 		...lecturesVersion(base, version),
 		base.select({ id: anomalie.id, ref: anomalie.ref, zone: anomalie.zone, libelle: anomalie.libelle }).from(anomalie).where(and(sql`${anomalie.enginId} = (SELECT ${priseGarde.enginId} FROM ${priseGarde} WHERE ${priseGarde.id} = ${id})`, isNull(anomalie.closeLe))),
 		base.select({ id: personne.id }).from(personne).innerJoin(profil, eq(profil.id, personne.profilId)).where(and(inArray(personne.statut, [...STATUTS_AVEC_ACCES]), eq(profil.typePersonne, 'agent')))
 	]);
-	if (!p) throw new DonneeInvalide('Prise inconnue');
-	return { prise: p, saisie: lireSaisie(p.saisie), zones: zonesDe(zones, elements), ouvertes, agents: agents.map((a) => a.id) };
+	if (!p || (enginId !== undefined && p.prise.enginId !== enginId)) throw new DonneeInvalide('Prise inconnue');
+	if (p.situation === 'parti') throw new DonneeInvalide('Engin parti');
+	return { prise: p.prise, saisie: lireSaisie(p.prise.saisie), zones: zonesDe(zones, elements), ouvertes, agents: agents.map((a) => a.id) };
 }
 
 function exigerEnCours(p: { etat: EtatPrise; releve: string }, maintenant: string, reglage: Reglage) {
@@ -250,12 +258,12 @@ function exigerEnCours(p: { etat: EtatPrise; releve: string }, maintenant: strin
 
 // Un geste sur le brouillon. Deux collègues peuvent écrire en même temps : l'écriture est gardée par le compteur et refaite une fois
 // sur la saisie relue. Une photo d'écart part d'abord dans la base des photos ; celle qu'elle remplace est effacée.
-export async function gestePrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, geste: GestePrise, maintenant: string, reglage: Reglage): Promise<void> {
+export async function gestePrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, geste: GestePrise, maintenant: string, reglage: Reglage, enginId?: number): Promise<void> {
 	const moi = await exigerPrise(base, acteur, maintenant);
 	const nouvelle = geste.quoi === 'ecart' && geste.photo ? exigerPhotos([geste.photo]) : [];
 	await avecPhotos(basePhotos, nouvelle, maintenant, async ([idPhoto]) => {
 		for (let essai = 0; ; essai++) {
-			const b = await lireBrouillon(base, id);
+			const b = await lireBrouillon(base, id, enginId);
 			exigerEnCours(b.prise, maintenant, reglage);
 			let saisie = appliquerGestePrise(b.saisie, geste, b);
 			if (geste.quoi === 'ecart' && geste.photo !== undefined) {
@@ -279,18 +287,21 @@ export async function gestePrise(base: Base, basePhotos: BasePhotos, acteur: Act
 const photosDe = (s: Saisie) => Object.values(s.ecarts).flatMap((e) => (e.photo === null ? [] : [e.photo]));
 
 // Abandonner un brouillon : il est effacé, ses photos aussi.
-export async function abandonnerPrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string): Promise<void> {
+export async function abandonnerPrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, id: number, maintenant: string, enginId?: number): Promise<void> {
 	await exigerPrise(base, acteur, maintenant);
-	const [p] = await base.delete(priseGarde).where(and(eq(priseGarde.id, id), eq(priseGarde.etat, 'en_cours'))).returning({ saisie: priseGarde.saisie });
+	const [p] = await base
+		.delete(priseGarde)
+		.where(and(eq(priseGarde.id, id), eq(priseGarde.etat, 'en_cours'), enginId === undefined ? undefined : eq(priseGarde.enginId, enginId)))
+		.returning({ saisie: priseGarde.saisie });
 	if (!p) throw new DonneeInvalide('Prise inconnue');
 	await effacerPhotos(basePhotos, photosDe(lireSaisie(p.saisie)));
 }
 
 // Valider : toutes les zones vues. D'un bloc, gardé par le compteur : la prise passe validée (au nom des participants, celui qui
 // valide compris), les anomalies retrouvées sont closes, chaque écart devient une anomalie (sauf une déjà ouverte sur le même élément).
-export async function validerPrise(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage): Promise<void> {
+export async function validerPrise(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage, enginAttendu?: number): Promise<void> {
 	const moi = await exigerPrise(base, acteur, maintenant);
-	const b = await lireBrouillon(base, id);
+	const b = await lireBrouillon(base, id, enginAttendu);
 	exigerEnCours(b.prise, maintenant, reglage);
 	if (b.zones.some((z) => !b.saisie.zones.includes(z.ref))) throw new DonneeInvalide('Zones à voir');
 	const saisie: Saisie = { ...b.saisie, participants: [...new Set([moi, ...b.saisie.participants])] };
@@ -324,7 +335,11 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 				WHERE ${validee} AND NOT EXISTS (SELECT 1 FROM ${anomalie} a WHERE a.engin_id = ${enginId} AND a.ref = json_extract(value, '$.ref') AND a.close_le IS NULL)`
 		)
 	]);
-	if (ecrit.length === 0) throw new DonneeInvalide('Prise changée entre-temps');
+	if (ecrit.length === 0) {
+		// Un collègue a validé juste avant : rien n'a été écrit deux fois (anomalies déjà closes ou déjà ouvertes).
+		const [relue] = await base.select({ etat: priseGarde.etat }).from(priseGarde).where(eq(priseGarde.id, id));
+		throw new DonneeInvalide(relue?.etat === 'validee' ? 'Prise déjà validée' : 'Prise changée entre-temps');
+	}
 }
 
 export type PriseDeLaReleve = { engin: EnginVu; prise: { etat: EtatPrise; valideeLe: string | null; equipe: string | null; par: string } | null; ouvertes: number };

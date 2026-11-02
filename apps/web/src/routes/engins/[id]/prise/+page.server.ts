@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import centre from '$centre';
-import { abandonnerPrise, commencerPrise, DonneeInvalide, gestePrise, GENRES_ECART, lirePrise, RefusDroit, TAILLE_PHOTO_MAX, validerPrise, type GenreEcart, type GestePrise } from '@gyro-caserne/socle';
+import { abandonnerPrise, commencerPrise, DonneeInvalide, gestePrise, lirePrise, RefusDroit, TAILLE_PHOTO_MAX, validerPrise, type GenreEcart, type GestePrise } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { accesEngins, champ, idDe, phraseDe } from '#lib/server/engins.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -40,7 +40,8 @@ async function gesteDe(f: FormData): Promise<GestePrise | null> {
 			return {
 				quoi: 'ecart',
 				element: idDe(champ(f, 'element')),
-				genre: ((GENRES_ECART as readonly string[]).includes(genre) ? genre : 'manquant') as GenreEcart,
+				// Une valeur inconnue passe telle quelle : le socle la refuse.
+				genre: genre as GenreEcart,
 				manque: nombre(champ(f, 'manque')),
 				note: champ(f, 'note'),
 				photo
@@ -69,13 +70,13 @@ export const actions: Actions = {
 	commencer: async ({ locals, params }) => {
 		const { acteur, base } = await accesEngins(locals);
 		try {
-			await commencerPrise(base, acteur, idDe(params.id), maintenantParis(), centre.astreinte);
+			await commencerPrise(base, locals.basePhotos, acteur, idDe(params.id), maintenantParis(), centre.astreinte);
 		} catch (erreur) {
 			return refusPrise(erreur, { cible: 'commencer' });
 		}
 		return { cible: 'commencer', succes: 'Prise commencée.' };
 	},
-	geste: async ({ locals, request }) => {
+	geste: async ({ locals, params, request }) => {
 		const { acteur, base } = await accesEngins(locals);
 		const f = await request.formData();
 		const cible = champ(f, 'cible');
@@ -86,7 +87,7 @@ export const actions: Actions = {
 		if (!geste) return refusPrise(new DonneeInvalide('Geste inconnu'), { cible, zone });
 		try {
 			const prise = idDe(champ(f, 'prise'));
-			await gestePrise(base, locals.basePhotos, acteur, prise, geste, maintenantParis(), centre.astreinte);
+			await gestePrise(base, locals.basePhotos, acteur, prise, geste, maintenantParis(), centre.astreinte, idDe(params.id));
 		} catch (erreur) {
 			return refusPrise(erreur, { cible, zone });
 		}
@@ -97,7 +98,7 @@ export const actions: Actions = {
 		const { acteur, base } = await accesEngins(locals);
 		const f = await request.formData();
 		try {
-			await validerPrise(base, acteur, idDe(champ(f, 'prise')), maintenantParis(), centre.astreinte);
+			await validerPrise(base, acteur, idDe(champ(f, 'prise')), maintenantParis(), centre.astreinte, idDe(params.id));
 		} catch (erreur) {
 			return refusPrise(erreur, { cible: 'valider' });
 		}
@@ -107,7 +108,7 @@ export const actions: Actions = {
 		const { acteur, base } = await accesEngins(locals);
 		const f = await request.formData();
 		try {
-			await abandonnerPrise(base, locals.basePhotos, acteur, idDe(champ(f, 'prise')), maintenantParis());
+			await abandonnerPrise(base, locals.basePhotos, acteur, idDe(champ(f, 'prise')), maintenantParis(), idDe(params.id));
 		} catch (erreur) {
 			return refusPrise(erreur, { cible: 'abandonner' });
 		}
