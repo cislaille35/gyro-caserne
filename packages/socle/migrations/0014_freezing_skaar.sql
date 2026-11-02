@@ -7,7 +7,7 @@ CREATE TABLE `avis_ete` (
 	`cree_le` text NOT NULL,
 	`lue_le` text,
 	FOREIGN KEY (`personne_id`) REFERENCES `personne`(`id`) ON UPDATE no action ON DELETE no action,
-	CONSTRAINT "avis_ete_quoi" CHECK("quoi" IN ('rappel', 'repartition', 'vacances_changees'))
+	CONSTRAINT "avis_ete_quoi" CHECK("quoi" IN ('rappel', 'repartition', 'vacances_changees', 'semaine'))
 );
 --> statement-breakpoint
 CREATE INDEX `avis_ete_personne` ON `avis_ete` (`personne_id`,`lue_le`);--> statement-breakpoint

@@ -521,7 +521,7 @@
       "checkConstraints": {
         "avis_ete_quoi": {
           "name": "avis_ete_quoi",
-          "value": "\"quoi\" IN ('rappel', 'repartition', 'vacances_changees')"
+          "value": "\"quoi\" IN ('rappel', 'repartition', 'vacances_changees', 'semaine')"
         }
       }
     },

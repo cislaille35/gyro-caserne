@@ -24,7 +24,9 @@ const MESSAGES: Record<string, string> = {
 	'Été déjà publié': 'L’été est déjà publié : ajustez plutôt plage par plage.',
 	'Proposez d’abord l’été': 'Proposez d’abord la répartition.',
 	'Plage commencée': 'Cette plage est commencée : elle ne change plus.',
-	'Plage inconnue': 'Cette plage n’existe plus : rechargez la page.'
+	'Plage inconnue': 'Cette plage n’existe plus : rechargez la page.',
+	'Déjà relancés aujourd’hui': 'Les agents sans réponse ont déjà été relancés aujourd’hui.',
+	'Tout le monde a répondu': 'Tout le monde a répondu : personne à relancer.'
 };
 
 export function echecPlanning(erreur: unknown, cible: string, valeurs?: ReponsePlanning['valeurs']) {

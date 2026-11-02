@@ -61,9 +61,10 @@ describe('/planning/preparer', () => {
 		const q = `?annee=${annee}`;
 		const ordre = ids.map((id): [string, string] => ['ordre', String(id)]);
 		expect(await envoyer(actions, 'deplacer', l, [...ordre, ['deplacer', '1:monter']], q)).toMatchObject({ status: 400, data: { cible: 'roulement' } });
-		const [a, b] = (await charger(load, l, q)).preparation.semaines;
+		// Les deux dernières semaines de l'année : à venir.
+		const [a, b] = (await charger(load, l, q)).preparation.semaines.slice(-2);
 		expect(await envoyer(actions, 'semaines', l, [[`semaine-${a.debut}`, String(b.equipeId)], [`semaine-${b.debut}`, String(a.equipeId)]], q)).toMatchObject({ succes: expect.any(String) });
-		const [a2, b2] = (await charger(load, l, q)).preparation.semaines;
+		const [a2, b2] = (await charger(load, l, q)).preparation.semaines.slice(-2);
 		expect([a2.equipeId, b2.equipeId]).toEqual([b.equipeId, a.equipeId]);
 	});
 

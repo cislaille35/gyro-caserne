@@ -48,12 +48,17 @@ export function postesDe(niveaux: ReglageArmement['niveaux'], aptitudes: Set<num
 // Les places de l'engin, des plus exigeantes aux moins exigeantes.
 const places = (postes: Postes) => POSTES.flatMap((p) => Array.from({ length: postes[p] }, () => p));
 
-// Armé si chaque place a sa personne, chacune une seule place (meilleure répartition : chaînes de réaffectation).
-// `manque` : les places restées vides dans la meilleure répartition, des plus exigeantes aux moins exigeantes.
-export function armement(postes: Postes, presents: { id: number; postes: Set<Poste> }[]): { arme: boolean; manque: Poste[] } {
+// La meilleure répartition (chaînes de réaffectation) : pour chaque place, l'indice du présent qui la tient, ou null.
+function repartir(postes: Postes, presents: { postes: Set<Poste> }[]) {
 	const liste = places(postes);
 	const tenue: (number | null)[] = liste.map(() => null);
 	const placer = (i: number, vues: Set<number>): boolean => {
+		// Une place libre d'abord : on ne déplace personne sans besoin.
+		const libre = liste.findIndex((p, j) => tenue[j] === null && !vues.has(j) && presents[i]!.postes.has(p));
+		if (libre >= 0) {
+			tenue[libre] = i;
+			return true;
+		}
 		for (let j = 0; j < liste.length; j++) {
 			if (vues.has(j) || !presents[i]!.postes.has(liste[j]!)) continue;
 			vues.add(j);
@@ -65,8 +70,21 @@ export function armement(postes: Postes, presents: { id: number; postes: Set<Pos
 		return false;
 	};
 	presents.forEach((_, i) => placer(i, new Set()));
+	return { liste, tenue };
+}
+
+// Armé si chaque place a sa personne, chacune une seule place.
+// `manque` : les places restées vides dans la meilleure répartition, des plus exigeantes aux moins exigeantes.
+export function armement(postes: Postes, presents: { id: number; postes: Set<Poste> }[]): { arme: boolean; manque: Poste[] } {
+	const { liste, tenue } = repartir(postes, presents);
 	const manque = liste.filter((_, j) => tenue[j] === null);
 	return { arme: manque.length === 0, manque };
+}
+
+// Le poste de chacun dans cette répartition ; un présent « en plus » n'en a pas.
+export function postesTenus(postes: Postes, presents: { id: number; postes: Set<Poste> }[]): Map<number, Poste> {
+	const { liste, tenue } = repartir(postes, presents);
+	return new Map(tenue.flatMap((i, j) => (i === null ? [] : [[presents[i]!.id, liste[j]!] as const])));
 }
 
 export async function lireArmement(base: Base): Promise<ReglageArmement> {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
-import { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEte, reponsesEte, retirerMesVacances, toutLete } from '../src/planning/ete.ts';
+import { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEte, relancerEte, reponsesEte, retirerMesVacances, toutLete } from '../src/planning/ete.ts';
+import { eteAPreparer } from '../src/planning/repartition.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { avisEte, ete } from '../src/schema.ts';
 import { jeuEte } from './jeu-ete.ts';
@@ -68,6 +69,26 @@ describe('Mes vacances', () => {
 			['David', null]
 		]);
 		expect(r.agents[2]!.id).toBe(david.type === 'personne' ? david.id : 0);
+	});
+
+	it('« Relancer » : un rappel tout de suite aux seuls sans-réponse, une fois par jour au plus', async () => {
+		const { base, chef, nouvelle, a } = await jeuEte();
+		const alice = a(await nouvelle('Alice', 1));
+		const bruno = await nouvelle('Bruno', 2);
+		await expect(relancerEte(base, chef, 2027, maintenant)).rejects.toThrow('Été pas encore ouvert');
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), maintenant, reglage);
+		await ajouterMesVacances(base, alice, 2027, { debut: '2027-07-10', fin: '2027-07-20' }, maintenant);
+		await expect(relancerEte(base, alice, 2027, maintenant)).rejects.toThrow(RefusDroit);
+		expect(await relancerEte(base, chef, 2027, maintenant)).toBe(1);
+		await expect(relancerEte(base, chef, 2027, '2027-03-01T18:00')).rejects.toThrow('Déjà relancés aujourd’hui');
+		expect((await eteAPreparer(base, chef, 2027, '2027-03-01T18:00', reglage)).relanceeAujourdhui).toBe(true);
+		expect((await eteAPreparer(base, chef, 2027, '2027-03-02T08:00', reglage)).relanceeAujourdhui).toBe(false);
+		expect(await relancerEte(base, chef, 2027, '2027-03-02T08:00')).toBe(1);
+		const avis = await base.select().from(avisEte);
+		expect(avis.map((x) => [x.personneId, x.quoi])).toEqual([
+			[bruno, 'rappel'],
+			[bruno, 'rappel']
+		]);
 	});
 
 	it('rappels un mois puis une semaine avant la date limite, à ceux qui n’ont rien saisi, une fois chacun', async () => {

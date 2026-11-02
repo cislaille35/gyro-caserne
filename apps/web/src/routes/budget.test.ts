@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, ajouterRessource, pourDemander, attribution, changerSemaines, chargerJeuDeDepart, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -213,7 +213,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const a of [annee, annee + 1]) await reglerRoulement(base, locals.acteur, a, ids, m);
 		await publierAnnee(base, locals.acteur, annee, m);
 		const semaines = (await preparerAnnee(base, locals.acteur, annee, m, centre.astreinte)).semaines;
-		await changerSemaines(base, locals.acteur, annee, Object.fromEntries(semaines.slice(0, 30).map((s) => [s.debut, ids[0]!])), m, centre.astreinte);
+		// Écrites telles quelles : une année publiée refuse de changer ses semaines passées.
+		await base.insert(semaineChangee).values(semaines.slice(0, 30).map((s) => ({ debut: s.debut, equipeId: ids[0]! })));
 		for (let i = 0; i < 20; i++) await enregistrerManoeuvre(base, locals.acteur, { debut: `${annee + 1}-0${(i % 9) + 1}-1${i % 9}T08:30`, theme: `M${i}`, lieu: 'Caserne', convoques: 'tous', petitDejeuner: true }, m);
 		await base.insert(affectationEquipe).values({ personneId: agent.id, equipeId: ids[1]!, debut: '2020-01-01' });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
@@ -236,7 +237,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const page = () => (preparer as any)({ locals, url });
 		expect(await compter(async () => { await (racine as any)({ locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(async () => { await (racine as any)({ locals }); await (pageManoeuvre as any)({ locals, url: new URL('http://localhost/planning/preparer/manoeuvre?id=1') }); })).toBeLessThanOrEqual(BUDGET);
-		const semainesForm = semaines.map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
+		// Les semaines à venir (les commencées ne changent plus) : chacune prévient deux équipes.
+		const semainesForm = semaines.filter((s) => s.debut > m.slice(0, 10)).map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
 		for (const [nom, corps] of [['semaines', semainesForm], ['roulement', ids.map((id): [string, string] => ['ordre', String(id)])]] as const) {
 			const n = await compter(async () => {
 				expect(await (actionsPreparer as any)[nom]({ locals, url, request: await requeteFormulaire(corps as [string, string][]) })).toMatchObject({ succes: expect.any(String) });

@@ -8,7 +8,7 @@ import type { AvisEte } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
 import { mettreEnFile, TITRES_ETE } from '../notifications.ts';
 import { requeteChefs } from '../remplacements/contexte.ts';
-import { avisEte, ete, personne, plageEte, reponseEte, vacancesAgent } from '../schema.ts';
+import { avisEte, ete, journal, personne, plageEte, reponseEte, vacancesAgent } from '../schema.ts';
 import { ligneJournal } from '../journal.ts';
 import { nomActeur } from '../actions/personnes.ts';
 import { exigerAnnee } from './annee.ts';
@@ -219,4 +219,32 @@ export async function rappelsEte(base: Base, maintenant: string): Promise<number
 	const [premiere, ...autres] = ecritures;
 	if (premiere) await base.batch([premiere, ...autres]);
 	return n;
+}
+
+// La dernière relance (« Relancer », par le chef) de l'été, si elle est d'aujourd'hui.
+export const requeteRelance = (base: Base, annee: number, aujourdhui: string) =>
+	base.select({ quand: journal.quand }).from(journal).where(and(eq(journal.action, 'relancer_ete'), gte(journal.quand, aujourdhui), sql`json_extract(${journal.details}, '$.annee') = ${annee}`)).limit(1);
+
+// « Relancer » : un rappel tout de suite à ceux qui n'ont rien saisi, une fois par jour au plus. Rend le nombre d'agents relancés.
+export async function relancerEte(base: Base, acteur: Acteur, annee: number, maintenant: string): Promise<number> {
+	exigerAnnee(annee);
+	const aujourdhui = await exigerGestion(base, acteur, maintenant);
+	const [lignesEte, deja, reponses, agents, affectations] = await base.batch([
+		base.select().from(ete).where(eq(ete.annee, annee)),
+		requeteRelance(base, annee, aujourdhui),
+		base.select({ personneId: reponseEte.personneId }).from(reponseEte).where(eq(reponseEte.annee, annee)),
+		lecturesAgents(base, aujourdhui)[0],
+		lecturesAgents(base, aujourdhui)[1]
+	]);
+	const e = lignesEte[0];
+	if (!e) throw new DonneeInvalide('Été pas encore ouvert');
+	if (e.publieeLe) throw new DonneeInvalide('Été déjà publié');
+	if (deja.length) throw new DonneeInvalide('Déjà relancés aujourd’hui');
+	const ids = agentsDeLete(agents, affectations, aujourdhui).filter((a) => !reponses.some((r) => r.personneId === a.id)).map((a) => a.id);
+	if (ids.length === 0) throw new DonneeInvalide('Tout le monde a répondu');
+	await base.batch([
+		ligneJournal(base, { acteur: nomActeur(acteur), action: 'relancer_ete', cibleType: 'planning', cibleId: null, details: { annee, agents: ids.length } }, maintenant),
+		...avis(base, ids, 'rappel', `Donnez vos vacances d’été avant le ${dateFichier(e.dateLimite)} : vos dates, ou « disponible tout l’été ».`, '/moi/vacances', maintenant)
+	]);
+	return ids.length;
 }

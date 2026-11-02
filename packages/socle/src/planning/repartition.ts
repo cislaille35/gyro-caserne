@@ -3,7 +3,7 @@ import type { Base } from '../base.ts';
 import { exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
-import { armement, ENGIN_CALCULE, LIBELLES_POSTE, lireArmement, postesDe, type Poste, type Postes, type ReglageArmement } from '../armement.ts';
+import { armement, ENGIN_CALCULE, LIBELLES_POSTE, lireArmement, postesDe, postesTenus, type Poste, type Postes, type ReglageArmement } from '../armement.ts';
 import { validesLe } from '../aptitudes.ts';
 import { ligneJournal } from '../journal.ts';
 import { nomActeur } from '../actions/personnes.ts';
@@ -14,7 +14,7 @@ import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, equipe, ete,
 import { equipeLe, exigerAnnee, semainesCalculees } from './annee.ts';
 import { dansLaSemaine, enVacances, heuresDe, lirePlage, type PlageLue } from './plages.ts';
 import type { Periode, Reglage, SemaineCalculee } from './calendrier.ts';
-import { agentsDeLete, avis, periodeParDefaut, vueEte, type EteVue, type Reponse } from './ete.ts';
+import { agentsDeLete, avis, periodeParDefaut, requeteRelance, vueEte, type EteVue, type Reponse } from './ete.ts';
 
 // La répartition de l'été : plage par plage, l'équipe de base de la semaine, moins les écarts (`retires`), plus les renforts (`ajoutes`).
 // Proposée par l'appli pour armer le FPT, ajustée puis publiée par le chef. Publiée, elle fait foi pour le planning, l'agenda et les remplacements.
@@ -129,7 +129,7 @@ export type VuePlage = Periode & { presents: { id: number; prenom: string; nom: 
 export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage, plage: string | null = null) {
 	exigerAnnee(annee);
 	const aujourdhui = await exigerGestion(base, acteur, maintenant);
-	const lu = await lireEte(base, annee, aujourdhui, reglage);
+	const [lu, relance] = await Promise.all([lireEte(base, annee, aujourdhui, reglage), requeteRelance(base, annee, aujourdhui)]);
 	const fpt = enginFpt(lu.fpt);
 	const nom = (id: number) => lu.agents.find((a) => a.id === id) ?? { id, prenom: '', nom: 'Agent parti' };
 	const date = lu.e && lu.e.debut > aujourdhui ? lu.e.debut : aujourdhui;
@@ -163,20 +163,32 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 	// Un agent en vacances qui se retrouve présent (équipe changée, vacances données après la proposition).
 	for (const v of vues) for (const x of v.presents) if (enVacances(lu.vacances, x.id, v)) conflits.push(`${texteTranche(v)} : ${x.prenom} ${x.nom} est en vacances, mais présent`);
 	const ouverte = plage && proposee ? lu.plagesEte.find((p) => p.debut === plage) : undefined;
-	const detail = ouverte
-		? {
-				...vues.find((v) => v.debut === ouverte.debut)!,
-				candidats: lu.agents
-					.filter((a) => !vues.find((v) => v.debut === ouverte.debut)?.presents.some((x) => x.id === a.id) && a.statut === 'operationnel')
-					.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, equipeId: equipeLe(lu.affectationsDe(a.id), ouverte.semaine), vacances: enVacances(lu.vacances, a.id, ouverte), postes: [...lu.postes(a.id, ouverte.debut.slice(0, 10))].filter((x) => x !== 'agent') }))
-					.sort((a, b) => Number(a.vacances) - Number(b.vacances) || b.postes.length - a.postes.length || a.nom.localeCompare(b.nom, 'fr'))
-			}
-		: null;
+	const vue = ouverte ? vues.find((v) => v.debut === ouverte.debut)! : undefined;
+	// Le panneau d'une plage : le poste de chaque présent ; pour ajouter, ceux qui comblent un poste manquant d'abord.
+	const detail =
+		ouverte && vue
+			? (() => {
+					const date = ouverte.debut.slice(0, 10);
+					const tenus = postesTenus(fpt, vue.presents.map((x) => ({ id: x.id, postes: lu.postes(x.id, date) })));
+					return {
+						...vue,
+						presents: vue.presents.map((x) => ({ ...x, poste: tenus.get(x.id) ?? null })),
+						candidats: lu.agents
+							.filter((a) => !vue.presents.some((x) => x.id === a.id) && a.statut === 'operationnel')
+							.map((a) => {
+								const siens = lu.postes(a.id, date);
+								return { id: a.id, prenom: a.prenom, nom: a.nom, equipeId: equipeLe(lu.affectationsDe(a.id), ouverte.semaine), vacances: enVacances(lu.vacances, a.id, ouverte), utile: vue.manque.some((m) => siens.has(m)), postes: [...siens].filter((x) => x !== 'agent') };
+							})
+							.sort((a, b) => Number(b.utile) - Number(a.utile) || Number(a.vacances) - Number(b.vacances) || b.postes.length - a.postes.length || a.nom.localeCompare(b.nom, 'fr'))
+					};
+				})()
+			: null;
 	return {
 		annee,
 		ete: lu.e,
 		defaut: periodeParDefaut(annee, reglage),
 		sansRoulement: lu.sansRoulement,
+		relanceeAujourdhui: relance.length > 0,
 		equipes: lu.equipes,
 		reponses,
 		proposee,

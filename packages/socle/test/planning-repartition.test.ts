@@ -99,6 +99,21 @@ describe('été : proposer, ajuster, publier', () => {
 		expect(vue.reponses.find((x) => x.id === p.gina)).toMatchObject({ reponse: 'vacances' });
 	});
 
+	it('le panneau d’une plage : chaque présent avec son poste ; FPT non armé, ceux qui ont l’aptitude manquante d’abord', async () => {
+		const { base, chef, p } = await jeu();
+		await proposerEte(base, chef, 2027, maintenant, reglage);
+		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage, MAR);
+		const postes = Object.fromEntries(vue.detail!.presents.map((x) => [x.prenom, x.poste]));
+		expect(postes).toEqual({ Bruno: 'ca2', Cora: 'cod1', Denis: 'ce', Eva: 'ce', Fred: 'agent', Hugo: 'agent' });
+		// Sans Denis, il manque un CE : Alice (CA2, donc CE) passe devant Hugo (conducteur).
+		await ajusterPlage(base, chef, 2027, MAR, p.denis, false, maintenant, reglage);
+		const sans = await eteAPreparer(base, chef, 2027, maintenant, reglage, MAR);
+		expect(sans.detail!.manque).toEqual(['ce']);
+		expect(sans.detail!.candidats[0]).toMatchObject({ prenom: 'Alice', utile: true });
+		expect(sans.detail!.candidats.find((x) => x.id === p.denis)).toMatchObject({ utile: true });
+		expect(sans.detail!.candidats.find((x) => x.prenom === 'Chef')).toMatchObject({ utile: false });
+	});
+
 	it('une plage impossible est signalée', async () => {
 		const { base, chef, p, a } = await jeu();
 		await ajouterMesVacances(base, a(p.alice), 2027, { debut: '2027-06-28', fin: '2027-06-28' }, maintenant);

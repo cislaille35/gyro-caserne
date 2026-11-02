@@ -1,16 +1,18 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
-import type { ReponseEvenement } from '../listes.ts';
+import { STATUTS_AVEC_ACCES, type ReponseEvenement } from '../listes.ts';
 import { equipesConvoquees, type Convocation } from '../murs.ts';
 import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
-import { affectationEquipe, anneePlanning, equipe, gardeFete, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
+import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesPublication } from './manoeuvres.ts';
+import { avis } from './ete.ts';
+import { jourEnLettres, texteDemande } from '../remplacements/tranches.ts';
 import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
@@ -132,16 +134,19 @@ export async function reglerRoulement(base: Base, acteur: Acteur, annee: number,
 }
 
 // `choix` : l'équipe voulue pour des semaines de l'année (jour de relève). Seuls les écarts au roulement sont gardés.
+// Année publiée : une semaine commencée ne change plus ; un changement prévient les deux équipes et les remplacements touchés.
 export async function changerSemaines(base: Base, acteur: Acteur, annee: number, choix: Record<string, number>, maintenant: string, reglage: Reglage): Promise<void> {
 	exigerAnnee(annee);
 	await exigerGestion(base, acteur, maintenant);
-	const [ligne] = await base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee));
+	const [[ligne], changees] = await base.batch([base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)), base.select().from(semaineChangee).where(and(gte(semaineChangee.debut, `${annee}-01-01`), lte(semaineChangee.debut, `${annee}-12-31`)))]);
 	if (!ligne || ligne.ordre === '[]') throw new DonneeInvalide('Réglez d’abord le roulement');
 	const ordre = JSON.parse(ligne.ordre) as number[];
-	const toutes = semainesDe(annee, reglage);
+	const toutes = semainesCalculees(annee, ligne.ordre, changees, reglage);
 	const debuts = new Map(Object.entries(choix));
 	for (const debut of debuts.keys()) if (!toutes.some((s) => s.debut === debut)) throw new DonneeInvalide('Semaine inconnue');
 	await exigerEquipes(base, [...new Set(debuts.values())]);
+	const changements = [...debuts].map(([debut, apres]) => ({ semaine: toutes.find((s) => s.debut === debut)!, apres })).filter((c) => c.semaine.equipeId !== c.apres);
+	if (ligne.publieeLe !== null) for (const c of changements) exigerAVenir(c.semaine, maintenant);
 	const ecritures = [];
 	for (const [debut, equipeId] of debuts) {
 		const i = toutes.findIndex((s) => s.debut === debut);
@@ -151,7 +156,70 @@ export async function changerSemaines(base: Base, acteur: Acteur, annee: number,
 				: base.insert(semaineChangee).values({ debut, equipeId }).onConflictDoUpdate({ target: semaineChangee.debut, set: { equipeId } })
 		);
 	}
-	await base.batch([journalPlanning(base, acteur, 'changer_semaines', { annee, semaines: debuts.size }, maintenant), ...ecritures]);
+	const avisChanges = ligne.publieeLe !== null ? await avisSemainesChangees(base, changements.map((c) => ({ semaine: c.semaine, apres: c.apres })), maintenant) : [];
+	await base.batch([journalPlanning(base, acteur, 'changer_semaines', { annee, semaines: debuts.size }, maintenant), ...ecritures, ...avisChanges]);
+}
+
+// Une semaine commencée (ou passée) ne change plus d'équipe.
+export function exigerAVenir(s: SemaineCalculee, maintenant: string) {
+	const debut = s.periodes[0]?.debut ?? s.debut;
+	if (debut <= maintenant.slice(0, 16)) throw new DonneeInvalide(`Semaine du ${jourEnLettres(s.debut)} commencée : son équipe ne change plus`);
+}
+
+const ETATS_EN_JEU = ['attente', 'a_valider', 'conclue'] as const;
+
+// Les demandes de remplacement (ou d'échange) conclues ou en cours dont une période tombe dans la semaine.
+async function demandesDeSemaines(base: Base, semaines: SemaineCalculee[]) {
+	if (semaines.length === 0) return [];
+	const bornes = (s: SemaineCalculee) => ({ debut: s.periodes[0]?.debut ?? `${s.debut}T00:00`, fin: s.periodes.at(-1)?.fin ?? `${ajouterJours(s.debut, 7)}T00:00` });
+	const du = ajouterJours(semaines.map((s) => s.debut).sort()[0]!, -14);
+	const au = ajouterJours(semaines.map((s) => s.debut).sort().at(-1)!, 7);
+	const nom = (colonne: SQLWrapper) => sql<string>`coalesce((select p.prenom || ' ' || p.nom from personne p where p.id = ${colonne}), '')`;
+	const lignes = await base
+		.select({ genre: demandeRemplacement.genre, etat: demandeRemplacement.etat, demandeurId: demandeRemplacement.demandeurId, remplacantId: demandeRemplacement.remplacantId, periodes: demandeRemplacement.periodes, periodesCible: demandeRemplacement.periodesCible, demandeur: nom(demandeRemplacement.demandeurId).as('nom_demandeur'), remplacant: nom(demandeRemplacement.remplacantId).as('nom_remplacant') })
+		.from(demandeRemplacement)
+		.where(and(inArray(demandeRemplacement.etat, [...ETATS_EN_JEU]), inArray(demandeRemplacement.genre, ['remplacement', 'echange']), gte(demandeRemplacement.debut, du), lte(demandeRemplacement.debut, `${au}T23:59`)))
+		.orderBy(asc(demandeRemplacement.debut));
+	return semaines.flatMap((s) => {
+		const b = bornes(s);
+		return lignes.flatMap((d) => {
+			const dedans = [...(JSON.parse(d.periodes) as Periode[]), ...(d.periodesCible ? (JSON.parse(d.periodesCible) as Periode[]) : [])].filter((p) => p.debut < b.fin && b.debut < p.fin);
+			if (dedans.length === 0) return [];
+			const quand = texteDemande(dedans);
+			const qui = d.etat === 'conclue' ? (d.genre === 'echange' ? `${d.demandeur} échange avec ${d.remplacant}` : `${d.demandeur} remplacé par ${d.remplacant}`) : d.remplacantId !== null ? `${d.demandeur} remplacé par ${d.remplacant} (à valider)` : `${d.demandeur} cherche un remplaçant`;
+			return [{ semaine: s.debut, quand, texte: `${quand[0]!.toUpperCase()}${quand.slice(1)} : ${qui}`, conclu: d.etat === 'conclue', personnes: d.remplacantId !== null ? [d.demandeurId, d.remplacantId] : [d.demandeurId] }];
+		});
+	});
+}
+
+// Pour le chef, avant de changer l'équipe d'une semaine : les remplacements qui seront touchés.
+export async function remplacementsDeSemaine(base: Base, acteur: Acteur, annee: number, debut: string, maintenant: string, reglage: Reglage): Promise<{ texte: string; conclu: boolean; personnes: number[] }[]> {
+	exigerAnnee(annee);
+	await exigerGestion(base, acteur, maintenant);
+	const [[ligne], changees] = await base.batch([base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)), base.select().from(semaineChangee).where(and(gte(semaineChangee.debut, `${annee}-01-01`), lte(semaineChangee.debut, `${annee}-12-31`)))]);
+	const s = semainesCalculees(annee, ligne?.ordre, changees, reglage).find((x) => x.debut === debut);
+	if (!s) return [];
+	return (await demandesDeSemaines(base, [s])).map(({ texte, conclu, personnes }) => ({ texte, conclu, personnes }));
+}
+
+// Les avis d'une année publiée dont des semaines changent d'équipe : les agents des deux équipes, puis les personnes des remplacements touchés.
+export async function avisSemainesChangees(base: Base, changements: { semaine: SemaineCalculee; apres: number }[], maintenant: string) {
+	if (changements.length === 0) return [];
+	const [equipes, agents, affectations] = await base.batch([
+		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe),
+		base.select({ id: personne.id }).from(personne).where(inArray(personne.statut, [...STATUTS_AVEC_ACCES])),
+		base.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe)
+	]);
+	const demandes = await demandesDeSemaines(base, changements.map((c) => c.semaine));
+	const nomEquipe = (id: number) => equipes.find((e) => e.id === id)?.nom ?? 'une autre équipe';
+	return changements.flatMap(({ semaine: s, apres }) => {
+		const phrase = `la semaine du ${jourEnLettres(s.debut)} passe de l’${nomEquipe(s.equipeId)} à l’${nomEquipe(apres)}`;
+		const ids = agents.filter((a) => [s.equipeId, apres].includes(equipeLe(affectations.filter((x) => x.personneId === a.id), s.debut) ?? 0)).map((a) => a.id);
+		return [
+			...avis(base, ids, 'semaine', `${phrase[0]!.toUpperCase()}${phrase.slice(1)}.`, '/planning', maintenant),
+			...demandes.filter((d) => d.semaine === s.debut).flatMap((d) => avis(base, d.personnes, 'semaine', `Votre remplacement (${d.quand}) est touché : ${phrase}. Voyez-le avec votre chef de garde.`, '/remplacements', maintenant))
+		];
+	});
 }
 
 export async function noterFete(base: Base, acteur: Acteur, annee: number, fete: Fete, equipeId: number | null, maintenant: string): Promise<void> {

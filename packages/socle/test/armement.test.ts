@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
-import { armement, enregistrerArmement, lireArmement, postesDe, type Poste } from '../src/armement.ts';
+import { armement, enregistrerArmement, postesTenus, lireArmement, postesDe, type Poste } from '../src/armement.ts';
 import { RefusDroit, DonneeInvalide } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { aptitude, attribution, personne, profil, responsabilite } from '../src/schema.ts';
@@ -30,6 +30,13 @@ describe('FPT armé : six postes distincts, une personne par poste', () => {
 		// Le seul CA2 est aussi le seul conducteur possible pour personne d'autre : le calcul ne le gaspille pas en agent.
 		const equipe = [qui(5), qui(1, 'ca2', 'ca1', 'ce'), qui(6, 'ce'), qui(2, 'cod1', 'ce'), qui(4, 'ce'), qui(3)];
 		expect(armement(FPT, equipe).arme).toBe(true);
+	});
+
+	it('le poste de chacun dans la meilleure répartition ; en plus : aucun poste', () => {
+		const equipe = [qui(5), qui(1, 'ca2', 'ca1', 'ce'), qui(6, 'ce'), qui(2, 'cod1', 'ce'), qui(4, 'ce'), qui(3), qui(7)];
+		const tenus = postesTenus(FPT, equipe);
+		expect([1, 2, 4, 6].map((id) => tenus.get(id))).toEqual(['ca2', 'cod1', 'ce', 'ce']);
+		expect([3, 5, 7].map((id) => tenus.get(id) ?? null).sort()).toEqual(['agent', 'agent', null]);
 	});
 
 	it('trop peu de monde : ce qui manque, du plus qualifié au moins', () => {
