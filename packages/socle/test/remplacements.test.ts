@@ -353,11 +353,11 @@ describe('cloche, accueil, tâche planifiée, départ', () => {
 		expect((await aNePasManquer(base, bruno, '2026-11-01', maintenant)).remplacements).toEqual([{ id, titre: 'Alice Test cherche un remplaçant', sous: 'nuit du lundi 9 novembre', debut: nuitLundi9.debut }]);
 		await accepterDemande(base, bruno, id, maintenant, reglage);
 		expect((await aNePasManquer(base, bruno, '2026-11-01', maintenant)).remplacements).toEqual([]);
-		const accueil = await accueilDe(base, elodie, null, '2026-11-01', maintenant);
+		const accueil = await accueilDe(base, elodie, null, '2026-11-01', maintenant, reglage);
 		expect(accueil.choisie).toBe(`equipe:${(await base.select().from(equipe).orderBy(equipe.ordreRotation))[0]!.id}`);
 		expect(accueil.contenu).toEqual({ type: 'equipe', aDecider: [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: `/remplacements/${id}` }] });
 		await valider(base, elodie, id, maintenant, reglage);
-		expect((await accueilDe(base, elodie, null, '2026-11-01', maintenant)).contenu).toEqual({ type: 'equipe', aDecider: [] });
+		expect((await accueilDe(base, elodie, null, '2026-11-01', maintenant, reglage)).contenu).toEqual({ type: 'equipe', aDecider: [] });
 		await toutMarquerLu(base, bruno, maintenant);
 		expect((await filDeNotifications(base, bruno, maintenant)).nonLues).toBe(0);
 		void n;

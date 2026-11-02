@@ -3,7 +3,7 @@
 // Avec --en-ligne, la base en ligne du centre (CENTRE obligatoire), une seule fois à l'installation, sans personne fictive.
 // Avec --en-ligne --avec-fictifs, la préprod (centre exemple seulement) reçoit aussi les personnes fictives.
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
-// Avec les fictifs ou les comptes de test : un été fictif à préparer (relançable).
+// Avec les fictifs ou les comptes de test : un été fictif à préparer (relançable) ; proposé seulement si l'année a son roulement.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { affectationEquipe, chargerComptesDeTest, chargerEteFictif, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, chargerRemplacementsFictifs, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
 import { eq } from 'drizzle-orm';

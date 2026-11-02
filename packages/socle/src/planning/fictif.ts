@@ -110,9 +110,12 @@ export async function chargerEteFictif(base: Base, maintenant: string, reglage: 
 	const ca2 = aptitudes.find((a) => a.nom === 'CA2');
 	const autresCa2 = ca2 ? (await base.select({ id: aptitudeAgent.personneId }).from(aptitudeAgent).where(eq(aptitudeAgent.aptitudeId, ca2.id))).map((x) => x.id).filter((id) => ![...ids.values()].includes(id)) : [];
 	const gabriel = equipiers.find((e) => e.prenom === 'Gabriel')!.vacances!;
+	// Un été compte 9 ou 10 semaines selon l'année : les vacances s'arrêtent à sa fin.
+	const finEte = ajouterJours(periode.fin, 6);
+	const periodeDe = (v: [number, number, number]) => ({ debut: jour(v), fin: [ajouterJours(jour(v), v[2] - 1), finEte].sort()[0]! });
 	const vacances = [
-		...equipiers.flatMap((e) => (e.vacances ? [{ personneId: ids.get(e)!, annee, debut: jour(e.vacances), fin: ajouterJours(jour(e.vacances), e.vacances[2] - 1) }] : [])),
-		...autresCa2.map((personneId) => ({ personneId, annee, debut: jour(gabriel), fin: ajouterJours(jour(gabriel), gabriel[2] - 1) }))
+		...equipiers.flatMap((e) => (e.vacances && jour(e.vacances) <= finEte ? [{ personneId: ids.get(e)!, annee, ...periodeDe(e.vacances) }] : [])),
+		...autresCa2.map((personneId) => ({ personneId, annee, ...periodeDe(gabriel) }))
 	];
 	if (vacances.length > 0) await base.insert(vacancesAgent).values(vacances);
 	const reponses = equipiers.filter((e) => e.vacances || e.tout).map((e) => ({ annee, personneId: ids.get(e)!, toutEte: e.tout ? 1 : 0, modifieeLe: maintenant }));

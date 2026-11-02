@@ -148,7 +148,7 @@ export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string, r
 }
 
 // L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
-export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant = `${aujourdhui}T00:00`, reglage?: Reglage): Promise<Accueil> {
+export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant: string, reglage: Reglage): Promise<Accueil> {
 	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui, maintenant, reglage);
 	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
 	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui) };
@@ -191,11 +191,12 @@ async function lireADecider(base: Base, aujourdhui: string, reglage?: Reglage): 
 	const e = etes.map(vueEte).find((x) => x.fin >= aujourdhui);
 	const lienEte = (a: number) => `/planning/ete?annee=${a}`;
 	const pourLete: ADecider[] = [];
-	if (!e) {
+	// Sans l'astreinte du centre (seul l'accueil la donne), l'été n'est pas dit.
+	if (reglage && !e) {
 		// À ouvrir du 1er mars à la fin d'août, tant que l'été de l'année n'existe pas.
 		if (aujourdhui >= `${annee}-03-01` && aujourdhui <= `${annee}-08-31` && !etes.some((x) => x.annee === annee)) pourLete.push({ texte: `Été ${annee} à ouvrir`, lien: lienEte(annee) });
-	} else if (!e.publiee) {
-		const aRevoir = reglage && proposes.some((x) => x.annee === e.annee) ? await plagesARevoir(base, e.annee, aujourdhui, reglage) : 0;
+	} else if (reglage && e && !e.publiee) {
+		const aRevoir = proposes.some((x) => x.annee === e.annee) ? await plagesARevoir(base, e.annee, aujourdhui, reglage) : 0;
 		if (aRevoir > 0) pourLete.push({ texte: `Été ${e.annee} : ${aRevoir} ${aRevoir > 1 ? 'plages' : 'plage'} à revoir`, lien: lienEte(e.annee) });
 		else if (aujourdhui > e.dateLimite) pourLete.push({ texte: `Été ${e.annee} à publier`, lien: lienEte(e.annee) });
 	}
