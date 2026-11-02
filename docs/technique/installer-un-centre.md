@@ -35,6 +35,7 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
     | `BREVO_CLE` | la clé d'API Brevo du centre |
     | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
     | `VAPID_PUBLIQUE` et `VAPID_PRIVEE` | les clés des notifications au téléphone, propres au centre : `pnpm --filter @gyro-caserne/web cles-vapid` les affiche (une paire neuve à chaque fois, jamais écrite sur le disque). Sans elles, l'appli marche, sans notifications au téléphone. Les changer plus tard oblige chaque agent à réactiver les notifications sur ses appareils |
+    | `VIGILANCE_CLE` | facultatif : la clé de l'API Vigilance de Météo-France. Créer un compte gratuit sur portail-api.meteofrance.fr, s'abonner à l'API « Données Publiques Vigilance », puis générer une clé d'API (« API Key », de longue durée). Avec `departement` dans `centres/<id>/centre.ts`. Sans elle, l'appli marche, sans bandeau de vigilance ni alerte rouge ; la météo du centre (Open-Meteo) ne demande pas de clé |
 
 ## Déploiement automatique (facultatif)
 

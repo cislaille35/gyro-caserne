@@ -20,6 +20,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Messagerie | [messagerie.md](messagerie.md) |
 | Notifications | [notifications.md](notifications.md) |
 | Fêtes de Gyro et actualisation | [fetes-et-actualisation.md](fetes-et-actualisation.md) |
+| Météo et vigilance | [meteo-et-vigilance.md](meteo-et-vigilance.md) |
 
 ## Ce qui est livré
 
@@ -31,5 +32,6 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 - **Planning d'été** : vacances des agents (Moi → Mes vacances), proposition qui arme le FPT, tableau de l'été à ajuster puis publier ; règles d'armement réglables ; fichier du planning (exporter l'année, importer avec aperçu) ; le rôle « Chef d'équipe » devient « Chef de garde ».
 - **Fêtes de Gyro et actualisation** : l'icône aux couleurs des équipes ; tirer pour actualiser ; anniversaire, première réservation et année publiée fêtés une fois.
 - **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » en tête de l'accueil et la cloche.
+- **Météo et vigilance** : le temps au centre sous « Bonjour » (Open-Meteo), une ambiance discrète et Gyro habillé selon le temps ; bandeau de vigilance Météo-France dès l'orange et alerte au rouge, avec la clé `VIGILANCE_CLE`.
 
 Les autres fonctions ne sont pas encore livrées : leurs pages décrivent la cible. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).
