@@ -48,9 +48,12 @@ for (const theme of ['auto', 'sombre']) {
 					await expect(page.getByText('Commencée par')).toBeVisible();
 				}
 				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ }).first();
+				const revoir = page.getByRole('button', { name: /^Revoir la zone/ });
+				const avant = await revoir.count();
 				if (await complet.count()) {
 					await complet.click();
-					await expect(page.getByText(/^Complet/).first()).toBeVisible();
+					// La zone passe « Complet » et reste ouverte : son bouton « Revoir la zone » apparaît.
+					await expect(revoir).toHaveCount(avant + 1);
 				}
 				await sansViolation(page);
 				await page.getByRole('link', { name: /Participants :/ }).click();
