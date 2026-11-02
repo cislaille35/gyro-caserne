@@ -21,9 +21,9 @@ const conversations = [
 	{
 		id: 5,
 		type: 'deux',
-		nom: 'Élodie Chef-Équipe',
+		nom: 'Élodie Chef-de-Garde',
 		icone: null,
-		personne: visage('Élodie', 'Chef-Équipe'),
+		personne: visage('Élodie', 'Chef-de-Garde'),
 		apercu: 'Élodie : Tu peux prendre ma place ?',
 		dernier_le: '2026-10-29T09:40',
 		nonLus: 1
@@ -68,7 +68,7 @@ describe('liste des messages', () => {
 		expect(t).toContain('Départ de Thomas 10 h 12');
 		expect(t).toContain('Vous : Merci pour les tickets !');
 		// À deux, l'autre n'est pas nommé une seconde fois devant son message.
-		expect(t).toContain('Élodie Chef-Équipe 9 h 40 Tu peux prendre ma place ?');
+		expect(t).toContain('Élodie Chef-de-Garde 9 h 40 Tu peux prendre ma place ?');
 		// Le groupe a son icône sur sa teinte ; la personne, ses initiales.
 		expect(page).toContain('var(--icone-coeur-fond)');
 		expect(t).toContain('ÉC');

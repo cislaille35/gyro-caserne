@@ -5,7 +5,7 @@ vi.mock('$app/forms', () => ({ enhance: () => ({}) }));
 const { default: Page } = await import('./+page.svelte');
 
 const personne = (id: number, prenom: string, nom: string, sous: string) => ({ id, prenom, nom, surnom: null, couleur: '#1565c0', sous });
-const personnes = [personne(2, 'Antoine', 'Adjoint', 'Adjoint'), personne(4, 'Élodie', 'Chef-Équipe', 'Équipe 1'), personne(6, 'Manon', 'Membre', 'Équipe 1')];
+const personnes = [personne(2, 'Antoine', 'Adjoint', 'Adjoint'), personne(4, 'Élodie', 'Chef-de-Garde', 'Équipe 1'), personne(6, 'Manon', 'Membre', 'Équipe 1')];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (data: object = {}, form: object | null = null) => render(Page as any, { props: { data: { etape: 'membres', personnes, coches: [], nom: '', icone: 'groupe', erreur: null, ...data }, form } }).body;
@@ -24,7 +24,7 @@ describe('nouveau groupe : les membres', () => {
 		const page = html({ coches: [4, 6] });
 		expect([...page.matchAll(/<input[^>]*type="checkbox"[^>]*name="membres"/g)]).toHaveLength(3);
 		expect(coches(page)).toEqual(['4', '6']);
-		expect(texte(page)).toContain('Élodie Chef-Équipe Équipe 1');
+		expect(texte(page)).toContain('Élodie Chef-de-Garde Équipe 1');
 		expect(texte(page)).toContain('2 personnes choisies');
 	});
 
@@ -74,7 +74,7 @@ describe('nouveau groupe : le nom et l’icône', () => {
 	it('les membres choisis sont rappelés, avec un lien pour les modifier qui garde tout', () => {
 		const page = html(etapeNom);
 		expect(texte(page)).toContain('3 membres, vous compris');
-		expect(texte(page)).toContain('Élodie Chef-Équipe');
+		expect(texte(page)).toContain('Élodie Chef-de-Garde');
 		expect(page).not.toMatch(/<a[^>]*class="modifier[^"]*"[^>]*aria-describedby/);
 		expect(page).toContain(`href="/echanges/messages/nouveau/groupe?membres=4&amp;membres=6&amp;nom=%C3%89quipe+1&amp;icone=coeur"`);
 	});
