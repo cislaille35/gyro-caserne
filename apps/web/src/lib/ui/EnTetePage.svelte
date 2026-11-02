@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import GyroDuMoment from '../gyro/GyroDuMoment.svelte';
 	import Retour from './Retour.svelte';
+	import type { Tenue } from '../gyro/tenues.ts';
 	import { DESSINS } from './icones-roles.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
@@ -11,6 +12,7 @@
 		phrase,
 		complement,
 		gyro = false,
+		tenue = 'normal',
 		tete,
 		retour,
 		secondaire,
@@ -20,6 +22,7 @@
 		phrase?: string;
 		complement?: Snippet;
 		gyro?: boolean;
+		tenue?: Tenue;
 		tete?: Snippet;
 		retour?: { href: string; libelle: string };
 		secondaire?: Snippet;
@@ -36,7 +39,7 @@
 		{#if tete}
 			<span class="tete">{@render tete()}</span>
 		{:else if avecGyro}
-			<span class="mascotte"><GyroDuMoment tenue="normal" taille={72} decoratif /></span>
+			<span class="mascotte"><GyroDuMoment {tenue} taille={72} decoratif /></span>
 		{/if}
 		<div class="titres">
 			<h1 tabindex="-1">{titre}</h1>

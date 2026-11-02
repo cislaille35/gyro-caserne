@@ -49,7 +49,21 @@ const PHRASES: Record<string, string> = {
 	'Trop de zones': 'Une fiche a 30 zones au plus.',
 	'Trop d’éléments': 'Une fiche a 300 éléments au plus.',
 	'Zone inconnue': 'Cette zone n’existe plus : la page a été rechargée.',
-	'Élément inconnu': 'Cet élément n’existe plus : la page a été rechargée.'
+	'Élément inconnu': 'Cet élément n’existe plus : la page a été rechargée.',
+	'Zones à voir': 'Il reste des zones à voir : marquez chacune « Tout est complet » avant de valider.',
+	'Relève passée': 'Cette prise appartient à une relève passée : rechargez la page pour celle en cours.',
+	'Prise déjà validée': 'Cette prise est déjà validée.',
+	'Prise changée entre-temps': 'Un collègue vient de modifier la prise : elle est rechargée, refaites votre geste.',
+	'Prise inconnue': 'Cette prise n’existe plus : un collègue l’a peut-être abandonnée.',
+	'Élément déjà signalé': 'Cet élément est déjà signalé : dites plutôt s’il est retrouvé.',
+	'Nombre manquant invalide': 'Le nombre manquant va de 1 à la quantité attendue.',
+	'Note trop longue': 'La note est trop longue (300 caractères au plus).',
+	'Participant inconnu': 'Un des participants n’est plus agent du centre : la page a été rechargée.',
+	'Anomalie inconnue': 'Ce signalement est déjà clos : la page a été rechargée.',
+	'Engin parti': 'Cet engin a quitté le centre : pas de prise de garde.',
+	'Réservé aux agents': 'La prise de garde est faite par les agents du centre.',
+	'Photo JPEG ou WebP seulement': 'La photo doit être en JPEG ou WebP.',
+	'Photo trop lourde (200 Ko au plus)': 'Photo trop lourde : 200 Ko au plus.'
 };
 
 export const phraseDe = (message: string) => PHRASES[message] ?? (message.endsWith('.') ? message : `${message}.`);

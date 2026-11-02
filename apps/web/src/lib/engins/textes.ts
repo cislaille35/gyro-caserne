@@ -34,3 +34,34 @@ export function resumerFiche(c: { ajoutes: string[]; retires: string[]; modifies
 	].filter(Boolean);
 	return morceaux.length ? morceaux.join(', ') : 'Aucun changement';
 }
+
+const JOURS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
+const jourDe = (iso: string) => JOURS[(new Date(`${iso.slice(0, 10)}T00:00:00Z`).getUTCDay() + 6) % 7]!;
+// '…T18:40' → '18 h 40' ; '…T18:00' → '18 h'.
+export const heureCourte = (iso: string) => `${Number(iso.slice(11, 13))} h${iso.slice(14, 16) === '00' ? '' : ` ${iso.slice(14, 16)}`}`;
+// '2026-10-30T18:40' → 'ven. 18 h 40'.
+export const jourHeure = (iso: string) => `${jourDe(iso)} ${heureCourte(iso)}`;
+// '2026-10-30T18:00' → 'ven. 30 oct.'.
+export const jourCourt = (iso: string) => `${jourDe(iso)} ${dateCourte(iso).replace(/ \d{4}$/, '')}`;
+
+// « Équipe 2 » → « l’équipe 2 » ; un autre nom reste tel quel.
+export const parEquipe = (nom: string) => (/^Équipe /.test(nom) ? `l’équipe ${nom.slice(7)}` : nom);
+
+// La relève, en clair : « Relève du ven. 30 oct., équipe 2 ».
+export const texteReleve = (r: { debut: string; equipe: { nom: string } | null }) => `Relève du ${jourCourt(r.debut)}${r.equipe ? `, ${r.equipe.nom.toLocaleLowerCase('fr')}` : ''}`;
+
+type EtatPriseVu = { etat: 'en_cours' | 'validee'; valideeLe: string | null; equipe: string | null; par: string } | null;
+// L'état de la prise d'un engin pour la relève : « Prise faite par l’équipe 2, ven. 18 h 40 », « Prise en cours (Alice Martin) », « Prise à faire ».
+export function etatPrise(p: EtatPriseVu): { texte: string; ton: 'ok' | 'info' | 'alerte' } {
+	if (p === null) return { texte: 'Prise à faire', ton: 'alerte' };
+	if (p.etat === 'en_cours') return { texte: `Prise en cours (${p.par})`, ton: 'info' };
+	return { texte: `Prise faite par ${p.equipe ? parEquipe(p.equipe) : p.par}, ${jourHeure(p.valideeLe ?? '')}`, ton: 'ok' };
+}
+
+export const GENRES = { manquant: 'Manquant', abime: 'Abîmé', a_remplacer: 'À remplacer' } as const;
+
+// « Manquant : 1 sur 3 · sous le siège ».
+export function texteEcart(e: { genre: keyof typeof GENRES; manque: number | null; note: string | null }, quantite: number | null = null): string {
+	const nombre = e.genre === 'manquant' && e.manque !== null ? ` : ${e.manque}${quantite ? ` sur ${quantite}` : ''}` : '';
+	return [`${GENRES[e.genre]}${nombre}`, e.note].filter(Boolean).join(' · ');
+}

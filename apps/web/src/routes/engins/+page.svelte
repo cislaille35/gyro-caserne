@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { EnginVu } from '@gyro-caserne/socle';
-	import { ETATS, situationDe, sousLigne } from '#lib/engins/textes.ts';
+	import type { EnginVu, PriseDeLaReleve, Releve } from '@gyro-caserne/socle';
+	import { ETATS, etatPrise, situationDe, sousLigne, texteReleve } from '#lib/engins/textes.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
@@ -10,7 +10,16 @@
 	import Vide from '#lib/ui/Vide.svelte';
 	import { DESSINS } from '#lib/ui/icones-roles.ts';
 
-	let { data }: { data: { engins: EnginVu[]; gere: boolean } } = $props();
+	type PriseEngin = { prise: PriseDeLaReleve['prise']; ouvertes: number };
+	let { data }: { data: { engins: EnginVu[]; gere: boolean; releve?: Releve; prises?: Record<number, PriseEngin> } } = $props();
+
+	// Sous chaque engin : son type, sa plaque, où en est sa prise, ses écarts ouverts.
+	const sous = (e: EnginVu) => {
+		const p = data.prises?.[e.id];
+		if (!p) return sousLigne(e);
+		return [sousLigne(e), etatPrise(p.prise).texte, p.ouvertes ? pluriel(p.ouvertes, 'écart ouvert', 'écarts ouverts') : ''].filter(Boolean).join(' · ');
+	};
+	const faites = $derived(Object.values(data.prises ?? {}).filter((p) => p.prise?.etat === 'validee').length);
 
 	const presents = $derived(data.engins.filter((e) => e.situation !== 'parti'));
 	const partis = $derived(data.engins.filter((e) => e.situation === 'parti'));
@@ -30,13 +39,19 @@
 
 	<div class="colonnes">
 		<div class="principal">
+			{#if data.releve && presents.length}
+				<ListeRangees titre="Prise de garde">
+					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" icone="livre" alerte={faites < presents.length} /></li>
+				</ListeRangees>
+			{/if}
+
 			{#if presents.length === 0}
 				<Vide titre="Aucun engin pour l’instant." texte="Les engins du centre et ceux qu’on lui prête apparaîtront ici, avec leur état." action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin' } : undefined} />
 			{:else}
 				<ListeRangees titre="Au centre" compte={presents.length}>
 					{#each presents as e (e.id)}
 						<li>
-							<Rangee href="/engins/{e.id}" titre={e.nom} sous={sousLigne(e)} icone="camion">
+							<Rangee href="/engins/{e.id}" titre={e.nom} sous={sous(e)} icone="camion">
 								{#snippet droite()}<Pastille ton={ETATS[e.etat].ton}>{ETATS[e.etat].texte}</Pastille>{/snippet}
 							</Rangee>
 						</li>

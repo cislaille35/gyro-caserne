@@ -27,4 +27,4 @@ export async function preparer() {
 	return { base, alice, chef, sans, types, vsav, prete, parti };
 }
 
-export const locaux = (base: unknown, acteur: unknown) => ({ base, acteur });
+export const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
