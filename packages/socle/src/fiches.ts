@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, max, sql } from 'drizzle-orm';
-import type { Base } from './base.ts';
+import { instruction, type Base } from './base.ts';
 import { exigerDateHeure } from './dates.ts';
 import { droitsDe, occupe, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
@@ -207,7 +207,8 @@ export function ecrituresFiche(base: Base, fiche: Fiche, zones: ZoneFiche[], aut
 	const numero = v.utilisee ? v.numero + 1 : v.numero;
 	const idVersion = sql`(SELECT ${ficheVersion.id} FROM ${ficheVersion} WHERE ${ficheVersion.typeId} = ${fiche.typeId} AND ${ficheVersion.numero} = ${numero})`;
 	const marque = sql`(coalesce((SELECT max(id) FROM ${ficheZone} WHERE version_id = ${v.id}), 0) || '-' || coalesce((SELECT max(id) FROM ${ficheElement} WHERE version_id = ${v.id}), 0))`;
-	const garde = base.run(
+	const garde = instruction(
+		base,
 		sql`INSERT INTO ${ficheVersion} (type_id, numero, auteur, cree_le) SELECT type_id, numero, '', '' FROM ${ficheVersion} WHERE id = ${v.id} AND (utilisee <> ${v.utilisee ? 1 : 0} OR ${marque} <> ${v.marque})`
 	);
 	const preparation = v.utilisee
@@ -222,8 +223,9 @@ export function ecrituresFiche(base: Base, fiche: Fiche, zones: ZoneFiche[], aut
 	return [
 		garde,
 		...preparation,
-		base.run(sql`INSERT INTO ${ficheZone} (version_id, ref, nom, ordre) SELECT ${idVersion}, json_extract(value, '$.ref'), json_extract(value, '$.nom'), key + 1 FROM json_each(${lignesZones})`),
-		base.run(
+		instruction(base, sql`INSERT INTO ${ficheZone} (version_id, ref, nom, ordre) SELECT ${idVersion}, json_extract(value, '$.ref'), json_extract(value, '$.nom'), key + 1 FROM json_each(${lignesZones})`),
+		instruction(
+		base,
 			sql`INSERT INTO ${ficheElement} (version_id, zone_id, ref, libelle, quantite, ordre)
 				SELECT ${idVersion}, (SELECT z.id FROM ${ficheZone} z WHERE z.version_id = ${idVersion} AND z.ref = json_extract(value, '$.zone')), json_extract(value, '$.ref'), json_extract(value, '$.libelle'), json_extract(value, '$.quantite'), json_extract(value, '$.ordre')
 				FROM json_each(${lignesElements})`

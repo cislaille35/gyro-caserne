@@ -24,7 +24,8 @@ describe('/engins/[id]/prise', () => {
 		const ecart = await agir('geste', moi, vsav, [['prise', id], ['quoi', 'ecart'], ['element', String(gilets.ref)], ['zone', String(fiche.zones[0]!.ref)], ['genre', 'manquant'], ['manque', '1'], ['note', 'Sous le siège'], ['photo', jpeg()]]);
 		expect(ecart).toMatchObject({ succes: 'Écart enregistré.', zone: fiche.zones[0]!.ref });
 		expect(await agir('valider', moi, vsav, [['prise', id]])).toMatchObject({ status: 400, data: { message: expect.stringMatching(/zones à voir/) } });
-		for (const z of fiche.zones) await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']]);
+		// Une zone vue : la page ouvre la suivante à voir (aucune zone gardée).
+		for (const z of fiche.zones) expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']])).toMatchObject({ zone: null, succes: 'Zone enregistrée.' });
 		await expect(agir('valider', moi, vsav, [['prise', id]])).rejects.toMatchObject({ status: 303, location: `/engins/${vsav}/prise?validee` });
 		const [a] = await base.select().from(anomalie);
 		expect(a).toMatchObject({ ref: gilets.ref, manque: 1, note: 'Sous le siège' });

@@ -36,7 +36,7 @@
 				{/if}
 				{#if data.ouvertes?.length}
 					<div>
-						<dt>{pluriel(data.ouvertes.length, 'Écart ouvert', 'Écarts ouverts')}</dt>
+						<dt>{pluriel(data.ouvertes.length, 'écart ouvert', 'écarts ouverts')}</dt>
 						<dd>
 							<ul class="ouverts" role="list">
 								{#each data.ouvertes as o (o.id)}<li><strong>{o.libelle}</strong> · {texteEcart(o)} <span class="doux">(le {dateCourte(o.signaleeLe)})</span></li>{/each}

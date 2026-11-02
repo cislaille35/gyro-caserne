@@ -46,10 +46,14 @@
 			}
 		}
 		const zone = formData.get('zone');
+		const suivante = formData.get('quoi') === 'zone' && formData.get('vue') === '1';
 		return async ({ update }) => {
 			await update();
 			await tick();
-			if (zone) document.getElementById(`zone-${zone}`)?.focus();
+			// Zone vue : on passe à la suivante à voir, sinon on reste sur la zone touchée.
+			const cible = suivante ? (premiereAVoir ?? null) : zone;
+			if (cible) document.getElementById(`zone-${cible}`)?.focus();
+			else if (suivante) document.getElementById('titre-valider')?.focus();
 		};
 	};
 </script>
@@ -107,7 +111,7 @@
 		</section>
 	{:else}
 		<section class="suivi" aria-label="Où en est la prise">
-			<p>Commencée par <strong>{p.commenceePar}</strong> à {heureCourte(p.commenceeLe)}{#if p.modifieeLe !== p.commenceeLe}, modifiée par <strong>{p.modifieePar}</strong> à {heureCourte(p.modifieeLe)}{/if}.</p>
+			<p>Commencée par <strong>{p.commenceePar}</strong> à {heureCourte(p.commenceeLe)}{#if p.modifieeLe.slice(0, 16) !== p.commenceeLe.slice(0, 16) || p.modifieePar !== p.commenceePar}, modifiée par <strong>{p.modifieePar}</strong> à {heureCourte(p.modifieeLe)}{/if}.</p>
 			<p class="doux">Brouillon gardé sur le serveur : un collègue peut le reprendre depuis son téléphone.</p>
 			<div class="jauge">
 				<span>{vues} {vues > 1 ? 'zones vues' : 'zone vue'} sur {data.zones.length}</span>
@@ -159,6 +163,7 @@
 												{#if ecart.photo}<a class="vignette" href="/engins/photo/{ecart.photo}"><img src="/engins/photo/{ecart.photo}" alt="Photo de l’écart : {el.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
 											</div>
 										{/if}
+										<div class="gestes">
 										<details open={pour(`element:${el.ref}`)?.message !== undefined}>
 											<summary>{ecart ? 'Modifier l’écart' : 'Signaler un écart'}<span class="masque">{' '}: {el.libelle}</span></summary>
 											<form method="POST" action="?/geste" enctype="multipart/form-data" use:enhance={envoi} class="formulaire">
@@ -203,6 +208,7 @@
 												<button type="submit" class="petit">Retirer l’écart<span class="masque">{' '}: {el.libelle}</span></button>
 											</form>
 										{/if}
+										</div>
 									{/if}
 									{@render message(`element:${el.ref}`)}
 								</li>
@@ -244,7 +250,8 @@
 						</div>
 					</fieldset>
 				{/if}
-				<Groupe titre={astreinte.length ? 'Autres agents' : 'Agents du centre'} resume="Un remplaçant, un renfort" niveauTitre={3} ouvert={astreinte.length === 0 || autres.some((a) => coche(a.id))}>
+				<p><strong>Cochés :</strong> {data.agents.filter((a) => coche(a.id)).map((a) => a.nom).join(', ') || 'personne'}.</p>
+				<Groupe titre={astreinte.length ? 'Autres agents' : 'Agents du centre'} resume={astreinte.length ? 'Un remplaçant, un renfort' : pluriel(autres.length, 'agent')} niveauTitre={3}>
 					<div class="cases autres">
 						{#each autres as a (a.id)}<label class="choix"><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.nom}</label>{/each}
 					</div>
@@ -255,7 +262,7 @@
 		</section>
 
 		<section class="panneau" aria-labelledby="titre-valider">
-			<h2 id="titre-valider">Valider</h2>
+			<h2 id="titre-valider" tabindex="-1">Valider</h2>
 			{#if vues < data.zones.length}
 				<p>Il reste {pluriel(data.zones.length - vues, 'zone')} à voir.</p>
 			{/if}
@@ -447,6 +454,7 @@
 	}
 	details[open] {
 		align-self: stretch;
+		flex-basis: 100%;
 	}
 	.formulaire {
 		display: flex;

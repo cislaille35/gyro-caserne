@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
-import type { Base, BasePhotos } from './base.ts';
+import { instruction, type Base, type BasePhotos } from './base.ts';
 import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, type Photo } from './commun.ts';
 import { ajouterJours, enCours, exigerDateHeure } from './dates.ts';
 import { aLeDroit, type Acteur } from './droits.ts';
@@ -138,7 +138,7 @@ export async function lirePrise(base: Base, acteur: Acteur, enginId: number, mai
 	const noms = new Map(agents.map((a) => [a.id, `${a.prenom} ${a.nom}`]));
 	const autres = p ? await nomsDe(base, [p.commenceePar, p.modifieePar].filter((id) => !noms.has(id))) : new Map<number, string>();
 	const nom = (id: number) => noms.get(id) ?? autres.get(id) ?? 'Un ancien agent';
-	const dAstreinte = (id: number) => eq_ !== null && affectations.some((a) => a.personneId === id && a.equipeId === eq_.id && enCours(a.debut, a.fin, releve.slice(0, 10)));
+	const dAstreinte = (id: number) => eq_ !== null && affectations.some((a) => a.personneId === id && a.equipeId === eq_.id && enCours(a.debut, a.fin, aujourdhui));
 	return {
 		engin: e,
 		releve: { debut: releve, equipe: eq_ },
@@ -315,7 +315,8 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 			.update(anomalie)
 			.set({ closePar: moi, closeLe: maintenant, closePriseId: id })
 			.where(and(inArray(anomalie.id, saisie.retrouves.length ? saisie.retrouves : [0]), eq(anomalie.enginId, enginId), isNull(anomalie.closeLe), validee)),
-		base.run(
+		instruction(
+		base,
 			sql`INSERT INTO ${anomalie} (engin_id, ref, zone, libelle, genre, manque, note, photo_id, prise_id, signalee_par, signalee_le)
 				SELECT ${enginId}, json_extract(value, '$.ref'), json_extract(value, '$.zone'), json_extract(value, '$.libelle'), json_extract(value, '$.genre'),
 					json_extract(value, '$.manque'), json_extract(value, '$.note'), json_extract(value, '$.photo'), ${id}, ${moi}, ${maintenant}

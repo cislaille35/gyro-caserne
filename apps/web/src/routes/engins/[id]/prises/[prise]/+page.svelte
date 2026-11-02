@@ -10,7 +10,12 @@
 	const signalee = (ref: number) => p.signalees.find((a) => a.ref === ref);
 	const retrouvee = (ref: number) => p.retrouvees.find((a) => a.ref === ref);
 	const dejaOuvert = (ref: number) => p.dejaOuvertes.includes(ref);
-	const nbDans = (refs: { ref: number }[]) => refs.filter((e) => signalee(e.ref) || retrouvee(e.ref) || dejaOuvert(e.ref)).length;
+	// « 1 écart · 1 retrouvé », ou « Complète ».
+	const resume = (refs: { ref: number }[]) => {
+		const ecarts = refs.filter((e) => signalee(e.ref) || dejaOuvert(e.ref)).length;
+		const retrouves = refs.filter((e) => retrouvee(e.ref)).length;
+		return [ecarts ? pluriel(ecarts, 'écart') : '', retrouves ? pluriel(retrouves, 'retrouvé') : ''].filter(Boolean).join(' · ') || 'Complète';
+	};
 </script>
 
 <svelte:head>
@@ -32,8 +37,8 @@
 	<section class="fiche" aria-labelledby="titre-fiche">
 		<h2 id="titre-fiche">La fiche, telle que vérifiée</h2>
 		{#each p.zones as z (z.ref)}
-			{@const n = nbDans(z.elements)}
-			<Groupe titre={z.nom} resume={n ? pluriel(n, 'écart') : 'Complète'} alerte={n > 0} niveauTitre={3} ouvert={n > 0}>
+			{@const r = resume(z.elements)}
+			<Groupe titre={z.nom} resume={r} alerte={r !== 'Complète'} niveauTitre={3} ouvert={r !== 'Complète'}>
 				<ul role="list">
 					{#each z.elements as e (e.ref)}
 						{@const a = signalee(e.ref)}

@@ -4,7 +4,6 @@
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
-	import Pastille from '#lib/ui/Pastille.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
@@ -25,11 +24,8 @@
 		<p class="bilan"><strong>{faites} sur {data.engins.length}</strong> {faites > 1 ? 'prises faites' : 'prise faite'} pour cette relève.</p>
 		<ListeRangees titre="Engins" compte={data.engins.length}>
 			{#each data.engins as x (x.engin.id)}
-				{@const etat = etatPrise(x.prise)}
 				<li>
-					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous="{x.engin.type}{x.ouvertes ? ` · ${pluriel(x.ouvertes, 'écart ouvert', 'écarts ouverts')}` : ''}" icone="camion" alerte={x.ouvertes > 0}>
-						{#snippet droite()}<Pastille ton={etat.ton}>{etat.texte}</Pastille>{/snippet}
-					</Rangee>
+					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous={[x.engin.type, etatPrise(x.prise).texte, x.ouvertes ? pluriel(x.ouvertes, 'écart ouvert', 'écarts ouverts') : ''].filter(Boolean).join(' · ')} icone="camion" alerte={x.ouvertes > 0} />
 				</li>
 			{/each}
 		</ListeRangees>

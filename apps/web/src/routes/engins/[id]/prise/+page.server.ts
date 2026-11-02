@@ -90,7 +90,8 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return refusPrise(erreur, { cible, zone });
 		}
-		return { cible, zone, succes: SUCCES[geste.quoi] };
+		// Une zone vue : la suivante à voir s'ouvre (zone par zone).
+		return { cible, zone: geste.quoi === 'zone' && geste.vue ? null : zone, succes: SUCCES[geste.quoi] };
 	},
 	valider: async ({ locals, params, request }) => {
 		const { acteur, base } = await accesEngins(locals);
