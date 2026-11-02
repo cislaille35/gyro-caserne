@@ -42,4 +42,21 @@ describe('tenueDuMoment', () => {
 	it('la fête du jour passe avant la nuit', () => {
 		expect(tenueDuMoment(new Date('2026-10-31T22:30Z'))).toBe('halloween'); // 23 h 30 le 31
 	});
+
+	it('la météo du centre habille Gyro, après les fêtes, la nuit et le p’tit-déj', () => {
+		const midi = new Date('2026-11-10T12:00Z');
+		expect(tenueDuMoment(midi, 'pluie')).toBe('pluie');
+		expect(tenueDuMoment(midi, 'orage')).toBe('orage');
+		expect(tenueDuMoment(midi, 'neige')).toBe('hiver');
+		expect(tenueDuMoment(midi, 'gel')).toBe('hiver');
+		expect(tenueDuMoment(midi, 'chaleur')).toBe('ete');
+		expect(tenueDuMoment(midi, 'vent')).toBe('vent');
+		expect(tenueDuMoment(midi, 'brouillard')).toBe('brouillard');
+		// Beau temps ou nuages : la tenue habituelle.
+		expect(tenueDuMoment(midi, 'clair')).toBe('calendriers');
+		expect(tenueDuMoment(midi, 'nuageux')).toBe('calendriers');
+		expect(tenueDuMoment(new Date('2026-12-25T10:00Z'), 'pluie')).toBe('noel');
+		expect(tenueDuMoment(new Date('2026-10-26T22:30Z'), 'pluie')).toBe('nuit');
+		expect(tenueDuMoment(new Date('2026-05-12T06:30Z'), 'pluie')).toBe('ptitdej');
+	});
 });

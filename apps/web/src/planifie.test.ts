@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -24,7 +24,7 @@ describe('avecPlanifie', () => {
 	const lancer = async (cron: string, quand: string, env: Record<string, unknown> = {}) => {
 		vi.clearAllMocks();
 		const kit = { fetch: vi.fn() };
-		const worker = avecPlanifie(kit, { conservationMessagesMois: 6 });
+		const worker = avecPlanifie(kit, { conservationMessagesMois: 6, position: { latitude: 48.1, longitude: -1.7 }, departement: '35' });
 		expect(worker.fetch).toBe(kit.fetch);
 		const attendus: Promise<unknown>[] = [];
 		worker.scheduled({ cron, scheduledTime: Date.parse(quand) } as never, { BASE: {}, PHOTOS: {}, ...env } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
@@ -71,5 +71,23 @@ describe('avecPlanifie', () => {
 		expect(vi.mocked(remplacementsDuMoment).mock.calls[0]![1]).toBe('2026-11-15T10:20:00');
 		await lancer('* * * * *', '2026-11-15T09:21:00Z');
 		expect(remplacementsDuMoment).not.toHaveBeenCalled();
+	});
+
+	it('toutes les dix minutes, décalées de cinq : la météo et la vigilance du centre (clé facultative)', async () => {
+		await lancer('* * * * *', '2026-11-15T09:25:00Z', { VIGILANCE_CLE: 'cle-fictive' });
+		expect(mettreAJourReleves).toHaveBeenCalledOnce();
+		const [, lieu, maintenant, recuperer, cle] = vi.mocked(mettreAJourReleves).mock.calls[0]!;
+		expect(lieu).toEqual({ position: { latitude: 48.1, longitude: -1.7 }, departement: '35' });
+		expect(maintenant).toBe('2026-11-15T10:25');
+		expect(typeof recuperer).toBe('function');
+		expect(cle).toBe('cle-fictive');
+		await lancer('* * * * *', '2026-11-15T09:25:00Z');
+		expect(vi.mocked(mettreAJourReleves).mock.calls[0]![4]).toBeUndefined();
+		for (const quand of ['2026-11-15T09:20:00Z', '2026-11-15T09:26:00Z']) {
+			await lancer('* * * * *', quand);
+			expect(mettreAJourReleves, quand).not.toHaveBeenCalled();
+		}
+		await lancer('30 3 * * *', '2026-11-15T03:35:00Z');
+		expect(mettreAJourReleves).not.toHaveBeenCalled();
 	});
 });

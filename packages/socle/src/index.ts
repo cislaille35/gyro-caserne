@@ -47,3 +47,4 @@ export { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAVa
 export { bandesDe, candidats, disponibles, lireContexte, mesTranches, type EtatTranche } from './remplacements/contexte.ts';
 export { remplacementsDuMoment } from './remplacements/moment.ts';
 export { chargerAptitudesFictives, chargerRemplacementsFictifs } from './remplacements/fictif.ts';
+export { AMBIANCES, mettreAJourReleves, relevesDe, vueMeteo, type Ambiance, type VueMeteo } from './meteo.ts';

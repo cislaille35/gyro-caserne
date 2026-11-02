@@ -215,6 +215,13 @@ Spec : [2026-11-01-planning-ete-design.md](../superpowers/specs/2026-11-01-plann
 - `planning/fichier.ts` : `donneesFichierPlanning`, `apercuPlanning`, `appliquerPlanning` (un seul batch ; rend les manœuvres annoncées changées, pour `manoeuvreChangee`).
 - Année publiée (`planning/annee.ts`) : `changerSemaines` et le fichier refusent une semaine commencée (`exigerAVenir`) et préviennent les agents des deux équipes, puis les personnes des remplacements conclus ou en cours de la semaine (`avisSemainesChangees`, avis `semaine`) ; `remplacementsDeSemaine` les montre au chef avant.
 
+## Météo et vigilance
+
+Spec : [2026-11-02-meteo-design.md](../superpowers/specs/2026-11-02-meteo-design.md). Migration additive `0016`. Décision : [0016](../decisions/0016-meteo-et-vigilance.md).
+
+- Table `releve` : `cle` (`meteo` ou `vigilance`), `donnees` (JSON), `maj_le` (heure de Paris).
+- `meteo.ts` : `classer` (9 ambiances), `texteMeteo`, `lireOpenMeteo` et `lireVigilance` (lectures tolérantes : null au moindre doute), `vueMeteo` (ce que montre l'Accueil), `relevesDe` (une requête ; rien au-delà de 6 h), `mettreAJourReleves` (appelé toutes les dix minutes par `planifie.ts` ; relevé de plus d'une heure redemandé, `fetch` passé en paramètre pour les tests ; passage au rouge : `mettreEnFile`, lieu `meteo`, à tous les agents ayant accès).
+
 ## Fichier de l'effectif
 
 Trois modules, tous réservés aux gestionnaires (`estGestionnaire`, sinon `RefusDroit`), 50 requêtes au plus par appel. Le classeur `.xlsx` est écrit et lu dans le navigateur ([interface.md](interface.md)) : le socle ne voit que des lignes de texte.

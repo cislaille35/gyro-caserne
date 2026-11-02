@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../../centres/exemple/centre.ts';
-import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, releve, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { actions, load } from './+page.server';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
@@ -43,7 +43,21 @@ describe('load de /', () => {
 			anniversaire: false,
 			aujourdhui: aujourdhuiParis(),
 			astreinte: null,
-			maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)
+			maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+			meteo: { meteo: null, vigilance: null }
+		});
+	});
+
+	it('la météo du centre et la vigilance dès l’orange, lues dans les relevés', async () => {
+		const { base, alice } = await jeu();
+		const maintenant = maintenantParis().slice(0, 16);
+		await base.insert(releve).values([
+			{ cle: 'meteo', donnees: JSON.stringify({ temperature: 11.6, code: 80, rafales: 45 }), majLe: maintenant },
+			{ cle: 'vigilance', donnees: JSON.stringify({ jours: [{ date: aujourdhuiParis(), niveau: 3, phenomenes: ['orages'] }], rouge: false }), majLe: maintenant }
+		]);
+		expect((await appeler({ acteur: alice, base })).meteo).toEqual({
+			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
+			vigilance: { niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] }
 		});
 	});
 

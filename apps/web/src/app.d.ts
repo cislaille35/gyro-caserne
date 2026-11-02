@@ -26,6 +26,8 @@ declare global {
 		interface Env extends EnvAuth, EnvVapid {
 			BASE: D1Database;
 			PHOTOS: D1Database;
+			// Clé de l'API Vigilance de Météo-France (secret) ; sans elle, pas de bandeau de vigilance.
+			VIGILANCE_CLE?: string;
 		}
 	}
 }

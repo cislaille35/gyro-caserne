@@ -20,6 +20,8 @@ export interface Centre {
 	fuseauHoraire: string;
 	/** Position du centre, pour la météo */
 	position: { latitude: number; longitude: number };
+	/** Numéro du département en métropole (35, 2A…), pour la vigilance Météo-France ; sans lui, pas de vigilance */
+	departement?: string;
 	/** Dans l'ordre de la rotation */
 	equipes: Equipe[];
 	astreinte: {
@@ -53,6 +55,10 @@ export function erreursCentre(centre: Centre): string[] {
 	if (!FUSEAUX.has(centre.fuseauHoraire)) erreurs.push(`fuseau horaire « ${centre.fuseauHoraire} » inconnu`);
 	const { latitude, longitude } = centre.position;
 	if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) erreurs.push('position hors des limites');
+
+	const departement = centre.departement;
+	if (departement !== undefined && !/^(0[1-9]|1\d|2[1-9AB]|[3-8]\d|9[0-5])$/.test(departement))
+		erreurs.push(`département « ${departement} » : numéro de métropole attendu, par exemple 35 ou 2A`);
 
 	if (centre.equipes.length < 2) erreurs.push('il faut au moins deux équipes pour une rotation');
 	centre.equipes.forEach((e, i) => {

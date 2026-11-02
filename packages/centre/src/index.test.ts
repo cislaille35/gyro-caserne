@@ -47,6 +47,12 @@ describe('erreursCentre', () => {
 		expect(erreursCentre({ ...exemple, fuseauHoraire: '+01:00' })).toEqual(['fuseau horaire « +01:00 » inconnu']);
 	});
 
+	it('accepte un département (vigilance Météo-France) et refuse un numéro inconnu', () => {
+		for (const departement of ['35', '01', '2A', '2B', '95']) expect(erreursCentre({ ...exemple, departement })).toEqual([]);
+		for (const departement of ['3', '350', '20', '2C', '974', 'ille'])
+			expect(erreursCentre({ ...exemple, departement })).toEqual([`département « ${departement} » : numéro de métropole attendu, par exemple 35 ou 2A`]);
+	});
+
 	it('repère une position hors des limites', () => {
 		expect(erreursCentre({ ...exemple, position: { latitude: 91, longitude: 0 } })).toEqual([
 			'position hors des limites'

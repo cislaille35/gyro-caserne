@@ -8,6 +8,7 @@ Format d'une page :
 
 - [Comment changer l'affichage ?](changer-l-affichage.md)
 - [Comment actualiser une page ?](actualiser-une-page.md)
+- [D'où vient la météo de l'Accueil ?](meteo-de-l-accueil.md)
 - [Comment passer d'un rôle à l'autre ?](passer-d-un-role-a-l-autre.md)
 - [Comment ajouter un agent ?](ajouter-un-agent.md)
 - [Comment compléter les fiches des agents ?](completer-les-fiches.md)

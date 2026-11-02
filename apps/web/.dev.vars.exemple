@@ -12,3 +12,5 @@ SUPER_ADMINS=admin@exemple.fr
 # Notifications au téléphone : la paire VAPID du centre, créée par `pnpm --filter @gyro-caserne/web cles-vapid`. Sans elle, rien ne part au téléphone.
 # VAPID_PUBLIQUE=
 # VAPID_PRIVEE=
+# Vigilance Météo-France : clé de l'API Vigilance (portail-api.meteofrance.fr). Sans elle, pas de bandeau de vigilance.
+# VIGILANCE_CLE=
