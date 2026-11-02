@@ -29,9 +29,11 @@ test.describe('chef : préparer l’année', () => {
 		await sansViolation(page);
 		await page.keyboard.press('Escape');
 		await etapes.getByRole('link', { name: 'Vacances' }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Vacances' })).toBeVisible();
 		await expect(page.getByText('Sans réponse', { exact: true })).toBeVisible();
 		await sansViolation(page);
 		await etapes.getByRole('link', { name: 'Répartition' }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Répartition' })).toBeVisible();
 		const proposer = page.getByRole('button', { name: 'Proposer la répartition' });
 		if (await proposer.count()) {
 			await proposer.click();
@@ -84,13 +86,13 @@ test.describe('chef : préparer l’année', () => {
 			await expect(page.getByRole('heading', { level: 2, name: etape })).toBeVisible();
 			await sansViolation(page);
 		}
-		// Toucher une semaine ouvre le choix d'équipe.
-		await page.locator('a.case').first().click();
+		// Toucher une semaine à venir ouvre le choix d'équipe (une semaine commencée ne change plus).
+		await page.locator('a.case').last().click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toBeVisible();
 		await sansViolation(page);
 		await page.getByRole('link', { name: 'Fermer' }).click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toHaveCount(0);
-		await expect(page.locator('a.case').first()).toBeFocused();
+		await expect(page.locator('a.case').last()).toBeFocused();
 
 		await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: 'Manœuvres' }).click();
 		// Au clavier : le panneau est modal (focus dedans, page inerte), Échap le ferme et rend le focus à son lien.
