@@ -29,6 +29,10 @@ describe('/planning/ete', () => {
 		expect(await envoyerEte('regler', l, [['debut', `${a}-06-24`], ['fin', avant.defaut.fin], ['dateLimite', `${a}-05-15`]], q)).toMatchObject({ status: 400, data: { message: 'Le début et la fin de l’été sont des jours de relève.' } });
 		expect(await envoyerEte('regler', l, [['debut', avant.defaut.debut], ['fin', avant.defaut.fin], ['dateLimite', `${a}-05-15`]], q)).toMatchObject({ succes: expect.stringContaining('vacances') });
 		expect(await base.select().from(ete)).toHaveLength(1);
+		expect(await envoyerEte('relancer', l, [], q)).toMatchObject({ cible: 'relancer', succes: expect.stringMatching(/^Rappel envoyé/) });
+		expect(await envoyerEte('relancer', l, [], q)).toMatchObject({ status: 400, data: { message: 'Les agents sans réponse ont déjà été relancés aujourd’hui.' } });
+		expect(await charger(load, l, `${q}&etape=vacances&panneau=periode`)).toMatchObject({ etape: 'vacances', panneau: 'periode' });
+		expect(await charger(load, l, `${q}&panneau=autre`)).toMatchObject({ etape: 'vacances', panneau: null });
 		// Personne n'a d'aptitude : le FPT n'est armé nulle part.
 		expect(await envoyerEte('proposer', l, [], q)).toMatchObject({ cible: 'repartition', succes: expect.stringMatching(/plages restent impossibles/) });
 		const [premiere] = await base.select().from(plageEte).orderBy(plageEte.debut);

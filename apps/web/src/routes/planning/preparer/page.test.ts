@@ -22,7 +22,7 @@ const preparation = (autres: Record<string, unknown> = {}) => ({
 });
 const page = (data: Record<string, unknown> = {}, form: unknown = null) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { preparation: preparation(), annees: [2026, 2027], etape: 'roulement', apercu: semaines.slice(0, 6), manoeuvre: null, semaine: null, proposer: null, ...data }, form } }).body;
+	render(Page as any, { props: { data: { preparation: preparation(), annees: [2026, 2027], etape: 'roulement', apercu: semaines.slice(0, 6), manoeuvre: null, semaine: null, semaineTouche: null, proposer: null, ...data }, form } }).body;
 
 describe('Préparer l’année en cinq étapes', () => {
 	it('la progression et l’étiquette Brouillon / Publiée à chaque étape', () => {
@@ -105,5 +105,19 @@ describe('Préparer l’année en cinq étapes', () => {
 		const html = page({ preparation: preparation({ publiee: '2026-11-01T10:00' }) });
 		expect(html).not.toContain('name="deplacer"');
 		expect(html).toContain('Année publiée : le roulement ne change plus.');
+	});
+
+	it('année publiée : avant de changer une semaine, les remplacements touchés et qui sera prévenu ; commencée, elle ne change plus', () => {
+		const publiee = preparation({ publiee: '2026-11-01T10:00' });
+		const touche = { commencee: false, remplacements: [{ texte: 'Nuit du lundi 4 janvier : Fred Test remplacé par Hugo Test', conclu: true }, { texte: 'Nuit du mardi 5 janvier : Fred Test cherche un remplaçant', conclu: false }] };
+		const html = page({ etape: 'publier', preparation: publiee, semaine: '2027-01-01', semaineTouche: touche });
+		expect(html).toContain('2 remplacements touchés');
+		expect(html).toContain('Nuit du lundi 4 janvier : Fred Test remplacé par Hugo Test');
+		expect(html).toContain('(en cours)');
+		expect(html).toContain('Les agents des deux équipes et les personnes de ces remplacements seront prévenus.');
+		expect(html.indexOf('remplacements touchés')).toBeLessThan(html.indexOf('name="semaine-2027-01-01"'));
+		const commencee = page({ etape: 'publier', preparation: publiee, semaine: '2027-01-01', semaineTouche: { commencee: true, remplacements: [] } });
+		expect(commencee).toContain('Semaine commencée : son équipe ne change plus.');
+		expect(commencee).not.toContain('name="semaine-2027-01-01"');
 	});
 });

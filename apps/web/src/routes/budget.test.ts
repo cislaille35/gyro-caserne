@@ -200,7 +200,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
 		expect(await compter(async () => { await (racine as any)({ locals: deLAgent }); await (mesVacancesPage as any)({ locals: deLAgent }); })).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (racine as any)({ locals }); await (reglagesArmement as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (reglagesArmement as any)({ locals, url: new URL('http://localhost/reglages/armement?engin=FPT') }); })).toBeLessThanOrEqual(BUDGET);
 		expect(base.parametresMax).toBeLessThanOrEqual(100);
 	});
 

@@ -65,6 +65,10 @@ describe('/planning/preparer', () => {
 		const [a, b] = (await charger(load, l, q)).preparation.semaines.slice(-2);
 		expect(await envoyer(actions, 'semaines', l, [[`semaine-${a.debut}`, String(b.equipeId)], [`semaine-${b.debut}`, String(a.equipeId)]], q)).toMatchObject({ succes: expect.any(String) });
 		const [a2, b2] = (await charger(load, l, q)).preparation.semaines.slice(-2);
+		expect((await charger(load, l, `${q}&etape=publier&semaine=${a.debut}`)).semaineTouche).toEqual({ commencee: false, remplacements: [] });
+		const premiere = (await charger(load, l, q)).preparation.semaines[0];
+		expect((await charger(load, l, `${q}&etape=publier&semaine=${premiere.debut}`)).semaineTouche).toMatchObject({ commencee: true });
+		expect(await envoyer(actions, 'semaines', l, [[`semaine-${premiere.debut}`, String(ids.find((id) => id !== premiere.equipeId))]], q)).toMatchObject({ status: 400, data: { message: expect.stringMatching(/commencée : son équipe ne change plus/) } });
 		expect([a2.equipeId, b2.equipeId]).toEqual([b.equipeId, a.equipeId]);
 	});
 

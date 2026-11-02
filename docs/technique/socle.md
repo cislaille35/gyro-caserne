@@ -207,12 +207,13 @@ Spec : [2026-11-01-remplacements-design.md](../superpowers/specs/2026-11-01-remp
 
 Spec : [2026-11-01-planning-ete-design.md](../superpowers/specs/2026-11-01-planning-ete-design.md). Migration `0014` : tables additives, plus le libellé du rôle système `chef_equipe` (« Chef de garde », identifiant inchangé). Décision : [0015](../decisions/0015-planning-d-ete.md).
 
-- Tables : `reglage_armement` (une ligne, JSON `{ engins, niveaux }`), `ete` (année, `debut` et `fin` en jours de relève, `date_limite`, `publiee_le`, dates des deux rappels), `reponse_ete` (année, personne, `tout_ete`), `vacances_agent` (personne, année, du, au), `plage_ete` (début, fin, année, `ajoutes` et `retires` en JSON), `avis_ete` (la cloche : `rappel`, `repartition`, `vacances_changees`, texte, lien).
-- `armement.ts` : postes (`ca2`, `ca1`, `cod1`, `ce`, `agent`), niveaux reliés aux aptitudes, `postesDe`, `armement` (appariement exact, une personne par poste), `lireArmement`, `enregistrerArmement` (`GERER_LISTES`).
-- `planning/ete.ts` : `periodeParDefaut`, `reglerEte` (`GERER_PLANNING`), `mesVacances`, `ajouterMesVacances`, `retirerMesVacances`, `toutLete`, `reponsesEte`, `rappelsEte` (à 8 h par `planifie.ts`), `avis`.
+- Tables : `reglage_armement` (une ligne, JSON `{ engins, niveaux }`), `ete` (année, `debut` et `fin` en jours de relève, `date_limite`, `publiee_le`, dates des deux rappels), `reponse_ete` (année, personne, `tout_ete`), `vacances_agent` (personne, année, du, au), `plage_ete` (début, fin, année, `ajoutes` et `retires` en JSON), `avis_ete` (la cloche et le téléphone : `rappel`, `repartition`, `vacances_changees`, `semaine`, texte, lien).
+- `armement.ts` : postes (`ca2`, `ca1`, `cod1`, `ce`, `agent`), niveaux reliés aux aptitudes, `postesDe`, `armement` (appariement exact, une personne par poste ; une place libre d'abord), `postesTenus` (le poste de chacun dans cette répartition), `lireArmement`, `enregistrerArmement` (`GERER_LISTES`).
+- `planning/ete.ts` : `periodeParDefaut`, `reglerEte` (`GERER_PLANNING`), `mesVacances`, `ajouterMesVacances`, `retirerMesVacances`, `toutLete`, `reponsesEte`, `rappelsEte` (à 8 h par `planifie.ts`), `relancerEte` (« Relancer » du chef, une fois par jour : lu dans le journal, action `relancer_ete`), `avis`.
 - `planning/repartition.ts` : `proposer` (calcul pur), `eteAPreparer`, `proposerEte`, `ajusterPlage`, `publierEte`, et l'onglet Été du fichier (`feuilleEte`, `analyserFeuilleEte`).
 - `planning/plages.ts` : `requetePlagesPubliees`, `heuresDe` (les heures d'une personne dans une semaine, été publié compris), `enVacances`. Lu par `planningDe`, `astreinteDe`, `agendaDe` et `lireContexte` (où `astreintesDe` rend les heures de la personne, et `disponible` écarte un agent en vacances).
 - `planning/fichier.ts` : `donneesFichierPlanning`, `apercuPlanning`, `appliquerPlanning` (un seul batch ; rend les manœuvres annoncées changées, pour `manoeuvreChangee`).
+- Année publiée (`planning/annee.ts`) : `changerSemaines` et le fichier refusent une semaine commencée (`exigerAVenir`) et préviennent les agents des deux équipes, puis les personnes des remplacements conclus ou en cours de la semaine (`avisSemainesChangees`, avis `semaine`) ; `remplacementsDeSemaine` les montre au chef avant.
 
 ## Fichier de l'effectif
 

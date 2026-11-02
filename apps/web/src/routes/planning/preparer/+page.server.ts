@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances } from '@gyro-caserne/socle';
+import { ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { deplacer, etapeDe } from '#lib/planning/preparer.ts';
 import { champ, echecPlanning, nombres } from '#lib/server/formulaire-planning.ts';
@@ -18,6 +18,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Avant le premier enregistrement, l'aperçu suit l'ordre proposé.
 	const ordre = preparation.ordre.length ? preparation.ordre : preparation.ordrePropose;
 	const apercu = (preparation.semaines.length ? preparation.semaines : calculerAnnee(annee, centre.astreinte, ordre, new Map())).slice(0, 6);
+	// Année publiée, une semaine ouverte : commencée (elle ne change plus), et les remplacements qu'un changement toucherait.
+	const ouverte = preparation.semaines.find((x) => x.debut === url.searchParams.get('semaine'));
+	const m = maintenantParis();
+	const semaineTouche =
+		ouverte && preparation.publiee
+			? { commencee: (ouverte.periodes[0]?.debut ?? ouverte.debut) <= m.slice(0, 16), remplacements: (await remplacementsDeSemaine(base, acteur, annee, ouverte.debut, m, centre.astreinte)).map(({ texte, conclu }) => ({ texte, conclu })) }
+			: null;
 	const nombre = (cle: string) => (/^\d+$/.test(url.searchParams.get(cle) ?? '') ? Number(url.searchParams.get(cle)) : null);
 	return {
 		preparation,
@@ -26,7 +33,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		apercu,
 		// Le panneau ouvert : une manœuvre (« nouvelle » ou son numéro), une semaine, ou l'échange proposé pour une fête.
 		manoeuvre: url.searchParams.get('manoeuvre') === 'nouvelle' ? ('nouvelle' as const) : nombre('manoeuvre'),
-		semaine: preparation.semaines.find((x) => x.debut === url.searchParams.get('semaine'))?.debut ?? null,
+		semaine: ouverte?.debut ?? null,
+		semaineTouche,
 		proposer: url.searchParams.get('proposer') === 'noel' ? ('noel' as const) : url.searchParams.get('proposer') === 'nouvel_an' ? ('nouvel_an' as const) : null
 	};
 };

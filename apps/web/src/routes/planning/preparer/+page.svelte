@@ -317,7 +317,22 @@
 {#if semaineOuverte}
 	{@const actuelle = equipe(semaineOuverte.equipeId)}
 	<Panneau titre="Semaine {semaineOuverte.numero}" fermer={ici()}>
+		{@const touche = data.semaineTouche}
 		<p class="doux">Du {jourLong(semaineOuverte.debut)} au {jourLong(finDeSemaine(semaineOuverte.debut))}. Aujourd’hui : {actuelle.nom}.</p>
+		{#if touche?.commencee}
+			<p class="encadre">Semaine commencée : son équipe ne change plus.</p>
+		{:else}
+			{#if touche}
+				{#if touche.remplacements.length}
+					<div class="touches">
+						<h3>{touche.remplacements.length === 1 ? '1 remplacement touché' : `${touche.remplacements.length} remplacements touchés`}</h3>
+						<ul role="list">{#each touche.remplacements as r (r.texte)}<li>{r.texte}{#if !r.conclu}<span class="doux"> (en cours)</span>{/if}</li>{/each}</ul>
+					</div>
+					<p class="doux">Les agents des deux équipes et les personnes de ces remplacements seront prévenus.</p>
+				{:else}
+					<p class="doux">Aucun remplacement sur cette semaine. Les agents des deux équipes seront prévenus.</p>
+				{/if}
+			{/if}
 		<form method="POST" action={`?/semaines&annee=${p.annee}&etape=publier`} class="choix">
 			<fieldset>
 				<legend>Quelle équipe d’astreinte ?</legend>
@@ -328,6 +343,7 @@
 				{/each}
 			</fieldset>
 		</form>
+		{/if}
 	</Panneau>
 {/if}
 
@@ -758,6 +774,18 @@
 		color: var(--surface);
 	}
 
+	/* Les remplacements qu'un changement d'équipe toucherait */
+	.touches {
+		margin-top: 12px;
+		padding: 12px 16px;
+		border: 2px solid var(--accent);
+		border-radius: var(--rayon-petit);
+	}
+	.touches ul {
+		margin-top: 6px;
+		padding-left: 20px;
+		list-style: disc;
+	}
 	/* Le choix d'équipe d'une semaine */
 	.choix fieldset {
 		margin: 12px 0 0;

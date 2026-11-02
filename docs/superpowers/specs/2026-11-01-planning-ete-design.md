@@ -63,3 +63,31 @@ Migrations additives (sauf le libellé du rôle, accordé par le porteur). Budge
 ## Laissé au constructeur
 
 Forme des tables, algorithme exact de la proposition (simple et explicable), présentation du tableau d'été au téléphone.
+
+## Reprise avant fusion (2026-11-02, validée par le porteur)
+
+Le porteur trouve les écrans « à plat, longue liste de configuration ». Interface d'abord, même canevas que « Préparer l'année » (étapes, rangées, panneaux).
+
+1. **Page Été**
+   - Résumé en tête, chiffres réels : « Été 2027 · Proposé · 10 semaines · FPT armé partout · 4 agents en vacances · 3 sans réponse ».
+   - Parcours en étapes avec barre de progression : Période → Vacances → Répartition → Publier.
+   - Période : une phrase (« Du ven. 25 juin au jeu. 2 sept. · vacances avant le 15 mai ») et « Modifier », qui ouvre un panneau (fenêtre modale, comme celle des manœuvres) ; plus de champs de date affichés en permanence.
+   - Vacances : trois rangées avec leur compte (Ont répondu, Sans réponse, Disponibles tout l'été), qu'on déplie pour les noms ; « Relancer » sur les sans-réponse (rappel immédiat à eux seuls, une fois par jour au plus).
+   - Répartition : une rangée compacte par semaine avec une pastille d'état écrite (« ✓ FPT armé 7/7 » ou « ⚠ 2 plages à revoir »), semaines à revoir en tête ; « Recalculer la proposition » dans un menu secondaire, avec confirmation (il efface les ajustements).
+   - Publier : bouton fixe en bas (barre collante), toujours visible ; état « Publiée » affiché ensuite.
+2. **Armement des engins** : une rangée par engin (« VSAV · 3 postes : CA 1 agrès, CE, agent » ; postes à zéro masqués) ; « Modifier » ouvre un panneau avec des boutons − / + (accessibles : nom du poste et valeur annoncés) ; la correspondance des aptitudes repliée sous « Correspondance des aptitudes ».
+3. **Panneau d'une plage** : les présents avec leur **poste** (« CA tout engins : Manon Faure · Conducteur : Ursule Lemoine · CE : … · Agent : … », le renfort signalé) ; FPT non armé : le poste manquant en tête (« Il manque : 1 CE »), et « Ajouter un agent » met d'abord ceux qui ont l'aptitude manquante.
+4. **Garde-fous sur un planning publié** (socle, TDD)
+   - Une semaine **passée ou en cours** ne change plus d'équipe (`changerSemaines`, et l'import du fichier) : refus clair.
+   - Changer l'équipe d'une semaine **après publication** prévient les agents des deux équipes (« La semaine du 10 juillet passe de l'Équipe 2 à l'Équipe 3 »), par le fil et le téléphone.
+   - Avant de valider ce changement, l'écran montre les **remplacements conclus ou en cours** de la semaine qui seront touchés ; après, leurs personnes sont prévenues.
+
+Exigence : téléphone et ordinateur identiques en fonctions (écrans au test de parité).
+
+Choix de Claude, à valider :
+- « Ont répondu » compte ceux qui ont donné des vacances ; les trois rangées font le total.
+- La relance du jour est lue dans le journal (action `relancer_ete`) : pas de colonne nouvelle.
+- Le poste de chacun est celui de la meilleure répartition calculée (une place libre d'abord, sans déplacer personne) ; un présent sans poste est « En plus ».
+- Avis du changement de semaine : un nouveau genre d'avis « Planning » (`semaine`) dans la table des avis d'été ; la migration 0014, pas encore déployée, est réécrite.
+- Semaine « commencée » : son premier moment d'astreinte est passé ; la règle ne vaut que pour une année publiée.
+- Les − / + de l'armement demandent JavaScript (comme le reste du panneau).

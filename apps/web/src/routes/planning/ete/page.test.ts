@@ -19,50 +19,89 @@ const ete = (autres: Record<string, unknown> = {}) => ({
 	semaines: [{ debut: '2027-06-25', equipeId: 2, plages: [plage('2027-06-25T18:00', '2027-06-26T06:00', true), plage('2027-06-26T06:00', '2027-06-27T06:00', false)] }],
 	impossibles: ['24 h du samedi 26 juin : pas de CA tout engins disponible'],
 	conflits: [],
+	relanceeAujourdhui: false,
 	detail: null,
 	...autres
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const page = (e = ete()) => render(Page as any, { props: { data: { ete: e }, form: null } }).body.replace(/<!--[^>]*-->/g, '');
+const page = (e = ete(), autres: Record<string, unknown> = {}) => render(Page as any, { props: { data: { ete: e, etape: 'repartition', panneau: null, ...autres }, form: null } }).body.replace(/<!--[^>]*-->/g, '');
 
-describe('Été : le tableau du chef', () => {
-	it('qui a répondu, en texte ; sans réponse = disponible', () => {
+describe('Été : le parcours du chef', () => {
+	it('le résumé en tête et les quatre étapes, l’étape en cours marquée', () => {
 		const html = page();
-		expect(html).toContain('<strong>2 sur 3</strong> ont répondu.');
-		expect(html).toContain('Sans réponse (1)');
-		expect(html).toContain('Hugo Test');
-		expect(html).toContain('Gina Test</strong> · 10 – 20 juil.');
+		expect(html).toContain('Proposé · 1 semaine · FPT non armé sur 1 plage · 1 agent en vacances · 1 sans réponse');
+		expect(html).toMatch(/Étape 3 sur 4/);
+		expect(html).toMatch(/<a href="\?annee=2027&amp;etape=repartition"[^>]*aria-current="step"/);
 	});
 
-	it('chaque plage : son nom, « FPT armé » en texte, les présents et les renforts marqués ; un lien pour la modifier', () => {
-		const html = page();
-		expect(html).toMatch(/<a href="\?annee=2027&amp;plage=2027-06-25T18%3A00"[^>]*><span class="jour[^"]*">Ven\. 25 juin · nuit<\/span><span class="masque[^"]*"> : modifier<\/span>/);
-		expect(html).toContain('FPT armé : oui');
-		expect(html).toContain('FPT armé : non, manque CA tout engins');
-		expect(html).toMatch(/Alice Test<span class="etiquette[^"]*">renfort<\/span>/);
-		expect(html).toContain('1 plage impossible');
-		// Une semaine par repli, ouvert d'office quand le FPT n'est pas armé partout ; le résumé le dit en texte.
-		expect(html).toMatch(/<details class="semaine[^"]*" open/);
-		expect(html).toContain('FPT non armé sur 1 plage');
-		const armee = page(ete({ semaines: [{ debut: '2027-06-25', equipeId: 2, plages: [plage('2027-06-25T18:00', '2027-06-26T06:00', true)] }], impossibles: [] }));
-		expect(armee).toContain('FPT armé sur la plage');
-		expect(armee).not.toMatch(/<details class="semaine[^"]*" open/);
-		expect(html).toContain('Publier l’été 2027');
+	it('période : une phrase et « Modifier » qui ouvre un panneau ; plus de champs affichés', () => {
+		const html = page(ete(), { etape: 'periode' });
+		expect(html).toContain('Du ven. 25 juin au jeu. 2 sept. · vacances avant le 15 mai');
+		expect(html).toMatch(/<a [^>]*href="\?annee=2027&amp;etape=periode&amp;panneau=periode"[^>]*>Modifier<span class="masque[^"]*"> la période<\/span>/);
+		expect(html).not.toContain('type="date"');
+		const panneau = page(ete(), { etape: 'periode', panneau: 'periode' });
+		expect(panneau).toMatch(/<dialog[^>]*>[\s\S]*name="debut"[^>]*type="date"|<dialog[^>]*>[\s\S]*type="date"[^>]*name="debut"/);
 	});
 
-	it('pas encore ouvert : ouvrir la saisie, avec la période par défaut', () => {
-		const html = page(ete({ ete: null, proposee: false, semaines: [], impossibles: [] }));
+	it('pas encore ouvert : la période par défaut, ouvrir la saisie en un geste', () => {
+		const html = page(ete({ ete: null, proposee: false, semaines: [], impossibles: [] }), { etape: 'periode' });
+		expect(html).toContain('Pas encore ouvert');
+		expect(html).toContain('Du ven. 25 juin au jeu. 2 sept.');
 		expect(html).toContain('Ouvrir la saisie des vacances');
-		expect(html).toMatch(/name="debut" required="" value="2027-06-25"/);
-		expect(html).not.toContain('Proposer la répartition');
 	});
 
-	it('une plage ouverte : retirer ou ajouter, chaque bouton nommé', () => {
-		const detail = { ...plage('2027-06-25T18:00', '2027-06-26T06:00', true), candidats: [{ id: 4, prenom: 'Hugo', nom: 'Test', equipeId: 1, vacances: false, postes: ['cod1'] }, { id: 3, prenom: 'Gina', nom: 'Test', equipeId: 2, vacances: true, postes: [] }] };
+	it('vacances : trois rangées avec leur compte, les noms dépliés ; « Relancer » les sans-réponse', () => {
+		const html = page(ete(), { etape: 'vacances' });
+		expect(html).toMatch(/<summary[^>]*>[\s\S]*?Ont répondu[\s\S]*?>1<[\s\S]*?<\/summary>[\s\S]*?Gina Test[\s\S]*?10 – 20 juil\./);
+		expect(html).toMatch(/Sans réponse[\s\S]*?>1<[\s\S]*?Hugo Test/);
+		expect(html).toMatch(/Disponibles tout l’été[\s\S]*?>1<[\s\S]*?Cora Test/);
+		expect(html).toMatch(/action="\?\/relancer[^"]*"[\s\S]*?Relancer le sans-réponse/);
+		const deja = page(ete({ relanceeAujourdhui: true }), { etape: 'vacances' });
+		expect(deja).toContain('Relancés aujourd’hui');
+		expect(deja).not.toContain('action="?/relancer');
+	});
+
+	it('répartition : une rangée par semaine, l’état écrit ; les semaines à revoir en tête ; recalculer dans un menu, avec confirmation', () => {
+		const armee = { debut: '2027-07-02', equipeId: 1, plages: [plage('2027-07-02T18:00', '2027-07-03T06:00', true)] };
+		const html = page(ete({ semaines: [armee, ...ete().semaines] }));
+		const revoir = html.indexOf('2 juil.');
+		expect(html.indexOf('⚠ 1 plage à revoir')).toBeGreaterThan(-1);
+		expect(html.indexOf('⚠ 1 plage à revoir')).toBeLessThan(revoir);
+		expect(html).toContain('✓ FPT armé 1/1');
+		expect(html).toMatch(/<a href="\?annee=2027&amp;etape=repartition&amp;plage=2027-06-25T18%3A00"[^>]*>[\s\S]*?Ven\. 25 juin · nuit/);
+		expect(html).toMatch(/<details class="menu[^"]*">[\s\S]*?Recalculer la proposition/);
+		expect(html).not.toContain('action="?/proposer');
+		const confirmer = page(ete(), { panneau: 'recalculer' });
+		expect(confirmer).toMatch(/efface vos ajustements[\s\S]*action="\?\/proposer/);
+	});
+
+	it('publier : un bouton fixe en bas, sur chaque étape ; publié, l’état le dit', () => {
+		for (const etape of ['periode', 'vacances', 'repartition', 'publier']) expect(page(ete(), { etape })).toMatch(/class="barre[^"]*"[\s\S]*Publier l’été 2027/);
+		const publie = page(ete({ ete: { ...ete().ete, publiee: true } }), { etape: 'publier' });
+		expect(publie).not.toContain('Publier l’été 2027');
+		expect(publie).toContain('Publiée');
+	});
+
+	it('une plage ouverte : le poste de chacun, ce qui manque en tête ; ceux qui comblent le manque d’abord', () => {
+		const detail = {
+			...plage('2027-06-25T18:00', '2027-06-26T06:00', false),
+			manque: ['ce'],
+			presents: [
+				{ id: 1, prenom: 'Cora', nom: 'Test', renfort: false, poste: 'cod1' },
+				{ id: 2, prenom: 'Alice', nom: 'Test', renfort: true, poste: 'ca2' }
+			],
+			candidats: [
+				{ id: 4, prenom: 'Hugo', nom: 'Test', equipeId: 1, vacances: false, utile: true, postes: ['ce'] },
+				{ id: 3, prenom: 'Gina', nom: 'Test', equipeId: 2, vacances: true, utile: false, postes: [] }
+			]
+		};
 		const html = page(ete({ detail }));
+		expect(html).toContain('Il manque : 1 CE');
+		expect(html.indexOf('Il manque : 1 CE')).toBeLessThan(html.indexOf('Cora Test'));
+		expect(html).toMatch(/CA tout engins[\s\S]*?Alice Test<span class="etiquette[^"]*">renfort<\/span>[\s\S]*?Conducteur[\s\S]*?Cora Test/);
 		expect(html).toMatch(/Retirer<span class="masque[^"]*"> Alice Test<\/span>/);
+		expect(html).toMatch(/Peuvent combler le manque[\s\S]*?Hugo Test[\s\S]*?Autres agents[\s\S]*?Gina Test/);
 		expect(html).toMatch(/Ajouter<span class="masque[^"]*"> Hugo Test<\/span>/);
-		expect(html).toContain('· Équipe 1 · conducteur');
 		expect(html).toContain('· en vacances');
 	});
 });
