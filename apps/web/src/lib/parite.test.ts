@@ -25,7 +25,8 @@ const ECRANS = [
 	'routes/moi/vacances/+page.svelte',
 	'routes/reglages/armement/+page.svelte',
 	'lib/planning/Panneau.svelte',
-	'lib/ui/BarreActions.svelte'
+	'lib/ui/BarreActions.svelte',
+	'lib/ui/EnTetePage.svelte'
 ];
 const CACHE = /display:\s*none|visibility:\s*hidden|clip-path|clip:|opacity:\s*0[;\s]|width:\s*1px|height:\s*0/;
 

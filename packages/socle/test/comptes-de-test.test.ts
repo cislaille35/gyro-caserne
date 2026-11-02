@@ -81,6 +81,14 @@ describe('chargerComptesDeTest', () => {
 		expect((await base.select().from(personne).where(eq(personne.email, 'caserne+chef@exemple.fr'))).length).toBe(1);
 	});
 
+	it('le chef de garde s’appelle « Chef-de-Garde » ; un compte déjà créé sous l’ancien nom est renommé, même adresse', async () => {
+		expect(COMPTES_DE_TEST.find((c) => c.role === 'chef-equipe')).toMatchObject({ prenom: 'Élodie', nom: 'Chef-de-Garde' });
+		const base = await jeu();
+		await base.update(personne).set({ nom: 'Chef-Équipe' }).where(eq(personne.email, 'caserne+chef-equipe@exemple.fr'));
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.email, 'caserne+chef-equipe@exemple.fr'))).toEqual([{ prenom: 'Élodie', nom: 'Chef-de-Garde' }]);
+	});
+
 	it('refuse une boîte mal écrite', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);

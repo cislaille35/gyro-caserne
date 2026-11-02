@@ -177,6 +177,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 				await (pageEte as any)({ locals, url });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+			// Proposé, pas encore publié : l'accueil du chef compte les plages à revoir.
+			if (nom === 'proposer') {
+				const accueilChef = await compter(async () => {
+					await (racine as any)({ locals });
+					const data = await (accueil as any)({ locals, url: new URL('http://localhost/?casquette=centre') });
+					expect(data.contenu.aDecider[0].texte).toMatch(new RegExp(`^Été ${annee} : \\d+ plages à revoir$`));
+				});
+				expect(accueilChef, 'accueil, été à revoir').toBeLessThanOrEqual(BUDGET);
+			}
 		}
 		// Le fichier du planning, onglet Été compris : exporter, prévisualiser, appliquer.
 		const corps = async () => {

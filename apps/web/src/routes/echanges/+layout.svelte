@@ -4,10 +4,10 @@
 	import { page } from '$app/state';
 	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 	import { untrack } from 'svelte';
-	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
-	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
+	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { lireNonLus } from '#lib/messagerie/pastille.ts';
 	import { quand } from '#lib/murs/quand.ts';
+	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import FiltresEchanges from '#lib/ui/FiltresEchanges.svelte';
 	import { ICONE_MAISON } from '#lib/ui/icones-roles.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
@@ -105,17 +105,7 @@
 		<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
 		<nav class="murs" aria-label="Murs">
 			{#if !actif}
-				<header class="entete">
-					{#if gyroSelonNiveau(affichage.niveau).visible}<span class="mascotte"><GyroDuMoment tenue="normal" taille={72} decoratif /></span>{/if}
-					<div class="titres">
-						<h1>Échanges</h1>
-						<p class="phrase">{phrase}</p>
-					</div>
-					<a class="ecrire" href="/echanges/publier">
-						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
-						<span class="libelle">Écrire</span>
-					</a>
-				</header>
+				<EnTetePage titre="Échanges" {phrase} gyro action={{ href: '/echanges/publier', libelle: 'Écrire' }} />
 				{#if data.avis}<p class="avis" role="status">{data.avis}</p>{/if}
 				{#if data.messagerie}<FiltresEchanges actif="murs" nonLus={nonLus.nombre} />{/if}
 			{/if}
@@ -258,49 +248,6 @@
 		font-weight: 600;
 	}
 
-	/* En-tête */
-	.entete {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	.mascotte {
-		flex: none;
-		margin: -10px -8px -10px -12px;
-	}
-	.titres {
-		flex: 1;
-		min-width: 0;
-	}
-	h1 {
-		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
-	}
-	.phrase {
-		margin: 2px 0 0;
-		color: var(--doux);
-		font-size: 0.9375rem;
-	}
-	.ecrire {
-		flex: none;
-		min-width: 48px;
-		height: 48px;
-		border-radius: 999px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		background: var(--rouge);
-		color: var(--sur-rouge);
-		font-weight: 600;
-		text-decoration: none;
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
-	}
-	.ecrire:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
-	}
-	.libelle,
 	.masque {
 		position: absolute;
 		width: 1px;
@@ -629,18 +576,6 @@
 	.sur-un-mur .murs,
 	.echanges:not(.sur-un-mur) .mur {
 		display: none;
-	}
-	@media (min-width: 640px) {
-		.ecrire {
-			padding: 0 20px 0 16px;
-		}
-		.libelle {
-			position: static;
-			width: auto;
-			height: auto;
-			overflow: visible;
-			clip-path: none;
-		}
 	}
 	@media (min-width: 1024px) {
 		.echanges:not(.sur-un-mur) .colonnes {

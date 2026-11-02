@@ -19,7 +19,7 @@ type Compte = { role: string; prenom: string; nom: string; profil: 'Agent' | 'R�
 export const COMPTES_DE_TEST: Compte[] = [
 	{ role: 'chef', prenom: 'Claire', nom: 'Chef', profil: 'Agent', responsabilite: 'Chef de centre' },
 	{ role: 'adjoint', prenom: 'Antoine', nom: 'Adjoint', profil: 'Agent', responsabilite: 'Chef de centre adjoint' },
-	{ role: 'chef-equipe', prenom: 'Élodie', nom: 'Chef-Équipe', profil: 'Agent', equipe: 1, responsabilite: 'Chef de garde' },
+	{ role: 'chef-equipe', prenom: 'Élodie', nom: 'Chef-de-Garde', profil: 'Agent', equipe: 1, responsabilite: 'Chef de garde' },
 	{ role: 'agent', prenom: 'Thomas', nom: 'Agent', profil: 'Agent', equipe: 1 },
 	{ role: 'rapporteur', prenom: 'Romain', nom: 'Rapporteur', profil: 'Agent', equipe: 2, responsabilite: 'Rapporteur de comité', comite: 'Amicale' },
 	{ role: 'membre', prenom: 'Manon', nom: 'Membre', profil: 'Agent', equipe: 3, responsabilite: 'Membre de comité', comite: 'Amicale' },
@@ -72,7 +72,9 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 
 	const ids: Record<string, number> = {};
 	for (const c of prevus) {
-		const [existant] = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, adresse(c.role)));
+		const [existant] = await base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.email, adresse(c.role)));
+		// Un compte créé sous un ancien nom (« Chef-Équipe ») prend le nom actuel, à la même adresse.
+		if (existant && (existant.prenom !== c.prenom || existant.nom !== c.nom)) await base.update(personne).set({ prenom: c.prenom, nom: c.nom }).where(eq(personne.id, existant.id));
 		// L'agent fête son anniversaire le jour du chargement (année bissextile, pour le 29 février) : « Vie du centre » le montre.
 		const naissance = c.role === 'agent' ? `1996${aujourdhui.slice(4)}` : undefined;
 		ids[c.role] = existant?.id ?? (await ajouterPersonne(base, INSTALLATEUR, { email: adresse(c.role), prenom: c.prenom, nom: c.nom, profilId: c.profilId, equipeId: c.equipeId, naissance }, aujourdhui, adressesReservees));

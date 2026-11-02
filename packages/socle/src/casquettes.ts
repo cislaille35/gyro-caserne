@@ -4,9 +4,12 @@ import type { Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
 import { iconeDuRole, type NomIcone } from './icones.ts';
 import type { Droit } from './listes.ts';
+import type { Reglage } from './planning/calendrier.ts';
+import { vueEte } from './planning/ete.ts';
+import { plagesARevoir } from './planning/repartition.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { remplacementsAValider } from './remplacements/lectures.ts';
-import { anneePlanning, attribution, comite, equipe, personne, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
+import { anneePlanning, attribution, comite, equipe, ete, personne, plageEte, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
 
 // id : 'centre', 'astreinte', 'equipe:<id>', 'role:<id>' ou 'comite:<id>'.
 export type Casquette = { id: string; nom: string; icone: NomIcone; compte: number };
@@ -72,11 +75,11 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 // Les casquettes et ce qui est à décider : pour « Le centre », l'organisation ; pour un rôle ou un comité qui gère une ressource,
 // les demandes de réservation en attente. Chaque lecture une seule fois.
 // Les remplacements à valider vont à la casquette Chef de garde de leur équipe, sinon à « Le centre ».
-async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
+async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string, reglage?: Reglage): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
 	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
 	const [organisation, reservations, remplacements] = await Promise.all([
-		liste.some((c) => c.id === 'centre') ? lireADecider(base, aujourdhui) : null,
+		liste.some((c) => c.id === 'centre') ? lireADecider(base, aujourdhui, reglage) : null,
 		demandesParCasquette(base, liste, aujourdhui),
 		chef ? remplacementsAValider(base, acteur, maintenant) : []
 	]);
@@ -133,27 +136,29 @@ async function demandesParCasquette(base: Base, liste: Omit<Casquette, 'compte'>
 
 // Ordre : centre, chef de garde, astreinte, référents, comités. Comptent : « Le centre », les chefs de garde (remplacements à valider),
 // et les rôles et comités qui gèrent une ressource.
-export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<Casquette[]> {
-	return (await lire(base, acteur, aujourdhui, maintenant)).casquettes;
+// `reglage` : l'astreinte du centre, pour compter les plages d'été à revoir.
+export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`, reglage?: Reglage): Promise<Casquette[]> {
+	return (await lire(base, acteur, aujourdhui, maintenant, reglage)).casquettes;
 }
 
-export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string): Promise<ADecider[]> {
-	const lu = (await lire(base, acteur, aujourdhui, `${aujourdhui}T00:00`)).aDecider;
+export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string, reglage?: Reglage): Promise<ADecider[]> {
+	const lu = (await lire(base, acteur, aujourdhui, `${aujourdhui}T00:00`, reglage)).aDecider;
 	if (lu === null) throw new RefusDroit('GERER_ACCES', { type: 'centre' }, 'Réservé au chef de centre et à son adjoint');
 	return lu;
 }
 
 // L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
-export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<Accueil> {
-	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui, maintenant);
+export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant: string, reglage: Reglage): Promise<Accueil> {
+	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui, maintenant, reglage);
 	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
 	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui) };
 }
 
-async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]> {
+async function lireADecider(base: Base, aujourdhui: string, reglage?: Reglage): Promise<ADecider[]> {
 	// Pas de jointure à noms de colonnes en double : dans un batch, D1 n'en garde qu'une.
-	const suivante = Number(aujourdhui.slice(0, 4)) + 1;
-	const [equipes, attributions, responsabilites, personnes, annees] = await base.batch([
+	const annee = Number(aujourdhui.slice(0, 4));
+	const suivante = annee + 1;
+	const [equipes, attributions, responsabilites, personnes, annees, etes, proposes] = await base.batch([
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
 		base
 			.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })
@@ -171,7 +176,9 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 			.select({ gradeId: personne.gradeId, entreeCentre: personne.entreeCentre, statut: personne.statut, typePersonne: profil.typePersonne })
 			.from(personne)
 			.leftJoin(profil, eq(profil.id, personne.profilId)),
-		base.select({ publieeLe: anneePlanning.publieeLe }).from(anneePlanning).where(eq(anneePlanning.annee, suivante))
+		base.select({ publieeLe: anneePlanning.publieeLe }).from(anneePlanning).where(eq(anneePlanning.annee, suivante)),
+		base.select().from(ete).where(and(gte(ete.annee, annee), lte(ete.annee, suivante))).orderBy(asc(ete.annee)),
+		base.selectDistinct({ annee: plageEte.annee }).from(plageEte).where(and(gte(plageEte.annee, annee), lte(plageEte.annee, suivante)))
 	]);
 	// À partir du 1er octobre, l'année suivante est à préparer tant qu'elle n'est pas publiée.
 	const planning = aujourdhui.slice(5) >= '10-01' && !annees.some((a) => a.publieeLe !== null);
@@ -180,7 +187,22 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 	const sansTitulaire = responsabilites.filter((r) => !attributions.some((a) => a.responsabiliteId === r.id));
 	const fiches = personnes.filter((p) => p.statut !== 'parti' && p.typePersonne !== 'exterieur' && (p.gradeId === null || p.entreeCentre === null)).length;
 
+	// L'été : le premier pas fini, cette année ou la suivante.
+	const e = etes.map(vueEte).find((x) => x.fin >= aujourdhui);
+	const lienEte = (a: number) => `/planning/ete?annee=${a}`;
+	const pourLete: ADecider[] = [];
+	// Sans l'astreinte du centre (seul l'accueil la donne), l'été n'est pas dit.
+	if (reglage && !e) {
+		// À ouvrir du 1er mars à la fin d'août, tant que l'été de l'année n'existe pas.
+		if (aujourdhui >= `${annee}-03-01` && aujourdhui <= `${annee}-08-31` && !etes.some((x) => x.annee === annee)) pourLete.push({ texte: `Été ${annee} à ouvrir`, lien: lienEte(annee) });
+	} else if (reglage && e && !e.publiee) {
+		const aRevoir = proposes.some((x) => x.annee === e.annee) ? await plagesARevoir(base, e.annee, aujourdhui, reglage) : 0;
+		if (aRevoir > 0) pourLete.push({ texte: `Été ${e.annee} : ${aRevoir} ${aRevoir > 1 ? 'plages' : 'plage'} à revoir`, lien: lienEte(e.annee) });
+		else if (aujourdhui > e.dateLimite) pourLete.push({ texte: `Été ${e.annee} à publier`, lien: lienEte(e.annee) });
+	}
+
 	return [
+		...pourLete,
 		...(planning ? [{ texte: `Planning ${suivante} à préparer`, lien: `/planning/preparer?annee=${suivante}` }] : []),
 		...sansChef.map((e) => ({ texte: `${e.nom} sans chef de garde`, lien: '/nominations' })),
 		...sansTitulaire.map((r) => ({ texte: `${r.nom} : aucun titulaire`, lien: '/nominations' })),

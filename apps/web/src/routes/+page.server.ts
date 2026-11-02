@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const aujourdhui = aujourdhuiParis();
 	const maintenant = maintenantParis().slice(0, 16);
 	const [accueil, prenom, aNePasManquer, anniversaire, astreinte] = await Promise.all([
-		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui, maintenant),
+		accueilDe(base, acteur, url.searchParams.get('casquette'), aujourdhui, maintenant, centre.astreinte),
 		prenomDe(base, acteur),
 		aNePasManquerDe(base, acteur),
 		monAnniversaire(base, acteur, aujourdhui),

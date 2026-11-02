@@ -13,6 +13,16 @@ L'écran de l'été (chef, Planning → Préparer l'année → « Été ») comm
 3. **Répartition** : « Proposer la répartition » calcule plage par plage (nuits de semaine 18 h – 6 h, 24 h le week-end et les fériés) l'équipe de la semaine moins les agents en vacances. Si le FPT n'est pas armé, l'appli ajoute un renfort pris parmi les agents qui ne sont pas en vacances, **ceux qui ont le moins été en renfort cet été d'abord**, tant qu'un renfort comble une place. Une rangée par semaine, avec son état écrit (« ✓ FPT armé 7/7 » ou « ⚠ 2 plages à revoir ») ; les semaines à revoir viennent en tête. Une plage s'ouvre dans un panneau : chaque présent avec son **poste** (CA tout engins, conducteur, CE, agent ; « En plus » s'il n'en tient aucun ; les renforts marqués), ce qui manque en tête (« Il manque : 1 CE »), et « Ajouter un agent » propose d'abord **ceux qui peuvent combler le manque**. « Recalculer la proposition » est dans « Plus d'actions » et demande confirmation : il efface les ajustements.
 4. **Publier** : un récapitulatif, puis « Publier l'été ». Le planning de chacun (vues, carte de l'Accueil), son agenda et les remplacements suivent la répartition. Les renforts sont prévenus (« Vous êtes en renfort de l'Équipe 2 la semaine du vendredi 9 juillet »). Un agent en vacances n'apparaît pas d'astreinte.
 
+## Sur l'Accueil
+
+Pour le chef de centre et son adjoint (casquette « Le centre »), une rangée de « À décider » mène à l'écran de l'été :
+
+- « Été 2027 à ouvrir » : du 1er mars à la fin d'août, tant que l'été de l'année n'est pas ouvert ;
+- « Été 2027 : 3 plages à revoir » : proposé, pas encore publié, et des plages où le FPT n'est pas armé ;
+- « Été 2027 à publier » : la date limite des vacances est passée et l'été n'est pas publié.
+
+L'été déjà ouvert pour l'an prochain (dès l'automne) compte de la même façon. Publié : plus de rangée.
+
 ## Armer le FPT
 
 Les règles d'armement sont dans Réglages → « Armement des engins » (droit `GERER_LISTES`) : une rangée par engin (« VSAV · 3 postes : CA 1 agrès, CE, agent ») ; « Modifier » ouvre un panneau avec des boutons − et + par poste. La correspondance des aptitudes est repliée en dessous.

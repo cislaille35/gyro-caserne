@@ -351,6 +351,11 @@ describe('EnTetePage', () => {
 		const page = net(EnTetePage, { titre: 'Agents', action: { href: '/agents/nouveau', libelle: 'Ajouter' } });
 		expect(page).toMatch(/<a[^>]*class="action[^"]*"[^>]*href="\/agents\/nouveau"[^>]*>[\s\S]*?<svg[^>]*aria-hidden="true"[\s\S]*?Ajouter<\/span>/);
 	});
+	it('action principale : le libellé se voit à toutes les tailles, jamais masqué', () => {
+		const css = readFileSync(new URL('./EnTetePage.svelte', import.meta.url), 'utf8').match(/<style>([\s\S]*)<\/style>/)?.[1] ?? '';
+		expect(css).not.toMatch(/clip-path|clip:|width:\s*1px|display:\s*none/);
+		expect(css).not.toContain('@media');
+	});
 	it('retour au-dessus du titre, nommé', () => {
 		const page = net(EnTetePage, { titre: 'Mon profil', retour: { href: '/moi', libelle: 'Moi' } });
 		expect(page).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Retour : <\/span>Moi<\/a>/);

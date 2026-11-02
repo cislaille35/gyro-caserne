@@ -5,7 +5,7 @@
 	import { DESSINS } from './icones-roles.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
-	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rond rouge).
+	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rouge, icône et libellé).
 	let {
 		titre,
 		phrase,
@@ -40,14 +40,18 @@
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 		</div>
-		{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
-		{#if action}
-			<a class="action" href={action.href}>
-				<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-					><path d={action.dessin ?? DESSINS.plus} /></svg
-				>
-				<span class="libelle">{action.libelle}</span>
-			</a>
+		{#if secondaire || action}
+			<div class="actions">
+				{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
+				{#if action}
+					<a class="action" href={action.href}>
+						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+							><path d={action.dessin ?? DESSINS.plus} /></svg
+						>
+						<span class="libelle">{action.libelle}</span>
+					</a>
+				{/if}
+			</div>
 		{/if}
 	</div>
 </header>
@@ -59,11 +63,21 @@
 		align-items: flex-start;
 		gap: 4px;
 	}
+	/* Les actions passent sous le titre quand la place manque (téléphone, titre long). */
 	.ligne {
 		align-self: stretch;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+	.actions {
+		margin-left: auto;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 8px;
 	}
 	.tete,
 	.mascotte {
@@ -73,7 +87,7 @@
 		margin: -10px -8px -10px -12px;
 	}
 	.titres {
-		flex: 1;
+		flex: 1 1 11rem;
 		min-width: 0;
 	}
 	h1 {
@@ -103,6 +117,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 6px;
+		padding: 0 18px 0 14px;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
@@ -113,25 +128,8 @@
 		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
-	/* Au téléphone, le libellé est lu mais pas montré : le bouton reste rond. */
+	/* Le libellé se voit à toutes les tailles : le bouton dit ce qu'il fait. */
 	.libelle {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
 		white-space: nowrap;
-	}
-	@media (min-width: 640px) {
-		.action {
-			padding: 0 20px 0 16px;
-		}
-		.libelle {
-			position: static;
-			width: auto;
-			height: auto;
-			overflow: visible;
-			clip-path: none;
-		}
 	}
 </style>

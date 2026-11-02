@@ -8,7 +8,7 @@ const { default: Layout } = await import('./+layout.svelte');
 
 const conversations = [
 	{ id: 3, type: 'groupe', nom: 'Départ de Thomas', icone: 'coeur', personne: null, apercu: 'Manon : J’ai trouvé le cadeau !', dernier_le: '2026-10-29T10:12', nonLus: 2 },
-	{ id: 5, type: 'deux', nom: 'Élodie Chef-Équipe', icone: null, personne: { id: 9, prenom: 'Élodie', nom: 'Chef-Équipe', couleur: '#d4a017' }, apercu: 'Élodie : Tu peux prendre ma place ?', dernier_le: '2026-10-29T09:40', nonLus: 1 }
+	{ id: 5, type: 'deux', nom: 'Élodie Chef-de-Garde', icone: null, personne: { id: 9, prenom: 'Élodie', nom: 'Chef-de-Garde', couleur: '#d4a017' }, apercu: 'Élodie : Tu peux prendre ma place ?', dernier_le: '2026-10-29T09:40', nonLus: 1 }
 ];
 const contenu = createRawSnippet(() => ({ render: () => '<h1>Départ de Thomas</h1>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

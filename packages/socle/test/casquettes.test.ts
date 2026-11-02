@@ -8,6 +8,9 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { ajouterRessource, refuser, reserver } from '../src/reservations.ts';
 import { anneePlanning, attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
+import { periodeParDefaut, reglerEte } from '../src/planning/ete.ts';
+import { eteAPreparer, proposerEte, publierEte } from '../src/planning/repartition.ts';
+import { jeuEte } from './jeu-ete.ts';
 
 const aujourdhui = '2026-10-25';
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
@@ -231,8 +234,8 @@ describe('accueilDe', () => {
 		const id = await nouvelle('Bruno');
 		await nommer(id, role('Référent engins'), { type: 'centre' });
 		await nommer(id, role('Référent technique'), { type: 'centre' });
-		expect((await accueilDe(base, acteur(id), `role:${role('Référent engins')}`, aujourdhui)).contenu).toEqual({ type: 'role', permet: ['Gérer les engins et les anomalies.'], aDecider: [] });
-		expect((await accueilDe(base, acteur(id), `role:${role('Référent technique')}`, aujourdhui)).contenu).toEqual({
+		expect((await accueilDe(base, acteur(id), `role:${role('Référent engins')}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).contenu).toEqual({ type: 'role', permet: ['Gérer les engins et les anomalies.'], aDecider: [] });
+		expect((await accueilDe(base, acteur(id), `role:${role('Référent technique')}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).contenu).toEqual({
 			type: 'role',
 			permet: ['Gérer les comités.', 'Gérer les responsabilités.'],
 			aDecider: []
@@ -250,7 +253,7 @@ describe('accueilDe', () => {
 		await nommer(bruno, role('Rapporteur de comité'), amicale);
 		await nommer(ancien, role('Membre de comité'), amicale, { debut: '2025-01-01', fin: '2025-12-31' });
 		await nommer(parti, role('Membre de comité'), amicale);
-		expect((await accueilDe(base, acteur(alice), `comite:${amicale.id}`, aujourdhui)).contenu).toEqual({
+		expect((await accueilDe(base, acteur(alice), `comite:${amicale.id}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).contenu).toEqual({
 			type: 'comite',
 			membres: [
 				{ personneId: alice, prenom: 'Alice', nom: 'Test', role: 'Membre de comité' },
@@ -265,11 +268,11 @@ describe('accueilDe', () => {
 		const alice = await nouvelle('Alice');
 		const bruno = await nouvelle('Bruno');
 		await nommer(bruno, role('Membre de comité'), { type: 'comite', id: idComite('Amicale') });
-		expect(await accueilDe(base, acteur(alice), `comite:${idComite('Amicale')}`, aujourdhui)).toMatchObject({ choisie: 'astreinte', contenu: { type: 'astreinte' } });
+		expect(await accueilDe(base, acteur(alice), `comite:${idComite('Amicale')}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).toMatchObject({ choisie: 'astreinte', contenu: { type: 'astreinte' } });
 
 		await nommer(alice, role('Membre de comité'), { type: 'comite', id: idComite('Amicale') });
 		await base.update(comite).set({ dissousLe: '2026-06-01' }).where(eq(comite.id, idComite('Amicale')));
-		expect(await accueilDe(base, acteur(alice), `comite:${idComite('Amicale')}`, aujourdhui)).toMatchObject({ choisie: 'astreinte', contenu: { type: 'astreinte' } });
+		expect(await accueilDe(base, acteur(alice), `comite:${idComite('Amicale')}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).toMatchObject({ choisie: 'astreinte', contenu: { type: 'astreinte' } });
 	});
 
 	it('qui gère une ressource : ses demandes de réservation à décider, comptées sur sa casquette (comité ou rôle)', async () => {
@@ -289,10 +292,10 @@ describe('accueilDe', () => {
 		await reserver(base, acteur(alice), vl!.id, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
 		await reserver(base, acteur(bruno), vl!.id, { debut: '2026-11-07T10:00', fin: '2026-11-07T11:00' }, maintenant);
 
-		const deBruno = await accueilDe(base, acteur(bruno), null, aujourdhui);
+		const deBruno = await accueilDe(base, acteur(bruno), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte);
 		expect(deBruno.casquettes.find((c) => c.id === `comite:${amicale}`)!.compte).toBe(1);
 		expect(deBruno).toMatchObject({ choisie: `comite:${amicale}`, contenu: { type: 'comite', aDecider: [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }] } });
-		const deRemi = await accueilDe(base, acteur(remi), null, aujourdhui);
+		const deRemi = await accueilDe(base, acteur(remi), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte);
 		expect(deRemi).toMatchObject({ choisie: `role:${role('Référent engins')}`, contenu: { type: 'role', aDecider: [{ texte: 'VL · 7 nov., 10 h – 11 h · Bruno Test', lien: '/reservations/a-valider' }] } });
 		// Alice, sans rien à gérer : aucune requête de plus, rien à décider.
 		expect((await casquettesDe(base, acteur(alice), aujourdhui)).every((c) => c.compte === 0)).toBe(true);
@@ -302,14 +305,59 @@ describe('accueilDe', () => {
 		const { base, role, nouvelle, nommer } = await jeu();
 		const chef = await nouvelle('Claire');
 		await nommer(chef, role('Chef de centre'), { type: 'centre' });
-		const accueil = await accueilDe(base, acteur(chef), null, aujourdhui);
+		const accueil = await accueilDe(base, acteur(chef), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte);
 		expect(accueil).toMatchObject({ choisie: 'centre', contenu: { type: 'centre', aDecider: await aDecider(base, acteur(chef), aujourdhui) } });
 		expect(accueil.casquettes[0]!.compte).toBe((accueil.contenu as { aDecider: unknown[] }).aDecider.length);
-		expect((await accueilDe(base, acteur(chef), 'astreinte', aujourdhui)).contenu).toEqual({ type: 'astreinte' });
+		expect((await accueilDe(base, acteur(chef), 'astreinte', aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).contenu).toEqual({ type: 'astreinte' });
 
 		const [equipe1] = await base.select().from(equipe).limit(1);
 		const alice = await nouvelle('Alice');
 		await nommer(alice, role('Chef de garde'), { type: 'equipe', id: equipe1!.id });
-		expect(await accueilDe(base, acteur(alice), null, aujourdhui)).toMatchObject({ choisie: `equipe:${equipe1!.id}`, contenu: { type: 'equipe' } });
+		expect(await accueilDe(base, acteur(alice), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).toMatchObject({ choisie: `equipe:${equipe1!.id}`, contenu: { type: 'equipe' } });
+	});
+});
+
+describe('À décider : l’été', () => {
+	const reglage = centreExemple.astreinte;
+	const ete = (base: Awaited<ReturnType<typeof jeuEte>>['base'], chef: Acteur, jour: string) =>
+		aDecider(base, chef, jour, reglage).then((l) => l.filter((x) => x.texte.startsWith('Été')));
+
+	it('à ouvrir à partir du 1er mars ; ouvert : rien jusqu’à la date limite ; puis à publier ; publié : plus rien', async () => {
+		const { base, chef } = await jeuEte();
+		const lien = '/planning/ete?annee=2027';
+		expect(await ete(base, chef, '2027-02-28')).toEqual([]);
+		expect(await ete(base, chef, '2027-03-01')).toEqual([{ texte: 'Été 2027 à ouvrir', lien }]);
+		expect(await ete(base, chef, '2027-08-31')).toEqual([{ texte: 'Été 2027 à ouvrir', lien }]);
+		expect(await ete(base, chef, '2027-09-01')).toEqual([]);
+		// Sans l'astreinte du centre : rien sur l'été.
+		expect((await aDecider(base, chef, '2027-03-01')).filter((x) => x.texte.startsWith('Été'))).toEqual([]);
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2027-03-01T10:00', reglage);
+		expect(await ete(base, chef, '2027-05-15')).toEqual([]);
+		expect(await ete(base, chef, '2027-05-16')).toEqual([{ texte: 'Été 2027 à publier', lien }]);
+		await proposerEte(base, chef, 2027, '2027-05-16T10:00', reglage);
+		await publierEte(base, chef, 2027, '2027-05-16T10:00', reglage);
+		expect(await ete(base, chef, '2027-05-16')).toEqual([]);
+		// Après l'été : rien.
+		expect(await ete(base, { type: 'super', email: 'a@b.fr' }, '2027-09-10')).toEqual([]);
+	});
+
+	it('proposé, non publié : les plages à revoir, comptées comme l’écran Été ; la casquette les compte', async () => {
+		const { base, chef, nouvelle, apte } = await jeuEte();
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2027-03-01T10:00', reglage);
+		// Il manque un CE partout : toutes les plages sont à revoir.
+		for (const [prenom, ...aptitudes] of [['Hugo', 'CA2'], ['Léa', 'CE'], ['Inès', 'COD1'], ['Jules'], ['Sarah']] as [string, ...string[]][]) await apte(await nouvelle(prenom, 1), ...aptitudes);
+		await proposerEte(base, chef, 2027, '2027-04-01T10:00', reglage);
+		const n = (await eteAPreparer(base, chef, 2027, '2027-04-01T10:00', reglage)).impossibles.length;
+		expect(n).toBeGreaterThan(1);
+		expect(await ete(base, chef, '2027-04-01')).toEqual([{ texte: `Été 2027 : ${n} plages à revoir`, lien: '/planning/ete?annee=2027' }]);
+		const centre = (await accueilDe(base, chef, 'centre', '2027-04-01', '2027-04-01T10:00', reglage)).casquettes.find((c) => c.id === 'centre');
+		expect(centre!.compte).toBe((await aDecider(base, chef, '2027-04-01', reglage)).length);
+	});
+
+	it('l’été de l’an prochain, déjà ouvert et proposé : dit dès maintenant', async () => {
+		const { base, chef } = await jeuEte();
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2026-11-02T10:00', reglage);
+		await proposerEte(base, chef, 2027, '2026-11-02T10:00', reglage);
+		expect((await ete(base, chef, '2026-11-02'))[0]!.texte).toMatch(/^Été 2027 : \d+ plages à revoir$/);
 	});
 });
