@@ -57,7 +57,7 @@ const RESPONSABILITES: {
 	},
 	// Nommé par le chef de centre ; mêmes droits.
 	{ nom: 'Chef de centre adjoint', nature: 'fonction', systeme: 'chef_centre_adjoint', typePerimetre: 'centre', parComiteCentre: false, verrouilles: true, droits: DROITS_CHEF_CENTRE },
-	{ nom: 'Chef d’équipe', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
+	{ nom: 'Chef de garde', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
 	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },
 	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },

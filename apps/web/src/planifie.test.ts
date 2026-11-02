@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -52,6 +52,8 @@ describe('avecPlanifie', () => {
 		await lancer('* * * * *', '2026-11-15T07:00:00Z');
 		expect(planningDuMatin).toHaveBeenCalledOnce();
 		expect(vi.mocked(planningDuMatin).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
+		// Les rappels des vacances d'été partent avec.
+		expect(vi.mocked(rappelsEte).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
 		await lancer('* * * * *', '2026-11-15T07:10:00Z');
 		expect(planningDuMatin).toHaveBeenCalledOnce();
 		expect(envoyerLot).toHaveBeenCalledOnce();

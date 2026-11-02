@@ -82,14 +82,14 @@ describe('infos d’un groupe', () => {
 });
 
 describe('infos d’une conversation à deux', () => {
-	const aDeux: InfosConversation = { type: 'deux', nom: 'Élodie Martin', icone: null, creePar: 1, creeParPrenom: 'Thomas', membres: [membre(1, 'Thomas', 'Agent'), membre(5, 'Élodie', 'Martin', { role: 'Chef d’équipe', equipe: { numero: 2, couleur: '#c2185b' }, telephone: '06 11 22 33 44' })], moiAnimateur: false };
+	const aDeux: InfosConversation = { type: 'deux', nom: 'Élodie Martin', icone: null, creePar: 1, creeParPrenom: 'Thomas', membres: [membre(1, 'Thomas', 'Agent'), membre(5, 'Élodie', 'Martin', { role: 'Chef de garde', equipe: { numero: 2, couleur: '#c2185b' }, telephone: '06 11 22 33 44' })], moiAnimateur: false };
 
 	it('la fiche courte : équipe, rôle, téléphone ; ni membres, ni quitter', () => {
 		const page = html({ infos: aDeux });
 		expect(page).toMatch(/<h1[^>]*>Élodie Martin<\/h1>/);
 		const t = texte(page);
 		expect(t).toContain('Équipe 2');
-		expect(t).toContain('Chef d’équipe');
+		expect(t).toContain('Chef de garde');
 		expect(page).toMatch(/<a[^>]*href="tel:0611223344"[^>]*>[\s\S]*06 11 22 33 44/);
 		expect(t).toContain('Seuls vous deux lisez cette conversation.');
 		expect(t).not.toContain('Quitter');

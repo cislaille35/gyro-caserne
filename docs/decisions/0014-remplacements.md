@@ -5,7 +5,7 @@
   - **Tranches calculées** : les périodes d'astreinte du planning, coupées à l'heure de fin du soir (6 h). Rien n'est stocké en plus : une demande garde ses tranches (JSON).
   - **Une table de demandes** pour les trois genres (remplacement, échange de périodes, échange de manœuvre), une table des destinataires (qui l'a reçue, qui l'a écartée) et une table d'avis pour la cloche, sur le modèle des réservations.
   - **Une seule acceptation** : l'écriture n'a lieu que si la demande est encore « en attente » ; on relit ensuite qui l'a eue. Les avis sont écrits dans le même batch, sous condition.
-  - **Valideurs** : le rôle système Chef d'équipe de l'équipe d'astreinte du demandeur (le droit `VALIDER_REMPLACEMENT` y est verrouillé) ; à défaut, chef de centre et adjoint. La cloche les compte en SQL (`remplacements/compte.ts`), les écrans en TypeScript (`valideurs`) ; un test vérifie qu'ils s'accordent.
+  - **Valideurs** : le rôle système Chef de garde de l'équipe d'astreinte du demandeur (le droit `VALIDER_REMPLACEMENT` y est verrouillé) ; à défaut, chef de centre et adjoint. La cloche les compte en SQL (`remplacements/compte.ts`), les écrans en TypeScript (`valideurs`) ; un test vérifie qu'ils s'accordent.
   - **Convocation à exceptions** : `{ equipes, ajoutes, retires }` dans le JSON des convoqués de la manœuvre et de sa publication ; les anciennes formes (`"tous"`, liste d'équipes) restent valables.
   - **Expiration et relance** par la tâche de chaque minute, un passage sur dix.
   - **Aptitudes** : liste du centre (`GERER_LISTES`), aptitudes datées des agents (`GERER_ACCES`), une colonne par aptitude dans le fichier de l'effectif.

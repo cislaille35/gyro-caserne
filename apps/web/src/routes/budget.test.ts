@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, ajouterRessource, pourDemander, attribution, changerSemaines, chargerJeuDeDepart, comite, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -42,6 +42,12 @@ import { load as demandeRemplacementPage } from './remplacements/[id]/+page.serv
 import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
 import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
 import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
+import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
+import { load as mesVacancesPage } from './moi/vacances/+page.server';
+import { load as reglagesArmement } from './reglages/armement/+page.server';
+import { GET as donneesPlanning } from './planning/preparer/fichier/donnees/+server';
+import { POST as apercuPlanning } from './planning/preparer/fichier/apercu/+server';
+import { POST as appliquerPlanning } from './planning/preparer/fichier/appliquer/+server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -156,6 +162,48 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});
 
+	it('/planning/ete : tout un été proposé pour 150 agents ; proposer, ajuster, publier ; Mes vacances, armement', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const ids = (await base.select().from(equipe)).map((e) => e.id);
+		const annee = Number(maintenantParis().slice(0, 4)) + 1;
+		const m = maintenantParis();
+		await reglerRoulement(base, locals.acteur, annee, ids, m);
+		await reglerEte(base, locals.acteur, annee, periodeParDefaut(annee, centre.astreinte), m, centre.astreinte);
+		const url = new URL(`http://localhost/planning/ete?annee=${annee}`);
+		for (const nom of ['proposer', 'publier'] as const) {
+			const n = await compter(async () => {
+				expect(await (actionsEte as any)[nom]({ locals, url, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
+				await (racine as any)({ locals });
+				await (pageEte as any)({ locals, url });
+			});
+			expect(n, nom).toBeLessThanOrEqual(BUDGET);
+		}
+		// Le fichier du planning, onglet Été compris : exporter, prévisualiser, appliquer.
+		const corps = async () => {
+			const d = await (await (donneesPlanning as any)({ locals, url: new URL(`http://localhost/planning/preparer/fichier/donnees?annee=${annee}`) })).json();
+			const feuilles = Object.fromEntries(d.feuilles.map((f: { nom: string; lignes: string[][] }) => [f.nom, f.lignes.map((cellules, i) => ({ numero: i + 2, cellules }))]));
+			const entetes = Object.fromEntries(d.feuilles.map((f: { nom: string; entetes: string[] }) => [f.nom, f.entetes]));
+			return JSON.stringify({ annee, lu: { feuilles, entetes } });
+		};
+		const poster = (route: unknown, texte: string) => (route as any)({ locals: { ...locals, enArrierePlan: () => {} }, request: new Request('http://x', { method: 'POST', body: texte, headers: { 'content-type': 'application/json' } }) });
+		let texte = '';
+		expect(await compter(async () => { texte = await corps(); }), 'exporter').toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect((await poster(apercuPlanning, texte)).status).toBe(200); }), 'aperçu').toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect((await poster(appliquerPlanning, texte)).status).toBe(200); }), 'appliquer').toBeLessThanOrEqual(BUDGET);
+		const [premiere] = await base.select().from(plageEte).orderBy(plageEte.debut);
+		const ouverte = new URL(`${url}&plage=${premiere!.debut}`);
+		const n = await compter(async () => {
+			expect(await (actionsEte as any).ajuster({ locals, url: ouverte, request: await requeteFormulaire([['debut', premiere!.debut], ['personne', String(agent.id)], ['present', 'oui']]) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals });
+			expect((await (pageEte as any)({ locals, url: ouverte })).ete.detail).not.toBeNull();
+		});
+		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
+		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
+		expect(await compter(async () => { await (racine as any)({ locals: deLAgent }); await (mesVacancesPage as any)({ locals: deLAgent }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (reglagesArmement as any)({ locals, url: new URL('http://localhost/reglages/armement?engin=FPT') }); })).toBeLessThanOrEqual(BUDGET);
+		expect(base.parametresMax).toBeLessThanOrEqual(100);
+	});
+
 	it('/planning et /planning/preparer : une année publiée, 20 manœuvres, 30 semaines changées ; chaque action', async () => {
 		const { base, locals, agent, compter } = await centreDe150();
 		const equipes = await base.select().from(equipe);
@@ -165,7 +213,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const a of [annee, annee + 1]) await reglerRoulement(base, locals.acteur, a, ids, m);
 		await publierAnnee(base, locals.acteur, annee, m);
 		const semaines = (await preparerAnnee(base, locals.acteur, annee, m, centre.astreinte)).semaines;
-		await changerSemaines(base, locals.acteur, annee, Object.fromEntries(semaines.slice(0, 30).map((s) => [s.debut, ids[0]!])), m, centre.astreinte);
+		// Écrites telles quelles : une année publiée refuse de changer ses semaines passées.
+		await base.insert(semaineChangee).values(semaines.slice(0, 30).map((s) => ({ debut: s.debut, equipeId: ids[0]! })));
 		for (let i = 0; i < 20; i++) await enregistrerManoeuvre(base, locals.acteur, { debut: `${annee + 1}-0${(i % 9) + 1}-1${i % 9}T08:30`, theme: `M${i}`, lieu: 'Caserne', convoques: 'tous', petitDejeuner: true }, m);
 		await base.insert(affectationEquipe).values({ personneId: agent.id, equipeId: ids[1]!, debut: '2020-01-01' });
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
@@ -188,7 +237,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const page = () => (preparer as any)({ locals, url });
 		expect(await compter(async () => { await (racine as any)({ locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(async () => { await (racine as any)({ locals }); await (pageManoeuvre as any)({ locals, url: new URL('http://localhost/planning/preparer/manoeuvre?id=1') }); })).toBeLessThanOrEqual(BUDGET);
-		const semainesForm = semaines.map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
+		// Les semaines à venir (les commencées ne changent plus) : chacune prévient deux équipes.
+		const semainesForm = semaines.filter((s) => s.debut > m.slice(0, 10)).map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
 		for (const [nom, corps] of [['semaines', semainesForm], ['roulement', ids.map((id): [string, string] => ['ordre', String(id)])]] as const) {
 			const n = await compter(async () => {
 				expect(await (actionsPreparer as any)[nom]({ locals, url, request: await requeteFormulaire(corps as [string, string][]) })).toMatchObject({ succes: expect.any(String) });

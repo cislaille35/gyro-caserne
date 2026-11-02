@@ -6,7 +6,8 @@ import { lecturesAgents } from '../murs.ts';
 import type { Periode, Reglage, SemaineCalculee } from '../planning/calendrier.ts';
 import { anneesPubliees, equipeLe } from '../planning/annee.ts';
 import { validesLe } from '../aptitudes.ts';
-import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, attribution, demandeRemplacement, equipe, personne, responsabilite, semaineChangee } from '../schema.ts';
+import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, attribution, demandeRemplacement, equipe, personne, responsabilite, semaineChangee, vacancesAgent } from '../schema.ts';
+import { enVacances, heuresDe, lirePlage, requetePlagesPubliees } from '../planning/plages.ts';
 import { chevauche, tranchesDe } from './tranches.ts';
 
 // Ce qu'il faut savoir pour décider d'une demande, lu d'un seul bloc : les semaines publiées, les équipes de chacun,
@@ -20,7 +21,7 @@ export const periodesDe = (json: string | null): Periode[] => (json ? (JSON.pars
 
 export async function lireContexte(base: Base, maintenant: string, reglage: Reglage) {
 	const aujourdhui = maintenant.slice(0, 10);
-	const [annees, changees, affectations, demandes, agents, aptitudes, chefs, equipes] = await base.batch([
+	const [annees, changees, affectations, demandes, agents, aptitudes, chefs, equipes, plages, vacances] = await base.batch([
 		base.select().from(anneePlanning),
 		base.select().from(semaineChangee),
 		base.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe),
@@ -36,15 +37,18 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 			.innerJoin(aptitude, eq(aptitude.id, aptitudeAgent.aptitudeId))
 			.where(isNull(aptitude.retireeLe)),
 		requeteChefs(base, aujourdhui),
-		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe)
+		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe),
+		// L'été publié et les vacances des agents.
+		requetePlagesPubliees(base, ajouterJours(aujourdhui, -8), '9999-12-31'),
+		base.select({ personneId: vacancesAgent.personneId, debut: vacancesAgent.debut, fin: vacancesAgent.fin }).from(vacancesAgent).where(gte(vacancesAgent.fin, ajouterJours(aujourdhui, -8)))
 	]);
 	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes };
+	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes, plages: plages.map(lirePlage), vacances };
 }
 
 export type Contexte = Awaited<ReturnType<typeof lireContexte>>;
 
-// Les chefs en fonction (chefs d'équipe, chef de centre et adjoint) : ceux qui valident.
+// Les chefs en fonction (chefs de garde, chef de centre et adjoint) : ceux qui valident.
 export function requeteChefs(base: Base, aujourdhui: string) {
 	return base
 		.select({ personneId: attribution.personneId, systeme: responsabilite.systeme, equipeId: attribution.perimetreId })
@@ -66,10 +70,11 @@ export type Chef = { personneId: number; systeme: string | null; equipeId: numbe
 
 const affectationsDe = (ctx: Contexte, id: number) => ctx.affectations.filter((a) => a.personneId === id);
 
-// Les semaines d'astreinte de la personne : son équipe à la relève.
+// Les semaines d'astreinte de la personne : son équipe à la relève ; en été publié, ses plages (renfort compris).
+// `periodes` : ses heures à elle.
 export function astreintesDe(ctx: Contexte, id: number): SemaineCalculee[] {
 	const siennes = affectationsDe(ctx, id);
-	return ctx.semaines.filter((s) => equipeLe(siennes, s.debut) === s.equipeId);
+	return ctx.semaines.map((s) => ({ ...s, periodes: heuresDe(s, equipeLe(siennes, s.debut), id, ctx.plages) })).filter((s) => s.periodes.length > 0);
 }
 
 export const dAstreinte = (ctx: Contexte, id: number, p: Periode) => astreintesDe(ctx, id).some((s) => s.periodes.some((x) => chevauche(x, p)));
@@ -88,9 +93,9 @@ export function engagements(d: LigneDemande): { personneId: number; periode: Per
 export const sansEngagement = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
 	!ctx.demandes.some((d) => d.id !== sauf && engagements(d).some((e) => e.personneId === id && periodes.some((p) => chevauche(p, e.periode))));
 
-// Disponible : un agent qui a accès, ni d'astreinte sur l'une des périodes, ni engagé dans une demande qui les touche.
+// Disponible : un agent qui a accès, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
 export const disponible = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
-	ctx.agents.some((a) => a.id === id) && !periodes.some((p) => dAstreinte(ctx, id, p)) && sansEngagement(ctx, id, periodes, sauf);
+	ctx.agents.some((a) => a.id === id) && !periodes.some((p) => dAstreinte(ctx, id, p) || enVacances(ctx.vacances, id, p)) && sansEngagement(ctx, id, periodes, sauf);
 
 const controleesValides = (ctx: Contexte, id: number, date: string) => {
 	const siennes = ctx.aptitudes.filter((a) => a.personneId === id && a.controlee === 1);

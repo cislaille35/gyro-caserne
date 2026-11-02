@@ -66,7 +66,7 @@
 					<span class="corps">
 						<span class="titre">{c.prenom} {c.nom}</span>
 						<span class="sous">{sous(c)}</span>
-						{#if c.manque.length > 0}<span class="manque"><strong>Il lui manque {c.manque.join(', ')}</strong> : votre chef d’équipe devra valider.</span>{/if}
+						{#if c.manque.length > 0}<span class="manque"><strong>Il lui manque {c.manque.join(', ')}</strong> : votre chef de garde devra valider.</span>{/if}
 					</span>
 				</label>
 			</li>

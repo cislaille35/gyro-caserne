@@ -66,6 +66,11 @@
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
+	<ul class="raccourcis" role="list">
+		<li><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></li>
+		<li><a href="/planning/ete?annee={p.annee}">Été {p.annee}</a> <span class="doux">: vacances des agents et répartition qui arme le FPT.</span></li>
+	</ul>
+
 	<nav class="etapes" aria-label="Étapes">
 		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
 		<ol role="list">
@@ -312,7 +317,22 @@
 {#if semaineOuverte}
 	{@const actuelle = equipe(semaineOuverte.equipeId)}
 	<Panneau titre="Semaine {semaineOuverte.numero}" fermer={ici()}>
+		{@const touche = data.semaineTouche}
 		<p class="doux">Du {jourLong(semaineOuverte.debut)} au {jourLong(finDeSemaine(semaineOuverte.debut))}. Aujourd’hui : {actuelle.nom}.</p>
+		{#if touche?.commencee}
+			<p class="encadre">Semaine commencée : son équipe ne change plus.</p>
+		{:else}
+			{#if touche}
+				{#if touche.remplacements.length}
+					<div class="touches">
+						<h3>{touche.remplacements.length === 1 ? '1 remplacement touché' : `${touche.remplacements.length} remplacements touchés`}</h3>
+						<ul role="list">{#each touche.remplacements as r (r.texte)}<li>{r.texte}{#if !r.conclu}<span class="doux"> (en cours)</span>{/if}</li>{/each}</ul>
+					</div>
+					<p class="doux">Les agents des deux équipes et les personnes de ces remplacements seront prévenus.</p>
+				{:else}
+					<p class="doux">Aucun remplacement sur cette semaine. Les agents des deux équipes seront prévenus.</p>
+				{/if}
+			{/if}
 		<form method="POST" action={`?/semaines&annee=${p.annee}&etape=publier`} class="choix">
 			<fieldset>
 				<legend>Quelle équipe d’astreinte ?</legend>
@@ -323,12 +343,25 @@
 				{/each}
 			</fieldset>
 		</form>
+		{/if}
 	</Panneau>
 {/if}
 
 <Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
+	.raccourcis {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.raccourcis a {
+		display: inline-flex;
+		align-items: center;
+		min-height: var(--cible);
+		font-weight: 700;
+		color: var(--texte);
+	}
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -741,6 +774,18 @@
 		color: var(--surface);
 	}
 
+	/* Les remplacements qu'un changement d'équipe toucherait */
+	.touches {
+		margin-top: 12px;
+		padding: 12px 16px;
+		border: 2px solid var(--accent);
+		border-radius: var(--rayon-petit);
+	}
+	.touches ul {
+		margin-top: 6px;
+		padding-left: 20px;
+		list-style: disc;
+	}
 	/* Le choix d'équipe d'une semaine */
 	.choix fieldset {
 		margin: 12px 0 0;

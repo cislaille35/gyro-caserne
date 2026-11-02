@@ -41,7 +41,7 @@ export function appartenances(affectations: { equipeId: number; debut: string; f
 
 const SANS_FICHE: Appartenances = { fiche: false, tous: true, membreEquipe: new Set(), chefEquipe: new Set(), membreComite: new Set(), rapporteur: new Set() };
 
-// Membre naturel d'un mur (attendu dans les suivis) : tout agent pour Le centre et Vie du centre ; membres en cours et chef d'équipe
+// Membre naturel d'un mur (attendu dans les suivis) : tout agent pour Le centre et Vie du centre ; membres en cours et chef de garde
 // pour une équipe ; membres en cours (rapporteur compris) pour un comité. Le chef de centre, l'adjoint et le super administrateur qui
 // supervisent une équipe ou un comité n'en sont pas membres.
 export function estMembre(a: Appartenances, cle: string): boolean {

@@ -10,7 +10,7 @@ Diffuser l'information du centre et organiser les événements, avec **peu de mu
 |---|---|---|---|
 | **Le centre** | tous les agents | chef de centre, adjoint | chef de centre, adjoint |
 | **Vie du centre** | tous les agents | tous les agents | chef de centre, adjoint |
-| **Équipe N** (un par équipe, créé tout seul) | les membres de l'équipe | les membres et le chef d'équipe | le chef d'équipe |
+| **Équipe N** (un par équipe, créé tout seul) | les membres de l'équipe | les membres et le chef de garde | le chef de garde |
 | **Comité** (un par comité) | les membres du comité | les membres | le rapporteur |
 
 - Le chef de centre, l'adjoint et le super administrateur lisent et modèrent **tous** les murs.
@@ -47,7 +47,7 @@ Elle se prépare sur sa propre page (« Écrire », ou « Publier dans … » de
 - **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement ;
 - **Bravo** : une réussite (examen, compétition).
 
-Chaque publication montre le **visage** de son auteur (ses initiales sur la couleur de son équipe, gris s'il n'en a pas ou s'il est parti) et son rôle (« Chef de centre », « Adjoint », « Chef d'équipe »). Chaque type a sa carte : l'annonce à confirmer, bordée d'ambre, avec « 12 sur 38 ont confirmé » (le nombre est visible de tous, les noms restent réservés à l'auteur et aux modérateurs) ; l'événement, avec une tuile calendrier, les présents et trois boutons qui portent chacun un signe et un mot ; le bravo, doré, avec des confettis et Gyro en tenue de victoire (« J'aime » y devient « Applaudir »).
+Chaque publication montre le **visage** de son auteur (ses initiales sur la couleur de son équipe, gris s'il n'en a pas ou s'il est parti) et son rôle (« Chef de centre », « Adjoint », « Chef de garde »). Chaque type a sa carte : l'annonce à confirmer, bordée d'ambre, avec « 12 sur 38 ont confirmé » (le nombre est visible de tous, les noms restent réservés à l'auteur et aux modérateurs) ; l'événement, avec une tuile calendrier, les présents et trois boutons qui portent chacun un signe et un mot ; le bravo, doré, avec des confettis et Gyro en tenue de victoire (« J'aime » y devient « Applaudir »).
 
 En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne, une date d'**ouverture** (maintenant, par défaut) et de **clôture** (préremplie dans 7 jours ; pour un événement, à son début, sans dépasser un an après l'ouverture). La clôture tombe après l'ouverture, moins d'un an après, et pour un événement au plus tard à son début. Avant l'ouverture, il s'affiche « Ouvre le … » et refuse les votes. Pendant qu'il est ouvert, les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; l'auteur et les modérateurs les voient toujours, et ils ne sont même pas envoyés au téléphone de qui n'a pas voté. On peut changer son vote. Fermé, il refuse les votes et montre les résultats **à tous**. Les dates ne se changent pas après la publication. Un sondage publié avant les dates reste ouvert. Voir [Comment créer un sondage ?](../utilisation/comment-creer-un-sondage.md).
 

@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -129,7 +129,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', '/reglages/aptitudes', '/remplacements']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', '/reglages/aptitudes', '/remplacements', '/planning/preparer/fichier', '/planning/ete', '/reglages/armement']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -153,13 +153,13 @@ for (const theme of ['auto', 'sombre']) {
 				await page.goto('/nominations');
 				await nommer(page, 'Référent pharmacie', agent.nom);
 				await nommer(page, 'Référent engins', agent.nom, { debut: '2099-01-01' });
-				await nommer(page, 'Chef d’équipe', agent.nom, { debut: '2020-01-01', fin: '2020-12-31' });
+				await nommer(page, 'Chef de garde', agent.nom, { debut: '2020-01-01', fin: '2020-12-31' });
 				await sansViolation(page);
 
 				await page.goto(agent.fiche);
 				const cartes = await blocDeFiche(page, 'Rôles', (b) => b.locator('summary', { hasText: 'Passées (1)' }));
 				await cartes.locator('summary', { hasText: 'Passées (1)' }).click();
-				await expect(cartes.getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
+				await expect(cartes.getByText('Chef de garde — Équipe 1', { exact: true })).toBeVisible();
 				// Terminer sans « Je confirme » : l'erreur reliée à sa case.
 				await cartes.locator('li', { hasText: 'Référent pharmacie' }).getByRole('button', { name: 'Terminer' }).click();
 				await expect(cartes.locator('li', { hasText: 'Référent pharmacie' }).getByRole('alert')).toHaveText('Cochez « Je confirme » pour terminer ce rôle.');
@@ -529,7 +529,7 @@ test.describe('échanges', () => {
 		// Chef de l'équipe 1 : il modère son mur d'équipe, pas Vie du centre.
 		const carte = await blocDeFiche(gestion, 'Rôles', (b) => b.locator('form[action^="?/attribuer"]'));
 		const attribuer = carte.locator('form[action^="?/attribuer"]');
-		await attribuer.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
+		await attribuer.getByLabel('Responsabilité').selectOption({ label: 'Chef de garde' });
 		await attribuer.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 		await attribuer.getByRole('button', { name: 'Attribuer' }).click();
 		await expect(attribuer.getByRole('status')).toHaveText('Rôle attribué');
@@ -549,7 +549,7 @@ test.describe('échanges', () => {
 		await page.waitForURL(/\/echanges\/vie#publication-\d+$/);
 		await expect(publicationDe(page, texte)).toBeVisible();
 
-		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef d’équipe — Équipe 1' }).check();
+		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef de garde — Équipe 1' }).check();
 		await carte.getByRole('button', { name: 'Terminer' }).click();
 		await expect(carte.getByRole('status').first()).toHaveText('Rôle terminé');
 		await gestion.context().close();
@@ -764,25 +764,25 @@ test.describe('nominations', () => {
 		const formulaire = carte.locator('form[action^="?/attribuer"]');
 
 		// Le rôle d'équipe fait apparaître le choix de l'équipe.
-		await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef d’équipe' });
+		await formulaire.getByLabel('Responsabilité').selectOption({ label: 'Chef de garde' });
 		await expect(formulaire.getByRole('combobox', { name: 'Équipe' })).toBeVisible();
-		await expect(formulaire.getByLabel('Responsabilité').locator('option:checked')).toHaveText('Chef d’équipe');
+		await expect(formulaire.getByLabel('Responsabilité').locator('option:checked')).toHaveText('Chef de garde');
 		await formulaire.getByRole('combobox', { name: 'Équipe' }).selectOption({ label: 'Équipe 1' });
 		await formulaire.getByRole('button', { name: 'Attribuer' }).click();
 		await expect(formulaire.getByRole('status')).toHaveText('Rôle attribué');
 		// Dans la liste du bloc (le résumé du bloc porte le même nom).
-		await expect(carte.getByRole('list').getByText('Chef d’équipe — Équipe 1', { exact: true })).toBeVisible();
+		await expect(carte.getByRole('list').getByText('Chef de garde — Équipe 1', { exact: true })).toBeVisible();
 
 		await agent.goto('/agents');
-		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef d’équipe (Équipe 1)');
+		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef de garde (Équipe 1)');
 
 		// Changer la date de fin : le rôle reste, avec sa nouvelle fin.
-		await carte.getByLabel('Nouvelle date de fin : Chef d’équipe — Équipe 1').fill('2099-12-31');
+		await carte.getByLabel('Nouvelle date de fin : Chef de garde — Équipe 1').fill('2099-12-31');
 		await carte.getByRole('button', { name: 'Changer la date de fin' }).click();
 		await expect(carte.getByRole('status').first()).toHaveText('Date de fin enregistrée');
 		await expect(carte.getByText('au 31/12/2099')).toBeVisible();
 
-		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef d’équipe — Équipe 1' }).check();
+		await carte.getByRole('checkbox', { name: 'Je confirme : terminer Chef de garde — Équipe 1' }).check();
 		await carte.getByRole('button', { name: 'Terminer' }).click();
 		await expect(carte.getByRole('status').first()).toHaveText('Rôle terminé');
 		await expect(carte.getByText('Aucune responsabilité en cours.')).toBeVisible();
@@ -1125,12 +1125,12 @@ test.describe('casquettes', () => {
 		const gestion = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		const agent = await nouvelAgent(gestion);
 		await gestion.goto('/nominations');
-		for (const role of ['Chef d’équipe', 'Référent engins', 'Référent pharmacie', 'Membre de comité']) await nommer(gestion, role, agent.nom);
+		for (const role of ['Chef de garde', 'Référent engins', 'Référent pharmacie', 'Membre de comité']) await nommer(gestion, role, agent.nom);
 		await gestion.context().close();
 
 		await connecter(page, agent.email);
 		const liens = page.getByRole('navigation', { name: 'Casquettes' }).getByRole('link');
-		await expect(liens).toHaveText([/Chef d’équipe · Équipe 1/, /Mon astreinte/, /Référent engins/, /Référent pharmacie/, /Amicale/]);
+		await expect(liens).toHaveText([/Chef de garde · Équipe 1/, /Mon astreinte/, /Référent engins/, /Référent pharmacie/, /Amicale/]);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
 		await liens.first().focus();

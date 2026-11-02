@@ -1,6 +1,6 @@
 # Comment passer d'un rôle à l'autre ?
 
-Utile si vous tenez plusieurs rôles (par exemple chef d'équipe et référent pharmacie). Chaque rôle est une « casquette ».
+Utile si vous tenez plusieurs rôles (par exemple chef de garde et référent pharmacie). Chaque rôle est une « casquette ».
 
 1. Ouvrez l'onglet « Accueil ».
 2. Sous « Bonjour », appuyez sur la casquette voulue (« Mon astreinte », « Référent pharmacie »…). Au clavier : Tab jusqu'à elle, puis Entrée.

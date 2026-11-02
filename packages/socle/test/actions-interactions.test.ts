@@ -167,9 +167,9 @@ describe('réponses aux événements', () => {
 		expect(await base.select().from(reponseEvenement)).toHaveLength(1);
 	});
 
-	it('le chef d’équipe est convoqué sur le mur de son équipe et quand son équipe est convoquée ailleurs', async () => {
+	it('le chef de garde est convoqué sur le mur de son équipe et quand son équipe est convoquée ailleurs', async () => {
 		const { base, agent, chef, nommer, e1, e2 } = await jeu();
-		await nommer(agent, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(agent, 'Chef de garde', { type: 'equipe', id: e1.id });
 		const surEquipe = await publier(base, base.photos, acteur(chef), `equipe:${e1.id}`, evenement(), maintenant);
 		const surCentre = await publier(base, base.photos, acteur(chef), 'centre', evenement([e1.id]), maintenant);
 		const autreEquipe = await publier(base, base.photos, acteur(chef), 'centre', evenement([e2.id]), maintenant);
@@ -352,11 +352,11 @@ describe('suiviPublication', () => {
 		expect((await suiviPublication(base, acteur(chef), e1Seule, aujourdhui)).evenement!.sans_reponse.map((p) => p.id)).toEqual([agent]);
 	});
 
-	it('mur d’équipe : chef d’équipe attendu, chef de centre et adjoint qui supervisent non', async () => {
+	it('mur d’équipe : chef de garde attendu, chef de centre et adjoint qui supervisent non', async () => {
 		const { base, chef, agent, autre, nouvelle, nommer, affecter, e1 } = await jeu();
 		const chefEquipe = await nouvelle('Chefequipe', 'Bernard');
 		const adjoint = await nouvelle('Adjoint', 'Roux');
-		await nommer(chefEquipe, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(chefEquipe, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await nommer(adjoint, 'Chef de centre adjoint', { type: 'centre' });
 		await affecter(agent, e1.id);
 		await affecter(autre, e1.id);

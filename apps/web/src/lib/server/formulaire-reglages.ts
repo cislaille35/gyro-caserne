@@ -79,7 +79,7 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'La portée d’une responsabilité système ne change pas': { champ: 'portee', texte: 'La portée d’une responsabilité système ne change pas.' },
 	'Portée verrouillée : la responsabilité est tenue': { champ: 'portee', texte: 'La portée ne change pas tant que quelqu’un tient ou tiendra cette responsabilité.' },
 	'Droit verrouillé : impossible de le retirer': { champ: 'droits', texte: 'Un droit verrouillé ne se retire pas.' },
-	'Une responsabilité système ne s’archive pas': { texte: 'Une responsabilité système (chef de centre, adjoint, chef d’équipe) ne s’archive pas.' },
+	'Une responsabilité système ne s’archive pas': { texte: 'Une responsabilité système (chef de centre, adjoint, chef de garde) ne s’archive pas.' },
 	'Icône inconnue': { champ: 'icone', texte: 'Choisissez une icône de la liste.' },
 	'Modèle inconnu': { texte: 'Ce modèle n’existe pas : choisissez-en un dans la liste.' },
 	'Profil inconnu': { texte: 'Ce profil n’existe pas.' },

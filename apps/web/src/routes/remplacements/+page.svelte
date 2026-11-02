@@ -59,7 +59,7 @@
 				<ol>
 					<li>Vous choisissez les jours de votre astreinte où vous ne pouvez pas être là.</li>
 					<li>Un collègue libre accepte : tous les disponibles, ou celui que vous avez choisi.</li>
-					<li>Votre chef d’équipe est prévenu, et chacun met à jour sa disponibilité dans l’appli du SDIS.</li>
+					<li>Votre chef de garde est prévenu, et chacun met à jour sa disponibilité dans l’appli du SDIS.</li>
 				</ol>
 				<a class="principal" href="/remplacements/demander">Me faire remplacer</a>
 			</section>

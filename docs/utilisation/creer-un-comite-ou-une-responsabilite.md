@@ -19,12 +19,12 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 
 ## Régler les droits d'un rôle
 
-1. Dans « Réglages », touchez le rôle (rangé dans « Chef de centre et adjoint », « Chefs d'équipe », « Référents » ou « Comités »).
+1. Dans « Réglages », touchez le rôle (rangé dans « Chef de centre et adjoint », « Chefs de garde », « Référents » ou « Comités »).
 2. Touchez un domaine (Planning et gardes, Engins et anomalies…) et choisissez un niveau. La barre du bas dit combien de domaines sont modifiés et pas encore enregistrés.
 3. Si le rôle s'écarte de son modèle, il porte « Personnalisé ». Pour remettre un domaine comme le modèle, appuyez sur « Revenir au modèle » ; pour tout le rôle, « Tout revenir ».
 4. Appuyez sur « Enregistrer ». Rien n'est gardé avant.
 
-Les cases « Administration de l'appli » ne se cochent que par le chef de centre, son adjoint ou le super administrateur. Le « Détail droit par droit », en bas de page, sert aux cas particuliers. Les rôles système (chef de centre, adjoint, chef d'équipe) se lisent sans se modifier.
+Les cases « Administration de l'appli » ne se cochent que par le chef de centre, son adjoint ou le super administrateur. Le « Détail droit par droit », en bas de page, sert aux cas particuliers. Les rôles système (chef de centre, adjoint, chef de garde) se lisent sans se modifier.
 
 ## Régler les droits d'un profil
 

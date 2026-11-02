@@ -9,7 +9,7 @@ import { texteDemande } from './tranches.ts';
 const RELANCE = '08:00';
 
 // Toutes les dix minutes (voir planifie.ts) : une demande non conclue expire au début de sa première période ;
-// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef d'équipe.
+// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef de garde.
 // Expirée à valider : le remplaçant et le chef sont prévenus aussi.
 export async function remplacementsDuMoment(base: Base, maintenant: string): Promise<{ expirees: number; relances: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');

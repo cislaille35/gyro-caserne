@@ -1,16 +1,19 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
-import type { ReponseEvenement } from '../listes.ts';
+import { STATUTS_AVEC_ACCES, type ReponseEvenement } from '../listes.ts';
 import { equipesConvoquees, type Convocation } from '../murs.ts';
 import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
-import { affectationEquipe, anneePlanning, equipe, gardeFete, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
+import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
 import { colonnesPublication } from './manoeuvres.ts';
+import { avis } from './avis.ts';
+import { jourEnLettres, texteDemande } from '../remplacements/tranches.ts';
+import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
 export type Convoques = 'tous' | number[];
@@ -64,7 +67,7 @@ export function lectures(base: Base, debut: string, fin: string) {
 	] as const;
 }
 
-const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage): SemaineCalculee[] => {
+export const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage): SemaineCalculee[] => {
 	const ordre = JSON.parse(ordreJson ?? '[]') as number[];
 	if (ordre.length === 0) return [];
 	return calculerAnnee(annee, reglage, ordre, new Map(changees.filter((c) => c.debut.startsWith(`${annee}-`)).map((c) => [c.debut, c.equipeId])));
@@ -131,16 +134,19 @@ export async function reglerRoulement(base: Base, acteur: Acteur, annee: number,
 }
 
 // `choix` : l'équipe voulue pour des semaines de l'année (jour de relève). Seuls les écarts au roulement sont gardés.
+// Année publiée : une semaine commencée ne change plus ; un changement prévient les deux équipes et les remplacements touchés.
 export async function changerSemaines(base: Base, acteur: Acteur, annee: number, choix: Record<string, number>, maintenant: string, reglage: Reglage): Promise<void> {
 	exigerAnnee(annee);
 	await exigerGestion(base, acteur, maintenant);
-	const [ligne] = await base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee));
+	const [[ligne], changees] = await base.batch([base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)), base.select().from(semaineChangee).where(and(gte(semaineChangee.debut, `${annee}-01-01`), lte(semaineChangee.debut, `${annee}-12-31`)))]);
 	if (!ligne || ligne.ordre === '[]') throw new DonneeInvalide('Réglez d’abord le roulement');
 	const ordre = JSON.parse(ligne.ordre) as number[];
-	const toutes = semainesDe(annee, reglage);
+	const toutes = semainesCalculees(annee, ligne.ordre, changees, reglage);
 	const debuts = new Map(Object.entries(choix));
 	for (const debut of debuts.keys()) if (!toutes.some((s) => s.debut === debut)) throw new DonneeInvalide('Semaine inconnue');
 	await exigerEquipes(base, [...new Set(debuts.values())]);
+	const changements = [...debuts].map(([debut, apres]) => ({ semaine: toutes.find((s) => s.debut === debut)!, apres })).filter((c) => c.semaine.equipeId !== c.apres);
+	if (ligne.publieeLe !== null) for (const c of changements) exigerAVenir(c.semaine, maintenant);
 	const ecritures = [];
 	for (const [debut, equipeId] of debuts) {
 		const i = toutes.findIndex((s) => s.debut === debut);
@@ -150,7 +156,74 @@ export async function changerSemaines(base: Base, acteur: Acteur, annee: number,
 				: base.insert(semaineChangee).values({ debut, equipeId }).onConflictDoUpdate({ target: semaineChangee.debut, set: { equipeId } })
 		);
 	}
-	await base.batch([journalPlanning(base, acteur, 'changer_semaines', { annee, semaines: debuts.size }, maintenant), ...ecritures]);
+	const avisChanges = ligne.publieeLe !== null ? await avisSemainesChangees(base, changements.map((c) => ({ semaine: c.semaine, apres: c.apres })), maintenant) : [];
+	await base.batch([journalPlanning(base, acteur, 'changer_semaines', { annee, semaines: debuts.size }, maintenant), ...ecritures, ...avisChanges]);
+}
+
+// Une semaine commencée (ou passée) ne change plus d'équipe.
+export function exigerAVenir(s: SemaineCalculee, maintenant: string) {
+	const debut = s.periodes[0]?.debut ?? s.debut;
+	if (debut <= maintenant.slice(0, 16)) throw new DonneeInvalide(`Semaine du ${jourEnLettres(s.debut)} commencée : son équipe ne change plus`);
+}
+
+const ETATS_EN_JEU = ['attente', 'a_valider', 'conclue'] as const;
+
+// Les demandes de remplacement (ou d'échange) conclues ou en cours dont une période tombe dans la semaine.
+async function demandesDeSemaines(base: Base, semaines: SemaineCalculee[]) {
+	if (semaines.length === 0) return [];
+	const bornes = (s: SemaineCalculee) => ({ debut: s.periodes[0]?.debut ?? `${s.debut}T00:00`, fin: s.periodes.at(-1)?.fin ?? `${ajouterJours(s.debut, 7)}T00:00` });
+	// Une demande (un échange surtout) peut commencer bien avant la semaine : on lit large, le recoupement fait le tri.
+	const du = ajouterJours(semaines.map((s) => s.debut).sort()[0]!, -366);
+	const au = ajouterJours(semaines.map((s) => s.debut).sort().at(-1)!, 7);
+	const nom = (colonne: SQLWrapper) => sql<string>`coalesce((select p.prenom || ' ' || p.nom from personne p where p.id = ${colonne}), '')`;
+	const lignes = await base
+		.select({ genre: demandeRemplacement.genre, etat: demandeRemplacement.etat, demandeurId: demandeRemplacement.demandeurId, remplacantId: demandeRemplacement.remplacantId, periodes: demandeRemplacement.periodes, periodesCible: demandeRemplacement.periodesCible, demandeur: nom(demandeRemplacement.demandeurId).as('nom_demandeur'), remplacant: nom(demandeRemplacement.remplacantId).as('nom_remplacant') })
+		.from(demandeRemplacement)
+		.where(and(inArray(demandeRemplacement.etat, [...ETATS_EN_JEU]), inArray(demandeRemplacement.genre, ['remplacement', 'echange']), gte(demandeRemplacement.debut, du), lte(demandeRemplacement.debut, `${au}T23:59`)))
+		.orderBy(asc(demandeRemplacement.debut));
+	return semaines.flatMap((s) => {
+		const b = bornes(s);
+		return lignes.flatMap((d) => {
+			const dedans = [...(JSON.parse(d.periodes) as Periode[]), ...(d.periodesCible ? (JSON.parse(d.periodesCible) as Periode[]) : [])].filter((p) => p.debut < b.fin && b.debut < p.fin);
+			if (dedans.length === 0) return [];
+			const quand = texteDemande(dedans);
+			const qui = d.etat === 'conclue' ? (d.genre === 'echange' ? `${d.demandeur} échange avec ${d.remplacant}` : `${d.demandeur} remplacé par ${d.remplacant}`) : d.remplacantId !== null ? `${d.demandeur} remplacé par ${d.remplacant} (à valider)` : `${d.demandeur} cherche un remplaçant`;
+			return [{ semaine: s.debut, quand, texte: `${quand[0]!.toUpperCase()}${quand.slice(1)} : ${qui}`, conclu: d.etat === 'conclue', personnes: d.remplacantId !== null ? [d.demandeurId, d.remplacantId] : [d.demandeurId] }];
+		});
+	});
+}
+
+// Pour le chef, avant de changer l'équipe d'une semaine : les remplacements qui seront touchés.
+export async function remplacementsDeSemaine(base: Base, acteur: Acteur, annee: number, debut: string, maintenant: string, reglage: Reglage): Promise<{ texte: string; conclu: boolean; personnes: number[] }[]> {
+	exigerAnnee(annee);
+	await exigerGestion(base, acteur, maintenant);
+	const [[ligne], changees] = await base.batch([base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)), base.select().from(semaineChangee).where(and(gte(semaineChangee.debut, `${annee}-01-01`), lte(semaineChangee.debut, `${annee}-12-31`)))]);
+	const s = semainesCalculees(annee, ligne?.ordre, changees, reglage).find((x) => x.debut === debut);
+	if (!s) return [];
+	return (await demandesDeSemaines(base, [s])).map(({ texte, conclu, personnes }) => ({ texte, conclu, personnes }));
+}
+
+// Les avis d'une année publiée dont des semaines changent d'équipe : les agents des deux équipes, puis les personnes des remplacements touchés.
+export async function avisSemainesChangees(base: Base, changements: { semaine: SemaineCalculee; apres: number }[], maintenant: string) {
+	if (changements.length === 0) return [];
+	const [equipes, agents, affectations] = await base.batch([
+		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe),
+		base.select({ id: personne.id }).from(personne).where(inArray(personne.statut, [...STATUTS_AVEC_ACCES])),
+		base.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe)
+	]);
+	const demandes = await demandesDeSemaines(base, changements.map((c) => c.semaine));
+	const nomEquipe = (id: number) => equipes.find((e) => e.id === id)?.nom ?? 'une autre équipe';
+	return changements.flatMap(({ semaine: s, apres }) => {
+		const phrase = `la semaine du ${jourEnLettres(s.debut)} passe de l’${nomEquipe(s.equipeId)} à l’${nomEquipe(apres)}`;
+		const touchees = demandes.filter((d) => d.semaine === s.debut);
+		// Qui a un remplacement touché reçoit cet avis-là, pas en plus celui de son équipe.
+		const parRemplacement = new Set(touchees.flatMap((d) => d.personnes));
+		const ids = agents.filter((a) => !parRemplacement.has(a.id) && [s.equipeId, apres].includes(equipeLe(affectations.filter((x) => x.personneId === a.id), s.debut) ?? 0)).map((a) => a.id);
+		return [
+			...avis(base, ids, 'semaine', `${phrase[0]!.toUpperCase()}${phrase.slice(1)}.`, '/planning', maintenant),
+			...touchees.flatMap((d) => avis(base, [...new Set(d.personnes)], 'semaine', `Votre remplacement (${d.quand}) est touché : ${phrase}. Voyez-le avec votre chef de garde.`, '/remplacements', maintenant))
+		];
+	});
 }
 
 export async function noterFete(base: Base, acteur: Acteur, annee: number, fete: Fete, equipeId: number | null, maintenant: string): Promise<void> {
@@ -211,39 +284,43 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 		]);
 		return lignes[0]!.id;
 	}
-	const [existante] = await base
-		.select({ annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture })
-		.from(manoeuvre)
-		.leftJoin(publication, eq(publication.id, manoeuvre.publicationId))
-		.where(eq(manoeuvre.id, d.id));
+	const [existante] = await base.select(colonnesExistante).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(eq(manoeuvre.id, d.id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
+	await base.batch([journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id), ...ecrituresModification(base, d.id, existante, valeurs, maintenant)]);
+	return d.id;
+}
+
+// Ce qu'il faut savoir d'une manœuvre enregistrée pour la modifier.
+export const colonnesExistante = { annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture };
+type Existante = { annuleeLe: string | null; publicationId: number | null; debut: string; convoques: string; ouverture: string | null; cloture: string | null };
+type Valeurs = Awaited<ReturnType<typeof exigerManoeuvre>>;
+
+// Les écritures d'une modification (à la main ou par le fichier).
+export function ecrituresModification(base: Base, id: number, existante: Existante, valeurs: Valeurs, maintenant: string) {
 	// Déjà annoncée : sa publication suit (les convoqués sont prévenus par manoeuvreChangee). Même date : le sondage garde sa clôture ;
 	// nouvelle date : la clôture est recalculée et la relance pourra repartir.
 	const memeDate = existante.debut === valeurs.debut;
 	// Les échanges entre agents restent, tant que la manœuvre ne convoque pas tout le centre.
 	const avant = JSON.parse(existante.convoques) as Convocation;
-	if (!Array.isArray(avant) && avant !== 'tous' && valeurs.convoques !== '"tous"') valeurs.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(valeurs.convoques) });
+	const v = { ...valeurs };
+	if (!Array.isArray(avant) && avant !== 'tous' && v.convoques !== '"tous"') v.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(v.convoques) });
 	const cloture = memeDate ? existante.cloture : null;
-	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(valeurs, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
-	await base.batch([base.update(manoeuvre).set({ ...valeurs, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, d.id)), ...suivre, journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id)]);
-	return d.id;
+	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(v, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
+	return [base.update(manoeuvre).set({ ...v, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, id)), ...suivre];
 }
+
+// Retirer : déjà annoncée, elle est annulée et sa publication le dit ; sinon, elle est effacée.
+export const ecrituresRetrait = (base: Base, id: number, publicationId: number | null, maintenant: string) =>
+	publicationId !== null
+		? [base.update(manoeuvre).set({ annuleeLe: maintenant }).where(eq(manoeuvre.id, id)), base.update(publication).set({ annuleeLe: maintenant, modifieeLe: maintenant }).where(eq(publication.id, publicationId))]
+		: [base.delete(manoeuvre).where(eq(manoeuvre.id, id))];
 
 export async function supprimerManoeuvre(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<void> {
 	await exigerGestion(base, acteur, maintenant);
 	const [existante] = await base.select().from(manoeuvre).where(eq(manoeuvre.id, id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
 	if (existante.debut <= maintenant.slice(0, 16)) throw new DonneeInvalide('Manœuvre passée');
-	// Déjà annoncée : elle est annulée, sa publication reste et le dit.
-	if (existante.publicationId !== null) {
-		await base.batch([
-			base.update(manoeuvre).set({ annuleeLe: maintenant }).where(eq(manoeuvre.id, id)),
-			base.update(publication).set({ annuleeLe: maintenant, modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId)),
-			journalPlanning(base, acteur, 'annuler_manoeuvre', {}, maintenant, id)
-		]);
-		return;
-	}
-	await base.batch([base.delete(manoeuvre).where(eq(manoeuvre.id, id)), journalPlanning(base, acteur, 'supprimer_manoeuvre', {}, maintenant, id)]);
+	await base.batch([journalPlanning(base, acteur, existante.publicationId !== null ? 'annuler_manoeuvre' : 'supprimer_manoeuvre', {}, maintenant, id), ...ecrituresRetrait(base, id, existante.publicationId, maintenant)]);
 }
 
 export async function publierAnnee(base: Base, acteur: Acteur, annee: number, maintenant: string): Promise<void> {
@@ -304,8 +381,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	// Dès la mi-décembre de l'année d'avant : une semaine commencée fin décembre peut être encore en cours.
 	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4))) - 1}-12-18`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
-	const [[annees, changees, manoeuvres, vacances, equipes, , conclues], affectations, gerer] = await Promise.all([
-		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`)]),
+	const [[annees, changees, manoeuvres, vacances, equipes, , conclues, lignesPlages], affectations, gerer] = await Promise.all([
+		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`), requetePlagesPubliees(base, debutLecture, finLecture)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
@@ -314,9 +391,15 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const semainesAnnee = publiees.get(annee);
 	if (!semainesAnnee) return { publiee: false, annee, peutPreparer: gerer };
 
-	const mienne = (s: SemaineCalculee) => equipeLe(affectations, s.debut) === s.equipeId;
-	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	const prochaineSemaine = toutes.find((s) => mienne(s) && s.periodes.at(-1)!.fin > maintenant);
+	// Mes heures de la semaine : celles de mon équipe, ou mes plages de l'été publié (renfort compris, vacances retirées).
+	const plages = lignesPlages.map(lirePlage);
+	const miennes = (s: SemaineCalculee) => heuresDe(s, equipeLe(affectations, s.debut), moi, plages);
+	const avecMesHeures = (s: SemaineCalculee) => {
+		const h = miennes(s);
+		return h.length ? { ...s, periodes: h, mienne: true } : { ...s, mienne: false };
+	};
+	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s).map(avecMesHeures);
+	const prochaineSemaine = toutes.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
 	const prochaineManoeuvre = vues.find((m) => m.debut >= maintenant.slice(0, 16) && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
@@ -341,7 +424,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		annee,
 		peutPreparer: gerer,
 		equipes: equipes.map(({ id, nom, couleur }) => ({ id, nom, couleur })),
-		semaines: semainesAnnee.map((s) => ({ ...s, mienne: mienne(s) })),
+		semaines: semainesAnnee.map(avecMesHeures),
 		manoeuvres: vues.filter((m) => m.debut.startsWith(`${annee}-`)).map((m) => ({ ...m, convoque: convoqueA(m) })),
 		vacances: vacances.filter((v) => v.debut <= `${annee}-12-31` && v.fin >= `${annee}-01-01`) as Vacances[],
 		feries: feries(annee),

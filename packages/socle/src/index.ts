@@ -31,12 +31,16 @@ export { abonner, notifierConvoques, couper, desabonner, effacerVieillesNotifica
 export { accepter, acceptees, ajouterRessource, annuler, aValider, calendrier, chargerMaterielFictif, effacerVieillesReservations, mesReservations, modifierRessource, nombreAValider, refuser, reserver, ressourcesAGerer, ressourcesDe, retirerRessource, type DemandeReservation, type Ressource, type VueReservation } from './reservations.ts';
 export { chevauche, jourCourt, joursEntre, periodeCourte, restantParJour, tientUnePlace, type Periode, type Prise } from './reservations-calcul.ts';
 export { calculerAnnee, equipeA, feries, fetes, numeroSemaine, periodesDeLaSemaine, rangDuJour, semainesDe, tourDesFetes, type Fete, type Periode as PeriodePlanning, type Reglage, type SemaineCalculee } from './planning/calendrier.ts';
-export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPreparer, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances, supprimerManoeuvre, type Convoques as ConvoquesManoeuvre, type DonneesManoeuvre, type EquipePlanning, type ManoeuvreVue, type PlanningAgent, type Preparation, type Vacances } from './planning/annee.ts';
+export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPreparer, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances, supprimerManoeuvre, type Convoques as ConvoquesManoeuvre, type DonneesManoeuvre, type EquipePlanning, type ManoeuvreVue, type PlanningAgent, type Preparation, type Vacances } from './planning/annee.ts';
 export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts';
 export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
 export { chargerPlanningFictif } from './planning/fictif.ts';
+export { apercuPlanning, appliquerPlanning, donneesFichierPlanning, FEUILLES as FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from './planning/fichier.ts';
+export { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEte, relancerEte, reponsesEte, retirerMesVacances, toutLete, type EteVue } from './planning/ete.ts';
+export { ajusterPlage, eteAPreparer, proposerEte, publierEte } from './planning/repartition.ts';
 export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
+export { armement, ENGIN_CALCULE, enregistrerArmement, LIBELLES_NIVEAU, LIBELLES_POSTE, lireArmement, NIVEAUX, POSTES, postesDe, type Engin, type Niveau, type Poste, type Postes, type ReglageArmement } from './armement.ts';
 export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
 export { accepterDemande, annulerDemande, demanderRemplacement, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';
 export { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';

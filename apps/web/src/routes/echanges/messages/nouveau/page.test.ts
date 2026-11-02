@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
 
 const personne = (id: number, prenom: string, nom: string, sous: string, couleur: string | null = '#1565c0', surnom: string | null = null) => ({ id, prenom, nom, surnom, couleur, sous, lien: `/echanges/messages/a/${id}` });
-const elodie = { ...personne(4, 'Élodie', 'Chef-Équipe', 'Chef d’équipe', '#d4a017'), lien: '/echanges/messages/12' };
+const elodie = { ...personne(4, 'Élodie', 'Chef-Équipe', 'Chef de garde', '#d4a017'), lien: '/echanges/messages/12' };
 const personnes = [personne(2, 'Antoine', 'Adjoint', 'Adjoint', null), elodie, personne(6, 'Manon', 'Membre', 'Équipe 3', '#1565c0', 'Mamie')];
 const pourVous = {
 	chefs: [elodie],
@@ -36,10 +36,10 @@ describe('nouveau message', () => {
 		expect(liens(page)).toContain('/echanges/messages/nouveau/groupe');
 	});
 
-	it('pour vous : le chef d’équipe, le groupe de l’équipe et celui du comité, avec leurs liens', () => {
+	it('pour vous : le chef de garde, le groupe de l’équipe et celui du comité, avec leurs liens', () => {
 		const t = section(html(), 'Pour vous');
 		expect(liens(t)).toEqual(['/echanges/messages/12', '/echanges/messages/nouveau/groupe?equipe=1', '/echanges/messages/nouveau/groupe?comite=3']);
-		expect(texte(t)).toContain('Élodie Chef-Équipe votre chef d’équipe');
+		expect(texte(t)).toContain('Élodie Chef-Équipe votre chef de garde');
 		expect(texte(t)).toContain('Groupe avec l’équipe 1 9 membres, ajoutés d’un coup');
 		expect(texte(t)).toContain('Groupe avec l’Amicale 1 membre du comité');
 		// L'équipe a son numéro sur sa teinte, le comité son icône.

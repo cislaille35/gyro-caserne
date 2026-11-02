@@ -12,6 +12,63 @@ async function sansViolation(page: Page) {
 test.describe('chef : préparer l’année', () => {
 	test.use({ storageState: ETAT_SUPER });
 
+	test('été : les quatre étapes, proposer, une plage et le recalcul dans un panneau', async ({ page }) => {
+		test.setTimeout(90_000);
+		const annee = new Date().getFullYear();
+		await page.goto(`/planning/preparer?annee=${annee}`);
+		await page.getByRole('link', { name: `Été ${annee}` }).click();
+		await expect(page.getByRole('heading', { level: 1, name: `Été ${annee}` })).toBeVisible();
+		const etapes = page.getByRole('navigation', { name: 'Étapes' });
+		await etapes.getByRole('link', { name: 'Période' }).click();
+		await expect(page.getByText('Étape 1 sur 4')).toBeVisible();
+		// Les deux tailles d'écran jouent ce test : l'une a pu ouvrir l'été avant l'autre.
+		const ouvrir = page.getByRole('button', { name: 'Ouvrir la saisie des vacances' });
+		if (await ouvrir.count()) await ouvrir.click();
+		await page.getByRole('link', { name: 'Modifier la période' }).click();
+		await expect(page.getByRole('dialog', { name: 'Période de l’été' })).toBeVisible();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await etapes.getByRole('link', { name: 'Vacances' }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Vacances' })).toBeVisible();
+		await expect(page.getByText('Sans réponse', { exact: true })).toBeVisible();
+		await sansViolation(page);
+		await etapes.getByRole('link', { name: 'Répartition' }).click();
+		await expect(page.getByRole('heading', { level: 2, name: 'Répartition' })).toBeVisible();
+		const proposer = page.getByRole('button', { name: 'Proposer la répartition' });
+		if (await proposer.count()) {
+			await proposer.click();
+			await expect(page.getByText(/Répartition proposée/)).toBeVisible();
+		}
+		await expect(page.getByText(/FPT armé \d+\/\d+|à revoir/).first()).toBeVisible();
+		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toBeVisible();
+		await sansViolation(page);
+		await page.locator('details.semaine summary').first().click();
+		await page.locator('.plages a').first().click();
+		await expect(page.getByRole('dialog')).toBeVisible();
+		await expect(page.getByRole('heading', { level: 3, name: 'Ajouter un agent' })).toBeVisible();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await page.getByText('Plus d’actions').click();
+		await page.getByRole('link', { name: 'Recalculer la proposition…' }).click();
+		await expect(page.getByRole('dialog', { name: 'Recalculer la proposition ?' })).toBeVisible();
+		await page.getByRole('link', { name: 'Annuler' }).click();
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+	});
+
+	test('armement : un engin dans un panneau, − et + annoncés', async ({ page }) => {
+		await page.goto('/reglages/armement');
+		await page.getByRole('link', { name: 'Modifier le FPT' }).click();
+		const panneau = page.getByRole('dialog', { name: 'FPT' });
+		await expect(panneau).toBeVisible();
+		await panneau.getByRole('button', { name: /^Un poste Agent de plus/ }).click();
+		await expect(panneau.getByRole('status').filter({ hasText: 'Agent : 3' })).toHaveCount(1);
+		await panneau.getByRole('button', { name: /^Un poste Agent de moins/ }).click();
+		await sansViolation(page);
+		await panneau.getByRole('button', { name: 'Enregistrer' }).click();
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await expect(page.getByText('6 postes : CA tout engins, conducteur, 2 CE, 2 agents')).toBeVisible();
+	});
+
 	test('les cinq étapes, une semaine ouverte, ajouter une manœuvre dans le panneau', async ({ page }) => {
 		test.setTimeout(90_000);
 		const annee = new Date().getFullYear();
@@ -29,13 +86,13 @@ test.describe('chef : préparer l’année', () => {
 			await expect(page.getByRole('heading', { level: 2, name: etape })).toBeVisible();
 			await sansViolation(page);
 		}
-		// Toucher une semaine ouvre le choix d'équipe.
-		await page.locator('a.case').first().click();
+		// Toucher une semaine à venir ouvre le choix d'équipe (une semaine commencée ne change plus).
+		await page.locator('a.case').last().click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toBeVisible();
 		await sansViolation(page);
 		await page.getByRole('link', { name: 'Fermer' }).click();
 		await expect(page.getByRole('group', { name: 'Quelle équipe d’astreinte ?' })).toHaveCount(0);
-		await expect(page.locator('a.case').first()).toBeFocused();
+		await expect(page.locator('a.case').last()).toBeFocused();
 
 		await page.getByRole('navigation', { name: 'Étapes' }).getByRole('link', { name: 'Manœuvres' }).click();
 		// Au clavier : le panneau est modal (focus dedans, page inerte), Échap le ferme et rend le focus à son lien.

@@ -86,10 +86,10 @@ describe('mursDe', () => {
 		await expect(exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'lire')).rejects.toBeInstanceOf(RefusDroit);
 	});
 
-	it('chef d’équipe : lit, publie et modère le mur de son équipe, même sans y être affecté', async () => {
+	it('chef de garde : lit, publie et modère le mur de son équipe, même sans y être affecté', async () => {
 		const { base, nouvelle, nommer, e2 } = await jeu();
 		const id = await nouvelle('Alice');
-		await nommer(id, 'Chef d’équipe', { type: 'equipe', id: e2.id });
+		await nommer(id, 'Chef de garde', { type: 'equipe', id: e2.id });
 		expect(resume(await mursDe(base, acteur(id), aujourdhui))).toEqual(['centre ---', 'vie P--', `equipe:${e2.id} PM-`]);
 	});
 
@@ -147,7 +147,7 @@ describe('mursDe', () => {
 	it('chef d’une équipe inactive : lit et modère, ne publie pas', async () => {
 		const { base, nouvelle, nommer, e1 } = await jeu();
 		const id = await nouvelle('Alice');
-		await nommer(id, 'Chef d’équipe', { type: 'equipe', id: e1.id });
+		await nommer(id, 'Chef de garde', { type: 'equipe', id: e1.id });
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, e1.id));
 		expect(resume(await mursDe(base, acteur(id), aujourdhui))[2]).toBe(`equipe:${e1.id} -ML`);
 		expect((await exigerMur(base, acteur(id), `equipe:${e1.id}`, aujourdhui, 'moderer')).peutModerer).toBe(true);
@@ -255,7 +255,7 @@ describe('audiences', () => {
 		await nouvelle('Ext', { exterieur: true });
 		await affecter(alice, e1.id);
 		await affecter(bruno, e1.id, hier);
-		await nommer(bruno, 'Chef d’équipe', { type: 'equipe', id: e2.id });
+		await nommer(bruno, 'Chef de garde', { type: 'equipe', id: e2.id });
 		await nommer(alice, 'Membre de comité', { type: 'comite', id: amicale.id });
 		await nommer(chef, 'Chef de centre', { type: 'centre' });
 		base.requetes = 0;

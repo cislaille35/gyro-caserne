@@ -27,7 +27,7 @@ const nuitLundi9 = { debut: '2026-11-09T18:00', fin: '2026-11-10T06:00' };
 const nuitMardi10 = { debut: '2026-11-10T18:00', fin: '2026-11-11T06:00' };
 const nuitLundi16 = { debut: '2026-11-16T18:00', fin: '2026-11-17T06:00' };
 
-// Chef de centre (sans équipe) ; équipe 1 : Alice (CA1), David, Élodie (chef d'équipe) ; Bruno (équipe 2) ; Chloé (équipe 3, CA1).
+// Chef de centre (sans équipe) ; équipe 1 : Alice (CA1), David, Élodie (chef de garde) ; Bruno (équipe 2) ; Chloé (équipe 3, CA1).
 async function jeu() {
 	const base = await baseDeTest();
 	await chargerJeuDeDepart(base, centreExemple);
@@ -100,7 +100,7 @@ describe('demande ouverte', () => {
 		expect(await avisDe(n.alice)).toEqual(['acceptee']);
 	});
 
-	it('remplaçant qui a les aptitudes : conclue, le chef d’équipe est informé', async () => {
+	it('remplaçant qui a les aptitudes : conclue, le chef de garde est informé', async () => {
 		const { base, alice, chloe, n, demande, avisDe } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
 		expect(await accepterDemande(base, chloe, id, maintenant, reglage)).toBe('conclue');
@@ -111,7 +111,7 @@ describe('demande ouverte', () => {
 		expect(disponibles(ctx, n.david, [nuitLundi9]).map((x) => x.id)).not.toContain(n.chloe);
 	});
 
-	it('aptitude contrôlée manquante : à valider par le chef d’équipe ; refusé, la demande repart sans ce remplaçant', async () => {
+	it('aptitude contrôlée manquante : à valider par le chef de garde ; refusé, la demande repart sans ce remplaçant', async () => {
 		const { base, alice, bruno, chloe, elodie, david, n, demande, avisDe } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
 		expect(await accepterDemande(base, bruno, id, maintenant, reglage)).toBe('a_valider');

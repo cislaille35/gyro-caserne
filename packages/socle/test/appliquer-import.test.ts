@@ -277,7 +277,7 @@ describe('appliquerOperation : enchaînement', () => {
 		fichier.lignes.find((l) => l.cellules[0] === String(paul))!.cellules[col('Équipe')] = 'Équipe 2';
 		fichier.lignes = fichier.lignes.filter((l) => l.cellules[0] !== String(zoe));
 		const arrivee = (numero: number, valeurs: Record<string, string>) => fichier.lignes.push({ numero, cellules: fichier.entetes.map((e) => valeurs[e] ?? '') });
-		arrivee(10, { 'E-mail': 'nina.roux@exemple.fr', Prénom: 'Nina', Nom: 'Roux', Profil: 'Agent', Équipe: 'Équipe 3', 'Chef d’équipe': 'Oui', 'Comité : Amicale': 'Membre de comité' });
+		arrivee(10, { 'E-mail': 'nina.roux@exemple.fr', Prénom: 'Nina', Nom: 'Roux', Profil: 'Agent', Équipe: 'Équipe 3', 'Chef de garde': 'Oui', 'Comité : Amicale': 'Membre de comité' });
 		arrivee(11, { 'E-mail': 'omar.ours@exemple.fr', Prénom: 'Omar', Nom: 'Ours', Profil: 'Agent' });
 
 		const apercu = await apercuImport(base, acteur, fichier, aujourdhui, reservees);
@@ -295,7 +295,7 @@ describe('appliquerOperation : enchaînement', () => {
 		const rolesNina = await base.select().from(attribution).where(eq(attribution.personneId, nina));
 		expect(rolesNina.map((a) => [a.responsabiliteId, a.perimetreId, a.fin])).toEqual(
 			expect.arrayContaining([
-				[resp('Chef d’équipe'), e3, null],
+				[resp('Chef de garde'), e3, null],
 				[resp('Membre de comité'), expect.any(Number), null]
 			])
 		);

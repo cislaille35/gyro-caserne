@@ -14,7 +14,7 @@ const roles = [
 	{ responsabiliteId: 6, nom: 'Membre de comité', portee: 'comite', icone: 'groupe', perimetres: [{ type: 'comite', id: 2, nom: 'Amicale' }], titulaires: [] },
 	{
 		responsabiliteId: 7,
-		nom: 'Chef d’équipe',
+		nom: 'Chef de garde',
 		portee: 'equipe',
 		icone: 'casque',
 		perimetres: [
@@ -43,14 +43,14 @@ describe('/nominations : cartes', () => {
 		expect(carte(page, 'Référent engins')).toContain('Tout le centre');
 		expect(carte(page, 'Référent engins')).toContain('--icone-camion-fond');
 		expect(carte(page, 'Membre de comité')).toContain('Amicale');
-		expect(carte(page, 'Chef d’équipe')).toContain('Équipe 1, Équipe 2');
+		expect(carte(page, 'Chef de garde')).toContain('Équipe 1, Équipe 2');
 	});
 
 	it('montre les titulaires en pastilles : de vrais boutons « Retirer <nom> »', () => {
 		const page = html({ data, form: null });
 		expect(carte(page, 'Référent engins')).toMatch(/<button[^>]*aria-label="Retirer Alice Martin"[^>]*>/);
 		expect(carte(page, 'Référent engins')).toMatch(/<button[^>]*name="retirer"[^>]*value="1"/);
-		expect(carte(page, 'Chef d’équipe')).toMatch(/<button[^>]*aria-label="Retirer Bruno Martin — Équipe 1"/);
+		expect(carte(page, 'Chef de garde')).toMatch(/<button[^>]*aria-label="Retirer Bruno Martin — Équipe 1"/);
 		// Sans JavaScript, les boutons passent par le formulaire de l'adresse.
 		expect(page).toMatch(/<form[^>]*id="choix"[^>]*method="GET"|<form[^>]*method="GET"[^>]*id="choix"/);
 	});
@@ -110,7 +110,7 @@ describe('/nominations : panneau « Nommer »', () => {
 		const comite = carte(html({ data: { ...data, nommer: 6 }, form: null }), 'Membre de comité');
 		expect(comite).toMatch(/<input type="hidden" name="perimetre" value="2"/);
 		expect(comite).not.toMatch(/<select[^>]*name="perimetre"/);
-		const equipe = carte(html({ data: { ...data, nommer: 7 }, form: null }), 'Chef d’équipe');
+		const equipe = carte(html({ data: { ...data, nommer: 7 }, form: null }), 'Chef de garde');
 		expect(equipe).toMatch(/<select[^>]*name="perimetre"/);
 		expect(equipe).toContain('>Équipe</label>');
 	});
@@ -180,7 +180,7 @@ describe('/nominations : recherche', () => {
 		expect(parRole).toContain('>Référent engins</h2>');
 		expect(parRole).not.toContain('>Membre de comité</h2>');
 		const parAgent = html({ data: { ...data, recherche: 'BRUNO' }, form: null });
-		expect(parAgent).toContain('>Chef d’équipe</h2>');
+		expect(parAgent).toContain('>Chef de garde</h2>');
 		expect(parAgent).not.toContain('>Référent engins</h2>');
 		expect(parAgent).toMatch(/<input[^>]*type="search"[^>]*name="q"[^>]*value="BRUNO"|<input[^>]*value="BRUNO"[^>]*name="q"/);
 	});

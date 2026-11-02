@@ -165,7 +165,7 @@ function exigerEchangeManoeuvre(ctx: Contexte, manoeuvres: ManoeuvreLue[], d: { 
 	return { m1, m2 };
 }
 
-// Échanger sa place à une manœuvre contre celle d'un collègue à une autre. Pas de validation : le chef d'équipe est informé.
+// Échanger sa place à une manœuvre contre celle d'un collègue à une autre. Pas de validation : le chef de garde est informé.
 export async function proposerEchangeManoeuvre(base: Base, acteur: Acteur, d: { manoeuvreId: number; cibleId: number; manoeuvreCibleId: number; mot?: string | null }, maintenant: string, reglage: Reglage): Promise<number> {
 	const moi = await exigerDemander(base, acteur, maintenant);
 	const [ctx, manoeuvres] = await Promise.all([lireContexte(base, maintenant, reglage), lireManoeuvres(base, maintenant)]);
@@ -308,7 +308,7 @@ export async function accepterDemande(base: Base, acteur: Acteur, id: number, ma
 			.set({ etat, remplacantId: moi, manque: manquantes.length > 0 ? JSON.stringify(manquantes) : null, accepteeLe: maintenant, trancheePar: `personne:${moi}`, trancheeLe: maintenant })
 			.where(and(eq(demandeRemplacement.id, id), eq(demandeRemplacement.etat, 'attente'))),
 		journalDemande(base, moi, 'accepter_remplacement', id, { etat, manque: manquantes }, maintenant),
-		...avis(base, [d.demandeurId], id, 'acceptee', etat === 'a_valider' ? `${texte} · à valider par le chef d’équipe` : texte, url(id), maintenant, si),
+		...avis(base, [d.demandeurId], id, 'acceptee', etat === 'a_valider' ? `${texte} · à valider par le chef de garde` : texte, url(id), maintenant, si),
 		...avis(base, chefs, id, etat === 'a_valider' ? 'a_valider' : 'informe', etat === 'a_valider' ? `${texte} · manque : ${manquantes.join(', ')}` : `${texte} · remplace ${nomDe(ctx, d.demandeurId)}`, url(id), maintenant, si)
 	]);
 	const [apres] = await base.select({ remplacantId: demandeRemplacement.remplacantId }).from(demandeRemplacement).where(eq(demandeRemplacement.id, id));
@@ -407,7 +407,7 @@ export async function desister(base: Base, acteur: Acteur, id: number, maintenan
 }
 
 function exigerValideur(ctx: Contexte, d: LigneDemande, moi: number) {
-	if (!valideurs(ctx.chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi)) throw new RefusDroit('VALIDER_REMPLACEMENT', d.equipeId === null ? { type: 'centre' } : { type: 'equipe', id: d.equipeId }, 'Réservé au chef d’équipe');
+	if (!valideurs(ctx.chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi)) throw new RefusDroit('VALIDER_REMPLACEMENT', d.equipeId === null ? { type: 'centre' } : { type: 'equipe', id: d.equipeId }, 'Réservé au chef de garde');
 }
 
 export async function valider(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage): Promise<void> {
@@ -440,7 +440,7 @@ export async function refuserValidation(base: Base, acteur: Acteur, id: number, 
 	const propre = motDe(motif);
 	const texte = [`${nomDe(ctx, d.remplacantId)} ne remplacera pas ${nomDe(ctx, d.demandeurId)}`, texteDe(ctx, d), ...(propre ? [propre] : [])].join(' · ');
 	await base.batch([
-		...rouvrir(base, ctx, d, destinataires, moi, propre ?? 'Refusé par le chef d’équipe', maintenant),
+		...rouvrir(base, ctx, d, destinataires, moi, propre ?? 'Refusé par le chef de garde', maintenant),
 		journalDemande(base, moi, 'refuser_validation', id, {}, maintenant),
 		...avis(base, [d.demandeurId], id, 'refus_chef', texte, url(id), maintenant, rouverte(d, maintenant)),
 		// Le remplaçant écarté ne voit plus la demande : son avis mène à « Pour moi ».

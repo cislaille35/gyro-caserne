@@ -15,7 +15,7 @@ const groupes = [
 		titre: 'Équipe 1',
 		equipe: { couleur: '#b3121f', chefs: ['A. Martin'] },
 		personnes: [
-			{ id: 1, prenom: 'Alice', nom: 'Martin', grade: 'Sergent-chef', roles: ['Chef d’équipe (Équipe 1)', 'Rapporteur (Amicale)'] },
+			{ id: 1, prenom: 'Alice', nom: 'Martin', grade: 'Sergent-chef', roles: ['Chef de garde (Équipe 1)', 'Rapporteur (Amicale)'] },
 			{ id: 2, prenom: 'Paul', nom: 'Durand', grade: null, roles: [] }
 		]
 	},
@@ -65,9 +65,9 @@ describe('/agents : vue de tous', () => {
 		expect(mise).toMatch(/Sans équipe[\s\S]*1 agent</);
 	});
 
-	it('signale en alerte une équipe sans chef d’équipe', () => {
+	it('signale en alerte une équipe sans chef de garde', () => {
 		const mise = html(Layout, { data, children: enfants });
-		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">1 agent · sans chef d’équipe</);
+		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">1 agent · sans chef de garde</);
 		expect(mise.match(/class="resume[^"]*alerte/g)).toHaveLength(1);
 		expect(mise).not.toContain('/nominations');
 	});
@@ -76,10 +76,10 @@ describe('/agents : vue de tous', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toContain('Alice Martin');
 		expect(mise).toContain('Sergent-chef');
-		expect(mise).toMatch(/Sergent-chef(<!--[^>]*-->)* · (<!--[^>]*-->)*<span class="masque[^"]*">Rôles :<\/span> Chef d’équipe \(Équipe 1\) · Rapporteur \(Amicale\)/);
+		expect(mise).toMatch(/Sergent-chef(<!--[^>]*-->)* · (<!--[^>]*-->)*<span class="masque[^"]*">Rôles :<\/span> Chef de garde \(Équipe 1\) · Rapporteur \(Amicale\)/);
 		expect(mise.match(/Rôles/g)).toHaveLength(1);
 		// Une espace entre « Rôles : » (lu seulement) et les rôles, pour le texte lu.
-		expect(mise).toMatch(/Rôles :<\/span> Chef d’équipe/);
+		expect(mise).toMatch(/Rôles :<\/span> Chef de garde/);
 		expect(mise).not.toContain('@exemple.fr');
 		expect(mise).not.toContain('aria-pressed');
 		expect(mise).not.toContain('class="statut');
@@ -123,7 +123,7 @@ describe('/agents : gestion', () => {
 		expect(mise).not.toContain('alice@exemple.fr');
 		expect(mise).toMatch(/Alice Martin[\s\S]*Stagiaire[\s\S]*À compléter[\s\S]*Paul Durand/);
 		expect(mise).not.toContain('Opérationnel');
-		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">2 agents · sans chef d’équipe</);
+		expect(mise).toMatch(/class="resume[^"]*alerte[^"]*">2 agents · sans chef de garde</);
 	});
 
 	it('montre l’e-mail dans la sous-ligne quand c’est lui qui répond à la recherche', () => {

@@ -38,7 +38,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Échanger ma place à une manœuvre" phrase="Un collègue va à votre manœuvre, vous allez à la sienne. Il doit accepter ; votre chef d’équipe est prévenu." retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+	<EnTetePage titre="Échanger ma place à une manœuvre" phrase="Un collègue va à votre manœuvre, vous allez à la sienne. Il doit accepter ; votre chef de garde est prévenu." retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
 
 	{#if data.miennes.length === 0}
 		<Vide titre="Aucune manœuvre à échanger." texte="Seules les manœuvres qui convoquent certaines équipes s’échangent, pas celles de tout le centre." action={{ href: '/planning', libelle: 'Voir le planning' }} />
@@ -93,7 +93,7 @@
 				<div class="recap">
 					<p class="fort">Vous proposez à {data.sienne.collegue.prenom} {data.sienne.collegue.nom} d’aller à votre place à {quoi(data.mienne)}, et vous allez à {quoi(data.sienne.manoeuvre)}.</p>
 					<p>{data.sienne.collegue.prenom} doit accepter.</p>
-					<p>Votre chef d’équipe sera informé.</p>
+					<p>Votre chef de garde sera informé.</p>
 				</div>
 				<form method="POST" class="formulaire">
 					<input type="hidden" name="mienne" value={data.mienne.id} />

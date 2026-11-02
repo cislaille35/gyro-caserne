@@ -18,10 +18,10 @@ export function texte(valeur: unknown, libelle: string, max: number, feminin = f
 const ROLES = [
 	['chef_centre', 'Chef de centre'],
 	['chef_centre_adjoint', 'Adjoint'],
-	['chef_equipe', 'Chef d’équipe']
+	['chef_equipe', 'Chef de garde']
 ] as const;
 
-// Premier rôle tenu (Chef de centre, Adjoint, Chef d’équipe), parmi les rôles tenus du jour (requeteTenues).
+// Premier rôle tenu (Chef de centre, Adjoint, Chef de garde), parmi les rôles tenus du jour (requeteTenues).
 export function roleDe(tenues: { personneId: number; type: string; portee: string; systeme: string | null }[], personneId: number): string | null {
 	const siennes = tenuesValides(tenues.filter((t) => t.personneId === personneId));
 	return ROLES.find(([systeme]) => siennes.some((t) => t.systeme === systeme))?.[1] ?? null;

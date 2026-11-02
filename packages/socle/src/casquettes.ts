@@ -62,7 +62,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 		...(tient((l) => l.systeme === 'chef_centre' || l.systeme === 'chef_centre_adjoint') ? [centre] : []),
 		...equipes
 			.filter((e) => tient((l) => l.systeme === 'chef_equipe' && l.perimetreId === e.id))
-			.map((e) => ({ id: `equipe:${e.id}`, nom: `Chef d’équipe · ${e.nom}`, icone: 'casque' as const })),
+			.map((e) => ({ id: `equipe:${e.id}`, nom: `Chef de garde · ${e.nom}`, icone: 'casque' as const })),
 		{ id: 'astreinte', nom: 'Mon astreinte', icone: 'casque' },
 		...[...referents].map(([id, r]) => ({ id: `role:${id}`, ...r })).sort(parNom),
 		...comites.filter((c) => tient((l) => l.type === 'comite' && l.perimetreId === c.id)).map((c) => ({ id: `comite:${c.id}`, nom: c.nom, icone: 'groupe' as const }))
@@ -71,7 +71,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 
 // Les casquettes et ce qui est à décider : pour « Le centre », l'organisation ; pour un rôle ou un comité qui gère une ressource,
 // les demandes de réservation en attente. Chaque lecture une seule fois.
-// Les remplacements à valider vont à la casquette Chef d'équipe de leur équipe, sinon à « Le centre ».
+// Les remplacements à valider vont à la casquette Chef de garde de leur équipe, sinon à « Le centre ».
 async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
 	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
@@ -131,7 +131,7 @@ async function demandesParCasquette(base: Base, liste: Omit<Casquette, 'compte'>
 	return parCasquette;
 }
 
-// Ordre : centre, chef d’équipe, astreinte, référents, comités. Comptent : « Le centre », les chefs d'équipe (remplacements à valider),
+// Ordre : centre, chef de garde, astreinte, référents, comités. Comptent : « Le centre », les chefs de garde (remplacements à valider),
 // et les rôles et comités qui gèrent une ressource.
 export async function casquettesDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<Casquette[]> {
 	return (await lire(base, acteur, aujourdhui, maintenant)).casquettes;
@@ -182,7 +182,7 @@ async function lireADecider(base: Base, aujourdhui: string): Promise<ADecider[]>
 
 	return [
 		...(planning ? [{ texte: `Planning ${suivante} à préparer`, lien: `/planning/preparer?annee=${suivante}` }] : []),
-		...sansChef.map((e) => ({ texte: `${e.nom} sans chef d’équipe`, lien: '/nominations' })),
+		...sansChef.map((e) => ({ texte: `${e.nom} sans chef de garde`, lien: '/nominations' })),
 		...sansTitulaire.map((r) => ({ texte: `${r.nom} : aucun titulaire`, lien: '/nominations' })),
 		...(fiches > 0 ? [{ texte: `${fiches} ${fiches > 1 ? 'fiches' : 'fiche'} à compléter (grade ou date d’entrée manquants)`, lien: '/agents?filtre=a-completer' }] : [])
 	];
