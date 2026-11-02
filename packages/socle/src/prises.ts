@@ -351,7 +351,8 @@ export async function prisesDeLaReleve(base: Base, acteur: Acteur, maintenant: s
 	const releve = releveDe(maintenant, reglage);
 	const [engins, prises, ouvertes, annees, changees, equipes] = await base.batch([
 		base
-			.select({ id: engin.id, nom: engin.nom, immatriculation: engin.immatriculation, typeId: engin.typeId, type: typeEngin.nom, ordreType: typeEngin.ordre, situation: engin.situation, provenance: engin.provenance, etat: engin.etat, partiLe: engin.partiLe })
+			// Pas deux colonnes du même nom dans un batch (D1 n'en garde qu'une) : le nom du type est renommé.
+			.select({ id: engin.id, nom: engin.nom, immatriculation: engin.immatriculation, typeId: engin.typeId, type: sql<string>`${typeEngin.nom}`.as('type'), ordreType: typeEngin.ordre, situation: engin.situation, provenance: engin.provenance, etat: engin.etat, partiLe: engin.partiLe })
 			.from(engin)
 			.innerJoin(typeEngin, eq(typeEngin.id, engin.typeId))
 			.where(ne(engin.situation, 'parti')),

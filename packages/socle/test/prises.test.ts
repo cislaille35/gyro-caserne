@@ -321,6 +321,7 @@ describe('la relève et le retard', () => {
 		const vsav = r.engins.find((e) => e.engin.id === j.vsav)!;
 		expect(vsav.prise).toMatchObject({ etat: 'validee', valideeLe: '2026-10-30T18:40', equipe: r.releve.equipe!.nom });
 		expect(vsav.ouvertes).toBe(1);
+		expect(vsav.engin).toMatchObject({ nom: 'VSAV 1', type: 'VSAV' });
 		expect(r.engins.find((e) => e.engin.id === j.fpt)!.prise).toBeNull();
 	});
 
