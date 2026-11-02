@@ -37,3 +37,5 @@ Format d'une page :
 - [Comment valider un remplacement ?](valider-un-remplacement.md)
 - [Comment échanger ma place à une manœuvre ?](echanger-une-manoeuvre.md)
 - [Comment saisir les aptitudes d'un agent ?](saisir-les-aptitudes.md)
+- [Comment ajouter un engin ou un engin prêté ?](ajouter-un-engin.md)
+- [Comment modifier la fiche de prise de garde d'un engin ?](modifier-une-fiche-de-prise-de-garde.md)

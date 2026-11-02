@@ -9,6 +9,7 @@ import type { Base, BasePhotos } from './base.ts';
 import { ajouterJours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
+import { chargerEnginsFictifs } from './engins.ts';
 import { chargerMaterielFictif, reserver } from './reservations.ts';
 import { chargerAptitudesFictives } from './remplacements/fictif.ts';
 import { attribution, comite, equipe, personne, profil, publication, reservation, responsabilite, ressource } from './schema.ts';
@@ -129,6 +130,7 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 
 	// Réservations : le matériel de l'amicale, et une demande de l'agent qui attend l'amicale.
 	await chargerMaterielFictif(base, maintenant);
+	await chargerEnginsFictifs(base, maintenant);
 	// Des aptitudes, pour essayer les remplacements.
 	await chargerAptitudesFictives(base, maintenant);
 	const [bancs] = await base.select({ id: ressource.id }).from(ressource).where(and(eq(ressource.nom, 'Bancs'), isNull(ressource.retireeLe)));

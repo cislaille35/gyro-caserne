@@ -90,6 +90,13 @@ export type AvisRemplacement = (typeof AVIS_REMPLACEMENT)[number];
 export const AVIS_ETE = ['rappel', 'repartition', 'vacances_changees', 'semaine'] as const;
 export type AvisEte = (typeof AVIS_ETE)[number];
 
+// Engins : au centre (le nôtre), prêté au centre (par un autre centre, le temps d'une réparation), parti (sorti de la liste, son historique reste).
+export const SITUATIONS_ENGIN = ['centre', 'prete', 'parti'] as const;
+export type SituationEngin = (typeof SITUATIONS_ENGIN)[number];
+// Écrit par la décision du référent engins, du chef de garde ou du chef de centre (lot anomalies).
+export const ETATS_ENGIN = ['disponible', 'indisponible'] as const;
+export type EtatEngin = (typeof ETATS_ENGIN)[number];
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 

@@ -49,7 +49,7 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
 - Exceptions, sur le **code système** de la responsabilité (`responsabilite.systeme`) :
   - `chef_centre` : nommé ou retiré par un super administrateur seulement ;
   - `chef_centre_adjoint` (mêmes droits) : nommé ou retiré par le chef de centre en cours (`estChefDeCentre`) ou un super administrateur ; `ATTRIBUER_RESPONSABILITE` ne suffit pas ;
-  - `chef_equipe` : responsabilité repérée, sans règle à part.
+  - `chef_equipe` (« Chef de garde ») : responsabilité repérée. Depuis `0017`, elle porte aussi `TRAITER_ANOMALIE` et `GERER_FICHES` (sur son équipe) ; `gereLesEngins` donne la gestion des engins à tout chef de garde en cours.
 - `changerStatut` :
   - le statut du chef de centre en cours ne change que par un super administrateur ;
   - celui d'un adjoint en cours, que par le chef de centre en cours ou un super administrateur ;
@@ -221,6 +221,26 @@ Spec : [2026-11-02-meteo-design.md](../superpowers/specs/2026-11-02-meteo-design
 
 - Table `releve` : `cle` (`meteo` ou `vigilance`), `donnees` (JSON), `maj_le` (heure de Paris).
 - `meteo.ts` : `classer` (9 ambiances), `texteMeteo`, `lireOpenMeteo` et `lireVigilance` (lectures tolérantes : null au moindre doute), `vueMeteo` (ce que montre l'Accueil), `relevesDe` (une requête ; rien au-delà de 6 h), `mettreAJourReleves` (appelé toutes les dix minutes par `planifie.ts` ; relevé de plus d'une heure redemandé, `fetch` passé en paramètre pour les tests ; passage au rouge : `mettreEnFile`, lieu `meteo`, à tous les agents ayant accès).
+
+## Engins et fiches
+
+Spec : [2026-11-02-engins-design.md](../superpowers/specs/2026-11-02-engins-design.md) (lot A). Migration additive `0017` : tables, puis à la main les fiches de départ pour les bases déjà remplies (`FICHES_PAR_DEFAUT`, un test vérifie qu'elles sont identiques à celles du jeu de départ) et `TRAITER_ANOMALIE` + `GERER_FICHES` (verrouillés) pour le rôle système `chef_equipe`. Décision : [0017](../decisions/0017-engins-et-fiches.md).
+
+| Table | Contenu |
+|---|---|
+| `type_engin` | Nom unique (VSAV, FPT, VTU…), ordre. Porte la fiche. |
+| `fiche_version` | Type, `numero`, `auteur` (`personne:N`, `super:…` ou « Fiche de départ »), `cree_le`, `utilisee` (0/1, posé par la prise de garde du lot B). La fiche d'un type est sa dernière version. |
+| `fiche_zone` | Version, `ref`, nom, ordre. |
+| `fiche_element` | Version, zone, `ref`, libellé, `quantite` (rien : présent ou manquant), ordre. |
+| `engin` | Nom, immatriculation, type, `situation` (`centre`, `prete`, `parti`), `provenance` (obligatoire si prêté), `etat` (`disponible`, `indisponible` : écrit par le lot C), `parti_le` (si et seulement si parti). |
+
+- `ref` suit une zone ou un élément d'une version à l'autre (`refsLibres` : le plus grand, toutes fiches confondues, + 1). Elle n'est **unique que dans une version** (deux écritures simultanées sur deux types peuvent tirer la même) : le lot C relie une anomalie par (type, `ref`), jamais par `ref` seule. Le fichier l'écrit en « Réf. ».
+- Écriture d'une fiche : un seul batch, une garde en tête (si la version a servi ou a été réécrite depuis la lecture, le batch échoue : « Fiche changée entre-temps ») ; zones et éléments en une instruction chacun (`json_each`) ; un geste sans effet n'écrit rien.
+- `gereLesEngins` : `GERER_FICHES` sur le centre, ou chef de garde en cours ; ce droit donné sur un comité ou une équipe seule ne suffit pas.
+- `fiches.ts` : `gereLesEngins`, `lireFiches` (toutes les dernières versions, un batch), `lireFiche`, `appliquerGeste` (pur : zones et éléments, ajouter, renommer, déplacer, retirer, changer de zone), `ecrituresFiche` (version inutilisée : réécrite sur place ; utilisée : version suivante), `ecrireOuRefuser`, `modifierFicheEngin`, `creerTypeEngin`.
+- `engins.ts` : `voitLesEngins` (`VOIR_ENGINS` sur le centre, ou gère), `listerEngins` (par type puis nom), `lireEngin`, `enregistrerEngin` (nom unique parmi les engins présents ; « parti » date le départ, « au centre » l'efface), `chargerEnginsFictifs`.
+- `fichier-fiches.ts` : `donneesFichierFiches`, `apercuFiches`, `appliquerFiches` (un batch, seules les fiches changées ; zones reconnues par leur nom, éléments par leur « Réf. »).
+- Écrans : `/engins`, `/engins/[id]`, `/engins/nouveau`, `/engins/[id]/modifier`, `/engins/fiches`, `/engins/fiches/[id]` (un seul formulaire d'action, `?/geste`), `/engins/fiches/fichier` (classeur écrit et lu dans le navigateur, `lib/engins/classeur.ts`).
 
 ## Fichier de l'effectif
 

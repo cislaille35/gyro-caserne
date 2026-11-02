@@ -5,7 +5,8 @@ import { attribuer } from '../src/actions/attributions.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
 import { aLeDroit, type Acteur } from '../src/droits.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { comite, equipe, grade, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
+import { FICHES_PAR_DEFAUT } from '../src/fiches-de-depart.ts';
+import { comite, engin, equipe, ficheElement, ficheVersion, ficheZone, grade, personne, profil, profilDroit, responsabilite, responsabiliteDroit, typeEngin } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -73,7 +74,7 @@ describe('chargerJeuDeDepart', () => {
 		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
 			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, droitsChefCentre],
 			['Chef de centre adjoint', 'fonction', 'chef_centre_adjoint', 'centre', null, droitsChefCentre],
-			['Chef de garde', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]],
+			['Chef de garde', 'fonction', 'chef_equipe', 'equipe', idCentre, [['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1]]],
 			['Membre de comité', 'mission', null, 'comite', null, []],
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
 			['Référent engins', 'mission', null, 'centre', idCentre, [['TRAITER_ANOMALIE', 0], ['GERER_FICHES', 0]]],
@@ -98,6 +99,31 @@ describe('chargerJeuDeDepart', () => {
 		expect(await base.select().from(comite)).toHaveLength(2);
 		expect(await base.select().from(responsabilite)).toHaveLength(8);
 		expect(await base.select().from(grade)).toHaveLength(11);
+		expect(await base.select().from(typeEngin)).toHaveLength(3);
+		expect(await base.select().from(ficheElement)).toHaveLength(72);
+	});
+
+	it('pose les types d’engin et leurs fiches de départ (version 1), sans engin', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		const types = await base.select().from(typeEngin).orderBy(typeEngin.ordre);
+		expect(types.map((t) => t.nom)).toEqual(['VSAV', 'FPT', 'VTU']);
+		const versions = await base.select().from(ficheVersion);
+		expect(versions.map((v) => [v.numero, v.utilisee])).toEqual([[1, 0], [1, 0], [1, 0]]);
+		const zones = await base.select().from(ficheZone).orderBy(ficheZone.ordre);
+		const elements = await base.select().from(ficheElement).orderBy(ficheElement.ordre);
+		const lues = types.map((t) => {
+			const v = versions.find((x) => x.typeId === t.id)!;
+			return {
+				type: t.nom,
+				zones: zones.filter((z) => z.versionId === v.id).map((z) => ({ nom: z.nom, elements: elements.filter((e) => e.zoneId === z.id).map((e) => [e.libelle, e.quantite]) }))
+			};
+		});
+		expect(lues).toEqual(FICHES_PAR_DEFAUT);
+		// Les références sont uniques, d'une fiche à l'autre.
+		expect(new Set(elements.map((e) => e.ref)).size).toBe(elements.length);
+		expect(new Set(zones.map((z) => z.ref)).size).toBe(zones.length);
+		expect(await base.select().from(engin)).toEqual([]);
 	});
 
 	it('le chef de centre peut nommer le rapporteur de l’amicale', async () => {

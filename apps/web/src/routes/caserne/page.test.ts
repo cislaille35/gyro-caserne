@@ -4,6 +4,7 @@ import Page from './+page.svelte';
 import { load } from './+page.server';
 import { load as nominations } from '../nominations/+page.server';
 import { preparer } from '../echanges/de-test.ts';
+import { preparer as preparerEngins } from '../engins/de-test.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (data: Record<string, unknown>) => render(Page as any, { props: { data } }).body;
@@ -19,7 +20,7 @@ describe('/caserne', () => {
 		const { base, chef, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null });
+		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null, engins: 0 });
 		const pourLeChef = await charger(chef);
 		expect(pourLeChef.agents).toBe(3);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,12 +57,19 @@ describe('/caserne', () => {
 		expect(page).toMatch(/href="\/reservations"[\s\S]*?Réservations[\s\S]*?La VL et le matériel de l’amicale/);
 	});
 
-	it('« Engins » et « Comités » annoncés sans fausses données', () => {
+	it('« Comités » annoncé sans fausses données', () => {
 		const page = html({ peutNominations: false, peutReglages: false });
-		expect(page).toContain('Engins');
-		expect(page).toContain('Les engins arrivent bientôt.');
 		expect(page).toContain('Comités');
 		expect(page).toContain('Les pages des comités arrivent bientôt.');
-		expect(page).not.toContain('href="/engins"');
+	});
+
+	it('« Engins » pour qui les voit, avec le nombre d’engins au centre', async () => {
+		expect(html({ engins: 3 })).toMatch(lien('/engins', '3 engins'));
+		expect(html({ engins: null })).not.toContain('href="/engins"');
+		const { base, sans, alice } = await preparerEngins();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
+		expect((await charger(alice)).engins).toBe(2);
+		expect((await charger(sans)).engins).toBeNull();
 	});
 });

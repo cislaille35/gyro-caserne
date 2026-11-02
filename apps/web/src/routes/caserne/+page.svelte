@@ -10,6 +10,7 @@
 
 	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
+		...(data.engins === null ? [] : [{ href: '/engins', titre: 'Engins', texte: 'Leur état et leur fiche de prise de garde', icone: 'camion' as const, valeur: data.engins === undefined ? undefined : pluriel(data.engins, 'engin') }]),
 		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale', icone: 'cle' as const },
 		...(data.peutNominations
 			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
@@ -31,11 +32,6 @@
 			{/each}
 		</ListeRangees>
 		<ListeRangees titre="Bientôt">
-			<li>
-				<Rangee titre="Engins" sous="Les engins arrivent bientôt." icone="camion" discret>
-					{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
-				</Rangee>
-			</li>
 			<li>
 				<Rangee titre="Comités" sous="Les pages des comités arrivent bientôt." icone="groupe" discret>
 					{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
