@@ -46,7 +46,7 @@
 	const trouve = (nom: string) => !cherche.trim() || sansAccent(nom).includes(sansAccent(cherche.trim()));
 	const fermerParticipants = $derived(`/engins/${data.engin.id}/prise`);
 	const enregistrerParticipants: SubmitFunction = () => async ({ result, update }) => {
-		if (result.type === 'success') await goto(fermerParticipants, { invalidateAll: true, noScroll: true });
+		if (result.type === 'success') await goto(fermerParticipants, { invalidateAll: true });
 		else await update();
 	};
 	const validee = $derived(page.url.searchParams.has('validee'));
