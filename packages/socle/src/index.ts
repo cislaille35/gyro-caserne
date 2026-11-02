@@ -52,3 +52,4 @@ export { chargerEnginsFictifs, enregistrerEngin, LIMITES_ENGIN, lireEngin, liste
 export { appliquerGeste, creerTypeEngin, gereLesEngins, LIMITES_FICHE, lireFiche, lireFiches, modifierFicheEngin, type ElementFiche, type Fiche, type Geste, type ZoneFiche } from './fiches.ts';
 export { FICHES_PAR_DEFAUT } from './fiches-de-depart.ts';
 export { apercuFiches, appliquerFiches, donneesFichierFiches, ENTETES_FICHES, type ApercuFiches, type ChangementsFiche, type DonneesFichierFiches, type FichierFichesLu } from './fichier-fiches.ts';
+export { abandonnerPrise, appliquerGestePrise, commencerPrise, gestePrise, historiquePrises, LIMITES_PRISE, lirePrise, lirePriseFaite, peutFairePrise, photoAnomalie, prisesDeLaReleve, prisesEnRetard, releveDe, SAISIE_VIDE, validerPrise, type AgentPrise, type AnomalieVue, type Ecart, type GestePrise, type PriseDeLaReleve, type PriseFaite, type PriseHistorique, type PriseVue, type Releve, type Saisie, type VuePrise } from './prises.ts';
