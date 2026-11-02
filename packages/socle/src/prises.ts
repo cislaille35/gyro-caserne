@@ -6,7 +6,8 @@ import { aLeDroit, type Acteur } from './droits.ts';
 import { lireEngin, voitLesEngins, type EnginVu } from './engins.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import type { ElementFiche, ZoneFiche } from './fiches.ts';
-import { GENRES_ECART, STATUTS_AVEC_ACCES, type EtatPrise, type GenreEcart } from './listes.ts';
+import { avisAnomalies, quiTraite } from './anomalies-avis.ts';
+import { GENRES_ECART, STATUTS_AVEC_ACCES, type EtapeAnomalie, type EtatPrise, type GenreEcart, type MotifAttente } from './listes.ts';
 import { anneesPubliees } from './planning/annee.ts';
 import { rangDuJour, type Reglage } from './planning/calendrier.ts';
 import { affectationEquipe, anneePlanning, anomalie, engin, equipe, ficheElement, ficheVersion, ficheZone, personne, priseGarde, profil, semaineChangee, typeEngin } from './schema.ts';
@@ -28,7 +29,7 @@ export type GestePrise =
 
 export type EquipeReleve = { id: number; nom: string; couleur: string };
 export type Releve = { debut: string; equipe: EquipeReleve | null };
-export type AnomalieVue = { id: number; ref: number | null; zone: string; libelle: string; genre: GenreEcart; manque: number | null; note: string | null; photo: number | null; signaleeLe: string; signaleePar: string };
+export type AnomalieVue = { id: number; ref: number | null; zone: string; libelle: string; genre: GenreEcart; manque: number | null; note: string | null; photo: number | null; signaleeLe: string; signaleePar: string; etape: EtapeAnomalie; motif: MotifAttente | null; bloquante: boolean };
 export type PriseVue = { id: number; etat: EtatPrise; commenceePar: string; commenceeLe: string; modifieePar: string; modifieeLe: string; valideeLe: string | null; saisie: Saisie };
 export type AgentPrise = { id: number; nom: string; astreinte: boolean };
 export type VuePrise = { engin: EnginVu; releve: Releve; peutFaire: boolean; prise: PriseVue | null; zones: ZoneFiche[]; ouvertes: AnomalieVue[]; agents: AgentPrise[] };
@@ -62,6 +63,12 @@ function lecturesEquipe(base: Base, releve: string) {
 		base.select().from(semaineChangee).where(sql`substr(${semaineChangee.debut}, 1, 4) = ${String(annee)}`),
 		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe)
 	] as const;
+}
+// L'équipe d'astreinte de la relève en cours (son identifiant), ou rien sans planning publié. Une requête.
+export async function equipeAstreinte(base: Base, maintenant: string, reglage: Reglage): Promise<number | null> {
+	const releve = releveDe(maintenant, reglage);
+	const [annees, changees, equipes] = await base.batch([...lecturesEquipe(base, releve)]);
+	return equipeDe(releve, annees, changees, equipes, reglage)?.id ?? null;
 }
 function equipeDe(releve: string, annees: (typeof anneePlanning.$inferSelect)[], changees: { debut: string; equipeId: number }[], equipes: EquipeReleve[], reglage: Reglage): EquipeReleve | null {
 	const semaine = anneesPubliees(annees, changees, reglage)
@@ -105,12 +112,15 @@ const colonnesAnomalie = {
 	note: anomalie.note,
 	photo: anomalie.photoId,
 	signaleeLe: anomalie.signaleeLe,
+	etape: anomalie.etape,
+	motif: anomalie.motifAttente,
+	bloquante: anomalie.bloquante,
 	prenom: personne.prenom,
 	nom: personne.nom
 };
 const ouvertesDe = (base: Base, enginId: number) =>
 	base.select(colonnesAnomalie).from(anomalie).innerJoin(personne, eq(personne.id, anomalie.signaleePar)).where(and(eq(anomalie.enginId, enginId), isNull(anomalie.closeLe))).orderBy(asc(anomalie.id));
-const vueAnomalie = ({ prenom, nom, ...a }: { prenom: string; nom: string } & Omit<AnomalieVue, 'signaleePar'>): AnomalieVue => ({ ...a, signaleePar: `${prenom} ${nom}` });
+const vueAnomalie = ({ prenom, nom, bloquante, ...a }: { prenom: string; nom: string; bloquante: number } & Omit<AnomalieVue, 'signaleePar' | 'bloquante'>): AnomalieVue => ({ ...a, bloquante: bloquante === 1, signaleePar: `${prenom} ${nom}` });
 
 // La prise d'un engin pour la relève en cours : le brouillon (ou la prise faite), la fiche suivie, les anomalies encore ouvertes
 // et les agents à cocher (l'équipe d'astreinte d'abord).
@@ -241,14 +251,14 @@ export function appliquerGestePrise(saisie: Saisie, geste: GestePrise, ctx: { zo
 async function lireBrouillon(base: Base, id: number, enginId?: number) {
 	const version = sql<number>`(SELECT ${priseGarde.versionId} FROM ${priseGarde} WHERE ${priseGarde.id} = ${id})`;
 	const [[p], zones, elements, ouvertes, agents] = await base.batch([
-		base.select({ prise: priseGarde, situation: engin.situation }).from(priseGarde).innerJoin(engin, eq(engin.id, priseGarde.enginId)).where(eq(priseGarde.id, id)),
+		base.select({ prise: priseGarde, situation: engin.situation, nomEngin: sql<string>`${engin.nom}`.as('nom_engin') }).from(priseGarde).innerJoin(engin, eq(engin.id, priseGarde.enginId)).where(eq(priseGarde.id, id)),
 		...lecturesVersion(base, version),
-		base.select({ id: anomalie.id, ref: anomalie.ref, zone: anomalie.zone, libelle: anomalie.libelle }).from(anomalie).where(and(sql`${anomalie.enginId} = (SELECT ${priseGarde.enginId} FROM ${priseGarde} WHERE ${priseGarde.id} = ${id})`, isNull(anomalie.closeLe))),
-		base.select({ id: personne.id }).from(personne).innerJoin(profil, eq(profil.id, personne.profilId)).where(and(inArray(personne.statut, [...STATUTS_AVEC_ACCES]), eq(profil.typePersonne, 'agent')))
+		base.select({ id: anomalie.id, ref: anomalie.ref, zone: anomalie.zone, libelle: anomalie.libelle, signaleePar: anomalie.signaleePar, priseEnChargePar: anomalie.priseEnChargePar }).from(anomalie).where(and(sql`${anomalie.enginId} = (SELECT ${priseGarde.enginId} FROM ${priseGarde} WHERE ${priseGarde.id} = ${id})`, isNull(anomalie.closeLe))),
+		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne).innerJoin(profil, eq(profil.id, personne.profilId)).where(and(inArray(personne.statut, [...STATUTS_AVEC_ACCES]), eq(profil.typePersonne, 'agent')))
 	]);
 	if (!p || (enginId !== undefined && p.prise.enginId !== enginId)) throw new DonneeInvalide('Prise inconnue');
 	if (p.situation === 'parti') throw new DonneeInvalide('Engin parti');
-	return { prise: p.prise, saisie: lireSaisie(p.prise.saisie), zones: zonesDe(zones, elements), ouvertes, agents: agents.map((a) => a.id) };
+	return { prise: p.prise, nomEngin: p.nomEngin, saisie: lireSaisie(p.prise.saisie), zones: zonesDe(zones, elements), ouvertes, agents: agents.map((a) => a.id), noms: new Map(agents.map((a) => [a.id, `${a.prenom} ${a.nom}`])) };
 }
 
 function exigerEnCours(p: { etat: EtatPrise; releve: string }, maintenant: string, reglage: Reglage) {
@@ -299,6 +309,8 @@ export async function abandonnerPrise(base: Base, basePhotos: BasePhotos, acteur
 
 // Valider : toutes les zones vues. D'un bloc, gardé par le compteur : la prise passe validée (au nom des participants, celui qui
 // valide compris), les anomalies retrouvées sont closes, chaque écart devient une anomalie (sauf une déjà ouverte sur le même élément).
+// La cloche : les nouvelles anomalies à ceux qui les traitent et au chef de garde de l'équipe d'astreinte ; un élément retrouvé,
+// à son déclarant et à qui l'avait pris en charge.
 export async function validerPrise(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage, enginAttendu?: number): Promise<void> {
 	const moi = await exigerPrise(base, acteur, maintenant);
 	const b = await lireBrouillon(base, id, enginAttendu);
@@ -316,6 +328,22 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 		)
 	);
 	const enginId = b.prise.enginId;
+	// Un écart sur un élément encore signalé (et non retrouvé) ne crée pas d'anomalie.
+	const nouvelles = b.zones.flatMap((z) => z.elements).filter((e) => saisie.ecarts[String(e.ref)] && !b.ouvertes.some((o) => o.ref === e.ref && !saisie.retrouves.includes(o.id)));
+	const traitent = nouvelles.length ? (await quiTraite(base, maintenant.slice(0, 10), b.prise.equipeId)).filter((x) => x !== moi) : [];
+	const qui = b.noms.get(moi) ?? 'un agent';
+	const avis = [
+		...avisAnomalies(
+			base,
+			traitent,
+			{ titre: `Prise de garde · ${b.nomEngin}`, texte: `${nouvelles.length} ${nouvelles.length > 1 ? 'anomalies signalées' : 'anomalie signalée'} par ${qui} : ${nouvelles.map((e) => e.libelle).join(', ')}`, url: `/engins/anomalies?engin=${enginId}` },
+			maintenant,
+			validee
+		),
+		...b.ouvertes
+			.filter((o) => saisie.retrouves.includes(o.id))
+			.flatMap((o) => avisAnomalies(base, [...new Set([o.signaleePar, o.priseEnChargePar])].filter((x): x is number => x !== null && x !== moi), { titre: `${b.nomEngin} · ${o.libelle}`, texte: `Retrouvée à la prise de garde par ${qui}`, url: `/engins/anomalies/${o.id}` }, maintenant, validee))
+	];
 	const [ecrit] = await base.batch([
 		base
 			.update(priseGarde)
@@ -333,7 +361,8 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 					json_extract(value, '$.manque'), json_extract(value, '$.note'), json_extract(value, '$.photo'), ${id}, ${moi}, ${maintenant}
 				FROM json_each(${ecarts})
 				WHERE ${validee} AND NOT EXISTS (SELECT 1 FROM ${anomalie} a WHERE a.engin_id = ${enginId} AND a.ref = json_extract(value, '$.ref') AND a.close_le IS NULL)`
-		)
+		),
+		...avis
 	]);
 	if (ecrit.length === 0) {
 		// Un collègue a validé juste avant : rien n'a été écrit deux fois (anomalies déjà closes ou déjà ouvertes).

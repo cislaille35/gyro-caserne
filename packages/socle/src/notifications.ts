@@ -10,7 +10,7 @@ import { texteDemande } from './remplacements/tranches.ts';
 import { aValiderPar } from './remplacements/compte.ts';
 import { TITRES_AVIS } from './remplacements/titres.ts';
 import type { AvisEte, AvisRemplacement } from './listes.ts';
-import { abonnementPush, affectationEquipe, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource } from './schema.ts';
+import { abonnementPush, affectationEquipe, avisAnomalie, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -19,7 +19,8 @@ const EXTRAIT = 100;
 const FIL_MAX = 50;
 
 export type DonneesPush = { titre: string; texte: string; url: string; tag: string };
-export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte;
+export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie;
+export type LigneAnomalie = { id: number; type: 'anomalie'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export const TITRES_ETE: Record<AvisEte, string> = { rappel: 'Vos vacances d’été', repartition: 'Planning d’été', vacances_changees: 'Vacances changées', semaine: 'Planning' };
 export type LigneRemplacement = { id: number; type: 'remplacement'; demandeId: number; quoi: AvisRemplacement; titre: string; texte: string; creeLe: string; lue: boolean };
@@ -209,7 +210,7 @@ const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`
 	base
 		.select({
 			aValider: aValider.as('a_valider'),
-			n: sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${moi} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${moi} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${moi} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${moi} and ${avisEte.lueLe} is null)`
+			n: sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${moi} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${moi} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${moi} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${moi} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${moi} and ${avisAnomalie.lueLe} is null)`
 		})
 		.from(personne)
 		.where(eq(personne.id, moi));
@@ -237,6 +238,7 @@ const avisRemplacementsDe = (base: Base, moi: number) =>
 		.limit(FIL_MAX);
 
 const avisEteDe = (base: Base, moi: number) => base.select().from(avisEte).where(eq(avisEte.personneId, moi)).orderBy(desc(avisEte.id)).limit(FIL_MAX);
+const avisAnomaliesDe = (base: Base, moi: number) => base.select().from(avisAnomalie).where(eq(avisAnomalie.personneId, moi)).orderBy(desc(avisAnomalie.id)).limit(FIL_MAX);
 
 // Écriture à placer dans le batch des écrans Remplacements : les avis sont vus.
 export const marquerAvisRemplacementLus = (base: Base, moi: number, maintenant: string) => base.update(avisRemplacement).set({ lueLe: maintenant }).where(and(eq(avisRemplacement.personneId, moi), isNull(avisRemplacement.lueLe)));
@@ -251,7 +253,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	const moi = acteur.id;
 	const auteur = sql<string>`coalesce(${commentaire.auteur}, ${publication.auteur})`;
 	const lesAuteurs = base.select({ auteur }).from(notification).innerJoin(publication, eq(publication.id, notification.publicationId)).leftJoin(commentaire, eq(commentaire.id, notification.commentaireId)).where(eq(notification.personneId, moi));
-	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete] = await base.batch([
+	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete, anomalies] = await base.batch([
 		base
 			.select({
 				id: notification.id,
@@ -277,8 +279,10 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 			.where(inArray(sql`'personne:' || ${personne.id}`, lesAuteurs)),
 		avisDe(base, moi),
 		avisRemplacementsDe(base, moi),
-		avisEteDe(base, moi)
+		avisEteDe(base, moi),
+		avisAnomaliesDe(base, moi)
 	]);
+	const dAnomalies: LigneFil[] = anomalies.map((a) => ({ id: a.id, type: 'anomalie', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dEte: LigneFil[] = ete.map((a) => ({ id: a.id, type: 'ete', quoi: a.quoi, titre: TITRES_ETE[a.quoi], texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const deRemplacements: LigneFil[] = remplacements.map((a) => ({
 		id: a.id,
@@ -294,7 +298,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	return {
 		nonLues: compte?.n ?? 0,
 		remplacementsAValider: compte?.aValider ?? 0,
-		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
+		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
 	};
 }
 
@@ -338,7 +342,7 @@ export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, m
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return;
-	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe)))]);
+	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe)))]);
 }
 
 // Écritures à placer dans un batch de lecture : ouvrir un mur marque lues ses publications ; ouvrir une publication, elle et ses commentaires.
@@ -491,9 +495,9 @@ export async function oublierAbonnements(base: Base, ids: number[]): Promise<voi
 // Ménage de nuit : notifications et envois restés en file créés avant `avant` (AAAA-MM-JJ).
 export async function effacerVieillesNotifications(base: Base, avant: string): Promise<void> {
 	exigerDate(avant);
-	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(avisReservation).where(lt(avisReservation.creeLe, avant)), base.delete(avisRemplacement).where(lt(avisRemplacement.creeLe, avant)), base.delete(avisEte).where(lt(avisEte.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
+	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(avisReservation).where(lt(avisReservation.creeLe, avant)), base.delete(avisRemplacement).where(lt(avisRemplacement.creeLe, avant)), base.delete(avisEte).where(lt(avisEte.creeLe, avant)), base.delete(avisAnomalie).where(lt(avisAnomalie.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
 }
 
 // Au départ d'une personne : ses appareils, son fil et ses coupures. Écritures à placer dans un batch.
 export const effacerNotificationsDe = (base: Base, personneId: number) =>
-	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;
+	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(avisAnomalie).where(eq(avisAnomalie.personneId, personneId)), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;
