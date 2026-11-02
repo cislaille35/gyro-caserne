@@ -113,6 +113,13 @@
       "when": 1793592861224,
       "tag": "0015_chef_de_garde",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1793612022924,
+      "tag": "0016_releve_meteo",
+      "breakpoints": true
     }
   ]
 }

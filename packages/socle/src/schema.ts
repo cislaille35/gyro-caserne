@@ -735,3 +735,10 @@ export const avisEte = sqliteTable(
 
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';
+
+// Météo et vigilance (meteo.ts) : le dernier relevé de chaque source, « meteo » (Open-Meteo) ou « vigilance » (Météo-France). `donnees` : JSON.
+export const releve = sqliteTable('releve', {
+	cle: text('cle').primaryKey(),
+	donnees: text('donnees').notNull(),
+	majLe: text('maj_le').notNull()
+});
