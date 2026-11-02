@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, ETATS_PRISE, GENRES_DEMANDE, GENRES_ECART, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, ETAPES_ANOMALIE, ETATS_PRISE, GENRES_DEMANDE, GENRES_ECART, MOTIFS_ATTENTE, SUIVIS_ANOMALIE, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -872,13 +872,52 @@ export const anomalie = sqliteTable(
 		signaleeLe: text('signalee_le').notNull(),
 		closePar: integer('close_par').references(() => personne.id),
 		closeLe: text('close_le'),
-		closePriseId: integer('close_prise_id').references(() => priseGarde.id)
+		closePriseId: integer('close_prise_id').references(() => priseGarde.id),
+		// Le suivi (lot C) : colonnes ajoutées, valeurs vérifiées par le socle (anomalies.ts).
+		etape: text('etape', { enum: ETAPES_ANOMALIE }).notNull().default('signalee'),
+		motifAttente: text('motif_attente', { enum: MOTIFS_ATTENTE }),
+		priseEnChargePar: integer('prise_en_charge_par').references(() => personne.id),
+		// 1 : l'engin a été rendu indisponible depuis cette anomalie.
+		bloquante: integer('bloquante').notNull().default(0)
 	},
 	(t) => [
 		index('anomalie_engin').on(t.enginId, t.closeLe),
 		check('anomalie_genre', checkDans('genre', GENRES_ECART)),
 		check('anomalie_manque', sql`${sql.identifier('manque')} IS NULL OR ${sql.identifier('manque')} >= 1`)
 	]
+);
+
+// L'historique d'une anomalie : chaque geste du suivi, qui, quand, et un texte (motif, ce qui a été fait).
+export const anomalieSuivi = sqliteTable(
+	'anomalie_suivi',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		anomalieId: integer('anomalie_id')
+			.notNull()
+			.references(() => anomalie.id),
+		quoi: text('quoi', { enum: SUIVIS_ANOMALIE }).notNull(),
+		texte: text('texte'),
+		par: integer('par')
+			.notNull()
+			.references(() => personne.id),
+		le: text('le').notNull()
+	},
+	(t) => [index('anomalie_suivi_anomalie').on(t.anomalieId), check('anomalie_suivi_quoi', checkDans('quoi', SUIVIS_ANOMALIE))]
+);
+
+// La cloche des anomalies : signalement, changement d'étape, indisponibilité.
+export const avisAnomalie = sqliteTable(
+	'avis_anomalie',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		titre: text('titre').notNull(),
+		texte: text('texte').notNull(),
+		url: text('url').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [index('avis_anomalie_personne').on(t.personneId, t.lueLe)]
 );
 
 // Tables de connexion (Better Auth), dans la même base.
