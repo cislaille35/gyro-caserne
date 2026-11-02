@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -14,7 +14,7 @@ export function limiteDeConservation(quand: Date, mois: number): string {
 	return vise.toISOString().slice(0, 10);
 }
 
-type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database };
+type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: string };
 
 // Les notifications du fil sont gardées 30 jours.
 const CONSERVATION_NOTIFICATIONS_JOURS = 30;
@@ -22,7 +22,7 @@ const CONSERVATION_NOTIFICATIONS_JOURS = 30;
 export const CRON_NUIT = '30 3 * * *';
 
 // Le worker de SvelteKit, plus le gestionnaire planifié.
-export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number }) {
+export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; position: { latitude: number; longitude: number }; departement?: string }) {
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -39,6 +39,11 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes.
 				if (maintenant[15] === '0') ctx.waitUntil(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
+				// La météo et la vigilance : regardées toutes les dix minutes (à 5, 15…), redemandées si elles ont plus d'une heure.
+				if (maintenant[15] === '5') {
+					const lieu = { position: centre.position, departement: centre.departement };
+					ctx.waitUntil(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
+				}
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);
