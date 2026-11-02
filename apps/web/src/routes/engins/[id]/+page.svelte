@@ -1,12 +1,18 @@
 <script lang="ts">
-	import type { EnginVu, Fiche } from '@gyro-caserne/socle';
-	import { compteFiche, dateCourte, ETATS, situationDe } from '#lib/engins/textes.ts';
+	import type { AnomalieVue, EnginVu, Fiche, PriseDeLaReleve, PriseHistorique, Releve } from '@gyro-caserne/socle';
+	import { compteFiche, dateCourte, etatPrise, ETATS, jourCourt, jourHeure, parEquipe, situationDe, texteEcart, texteReleve } from '#lib/engins/textes.ts';
+	import { pluriel } from '#lib/pluriel.ts';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
 	import ZonesFiche from '#lib/engins/ZonesFiche.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
-	let { data }: { data: { engin: EnginVu; gere: boolean; fiche: Fiche } } = $props();
+	type Donnees = { engin: EnginVu; gere: boolean; fiche: Fiche; releve?: Releve; peutFaire?: boolean; prise?: PriseDeLaReleve['prise']; ouvertes?: AnomalieVue[]; historique?: PriseHistorique[] };
+	let { data }: { data: Donnees } = $props();
 	const e = $derived(data.engin);
+	const etat = $derived(etatPrise(data.prise ?? null));
+	const geste = $derived(data.prise?.etat === 'validee' ? 'Voir la prise' : data.prise ? 'Reprendre la prise' : 'Faire la prise');
 </script>
 
 <svelte:head>
@@ -22,8 +28,26 @@
 			<dl>
 				<div><dt>Disponibilité</dt><dd><Pastille ton={ETATS[e.etat].ton}>{ETATS[e.etat].texte}</Pastille></dd></div>
 				<div><dt>Situation</dt><dd>{situationDe(e)}</dd></div>
-				<div><dt>Prise de garde</dt><dd class="doux">Le suivi des prises arrive avec la prise de garde au téléphone.</dd></div>
+				{#if data.releve && e.situation !== 'parti'}
+					<div>
+						<dt>Prise de garde</dt>
+						<dd class="prise"><span class="doux">{texteReleve(data.releve)}</span><Pastille ton={etat.ton}>{etat.texte}</Pastille></dd>
+					</div>
+				{/if}
+				{#if data.ouvertes?.length}
+					<div>
+						<dt>{pluriel(data.ouvertes.length, 'écart ouvert', 'écarts ouverts')}</dt>
+						<dd>
+							<ul class="ouverts" role="list">
+								{#each data.ouvertes as o (o.id)}<li><strong>{o.libelle}</strong> · {texteEcart(o)} <span class="doux">(le {dateCourte(o.signaleeLe)})</span></li>{/each}
+							</ul>
+						</dd>
+					</div>
+				{/if}
 			</dl>
+			{#if data.releve && e.situation !== 'parti' && (data.peutFaire || data.prise)}
+				<div class="gestes"><a class="bouton principal" href="/engins/{e.id}/prise">{geste}</a></div>
+			{/if}
 			{#if data.gere}
 				<div class="gestes">
 					<a class="bouton" href="/engins/{e.id}/modifier">Modifier l’engin</a>
@@ -31,6 +55,16 @@
 				</div>
 			{/if}
 		</section>
+
+		{#if data.historique?.length}
+			<ListeRangees titre="Dernières prises">
+				{#each data.historique as h (h.id)}
+					<li>
+						<Rangee href="/engins/{e.id}/prises/{h.id}" titre="Relève du {jourCourt(h.releve)}" sous="Par {h.equipe ? parEquipe(h.equipe) : h.par}, {jourHeure(h.valideeLe)} · {h.signalees ? pluriel(h.signalees, 'écart') : 'complète'}{h.retrouvees ? ` · ${pluriel(h.retrouvees, 'retrouvé')}` : ''}" icone="livre" />
+					</li>
+				{/each}
+			</ListeRangees>
+		{/if}
 
 		<section class="fiche" aria-labelledby="titre-fiche">
 			<div class="tete">
@@ -114,6 +148,28 @@
 	}
 	.bouton:hover {
 		background: var(--fond);
+	}
+	.bouton.principal {
+		border-color: var(--rouge);
+		background: var(--rouge);
+		color: var(--sur-rouge);
+	}
+	.bouton.principal:hover {
+		background: var(--rouge-survol);
+	}
+	.prise {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px 10px;
+	}
+	.ouverts {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
 	}
 	@media (min-width: 1024px) {
 		.colonnes {

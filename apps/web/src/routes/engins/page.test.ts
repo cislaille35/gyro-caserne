@@ -30,4 +30,13 @@ describe('/engins', () => {
 		expect(html({ engins: [], gere: false })).toContain('Aucun engin pour l’instant.');
 		expect(html({ engins: [], gere: true })).toMatch(/Aucun engin[\s\S]*href="\/engins\/nouveau"/);
 	});
+
+	it('la prise de la relève sous chaque engin, et l’entrée « Prise de garde »', () => {
+		const releve = { debut: '2026-10-30T18:00', equipe: { id: 2, nom: 'Équipe 2', couleur: '#000000' } };
+		const prises = { 1: { prise: { etat: 'validee', valideeLe: '2026-10-30T18:40', equipe: 'Équipe 2', par: 'A' }, ouvertes: 2 }, 2: { prise: null, ouvertes: 0 } };
+		const page = html({ engins, gere: false, releve, prises });
+		expect(page).toMatch(/href="\/engins\/prise"[\s\S]*?Relève du ven\. 30 oct\., équipe 2[\s\S]*?1 sur 2 prise faite/);
+		expect(page).toMatch(/VSAV 1[\s\S]*?Prise faite par l’équipe 2, ven\. 18 h 40 · 2 écarts ouverts/);
+		expect(page).toMatch(/VSAV 23[\s\S]*?Prise à faire/);
+	});
 });

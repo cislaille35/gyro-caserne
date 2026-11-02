@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, GENRES_DEMANDE, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, ETATS_PRISE, GENRES_DEMANDE, GENRES_ECART, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -811,6 +811,73 @@ export const engin = sqliteTable(
 		check('engin_etat', checkDans('etat', ETATS_ENGIN)),
 		check('engin_provenance', sql`${sql.identifier('situation')} <> 'prete' OR ${sql.identifier('provenance')} IS NOT NULL`),
 		check('engin_parti', sql`(${sql.identifier('situation')} = 'parti') = (${sql.identifier('parti_le')} IS NOT NULL)`)
+	]
+);
+
+// Une prise de garde : un engin, une relève (moment de prise d'astreinte, « AAAA-MM-JJTHH:MM »), la version de fiche suivie.
+// `saisie` : JSON du brouillon (zones vues, écarts, anomalies retrouvées, participants). `compteur` : garde contre deux écritures croisées.
+export const priseGarde = sqliteTable(
+	'prise_garde',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		enginId: integer('engin_id')
+			.notNull()
+			.references(() => engin.id),
+		releve: text('releve').notNull(),
+		versionId: integer('version_id')
+			.notNull()
+			.references(() => ficheVersion.id),
+		// L'équipe d'astreinte de la relève, d'après le planning publié.
+		equipeId: integer('equipe_id').references(() => equipe.id),
+		etat: text('etat', { enum: ETATS_PRISE }).notNull().default('en_cours'),
+		saisie: text('saisie').notNull().default('{}'),
+		compteur: integer('compteur').notNull().default(0),
+		commenceePar: integer('commencee_par')
+			.notNull()
+			.references(() => personne.id),
+		commenceeLe: text('commencee_le').notNull(),
+		modifieePar: integer('modifiee_par')
+			.notNull()
+			.references(() => personne.id),
+		modifieeLe: text('modifiee_le').notNull(),
+		valideeLe: text('validee_le')
+	},
+	(t) => [
+		uniqueIndex('prise_garde_engin_releve').on(t.enginId, t.releve),
+		check('prise_garde_etat', checkDans('etat', ETATS_PRISE)),
+		check('prise_garde_validee', sql`(${sql.identifier('etat')} = 'validee') = (${sql.identifier('validee_le')} IS NOT NULL)`)
+	]
+);
+
+// Un écart relevé à la prise (le lot anomalies y ajoutera le suivi). `ref` : l'élément de la fiche, d'une version à l'autre ;
+// zone et libellé recopiés pour rester lisibles si la fiche change. `photoId` : dans la base des photos.
+export const anomalie = sqliteTable(
+	'anomalie',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		enginId: integer('engin_id')
+			.notNull()
+			.references(() => engin.id),
+		ref: integer('ref'),
+		zone: text('zone').notNull(),
+		libelle: text('libelle').notNull(),
+		genre: text('genre', { enum: GENRES_ECART }).notNull(),
+		manque: integer('manque'),
+		note: text('note'),
+		photoId: integer('photo_id'),
+		priseId: integer('prise_id').references(() => priseGarde.id),
+		signaleePar: integer('signalee_par')
+			.notNull()
+			.references(() => personne.id),
+		signaleeLe: text('signalee_le').notNull(),
+		closePar: integer('close_par').references(() => personne.id),
+		closeLe: text('close_le'),
+		closePriseId: integer('close_prise_id').references(() => priseGarde.id)
+	},
+	(t) => [
+		index('anomalie_engin').on(t.enginId, t.closeLe),
+		check('anomalie_genre', checkDans('genre', GENRES_ECART)),
+		check('anomalie_manque', sql`${sql.identifier('manque')} IS NULL OR ${sql.identifier('manque')} >= 1`)
 	]
 );
 

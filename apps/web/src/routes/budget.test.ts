@@ -50,6 +50,8 @@ import { POST as apercuPlanning } from './planning/preparer/fichier/apercu/+serv
 import { POST as appliquerPlanning } from './planning/preparer/fichier/appliquer/+server';
 import { load as pageEngins } from './engins/+page.server';
 import { load as pageEngin } from './engins/[id]/+page.server';
+import { actions as actionsPrise, load as pagePrise } from './engins/[id]/prise/+page.server';
+import { load as pageReleve } from './engins/prise/+page.server';
 import { actions as actionsFicheEngin, load as pageFicheEngin } from './engins/fiches/[id]/+page.server';
 import { GET as donneesFiches } from './engins/fiches/fichier/donnees/+server';
 import { POST as apercuFiches } from './engins/fiches/fichier/apercu/+server';
@@ -286,6 +288,33 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const lu = { feuilles: Object.fromEntries(donnees.feuilles.map((f: { nom: string; lignes: string[][] }) => [f.nom, f.lignes.slice(1).map((cellules, i) => ({ numero: i + 2, cellules }))])) };
 		expect(await compter(async () => { expect((await (apercuFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(async () => { expect((await (appliquerFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('prise de garde : la relève, la prise d’un engin, commencer, un geste, valider (12 engins, 150 agents)', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const [vsav] = await base.select().from(typeEngin).where(eq(typeEngin.nom, 'VSAV'));
+		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
+		const params = { id: '1' };
+		const page = async () => {
+			await (racine as any)({ locals });
+			return (pagePrise as any)({ locals, params });
+		};
+		expect(await compter(async () => { await (racine as any)({ locals }); await (pageReleve as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(page)).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (actionsPrise.commencer as any)({ locals, params, request: await requeteFormulaire([]) }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		const vue = await (pagePrise as any)({ locals, params });
+		const id = String(vue.prise.id);
+		const zones = vue.zones as { ref: number; elements: { ref: number }[] }[];
+		expect(await compter(async () => {
+			await (actionsPrise.geste as any)({ locals, params, request: await requeteFormulaire([['prise', id], ['quoi', 'ecart'], ['element', String(zones[0]!.elements[0]!.ref)], ['genre', 'abime'], ['photo', jpeg()]]) });
+			await page();
+		})).toBeLessThanOrEqual(BUDGET);
+		for (const z of zones) await (actionsPrise.geste as any)({ locals, params, request: await requeteFormulaire([['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']]) });
+		expect(await compter(async () => {
+			await (actionsPrise.valider as any)({ locals, params, request: await requeteFormulaire([['prise', id]]) }).catch((r: { status?: number }) => expect(r.status).toBe(303));
+			await page();
+			await (pageEngin as any)({ locals, params });
+		})).toBeLessThanOrEqual(BUDGET);
 	});
 
 	it('/moi : la carte d’identité', async () => {

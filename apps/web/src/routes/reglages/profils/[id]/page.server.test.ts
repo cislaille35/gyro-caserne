@@ -4,7 +4,7 @@ import { profil } from '@gyro-caserne/socle';
 import { charger, envoyer, locaux, preparer, super_ } from '../../de-test.ts';
 import { actions, load } from './+page.server';
 
-const AGENT = ['DECLARER_DISPONIBILITE', 'DEMANDER_REMPLACEMENT', 'PRENDRE_EN_CHARGE_ANOMALIE', 'RESERVER', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'UTILISER_MESSAGERIE', 'VOIR_ANNUAIRE', 'VOIR_ANOMALIES', 'VOIR_ENGINS', 'VOIR_PLANNING'];
+const AGENT = ['DECLARER_DISPONIBILITE', 'DEMANDER_REMPLACEMENT', 'FAIRE_PRISE_DE_GARDE', 'PRENDRE_EN_CHARGE_ANOMALIE', 'RESERVER', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'UTILISER_MESSAGERIE', 'VOIR_ANNUAIRE', 'VOIR_ANOMALIES', 'VOIR_ENGINS', 'VOIR_PLANNING'];
 
 describe('page d’un profil', () => {
 	it('réservée au chef de centre, à l’adjoint et au super administrateur', async () => {

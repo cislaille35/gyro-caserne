@@ -37,7 +37,7 @@ describe('chargerJeuDeDepart', () => {
 		const droits = await base.select().from(profilDroit);
 		expect(droits.every((d) => d.perimetreType === 'centre' && d.perimetreId === null)).toBe(true);
 		expect(droits.filter((d) => d.profilId === profils[0]!.id).map((d) => d.droit).sort()).toEqual(
-			['VOIR_PLANNING', 'VOIR_ANNUAIRE', 'VOIR_ENGINS', 'VOIR_ANOMALIES', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'DEMANDER_REMPLACEMENT', 'DECLARER_DISPONIBILITE', 'UTILISER_MESSAGERIE', 'PRENDRE_EN_CHARGE_ANOMALIE', 'RESERVER'].sort()
+			['VOIR_PLANNING', 'VOIR_ANNUAIRE', 'VOIR_ENGINS', 'VOIR_ANOMALIES', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'DEMANDER_REMPLACEMENT', 'DECLARER_DISPONIBILITE', 'UTILISER_MESSAGERIE', 'FAIRE_PRISE_DE_GARDE', 'PRENDRE_EN_CHARGE_ANOMALIE', 'RESERVER'].sort()
 		);
 		// La réserve citoyenne réserve ce qui lui est ouvert, et rien d'autre.
 		expect(droits.filter((d) => d.profilId === profils[1]!.id).map((d) => d.droit)).toEqual(['RESERVER']);

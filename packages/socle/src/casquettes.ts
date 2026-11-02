@@ -7,6 +7,7 @@ import type { Droit } from './listes.ts';
 import type { Reglage } from './planning/calendrier.ts';
 import { vueEte } from './planning/ete.ts';
 import { plagesARevoir } from './planning/repartition.ts';
+import { prisesEnRetard } from './prises.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { remplacementsAValider } from './remplacements/lectures.ts';
 import { anneePlanning, attribution, comite, equipe, ete, personne, plageEte, profil, reservation, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
@@ -78,12 +79,20 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string, reglage?: Reglage): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
 	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
-	const [organisation, reservations, remplacements] = await Promise.all([
+	const [organisation, reservations, remplacements, retard] = await Promise.all([
 		liste.some((c) => c.id === 'centre') ? lireADecider(base, aujourdhui, reglage) : null,
 		demandesParCasquette(base, liste, aujourdhui),
-		chef ? remplacementsAValider(base, acteur, maintenant) : []
+		chef ? remplacementsAValider(base, acteur, maintenant) : [],
+		chef && reglage ? prisesEnRetard(base, maintenant, reglage) : null
 	]);
 	const versCentre: ADecider[] = [];
+	// La prise de garde en retard : au chef de garde de l'équipe d'astreinte, sinon à « Le centre ».
+	if (retard) {
+		const cle = `equipe:${retard.equipeId}`;
+		const item = { texte: `Prise de garde en retard : ${retard.engins.join(', ')}`, lien: '/engins/prise' };
+		if (liste.some((c) => c.id === cle)) reservations.set(cle, [...(reservations.get(cle) ?? []), item]);
+		else versCentre.push(item);
+	}
 	for (const r of remplacements) {
 		const cle = `equipe:${r.equipeId}`;
 		const item = { texte: r.texte, lien: `/remplacements/${r.id}` };

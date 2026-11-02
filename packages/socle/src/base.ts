@@ -1,3 +1,4 @@
+import type { SQL } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import { type DrizzleD1Database, drizzle } from 'drizzle-orm/d1';
 import { oublierDroits } from './droits.ts';
@@ -31,4 +32,13 @@ export type BasePhotos = BaseSQLiteDatabase<'async', unknown, typeof schemaPhoto
 
 export function creerBasePhotos(d1: D1Database): BasePhotos {
 	return drizzle(d1, { schema: schemaPhotos });
+}
+
+// Une instruction SQL brute à placer dans un batch. Sur D1, drizzle attend dans un batch une requête préparée (`stmt`),
+// que `run` ne prépare pas : sans elle, tout batch qui en contient une échoue. La base de test n'en a pas besoin.
+export function instruction(base: Base, requete: SQL) {
+	const brute = base.run(requete);
+	const client = (base as unknown as { $client?: Partial<D1Database> }).$client;
+	if (client && typeof client === 'object' && typeof client.batch === 'function') Object.assign(brute, { stmt: client.prepare!(brute.getQuery().sql) });
+	return brute;
 }

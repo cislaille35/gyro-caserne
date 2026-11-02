@@ -34,7 +34,7 @@
 	}
 	ul {
 		margin: 0;
-		padding: 0 14px 4px;
+		padding: 4px 16px 8px;
 		list-style: none;
 	}
 	li {

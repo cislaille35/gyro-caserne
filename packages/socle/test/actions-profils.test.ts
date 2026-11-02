@@ -37,7 +37,7 @@ describe('listerProfils', () => {
 		expect(profils.map((p) => p.nom)).toEqual(['Agent', 'Réserve citoyenne']);
 		expect(profils[0]).toMatchObject({ typePersonne: 'agent' });
 		expect(profils[0]!.droits).toContain('SIGNALER_ANOMALIE');
-		expect(profils[0]!.droits).toHaveLength(11);
+		expect(profils[0]!.droits).toHaveLength(12);
 		expect(profils[1]!.droits).toEqual(['RESERVER']);
 	});
 
@@ -56,7 +56,7 @@ describe('modifierDroitsProfil', () => {
 		const lus = await droitsDuProfil(agent.id);
 		expect(lus).toContain('VOIR_MOTIFS_ABSENCE@centre');
 		expect(lus).not.toContain('UTILISER_MESSAGERIE@centre');
-		expect(lus).toHaveLength(11);
+		expect(lus).toHaveLength(12);
 		const [ligne] = await base.select().from(journal).where(eq(journal.action, 'modifier_droits_profil'));
 		expect(ligne).toMatchObject({ cibleType: 'profil', cibleId: agent.id, acteur: `personne:${(chef as { id: number }).id}` });
 		expect(JSON.parse(ligne!.details)).toEqual({ droits: { avant: [...avant].sort(), apres: [...apres].sort() } });
