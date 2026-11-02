@@ -11,7 +11,7 @@ const REFUS_PRISE = 'La prise de garde est faite par les agents du centre.';
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { acteur, base } = await accesEngins(locals);
 	try {
-		return await lirePrise(base, acteur, idDe(params.id), maintenantParis(), centre.astreinte);
+		return { ...(await lirePrise(base, acteur, idDe(params.id), maintenantParis(), centre.astreinte)), moi: acteur.type === 'personne' ? acteur.id : null };
 	} catch (erreur) {
 		if (erreur instanceof DonneeInvalide) error(404, 'Cet engin n’existe pas.');
 		throw erreur;
@@ -91,8 +91,8 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return refusPrise(erreur, { cible, zone });
 		}
-		// Une zone vue : la suivante à voir s'ouvre (zone par zone).
-		return { cible, zone: geste.quoi === 'zone' && geste.vue ? null : zone, succes: SUCCES[geste.quoi] };
+		// La zone touchée reste ouverte (on y signale encore un écart) ; la page ouvre aussi la suivante à voir.
+		return { cible, zone, succes: geste.quoi === 'zone' && geste.vue ? 'Zone complète.' : SUCCES[geste.quoi] };
 	},
 	valider: async ({ locals, params, request }) => {
 		const { acteur, base } = await accesEngins(locals);

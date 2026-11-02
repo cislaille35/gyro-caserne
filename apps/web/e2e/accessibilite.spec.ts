@@ -39,6 +39,29 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
+			test('prise de garde : « Tout est complet » en tête de zone, panneau des participants, sans violation', async ({ page }) => {
+				await page.goto('/engins/3/prise');
+				await page.waitForLoadState('networkidle');
+				const commencer = page.getByRole('button', { name: 'Commencer la prise' });
+				if (await commencer.count()) {
+					await commencer.click();
+					await expect(page.getByText('Commencée par')).toBeVisible();
+				}
+				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ }).first();
+				if (await complet.count()) {
+					await complet.click();
+					await expect(page.getByText(/^Complet/).first()).toBeVisible();
+				}
+				await sansViolation(page);
+				await page.getByRole('link', { name: /Participants :/ }).click();
+				const panneau = page.getByRole('dialog', { name: 'Participants' });
+				await expect(panneau).toBeVisible();
+				await panneau.getByLabel('Chercher un agent').fill('a');
+				await sansViolation(page);
+				await panneau.getByRole('button', { name: 'Enregistrer les participants' }).click();
+				await expect(panneau).toBeHidden();
+			});
+
 			test('signaler un problème puis son suivi, gestes ouverts, sans violation', async ({ page }) => {
 				await page.goto('/engins/anomalies/signaler?engin=1');
 				await page.waitForLoadState('networkidle');

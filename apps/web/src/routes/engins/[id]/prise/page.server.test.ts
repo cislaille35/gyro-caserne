@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { anomalie, lireFiche, priseGarde } from '@gyro-caserne/socle';
 import { jpeg, requeteFormulaire } from '../../../echanges/de-test.ts';
@@ -24,10 +25,14 @@ describe('/engins/[id]/prise', () => {
 		const ecart = await agir('geste', moi, vsav, [['prise', id], ['quoi', 'ecart'], ['element', String(gilets.ref)], ['zone', String(fiche.zones[0]!.ref)], ['genre', 'manquant'], ['manque', '1'], ['note', 'Sous le siège'], ['photo', jpeg()]]);
 		expect(ecart).toMatchObject({ succes: 'Écart enregistré.', zone: fiche.zones[0]!.ref });
 		expect(await agir('valider', moi, vsav, [['prise', id]])).toMatchObject({ status: 400, data: { message: expect.stringMatching(/zones à voir/) } });
-		// Une zone vue : la page ouvre la suivante à voir (aucune zone gardée).
-		for (const z of fiche.zones) expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']])).toMatchObject({ zone: null, succes: 'Zone enregistrée.' });
+		// « Tout est complet » : la zone reste ouverte (un écart s'y signale encore) ; la page ouvre aussi la suivante à voir.
+		for (const z of fiche.zones) expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']])).toMatchObject({ zone: z.ref, succes: 'Zone complète.' });
+		// Une zone marquée complète accepte encore un écart.
+		const radio = fiche.zones[0]!.elements.find((e) => e.quantite === null)!;
+		expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'ecart'], ['element', String(radio.ref)], ['zone', String(fiche.zones[0]!.ref)], ['genre', 'abime']])).toMatchObject({ succes: 'Écart enregistré.' });
+		expect((await charger(moi, vsav)).moi).toBe((alice as { id: number }).id);
 		await expect(agir('valider', moi, vsav, [['prise', id]])).rejects.toMatchObject({ status: 303, location: `/engins/${vsav}/prise?validee` });
-		const [a] = await base.select().from(anomalie);
+		const [a] = await base.select().from(anomalie).where(eq(anomalie.ref, gilets.ref));
 		expect(a).toMatchObject({ ref: gilets.ref, manque: 1, note: 'Sous le siège' });
 		// La photo, servie à qui voit les engins.
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,7 +41,7 @@ describe('/engins/[id]/prise', () => {
 		// La prise faite, lisible.
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const faite = await (chargerFaite as any)({ locals: moi, params: { id: String(vsav), prise: id } });
-		expect(faite.prise.signalees).toHaveLength(1);
+		expect(faite.prise.signalees).toHaveLength(2);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await expect((chargerFaite as any)({ locals: moi, params: { id: '999', prise: id } })).rejects.toMatchObject({ status: 404 });
 	});

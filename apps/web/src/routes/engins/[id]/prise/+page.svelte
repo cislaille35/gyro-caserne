@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { ElementFiche, VuePrise } from '@gyro-caserne/socle';
 	import { dateCourte, etatPrise, GENRES, heureCourte, texteEcart, texteEtape, texteReleve } from '#lib/engins/textes.ts';
@@ -9,10 +10,11 @@
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
+	import Panneau from '#lib/planning/Panneau.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
 	type Reponse = { cible?: string; zone?: number | null; succes?: string; message?: string } | null;
-	let { data, form }: { data: VuePrise; form: Reponse } = $props();
+	let { data, form }: { data: VuePrise & { moi?: number | null }; form: Reponse } = $props();
 
 	const e = $derived(data.engin);
 	const p = $derived(data.prise);
@@ -24,12 +26,29 @@
 	const vues = $derived(data.zones.filter((z) => vue(z.ref)).length);
 	const nbEcarts = $derived(Object.keys(s?.ecarts ?? {}).length);
 	const nbRetrouves = $derived(s?.retrouves.length ?? 0);
-	// La zone touchée reste ouverte ; sinon, la première à voir.
+	// La zone touchée reste ouverte (marquée complète, on y signale encore un écart) ; la première à voir s'ouvre aussi.
 	const premiereAVoir = $derived(data.zones.find((z) => !vue(z.ref))?.ref);
-	const ouverte = (ref: number) => (form?.zone ? form.zone === ref : premiereAVoir === ref);
+	const ouverte = (ref: number) => form?.zone === ref || premiereAVoir === ref;
 	const astreinte = $derived(data.agents.filter((a) => a.astreinte));
 	const autres = $derived(data.agents.filter((a) => !a.astreinte));
 	const coche = (id: number) => s?.participants.includes(id) ?? false;
+	// Participants : une rangée en tête, qui ouvre le panneau (`?participants`).
+	const noms = $derived(data.agents.filter((a) => coche(a.id)).map((a) => (a.id === data.moi ? 'vous' : a.nom)));
+	const resumeParticipants = $derived.by(() => {
+		const avecMoi = data.moi != null && coche(data.moi);
+		const autresCoches = (s?.participants.length ?? 0) - (avecMoi ? 1 : 0);
+		if (avecMoi) return autresCoches ? `vous + ${autresCoches}` : 'vous seul';
+		return autresCoches ? `${autresCoches} ${autresCoches > 1 ? 'agents' : 'agent'}` : 'personne';
+	});
+	const panneauParticipants = $derived(page.url.searchParams.has('participants'));
+	let cherche = $state('');
+	const sansAccent = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+	const trouve = (nom: string) => !cherche.trim() || sansAccent(nom).includes(sansAccent(cherche.trim()));
+	const fermerParticipants = $derived(`/engins/${data.engin.id}/prise`);
+	const enregistrerParticipants: SubmitFunction = () => async ({ result, update }) => {
+		if (result.type === 'success') await goto(fermerParticipants, { invalidateAll: true, noScroll: true });
+		else await update();
+	};
 	const validee = $derived(page.url.searchParams.has('validee'));
 
 	// Avec JavaScript, la photo est réduite avant l'envoi (200 Ko au plus, comme ailleurs) ; le focus revient à la zone.
@@ -46,14 +65,11 @@
 			}
 		}
 		const zone = formData.get('zone');
-		const suivante = formData.get('quoi') === 'zone' && formData.get('vue') === '1';
 		return async ({ update }) => {
-			await update();
+			await update({ reset: false });
 			await tick();
-			// Zone vue : on passe à la suivante à voir, sinon on reste sur la zone touchée.
-			const cible = suivante ? (premiereAVoir ?? null) : zone;
-			if (cible) document.getElementById(`zone-${cible}`)?.focus();
-			else if (suivante) document.getElementById('titre-valider')?.focus();
+			// On reste sur la zone touchée : marquée complète, on y signale encore un écart ; la suivante à voir est ouverte dessous.
+			if (zone) document.getElementById(`zone-${zone}`)?.focus({ preventScroll: true });
 		};
 	};
 </script>
@@ -117,6 +133,11 @@
 				<span>{vues} {vues > 1 ? 'zones vues' : 'zone vue'} sur {data.zones.length}</span>
 				<progress max={data.zones.length || 1} value={vues} aria-label="Zones vues">{vues} sur {data.zones.length}</progress>
 			</div>
+			<a class="rangee-participants" href="?participants" data-sveltekit-noscroll>
+				<span><strong>Participants :</strong> {resumeParticipants}</span>
+				<span class="doux">Modifier<span class="masque">{' '}les participants</span></span>
+			</a>
+			{@render message('participants')}
 		</section>
 
 		{#if erreurPhoto}<p class="echec" role="alert">{erreurPhoto}</p>{/if}
@@ -124,8 +145,23 @@
 		<div class="zones">
 			{#each data.zones as z (z.ref)}
 				{@const n = ecartsDe(z.elements)}
-				<Groupe titre={z.nom} resume={vue(z.ref) ? `Vue${n ? ` · ${pluriel(n, 'écart')}` : ' · complète'}` : n ? `À finir · ${pluriel(n, 'écart')}` : 'À voir'} ouvert={ouverte(z.ref)}>
+				<Groupe titre={z.nom} resume={vue(z.ref) ? (n ? `Complète sauf ${pluriel(n, 'écart')}` : 'Complète') : n ? `À finir · ${pluriel(n, 'écart')}` : 'À voir'} ouvert={ouverte(z.ref)}>
 					<div class="zone" id="zone-{z.ref}" tabindex="-1" role="group" aria-label="Zone {z.nom}">
+						<form method="POST" action="?/geste" use:enhance={envoi} class="tete-zone">
+							<input type="hidden" name="prise" value={p.id} />
+							<input type="hidden" name="quoi" value="zone" />
+							<input type="hidden" name="zone" value={z.ref} />
+							<input type="hidden" name="cible" value="zone:{z.ref}" />
+							{#if vue(z.ref)}
+								<p class="ok"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg> Complet{n ? ` sauf ${pluriel(n, 'écart')}` : ''}</p>
+								<button type="submit" class="petit" name="vue" value="0">Revoir la zone<span class="masque">{' '}{z.nom}</span></button>
+							{:else}
+								<Bouton type="submit">{n ? 'Le reste est complet' : 'Tout est complet'}<span class="masque">{' '}: {z.nom}</span></Bouton>
+								<span class="doux">Puis touchez seulement un élément à problème.</span>
+								<input type="hidden" name="vue" value="1" />
+							{/if}
+						</form>
+						{@render message(`zone:${z.ref}`)}
 						<ul role="list" class="elements">
 							{#each z.elements as el (el.ref)}
 								{@const o = ouverteSur(el.ref)}
@@ -218,50 +254,11 @@
 						</ul>
 						{#if z.elements.length === 0}<p class="doux">Aucun élément dans cette zone.</p>{/if}
 
-						<form method="POST" action="?/geste" use:enhance={envoi} class="pied">
-							<input type="hidden" name="prise" value={p.id} />
-							<input type="hidden" name="quoi" value="zone" />
-							<input type="hidden" name="zone" value={z.ref} />
-							<input type="hidden" name="cible" value="zone:{z.ref}" />
-							{#if vue(z.ref)}
-								<p class="ok"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg> Zone vue</p>
-								<button type="submit" class="petit" name="vue" value="0">Revoir la zone<span class="masque">{' '}{z.nom}</span></button>
-							{:else}
-								<Bouton type="submit">{n ? 'Le reste est complet' : 'Tout est complet'}<span class="masque">{' '}: {z.nom}</span></Bouton>
-								<input type="hidden" name="vue" value="1" />
-							{/if}
-						</form>
-						{@render message(`zone:${z.ref}`)}
+
 					</div>
 				</Groupe>
 			{/each}
 		</div>
-
-		<section class="panneau" aria-labelledby="titre-participants">
-			<h2 id="titre-participants">Participants</h2>
-			<p class="doux">La prise est au nom de tous ceux qui l’ont faite. Celui qui valide en fait partie.</p>
-			<form method="POST" action="?/geste" use:enhance class="formulaire">
-				<input type="hidden" name="prise" value={p.id} />
-				<input type="hidden" name="quoi" value="participants" />
-				<input type="hidden" name="cible" value="participants" />
-				{#if astreinte.length}
-					<fieldset>
-						<legend>{data.releve.equipe ? data.releve.equipe.nom : 'Équipe d’astreinte'}</legend>
-						<div class="cases">
-							{#each astreinte as a (a.id)}<label class="choix"><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.nom}</label>{/each}
-						</div>
-					</fieldset>
-				{/if}
-				<p><strong>Cochés :</strong> {data.agents.filter((a) => coche(a.id)).map((a) => a.nom).join(', ') || 'personne'}.</p>
-				<Groupe titre={astreinte.length ? 'Autres agents' : 'Agents du centre'} resume={astreinte.length ? 'Un remplaçant, un renfort' : pluriel(autres.length, 'agent')} niveauTitre={3}>
-					<div class="cases autres">
-						{#each autres as a (a.id)}<label class="choix"><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.nom}</label>{/each}
-					</div>
-				</Groupe>
-				<div><Bouton type="submit" variante="secondaire">Enregistrer les participants</Bouton></div>
-			</form>
-			{@render message('participants')}
-		</section>
 
 		<section class="panneau" aria-labelledby="titre-valider">
 			<h2 id="titre-valider" tabindex="-1">Valider</h2>
@@ -273,6 +270,7 @@
 				{#if nbRetrouves}{pluriel(nbRetrouves, 'signalement retrouvé sera clos', 'signalements retrouvés seront clos')}.{/if}
 				L’engin reste disponible : seuls le référent engins et les chefs décident d’une indisponibilité.
 			</p>
+			<p>La prise sera au nom de : <strong>{noms.join(', ') || 'vous'}</strong>. <a href="?participants" data-sveltekit-noscroll>Modifier les participants</a></p>
 			<form method="POST" action="?/valider" use:enhance>
 				<input type="hidden" name="prise" value={p.id} />
 				<Bouton type="submit">Valider la prise</Bouton>
@@ -288,6 +286,36 @@
 				{@render message('abandonner')}
 			</details>
 		</section>
+
+		{#if panneauParticipants}
+			<Panneau titre="Participants" fermer={fermerParticipants}>
+				<form method="POST" action="?/geste" use:enhance={enregistrerParticipants} class="formulaire participants">
+					<input type="hidden" name="prise" value={p.id} />
+					<input type="hidden" name="quoi" value="participants" />
+					<input type="hidden" name="cible" value="participants" />
+					<p class="doux">La prise est au nom de tous ceux qui l’ont faite. Celui qui valide en fait partie.</p>
+					{#if astreinte.length}
+						<fieldset>
+							<legend>{data.releve.equipe ? data.releve.equipe.nom : 'Équipe d’astreinte'}</legend>
+							<div class="pastilles">
+								{#each astreinte as a (a.id)}<label class="pastille-choix"><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.id === data.moi ? `${a.nom} (vous)` : a.nom}</label>{/each}
+							</div>
+						</fieldset>
+					{/if}
+					<fieldset>
+						<legend>{astreinte.length ? 'Un remplaçant, un renfort' : 'Agents du centre'}</legend>
+						<div class="champ">
+							<label for="cherche-agent">Chercher un agent</label>
+							<input id="cherche-agent" type="search" autocomplete="off" bind:value={cherche} />
+						</div>
+						<div class="pastilles">
+							{#each autres as a (a.id)}<label class="pastille-choix" hidden={!trouve(a.nom) && !coche(a.id)}><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} /> {a.id === data.moi ? `${a.nom} (vous)` : a.nom}</label>{/each}
+						</div>
+					</fieldset>
+					<div><Bouton type="submit">Enregistrer les participants</Bouton></div>
+				</form>
+			</Panneau>
+		{/if}
 	{/if}
 </div>
 
@@ -422,16 +450,73 @@
 		font-weight: 700;
 		color: var(--statut-ok-texte);
 	}
-	.gestes,
-	.pied {
+	.gestes {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
 	}
-	.pied {
-		padding-top: 12px;
-		border-top: 1px solid var(--trait-doux);
+	.tete-zone {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--trait-doux);
+	}
+	.rangee-participants {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 4px 12px;
+		min-height: var(--cible);
+		padding: 8px 12px;
+		border: 1px solid var(--trait);
+		border-radius: var(--rayon-petit);
+		color: var(--encre);
+		text-decoration: none;
+	}
+	.rangee-participants:hover {
+		background: var(--fond);
+	}
+	.pastilles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		width: 100%;
+	}
+	.pastille-choix {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: var(--cible);
+		padding: 0 14px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+	.pastille-choix[hidden] {
+		display: none;
+	}
+	.pastille-choix:has(input:checked) {
+		border-color: var(--encre);
+		background: var(--encre);
+		color: var(--surface);
+	}
+	.pastille-choix input {
+		width: 20px;
+		height: 20px;
+		accent-color: var(--rouge);
+	}
+	input[type='search'] {
+		min-height: var(--cible);
+		padding: 8px 12px;
+		border: 2px solid var(--doux);
+		border-radius: var(--rayon-petit);
+		background: var(--surface);
+		color: var(--encre);
+		font: inherit;
 	}
 	.petit,
 	summary {
@@ -485,14 +570,6 @@
 		width: 22px;
 		height: 22px;
 		accent-color: var(--rouge);
-	}
-	.cases {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-		gap: 0 16px;
-	}
-	.autres {
-		padding: 4px 14px 10px;
 	}
 	.champ {
 		display: flex;
