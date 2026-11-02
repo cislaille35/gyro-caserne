@@ -1,8 +1,18 @@
-import type { EnginVu } from '@gyro-caserne/socle';
+import centre from '$centre';
+import { libelleEtape, LIBELLES_MOTIF, type EnginVu, type EtapeAnomalie, type MotifAttente } from '@gyro-caserne/socle';
 import { pluriel } from '#lib/pluriel.ts';
 
-// Ce qu'on dit d'un engin, à l'écrit : jamais par la seule couleur.
-export const ETATS = { disponible: { texte: 'Disponible', ton: 'ok' }, indisponible: { texte: 'Indisponible', ton: 'danger' } } as const;
+// Ce qu'on dit d'un engin, à l'écrit : jamais par la seule couleur. « Avertissement » : disponible, avec une anomalie ouverte.
+export const ETATS = { disponible: { texte: 'Disponible', ton: 'ok' }, avertissement: { texte: 'Avertissement', ton: 'alerte' }, indisponible: { texte: 'Indisponible', ton: 'danger' } } as const;
+export const etatAffiche = (etat: EnginVu['etat'], ouvertes: number): keyof typeof ETATS => (etat === 'indisponible' ? 'indisponible' : ouvertes > 0 ? 'avertissement' : 'disponible');
+
+// Où en est une anomalie, avec les libellés du centre : « En attente · au garage », « Close ».
+export function texteEtape(a: { etape: EtapeAnomalie; motif: MotifAttente | null; closeLe?: string | null }): string {
+	if (a.closeLe) return 'Close';
+	const etape = libelleEtape(a.etape, centre.anomalies);
+	return a.etape === 'en_attente' && a.motif ? `${etape} · ${LIBELLES_MOTIF[a.motif].toLocaleLowerCase('fr')}` : etape;
+}
+export const tonEtape = (a: { etape: EtapeAnomalie; closeLe?: string | null }): 'ok' | 'info' | 'alerte' => (a.closeLe ? 'ok' : a.etape === 'signalee' ? 'alerte' : 'info');
 
 export function situationDe(e: Pick<EnginVu, 'situation' | 'provenance' | 'partiLe'>): string {
 	if (e.situation === 'prete') return `Prêté au centre par ${e.provenance}`;

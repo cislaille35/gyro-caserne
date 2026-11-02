@@ -1,7 +1,7 @@
 # Prise de garde et engins
 
 > **Livré (lot A, engins et fiches)** : Caserne → Engins, la page de chaque engin et sa fiche, l'ajout et la modification d'un engin (au centre, prêté au centre par un autre centre, parti), l'éditeur de fiche et le fichier des fiches (Excel).
-> **Livré (lot B, prise de garde)** : la prise au téléphone (voir « Ce que fait le lot B » plus bas). À venir : le suivi des anomalies, l'indisponibilité et la remise en service (lot C). Cadrage : [la spec](../superpowers/specs/2026-11-02-engins-design.md), qui précise cette page et l'emporte en cas d'écart.
+> **Livré (lot B, prise de garde)** : la prise au téléphone (voir « Ce que fait le lot B » plus bas). **Livré (lot C)** : le suivi des anomalies, l'indisponibilité décidée et la remise en service, voir [anomalies.md](anomalies.md). Cadrage : [la spec](../superpowers/specs/2026-11-02-engins-design.md), qui précise cette page et l'emporte en cas d'écart.
 
 ## À quoi ça sert
 

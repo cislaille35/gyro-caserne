@@ -3,7 +3,7 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { page } from '$app/state';
 	import type { ElementFiche, VuePrise } from '@gyro-caserne/socle';
-	import { dateCourte, etatPrise, GENRES, heureCourte, texteEcart, texteReleve } from '#lib/engins/textes.ts';
+	import { dateCourte, etatPrise, GENRES, heureCourte, texteEcart, texteEtape, texteReleve } from '#lib/engins/textes.ts';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
@@ -69,7 +69,7 @@
 {#snippet signale(o: (typeof data.ouvertes)[number])}
 	<span class="signale">
 		<strong>{texteEcart(o)}</strong>
-		<span class="doux">Signalé le {dateCourte(o.signaleeLe)} par {o.signaleePar}</span>
+		<span class="doux">Signalé le {dateCourte(o.signaleeLe)} par {o.signaleePar} · <a href="/engins/anomalies/{o.id}">{texteEtape(o)}<span class="masque">{' '}: suivi de l’anomalie {o.libelle}</span></a></span>
 	</span>
 	{#if o.photo}<a class="vignette" href="/engins/photo/{o.photo}"><img src="/engins/photo/{o.photo}" alt="Photo de l’écart : {o.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
 {/snippet}

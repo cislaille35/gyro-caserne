@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compteFiche, dateCourte, etatPrise, jourCourt, jourHeure, parEquipe, resumerFiche, situationDe, sousLigne, texteEcart, texteReleve } from './textes.ts';
+import { etatAffiche, ETATS, texteEtape, compteFiche, dateCourte, etatPrise, jourCourt, jourHeure, parEquipe, resumerFiche, situationDe, sousLigne, texteEcart, texteReleve } from './textes.ts';
 
 const engin = { id: 1, nom: 'VSAV 23', type: 'VSAV', typeId: 1, immatriculation: 'AB-123-CD', situation: 'prete' as const, provenance: 'CIS Exemple-Nord', etat: 'disponible' as const, partiLe: null };
 
@@ -35,5 +35,20 @@ describe('textes des engins', () => {
 		expect(texteReleve({ debut: '2026-10-30T18:00', equipe: null })).toBe('Relève du ven. 30 oct.');
 		expect(texteEcart({ genre: 'manquant', manque: 1, note: 'sous le siège' }, 3)).toBe('Manquant : 1 sur 3 · sous le siège');
 		expect(texteEcart({ genre: 'abime', manque: null, note: null })).toBe('Abîmé');
+	});
+});
+
+describe('anomalies', () => {
+	it('état affiché : indisponible décidé, avertissement avec une anomalie ouverte, sinon disponible', () => {
+		expect(etatAffiche('indisponible', 0)).toBe('indisponible');
+		expect(etatAffiche('disponible', 2)).toBe('avertissement');
+		expect(etatAffiche('disponible', 0)).toBe('disponible');
+		expect(ETATS.avertissement.texte).toBe('Avertissement');
+	});
+
+	it('l’étape écrite, avec le motif d’attente ; close', () => {
+		expect(texteEtape({ etape: 'signalee', motif: null })).toBe('Signalée');
+		expect(texteEtape({ etape: 'en_attente', motif: 'garage' })).toBe('En attente · au garage');
+		expect(texteEtape({ etape: 'reparee', motif: null, closeLe: '2026-10-30T18:00' })).toBe('Close');
 	});
 });

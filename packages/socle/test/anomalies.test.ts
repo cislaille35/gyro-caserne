@@ -236,3 +236,15 @@ describe('la prise de garde', () => {
 		expect(fil.nonLues).toBeGreaterThan(0);
 	});
 });
+
+describe('données fictives', () => {
+	it('le treuil du VTU au garage, une seule fois ; l’engin reste disponible', async () => {
+		const j = await jeu();
+		const { chargerAnomaliesFictives } = await import('../src/anomalies.ts');
+		await chargerAnomaliesFictives(j.base, QUAND);
+		await chargerAnomaliesFictives(j.base, QUAND);
+		const lignes = await j.base.select().from(anomalie);
+		expect(lignes).toMatchObject([{ libelle: 'Treuil hors service', etape: 'en_attente', motifAttente: 'garage', enginId: j.vtu }]);
+		expect(await j.etatEngin(j.vtu)).toBe('disponible');
+	});
+});

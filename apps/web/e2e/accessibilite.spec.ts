@@ -33,11 +33,22 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('signaler un problème puis son suivi, gestes ouverts, sans violation', async ({ page }) => {
+				await page.goto('/engins/anomalies/signaler?engin=1');
+				await page.waitForLoadState('networkidle');
+				await page.getByLabel('Le problème').fill(`Phare avant ${nouvelleMarque()}`);
+				await page.getByRole('button', { name: 'Signaler' }).click();
+				await expect(page).toHaveURL(/\/engins\/anomalies\/\d+\?signalee$/);
+				await expect(page.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
+				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
+				await sansViolation(page);
+			});
 
 			test('publier, sondage ouvert, sans violation', async ({ page }) => {
 				await page.goto('/echanges/publier?mur=vie');

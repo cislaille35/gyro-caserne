@@ -20,7 +20,7 @@ describe('/caserne', () => {
 		const { base, chef, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null, engins: 0 });
+		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null, engins: 0, anomalies: 0 });
 		const pourLeChef = await charger(chef);
 		expect(pourLeChef.agents).toBe(3);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,5 +71,12 @@ describe('/caserne', () => {
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
 		expect((await charger(alice)).engins).toBe(2);
 		expect((await charger(sans)).engins).toBeNull();
+		expect((await charger(sans)).anomalies).toBeNull();
+	});
+
+	it('« Anomalies » pour qui voit les engins, avec le nombre d’ouvertes', () => {
+		expect(html({ engins: 3, anomalies: 2 })).toMatch(lien('/engins/anomalies', '2 ouvertes'));
+		expect(html({ engins: 3, anomalies: 0 })).toMatch(lien('/engins/anomalies', 'Aucune ouverte'));
+		expect(html({ engins: null, anomalies: null })).not.toContain('href="/engins/anomalies"');
 	});
 });

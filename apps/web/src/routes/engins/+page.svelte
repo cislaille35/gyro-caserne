@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { EnginVu, PriseDeLaReleve, Releve } from '@gyro-caserne/socle';
-	import { ETATS, etatPrise, situationDe, sousLigne, texteReleve } from '#lib/engins/textes.ts';
+	import { ETATS, etatAffiche, etatPrise, situationDe, sousLigne, texteReleve } from '#lib/engins/textes.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Groupe from '#lib/ui/Groupe.svelte';
@@ -17,8 +17,10 @@
 	const sous = (e: EnginVu) => {
 		const p = data.prises?.[e.id];
 		if (!p) return sousLigne(e);
-		return [sousLigne(e), etatPrise(p.prise).texte, p.ouvertes ? pluriel(p.ouvertes, 'écart ouvert', 'écarts ouverts') : ''].filter(Boolean).join(' · ');
+		return [sousLigne(e), etatPrise(p.prise).texte, p.ouvertes ? pluriel(p.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ');
 	};
+	const affiche = (e: EnginVu) => ETATS[etatAffiche(e.etat, data.prises?.[e.id]?.ouvertes ?? 0)];
+	const ouvertes = $derived(Object.values(data.prises ?? {}).reduce((n, p) => n + p.ouvertes, 0));
 	const faites = $derived(Object.values(data.prises ?? {}).filter((p) => p.prise?.etat === 'validee').length);
 
 	const presents = $derived(data.engins.filter((e) => e.situation !== 'parti'));
@@ -40,8 +42,9 @@
 	<div class="colonnes">
 		<div class="principal">
 			{#if data.releve && presents.length}
-				<ListeRangees titre="Prise de garde">
+				<ListeRangees titre="Prise de garde et anomalies">
 					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" icone="livre" alerte={faites < presents.length} /></li>
+					<li><Rangee href="/engins/anomalies" titre="Anomalies" sous={ouvertes ? `${pluriel(ouvertes, 'ouverte', 'ouvertes')}, à suivre jusqu’à la réparation` : 'Aucune ouverte'} icone="outil" alerte={ouvertes > 0} /></li>
 				</ListeRangees>
 			{/if}
 
@@ -52,7 +55,7 @@
 					{#each presents as e (e.id)}
 						<li>
 							<Rangee href="/engins/{e.id}" titre={e.nom} sous={sous(e)} icone="camion">
-								{#snippet droite()}<Pastille ton={ETATS[e.etat].ton}>{ETATS[e.etat].texte}</Pastille>{/snippet}
+								{#snippet droite()}<Pastille ton={affiche(e).ton}>{affiche(e).texte}</Pastille>{/snippet}
 							</Rangee>
 						</li>
 					{/each}

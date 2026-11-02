@@ -63,7 +63,14 @@ const PHRASES: Record<string, string> = {
 	'Engin parti': 'Cet engin a quitté le centre : pas de prise de garde.',
 	'Réservé aux agents': 'La prise de garde est faite par les agents du centre.',
 	'Photo JPEG ou WebP seulement': 'La photo doit être en JPEG ou WebP.',
-	'Photo trop lourde (200 Ko au plus)': 'Photo trop lourde : 200 Ko au plus.'
+	'Photo trop lourde (200 Ko au plus)': 'Photo trop lourde : 200 Ko au plus.',
+	'Problème vide': 'Dites en quelques mots quel est le problème.',
+	'Problème trop long': 'Le problème se dit en 120 caractères au plus ; le détail va dans la note.',
+	'Écart inconnu': 'Choisissez : manquant, abîmé ou à remplacer.',
+	'Texte trop long': 'Le texte est trop long (300 caractères au plus).',
+	'Motif inconnu': 'Choisissez le motif de l’attente.',
+	'Geste impossible': 'Ce geste n’est plus possible : la page a été rechargée.',
+	'Anomalie changée entre-temps': 'Un collègue vient de faire avancer cette anomalie : la page a été rechargée, refaites votre geste si besoin.'
 };
 
 export const phraseDe = (message: string) => PHRASES[message] ?? (message.endsWith('.') ? message : `${message}.`);

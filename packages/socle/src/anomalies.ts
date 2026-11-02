@@ -374,3 +374,21 @@ export async function anomaliesADecider(base: Base, maintenant: string, reglage:
 	for (const e of indisponibles) if (e.derniere !== null) items.push({ texte: `${e.nom} indisponible, anomalie close : remettre en service ?`, lien: `/engins/anomalies/${e.derniere}` });
 	return { equipeId: items.length ? await equipeAstreinte(base, maintenant, reglage) : null, items, roles: traitent.map((t) => t.id) };
 }
+
+// Données fictives (préprod et développement local) : le treuil du VTU, au garage. Relançable, sans doublon.
+export async function chargerAnomaliesFictives(base: Base, maintenant: string): Promise<void> {
+	const [[vtu], [agent], [deja]] = await base.batch([
+		base.select({ id: engin.id }).from(engin).where(eq(engin.nom, 'VTU')),
+		base.select({ id: personne.id }).from(personne).where(eq(personne.statut, 'operationnel')).orderBy(asc(personne.id)).limit(1),
+		base.select({ id: anomalie.id }).from(anomalie).where(eq(anomalie.libelle, 'Treuil hors service'))
+	]);
+	if (!vtu || !agent || deja) return;
+	const [a] = await base
+		.insert(anomalie)
+		.values({ enginId: vtu.id, zone: '', libelle: 'Treuil hors service', genre: 'abime', note: 'Le câble ne se déroule plus.', signaleePar: agent.id, signaleeLe: maintenant, etape: 'en_attente', motifAttente: 'garage', priseEnChargePar: agent.id })
+		.returning({ id: anomalie.id });
+	await base.insert(anomalieSuivi).values([
+		{ anomalieId: a!.id, quoi: 'prise_en_charge', par: agent.id, le: maintenant },
+		{ anomalieId: a!.id, quoi: 'en_attente', texte: 'Retour prévu sous huit jours.', par: agent.id, le: maintenant }
+	]);
+}

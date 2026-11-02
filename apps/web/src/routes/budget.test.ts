@@ -56,6 +56,9 @@ import { actions as actionsFicheEngin, load as pageFicheEngin } from './engins/f
 import { GET as donneesFiches } from './engins/fiches/fichier/donnees/+server';
 import { POST as apercuFiches } from './engins/fiches/fichier/apercu/+server';
 import { POST as appliquerFiches } from './engins/fiches/fichier/appliquer/+server';
+import { load as pageAnomalies } from './engins/anomalies/+page.server';
+import { actions as actionsSignaler } from './engins/anomalies/signaler/+page.server';
+import { actions as actionsAnomalie, load as pageAnomalie } from './engins/anomalies/[id]/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -315,6 +318,22 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await page();
 			await (pageEngin as any)({ locals, params });
 		})).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('anomalies : la liste (40 anomalies, 12 engins), signaler, une anomalie, un geste, l’Accueil du chef (150 agents)', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const [vsav] = await base.select().from(typeEngin).where(eq(typeEngin.nom, 'VSAV'));
+		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
+		const signaler = async () => (actionsSignaler.default as any)({ locals, request: await requeteFormulaire([['engin', '1'], ['libelle', 'Phare HS'], ['genre', 'abime'], ['photo', jpeg()]]) }).catch((r: { status?: number; location?: string }) => r);
+		for (let i = 0; i < 39; i++) await signaler();
+		expect(await compter(async () => { await (racine as any)({ locals }); expect((await (pageAnomalies as any)({ locals, url: new URL('http://x/engins/anomalies') })).ouvertes).toHaveLength(39); })).toBeLessThanOrEqual(BUDGET);
+		let fin: { location?: string } = {};
+		expect(await compter(async () => { fin = await signaler(); })).toBeLessThanOrEqual(BUDGET);
+		const params = { id: fin.location!.match(/\d+/)![0] };
+		const page = async () => { await (racine as any)({ locals }); await (pageAnomalie as any)({ locals, params, url: new URL('http://x/') }); };
+		expect(await compter(page)).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect(await (actionsAnomalie.default as any)({ locals, params, request: await requeteFormulaire([['quoi', 'indisponible']]) })).toMatchObject({ succes: expect.any(String) }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (accueil as any)({ locals, url: new URL('http://x/') }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
 	});
 
 	it('/moi : la carte d’identité', async () => {
