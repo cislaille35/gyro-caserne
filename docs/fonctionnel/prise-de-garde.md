@@ -1,7 +1,7 @@
 # Prise de garde et engins
 
 > **Livré (lot A, engins et fiches)** : Caserne → Engins, la page de chaque engin et sa fiche, l'ajout et la modification d'un engin (au centre, prêté au centre par un autre centre, parti), l'éditeur de fiche et le fichier des fiches (Excel).
-> **Livré (lot B, prise de garde)** : la prise au téléphone (voir « Ce que fait le lot B » plus bas). À venir : le suivi des anomalies, l'indisponibilité et la remise en service (lot C). Cadrage : [la spec](../superpowers/specs/2026-11-02-engins-design.md), qui précise cette page et l'emporte en cas d'écart.
+> **Livré (lot B, prise de garde)** : la prise au téléphone (voir « Ce que fait le lot B » plus bas). **Livré (lot C)** : le suivi des anomalies, l'indisponibilité décidée et la remise en service, voir [anomalies.md](anomalies.md). Cadrage : [la spec](../superpowers/specs/2026-11-02-engins-design.md), qui précise cette page et l'emporte en cas d'écart.
 
 ## À quoi ça sert
 
@@ -64,7 +64,7 @@ La prise enregistre l'agent qui l'a faite et l'équipe d'astreinte du moment.
 ## Ce que fait le lot B (prise de garde)
 
 - **Caserne → Engins → Prise de garde** : la relève en cours (« Relève du ven. 30 oct., équipe 2 ») et chaque engin : « Prise faite par l'équipe 2, ven. 18 h 40 », « Prise en cours (Alice Martin) » ou « Prise à faire », et ses écarts encore ouverts. La liste des engins dit la même chose sous chaque engin.
-- **La prise d'un engin** : d'abord ce qui reste signalé depuis la dernière prise ; puis la fiche zone par zone, « Tout est complet » en un geste, un écart seulement là où il y en a (manquant avec le nombre manquant s'il se compte, abîmé, à remplacer ; note et photo facultatives) ; « Oui, clore le signalement » si un élément signalé est retrouvé ; les participants (l'équipe d'astreinte d'abord) ; valider. Gyro porte la check-list.
+- **La prise d'un engin** : d'abord ce qui reste signalé depuis la dernière prise ; puis la fiche zone par zone, « Tout est complet » en un geste, en tête de chaque zone (lot C, demande du porteur : on le touche d'abord, puis seulement les éléments à problème ; la zone suivante s'ouvre dessous), un écart seulement là où il y en a (manquant avec le nombre manquant s'il se compte, abîmé, à remplacer ; note et photo facultatives) ; « Oui, clore le signalement » si un élément signalé est retrouvé ; les participants (une rangée en tête de la prise, « Participants : vous + 2 », qui ouvre un panneau : l'équipe d'astreinte d'abord, une recherche pour un remplaçant ou un renfort ; rappelés au résumé de la validation) ; valider. Gyro porte la check-list.
 - **Brouillon partagé** : une prise par engin et par relève, gardée sur le serveur ; un collègue la reprend sur son téléphone. On peut l'abandonner (brouillon et photos effacés).
 - **À la validation** : chaque écart devient une anomalie (sauf si le même élément est déjà signalé et ouvert) ; les éléments retrouvés sont clos. L'engin reste disponible : l'indisponibilité est une décision (lot C).
 - **Relève** : le moment de prise d'astreinte du centre ; on peut commencer deux heures avant. **Retard** : trois heures après la relève, les engins sans prise validée apparaissent dans « À décider » du chef de garde de l'équipe d'astreinte (« Prise de garde en retard : VSAV 1, FPT »), sinon dans « Le centre ».

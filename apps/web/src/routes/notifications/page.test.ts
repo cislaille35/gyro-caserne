@@ -55,6 +55,11 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*href="\/moi\/vacances"[^>]*>[\s\S]*?Non lu, [\s\S]*?Vos vacances d’été[\s\S]*?avant le 15\/05\/2027/);
 	});
 
+	it('un avis d’anomalie : vers l’anomalie, son titre et son texte', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 5, type: 'anomalie', titre: 'VTU · Treuil HS', texte: 'Prise en charge par Rémi Fictif', url: '/engins/anomalies/3', creeLe: '2026-10-30T18:00', lue: false }] });
+		expect(page).toMatch(/<a[^>]*href="\/engins\/anomalies\/3"[^>]*>[\s\S]*?Non lu, [\s\S]*?VTU · Treuil HS[\s\S]*?Prise en charge par Rémi Fictif/);
+	});
+
 	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
 		const page = html({ aValider: 2 });
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);

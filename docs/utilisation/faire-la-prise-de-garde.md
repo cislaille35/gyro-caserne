@@ -5,9 +5,9 @@
 1. Ouvrez **Caserne**, puis **Engins**, puis **Prise de garde** (ou l'engin, puis **Faire la prise**).
 2. Choisissez l'engin. Ce qui est encore signalé depuis la dernière prise s'affiche d'abord.
 3. Touchez **Commencer la prise**.
-4. Zone par zone : si tout y est, **Tout est complet**. Sinon, sur l'élément, **Signaler un écart** : manquant, abîmé ou à remplacer, combien manquent s'il se compte, une note et, si utile, une photo. Puis **Le reste est complet**.
+4. Zone par zone, touchez d'abord **Tout est complet**, en haut de la zone : elle passe « Complet » et la suivante s'ouvre dessous. Puis touchez seulement un élément à problème : **Signaler un écart** (manquant, abîmé ou à remplacer, combien manquent s'il se compte, une note et, si utile, une photo).
 5. Un élément signalé à une prise précédente est retrouvé ? **Oui, clore le signalement**.
-6. Dans **Participants**, cochez les collègues qui vous ont aidé, puis **Enregistrer les participants**.
-7. **Valider la prise**. Chaque écart devient une anomalie suivie ; l'engin reste disponible.
+6. En tête de la prise, touchez **Participants** : l'équipe d'astreinte d'abord ; cherchez un remplaçant ou un renfort par son nom ; cochez, puis **Enregistrer les participants**. Modifiable jusqu'à la validation.
+7. **Valider la prise** : le résumé rappelle au nom de qui elle est faite. Chaque écart devient une anomalie suivie ; l'engin reste disponible.
 
 Le brouillon est gardé : vous pouvez le reprendre sur un autre téléphone, ou un collègue peut le finir à votre place.

@@ -263,3 +263,18 @@ Spec : [2026-11-02-engins-design.md](../superpowers/specs/2026-11-02-engins-desi
 - Les gestes, la validation et l'abandon reçoivent l'engin de la page : une prise d'un autre engin est refusée. `instruction` (`base.ts`) prépare le SQL brut d'un batch pour D1 (sans elle, drizzle échoue sur D1 ; l'éditeur de fiche du lot A en souffrait aussi).
 - Droits : voir (`VOIR_ENGINS`) pour lire ; faire (`FAIRE_PRISE_DE_GARDE` sur le centre, et être une personne) pour écrire. Pas d'entrée au journal : la prise est sa propre trace.
 - Accueil : `casquettes.ts` place « Prise de garde en retard : … » dans la casquette du chef de garde de l'équipe d'astreinte, sinon dans « Le centre » (une requête de plus, seulement pour un chef).
+
+## Anomalies
+
+Spec : [2026-11-02-engins-design.md](../superpowers/specs/2026-11-02-engins-design.md) (lot C), [anomalies.md](../fonctionnel/anomalies.md). Migration additive `0019`. Décision : [0019](../decisions/0019-anomalies.md).
+
+| Table | Contenu |
+|---|---|
+| `anomalie` (colonnes ajoutées) | `etape` (`signalee`, `prise_en_charge`, `en_attente`, `reparee`, `verifiee` ; vérifiée par le socle, pas de CHECK pour rester additif), `motif_attente` (`piece`, `garage`, `prestataire`), `prise_en_charge_par`, `bloquante` (1 : l'engin a été rendu indisponible depuis elle, jusqu'à sa remise en service). Close : `close_le` (réparée sans vérification, vérifiée, close sans réparation, ou retrouvée à la prise). Un signalement direct a `zone` vide et pas de `ref`. |
+| `anomalie_suivi` | L'historique : `quoi` (`prise_en_charge`, `en_attente`, `reparee`, `verifiee`, `close`, `indisponible`, `remise_en_service`), `texte`, `par`, `le`, `jeton` (propre à chaque envoi d'un geste). Le signalement et la clôture à la prise se lisent dans `anomalie`. |
+| `avis_anomalie` | La cloche : `titre`, `texte`, `url`, créé / lu le ; envoi au téléphone par la file des notifications, lieu `engins` (seul « tout » le coupe). |
+
+- `anomalies.ts` : `traiteLesAnomalies` (`TRAITER_ANOMALIE` sur le centre, ou chef de garde) ; `gestesPermis` (pur) ; `gesteAnomalie` (un `batch` : ligne d'historique insérée si l'état relu n'a pas bougé — étape, close, bloquante, nombre de lignes, état de l'engin et ses blocages ouverts —, puis anomalie, engin et cloche conditionnés par « la dernière ligne porte notre jeton » ; sinon « Anomalie changée entre-temps » : un double envoi ne s'écrit qu'une fois) ; `bloquanteClose` (où remettre l'engin en service) ; `signalerAnomalie` (photo d'abord dans PHOTOS ; la cloche après coup) ; `lireAnomalie` (un `batch`, marque lue sa cloche) ; `listerAnomalies` ; `anomaliesADecider` (Accueil) ; `chargerAnomaliesFictives`.
+- `anomalies-avis.ts` : `quiTraite` (qui a `TRAITER_ANOMALIE` sur le centre, par profil ou rôle, et le chef de garde de l'équipe d'astreinte) et `avisAnomalies` (écritures à placer dans un batch). `validerPrise` y prévient ceux qui traitent des nouvelles anomalies (une ligne par prise) et le déclarant d'un élément retrouvé.
+- Réglage du centre (`centres/<id>/centre.ts`, `anomalies`) : `enAttente` (oui par défaut), `verifiee` (non par défaut), `libelles` des étapes. Lu par l'appli (`centre.anomalies`) et passé au socle.
+- Accueil : `casquettes.ts` met « N anomalies signalées à prendre en charge : … » et « VTU indisponible, anomalie close : remettre en service ? » dans « Le centre », la casquette du chef de garde de l'équipe d'astreinte et celle d'un rôle qui porte `TRAITER_ANOMALIE` (référent engins). Une requête de plus, seulement pour qui traite.

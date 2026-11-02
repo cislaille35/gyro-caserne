@@ -132,4 +132,14 @@ describe('defineCentre', () => {
 		for (const mois of [0, 1.5, -3])
 			expect(erreursCentre({ ...exemple, conservationMessagesMois: mois })).toEqual([`conservation des messages : ${mois} mois, un nombre entier de 1 au moins attendu`]);
 	});
+
+	it('anomalies : étape « en attente » oui, « vérifiée » non, libellés d’origine, par défaut ; ou le choix du centre', () => {
+		expect(defineCentre(exemple).anomalies).toEqual({ enAttente: true, verifiee: false, libelles: {} });
+		expect(defineCentre({ ...exemple, anomalies: { verifiee: true, libelles: { reparee: 'Remise en état' } } }).anomalies).toEqual({ enAttente: true, verifiee: true, libelles: { reparee: 'Remise en état' } });
+	});
+
+	it('refuse un libellé d’étape vide ou trop long', () => {
+		expect(erreursCentre({ ...exemple, anomalies: { libelles: { signalee: ' ' } } })).toEqual(['anomalies, libellé de l’étape « signalee » : de 1 à 30 caractères']);
+		expect(erreursCentre({ ...exemple, anomalies: { libelles: { reparee: 'x'.repeat(31) } } })).toEqual(['anomalies, libellé de l’étape « reparee » : de 1 à 30 caractères']);
+	});
 });

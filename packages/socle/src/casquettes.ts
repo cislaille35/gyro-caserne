@@ -7,6 +7,7 @@ import type { Droit } from './listes.ts';
 import type { Reglage } from './planning/calendrier.ts';
 import { vueEte } from './planning/ete.ts';
 import { plagesARevoir } from './planning/repartition.ts';
+import { anomaliesADecider, traiteLesAnomalies } from './anomalies.ts';
 import { prisesEnRetard } from './prises.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { remplacementsAValider } from './remplacements/lectures.ts';
@@ -79,13 +80,21 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string, reglage?: Reglage): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
 	const liste = await tenues(base, acteur, aujourdhui);
 	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
-	const [organisation, reservations, remplacements, retard] = await Promise.all([
+	const roles = liste.filter((c) => c.id.startsWith('role:')).map((c) => Number(c.id.slice(5)));
+	const [organisation, reservations, remplacements, retard, anomalies] = await Promise.all([
 		liste.some((c) => c.id === 'centre') ? lireADecider(base, aujourdhui, reglage) : null,
 		demandesParCasquette(base, liste, aujourdhui),
 		chef ? remplacementsAValider(base, acteur, maintenant) : [],
-		chef && reglage ? prisesEnRetard(base, maintenant, reglage) : null
+		chef && reglage ? prisesEnRetard(base, maintenant, reglage) : null,
+		// Les anomalies, pour ceux qui les traitent : « Le centre », le chef de garde de l'équipe d'astreinte, le référent engins.
+		reglage && (chef || roles.length) && (await traiteLesAnomalies(base, acteur, aujourdhui)) ? anomaliesADecider(base, maintenant, reglage, roles) : null
 	]);
 	const versCentre: ADecider[] = [];
+	if (anomalies && anomalies.items.length) {
+		if (liste.some((c) => c.id === 'centre')) versCentre.push(...anomalies.items);
+		for (const cle of [`equipe:${anomalies.equipeId}`, ...anomalies.roles.map((r) => `role:${r}`)])
+			if (liste.some((c) => c.id === cle)) reservations.set(cle, [...(reservations.get(cle) ?? []), ...anomalies.items]);
+	}
 	// La prise de garde en retard : au chef de garde de l'équipe d'astreinte, sinon à « Le centre ».
 	if (retard) {
 		const cle = `equipe:${retard.equipeId}`;

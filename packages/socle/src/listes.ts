@@ -101,6 +101,13 @@ export const ETATS_PRISE = ['en_cours', 'validee'] as const;
 export type EtatPrise = (typeof ETATS_PRISE)[number];
 export const GENRES_ECART = ['manquant', 'abime', 'a_remplacer'] as const;
 export type GenreEcart = (typeof GENRES_ECART)[number];
+// Le suivi d'une anomalie : ses étapes (close à part, `close_le`), le motif d'attente, et les gestes de son historique.
+export const ETAPES_ANOMALIE = ['signalee', 'prise_en_charge', 'en_attente', 'reparee', 'verifiee'] as const;
+export type EtapeAnomalie = (typeof ETAPES_ANOMALIE)[number];
+export const MOTIFS_ATTENTE = ['piece', 'garage', 'prestataire'] as const;
+export type MotifAttente = (typeof MOTIFS_ATTENTE)[number];
+export const SUIVIS_ANOMALIE = ['prise_en_charge', 'en_attente', 'reparee', 'verifiee', 'close', 'indisponible', 'remise_en_service'] as const;
+export type SuiviAnomalie = (typeof SUIVIS_ANOMALIE)[number];
 
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];

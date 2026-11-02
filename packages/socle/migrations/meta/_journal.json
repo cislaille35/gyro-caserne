@@ -134,6 +134,13 @@
       "when": 1793622257656,
       "tag": "0018_prise_de_garde",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1793632798346,
+      "tag": "0019_anomalies",
+      "breakpoints": true
     }
   ]
 }

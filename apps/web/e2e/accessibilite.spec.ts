@@ -33,11 +33,48 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('prise de garde : « Tout est complet » en tête de zone, panneau des participants, sans violation', async ({ page }) => {
+				await page.goto('/engins/3/prise');
+				await page.waitForLoadState('networkidle');
+				const commencer = page.getByRole('button', { name: 'Commencer la prise' });
+				if (await commencer.count()) {
+					await commencer.click();
+					await expect(page.getByText('Commencée par')).toBeVisible();
+				}
+				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ }).first();
+				const revoir = page.getByRole('button', { name: /^Revoir la zone/ });
+				const avant = await revoir.count();
+				if (await complet.count()) {
+					await complet.click();
+					// La zone passe « Complet » et reste ouverte : son bouton « Revoir la zone » apparaît.
+					await expect(revoir).toHaveCount(avant + 1);
+				}
+				await sansViolation(page);
+				await page.getByRole('link', { name: /Participants :/ }).click();
+				const panneau = page.getByRole('dialog', { name: 'Participants' });
+				await expect(panneau).toBeVisible();
+				await panneau.getByLabel('Chercher un agent').fill('a');
+				await sansViolation(page);
+				await panneau.getByRole('button', { name: 'Enregistrer les participants' }).click();
+				await expect(panneau).toBeHidden();
+			});
+
+			test('signaler un problème puis son suivi, gestes ouverts, sans violation', async ({ page }) => {
+				await page.goto('/engins/anomalies/signaler?engin=1');
+				await page.waitForLoadState('networkidle');
+				await page.getByLabel('Le problème').fill(`Phare avant ${nouvelleMarque()}`);
+				await page.getByRole('button', { name: 'Signaler' }).click();
+				await expect(page).toHaveURL(/\/engins\/anomalies\/\d+\?signalee$/);
+				await expect(page.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
+				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
+				await sansViolation(page);
+			});
 
 			test('publier, sondage ouvert, sans violation', async ({ page }) => {
 				await page.goto('/echanges/publier?mur=vie');

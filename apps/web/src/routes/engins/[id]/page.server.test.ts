@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import centre from '$centre';
+import { gesteAnomalie, REGLAGE_ANOMALIES, signalerAnomalie } from '@gyro-caserne/socle';
 import { load } from './+page.server';
 import { load as chargerModifier, actions } from './modifier/+page.server';
 import { locaux, preparer } from '../de-test.ts';
@@ -17,6 +19,16 @@ describe('/engins/[id]', () => {
 		expect(page.gere).toBe(false);
 		expect(page.fiche.type).toBe('VSAV');
 		expect(page.fiche.zones.map((z: { nom: string }) => z.nom)).toEqual(['Cabine', 'Cellule sanitaire', 'Sac de premiers secours', 'Sac d’oxygénothérapie']);
+	});
+
+	it('ses anomalies ouvertes, « Signaler un problème » pour un agent ; indisponible et anomalie close : où le remettre en service', async () => {
+		const { base, alice, chef, vsav } = await preparer();
+		const id = await signalerAnomalie(base, base.photos, alice, { enginId: vsav, libelle: 'Phare', genre: 'abime', note: '' }, '2026-10-30T18:10', centre.astreinte);
+		const page = await charger(locaux(base, alice), vsav);
+		expect(page).toMatchObject({ peutSignaler: true, aRemettre: null, ouvertes: [{ id, libelle: 'Phare', etape: 'signalee' }] });
+		await gesteAnomalie(base, chef, id, { quoi: 'indisponible' }, '2026-10-30T18:10', REGLAGE_ANOMALIES);
+		await gesteAnomalie(base, chef, id, { quoi: 'clore', texte: '' }, '2026-10-30T18:10', REGLAGE_ANOMALIES);
+		expect(await charger(locaux(base, alice), vsav)).toMatchObject({ aRemettre: id, ouvertes: [], engin: { etat: 'indisponible' } });
 	});
 
 	it('404 pour un engin inconnu', async () => {
