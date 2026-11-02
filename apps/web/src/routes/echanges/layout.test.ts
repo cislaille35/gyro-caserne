@@ -110,7 +110,7 @@ describe('liste des murs', () => {
 
 	it('le bouton « Écrire » mène au formulaire', () => {
 		etat.page.params = {};
-		expect(html()).toMatch(/<a[^>]*href="\/echanges\/publier"[^>]*>/);
+		expect(html()).toMatch(/<a[^>]*href="\/echanges\/publier"[^>]*>[\s\S]*?<span class="libelle[^"]*">Écrire<\/span>/);
 	});
 
 	it('Vivant : Gyro animé à l’arrivée, nouveautés puis une variante choisie par le jour de l’année', () => {
@@ -132,7 +132,8 @@ describe('liste des murs', () => {
 		// Le minuteur d'arrêt (arreterApres, DUREE_DECOR) est éprouvé dans lib/gyro/mouvement.test.ts : la liste doit passer par GyroDuMoment, qui l'utilise.
 		const code = (fichier: URL) => compile(readFileSync(fichier, 'utf8'), { generate: 'client' }).js.code;
 		const liste = code(new URL('./+layout.svelte', import.meta.url));
-		expect(liste).toContain('GyroDuMoment');
+		expect(liste).toContain('EnTetePage');
+		expect(code(new URL('../../lib/ui/EnTetePage.svelte', import.meta.url))).toContain('GyroDuMoment');
 		expect(liste).not.toMatch(/from '#lib\/gyro\/Gyro\.svelte'/);
 		const gyro = code(new URL('../../lib/gyro/GyroDuMoment.svelte', import.meta.url));
 		expect(gyro).toContain('arreterApres(duree');

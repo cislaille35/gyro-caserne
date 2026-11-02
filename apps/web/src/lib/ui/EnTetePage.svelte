@@ -5,7 +5,7 @@
 	import { DESSINS } from './icones-roles.ts';
 	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
-	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rond rouge).
+	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rouge, icône et libellé).
 	let {
 		titre,
 		phrase,
@@ -103,6 +103,7 @@
 		align-items: center;
 		justify-content: center;
 		gap: 6px;
+		padding: 0 18px 0 14px;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
@@ -113,25 +114,8 @@
 		background: var(--rouge-survol);
 		color: var(--sur-rouge);
 	}
-	/* Au téléphone, le libellé est lu mais pas montré : le bouton reste rond. */
+	/* Le libellé se voit à toutes les tailles : le bouton dit ce qu'il fait. */
 	.libelle {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
 		white-space: nowrap;
-	}
-	@media (min-width: 640px) {
-		.action {
-			padding: 0 20px 0 16px;
-		}
-		.libelle {
-			position: static;
-			width: auto;
-			height: auto;
-			overflow: visible;
-			clip-path: none;
-		}
 	}
 </style>
