@@ -40,14 +40,18 @@
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 		</div>
-		{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
-		{#if action}
-			<a class="action" href={action.href}>
-				<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-					><path d={action.dessin ?? DESSINS.plus} /></svg
-				>
-				<span class="libelle">{action.libelle}</span>
-			</a>
+		{#if secondaire || action}
+			<div class="actions">
+				{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
+				{#if action}
+					<a class="action" href={action.href}>
+						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+							><path d={action.dessin ?? DESSINS.plus} /></svg
+						>
+						<span class="libelle">{action.libelle}</span>
+					</a>
+				{/if}
+			</div>
 		{/if}
 	</div>
 </header>
@@ -59,11 +63,19 @@
 		align-items: flex-start;
 		gap: 4px;
 	}
+	/* Les actions passent sous le titre quand la place manque (téléphone, titre long). */
 	.ligne {
 		align-self: stretch;
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 12px;
+	}
+	.actions {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.tete,
 	.mascotte {
@@ -73,7 +85,7 @@
 		margin: -10px -8px -10px -12px;
 	}
 	.titres {
-		flex: 1;
+		flex: 1 1 11rem;
 		min-width: 0;
 	}
 	h1 {
