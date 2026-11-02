@@ -7,6 +7,8 @@ export default defineCentre({
 	fuseauHoraire: 'Europe/Paris',
 	position: { latitude: 48.065, longitude: -1.717 },
 	// Couleurs du planning papier
+	// Pour la vigilance Météo-France
+	departement: '35',
 	equipes: [
 		{ numero: 1, nom: 'Équipe 1', couleur: '#f2c200' },
 		{ numero: 2, nom: 'Équipe 2', couleur: '#e5699a' },
