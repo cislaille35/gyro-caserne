@@ -200,6 +200,14 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 	};
 }
 
+// Les plages où la répartition enregistrée n'arme pas le FPT : pour l'accueil du chef, comme l'écran Été les compte.
+export async function plagesARevoir(base: Base, annee: number, aujourdhui: string, reglage: Reglage): Promise<number> {
+	const lu = await lireEte(base, annee, aujourdhui, reglage);
+	const fpt = enginFpt(lu.fpt);
+	const date = (p: PlageEte) => p.debut.slice(0, 10);
+	return lu.plagesEte.filter((p) => !armement(fpt, presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut)).map((id) => ({ id, postes: lu.postes(id, date(p)) }))).arme).length;
+}
+
 const pick = (a: { id: number; prenom: string; nom: string }) => ({ id: a.id, prenom: a.prenom, nom: a.nom });
 
 const journal = (base: Base, acteur: Acteur, action: string, details: object, maintenant: string) => ligneJournal(base, { acteur: nomActeur(acteur), action, cibleType: 'planning', cibleId: null, details }, maintenant);

@@ -8,6 +8,9 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { ajouterRessource, refuser, reserver } from '../src/reservations.ts';
 import { anneePlanning, attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
+import { periodeParDefaut, reglerEte } from '../src/planning/ete.ts';
+import { eteAPreparer, proposerEte, publierEte } from '../src/planning/repartition.ts';
+import { jeuEte } from './jeu-ete.ts';
 
 const aujourdhui = '2026-10-25';
 const superAdmin: Acteur = { type: 'super', email: 'admin@exemple.fr' };
@@ -311,5 +314,46 @@ describe('accueilDe', () => {
 		const alice = await nouvelle('Alice');
 		await nommer(alice, role('Chef de garde'), { type: 'equipe', id: equipe1!.id });
 		expect(await accueilDe(base, acteur(alice), null, aujourdhui)).toMatchObject({ choisie: `equipe:${equipe1!.id}`, contenu: { type: 'equipe' } });
+	});
+});
+
+describe('À décider : l’été', () => {
+	const reglage = centreExemple.astreinte;
+	const ete = (base: Awaited<ReturnType<typeof jeuEte>>['base'], chef: Acteur, jour: string) =>
+		aDecider(base, chef, jour, reglage).then((l) => l.filter((x) => x.texte.startsWith('Été')));
+
+	it('à ouvrir à partir du 1er mars ; ouvert : rien jusqu’à la date limite ; puis à publier ; publié : plus rien', async () => {
+		const { base, chef } = await jeuEte();
+		const lien = '/planning/ete?annee=2027';
+		expect(await ete(base, chef, '2027-02-28')).toEqual([]);
+		expect(await ete(base, chef, '2027-03-01')).toEqual([{ texte: 'Été 2027 à ouvrir', lien }]);
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2027-03-01T10:00', reglage);
+		expect(await ete(base, chef, '2027-05-15')).toEqual([]);
+		expect(await ete(base, chef, '2027-05-16')).toEqual([{ texte: 'Été 2027 à publier', lien }]);
+		await proposerEte(base, chef, 2027, '2027-05-16T10:00', reglage);
+		await publierEte(base, chef, 2027, '2027-05-16T10:00', reglage);
+		expect(await ete(base, chef, '2027-05-16')).toEqual([]);
+		// Après l'été : rien.
+		expect(await ete(base, { type: 'super', email: 'a@b.fr' }, '2027-09-10')).toEqual([]);
+	});
+
+	it('proposé, non publié : les plages à revoir, comptées comme l’écran Été ; la casquette les compte', async () => {
+		const { base, chef, nouvelle, apte } = await jeuEte();
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2027-03-01T10:00', reglage);
+		// Il manque un CE partout : toutes les plages sont à revoir.
+		for (const [prenom, ...aptitudes] of [['Hugo', 'CA2'], ['Léa', 'CE'], ['Inès', 'COD1'], ['Jules'], ['Sarah']] as [string, ...string[]][]) await apte(await nouvelle(prenom, 1), ...aptitudes);
+		await proposerEte(base, chef, 2027, '2027-04-01T10:00', reglage);
+		const n = (await eteAPreparer(base, chef, 2027, '2027-04-01T10:00', reglage)).impossibles.length;
+		expect(n).toBeGreaterThan(1);
+		expect(await ete(base, chef, '2027-04-01')).toEqual([{ texte: `Été 2027 : ${n} plages à revoir`, lien: '/planning/ete?annee=2027' }]);
+		const centre = (await accueilDe(base, chef, 'centre', '2027-04-01', '2027-04-01T10:00', reglage)).casquettes.find((c) => c.id === 'centre');
+		expect(centre!.compte).toBe((await aDecider(base, chef, '2027-04-01', reglage)).length);
+	});
+
+	it('l’été de l’an prochain, déjà ouvert et proposé : dit dès maintenant', async () => {
+		const { base, chef } = await jeuEte();
+		await reglerEte(base, chef, 2027, periodeParDefaut(2027, reglage), '2026-11-02T10:00', reglage);
+		await proposerEte(base, chef, 2027, '2026-11-02T10:00', reglage);
+		expect((await ete(base, chef, '2026-11-02'))[0]!.texte).toMatch(/^Été 2027 : \d+ plages à revoir$/);
 	});
 });
