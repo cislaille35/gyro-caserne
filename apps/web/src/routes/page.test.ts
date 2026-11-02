@@ -16,8 +16,8 @@ describe('accueil, météo et vigilance', () => {
 
 	it('la ligne météo sous « Bonjour », avec la mention Open-Meteo ; l’ambiance décorative', () => {
 		const html = page({ ...base, meteo: pluie });
-		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span>12 °C · averses · rafales 45 km\/h<span aria-hidden="true"> · <\/span>/);
-		expect(html).toMatch(/<a href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
+		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C · averses · rafales 45 km\/h<\/span> <a class="source/);
+		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
 		// Gyro sort le parapluie (sauf la nuit, au p'tit-déj ou un jour de fête).
 		expect(html).toMatch(/sous son parapluie|endormi|croissant|calendriers|Noël|nouvelle année|roi|crêpe|poisson|bal|citrouille|Sainte-Barbe/);

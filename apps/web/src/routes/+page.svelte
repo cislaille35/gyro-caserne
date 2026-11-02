@@ -61,7 +61,7 @@
 
 {#snippet meteo()}
 	{#if data.meteo.meteo}
-		<p class="meteo"><span class="masque">{'Temps au centre : '}</span>{data.meteo.meteo.texte}<span aria-hidden="true">{' · '}</span><a href="https://open-meteo.com/" rel="external noopener">Météo : Open-Meteo</a></p>
+		<p class="meteo"><span class="masque">{'Temps au centre : '}</span><span class="source">{data.meteo.meteo.texte}</span> <a class="source" href="https://open-meteo.com/" rel="external noopener">Météo : Open-Meteo</a></p>
 	{/if}
 {/snippet}
 
@@ -193,10 +193,13 @@
 		color: var(--doux);
 		font-size: 0.9375rem;
 	}
+	.source {
+		white-space: nowrap;
+	}
 	.meteo a {
+		margin-left: 0.5ch;
 		color: var(--doux);
 		font-size: 0.8125rem;
-		white-space: nowrap;
 	}
 	.vigilance {
 		display: flex;
