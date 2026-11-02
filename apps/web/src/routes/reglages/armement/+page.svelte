@@ -51,7 +51,7 @@
 		{#each r.engins as e (e.nom)}
 			<li>
 				<div class="texte">
-					<p class="titre">{e.nom}{#if e.nom === 'FPT'}<span class="doux"> · calculé pour l’été</span>{/if}</p>
+					<p class="titre">{e.nom}{#if e.nom === 'FPT'}<span class="doux">{' '}· calculé pour l’été</span>{/if}</p>
 					<p class="doux">{texteEngin(e.postes)}</p>
 				</div>
 				<a class="lien-bouton" href="?engin={e.nom}" data-sveltekit-reset="false">Modifier<span class="masque">{' '}le {e.nom}</span></a>

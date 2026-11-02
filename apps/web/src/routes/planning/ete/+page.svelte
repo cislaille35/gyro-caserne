@@ -102,7 +102,7 @@
 				<ul class="rangees" role="list">
 					<li>
 						<details>
-							<summary><span class="titre-rangee">Ont répondu<span class="doux"> · avec des vacances</span></span><span class="compte">{avecVacances.length}</span></summary>
+							<summary><span class="titre-rangee">Ont répondu<span class="doux">{' '}· avec des vacances</span></span><span class="compte">{avecVacances.length}</span></summary>
 							{#if avecVacances.length}
 								<ul class="noms" role="list">
 									{#each avecVacances as r (r.id)}<li><strong>{r.prenom} {r.nom}</strong> · {r.periodes.length ? r.periodes.map((p) => duAu(p.debut, p.fin)).join(', ') : 'aucune période'}</li>{/each}
