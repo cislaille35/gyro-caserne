@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { affectationEquipe, engin, typeEngin, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -48,6 +48,12 @@ import { load as reglagesArmement } from './reglages/armement/+page.server';
 import { GET as donneesPlanning } from './planning/preparer/fichier/donnees/+server';
 import { POST as apercuPlanning } from './planning/preparer/fichier/apercu/+server';
 import { POST as appliquerPlanning } from './planning/preparer/fichier/appliquer/+server';
+import { load as pageEngins } from './engins/+page.server';
+import { load as pageEngin } from './engins/[id]/+page.server';
+import { actions as actionsFicheEngin, load as pageFicheEngin } from './engins/fiches/[id]/+page.server';
+import { GET as donneesFiches } from './engins/fiches/fichier/donnees/+server';
+import { POST as apercuFiches } from './engins/fiches/fichier/apercu/+server';
+import { POST as appliquerFiches } from './engins/fiches/fichier/appliquer/+server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -256,6 +262,30 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}
+	});
+
+	it('/engins, un engin, l’éditeur de fiche (un geste) et le fichier des fiches (aperçu, application) : 12 engins', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const [vsav] = await base.select().from(typeEngin).where(eq(typeEngin.nom, 'VSAV'));
+		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
+		const corpsJson = (corps: unknown) => new Request('http://x', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps) });
+		const n = await compter(async () => {
+			await (racine as any)({ locals });
+			expect((await (pageEngins as any)({ locals })).engins).toHaveLength(12);
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ locals }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
+		const url = new URL(`http://x/engins/fiches/${vsav!.id}`);
+		const geste = await compter(async () => {
+			await (actionsFicheEngin.geste as any)({ locals, params: { id: String(vsav!.id) }, request: await requeteFormulaire([['quoi', 'ajouter_zone'], ['nom', 'Toit']]) });
+			await (racine as any)({ locals });
+			await (pageFicheEngin as any)({ locals, params: { id: String(vsav!.id) }, url });
+		});
+		expect(geste).toBeLessThanOrEqual(BUDGET);
+		const donnees = await (await (donneesFiches as any)({ locals })).json();
+		const lu = { feuilles: Object.fromEntries(donnees.feuilles.map((f: { nom: string; lignes: string[][] }) => [f.nom, f.lignes.slice(1).map((cellules, i) => ({ numero: i + 2, cellules }))])) };
+		expect(await compter(async () => { expect((await (apercuFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { expect((await (appliquerFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
 	});
 
 	it('/moi : la carte d’identité', async () => {

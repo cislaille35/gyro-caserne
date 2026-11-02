@@ -48,3 +48,7 @@ export { bandesDe, candidats, disponibles, lireContexte, mesTranches, type EtatT
 export { remplacementsDuMoment } from './remplacements/moment.ts';
 export { chargerAptitudesFictives, chargerRemplacementsFictifs } from './remplacements/fictif.ts';
 export { AMBIANCES, mettreAJourReleves, relevesDe, vueMeteo, type Ambiance, type VueMeteo } from './meteo.ts';
+export { chargerEnginsFictifs, enregistrerEngin, LIMITES_ENGIN, lireEngin, listerEngins, voitLesEngins, type EnginVu, type SaisieEngin } from './engins.ts';
+export { appliquerGeste, creerTypeEngin, gereLesEngins, LIMITES_FICHE, lireFiche, lireFiches, modifierFicheEngin, type ElementFiche, type Fiche, type Geste, type ZoneFiche } from './fiches.ts';
+export { FICHES_PAR_DEFAUT } from './fiches-de-depart.ts';
+export { apercuFiches, appliquerFiches, donneesFichierFiches, ENTETES_FICHES, type ApercuFiches, type ChangementsFiche, type DonneesFichierFiches, type FichierFichesLu } from './fichier-fiches.ts';

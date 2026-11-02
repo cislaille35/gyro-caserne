@@ -1,5 +1,7 @@
 # Prise de garde et engins
 
+> **Livré (lot A, engins et fiches)** : Caserne → Engins, la page de chaque engin et sa fiche, l'ajout et la modification d'un engin (au centre, prêté au centre par un autre centre, parti), l'éditeur de fiche et le fichier des fiches (Excel). À venir : la prise au téléphone (lot B), les anomalies et l'indisponibilité (lot C). Cadrage : [la spec](../superpowers/specs/2026-11-02-engins-design.md), qui précise cette page et l'emporte en cas d'écart.
+
 ## À quoi ça sert
 
 Vérifier qu'un engin est complet et prêt avant la garde, garder la trace de qui a vérifié quoi, et faire suivre ce qui manque ou ce qui est cassé.
@@ -28,11 +30,12 @@ Il y a une seule prise en cours par engin, et le brouillon est gardé sur le ser
 
 ## Modifier les fiches
 
-- **Qui** : toute personne qui a le droit `GERER_FICHES`, par exemple le référent engins.
-- Chaque modification crée **une nouvelle version**. Les prises passées gardent la leur, et la nouvelle s'applique à la prochaine prise.
+- **Qui** : toute personne qui a le droit `GERER_FICHES` : le chef de centre, son adjoint, les chefs de garde et le référent engins. Les mêmes ajoutent et modifient les engins.
+- **Comment** : Caserne → Engins → Fiches de prise de garde. Zone par zone : ajouter, renommer, déplacer, retirer une zone ou un élément ; un élément peut changer de zone. Un élément qui se compte garde sa **quantité attendue** ; les autres sont seulement présents ou manquants. Un nouveau type d'engin (CCF…) arrive avec une fiche vide.
+- Les prises passées gardent la version de leur époque. Tant qu'une version n'a servi à aucune prise, on la corrige sur place ; dès qu'elle a servi, la modification suivante crée la version d'après. Chaque élément garde sa référence d'une version à l'autre : une anomalie le suit.
 - Un engin de remplacement du même type reprend la fiche automatiquement. S'il est équipé autrement, le référent ajuste la fiche, ce qui crée une nouvelle version.
 - **Pour aller vite**, un import crée toujours un **brouillon** que le référent relit avant de l'enregistrer comme nouvelle version :
-  1. **import et export Excel**, dès la première version : une ligne par élément ;
+  1. **import et export Excel**, dès la première version : une feuille par type d'engin, une ligne par élément (Réf., Zone, Élément, Quantité). L'aperçu dit, fiche par fiche, ce qui est ajouté, retiré, modifié ; rien n'est écrit avant « Valider », et rien du tout s'il reste une erreur ;
   2. **import depuis un lien Microsoft Forms**, juste après : un complément, car l'adresse utilisée n'est pas une API officielle ;
   3. **depuis une photo**, plus tard et en option : il faut une clé d'IA, payée par le centre.
 

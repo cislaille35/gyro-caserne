@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, GENRES_DEMANDE, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, GENRES_DEMANDE, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -731,6 +731,87 @@ export const avisEte = sqliteTable(
 		lueLe: text('lue_le')
 	},
 	(t) => [check('avis_ete_quoi', checkDans('quoi', AVIS_ETE)), index('avis_ete_personne').on(t.personneId, t.lueLe)]
+);
+
+// Engins et fiches. Le type porte la fiche ; la fiche d'un type est sa dernière version.
+export const typeEngin = sqliteTable('type_engin', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	nom: text('nom').notNull().unique(),
+	ordre: integer('ordre').notNull()
+});
+
+// Une version pas encore utilisée par une prise de garde se réécrit sur place ; une version utilisée reste telle quelle.
+export const ficheVersion = sqliteTable(
+	'fiche_version',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		typeId: integer('type_id')
+			.notNull()
+			.references(() => typeEngin.id),
+		numero: integer('numero').notNull(),
+		auteur: text('auteur').notNull(),
+		creeLe: text('cree_le').notNull(),
+		utilisee: integer('utilisee').notNull().default(0)
+	},
+	(t) => [uniqueIndex('fiche_version_type_numero').on(t.typeId, t.numero), check('fiche_version_utilisee', sql`${sql.identifier('utilisee')} IN (0, 1)`)]
+);
+
+// `ref` : la même zone ou le même élément d'une version à l'autre (anomalies, fichier).
+export const ficheZone = sqliteTable(
+	'fiche_zone',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		versionId: integer('version_id')
+			.notNull()
+			.references(() => ficheVersion.id),
+		ref: integer('ref').notNull(),
+		nom: text('nom').notNull(),
+		ordre: integer('ordre').notNull()
+	},
+	(t) => [uniqueIndex('fiche_zone_version_ref').on(t.versionId, t.ref)]
+);
+
+export const ficheElement = sqliteTable(
+	'fiche_element',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		versionId: integer('version_id')
+			.notNull()
+			.references(() => ficheVersion.id),
+		zoneId: integer('zone_id')
+			.notNull()
+			.references(() => ficheZone.id),
+		ref: integer('ref').notNull(),
+		libelle: text('libelle').notNull(),
+		// Rien : présent ou manquant ; un nombre : la quantité attendue.
+		quantite: integer('quantite'),
+		ordre: integer('ordre').notNull()
+	},
+	(t) => [uniqueIndex('fiche_element_version_ref').on(t.versionId, t.ref), check('fiche_element_quantite', sql`${sql.identifier('quantite')} IS NULL OR ${sql.identifier('quantite')} >= 1`)]
+);
+
+export const engin = sqliteTable(
+	'engin',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		nom: text('nom').notNull(),
+		immatriculation: text('immatriculation'),
+		typeId: integer('type_id')
+			.notNull()
+			.references(() => typeEngin.id),
+		situation: text('situation', { enum: SITUATIONS_ENGIN }).notNull().default('centre'),
+		// Prêté : le centre qui le prête.
+		provenance: text('provenance'),
+		etat: text('etat', { enum: ETATS_ENGIN }).notNull().default('disponible'),
+		partiLe: text('parti_le'),
+		creeLe: text('cree_le').notNull()
+	},
+	() => [
+		check('engin_situation', checkDans('situation', SITUATIONS_ENGIN)),
+		check('engin_etat', checkDans('etat', ETATS_ENGIN)),
+		check('engin_provenance', sql`${sql.identifier('situation')} <> 'prete' OR ${sql.identifier('provenance')} IS NOT NULL`),
+		check('engin_parti', sql`(${sql.identifier('situation')} = 'parti') = (${sql.identifier('parti_le')} IS NOT NULL)`)
+	]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

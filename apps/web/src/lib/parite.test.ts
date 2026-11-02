@@ -24,6 +24,13 @@ const ECRANS = [
 	'routes/planning/preparer/+page.svelte',
 	'routes/moi/vacances/+page.svelte',
 	'routes/reglages/armement/+page.svelte',
+	'routes/engins/+page.svelte',
+	'routes/engins/[id]/+page.svelte',
+	'routes/engins/fiches/+page.svelte',
+	'routes/engins/fiches/[id]/+page.svelte',
+	'routes/engins/fiches/fichier/+page.svelte',
+	'lib/engins/FormulaireEngin.svelte',
+	'lib/engins/ZonesFiche.svelte',
 	'lib/planning/Panneau.svelte',
 	'lib/ui/BarreActions.svelte',
 	'lib/ui/EnTetePage.svelte'

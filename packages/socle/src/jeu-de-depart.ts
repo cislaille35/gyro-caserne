@@ -3,7 +3,8 @@ import type { Centre } from '@gyro-caserne/centre';
 import type { Base } from './base.ts';
 import type { Droit, ResponsabiliteSysteme } from './listes.ts';
 import { APTITUDES_PAR_DEFAUT } from './aptitudes.ts';
-import { aptitude, comite, equipe, grade, profil, profilDroit, responsabilite, responsabiliteDroit, ressource } from './schema.ts';
+import { FICHES_PAR_DEFAUT } from './fiches-de-depart.ts';
+import { aptitude, comite, equipe, ficheElement, ficheVersion, ficheZone, grade, profil, profilDroit, responsabilite, responsabiliteDroit, ressource, typeEngin } from './schema.ts';
 
 const DROITS_AGENT: Droit[] = [
 	'VOIR_PLANNING',
@@ -57,7 +58,7 @@ const RESPONSABILITES: {
 	},
 	// Nommé par le chef de centre ; mêmes droits.
 	{ nom: 'Chef de centre adjoint', nature: 'fonction', systeme: 'chef_centre_adjoint', typePerimetre: 'centre', parComiteCentre: false, verrouilles: true, droits: DROITS_CHEF_CENTRE },
-	{ nom: 'Chef de garde', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] },
+	{ nom: 'Chef de garde', nature: 'fonction', systeme: 'chef_equipe', typePerimetre: 'equipe', parComiteCentre: true, verrouilles: true, droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE', 'TRAITER_ANOMALIE', 'GERER_FICHES'] },
 	{ nom: 'Membre de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: [] },
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },
 	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
@@ -106,6 +107,23 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 		// La VL du centre, renommable, gérée par le référent engins. La migration 0011 l'ajoute aux bases déjà remplies.
 		base.insert(ressource).values({ nom: 'VL', forme: 'creneau', stock: null, icone: 'camion', ouverteReserve: 1, gereeParResponsabiliteId: idResponsabilite('Référent engins'), creeLe: sql`strftime('%Y-%m-%dT%H:%M', 'now')` }),
 		base.insert(grade).values(GRADES.map(([code, libelle], i) => ({ code, libelle, ordre: i + 1 }))),
-		base.insert(aptitude).values(APTITUDES_PAR_DEFAUT.map(([nom, controlee], i) => ({ nom, controlee: controlee ? 1 : 0, ordre: i + 1 })))
+		base.insert(aptitude).values(APTITUDES_PAR_DEFAUT.map(([nom, controlee], i) => ({ nom, controlee: controlee ? 1 : 0, ordre: i + 1 }))),
+		...fichesDeDepart(base)
 	]);
+}
+
+// Les types d'engin et leurs fiches de départ (version 1). La migration 0017 les ajoute aux bases déjà remplies.
+function fichesDeDepart(base: Base) {
+	const idType = (nom: string) => sql<number>`(SELECT ${typeEngin.id} FROM ${typeEngin} WHERE ${typeEngin.nom} = ${nom})`;
+	const idVersion = (type: string) => sql<number>`(SELECT ${ficheVersion.id} FROM ${ficheVersion} WHERE ${ficheVersion.typeId} = ${idType(type)})`;
+	const idZone = (type: string, ref: number) => sql<number>`(SELECT ${ficheZone.id} FROM ${ficheZone} WHERE ${ficheZone.versionId} = ${idVersion(type)} AND ${ficheZone.ref} = ${ref})`;
+	// Références numérotées à la suite, toutes fiches confondues. Une instruction par ligne : D1 limite le nombre de paramètres d'une requête.
+	const zones = FICHES_PAR_DEFAUT.flatMap((f) => f.zones.map((z, i) => ({ type: f.type, nom: z.nom, ordre: i + 1, elements: z.elements }))).map((z, i) => ({ ...z, ref: i + 1 }));
+	const elements = zones.flatMap((z) => z.elements.map(([libelle, quantite], j) => ({ type: z.type, zone: z.ref, libelle, quantite, ordre: j + 1 }))).map((e, i) => ({ ...e, ref: i + 1 }));
+	return [
+		base.insert(typeEngin).values(FICHES_PAR_DEFAUT.map((f, i) => ({ nom: f.type, ordre: i + 1 }))),
+		base.insert(ficheVersion).values(FICHES_PAR_DEFAUT.map((f) => ({ typeId: idType(f.type), numero: 1, auteur: 'Fiche de départ', creeLe: sql`strftime('%Y-%m-%dT%H:%M', 'now')` }))),
+		...zones.map((z) => base.insert(ficheZone).values({ versionId: idVersion(z.type), ref: z.ref, nom: z.nom, ordre: z.ordre })),
+		...elements.map((e) => base.insert(ficheElement).values({ versionId: idVersion(e.type), zoneId: idZone(e.type, e.zone), ref: e.ref, libelle: e.libelle, quantite: e.quantite, ordre: e.ordre }))
+	] as const;
 }

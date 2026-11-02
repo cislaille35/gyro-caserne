@@ -130,7 +130,7 @@ describe('listerResponsabilites', () => {
 		const parNom = (nom: string) => liste.find((r) => r.nom === nom)!;
 		expect(parNom('Membre de comité')).toMatchObject({ nature: 'mission', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: [], systeme: null, archiveeLe: null, titulaires: 1, protegee: false });
 		expect(parNom('Référent engins').attributeur).toEqual({ type: 'comite', id: (await comite_(NOM_COMITE_CENTRE)).id });
-		expect(parNom('Chef de garde')).toMatchObject({ systeme: 'chef_equipe', protegee: false, droits: [{ droit: 'VALIDER_REMPLACEMENT', verrouille: true }, { droit: 'VOIR_MOTIFS_ABSENCE', verrouille: true }] });
+		expect(parNom('Chef de garde')).toMatchObject({ systeme: 'chef_equipe', protegee: false, droits: [{ droit: 'GERER_FICHES', verrouille: true }, { droit: 'TRAITER_ANOMALIE', verrouille: true }, { droit: 'VALIDER_REMPLACEMENT', verrouille: true }, { droit: 'VOIR_MOTIFS_ABSENCE', verrouille: true }] });
 		expect(parNom('Référent technique')).toMatchObject({ attributeur: { type: 'chef_centre' }, titulaires: 1, protegee: true });
 		expect(parNom('Rapporteur de comité').protegee).toBe(true);
 		expect((await listerResponsabilites(base, chef, aujourdhui)).every((r) => !r.protegee)).toBe(true);
@@ -227,10 +227,10 @@ describe('modifierResponsabilite', () => {
 		const { base, resp, droitsDe } = await jeu();
 		const chefEquipe = await resp('Chef de garde');
 		await expect(modifierResponsabilite(base, superAdmin, chefEquipe.id, { droits: ['VALIDER_REMPLACEMENT'] }, aujourdhui)).rejects.toThrow(new DonneeInvalide('Droit verrouillé : impossible de le retirer'));
-		expect(await droitsDe(chefEquipe.id)).toEqual(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE']);
-		await modifierResponsabilite(base, superAdmin, chefEquipe.id, { droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE', 'GERER_PLANNING'] }, aujourdhui);
+		expect(await droitsDe(chefEquipe.id)).toEqual(['GERER_FICHES', 'TRAITER_ANOMALIE', 'VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE']);
+		await modifierResponsabilite(base, superAdmin, chefEquipe.id, { droits: ['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_PLANNING'] }, aujourdhui);
 		const lignes = await base.select().from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, chefEquipe.id));
-		expect(lignes.map((l) => [l.droit, l.verrouille]).sort()).toEqual([['GERER_PLANNING', 0], ['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]);
+		expect(lignes.map((l) => [l.droit, l.verrouille]).sort()).toEqual([['GERER_FICHES', 1], ['GERER_PLANNING', 0], ['TRAITER_ANOMALIE', 1], ['VALIDER_REMPLACEMENT', 1], ['VOIR_MOTIFS_ABSENCE', 1]]);
 	});
 
 	it('ne change pas la portée tant qu’une attribution est en cours ou à venir', async () => {
