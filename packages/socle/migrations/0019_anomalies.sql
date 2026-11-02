@@ -5,6 +5,7 @@ CREATE TABLE `anomalie_suivi` (
 	`texte` text,
 	`par` integer NOT NULL,
 	`le` text NOT NULL,
+	`jeton` text,
 	FOREIGN KEY (`anomalie_id`) REFERENCES `anomalie`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`par`) REFERENCES `personne`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "anomalie_suivi_quoi" CHECK("quoi" IN ('prise_en_charge', 'en_attente', 'reparee', 'verifiee', 'close', 'indisponible', 'remise_en_service'))

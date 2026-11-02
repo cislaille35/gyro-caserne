@@ -1,14 +1,14 @@
 import { eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
-import { anomaliesADecider, gesteAnomalie, gestesPermis, lireAnomalie, listerAnomalies, REGLAGE_ANOMALIES, signalerAnomalie, traiteLesAnomalies, type EtatAnomalie } from '../src/anomalies.ts';
+import { anomaliesADecider, bloquanteClose, gesteAnomalie, gestesPermis, lireAnomalie, listerAnomalies, REGLAGE_ANOMALIES, signalerAnomalie, traiteLesAnomalies, type EtatAnomalie } from '../src/anomalies.ts';
 import { accueilDe } from '../src/casquettes.ts';
 import { enregistrerEngin } from '../src/engins.ts';
 import { lireFiche } from '../src/fiches.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { commencerPrise, gestePrise, prisesDeLaReleve, validerPrise } from '../src/prises.ts';
-import { anomalie, attribution, avisAnomalie, engin, equipe, responsabilite } from '../src/schema.ts';
+import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, responsabilite } from '../src/schema.ts';
 import { jeuEngins } from './de-test-engins.ts';
 
 const reglage = centreExemple.astreinte;
@@ -168,6 +168,64 @@ describe('le suivi', () => {
 		expect((await lireAnomalie(j.base, j.referent, id, QUAND, REGLAGE_ANOMALIES)).historique).toHaveLength(2);
 	});
 
+	it('un collègue agit entre la relecture et l’écriture : rien n’est écrit, ni historique, ni cloche', async () => {
+		const j = await jeu();
+		const id = await j.signaler(j.chefDeGarde);
+		const batch = j.base.batch.bind(j.base);
+		let appel = 0;
+		// Le deuxième batch du geste (après la relecture) : le référent le prend en charge juste avant.
+		const espion = vi.spyOn(j.base, 'batch').mockImplementation(async (requetes) => {
+			if (appel++ === 1) {
+				await j.base.insert(anomalieSuivi).values({ anomalieId: id, quoi: 'prise_en_charge', par: idDe(j.referent), le: QUAND, jeton: 'autre' });
+				await j.base.update(anomalie).set({ etape: 'prise_en_charge', priseEnChargePar: idDe(j.referent) }).where(eq(anomalie.id, id));
+			}
+			return batch(requetes);
+		});
+		await expect(gesteAnomalie(j.base, j.alice, id, { quoi: 'prendre' }, QUAND, REGLAGE_ANOMALIES)).rejects.toThrow('Anomalie changée entre-temps');
+		espion.mockRestore();
+		expect(await j.base.select().from(anomalieSuivi)).toHaveLength(1);
+		expect((await j.base.select().from(anomalie).where(eq(anomalie.id, id)))[0]!.priseEnChargePar).toBe(idDe(j.referent));
+		expect(await j.avis(j.chefDeGarde)).toEqual([]);
+	});
+
+	it('le même geste envoyé deux fois (double appui) : écrit une fois, prévenu une fois', async () => {
+		const j = await jeu();
+		const id = await j.signaler(j.chefDeGarde);
+		const batch = j.base.batch.bind(j.base);
+		let appel = 0;
+		// Les deux envois relisent avant toute écriture : le second passe juste après le premier.
+		const espion = vi.spyOn(j.base, 'batch').mockImplementation(async (requetes) => {
+			if (appel++ === 1) {
+				espion.mockImplementation(batch);
+				await gesteAnomalie(j.base, j.alice, id, { quoi: 'prendre' }, QUAND, REGLAGE_ANOMALIES);
+			}
+			return batch(requetes);
+		});
+		await expect(gesteAnomalie(j.base, j.alice, id, { quoi: 'prendre' }, QUAND, REGLAGE_ANOMALIES)).rejects.toThrow('Anomalie changée entre-temps');
+		espion.mockRestore();
+		expect(await j.base.select().from(anomalieSuivi)).toHaveLength(1);
+		expect(await j.avis(j.chefDeGarde)).toHaveLength(1);
+	});
+
+	it('remettre en service relu avant un nouveau blocage d’un collègue : refusé, son blocage reste', async () => {
+		const j = await jeu();
+		const premiere = await j.signaler();
+		const seconde = await j.signaler(j.alice, 'Phare');
+		await gesteAnomalie(j.base, j.referent, premiere, { quoi: 'indisponible' }, QUAND, REGLAGE_ANOMALIES);
+		await gesteAnomalie(j.base, j.referent, premiere, { quoi: 'clore', texte: '' }, QUAND, REGLAGE_ANOMALIES);
+		expect(await bloquanteClose(j.base, j.vtu)).toBe(premiere);
+		const batch = j.base.batch.bind(j.base);
+		let appel = 0;
+		const espion = vi.spyOn(j.base, 'batch').mockImplementation(async (requetes) => {
+			if (appel++ === 1) await j.base.update(anomalie).set({ bloquante: 1 }).where(eq(anomalie.id, seconde));
+			return batch(requetes);
+		});
+		await expect(gesteAnomalie(j.base, j.chefDeGarde, premiere, { quoi: 'remettre' }, QUAND, REGLAGE_ANOMALIES)).rejects.toThrow('Anomalie changée entre-temps');
+		espion.mockRestore();
+		expect(await j.etatEngin(j.vtu)).toBe('indisponible');
+		expect((await j.base.select().from(anomalie).where(eq(anomalie.id, seconde)))[0]!.bloquante).toBe(1);
+	});
+
 	it('clore sans réparation (qui traite), avec un motif ; motif d’attente inconnu refusé', async () => {
 		const j = await jeu();
 		const id = await j.signaler();
@@ -191,6 +249,22 @@ describe('la liste et « À décider »', () => {
 		expect(l.closes.map((a) => a.id)).toEqual([close]);
 		expect(l.peutSignaler).toBe(true);
 		expect((await listerAnomalies(j.base, j.alice, '2026-10-30', j.vtu)).ouvertes.map((a) => a.id)).toEqual([treuil]);
+	});
+
+	it('au chef de garde de l’équipe d’astreinte et à « Le centre » ; pas au chef d’une autre équipe', async () => {
+		const j = await jeu();
+		const equipes = await j.base.select().from(equipe);
+		await reglerRoulement(j.base, j.superAdmin, 2026, equipes.map((e) => e.id), '2026-01-01T10:00');
+		await publierAnnee(j.base, j.superAdmin, 2026, '2026-01-01T10:00');
+		const astreinte = (await prisesDeLaReleve(j.base, j.alice, QUAND, reglage)).releve.equipe!.id;
+		await j.signaler();
+		const item = { texte: '1 anomalie signalée à prendre en charge : VTU', lien: '/engins/anomalies' };
+		await j.base.update(attribution).set({ perimetreId: astreinte }).where(eq(attribution.personneId, idDe(j.chefDeGarde)));
+		expect((await accueilDe(j.base, j.chefDeGarde, `equipe:${astreinte}`, '2026-10-30', QUAND, reglage)).contenu).toMatchObject({ aDecider: expect.arrayContaining([item]) });
+		const autre = equipes.find((e) => e.id !== astreinte)!.id;
+		await j.base.update(attribution).set({ perimetreId: autre }).where(eq(attribution.personneId, idDe(j.chefDeGarde)));
+		expect((await accueilDe(j.base, j.chefDeGarde, `equipe:${autre}`, '2026-10-30', QUAND, reglage)).contenu).toMatchObject({ aDecider: [] });
+		expect((await accueilDe(j.base, j.superAdmin, 'centre', '2026-10-30', QUAND, reglage)).contenu).toMatchObject({ aDecider: expect.arrayContaining([item]) });
 	});
 
 	it('au référent engins : les signalées à prendre en charge, et l’engin à remettre en service', async () => {
@@ -230,9 +304,19 @@ describe('la prise de garde', () => {
 		await validerPrise(j.base, j.alice, p2, suivante, reglage);
 		expect((await j.avis(j.chefDeGarde)).at(-1)).toMatchObject({ texte: 'Retrouvée à la prise de garde par Alice Fictif', url: `/engins/anomalies/${a!.id}` });
 		expect((await lireAnomalie(j.base, j.alice, a!.id, suivante, REGLAGE_ANOMALIES)).historique.map((h) => h.quoi)).toEqual(['signalee', 'retrouvee']);
+		// Une anomalie close par un collègue avant la validation : pas de « Retrouvée » envoyé à tort.
+		await signalerAnomalie(j.base, j.base.photos, j.chefDeGarde, { enginId: j.vsav, libelle: 'Brancard', genre: 'abime', note: '' }, suivante, reglage);
+		const [brancard] = await j.base.select().from(anomalie).where(eq(anomalie.libelle, 'Brancard'));
+		const p3 = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, '2026-11-13T18:10', reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, p3, { quoi: 'retrouve', anomalie: brancard!.id, oui: true }, '2026-11-13T18:10', reglage);
+		for (const z of fiche.zones) await gestePrise(j.base, j.base.photos, j.alice, p3, { quoi: 'zone', zone: z.ref, vue: true }, '2026-11-13T18:10', reglage);
+		await gesteAnomalie(j.base, j.referent, brancard!.id, { quoi: 'clore', texte: '' }, '2026-11-13T18:10', REGLAGE_ANOMALIES);
+		const avant = (await j.avis(j.chefDeGarde)).length;
+		await validerPrise(j.base, j.alice, p3, '2026-11-13T18:20', reglage);
+		expect((await j.avis(j.chefDeGarde)).length).toBe(avant);
 		// La cloche les montre.
-		const fil = await filDeNotifications(j.base, j.chefDeGarde, suivante);
-		expect(fil.lignes[0]).toMatchObject({ type: 'anomalie', titre: 'VSAV 1 · Radio : essai', lue: false });
+		const fil = await filDeNotifications(j.base, j.chefDeGarde, '2026-11-13T18:20');
+		expect(fil.lignes).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'anomalie', titre: 'VSAV 1 · Radio : essai', lue: false })]));
 		expect(fil.nonLues).toBeGreaterThan(0);
 	});
 });

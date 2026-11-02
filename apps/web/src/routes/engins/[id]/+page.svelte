@@ -8,7 +8,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
-	type Donnees = { engin: EnginVu; gere: boolean; fiche: Fiche; releve?: Releve; peutFaire?: boolean; prise?: PriseDeLaReleve['prise']; ouvertes?: AnomalieVue[]; historique?: PriseHistorique[]; peutSignaler?: boolean };
+	type Donnees = { engin: EnginVu; gere: boolean; fiche: Fiche; releve?: Releve; peutFaire?: boolean; prise?: PriseDeLaReleve['prise']; ouvertes?: AnomalieVue[]; historique?: PriseHistorique[]; peutSignaler?: boolean; aRemettre?: number | null };
 	let { data }: { data: Donnees } = $props();
 	const e = $derived(data.engin);
 	const etat = $derived(etatPrise(data.prise ?? null));
@@ -38,7 +38,7 @@
 					{/each}
 				</ul>
 			{:else}
-				<p>Ses anomalies sont closes : la remise en service attend la décision du référent engins ou d’un chef.</p>
+				<p>Ses anomalies sont closes : la remise en service attend la décision du référent engins ou d’un chef.{#if data.aRemettre}{' '}<a href="/engins/anomalies/{data.aRemettre}">Voir l’anomalie et remettre en service</a>{/if}</p>
 			{/if}
 		</section>
 	{/if}

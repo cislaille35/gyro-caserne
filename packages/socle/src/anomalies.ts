@@ -77,9 +77,10 @@ export function gestesPermis(a: EtatAnomalie, qui: Qui, r: ReglageAnomalies): Qu
 
 // Une anomalie et ce qu'il faut pour en vérifier un geste : une requête.
 async function lireEtat(base: Base, id: number, moi: number) {
+	const bloquantes = sql<number>`(SELECT count(*) FROM ${anomalie} b WHERE b.engin_id = ${engin.id} AND b.bloquante = 1 AND b.close_le IS NULL)`;
 	const [[a], [reparation], [compte], [auteur]] = await base.batch([
 		base
-			.select({ anomalie, nomEngin: sql<string>`${engin.nom}`.as('nom_engin'), etatEngin: engin.etat, situation: engin.situation })
+			.select({ anomalie, nomEngin: sql<string>`${engin.nom}`.as('nom_engin'), etatEngin: engin.etat, situation: engin.situation, bloquantes: bloquantes.as('bloquantes') })
 			.from(anomalie)
 			.innerJoin(engin, eq(engin.id, anomalie.enginId))
 			.where(eq(anomalie.id, id)),
@@ -97,7 +98,7 @@ async function lireEtat(base: Base, id: number, moi: number) {
 		enginIndisponible: a.etatEngin === 'indisponible',
 		enginParti: a.situation === 'parti'
 	};
-	return { a: a.anomalie, nomEngin: a.nomEngin, etatEngin: a.etatEngin, etat, suivis: compte?.n ?? 0, nom: nomDe(auteur) };
+	return { a: a.anomalie, nomEngin: a.nomEngin, etatEngin: a.etatEngin, bloquantes: a.bloquantes, etat, suivis: compte?.n ?? 0, nom: nomDe(auteur) };
 }
 
 const SUIVI: Record<QuoiGeste, SuiviAnomalie> = { prendre: 'prise_en_charge', attente: 'en_attente', reparee: 'reparee', verifiee: 'verifiee', clore: 'close', indisponible: 'indisponible', remettre: 'remise_en_service' };
@@ -132,11 +133,13 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 		: geste.quoi === 'indisponible' ? { bloquante: 1 }
 		: null;
 
-	// Avant : l'état relu, inchangé ; après : notre ligne d'historique est la dernière.
-	const nombre = sql`(SELECT count(*) FROM ${anomalieSuivi} WHERE ${anomalieSuivi.anomalieId} = ${id})`;
+	// Avant : l'état relu, inchangé (l'anomalie, son historique, l'engin et ses blocages ouverts) ;
+	// après : la dernière ligne d'historique porte notre jeton, propre à cet envoi.
+	const jeton = crypto.randomUUID();
 	const avant = sql`${anomalie.id} = ${id} AND ${anomalie.etape} = ${a.etape} AND (${anomalie.closeLe} IS NULL) = ${a.closeLe === null ? 1 : 0} AND ${anomalie.bloquante} = ${a.bloquante}
-		AND ${nombre} = ${lu.suivis} AND (SELECT ${engin.etat} FROM ${engin} WHERE ${engin.id} = ${a.enginId}) = ${lu.etatEngin}`;
-	const fait = sql`${nombre} = ${lu.suivis + 1} AND (SELECT ${anomalieSuivi.par} || '|' || ${anomalieSuivi.quoi} || '|' || ${anomalieSuivi.le} FROM ${anomalieSuivi} WHERE ${anomalieSuivi.anomalieId} = ${id} ORDER BY ${anomalieSuivi.id} DESC LIMIT 1) = ${`${moi}|${quoi}|${maintenant}`}`;
+		AND (SELECT count(*) FROM ${anomalieSuivi} WHERE ${anomalieSuivi.anomalieId} = ${id}) = ${lu.suivis} AND (SELECT ${engin.etat} FROM ${engin} WHERE ${engin.id} = ${a.enginId}) = ${lu.etatEngin}
+		AND (SELECT count(*) FROM ${anomalie} b WHERE b.engin_id = ${a.enginId} AND b.bloquante = 1 AND b.close_le IS NULL) = ${lu.bloquantes}`;
+	const fait = sql`(SELECT ${anomalieSuivi.jeton} FROM ${anomalieSuivi} WHERE ${anomalieSuivi.anomalieId} = ${id} ORDER BY ${anomalieSuivi.id} DESC LIMIT 1) = ${jeton}`;
 
 	const titre = `${lu.nomEngin} · ${a.libelle}`;
 	const lien = `/engins/anomalies/${id}`;
@@ -157,7 +160,7 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 	const resultats = await base.batch([
 		instruction(
 			base,
-			sql`INSERT INTO ${anomalieSuivi} (anomalie_id, quoi, texte, par, le) SELECT ${id}, ${quoi}, ${texte || null}, ${moi}, ${maintenant} FROM ${anomalie} WHERE ${avant}`
+			sql`INSERT INTO ${anomalieSuivi} (anomalie_id, quoi, texte, par, le, jeton) SELECT ${id}, ${quoi}, ${texte || null}, ${moi}, ${maintenant}, ${jeton} FROM ${anomalie} WHERE ${avant}`
 		),
 		changement ? base.update(anomalie).set(changement).where(and(eq(anomalie.id, id), fait)) : base.update(anomalie).set({ bloquante: 0 }).where(and(eq(anomalie.enginId, a.enginId), fait)),
 		base
@@ -391,4 +394,10 @@ export async function chargerAnomaliesFictives(base: Base, maintenant: string): 
 		{ anomalieId: a!.id, quoi: 'prise_en_charge', par: agent.id, le: maintenant },
 		{ anomalieId: a!.id, quoi: 'en_attente', texte: 'Retour prévu sous huit jours.', par: agent.id, le: maintenant }
 	]);
+}
+
+// La dernière anomalie close qui bloque encore l'engin (là où le remettre en service), ou rien. Accès vérifié par l'appelant, avec l'engin.
+export async function bloquanteClose(base: Base, enginId: number): Promise<number | null> {
+	const [l] = await base.select({ id: anomalie.id }).from(anomalie).where(and(eq(anomalie.enginId, enginId), eq(anomalie.bloquante, 1), isNotNull(anomalie.closeLe))).orderBy(desc(anomalie.id)).limit(1);
+	return l?.id ?? null;
 }

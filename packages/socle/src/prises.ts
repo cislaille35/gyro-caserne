@@ -342,7 +342,8 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 		),
 		...b.ouvertes
 			.filter((o) => saisie.retrouves.includes(o.id))
-			.flatMap((o) => avisAnomalies(base, [...new Set([o.signaleePar, o.priseEnChargePar])].filter((x): x is number => x !== null && x !== moi), { titre: `${b.nomEngin} · ${o.libelle}`, texte: `Retrouvée à la prise de garde par ${qui}`, url: `/engins/anomalies/${o.id}` }, maintenant, validee))
+			// Seulement si c'est bien cette prise qui l'a close (un collègue a pu la clore entre-temps).
+			.flatMap((o) => avisAnomalies(base, [...new Set([o.signaleePar, o.priseEnChargePar])].filter((x): x is number => x !== null && x !== moi), { titre: `${b.nomEngin} · ${o.libelle}`, texte: `Retrouvée à la prise de garde par ${qui}`, url: `/engins/anomalies/${o.id}` }, maintenant, sql`${validee} AND EXISTS (SELECT 1 FROM ${anomalie} WHERE ${anomalie.id} = ${o.id} AND ${anomalie.closePriseId} = ${id})`))
 	];
 	const [ecrit] = await base.batch([
 		base

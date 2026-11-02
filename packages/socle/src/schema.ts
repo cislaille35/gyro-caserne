@@ -900,7 +900,9 @@ export const anomalieSuivi = sqliteTable(
 		par: integer('par')
 			.notNull()
 			.references(() => personne.id),
-		le: text('le').notNull()
+		le: text('le').notNull(),
+		// Propre à chaque geste : reconnaît sa ligne d'historique (deux envois du même geste ne s'écrivent qu'une fois).
+		jeton: text('jeton')
 	},
 	(t) => [index('anomalie_suivi_anomalie').on(t.anomalieId), check('anomalie_suivi_quoi', checkDans('quoi', SUIVIS_ANOMALIE))]
 );

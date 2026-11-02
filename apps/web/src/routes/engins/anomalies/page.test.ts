@@ -51,6 +51,14 @@ describe('/engins/anomalies', () => {
 		expect(page).not.toContain('name="quoi"');
 	});
 
+	it('une étape sautée n’est pas dite faite ; close sans réparation', () => {
+		const page = html(Anomalie, { anomalie: vue({ etape: 'signalee', motif: null, close: { le: '2026-11-01T10:00', par: 'Rémi Durand', aLaPrise: false }, historique: [{ quoi: 'signalee', par: 'Alice Martin', le: '2026-10-30T18:10', texte: null }, { quoi: 'close', par: 'Rémi Durand', le: '2026-11-01T10:00', texte: 'En double' }] }) });
+		expect(page).toMatch(/Prise en charge(<!--[^>]*-->)*<span class="masque"> : sautée/);
+		expect(page).toMatch(/Réparée(<!--[^>]*-->)*<span class="masque"> : sautée/);
+		expect(page).not.toMatch(/Réparée(<!--[^>]*-->)*<span class="masque"> : faite/);
+		expect(page).toMatch(/Close sans réparation[\s\S]*?En double/);
+	});
+
 	it('les gestes permis ; la décision d’indisponibilité à part ; remise en service avec l’alerte des autres blocages', () => {
 		const page = html(Anomalie, { anomalie: vue({ etape: 'signalee', motif: null, gestes: ['prendre', 'attente', 'reparee', 'clore', 'indisponible'] }) });
 		for (const g of ['prendre', 'attente', 'reparee', 'clore', 'indisponible']) expect(page).toContain(`value="${g}"`);

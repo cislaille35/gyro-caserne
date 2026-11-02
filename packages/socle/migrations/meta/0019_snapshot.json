@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "aa26506e-64e9-40ab-9820-d2c0ada556f1",
+  "id": "a16b5ca7-6862-489a-ab77-6fd3aca8837d",
   "prevId": "3e70a23f-69f2-4313-912d-3adda322c0b5",
   "tables": {
     "abonnement_push": {
@@ -475,6 +475,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "jeton": {
+          "name": "jeton",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         }
       },

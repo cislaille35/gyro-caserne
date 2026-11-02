@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
 	import centre from '$centre';
-	import { etapesDu, libelleEtape, LIBELLES_MOTIF, type EtapeHistorique, type VueAnomalie } from '@gyro-caserne/socle';
+	import { etapesDu, libelleEtape, LIBELLES_MOTIF, type EtapeAnomalie, type EtapeHistorique, type VueAnomalie } from '@gyro-caserne/socle';
 	import { dateCourte, heureCourte, texteEcart, texteEtape, tonEtape } from '#lib/engins/textes.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -16,9 +16,21 @@
 	const r = centre.anomalies;
 	// Les étapes du centre : faites, en cours, à venir. Close : toutes faites.
 	const etapes = $derived(etapesDu(r));
+	// Faite : dans l'historique ; en cours : l'étape actuelle d'une anomalie ouverte ; sautée : passée sans avoir eu lieu.
 	const rang = $derived(a.close ? etapes.length : etapes.indexOf(a.etape));
-	const etat = (i: number) => (i < rang || (a.close && i <= rang) ? 'faite' : i === rang ? 'en cours' : 'à venir');
-	const CLASSES: Record<string, string> = { faite: 'faite', 'en cours': 'en-cours', 'à venir': 'a-venir' };
+	const faites = $derived(new Set<string>(['signalee', ...a.historique.map((h) => h.quoi)]));
+	const etat = (etape: EtapeAnomalie, i: number) => (!a.close && etape === a.etape ? 'en cours' : faites.has(etape) ? 'faite' : i < rang ? 'sautée' : 'à venir');
+	const CLASSES: Record<string, string> = { faite: 'faite', 'en cours': 'en-cours', sautée: 'sautee', 'à venir': 'a-venir' };
+	const reparee = $derived(a.historique.some((h) => h.quoi === 'reparee'));
+	// Un seul envoi à la fois : les boutons attendent la réponse.
+	let envoi = $state(false);
+	const soumettre: SubmitFunction = () => {
+		envoi = true;
+		return async ({ update }) => {
+			await update();
+			envoi = false;
+		};
+	};
 	const avancer = $derived(a.gestes.filter((g) => g !== 'indisponible' && g !== 'remettre'));
 	const moment = (le: string) => `${dateCourte(le)}, ${heureCourte(le)}`;
 	const TEXTES: Record<EtapeHistorique['quoi'], string> = {
@@ -28,7 +40,7 @@
 		en_attente: libelleEtape('en_attente', r),
 		reparee: libelleEtape('reparee', r),
 		verifiee: libelleEtape('verifiee', r),
-		close: 'Close sans réparation',
+		close: 'Close',
 		indisponible: 'Engin rendu indisponible',
 		remise_en_service: 'Engin remis en service'
 	};
@@ -64,9 +76,9 @@
 				</div>
 				<ol class="etapes">
 					{#each etapes as etape, i (etape)}
-						<li class={CLASSES[etat(i)]} aria-current={etat(i) === 'en cours' ? 'step' : undefined}>
-							<span class="puce" aria-hidden="true">{#if etat(i) === 'faite'}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7" /></svg>{/if}</span>
-							<span>{libelleEtape(etape, r)}{#if etape === 'en_attente' && a.motif && i <= rang}{' '}<span class="doux">· {LIBELLES_MOTIF[a.motif].toLocaleLowerCase('fr')}</span>{/if}<span class="masque">{' '}: {etat(i)}</span></span>
+						<li class={CLASSES[etat(etape, i)]} aria-current={etat(etape, i) === 'en cours' ? 'step' : undefined}>
+							<span class="puce" aria-hidden="true">{#if etat(etape, i) === 'faite'}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7" /></svg>{/if}</span>
+							<span>{libelleEtape(etape, r)}{#if etape === 'en_attente' && a.motif && faites.has('en_attente')}{' '}<span class="doux">· {LIBELLES_MOTIF[a.motif].toLocaleLowerCase('fr')}</span>{/if}<span class="masque">{' '}: {etat(etape, i)}</span></span>
 						</li>
 					{/each}
 					<li class={a.close ? 'faite' : 'a-venir'} aria-current={a.close ? 'step' : undefined}>
@@ -78,15 +90,15 @@
 				{#if avancer.length}
 					{#if peut('prendre') || peut('verifiee')}<div class="gestes">
 						{#if peut('prendre')}
-							<form method="POST" use:enhance>
+							<form method="POST" use:enhance={soumettre}>
 								<input type="hidden" name="quoi" value="prendre" />
-								<Bouton type="submit">Je la prends en charge</Bouton>
+								<Bouton type="submit" desactive={envoi}>Je la prends en charge</Bouton>
 							</form>
 						{/if}
 						{#if peut('verifiee')}
-							<form method="POST" use:enhance>
+							<form method="POST" use:enhance={soumettre}>
 								<input type="hidden" name="quoi" value="verifiee" />
-								<Bouton type="submit">{libelleEtape('verifiee', r)} : c’est bon</Bouton>
+								<Bouton type="submit" desactive={envoi}>{libelleEtape('verifiee', r)} : c’est bon</Bouton>
 							</form>
 						{/if}
 					</div>{/if}
@@ -95,7 +107,7 @@
 					{#if peut('attente')}
 						<details open={form?.quoi === 'attente' && !!form.message}>
 							<summary>Mettre en attente…</summary>
-							<form method="POST" use:enhance class="formulaire">
+							<form method="POST" use:enhance={soumettre} class="formulaire">
 								<input type="hidden" name="quoi" value="attente" />
 								<fieldset>
 									<legend>Motif</legend>
@@ -107,7 +119,7 @@
 									<label for="texte-attente">Précision <span class="doux">(facultative : garage, date de retour prévue…)</span></label>
 									<input id="texte-attente" name="texte" type="text" maxlength="300" />
 								</div>
-								<div><Bouton type="submit" variante="secondaire">Mettre en attente</Bouton></div>
+								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Mettre en attente</Bouton></div>
 							</form>
 							{@render message('attente')}
 						</details>
@@ -115,14 +127,14 @@
 					{#if peut('reparee')}
 						<details open={form?.quoi === 'reparee' && !!form.message}>
 							<summary>{libelleEtape('reparee', r)}…</summary>
-							<form method="POST" use:enhance class="formulaire">
+							<form method="POST" use:enhance={soumettre} class="formulaire">
 								<input type="hidden" name="quoi" value="reparee" />
 								<div class="champ">
 									<label for="texte-reparee">Ce qui a été fait <span class="doux">(facultatif)</span></label>
 									<textarea id="texte-reparee" name="texte" maxlength="300" rows="2"></textarea>
 								</div>
 								<p class="doux">{r.verifiee ? 'Une autre personne vérifiera ensuite.' : 'L’anomalie sera close.'}{e.etat === 'indisponible' ? ' L’engin reste indisponible jusqu’à sa remise en service.' : ''}</p>
-								<div><Bouton type="submit" variante="secondaire">Enregistrer la réparation</Bouton></div>
+								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Enregistrer la réparation</Bouton></div>
 							</form>
 							{@render message('reparee')}
 						</details>
@@ -130,13 +142,13 @@
 					{#if peut('clore')}
 						<details open={form?.quoi === 'clore' && !!form.message}>
 							<summary>Clore sans réparation…</summary>
-							<form method="POST" use:enhance class="formulaire">
+							<form method="POST" use:enhance={soumettre} class="formulaire">
 								<input type="hidden" name="quoi" value="clore" />
 								<div class="champ">
 									<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
 									<input id="texte-clore" name="texte" type="text" maxlength="300" />
 								</div>
-								<div><Bouton type="submit" variante="secondaire">Clore</Bouton></div>
+								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Clore</Bouton></div>
 							</form>
 							{@render message('clore')}
 						</details>
@@ -151,18 +163,18 @@
 					<h2 id="titre-decision">Disponibilité de {e.nom}</h2>
 					{#if peut('indisponible')}
 						<p>{e.etat === 'indisponible' ? `${e.nom} est déjà indisponible. Cette anomalie le bloquera aussi jusqu’à sa remise en service.` : `${e.nom} reste disponible tant que vous ne décidez pas du contraire.`}</p>
-						<form method="POST" use:enhance>
+						<form method="POST" use:enhance={soumettre}>
 							<input type="hidden" name="quoi" value="indisponible" />
-							<Bouton type="submit">{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
+							<Bouton type="submit" desactive={envoi}>{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
 						</form>
 						{@render message('indisponible')}
 					{/if}
 					{#if peut('remettre')}
 						<p>L’anomalie est close. Remettre {e.nom} en service est une décision à part.</p>
 						{#if a.autresBloquantes}<p class="bandeau alerte">{a.autresBloquantes > 1 ? `${a.autresBloquantes} autres anomalies ouvertes le bloquent encore.` : 'Une autre anomalie ouverte le bloque encore.'} Le remettre en service les lève aussi.</p>{/if}
-						<form method="POST" use:enhance>
+						<form method="POST" use:enhance={soumettre}>
 							<input type="hidden" name="quoi" value="remettre" />
-							<Bouton type="submit">Remettre en service</Bouton>
+							<Bouton type="submit" desactive={envoi}>Remettre en service</Bouton>
 						</form>
 						{@render message('remettre')}
 					{/if}
@@ -191,7 +203,7 @@
 				<ol class="historique">
 					{#each a.historique as h, i (i)}
 						<li>
-							<strong>{TEXTES[h.quoi]}</strong>
+							<strong>{h.quoi === 'close' && !reparee ? 'Close sans réparation' : TEXTES[h.quoi]}</strong>
 							<span class="doux">{moment(h.le)} · {h.par}</span>
 							{#if h.texte && h.quoi !== 'signalee'}<span>{h.texte}</span>{/if}
 						</li>
@@ -294,8 +306,12 @@
 		border-color: var(--rouge);
 		border-width: 6px;
 	}
-	.a-venir {
+	.a-venir,
+	.sautee {
 		color: var(--doux);
+	}
+	.sautee .puce {
+		border-style: dashed;
 	}
 	.historique li {
 		display: flex;

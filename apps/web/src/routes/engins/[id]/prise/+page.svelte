@@ -144,7 +144,7 @@
 				<span><strong>Participants :</strong> {resumeParticipants}</span>
 				<span class="doux">Modifier<span class="masque">{' '}les participants</span></span>
 			</a>
-			{@render message('participants')}
+			{#if !panneauParticipants}{@render message('participants')}{/if}
 		</section>
 
 		{#if erreurPhoto}<p class="echec" role="alert">{erreurPhoto}</p>{/if}
@@ -319,6 +319,7 @@
 							{#each autres as a (a.id)}<label class="pastille-choix" hidden={!montre(a)}><input type="checkbox" name="participant" value={a.id} checked={coche(a.id)} onchange={() => (touches = [...touches, a.id])} /> {a.id === data.moi ? `${a.nom} (vous)` : a.nom}</label>{/each}
 						</div>
 					</fieldset>
+					{@render message('participants')}
 					<div><Bouton type="submit">Enregistrer les participants</Bouton></div>
 				</form>
 			</Panneau>
