@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances } from '@gyro-caserne/socle';
+import { accepterProposition, ajouterVacances, anneePlanning, calculerAnnee, changerSemaines, noterFete, preparerAnnee, proposerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { deplacer, etapeDe } from '#lib/planning/preparer.ts';
 import { champ, echecPlanning, nombres } from '#lib/server/formulaire-planning.ts';
@@ -26,6 +26,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		ouverte && preparation.publiee
 			? { commencee, remplacements: commencee ? [] : (await remplacementsDeSemaine(base, acteur, annee, ouverte.debut, m, centre.astreinte)).map(({ texte, conclu }) => ({ texte, conclu })) }
 			: null;
+	// La proposition ne se calcule que si le chef la demande, et pour une année sans roulement.
+	const proposition = url.searchParams.has('proposition') && !preparation.ordre.length && preparation.ordrePropose.length >= 2 ? await proposerAnnee(base, acteur, annee, m, centre.astreinte) : null;
 	const nombre = (cle: string) => (/^\d+$/.test(url.searchParams.get(cle) ?? '') ? Number(url.searchParams.get(cle)) : null);
 	return {
 		preparation,
@@ -36,6 +38,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		manoeuvre: url.searchParams.get('manoeuvre') === 'nouvelle' ? ('nouvelle' as const) : nombre('manoeuvre'),
 		semaine: ouverte?.debut ?? null,
 		semaineTouche,
+		proposition,
 		proposer: url.searchParams.get('proposer') === 'noel' ? ('noel' as const) : url.searchParams.get('proposer') === 'nouvel_an' ? ('nouvel_an' as const) : null
 	};
 };
@@ -52,6 +55,7 @@ async function agir(locals: App.Locals, cible: string, succes: string, faire: (m
 }
 
 export const actions: Actions = {
+	proposition: async ({ locals, url }) => agir(locals, 'proposition', 'Proposition acceptée : le brouillon est écrit. Retouchez-le, puis publiez. Les agents ne voient rien avant.', (m) => accepterProposition(locals.base, locals.acteur!, anneeDe(url), m, centre.astreinte)),
 	roulement: async ({ locals, request, url }) => {
 		const ordre = nombres(await request.formData(), 'ordre');
 		return agir(locals, 'roulement', 'Roulement enregistré.', (m) => reglerRoulement(locals.base, locals.acteur!, anneeDe(url), ordre, m));

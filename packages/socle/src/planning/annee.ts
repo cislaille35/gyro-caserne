@@ -33,13 +33,13 @@ export function exigerAnnee(annee: number): number {
 
 const peutGerer = (base: Base, acteur: Acteur, aujourdhui: string) => aLeDroit(base, acteur, 'GERER_PLANNING', { type: 'centre' }, aujourdhui);
 
-async function exigerGestion(base: Base, acteur: Acteur, maintenant: string): Promise<string> {
+export async function exigerGestion(base: Base, acteur: Acteur, maintenant: string): Promise<string> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(await peutGerer(base, acteur, aujourdhui))) throw new RefusDroit('GERER_PLANNING', { type: 'centre' });
 	return aujourdhui;
 }
 
-const journalPlanning = (base: Base, acteur: Acteur, action: string, details: object, maintenant: string, cibleId: number | SQL | null = null) =>
+export const journalPlanning = (base: Base, acteur: Acteur, action: string, details: object, maintenant: string, cibleId: number | SQL | null = null) =>
 	ligneJournal(base, { acteur: nomActeur(acteur), action, cibleType: 'planning', cibleId, details }, maintenant);
 
 export const vueManoeuvre = (m: typeof manoeuvre.$inferSelect): ManoeuvreVue => ({
@@ -83,6 +83,18 @@ export function ordrePropose(annee: number, reglage: Reglage, equipes: { id: num
 	return [...actives.slice(decalage), ...actives.slice(0, decalage)].map((e) => e.id);
 }
 
+// L'historique des fêtes : les saisies, complétées par les années publiées des trois dernières années.
+export function historiqueDesFetes(annee: number, annees: (typeof anneePlanning.$inferSelect)[], changees: { debut: string; equipeId: number }[], saisies: { annee: number; fete: Fete; equipeId: number }[], reglage: Reglage) {
+	const historique: { annee: number; fete: Fete; equipeId: number }[] = saisies.map((s) => ({ annee: s.annee, fete: s.fete, equipeId: s.equipeId }));
+	for (const a of annees.filter((x) => x.annee < annee && x.annee >= annee - 3 && x.publieeLe !== null)) {
+		const f = fetes(a.annee, semainesCalculees(a.annee, a.ordre, changees, reglage));
+		for (const [fete, id] of [['noel', f.noel], ['nouvel_an', f.nouvelAn]] as const) {
+			if (id !== null && !historique.some((h) => h.annee === a.annee && h.fete === fete)) historique.push({ annee: a.annee, fete, equipeId: id });
+		}
+	}
+	return historique.sort((a, b) => b.annee - a.annee || a.fete.localeCompare(b.fete));
+}
+
 export type Preparation = Awaited<ReturnType<typeof preparerAnnee>>;
 
 // Tout ce que le chef voit en préparant l'année. Les fêtes des années précédentes déjà dans l'appli complètent l'historique saisi.
@@ -92,14 +104,7 @@ export async function preparerAnnee(base: Base, acteur: Acteur, annee: number, m
 	const [annees, changees, manoeuvres, vacances, equipes, saisies] = await base.batch(lectures(base, `${annee - 3}-01-01`, `${annee}-12-31`));
 	const ligne = annees.find((a) => a.annee === annee);
 	const semaines = semainesCalculees(annee, ligne?.ordre, changees, reglage);
-	const historique: { annee: number; fete: Fete; equipeId: number }[] = saisies.map((s) => ({ annee: s.annee, fete: s.fete, equipeId: s.equipeId }));
-	for (const a of annees.filter((x) => x.annee < annee && x.annee >= annee - 3 && x.publieeLe !== null)) {
-		const f = fetes(a.annee, semainesCalculees(a.annee, a.ordre, changees, reglage));
-		for (const [fete, id] of [['noel', f.noel], ['nouvel_an', f.nouvelAn]] as const) {
-			if (id !== null && !historique.some((h) => h.annee === a.annee && h.fete === fete)) historique.push({ annee: a.annee, fete, equipeId: id });
-		}
-	}
-	historique.sort((a, b) => b.annee - a.annee || a.fete.localeCompare(b.fete));
+	const historique = historiqueDesFetes(annee, annees, changees, saisies, reglage);
 	const actives = equipes.filter((e) => e.active === 1);
 	return {
 		annee,

@@ -268,6 +268,16 @@ describe('échange de manœuvre', () => {
 		return { ...j, qui, m1, m2, tous, pub1: pub!.publicationId! };
 	}
 
+	it('une manœuvre d’une année en brouillon reste invisible et ne s’échange pas', async () => {
+		const { base, alice, qui, ids, n, m1 } = await avecManoeuvres();
+		const brouillon = await enregistrerManoeuvre(base, qui, { debut: '2099-03-08T08:30', theme: 'Brouillon', lieu: 'Caserne', convoques: [ids[0]!], petitDejeuner: false }, maintenant);
+		const brouillonCible = await enregistrerManoeuvre(base, qui, { debut: '2099-03-15T08:30', theme: 'Brouillon 2', lieu: 'Caserne', convoques: [ids[1]!], petitDejeuner: false }, maintenant);
+		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
+		expect(choix.miennes.map((m) => m.id)).toEqual([m1]);
+		expect(choix.collegues.flatMap((c) => c.manoeuvres.map((m) => m.id))).not.toContain(brouillonCible);
+		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: brouillon, cibleId: n.bruno, manoeuvreCibleId: brouillonCible }, maintenant, reglage)).rejects.toThrow(DonneeInvalide);
+	});
+
 	it('accepté : chacun convoqué à la place de l’autre, publication et réponses suivent, le chef est informé', async () => {
 		const { base, alice, bruno, n, m1, m2, pub1, avisDe, demande } = await avecManoeuvres();
 		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);

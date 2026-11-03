@@ -32,6 +32,11 @@ export function libellePlage(p: { debut: string; fin: string }): string {
 
 // « 2 agents », « 2 CE », « CA tout engins » (un seul).
 const compte = (n: number, p: Poste) => (n === 1 ? LIBELLES_POSTE[p] : `${n} ${LIBELLES_POSTE[p]}${p === 'agent' || p === 'cod1' ? 's' : ''}`);
+// « 1 CE », « 2 agents ».
+export const manquants = (manque: Poste[]) => [...new Set(manque)].map((x) => {
+	const n = manque.filter((y) => y === x).length;
+	return n === 1 ? `1 ${LIBELLES_POSTE[x]}` : compte(n, x);
+});
 const comptes = (manque: Poste[]) => [...new Set(manque)].map((x) => compte(manque.filter((y) => y === x).length, x));
 
 // « FPT armé : oui » ; « FPT armé : non, manque CA tout engins, 2 agents ».
@@ -41,10 +46,7 @@ export function texteArme(arme: boolean, manque: Poste[]): string {
 
 // « Il manque : 1 CE » ; « Il manque : 1 CA tout engins, 2 agents ».
 export function texteIlManque(manque: Poste[]): string {
-	return `Il manque : ${[...new Set(manque)].map((x) => {
-		const n = manque.filter((y) => y === x).length;
-		return n === 1 ? `1 ${LIBELLES_POSTE[x]}` : compte(n, x);
-	}).join(', ')}`;
+	return `Il manque : ${manquants(manque).join(', ')}`;
 }
 
 // « Du ven. 25 juin au jeu. 2 sept. · vacances avant le 15 mai » ; `fin` : la relève qui suit la dernière semaine.

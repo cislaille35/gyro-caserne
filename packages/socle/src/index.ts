@@ -32,6 +32,7 @@ export { accepter, acceptees, ajouterRessource, annuler, aValider, calendrier, c
 export { chevauche, jourCourt, joursEntre, periodeCourte, restantParJour, tientUnePlace, type Periode, type Prise } from './reservations-calcul.ts';
 export { calculerAnnee, equipeA, feries, fetes, numeroSemaine, periodesDeLaSemaine, rangDuJour, semainesDe, tourDesFetes, type Fete, type Periode as PeriodePlanning, type Reglage, type SemaineCalculee } from './planning/calendrier.ts';
 export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPreparer, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances, supprimerManoeuvre, type Convoques as ConvoquesManoeuvre, type DonneesManoeuvre, type EquipePlanning, type ManoeuvreVue, type PlanningAgent, type Preparation, type Vacances } from './planning/annee.ts';
+export { accepterProposition, proposerAnnee, type PropositionAnnee } from './planning/suivante.ts';
 export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts';
 export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';

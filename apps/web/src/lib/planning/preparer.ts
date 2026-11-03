@@ -1,5 +1,6 @@
-import type { EquipePlanning, Fete, SemaineCalculee } from '@gyro-caserne/socle';
+import type { EquipePlanning, Fete, PropositionAnnee, SemaineCalculee } from '@gyro-caserne/socle';
 import { pluriel } from '../pluriel.ts';
+import { manquants } from './ete.ts';
 
 // Préparer l'année : cinq étapes, chacune enregistrée seule.
 export const ETAPES = [
@@ -49,4 +50,36 @@ export function recapitulatif(p: { semaines: SemaineCalculee[]; manoeuvres: { an
 		`Noël : ${nom(p.fetes.noel)} · Nouvel An : ${nom(p.fetes.nouvelAn)}`,
 		p.vacances.length ? pluriel(p.vacances.length, 'période de vacances', 'périodes de vacances') : 'Aucune vacances scolaires'
 	];
+}
+
+const nomEquipe = (equipes: EquipePlanning[], id: number | null) => (id === null ? 'personne' : (equipes.find((e) => e.id === id)?.nom ?? 'Équipe archivée'));
+
+// « 52 semaines · Noël : Équipe 2 · Nouvel An : Équipe 4 · 11 manœuvres reprises · Équipe 3 incomplète »
+export function resumeProposition(p: Pick<PropositionAnnee, 'semaines' | 'fetes' | 'manoeuvres' | 'vacances' | 'equipes'>, equipes: EquipePlanning[]): string {
+	return [
+		pluriel(p.semaines, 'semaine'),
+		`Noël : ${nomEquipe(equipes, p.fetes.noel.equipeId)}`,
+		`Nouvel An : ${nomEquipe(equipes, p.fetes.nouvelAn.equipeId)}`,
+		p.manoeuvres.length ? pluriel(p.manoeuvres.length, 'manœuvre reprise', 'manœuvres reprises') : 'Aucune manœuvre reprise',
+		...p.equipes.filter((e) => !e.arme).map((e) => `${e.nom} incomplète`),
+		...(p.vacances ? [] : ['Aucune période de vacances saisie'])
+	].join(' · ');
+}
+
+// « Équipe 3 : 6 agents, il manque 1 CE »
+export function etatEquipe(e: Pick<PropositionAnnee['equipes'][number], 'nom' | 'effectif' | 'arme' | 'manque'>): string {
+	return `${e.nom} : ${pluriel(e.effectif, 'agent')}, ${e.arme ? 'peut armer le FPT seule' : `il manque ${manquants(e.manque).join(', ')}`}`;
+}
+
+// Le tour des deux fêtes n'a pas pu être respecté : le dire, avec le compromis gardé. Null sinon.
+export function texteCompromis(f: PropositionAnnee['fetes'], equipes: EquipePlanning[]): string | null {
+	if (!f.compromis) return null;
+	const noms = (ids: number[]) => ids.map((id) => nomEquipe(equipes, id)).join(' ou ');
+	const nN = noms(f.noel.attendues);
+	const nA = noms(f.nouvelAn.attendues);
+	const tenue = (id: number | null) => nomEquipe(equipes, id);
+	const debut = 'Impossible de respecter le tour des deux fêtes';
+	if (f.memeSemaine) return `${debut} : elles tombent dans la même semaine, et c’est à ${nN} de tenir Noël, à ${nA} de tenir le Nouvel An. Compromis : ${tenue(f.noel.equipeId)} tient les deux.`;
+	const qui = nN === nA ? `c’est à ${nN} de tenir Noël et le Nouvel An, et une équipe ne tient pas les deux` : `c’est à ${nN} de tenir Noël, à ${nA} de tenir le Nouvel An`;
+	return `${debut} : ${qui}. Compromis : Noël pour ${tenue(f.noel.equipeId)}, Nouvel An pour ${tenue(f.nouvelAn.equipeId)}.`;
 }

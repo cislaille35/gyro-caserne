@@ -55,6 +55,29 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByRole('dialog')).toHaveCount(0);
 	});
 
+	test('partir d’une proposition : le panneau, accepter, le brouillon sans annonce', async ({ page }) => {
+		// L'année en cours et la suivante sont publiées par le jeu fictif : celle d'après n'a pas de roulement.
+		const annee = new Date().getFullYear() + 2;
+		await page.goto(`/planning/preparer?annee=${annee}`);
+		// Les deux tailles d'écran jouent ce test : l'une a pu accepter avant l'autre.
+		const bouton = page.getByRole('link', { name: 'Partir d’une proposition' });
+		if (await bouton.count()) {
+			await bouton.click();
+			const panneau = page.getByRole('dialog', { name: `Proposition pour ${annee}` });
+			await expect(panneau).toBeVisible();
+			await expect(panneau.getByRole('heading', { level: 3, name: 'État des équipes' })).toBeVisible();
+			await expect(panneau.getByText(/\d+ semaines · Noël : .* · Nouvel An : /)).toBeVisible();
+			await sansViolation(page);
+			await panneau.getByRole('button', { name: 'Accepter et écrire le brouillon' }).click();
+			await expect(page.getByText('Proposition acceptée')).toBeVisible();
+			await expect(page.getByRole('dialog')).toHaveCount(0);
+		}
+		await expect(page.getByRole('link', { name: 'Partir d’une proposition' })).toHaveCount(0);
+		await expect(page.getByText('Brouillon', { exact: true })).toBeVisible();
+		await page.goto(`/planning/preparer?annee=${annee}&etape=publier`);
+		await expect(page.getByRole('button', { name: `Publier l’année ${annee}` })).toBeVisible();
+	});
+
 	test('armement : un engin dans un panneau, − et + annoncés', async ({ page }) => {
 		await page.goto('/reglages/armement');
 		await page.getByRole('link', { name: 'Modifier le FPT' }).click();

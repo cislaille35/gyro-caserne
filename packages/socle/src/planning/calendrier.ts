@@ -113,17 +113,27 @@ export function equipeA(moment: string, semaines: SemaineCalculee[]): number | n
 	return semaines.find((s) => s.periodes.some((p) => p.debut <= moment && moment < p.fin))?.equipeId ?? null;
 }
 
-// La garde de Noël : l'équipe d'astreinte le 25 décembre à midi ; celle du Nouvel An, le 31 décembre à 23 h.
+// La garde de Noël : le 25 décembre à midi ; celle du Nouvel An : le 31 décembre à 23 h.
+export const momentsDesFetes = (annee: number) => ({ noel: `${annee}-12-25T12:00`, nouvelAn: `${annee}-12-31T23:00` });
+
+// L'équipe d'astreinte à chacune de ces gardes.
 export function fetes(annee: number, semaines: SemaineCalculee[]): { noel: number | null; nouvelAn: number | null } {
-	return { noel: equipeA(`${annee}-12-25T12:00`, semaines), nouvelAn: equipeA(`${annee}-12-31T23:00`, semaines) };
+	const m = momentsDesFetes(annee);
+	return { noel: equipeA(m.noel, semaines), nouvelAn: equipeA(m.nouvelAn, semaines) };
 }
 
-// Les équipes dont c'est le tour : celles qui ont tenu la fête il y a le plus longtemps, ou jamais (avant `annee`).
+// La file d'attente d'une fête : le rang de chaque équipe, 0 pour celles qui l'ont tenue il y a le plus longtemps, ou jamais (avant `annee`).
+export function rangsDuTour(historique: { annee: number; fete: Fete; equipeId: number }[], fete: Fete, equipes: number[], annee: number): Map<number, number> {
+	const derniere = (id: number) => Math.max(-Infinity, ...historique.filter((h) => h.fete === fete && h.equipeId === id && h.annee < annee).map((h) => h.annee));
+	const dates = [...new Set(equipes.map(derniere))].sort((a, b) => a - b);
+	return new Map(equipes.map((id) => [id, dates.indexOf(derniere(id))]));
+}
+
+// Les équipes dont c'est le tour : les premières de la file.
 export function tourDesFetes(historique: { annee: number; fete: Fete; equipeId: number }[], equipes: number[], annee: number): { noel: number[]; nouvelAn: number[] } {
 	const attendues = (fete: Fete) => {
-		const derniere = (id: number) => Math.max(-Infinity, ...historique.filter((h) => h.fete === fete && h.equipeId === id && h.annee < annee).map((h) => h.annee));
-		const plusAncienne = Math.min(...equipes.map(derniere));
-		return equipes.filter((id) => derniere(id) === plusAncienne);
+		const rangs = rangsDuTour(historique, fete, equipes, annee);
+		return equipes.filter((id) => rangs.get(id) === 0);
 	};
 	return { noel: attendues('noel'), nouvelAn: attendues('nouvel_an') };
 }

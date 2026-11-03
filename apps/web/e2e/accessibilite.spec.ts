@@ -166,7 +166,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', '/reglages/aptitudes', '/remplacements', '/planning/preparer/fichier', '/planning/ete', '/reglages/armement', '/engins', '/engins/nouveau', '/engins/1/modifier', '/engins/fiches', '/engins/fiches/1', '/engins/fiches/fichier']) {
+			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', `/planning/preparer?annee=${new Date().getFullYear() + 3}&proposition=1`, '/reglages/aptitudes', '/remplacements', '/planning/preparer/fichier', '/planning/ete', '/reglages/armement', '/engins', '/engins/nouveau', '/engins/1/modifier', '/engins/fiches', '/engins/fiches/1', '/engins/fiches/fichier']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});

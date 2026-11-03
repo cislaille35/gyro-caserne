@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { exigerDateHeure } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
@@ -8,7 +8,7 @@ import type { EtatDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
 import type { Convocation } from '../murs.ts';
 import { convoque, equipeLe } from '../planning/annee.ts';
-import { demandeRemplacement, destinataireRemplacement, manoeuvre, personne, publication, reponseEvenement } from '../schema.ts';
+import { anneePlanning, demandeRemplacement, destinataireRemplacement, manoeuvre, personne, publication, reponseEvenement } from '../schema.ts';
 import { avis } from './avis.ts';
 import { astreintesDe, disponible, disponibles, lireContexte, manque, mesTranches, periodesDe, valideurs, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
@@ -124,11 +124,12 @@ export async function proposerEchange(base: Base, acteur: Acteur, d: { periodes:
 	return lignes[0]!.id;
 }
 
-// Les manœuvres à venir, non annulées, convoquées par équipe : les seules qui s'échangent.
+// Les manœuvres à venir, non annulées, d'une année publiée : les seules qui s'échangent. Un brouillon reste invisible des agents.
 const lireManoeuvres = (base: Base, maintenant: string) =>
 	base
 		.select({ id: manoeuvre.id, debut: manoeuvre.debut, theme: manoeuvre.theme, convoques: manoeuvre.convoques, publicationId: manoeuvre.publicationId })
 		.from(manoeuvre)
+		.innerJoin(anneePlanning, and(eq(anneePlanning.annee, sql`cast(substr(${manoeuvre.debut}, 1, 4) as integer)`), isNotNull(anneePlanning.publieeLe)))
 		.where(and(isNull(manoeuvre.annuleeLe), gt(manoeuvre.debut, maintenant.slice(0, 16))));
 type ManoeuvreLue = Awaited<ReturnType<typeof lireManoeuvres>>[number];
 
