@@ -267,6 +267,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}
+		// La proposition de l'année d'après (20 manœuvres de l'année précédente, 150 agents) : le panneau, puis l'acceptation.
+		const urlProposition = new URL(`http://localhost/planning/preparer?annee=${annee + 2}&proposition=1`);
+		expect(await compter(async () => { await (racine as any)({ locals }); expect((await (preparer as any)({ locals, url: urlProposition })).proposition.manoeuvres.length).toBeGreaterThan(0); }), 'proposition').toBeLessThanOrEqual(BUDGET);
+		const accepter = await compter(async () => {
+			expect(await (actionsPreparer as any).proposition({ locals, url: urlProposition, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
+			await (racine as any)({ locals });
+			await page();
+		});
+		expect(accepter, 'accepter la proposition').toBeLessThanOrEqual(BUDGET);
 	});
 
 	it('/engins, un engin, l’éditeur de fiche (un geste) et le fichier des fiches (aperçu, application) : 12 engins', async () => {

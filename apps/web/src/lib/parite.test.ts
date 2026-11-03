@@ -22,6 +22,7 @@ const ECRANS = [
 	'routes/planning/ete/+page.svelte',
 	'routes/planning/preparer/fichier/+page.svelte',
 	'routes/planning/preparer/+page.svelte',
+	'lib/planning/PropositionAnnee.svelte',
 	'routes/moi/vacances/+page.svelte',
 	'routes/reglages/armement/+page.svelte',
 	'routes/engins/+page.svelte',

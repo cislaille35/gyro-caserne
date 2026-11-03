@@ -90,4 +90,26 @@ describe('/planning/preparer', () => {
 		await envoyer(actions, 'retirerVacances', l, [['id', String(v!.id)]]);
 		expect(await base.select().from(vacancesScolaires)).toHaveLength(0);
 	});
+
+	it('la proposition : par l’adresse seulement, rien d’écrit ; réservée, sans objet une fois l’année préparée', async () => {
+		const { base, chef, alice, annee } = await preparer();
+		const l = locaux(base, chef);
+		expect((await charger(load, l, `?annee=${annee + 1}`)).proposition).toBeNull();
+		const data = await charger(load, l, `?annee=${annee + 1}&proposition=1`);
+		expect(data.proposition).toMatchObject({ annee: annee + 1, precedente: true });
+		expect((await base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee + 1)))).toEqual([]);
+		expect((await charger(load, l, `?annee=${annee}&proposition=1`)).proposition).toBeNull();
+		await expect(charger(load, locaux(base, alice), `?annee=${annee + 1}&proposition=1`)).rejects.toMatchObject({ status: 403 });
+	});
+
+	it('accepter écrit le brouillon ; une seconde fois, refus sur le bon formulaire ; réservé', async () => {
+		const { base, chef, alice, annee } = await preparer();
+		const q = `?annee=${annee + 1}`;
+		expect(await envoyer(actions, 'proposition', locaux(base, alice), [], q)).toMatchObject({ status: 403 });
+		expect(await envoyer(actions, 'proposition', locaux(base, chef), [], q)).toMatchObject({ cible: 'proposition', succes: expect.any(String) });
+		const prep = (await charger(load, locaux(base, chef), q)).preparation;
+		expect(prep.ordre.length).toBeGreaterThan(0);
+		expect(prep.publiee).toBeNull();
+		expect(await envoyer(actions, 'proposition', locaux(base, chef), [], q)).toMatchObject({ status: 400, data: { cible: 'proposition', message: expect.stringMatching(/déjà un roulement/) } });
+	});
 });

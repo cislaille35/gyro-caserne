@@ -4,6 +4,7 @@
 	import { momentPlanningPublie } from '#lib/animations/celebration.ts';
 	import FormulaireManoeuvre from '#lib/planning/FormulaireManoeuvre.svelte';
 	import Panneau from '#lib/planning/Panneau.svelte';
+	import PropositionAnnee from '#lib/planning/PropositionAnnee.svelte';
 	import { duAu, finDeSemaine, jourLong, momentLong, semainesParMois } from '#lib/planning/dates.ts';
 	import { echangePropose, ETAPES, recapitulatif } from '#lib/planning/preparer.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
@@ -37,6 +38,8 @@
 	const manoeuvreOuverte = $derived(data.manoeuvre === 'nouvelle' ? null : (p.manoeuvres.find((m) => m.id === data.manoeuvre) ?? null));
 	const panneauManoeuvre = $derived(data.etape === 'manoeuvres' && (data.manoeuvre === 'nouvelle' || manoeuvreOuverte !== null));
 	const semaineOuverte = $derived(data.etape === 'publier' ? (p.semaines.find((s) => s.debut === data.semaine) ?? null) : null);
+	// Une année sans roulement peut partir d'une proposition, s'il reste au moins deux équipes.
+	const peutProposer = $derived(!p.ordre.length && !p.publiee && p.ordrePropose.length >= 2);
 	const garder = () => async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => update({ reset: false });
 </script>
 
@@ -71,6 +74,13 @@
 		<li><a href="/planning/ete?annee={p.annee}">Été {p.annee}</a> <span class="doux">: vacances des agents et répartition qui arme le FPT.</span></li>
 	</ul>
 
+	{#if peutProposer}
+		<div class="proposer">
+			<p><strong>{p.annee} n’est pas préparée.</strong> <span class="doux">L’appli peut pré-remplir le brouillon d’après {p.annee - 1}. Vous retouchez, puis vous publiez.</span></p>
+			<a class="bouton-lien" href={ici({ proposition: '1' })} data-sveltekit-reset="false">Partir d’une proposition</a>
+		</div>
+	{/if}
+
 	<nav class="etapes" aria-label="Étapes">
 		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
 		<ol role="list">
@@ -84,6 +94,7 @@
 
 	<section class="etape" aria-labelledby="titre-etape">
 		<h2 id="titre-etape" tabindex="-1">{ETAPES[rang]!.libelle}</h2>
+		{@render retour('proposition')}
 
 		{#if data.etape === 'roulement'}
 			<p class="doux">L’ordre des équipes, semaine après semaine. La première semaine commence le {jourLong(data.apercu[0]?.debut ?? `${p.annee}-01-01`)}.{p.ordre.length ? '' : ' Ordre proposé d’après la référence du centre : validez-le ou changez-le.'}</p>
@@ -308,6 +319,12 @@
 	</nav>
 </div>
 
+{#if data.proposition}
+	<Panneau titre="Proposition pour {p.annee}" fermer={ici()}>
+		<PropositionAnnee proposition={data.proposition} equipes={p.equipes} action={action('proposition')} fermer={ici()} />
+	</Panneau>
+{/if}
+
 {#if panneauManoeuvre}
 	<Panneau titre={manoeuvreOuverte ? 'Modifier la manœuvre' : 'Nouvelle manœuvre'} fermer={ici()}>
 		<FormulaireManoeuvre manoeuvre={manoeuvreOuverte} equipes={p.equipes} />
@@ -411,6 +428,21 @@
 		border-color: var(--encre);
 		background: var(--encre);
 		color: var(--surface);
+	}
+
+	.proposer {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px 16px;
+		padding: 14px 16px;
+		border: 1px solid var(--trait-doux);
+		border-radius: var(--rayon-grand);
+		background: var(--surface);
+	}
+	.proposer p {
+		flex: 1 1 18rem;
 	}
 
 	/* Les étapes : une barre, les cinq pastilles numérotées, l'étape en cours marquée (texte, pas la couleur seule). */

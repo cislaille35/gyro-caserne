@@ -120,4 +120,69 @@ describe('Préparer l’année en cinq étapes', () => {
 		expect(commencee).toContain('Semaine commencée : son équipe ne change plus.');
 		expect(commencee).not.toContain('name="semaine-2027-01-01"');
 	});
+
+	const proposition = {
+		annee: 2027,
+		precedente: true,
+		ordre: [1, 2, 3, 4],
+		semaines: 53,
+		changees: [{ debut: '2027-12-10', numero: 49, avant: 2, apres: 4 }, { debut: '2027-12-24', numero: 51, avant: 4, apres: 2 }],
+		fetes: { noel: { equipeId: 2, dansLeTour: true, attendues: [2] }, nouvelAn: { equipeId: 1, dansLeTour: true, attendues: [1] }, compromis: false, memeSemaine: false, deSuite: [] },
+		manoeuvres: [{ debut: '2027-03-14T08:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [1, 2], petitDejeuner: true }],
+		tourDeRole: true,
+		annulees: 1,
+		passees: 0,
+		deja: 0,
+		vacances: 0,
+		equipes: [{ id: 1, nom: 'Équipe 1', couleur: '#d4a017', effectif: 6, arme: true, manque: [] }, { id: 3, nom: 'Équipe 3', couleur: '#d4a017', effectif: 6, arme: false, manque: ['ce'] }]
+	};
+
+	it('une année sans roulement : le bouton « Partir d’une proposition », à chaque étape ; pas une fois préparée', () => {
+		const vide = preparation({ ordre: [], semaines: [], manoeuvres: [] });
+		for (const etape of ['roulement', 'fetes', 'manoeuvres', 'reperes', 'publier']) {
+			expect(page({ etape, preparation: vide })).toMatch(new RegExp(`href="\\?annee=2027&amp;etape=${etape}&amp;proposition=1"[^>]*>Partir d’une proposition`));
+		}
+		expect(page()).not.toContain('Partir d’une proposition');
+		expect(page({ preparation: preparation({ ordre: [], semaines: [], ordrePropose: [] }) })).not.toContain('Partir d’une proposition');
+	});
+
+	it('le panneau : l’état des équipes en tête, signalé seulement, puis le résumé et « Accepter »', () => {
+		const html = page({ preparation: preparation({ ordre: [], semaines: [] }), proposition });
+		expect(html).toContain('Proposition pour 2027');
+		expect(html).toContain('Équipe 3 : 6 agents, il manque 1 CE');
+		expect(html).toContain('Équipe 1 : 6 agents, peut armer le FPT seule');
+		expect(html).toContain('href="/agents"');
+		expect(html).toContain('href="/nominations"');
+		expect(html).toContain('53 semaines · Noël : Équipe 2 · Nouvel An : Équipe 1 · 1 manœuvre reprise · Équipe 3 incomplète · Aucune période de vacances saisie');
+		expect(html).toContain('action="?/proposition&amp;annee=2027&amp;etape=roulement"');
+		expect(html).toContain('Accepter et écrire le brouillon');
+		expect(html.indexOf('il manque 1 CE')).toBeLessThan(html.indexOf('Feux de forêt'));
+		expect(html.indexOf('Feux de forêt')).toBeLessThan(html.indexOf('Accepter et écrire le brouillon'));
+	});
+
+	it('le panneau : semaines changées, manœuvres, tour de rôle, annulées écartées', () => {
+		const html = page({ preparation: preparation({ ordre: [], semaines: [] }), proposition });
+		expect(html).toContain('2 semaines changées');
+		expect(html).toContain('S51');
+		expect(html).toContain('Le tour de rôle continue');
+		expect(html).toContain('1 annulée non reprise');
+		expect(html).toContain('Équipe 1, Équipe 2');
+	});
+
+	it('le panneau : sans année précédente, le roulement de base ; un compromis dit clairement', () => {
+		const sans = { ...proposition, precedente: false, changees: [], manoeuvres: [], tourDeRole: false, annulees: 0 };
+		const html = page({ preparation: preparation({ ordre: [], semaines: [] }), proposition: sans });
+		expect(html).toContain('2026 n’a pas de planning');
+		expect(html).toContain('Aucune semaine à changer');
+		expect(html).toContain('Aucune manœuvre à reprendre');
+		const compromis = { ...proposition, fetes: { noel: { equipeId: 2, dansLeTour: true, attendues: [2] }, nouvelAn: { equipeId: 1, dansLeTour: false, attendues: [2] }, compromis: true, memeSemaine: false, deSuite: [1] } };
+		const dur = page({ preparation: preparation({ ordre: [], semaines: [] }), proposition: compromis });
+		expect(dur).toContain('Impossible de respecter le tour des deux fêtes');
+		expect(dur).toContain('Équipe 1 tient deux semaines de suite');
+	});
+
+	it('après l’acceptation ou un refus, le message reste visible hors du panneau', () => {
+		expect(page({}, { cible: 'proposition', succes: 'Brouillon écrit.' })).toContain('Brouillon écrit.');
+		expect(page({}, { cible: 'proposition', message: 'Cette année a déjà un roulement' })).toContain('Cette année a déjà un roulement');
+	});
 });
