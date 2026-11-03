@@ -10,6 +10,8 @@ Ouvert au chef de centre et à son adjoint (droit « Gérer le planning »). À 
    4. **Repères** : les fériés (calculés) et les vacances scolaires (nom, du, au).
    5. **Vérifier et publier** : touchez une semaine de la grille pour changer son équipe, relisez le récapitulatif, puis « Publier l'année ». Avant, les agents ne voient rien.
 
+**Pour aller plus vite** : tant que l'année n'a pas de roulement, appuyez sur « Partir d'une proposition ». Voyez l'état des équipes (signalé seulement), les fêtes, les manœuvres reprises et le résumé, puis « Accepter et écrire le brouillon » ou « Non merci ». Rien n'est publié : retouchez les étapes, puis publiez. Une année déjà préparée n'est jamais écrasée. Détail : [Comment préparer l'année à partir de la précédente ?](partir-d-une-proposition.md).
+
 Après la publication, tout changement est visible tout de suite. Une semaine commencée ne change plus d'équipe ; pour une semaine à venir, le panneau montre d'abord les remplacements qu'un changement toucherait, et les agents des deux équipes sont prévenus. Une manœuvre déjà annoncée sur « Le centre » se modifie ou s'annule depuis son panneau : les convoqués sont prévenus.
 
 Pour tout préparer d'un coup dans un tableur : [Comment préparer l'année dans un fichier ?](preparer-l-annee-par-fichier.md). Pour l'été : [Comment préparer l'été ?](preparer-l-ete.md).

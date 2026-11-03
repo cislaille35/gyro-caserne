@@ -20,6 +20,18 @@ Planning → « Préparer l'année ». L'année est civile : une semaine apparti
 4. **Repères** : les jours fériés sont calculés (liste repliée) ; les vacances scolaires sont saisies par le chef, pour l'affichage.
 5. **Vérifier et publier** : l'année en grille de semaines colorées, l'équipe écrite dans chaque case ; toucher une semaine ouvre le choix de son équipe (la suite du roulement ne bouge pas). Un récapitulatif (semaines changées, manœuvres, fêtes, vacances), puis « Publier l'année » : avant, les agents ne voient rien ; après, tout changement est visible tout de suite. Une fois l'année publiée : une semaine **commencée ou passée** ne change plus d'équipe (à l'écran comme par le fichier) ; avant de changer une semaine à venir, le panneau montre les **remplacements conclus ou en cours** de la semaine ; après, les agents des **deux équipes** sont prévenus (« La semaine du vendredi 9 juillet passe de l'Équipe 2 à l'Équipe 3 », dans la cloche et sur le téléphone), et les personnes de ces remplacements aussi.
 
+### Partir d'une proposition
+
+Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouvre un panneau : rien n'est écrit avant « Accepter ». Accepter écrit le **brouillon** d'un seul bloc ; le chef retouche chaque étape, puis publie comme d'habitude. Une année qui a déjà un roulement refuse la proposition : rien n'est écrasé.
+
+- **État des équipes**, en tête : pour chaque équipe, son effectif au 1er janvier et si elle peut armer le FPT seule (« Équipe 3 : 6 agents, il manque 1 CE »). L'appli signale seulement : aucun agent n'est déplacé. Liens vers Agents et Nominations.
+- **Roulement** : il continue celui de l'année précédente, sans rupture à la relève de janvier (une équipe archivée sort, une nouvelle entre à la fin ; jamais la même équipe de part et d'autre de la relève). Si l'année précédente n'a pas de planning : le roulement de base du centre.
+- **Fêtes** : l'appli échange des semaines de fin d'année pour donner Noël et le Nouvel An aux équipes dont c'est le tour. Chaque équipe garde son nombre de semaines. Elle cherche dans l'ordre : le tour respecté, pas deux semaines de suite pour une équipe, le moins de semaines changées, le plus près des fêtes. Une équipe ne tient pas les deux fêtes, sauf si elles tombent dans la même semaine.
+- **Compromis** : si le tour des deux fêtes est impossible (la même équipe attendue aux deux, ou les deux fêtes dans la même semaine avec deux équipes attendues), l'appli le dit clairement : Noël passe d'abord, le Nouvel An va à l'équipe qui attend depuis le plus longtemps ensuite.
+- **Manœuvres** : reprises de l'année précédente à la même place dans le mois (le 2e dimanche de mars reste le 2e dimanche de mars ; un 5e dimanche absent devient le dernier), même heure, thème, lieu et petit-déjeuner. Mêmes équipes, ou le même tour de rôle s'il se voit (la suite des équipes convoquées se répète à l'identique, au moins deux fois) : il continue où il s'était arrêté. Pas reprises : les annulées, les dates déjà passées, une manœuvre déjà saisie au même moment. Rien n'est annoncé avant la publication de l'année.
+- **Repères** : les fériés sont calculés ; les vacances scolaires ne sont pas reprises, le résumé rappelle d'en saisir s'il n'y en a aucune.
+- **Résumé** avant d'accepter : « 52 semaines · Noël : Équipe 2 · Nouvel An : Équipe 4 · 11 manœuvres reprises · Équipe 3 incomplète ».
+
 À partir du **1er octobre**, tant que l'année suivante n'est pas publiée, l'Accueil du chef de centre affiche « Planning 2027 à préparer » en tête de « À décider ».
 
 ## Ce que voit l'agent
@@ -51,4 +63,4 @@ En novembre, le chef prépare l'année suivante : il garde l'ordre proposé (Éq
 
 ## Ce que la fonction ne fait pas (encore)
 
-Vacances et planning d'été (lot 2) ; préparer l'année suivante en tenant compte des équipes (lot 3) ; disponibilités, remplacements, échanges ; import du tableur.
+Déplacer des agents d'une équipe à l'autre pour armer le FPT : la proposition le signale seulement ; disponibilités, remplacements, échanges ; import du tableur.

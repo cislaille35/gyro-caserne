@@ -23,6 +23,7 @@ Format d'une page :
 - [Quand suis-je d'astreinte ?](voir-mon-planning.md)
 - [Comment ajouter le planning à mon agenda ?](ajouter-le-planning-a-mon-agenda.md)
 - [Comment préparer le planning de l'année ?](preparer-l-annee.md)
+- [Comment préparer l'année à partir de la précédente ?](partir-d-une-proposition.md)
 - [Comment préparer l'année dans un fichier ?](preparer-l-annee-par-fichier.md)
 - [Comment donner mes vacances d'été ?](donner-mes-vacances.md)
 - [Comment préparer l'été ?](preparer-l-ete.md)
