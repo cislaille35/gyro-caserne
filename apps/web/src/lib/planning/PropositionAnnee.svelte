@@ -122,6 +122,10 @@
 	.doux {
 		color: var(--doux);
 	}
+	.doux a {
+		color: var(--encre);
+		font-weight: 600;
+	}
 	.equipes {
 		display: flex;
 		flex-direction: column;
