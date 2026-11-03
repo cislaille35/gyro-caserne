@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { EquipePlanning, PropositionAnnee } from '@gyro-caserne/socle';
 	import { duAu, finDeSemaine, momentLong } from '#lib/planning/dates.ts';
 	import { etatEquipe, resumeProposition, texteCompromis } from '#lib/planning/preparer.ts';
@@ -9,10 +10,11 @@
 	// Ce que l'appli propose pour une année sans roulement. Rien n'est écrit avant « Accepter ».
 	let { proposition: p, equipes, action, fermer }: { proposition: PropositionAnnee; equipes: EquipePlanning[]; action: string; fermer: string } = $props();
 
+	let envoi = $state(false);
 	const nom = (id: number | null) => (id === null ? 'personne' : (equipes.find((e) => e.id === id)?.nom ?? 'Équipe archivée'));
 	const compromis = $derived(texteCompromis(p.fetes, equipes));
 	const incompletes = $derived(p.equipes.some((e) => !e.arme));
-	const ecartees = $derived([p.annulees ? pluriel(p.annulees, 'annulée non reprise', 'annulées non reprises') : '', p.passees ? pluriel(p.passees, 'date passée', 'dates passées') : '', p.deja ? pluriel(p.deja, 'déjà saisie', 'déjà saisies') : ''].filter(Boolean).join(', '));
+	const ecartees = $derived([p.annulees ? pluriel(p.annulees, 'annulée non reprise', 'annulées non reprises') : '', p.passees ? pluriel(p.passees, 'date passée', 'dates passées') : '', p.deja ? `${p.deja} au même moment qu’une autre` : ''].filter(Boolean).join(', '));
 	const LIGNES_FETES = [
 		{ libelle: 'Noël', cle: 'noel' },
 		{ libelle: 'Nouvel An', cle: 'nouvelAn' }
@@ -46,7 +48,7 @@
 		<ul role="list" class="fetes">
 			{#each LIGNES_FETES as f (f.cle)}
 				{@const fete = p.fetes[f.cle]}
-				<li><strong>{f.libelle}</strong> : {nom(fete.equipeId)} <span class="doux">({fete.dansLeTour ? 'dans son tour' : 'hors de son tour'})</span></li>
+				<li><strong>{f.libelle}</strong> : {nom(fete.equipeId)}{#if fete.equipeId !== null} <span class="doux">({fete.dansLeTour ? 'dans son tour' : 'hors de son tour'})</span>{/if}</li>
 			{/each}
 		</ul>
 		{#if compromis}<p class="encadre">{compromis}</p>{/if}
@@ -87,8 +89,19 @@
 		<h3 id="resume-proposition">Résumé</h3>
 		<p>{resumeProposition(p, equipes)}</p>
 		{#if !p.vacances}<p class="doux">Les vacances scolaires ne sont pas reprises : saisissez-les ou importez-les à l’étape Repères.</p>{/if}
-		<form method="POST" {action} class="gestes">
-			<Bouton type="submit">Accepter et écrire le brouillon</Bouton>
+		<form
+			method="POST"
+			{action}
+			class="gestes"
+			use:enhance={() => {
+				envoi = true;
+				return async ({ update }) => {
+					await update();
+					envoi = false;
+				};
+			}}
+		>
+			<Bouton type="submit" desactive={envoi}>Accepter et écrire le brouillon</Bouton>
 			<a class="non" href={fermer} data-sveltekit-reset="false">Non merci</a>
 		</form>
 	</section>
@@ -162,8 +175,24 @@
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
+		gap: 10px;
 		font-weight: 600;
 		cursor: pointer;
+		list-style: none;
+	}
+	.repli summary::-webkit-details-marker {
+		display: none;
+	}
+	.repli summary::before {
+		content: '';
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid currentColor;
+		border-bottom: 2px solid currentColor;
+		transform: rotate(-45deg);
+	}
+	.repli[open] summary::before {
+		transform: rotate(45deg);
 	}
 	.lignes {
 		display: flex;

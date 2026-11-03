@@ -181,6 +181,13 @@ describe('Préparer l’année en cinq étapes', () => {
 		expect(dur).toContain('Équipe 1 tient deux semaines de suite');
 	});
 
+	it('le panneau : personne d’astreinte à une fête, pas de mention du tour', () => {
+		const sans = { ...proposition, fetes: { ...proposition.fetes, nouvelAn: { equipeId: null, dansLeTour: true, attendues: [] } } };
+		const html = page({ preparation: preparation({ ordre: [], semaines: [] }), proposition: sans });
+		expect(html).toContain('<strong>Nouvel An</strong> : personne');
+		expect((html.match(/dans son tour/g) ?? []).length).toBe(1);
+	});
+
 	it('après l’acceptation ou un refus, le message reste visible hors du panneau', () => {
 		expect(page({}, { cible: 'proposition', succes: 'Brouillon écrit.' })).toContain('Brouillon écrit.');
 		expect(page({}, { cible: 'proposition', message: 'Cette année a déjà un roulement' })).toContain('Cette année a déjà un roulement');

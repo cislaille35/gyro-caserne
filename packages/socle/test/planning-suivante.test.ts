@@ -4,7 +4,7 @@ import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { enregistrerManoeuvre, noterFete, preparerAnnee, publierAnnee, reglerRoulement, supprimerManoeuvre } from '../src/planning/annee.ts';
+import { ajouterVacances, enregistrerManoeuvre, noterFete, preparerAnnee, publierAnnee, reglerRoulement, supprimerManoeuvre } from '../src/planning/annee.ts';
 import { calculerAnnee, fetes, rangsDuTour, tourDesFetes } from '../src/planning/calendrier.ts';
 import { planningDuMatin } from '../src/planning/manoeuvres.ts';
 import { accepterProposition, memePlaceDansLeMois, ordreQuiContinue, periodeDuTour, proposerAnnee, reglerFetes, reprendreManoeuvres } from '../src/planning/suivante.ts';
@@ -90,6 +90,25 @@ describe('régler les fêtes', () => {
 		expect(r[NOUVEL_AN]).toBe(1);
 		expect(ecarts(r, cycle())).toBe(3);
 		expect(r.some((x, i) => x === r[i + 1])).toBe(false);
+	});
+
+	it('quels que soient les tours, à quatre équipes : les fêtes dans le tour, sans deux semaines de suite', () => {
+		for (const n of TOUS) {
+			for (const a of TOUS.filter((x) => x !== n)) {
+				const r = regler(avecTour(n), avecTour(a));
+				expect([r[NOEL], r[NOUVEL_AN]]).toEqual([n, a]);
+				expect(r.some((x, i) => x === r[i + 1]), `Noël ${n}, Nouvel An ${a}`).toBe(false);
+			}
+		}
+	});
+
+	it('ne touche pas aux semaines déjà commencées (année en cours)', () => {
+		const r = reglerFetes(cycle(), { noel: NOEL, nouvelAn: NOUVEL_AN }, { noel: avecTour(1), nouvelAn: avecTour(4) }, 49);
+		expect(r.slice(0, 49)).toEqual(cycle().slice(0, 49));
+		// La semaine de l'équipe 1 est passée : Noël reste à une équipe disponible, et l'appli le dira.
+		expect(r[NOEL]).not.toBe(1);
+		const passe = reglerFetes(cycle(), { noel: NOEL, nouvelAn: NOUVEL_AN }, { noel: avecTour(4), nouvelAn: avecTour(3) }, 51);
+		expect(passe).toEqual(cycle());
 	});
 
 	it('chaque équipe garde son nombre de semaines, et seule la fin d’année bouge', () => {
@@ -193,6 +212,12 @@ describe('reprendre les manœuvres', () => {
 	it('une équipe archivée sort de la convocation ; plus aucune : tout le centre', () => {
 		const r = reprendreManoeuvres([m('2026-01-11T08:30', [1, 2]), m('2026-03-08T08:30', [2])], 2027, [1, 3, 4], maintenant, []);
 		expect(r.manoeuvres.map((x) => x.convoques)).toEqual([[1], 'tous']);
+	});
+
+	it('deux manœuvres qui tomberaient au même moment : la seconde est écartée, et comptée', () => {
+		const r = reprendreManoeuvres([m('2026-03-22T08:30', 'tous', { theme: 'Une' }), m('2026-03-29T08:30', 'tous', { theme: 'Deux' })], 2027, TOUS, maintenant, []);
+		expect(r.manoeuvres.map((x) => x.theme)).toEqual(['Une']);
+		expect(r.deja).toBe(1);
 	});
 
 	it('ni date passée, ni manœuvre déjà au même moment', () => {
@@ -321,6 +346,70 @@ describe('proposer l’année', () => {
 		expect(p.vacances).toBe(0);
 	});
 
+	it('les vacances à cheval sur le 1er janvier comptent pour l’année où elles commencent', async () => {
+		const { base, chef } = await jeu();
+		await ajouterVacances(base, chef, { nom: 'Noël 2026', debut: '2026-12-19', fin: '2027-01-03' }, maintenant);
+		expect((await proposerAnnee(base, chef, 2027, maintenant, reglage)).vacances).toBe(0);
+		await ajouterVacances(base, chef, { nom: 'Hiver 2027', debut: '2027-02-13', fin: '2027-03-01' }, maintenant);
+		expect((await proposerAnnee(base, chef, 2027, maintenant, reglage)).vacances).toBe(1);
+	});
+
+	it('un échange de manœuvres passé ne se reprend pas : seules les équipes reviennent', async () => {
+		const { base, chef, ids } = await jeu();
+		await base.insert(manoeuvre).values({ debut: '2026-12-13T08:30', theme: 'Feux', lieu: 'Stade', convoques: JSON.stringify({ equipes: [ids[0]], ajoutes: [99], retires: [98] }), petitDejeuner: 0 });
+		const p = await proposerAnnee(base, chef, 2027, maintenant, reglage);
+		expect(p.manoeuvres).toMatchObject([{ convoques: [ids[0]] }]);
+	});
+
+	it('année en cours sans roulement : aucune semaine commencée ne change', async () => {
+		const { base, chef, ids } = await jeu({ publier: false });
+		for (const [i, id] of ids.slice(1).entries()) await noterFete(base, chef, 2022 + i, 'noel', id, maintenant);
+		const p = await proposerAnnee(base, chef, 2026, '2026-12-20T10:00', reglage);
+		expect(p.changees.every((c) => c.debut > '2026-12-20')).toBe(true);
+	});
+
+	it('qui compte dans l’état des équipes : inapte sans poste, aptitudes retirée ou expirée sans effet, agent parti absent', async () => {
+		const { base, chef, ids, nouvelle } = await jeu();
+		const aptitudes = await base.select().from(aptitude);
+		const apt = (nom: string) => aptitudes.find((a) => a.nom === nom)!.id;
+		const entre = async (prenom: string) => {
+			const id = await nouvelle(prenom);
+			await base.insert(affectationEquipe).values({ personneId: id, equipeId: ids[0]!, debut: '2026-01-01' });
+			return id;
+		};
+		const donner = (personneId: number, nom: string, expireLe: string | null = null) => base.insert(aptitudeAgent).values({ personneId, aptitudeId: apt(nom), obtenueLe: '2020-01-01', expireLe });
+		const parti = await entre('Parti');
+		await donner(parti, 'CE');
+		await base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, parti));
+		const inapte = await entre('Inapte');
+		await donner(inapte, 'CA2');
+		await base.update(personne).set({ statut: 'inapte_temporaire' }).where(eq(personne.id, inapte));
+		await donner(await entre('Expire'), 'COD1', '2026-12-31');
+		const retire = await entre('Retire');
+		await donner(retire, 'CE');
+		await base.update(aptitude).set({ retireeLe: '2026-06-01' }).where(eq(aptitude.id, apt('CE')));
+		const e = (await proposerAnnee(base, chef, 2027, maintenant, reglage)).equipes.find((x) => x.id === ids[0])!;
+		expect(e.effectif).toBe(3);
+		// Toutes les places qualifiées restent vides : seul le poste « agent » est tenu, par les trois.
+		expect(e.manque).toEqual(['ca2', 'cod1', 'ce', 'ce']);
+	});
+
+	it('une équipe tient deux semaines de suite faute de mieux : le panneau peut le dire', async () => {
+		const { base, chef } = await jeu({ publier: false });
+		const [a, b, ...reste] = (await base.select().from(equipe).orderBy(equipe.ordreRotation)).map((e) => e.id);
+		for (const id of reste) await base.update(equipe).set({ active: 0 }).where(eq(equipe.id, id));
+		// Deux équipes seulement, chacune attendue à la fête que l'autre tiendrait.
+		const brut = await proposerAnnee(base, chef, 2027, maintenant, reglage);
+		const [n, an] = [brut.fetes.noel.equipeId!, brut.fetes.nouvelAn.equipeId!];
+		await noterFete(base, chef, 2025, 'noel', n, maintenant);
+		await noterFete(base, chef, 2025, 'nouvel_an', an, maintenant);
+		const p = await proposerAnnee(base, chef, 2027, maintenant, reglage);
+		expect(p.fetes.noel.equipeId).toBe(an);
+		expect(p.fetes.nouvelAn.equipeId).toBe(n);
+		expect([a, b]).toContain(p.fetes.deSuite[0]);
+		expect(p.fetes.deSuite).toContain(an);
+	});
+
 	it('l’état des équipes : effectif à la date de début d’année, FPT armé ou ce qui manque', async () => {
 		const { base, chef, ids, nouvelle } = await jeu();
 		const aptitudes = await base.select().from(aptitude);
@@ -396,6 +485,19 @@ describe('accepter la proposition', () => {
 		expect(p.deja).toBe(1);
 		await accepterProposition(base, chef, 2027, maintenant, reglage);
 		expect((await base.select().from(manoeuvre)).filter((m) => m.debut.startsWith('2027-')).map((m) => m.theme)).toEqual(['Déjà là']);
+	});
+
+	it('une ligne vide ou des semaines orphelines ne gênent pas : ce qui est écrit est ce qui était proposé', async () => {
+		const { base, chef } = await jeu();
+		await base.insert(anneePlanning).values({ annee: 2027, ordre: '[]' });
+		const [{ id: autre }] = await base.select({ id: equipe.id }).from(equipe).limit(1) as [{ id: number }];
+		await base.insert(semaineChangee).values({ debut: '2027-12-31', equipeId: autre });
+		const p = await proposerAnnee(base, chef, 2027, maintenant, reglage);
+		await accepterProposition(base, chef, 2027, maintenant, reglage);
+		const prep = await preparerAnnee(base, chef, 2027, maintenant, reglage);
+		expect(prep.ordre).toEqual(p.ordre);
+		expect(prep.fetes.nouvelAn).toBe(p.fetes.nouvelAn.equipeId);
+		expect(prep.semaines.filter((s) => s.changee)).toHaveLength(p.changees.length);
 	});
 
 	it('moins de deux équipes actives : refus clair', async () => {

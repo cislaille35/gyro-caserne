@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { armement, ENGIN_CALCULE, lireArmement, postesDe, type Poste } from '../armement.ts';
 import { validesLe } from '../aptitudes.ts';
 import type { Base } from '../base.ts';
@@ -46,11 +46,13 @@ const plusPetit = (a: number[], b: number[]) => {
 };
 
 // Donne les fêtes aux équipes dont c'est le tour, en échangeant des semaines de fin d'année : chaque équipe garde son nombre de semaines.
-// Au plus deux échanges touchant une semaine de fête suffisent : on essaie tout, le moins coûteux gagne.
-export function reglerFetes(equipes: number[], i: { noel: number; nouvelAn: number }, rangs: Rangs): number[] {
-	const fin = Math.max(0, equipes.length - (2 * new Set(equipes).size + 2));
-	const fetes = [...new Set([i.noel, i.nouvelAn])].filter((x) => x >= 0);
-	const echanges: [number, number][] = fetes.flatMap((f) => equipes.flatMap((_, j) => (j >= fin && j !== f ? [[f, j] as [number, number]] : [])));
+// Deux échanges touchant une semaine de fête, puis au besoin un dernier ailleurs pour défaire deux semaines de suite : on essaie tout, le moins coûteux gagne.
+// `premiere` : la première semaine qui peut encore changer (année en cours).
+export function reglerFetes(equipes: number[], i: { noel: number; nouvelAn: number }, rangs: Rangs, premiere = 0): number[] {
+	const fin = Math.max(premiere, equipes.length - (2 * new Set(equipes).size + 2));
+	const fetes = [...new Set([i.noel, i.nouvelAn])].filter((x) => x >= fin);
+	const fenetre = equipes.flatMap((_, j) => (j >= fin ? [j] : []));
+	const echanges: [number, number][] = fetes.flatMap((f) => fenetre.flatMap((j) => (j !== f ? [[f, j] as [number, number]] : [])));
 	let meilleur = equipes;
 	let meilleurCout = cout(equipes, equipes, i, rangs);
 	const essayer = (essai: number[]) => {
@@ -64,6 +66,11 @@ export function reglerFetes(equipes: number[], i: { noel: number; nouvelAn: numb
 		const un = echanger(equipes, a);
 		essayer(un);
 		for (const b of echanges) essayer(echanger(un, b));
+	}
+	if (meilleur.some((id, j) => id === meilleur[j + 1])) {
+		const autres = fenetre.filter((j) => !fetes.includes(j));
+		const retenu = meilleur;
+		for (const a of autres) for (const b of autres) if (a < b) essayer(echanger(retenu, [a, b]));
 	}
 	return meilleur;
 }
@@ -100,6 +107,7 @@ export function reprendreManoeuvres(precedentes: ManoeuvreSource[], annee: numbe
 	let annulees = 0;
 	let passees = 0;
 	let deja = 0;
+	const prises = new Set(existantes);
 	for (const m of triees) {
 		const voulues = m.convoques === 'tous' ? 'tous' : periode ? suite[(rang + suite.length) % periode]! : m.convoques;
 		if (m.convoques !== 'tous') rang++;
@@ -109,8 +117,9 @@ export function reprendreManoeuvres(precedentes: ManoeuvreSource[], annee: numbe
 		}
 		const debut = memePlaceDansLeMois(m.debut, annee);
 		if (debut < maintenant.slice(0, 16)) passees++;
-		else if (existantes.includes(debut)) deja++;
+		else if (prises.has(debut)) deja++;
 		else {
+			prises.add(debut);
 			const restantes = voulues === 'tous' ? [] : voulues.filter((id) => actives.includes(id));
 			manoeuvres.push({ debut, theme: m.theme, lieu: m.lieu, convoques: restantes.length ? restantes : 'tous', petitDejeuner: m.petitDejeuner });
 		}
@@ -151,7 +160,9 @@ async function calculer(base: Base, annee: number, maintenant: string, reglage: 
 	const historique = historiqueDesFetes(annee, annees, changees, saisies, reglage);
 	const rangs = { noel: rangsDuTour(historique, 'noel', ids, annee), nouvelAn: rangsDuTour(historique, 'nouvel_an', ids, annee) };
 	const depart = semaines.map((s) => s.equipeId);
-	const regle = reglerFetes(depart, i, rangs);
+	// Une semaine commencée (année en cours) ne change plus.
+	const aVenir = semaines.findIndex((s) => (s.periodes[0]?.debut ?? s.debut) > maintenant.slice(0, 16));
+	const regle = reglerFetes(depart, i, rangs, aVenir < 0 ? semaines.length : aVenir);
 	const changements = semaines.flatMap((s, j) => (regle[j] === s.equipeId ? [] : [{ debut: s.debut, numero: s.numero, avant: s.equipeId, apres: regle[j]! }]));
 	const fete = (j: number, r: Map<number, number>) => (j < 0 ? { equipeId: null, dansLeTour: true, attendues: [] as number[] } : { equipeId: regle[j]!, dansLeTour: (r.get(regle[j]!) ?? 0) === 0, attendues: ids.filter((id) => r.get(id) === 0) });
 	const noel = fete(i.noel, rangs.noel);
@@ -186,7 +197,7 @@ async function calculer(base: Base, annee: number, maintenant: string, reglage: 
 		changees: changements,
 		fetes: { noel, nouvelAn, compromis: !noel.dansLeTour || !nouvelAn.dansLeTour, memeSemaine: i.noel >= 0 && i.noel === i.nouvelAn, deSuite: [...new Set(regle.filter((id, j) => id === regle[j + 1] && depart[j] !== depart[j + 1]))] },
 		...reprise,
-		vacances: vacances.filter((v) => v.fin >= debutAnnee).length,
+		vacances: vacances.filter((v) => v.debut.startsWith(`${annee}-`)).length,
 		equipes: etat
 	};
 }
@@ -204,10 +215,13 @@ export async function accepterProposition(base: Base, acteur: Acteur, annee: num
 	const p = await calculer(base, annee, maintenant, reglage);
 	try {
 		await base.batch([
+			// Rien d'orphelin ne reste (une ligne sans ordre, des semaines sans roulement) : on écrit ce qui a été proposé.
+			base.delete(anneePlanning).where(and(eq(anneePlanning.annee, annee), eq(anneePlanning.ordre, '[]'))),
+			base.delete(semaineChangee).where(and(gte(semaineChangee.debut, `${annee}-01-01`), lte(semaineChangee.debut, `${annee}-12-31`))),
 			// Une insertion simple : si une autre acceptation est passée entre-temps, tout le bloc échoue.
 			base.insert(anneePlanning).values({ annee, ordre: JSON.stringify(p.ordre) }),
 			journalPlanning(base, acteur, 'accepter_proposition', { annee, ordre: p.ordre, semaines: p.changees.length, manoeuvres: p.manoeuvres.length }, maintenant),
-			...p.changees.map((c) => base.insert(semaineChangee).values({ debut: c.debut, equipeId: c.apres }).onConflictDoUpdate({ target: semaineChangee.debut, set: { equipeId: c.apres } })),
+			...p.changees.map((c) => base.insert(semaineChangee).values({ debut: c.debut, equipeId: c.apres })),
 			...p.manoeuvres.map((m) => base.insert(manoeuvre).values({ debut: m.debut, theme: m.theme, lieu: m.lieu, convoques: JSON.stringify(m.convoques), petitDejeuner: m.petitDejeuner ? 1 : 0 }))
 		]);
 	} catch (erreur) {
