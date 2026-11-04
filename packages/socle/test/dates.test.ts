@@ -73,7 +73,7 @@ describe('rangDuJour', () => {
 		['2026-11-08', 6], // dimanche
 		['2026-10-25', 6], // dimanche du changement d'heure
 		['2026-03-29', 6],
-		['2027-01-01', 4] // vendredi
+		['2027-01-01', 4], // vendredi
 		['2026-11-29T08:30', 6] // une date avec son heure : celle des manœuvres
 	])('%s : %i', (date, rang) => {
 		expect(rangDuJour(date)).toBe(rang);
