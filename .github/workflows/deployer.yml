@@ -58,6 +58,16 @@ jobs:
           VAPID_PRIVEE: ${{ secrets.VAPID_PRIVEE_PREPROD }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Clé de la vigilance Météo-France (secret du dépôt VIGILANCE_CLE), posée sur le Worker. Sans elle, l'appli marche, sans bandeau de vigilance.
+      - name: Clé de la vigilance
+        run: |
+          if [ -z "$VIGILANCE_CLE" ]; then echo "Pas de clé de vigilance : rien à poser."; exit 0; fi
+          node -e 'process.stdout.write(JSON.stringify({ VIGILANCE_CLE: process.env.VIGILANCE_CLE }))' \
+            | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
+        env:
+          VIGILANCE_CLE: ${{ secrets.VIGILANCE_CLE }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   production:
     needs: verifier
@@ -104,6 +114,16 @@ jobs:
         env:
           VAPID_PUBLIQUE: ${{ secrets.VAPID_PUBLIQUE_PRODUCTION }}
           VAPID_PRIVEE: ${{ secrets.VAPID_PRIVEE_PRODUCTION }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Clé de la vigilance Météo-France (secret du dépôt VIGILANCE_CLE), posée sur le Worker. Sans elle, l'appli marche, sans bandeau de vigilance.
+      - name: Clé de la vigilance
+        run: |
+          if [ -z "$VIGILANCE_CLE" ]; then echo "Pas de clé de vigilance : rien à poser."; exit 0; fi
+          node -e 'process.stdout.write(JSON.stringify({ VIGILANCE_CLE: process.env.VIGILANCE_CLE }))' \
+            | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
+        env:
+          VIGILANCE_CLE: ${{ secrets.VIGILANCE_CLE }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # Journal des mises en production : une fiche par version réellement déployée
