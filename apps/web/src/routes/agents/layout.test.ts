@@ -96,7 +96,7 @@ describe('/agents : vue de tous', () => {
 			const mise = html(Layout, { data, children: createRawSnippet(() => ({ render: () => `<div>${html(Erreur, {})}</div>` })) });
 			expect(mise).toContain('Alice Martin');
 			expect(mise).not.toMatch(/class="liste[^"]*masquee/);
-			expect(mise).toContain('403');
+			expect(mise).toContain('Page indisponible');
 			expect(mise).toContain('Accès réservé au chef de centre et à son adjoint');
 		} finally {
 			Object.assign(etat.page, { url: new URL('http://x/agents'), status: 200, error: null });

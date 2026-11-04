@@ -1,7 +1,7 @@
 import centre from '$centre';
 import { marquerAvisRemplacementLus, remplacementsDe } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
-import { exigerConnecte, gestesRemplacement } from '#lib/server/remplacements.ts';
+import { exigerConnecte, gestesRemplacement, RESULTATS } from '#lib/server/remplacements.ts';
 import { ouRefus } from '#lib/server/planning.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -18,7 +18,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const avecValider = listes.valideur || listes.aValider.length > 0;
 	const parDefaut: Onglet = listes.pourMoi.length > 0 ? 'pour-moi' : listes.aValider.length > 0 ? 'a-valider' : 'miennes';
 	const onglet: Onglet = demande === 'a-valider' && !avecValider ? parDefaut : (demande ?? parDefaut);
-	return { personne: true as const, ...listes, avecValider, onglet };
+	// `?fait=` : le résultat d'un geste fait sur la page d'une demande qui n'est plus visible.
+	const fait = url.searchParams.get('fait');
+	return { personne: true as const, ...listes, avecValider, onglet, fait: fait !== null && Object.hasOwn(RESULTATS, fait) ? RESULTATS[fait as keyof typeof RESULTATS] : null };
 };
 
 export const actions: Actions = gestesRemplacement;

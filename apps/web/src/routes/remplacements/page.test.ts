@@ -35,6 +35,10 @@ const page = (data: Record<string, unknown>, form: unknown = null) =>
 	render(Page as any, { props: { data: { personne: true, pourMoi: [], miennes: [], aValider: [], historique: [], avecValider: false, onglet: 'pour-moi', ...data }, form } }).body;
 
 describe('page Remplacements', () => {
+	it('après un geste fait sur la page d’une demande : le résultat est dit', () => {
+		expect(page({ fait: 'Demande refusée.' })).toMatch(/role="status"[^>]*>Demande refusée\.</);
+	});
+
 	it('onglets en liens, l’actif marqué ; vide soigné', () => {
 		const html = page({});
 		expect(html).toMatch(/<a[^>]*href="\?onglet=pour-moi"[^>]*aria-current="page"/);
