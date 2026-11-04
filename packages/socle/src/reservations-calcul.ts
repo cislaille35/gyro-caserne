@@ -1,3 +1,4 @@
+import { formatDeDate } from './dates.ts';
 import type { FormeRessource } from './listes.ts';
 
 // Calculs purs des réservations, partagés par le socle (la règle) et l'écran Réserver (la disponibilité affichée tout de suite).
@@ -26,7 +27,7 @@ export function restantParJour(stock: number, prises: Prise[], du: string, au: s
 
 // « 13 nov. » (les dates sont à l'heure de Paris, lues telles quelles).
 export function jourCourt(date: string): string {
-	return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date.slice(0, 10)}T00:00:00Z`));
+	return formatDeDate({ day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date.slice(0, 10)}T00:00:00Z`));
 }
 
 // « 9 h », « 12 h 30 ».

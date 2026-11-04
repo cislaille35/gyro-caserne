@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { pluriel } from '#lib/pluriel.ts';
 	import type { PublicationVue } from '@gyro-caserne/socle';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -42,7 +43,7 @@
 		['incertain', 'Incertain', '?']
 	] as const;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
-	const date = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const quand = (iso: string) => date(iso, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
 	const auteur = $derived(nom(p.auteur));

@@ -1,8 +1,9 @@
+import { formatDeDate } from '@gyro-caserne/socle/dates';
 import { LIBELLES_POSTE, POSTES, type Poste, type Postes } from '@gyro-caserne/socle';
 import { pluriel } from '../pluriel.ts';
 
-const jourCourt = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-const jourMois = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const jourCourt = () => formatDeDate({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const jourMois = () => formatDeDate({ day: 'numeric', month: 'long', timeZone: 'UTC' });
 const date = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 const heures = (p: { debut: string; fin: string }) => (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.debut}:00Z`)) / 3_600_000;
 
@@ -24,7 +25,7 @@ export function etapeEteDe(url: URL, e: { ete: unknown; proposee: boolean }): Et
 
 // « Ven. 25 juin · nuit », « Sam. 26 juin · 24 h ».
 export function libellePlage(p: { debut: string; fin: string }): string {
-	const jour = jourCourt.format(date(p.debut));
+	const jour = jourCourt().format(date(p.debut));
 	const duree = heures(p);
 	const quoi = duree === 24 ? '24 h' : p.debut.slice(11, 16) >= '17:00' && duree <= 14 ? 'nuit' : `${Number(p.debut.slice(11, 13))} h – ${Number(p.fin.slice(11, 13))} h`;
 	return `${jour.charAt(0).toUpperCase()}${jour.slice(1)} · ${quoi}`;
@@ -52,7 +53,7 @@ export function texteIlManque(manque: Poste[]): string {
 // « Du ven. 25 juin au jeu. 2 sept. · vacances avant le 15 mai » ; `fin` : la relève qui suit la dernière semaine.
 export function phrasePeriode(debut: string, fin: string, dateLimite: string): string {
 	const veille = new Date(date(fin).getTime() - 864e5).toISOString();
-	return `Du ${jourCourt.format(date(debut))} au ${jourCourt.format(date(veille))} · vacances avant le ${jourMois.format(date(dateLimite)).replace(/^1 /, '1er ')}`;
+	return `Du ${jourCourt().format(date(debut))} au ${jourCourt().format(date(veille))} · vacances avant le ${jourMois().format(date(dateLimite)).replace(/^1 /, '1er ')}`;
 }
 
 // « Proposé · 10 semaines · FPT armé partout · 4 agents en vacances · 3 sans réponse ».

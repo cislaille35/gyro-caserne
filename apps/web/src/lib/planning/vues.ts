@@ -1,3 +1,4 @@
+import { ajouterJours } from '@gyro-caserne/socle/dates';
 import { texteTranche, type PeriodePlanning, type SemaineCalculee, type Vacances } from '@gyro-caserne/socle';
 import { heure } from '../murs/quand.ts';
 import { pluriel } from '../pluriel.ts';
@@ -11,11 +12,7 @@ export type Donnees = { annee: number; feries: { date: string; nom: string }[]; 
 export type Repere = { genre: 'ferie' | 'vacances' | 'manoeuvre' | 'fete' | 'remplacement'; texte: string; date: string };
 export const SIGNES: Record<Repere['genre'], string> = { ferie: 'Férié', vacances: 'Vacances', manoeuvre: 'Manœuvre', fete: 'Fête', remplacement: 'Remplacement' };
 
-const lendemain = (date: string) => {
-	const d = new Date(`${date}T00:00:00Z`);
-	d.setUTCDate(d.getUTCDate() + 1);
-	return d.toISOString().slice(0, 10);
-};
+const lendemain = (date: string) => ajouterJours(date, 1);
 const contient = (s: SemaineCalculee, moment: string) => s.periodes.some((p) => p.debut <= moment && moment < p.fin);
 
 function texteRemplacement(r: Remplacement, avecQuand: boolean): string {

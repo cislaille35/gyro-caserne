@@ -1,10 +1,11 @@
+import { ajouterJours, formatDeDate } from '@gyro-caserne/socle/dates';
 import { heure } from '../murs/quand.ts';
 
 // Les dates du planning sont à l'heure de Paris, lues telles quelles.
 const jour = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 // Le premier du mois s'écrit « 1er ».
 const format = (options: Intl.DateTimeFormatOptions, iso: string) =>
-	new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(jour(iso)).replace(/(^|\s)1(?=\s)/, '$11er');
+	formatDeDate({ ...options, timeZone: 'UTC' }).format(jour(iso)).replace(/(^|\s)1(?=\s)/, '$11er');
 
 export const moisDeLAnnee = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
@@ -22,9 +23,7 @@ export function duAu(debut: string, fin: string): string {
 }
 
 export const finDeSemaine = (debut: string) => {
-	const d = jour(debut);
-	d.setUTCDate(d.getUTCDate() + 7);
-	return d.toISOString().slice(0, 10);
+	return ajouterJours(debut.slice(0, 10), 7);
 };
 
 // La date tombe-t-elle dans la semaine qui commence `debut` (jusqu'à la relève suivante, exclue) ?

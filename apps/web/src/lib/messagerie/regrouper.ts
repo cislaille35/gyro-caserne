@@ -1,3 +1,4 @@
+import { formatDeDate } from '@gyro-caserne/socle/dates';
 import type { VueMessage } from '@gyro-caserne/socle';
 import { instant } from './fil.ts';
 
@@ -21,7 +22,7 @@ export function jourDuFil(creeLe: string, aujourdhui: string): string {
 	if (ecart === 1) return 'Hier';
 	const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' };
 	if (creeLe.slice(0, 4) !== aujourdhui.slice(0, 4)) options.year = 'numeric';
-	const date = new Intl.DateTimeFormat('fr-FR', options).format(new Date(`${jour(creeLe)}T00:00:00Z`));
+	const date = formatDeDate(options).format(new Date(`${jour(creeLe)}T00:00:00Z`));
 	return date.charAt(0).toUpperCase() + date.slice(1);
 }
 

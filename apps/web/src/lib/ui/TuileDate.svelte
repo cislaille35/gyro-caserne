@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	// Une page de calendrier : le jour, la date et le mois. Lue en entier : « jeudi 5 novembre ».
 	let { iso }: { iso: string } = $props();
 
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
-	const date = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
+	const date = (options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
 </script>
 
 <span class="tuile" role="img" aria-label={date({ weekday: 'long', day: 'numeric', month: 'long' })}>

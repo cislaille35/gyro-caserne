@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { LIBELLES_POSTE, POSTES, type Poste } from '@gyro-caserne/socle';
@@ -25,7 +26,7 @@
 	const sansReponse = $derived(e.reponses.filter((r) => r.reponse === null));
 	const toutLete = $derived(e.reponses.filter((r) => r.reponse === 'tout'));
 	const avecVacances = $derived(e.reponses.filter((r) => r.reponse === 'vacances'));
-	const jourCourt = (iso: string) => new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+	const jourCourt = (iso: string) => formatDeDate({ day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 	// Les semaines à revoir d'abord, puis dans l'ordre.
 	const semaines = $derived(
 		e.semaines

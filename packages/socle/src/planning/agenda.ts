@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { ajouterJours, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, exigerDateHeure, formatDeDate } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { affectationEquipe, cleAgenda } from '../schema.ts';
@@ -55,9 +55,8 @@ export async function changerLienAgenda(base: Base, acteur: Acteur, maintenant: 
 	return `${moi}-${cle}`;
 }
 
-const parisFormat = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const horlogeParis = (ms: number) => {
-	const p = Object.fromEntries(parisFormat.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+	const p = Object.fromEntries(formatDeDate({ timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }, 'fr-CA').formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
 	return Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`);
 };
 
