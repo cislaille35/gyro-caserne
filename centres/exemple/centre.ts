@@ -9,6 +9,7 @@ export default defineCentre({
 	position: { latitude: 48.1, longitude: -1.7 },
 	// Pour la vigilance Météo-France
 	departement: '35',
+	departementNom: 'Ille-et-Vilaine',
 	equipes: [
 		{ numero: 1, nom: 'Équipe 1', couleur: '#d4a017' },
 		{ numero: 2, nom: 'Équipe 2', couleur: '#c2185b' },

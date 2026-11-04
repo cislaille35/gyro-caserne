@@ -73,7 +73,7 @@ describe('avecPlanifie', () => {
 		expect(remplacementsDuMoment).not.toHaveBeenCalled();
 	});
 
-	it('toutes les dix minutes, décalées de cinq : la météo et la vigilance du centre (clé facultative)', async () => {
+	it('toutes les cinq minutes (à 0 et à 5) : la météo et la vigilance du centre (clé facultative)', async () => {
 		await lancer('* * * * *', '2026-11-15T09:25:00Z', { VIGILANCE_CLE: 'cle-fictive' });
 		expect(mettreAJourReleves).toHaveBeenCalledOnce();
 		const [, lieu, maintenant, recuperer, cle] = vi.mocked(mettreAJourReleves).mock.calls[0]!;
@@ -83,7 +83,9 @@ describe('avecPlanifie', () => {
 		expect(cle).toBe('cle-fictive');
 		await lancer('* * * * *', '2026-11-15T09:25:00Z');
 		expect(vi.mocked(mettreAJourReleves).mock.calls[0]![4]).toBeUndefined();
-		for (const quand of ['2026-11-15T09:20:00Z', '2026-11-15T09:26:00Z']) {
+		await lancer('* * * * *', '2026-11-15T09:30:00Z');
+		expect(mettreAJourReleves).toHaveBeenCalledOnce();
+		for (const quand of ['2026-11-15T09:26:00Z', '2026-11-15T09:29:00Z']) {
 			await lancer('* * * * *', quand);
 			expect(mettreAJourReleves, quand).not.toHaveBeenCalled();
 		}

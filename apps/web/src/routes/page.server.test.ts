@@ -57,8 +57,15 @@ describe('load de /', () => {
 		]);
 		expect((await appeler({ acteur: alice, base })).meteo).toEqual({
 			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
-			vigilance: { niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] }
+			vigilance: { etat: 'ok', niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'], lieu: expect.any(String) }
 		});
+	});
+
+	it('vigilance : relevé trop vieux (2 h) = indisponible ; aucun relevé = rien', async () => {
+		const { base, alice } = await jeu();
+		expect((await appeler({ acteur: alice, base })).meteo.vigilance).toBeNull();
+		await base.insert(releve).values({ cle: 'vigilance', donnees: JSON.stringify({ jours: [{ date: aujourdhuiParis(), niveau: 1, phenomenes: [] }], rouge: false }), majLe: '2020-01-01T00:00' });
+		expect((await appeler({ acteur: alice, base })).meteo.vigilance).toEqual({ etat: 'indisponible' });
 	});
 
 	it('planning publié : la carte astreinte de l’agent ; sans équipe, l’équipe de la semaine', async () => {
