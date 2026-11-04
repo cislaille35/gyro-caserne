@@ -10,6 +10,8 @@ const page = (data: Record<string, unknown>, form: unknown = null, niveau = 'viv
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	render(Page as any, { props: { data: { prenom: 'Alice', peutNominations: false, peutReglages: false, aNePasManquer: vide, meteo: sansMeteo, ...data }, form }, context: new Map([['affichage', { niveau, theme: 'auto' }]]) }).body;
 
+const texte = (html: string) => html.replace(/<!--.*?-->|<[^>]+>/g, '');
+
 describe('accueil, météo et vigilance', () => {
 	const base = { casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } };
 	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' }, vigilance: null };
@@ -35,13 +37,36 @@ describe('accueil, météo et vigilance', () => {
 	});
 
 	it('vigilance : bandeau en tête, le niveau écrit, lien vers Météo-France ; rouge marqué', () => {
-		const orange = page({ ...base, meteo: { meteo: null, vigilance: { niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] } } });
+		const orange = page({ ...base, meteo: { meteo: null, vigilance: { etat: 'ok', niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'], lieu: 'Ille-et-Vilaine' } } });
 		expect(orange).toMatch(/<section class="vigilance[^"]*" aria-label="Vigilance météo">[\s\S]*Vigilance orange orages, aujourd’hui[\s\S]*href="https:\/\/vigilance.meteofrance.fr\/"/);
 		expect(orange.indexOf('Vigilance orange')).toBeLessThan(orange.indexOf('Bonjour Alice'));
 		expect(orange).not.toMatch(/class="vigilance[^"]*rouge/);
-		const rouge = page({ ...base, meteo: { meteo: null, vigilance: { niveau: 4, lignes: ['Vigilance orange orages, aujourd’hui', 'Vigilance rouge orages, demain'] } } });
+		const rouge = page({ ...base, meteo: { meteo: null, vigilance: { etat: 'ok', niveau: 4, lieu: '35', lignes: ['Vigilance orange orages, aujourd’hui', 'Vigilance rouge orages, demain'] } } });
 		expect(rouge).toMatch(/class="vigilance[^"]*rouge/);
 		expect(rouge).toContain('Vigilance rouge orages, demain');
+		expect(rouge).not.toContain('class="vigilance-discrete');
+	});
+
+	const lienVigilance = /<a [^>]*href="https:\/\/vigilance.meteofrance.fr\/"[^>]*>/;
+	it('vert : une petite ligne à côté de la ligne météo, avec le département et le lien', () => {
+		const html = page({ ...base, meteo: { meteo: pluie.meteo, vigilance: { etat: 'ok', niveau: 1, lignes: [], lieu: 'Ille-et-Vilaine' } } });
+		expect(html).toMatch(/12 °C · averses[\s\S]*class="vigilance-discrete[^"]*"/);
+		expect(texte(html)).toContain('Vigilance verte · Ille-et-Vilaine');
+		expect(html).toMatch(lienVigilance);
+		expect(html).not.toContain('aria-label="Vigilance météo"');
+	});
+
+	it('jaune : le mot et le phénomène écrits, avec un jeton ; la ligne reste discrète, même sans relevé météo', () => {
+		const html = page({ ...base, meteo: { meteo: null, vigilance: { etat: 'ok', niveau: 2, lignes: ['Vigilance jaune orages, aujourd’hui'], lieu: '35' } } });
+		expect(html).toMatch(/class="vigilance-discrete[^"]*niveau-2[\s\S]*class="jeton[^"]*" aria-hidden="true"[\s\S]*Vigilance jaune orages, aujourd’hui/);
+		expect(texte(html)).toContain('Vigilance jaune orages, aujourd’hui · 35');
+		expect(html).not.toContain('aria-label="Vigilance météo"');
+	});
+
+	it('indisponible : la ligne le dit et renvoie vers Météo-France', () => {
+		const html = page({ ...base, meteo: { meteo: null, vigilance: { etat: 'indisponible' } } });
+		expect(html).toMatch(/Vigilance indisponible, voir Météo-France/);
+		expect(html).toMatch(lienVigilance);
 	});
 });
 

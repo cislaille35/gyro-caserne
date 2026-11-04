@@ -8,6 +8,7 @@ export default defineCentre({
 	position: { latitude: 48.065, longitude: -1.717 },
 	// Pour la vigilance Météo-France
 	departement: '35',
+	departementNom: 'Ille-et-Vilaine',
 	// Couleurs du planning papier
 	equipes: [
 		{ numero: 1, nom: 'Équipe 1', couleur: '#f2c200' },

@@ -22,6 +22,8 @@ export interface Centre {
 	position: { latitude: number; longitude: number };
 	/** Numéro du département en métropole (35, 2A…), pour la vigilance Météo-France ; sans lui, pas de vigilance */
 	departement?: string;
+	/** Nom du département, pour l'Accueil (« Ille-et-Vilaine ») ; sans lui, le numéro est montré */
+	departementNom?: string;
 	/** Dans l'ordre de la rotation */
 	equipes: Equipe[];
 	astreinte: {

@@ -12,12 +12,17 @@ export type Ambiance = (typeof AMBIANCES)[number];
 
 export type Meteo = { temperature: number; code: number; rafales: number | null };
 export type JourVigilance = { date: string; niveau: number; phenomenes: string[] };
-export type Releves = { meteo: Meteo | null; vigilance: JourVigilance[] | null };
-export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string } | null; vigilance: { niveau: number; lignes: string[] } | null };
+// vigilance : null = aucun relevé (pas de clé, rien à montrer) ; 'indisponible' = relevé trop vieux ou lecture jamais réussie.
+export type Releves = { meteo: Meteo | null; vigilance: JourVigilance[] | 'indisponible' | null };
+export type VueVigilance = { etat: 'ok'; niveau: number; lignes: string[]; lieu: string } | { etat: 'indisponible' };
+export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string } | null; vigilance: VueVigilance | null };
 
 export const URL_VIGILANCE = 'https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours';
 const UNE_HEURE = 60;
 const SIX_HEURES = 6 * 60;
+// La vigilance est relue toutes les 15 minutes (96 appels par jour) et n'est plus montrée au-delà de 2 heures.
+const QUINZE_MINUTES = 15;
+const DEUX_HEURES = 2 * 60;
 
 // Codes WMO d'Open-Meteo. Priorité : orage, neige, vent fort, pluie, brouillard, chaleur, gel, nuages.
 export function classer(code: number, temperature: number | null, rafales: number | null): Ambiance {
@@ -106,17 +111,22 @@ export function lireVigilance(json: unknown, departement: string, aujourdhui: st
 	return jours.length > 0 ? jours : null;
 }
 
-const COULEURS: Record<number, string> = { 3: 'orange', 4: 'rouge' };
+const COULEURS: Record<number, string> = { 2: 'jaune', 3: 'orange', 4: 'rouge' };
 const quand = (date: string, aujourdhui: string) => (date === aujourdhui ? 'aujourd’hui' : 'demain');
 const ligneVigilance = (j: JourVigilance, aujourdhui: string) =>
 	`Vigilance ${COULEURS[j.niveau]}${j.phenomenes.length ? ` ${j.phenomenes.join(', ').replace(/, ([^,]+)$/, ' et $1')}` : ''}, ${quand(j.date, aujourdhui)}`;
 
-// Ce que montre l'Accueil : la ligne météo et l'ambiance ; la vigilance, dès l'orange, aujourd'hui et demain.
-export function vueMeteo(r: Releves, aujourdhui: string): VueMeteo {
+// Ce que montre l'Accueil : la ligne météo et l'ambiance ; la vigilance toujours (verte, jaune, orange, rouge), aujourd'hui et demain.
+// Les lignes parlent des jours au niveau le plus élevé, sauf le vert qui n'en a pas. `lieu` : le nom (ou le numéro) du département.
+export function vueMeteo(r: Releves, aujourdhui: string, lieu = ''): VueMeteo {
 	const meteo = r.meteo ? { ambiance: classer(r.meteo.code, r.meteo.temperature, r.meteo.rafales), texte: texteMeteo(r.meteo) } : null;
-	const jours = (r.vigilance ?? []).filter((j) => j.date >= aujourdhui && j.date <= ajouterJours(aujourdhui, 1) && j.niveau >= 3);
-	const vigilance = jours.length ? { niveau: Math.max(...jours.map((j) => j.niveau)), lignes: jours.map((j) => ligneVigilance(j, aujourdhui)) } : null;
-	return { meteo, vigilance };
+	if (r.vigilance === null) return { meteo, vigilance: null };
+	const jours = r.vigilance === 'indisponible' ? [] : r.vigilance.filter((j) => j.date >= aujourdhui && j.date <= ajouterJours(aujourdhui, 1));
+	if (jours.length === 0) return { meteo, vigilance: { etat: 'indisponible' } };
+	const niveau = Math.max(...jours.map((j) => j.niveau));
+	// Dès l'orange : tous les jours en orange ou plus ; en jaune : les jours jaunes.
+	const concernes = jours.filter((j) => (niveau >= 3 ? j.niveau >= 3 : niveau === 2 && j.niveau === 2));
+	return { meteo, vigilance: { etat: 'ok', niveau, lignes: concernes.map((j) => ligneVigilance(j, aujourdhui)), lieu } };
 }
 
 // Minutes entre deux moments « AAAA-MM-JJTHH:MM » (heure de Paris ; une heure d'écart au changement d'heure, sans conséquence).
@@ -133,10 +143,11 @@ const lire = <T>(lignes: Ligne[], cle: string, maintenant: string, age: number):
 	}
 };
 
-// Les deux relevés, en une requête ; rien au-delà de 6 h.
+// Les deux relevés, en une requête ; la météo n'est plus montrée au-delà de 6 h, la vigilance au-delà de 2 h.
 export async function relevesDe(base: Base, maintenant: string): Promise<Releves> {
 	const lignes = await base.select().from(releve);
-	return { meteo: lire<Meteo>(lignes, 'meteo', maintenant, SIX_HEURES), vigilance: lire<{ jours: JourVigilance[] }>(lignes, 'vigilance', maintenant, SIX_HEURES)?.jours ?? null };
+	const vigilance = lignes.some((l) => l.cle === 'vigilance') ? (lire<{ jours: JourVigilance[] | null }>(lignes, 'vigilance', maintenant, DEUX_HEURES)?.jours ?? 'indisponible') : null;
+	return { meteo: lire<Meteo>(lignes, 'meteo', maintenant, SIX_HEURES), vigilance };
 }
 
 async function demander(recuperer: typeof fetch, url: string, entetes: Record<string, string> = {}): Promise<unknown> {
@@ -157,7 +168,8 @@ const ecrire = (base: Base, cle: string, donnees: unknown, maintenant: string) =
 	return base.insert(releve).values(valeurs).onConflictDoUpdate({ target: releve.cle, set: valeurs });
 };
 
-// Appelée par la tâche planifiée : chaque relevé de plus d'une heure est redemandé. En cas d'échec, l'ancien est gardé.
+// Appelée par la tâche planifiée : la météo de plus d'une heure et la vigilance de plus de 15 minutes sont redemandées. En cas d'échec, l'ancien relevé est gardé.
+// Une première lecture ratée (clé refusée…) laisse une trace « sans jours » : l'Accueil dit alors « indisponible » au lieu de se taire.
 // Vigilance : seulement avec la clé et le département. Au passage au rouge, tous les agents sont prévenus au téléphone, une fois par épisode.
 export async function mettreAJourReleves(
 	base: Base,
@@ -167,17 +179,19 @@ export async function mettreAJourReleves(
 	cleVigilance: string | undefined
 ): Promise<void> {
 	const lignes = await base.select().from(releve);
-	const aRefaire = (cle: string) => lire(lignes, cle, maintenant, UNE_HEURE) === null;
+	const aRefaire = (cle: string, age: number) => lire(lignes, cle, maintenant, age) === null;
 	const aujourdhui = maintenant.slice(0, 10);
 	const ecritures = [];
 
-	if (aRefaire('meteo')) {
+	if (aRefaire('meteo', UNE_HEURE)) {
 		const meteo = lireOpenMeteo(await demander(recuperer, urlOpenMeteo(lieu.position)));
 		if (meteo) ecritures.push(ecrire(base, 'meteo', meteo, maintenant));
 	}
-	if (cleVigilance && lieu.departement && aRefaire('vigilance')) {
+	if (cleVigilance && lieu.departement && aRefaire('vigilance', QUINZE_MINUTES)) {
 		const jours = lireVigilance(await demander(recuperer, URL_VIGILANCE, { apikey: cleVigilance }), lieu.departement, aujourdhui);
-		if (jours) {
+		if (!jours) {
+			if (!lignes.some((l) => l.cle === 'vigilance')) ecritures.push(ecrire(base, 'vigilance', { jours: null }, maintenant));
+		} else {
 			const rouges = jours.filter((j) => j.niveau === 4);
 			const avant = lire<{ rouge?: boolean }>(lignes, 'vigilance', maintenant, Infinity);
 			ecritures.push(ecrire(base, 'vigilance', { jours, rouge: rouges.length > 0 }, maintenant));
