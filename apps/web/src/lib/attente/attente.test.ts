@@ -104,7 +104,7 @@ describe('réponses de repli', () => {
 		expect(corps.status).toBe(503);
 		// Le format de SvelteKit : un tableau où 1 renvoie à la case d'indice 1.
 		const [objet, texte] = JSON.parse(corps.data);
-		expect(objet).toEqual({ message: 1, erreur: 1 });
+		expect(objet).toEqual({ coupure: 1 });
 		expect(texte).toContain('n’est peut-être pas passé');
 	});
 

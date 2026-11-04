@@ -29,8 +29,8 @@ export function prochainEssai(etat: { essai: number; le: number } | null | undef
 	return { delai: essai < delais.length ? delais[essai]! : null, etat: { essai: essai + 1, le: maintenant } };
 }
 
-// Le refus d'un envoi, au format de SvelteKit : `form.message` s'affiche, la page et la saisie restent. `erreur` : l'autre nom utilisé par certains écrans.
-export const reponseAction = () => JSON.stringify({ type: 'failure', status: 503, data: JSON.stringify([{ message: 1, erreur: 1 }, MESSAGE_ENVOI]) });
+// Le refus d'un envoi, au format de SvelteKit : la page et la saisie restent, `EnvoiCoupe.svelte` montre `form.coupure` sur tous les écrans.
+export const reponseAction = () => JSON.stringify({ type: 'failure', status: 503, data: JSON.stringify([{ coupure: 1 }, MESSAGE_ENVOI]) });
 
 // Les données d'une page : SvelteKit montre `+error.svelte` avec ce message.
 export const reponseDonnees = () => JSON.stringify({ message: MESSAGE_COUPURE });

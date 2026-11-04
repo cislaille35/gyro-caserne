@@ -1,0 +1,54 @@
+name: Relevé des coupures
+
+# Chaque matin : la veille, combien de requêtes Cloudflare a coupées (erreur 1102, limite de calcul de l'offre gratuite) et le temps de calcul.
+# Coupures la veille : le passage échoue, GitHub prévient par courriel. Le résumé du passage donne les chiffres.
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+  push: # essai sur la branche, retiré avant la fusion
+    branches: ['correctif/calcul-et-reprises']
+    paths: ['.github/workflows/releve-coupures.yml']
+
+permissions: {}
+
+jobs:
+  releve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Interroger Cloudflare
+        env:
+          JETON: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          COMPTE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CENTRES: ${{ vars.CENTRE_PREPROD }} ${{ vars.CENTRE_PRODUCTION }}
+        run: |
+          jour=$(date -u -d yesterday +%F)
+          coupures=0
+          echo "### Relevé du $jour (UTC)" >> "$GITHUB_STEP_SUMMARY"
+          echo '| Worker | Requêtes | Coupures (1102) | Autres erreurs | Calcul moyen | Médiane | 99 % |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|---|---|---|---|---|---|---|' >> "$GITHUB_STEP_SUMMARY"
+          for centre in $CENTRES; do
+            worker="gyro-caserne-$centre"
+            requete="{viewer{accounts(filter:{accountTag:\"$COMPTE\"}){workersInvocationsAdaptive(limit:100,filter:{scriptName:\"$worker\",datetime_geq:\"${jour}T00:00:00Z\",datetime_lt:\"$(date -u +%F)T00:00:00Z\"}){dimensions{status} sum{requests errors cpuTimeUs} quantiles{cpuTimeP50 cpuTimeP99}}}}}"
+            reponse=$(curl -sS --max-time 30 https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $JETON" -H 'content-type: application/json' -d "$(jq -n --arg query "$requete" '{query: $query}')")
+            if ! lignes=$(jq -ec '.data.viewer.accounts[0].workersInvocationsAdaptive' <<< "$reponse"); then
+              echo "::error::Lecture impossible pour $worker : $(jq -c '[.errors[]?.message]' <<< "$reponse")"
+              exit 1
+            fi
+            ligne=$(jq -r --arg w "$worker" '
+              (map(.sum.requests) | add // 0) as $n
+              | (map(select(.dimensions.status == "exceededResources").sum.requests) | add // 0) as $c
+              | (map(select(.dimensions.status != "exceededResources" and .dimensions.status != "success").sum.requests) | add // 0) as $e
+              | (map(.sum.cpuTimeUs) | add // 0) as $t
+              | def ms: (. / 100 | round / 10 | tostring) + " ms";
+              "| \($w) | \($n) | \($c) | \($e) | \((if $n > 0 then $t / $n else 0 end) | ms) | \((map(select(.dimensions.status == "success").quantiles.cpuTimeP50) | max // 0) | ms) | \((map(select(.dimensions.status == "success").quantiles.cpuTimeP99) | max // 0) | ms) |"' <<< "$lignes")
+            echo "$ligne" >> "$GITHUB_STEP_SUMMARY"
+            echo "$ligne"
+            n=$(jq '[.[] | select(.dimensions.status == "exceededResources").sum.requests] | add // 0' <<< "$lignes")
+            if [ "$n" -gt 0 ]; then
+              echo "::error::$worker : $n requêtes coupées le $jour (erreur 1102)"
+              coupures=$((coupures + n))
+            fi
+          done
+          [ "$coupures" -eq 0 ]

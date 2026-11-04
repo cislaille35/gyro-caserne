@@ -6,6 +6,7 @@
 	import { untrack } from 'svelte';
 	import { definirAffichage } from '#lib/gyro/niveau.ts';
 	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
+	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
 
 	let { data, children } = $props();
@@ -47,4 +48,5 @@
 
 <Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom}>
 	{@render children()}
+	<EnvoiCoupe />
 </Coquille>
