@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import ReessaiCoupure from '#lib/attente/ReessaiCoupure.svelte';
+	import { MESSAGE_COUPURE } from '#lib/attente/attente.ts';
 </script>
+
+{#if page.error?.message === MESSAGE_COUPURE}<ReessaiCoupure />{/if}
 
 <div class="erreur" role="alert">
 	<span class="signe" aria-hidden="true"
