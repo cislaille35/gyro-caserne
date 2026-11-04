@@ -460,7 +460,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 
 	it('/echanges/[mur]/[id] : annonce suivie, 50 commentaires ; chaque geste puis le rechargement', async () => {
 		const { base, locals, compter } = await centreDe150();
-		const maintenant = '2026-10-28T10:00:00';
+		const maintenant = maintenantParis();
 		const annonce = await publier(base, base.photos, locals.acteur, 'centre', { type: 'annonce', texte: 'Note', priseDeConnaissance: true, sondage: { question: 'Lu ?', reponses: ['Oui', 'Non'], ...datesSondage(maintenant) } }, maintenant);
 		const evenement = await publier(base, base.photos, locals.acteur, 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2099-01-01T19:00', lieu: 'Caserne', convoques: 'tous' } }, maintenant);
 		const agents = await base.select({ id: personne.id }).from(personne);
