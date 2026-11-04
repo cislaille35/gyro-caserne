@@ -45,8 +45,9 @@ Pour que GitHub déploie tout seul :
 2. Dans le fork, onglet Settings › Secrets and variables › Actions :
    - secrets `CLOUDFLARE_API_TOKEN` (le jeton) et `CLOUDFLARE_ACCOUNT_ID` (affiché sur la page d'accueil du compte Cloudflare) ;
    - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
-3. Facultatif, pour que le déploiement pose aussi les clés des notifications : secrets `VAPID_PUBLIQUE_PRODUCTION` et `VAPID_PRIVEE_PRODUCTION` (et `…_PREPROD` pour une préprod), avec des paires créées par `pnpm --filter @gyro-caserne/web cles-vapid`. Par exemple, sans afficher la clé privée : `node --experimental-transform-types apps/web/scripts/cles-vapid.ts | while IFS='=' read -r nom valeur; do printf %s "$valeur" | gh secret set "${nom}_PRODUCTION"; done`.
-4. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
+3. Facultatif, pour que le déploiement pose aussi la clé de la vigilance : secret `VIGILANCE_CLE` (la même pour la préprod et la production ; à renouveler avant son expiration, le bandeau disparaît sinon sans bloquer l'appli).
+4. Facultatif, pour que le déploiement pose aussi les clés des notifications : secrets `VAPID_PUBLIQUE_PRODUCTION` et `VAPID_PRIVEE_PRODUCTION` (et `…_PREPROD` pour une préprod), avec des paires créées par `pnpm --filter @gyro-caserne/web cles-vapid`. Par exemple, sans afficher la clé privée : `node --experimental-transform-types apps/web/scripts/cles-vapid.ts | while IFS='=' read -r nom valeur; do printf %s "$valeur" | gh secret set "${nom}_PRODUCTION"; done`.
+5. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
 
 `centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : ses `database_id` sont ceux de Laillé. En le copiant (étape 3 de l'installation), remplacer les deux `database_id` par ceux des nouvelles bases (étape 8).
 
