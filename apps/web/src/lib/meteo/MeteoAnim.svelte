@@ -2,7 +2,7 @@
 	import type { Ambiance } from '@gyro-caserne/socle';
 
 	// L'ambiance de l'Accueil selon le temps au centre : décorative, discrète, immobile si « réduire les animations ». Reprise du MVP.
-	let { ambiance }: { ambiance: Ambiance } = $props();
+	let { ambiance, nuit = false }: { ambiance: Ambiance; nuit?: boolean } = $props();
 
 	// Positions fixes (pas d'aléatoire : même rendu côté serveur et navigateur)
 	const gouttes = [6, 14, 23, 31, 40, 48, 57, 63, 71, 79, 86, 93];
@@ -32,9 +32,9 @@
 		<span class="brume b1"></span>
 		<span class="brume b2"></span>
 	{:else if ambiance === 'chaleur'}
-		<span class="soleil"></span>
+		{#if !nuit}<span class="soleil"></span>{/if}
 		<span class="chaleur"></span>
-	{:else if ambiance === 'clair'}
+	{:else if ambiance === 'clair' && !nuit}
 		<span class="soleil petit"></span>
 	{/if}
 </div>

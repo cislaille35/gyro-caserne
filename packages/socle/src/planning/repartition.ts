@@ -14,6 +14,7 @@ import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, equipe, ete,
 import { equipeLe, exigerAnnee, semainesCalculees } from './annee.ts';
 import { dansLaSemaine, enVacances, heuresDe, lirePlage, type PlageLue } from './plages.ts';
 import type { Periode, Reglage, SemaineCalculee } from './calendrier.ts';
+import { nomsDeGroupes } from './groupes.ts';
 import { agentsDeLete, avis, periodeParDefaut, requeteRelance, vueEte, type EteVue, type Reponse } from './ete.ts';
 
 // La répartition de l'été : plage par plage, l'équipe de base de la semaine, moins les écarts (`retires`), plus les renforts (`ajoutes`).
@@ -95,7 +96,7 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 			base.select().from(vacancesAgent).where(eq(vacancesAgent.annee, annee)).orderBy(asc(vacancesAgent.debut)),
 			base.select().from(reponseEte).where(eq(reponseEte.annee, annee)),
 			base.select().from(plageEte).where(eq(plageEte.annee, annee)).orderBy(asc(plageEte.debut)),
-			base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur }).from(equipe).orderBy(asc(equipe.ordreRotation)),
+			base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation)),
 			requeteConclues(base, `${annee}-01-01`, `${annee}-12-31`)
 		]),
 		lireArmement(base)
@@ -117,6 +118,11 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 
 type Lu = Awaited<ReturnType<typeof lireEte>>;
 
+// « du Groupe B » ; une équipe archivée n'a pas de groupe.
+const duGroupe = (lu: Lu, equipeId: number) => {
+	const nom = nomsDeGroupes(lu.equipes).get(equipeId);
+	return nom ? `du ${nom}` : 'de l’équipe';
+};
 const enginFpt = (r: ReglageArmement) => r.engins.find((x) => x.nom === ENGIN_CALCULE)!.postes;
 
 // Les présents d'une plage, d'après les écarts enregistrés.
@@ -190,7 +196,8 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 		defaut: periodeParDefaut(annee, reglage),
 		sansRoulement: lu.sansRoulement,
 		relanceeAujourdhui: relance.length > 0,
-		equipes: lu.equipes,
+		// Proposé ou publié : les groupes A, B, C, D.
+		equipes: lu.equipes.map(({ id, nom, couleur }) => ({ id, couleur, nom: lu.e?.publiee || proposee ? (nomsDeGroupes(lu.equipes).get(id) ?? nom) : nom })),
 		reponses,
 		proposee,
 		semaines: lu.semaines.map((s) => ({ debut: s.debut, equipeId: s.equipeId, plages: vues.filter((v) => v.semaine === s.debut).map(({ semaine: _s, equipeId: _e, ...v }) => v) })),
@@ -245,8 +252,7 @@ export async function ajusterPlage(base: Base, acteur: Acteur, annee: number, de
 	const retires = ecart.retires.filter((id) => id !== personneId);
 	if (present && !deBase) ajoutes.push(personneId);
 	if (!present && deBase) retires.push(personneId);
-	const equipeNom = lu.equipes.find((x) => x.id === p.equipeId)?.nom ?? 'l’équipe';
-	const texte = !present ? `Vous n’êtes plus d’astreinte : ${texteTranche(p)}.` : deBase ? `Vous êtes de nouveau d’astreinte : ${texteTranche(p)}.` : `Vous êtes en renfort de l’${equipeNom} : ${texteTranche(p)}.`;
+	const texte = !present ? `Vous n’êtes plus d’astreinte : ${texteTranche(p)}.` : deBase ? `Vous êtes de nouveau d’astreinte : ${texteTranche(p)}.` : `Vous êtes en renfort ${duGroupe(lu, p.equipeId)} : ${texteTranche(p)}.`;
 	await base.batch([
 		base.update(plageEte).set({ ajoutes: JSON.stringify(ajoutes), retires: JSON.stringify(retires) }).where(eq(plageEte.debut, debut)),
 		journal(base, acteur, present ? 'ajouter_plage_ete' : 'retirer_plage_ete', { debut, personneId }, maintenant),
@@ -269,8 +275,7 @@ export async function publierEte(base: Base, acteur: Acteur, annee: number, main
 	for (const s of lu.semaines) {
 		const plages = lu.plagesEte.filter((p) => p.semaine === s.debut);
 		const ecarts = plages.map((p) => lu.plages.find((x) => x.debut === p.debut)).filter((x): x is PlageLue => x !== undefined);
-		const equipeNom = lu.equipes.find((x) => x.id === s.equipeId)?.nom ?? 'l’équipe';
-		for (const id of new Set(ecarts.flatMap((x) => x.ajoutes))) dire(id, `vous êtes en renfort de l’${equipeNom} la semaine du ${jourEnLettres(s.debut)}`);
+		for (const id of new Set(ecarts.flatMap((x) => x.ajoutes))) dire(id, `vous êtes en renfort ${duGroupe(lu, s.equipeId)} la semaine du ${jourEnLettres(s.debut)}`);
 		for (const id of new Set(ecarts.flatMap((x) => x.retires.filter((r) => !enVacances(lu.vacances, r, x))))) dire(id, `vous n’êtes pas d’astreinte sur une partie de la semaine du ${jourEnLettres(s.debut)}`);
 	}
 	await base.batch([
@@ -285,7 +290,7 @@ const colonnePlage = (p: Periode) => {
 	const duree = (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.debut}:00Z`)) / 3_600_000;
 	return `${p.debut.slice(8, 10)}/${p.debut.slice(5, 7)} ${duree === 24 ? '24 h' : p.debut.slice(11, 16) >= '17:00' ? 'nuit' : p.debut.slice(11, 16)}`;
 };
-export const ENTETES_ETE = ['N°', 'Agent', 'Équipe'];
+export const ENTETES_ETE = ['N°', 'Agent', 'Groupe'];
 
 // Rien tant que l'été n'est pas proposé.
 export async function feuilleEte(base: Base, annee: number, aujourdhui: string, reglage: Reglage) {
@@ -293,7 +298,8 @@ export async function feuilleEte(base: Base, annee: number, aujourdhui: string, 
 	if (lu.plages.length === 0) return null;
 	const presences = lu.plagesEte.map((p) => new Set(presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut))));
 	const agents = [...lu.agents].sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
-	const equipeDe = (id: number) => lu.equipes.find((e) => e.id === equipeLe(lu.affectationsDe(id), lu.plagesEte[0]!.semaine))?.nom ?? '';
+	const groupes = nomsDeGroupes(lu.equipes);
+	const equipeDe = (id: number) => groupes.get(equipeLe(lu.affectationsDe(id), lu.plagesEte[0]!.semaine) ?? 0) ?? '';
 	return {
 		entetes: [...ENTETES_ETE, ...lu.plagesEte.map(colonnePlage)],
 		lignes: agents.map((a) => [String(a.id), `${a.prenom} ${a.nom}`, equipeDe(a.id), ...presences.map((s) => (s.has(a.id) ? 'X' : ''))])

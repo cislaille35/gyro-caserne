@@ -9,6 +9,9 @@ const nomDuJour = (iso: string) => formatDeDate({ weekday: 'long', timeZone: 'UT
 // « ven. 20 nov. »
 const court = (iso: string) => formatDeDate({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(jour(iso)).replace(/(^|\s)1(?=\s)/, '$11er');
 
+// L'équipe telle qu'on l'affiche cette semaine-là : en été, son groupe.
+export const avecGroupe = <E extends { nom: string }>(e: E, s: { groupe?: string | null }): E => (s.groupe ? { ...e, nom: s.groupe } : e);
+
 // « ce soir 18 h », « demain 6 h », « lundi 6 h », vu d'aujourd'hui.
 export function quandRelatif(iso: string, maintenant: string): string {
 	const n = ecart(maintenant, iso);

@@ -51,8 +51,13 @@ describe('texteMeteo', () => {
 });
 
 describe('lireOpenMeteo', () => {
+	it('is_day à 0 : la nuit', () => {
+		expect(lireOpenMeteo({ current: { temperature_2m: 10, weather_code: 0, is_day: 0 } })?.nuit).toBe(true);
+		expect(lireOpenMeteo({ current: { temperature_2m: 10, weather_code: 0, is_day: 1 } })?.nuit).toBe(false);
+	});
+
 	it('lit le temps du moment', () => {
-		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2 });
+		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2, nuit: false });
 	});
 	it('rend null sur une réponse inattendue', () => {
 		expect(lireOpenMeteo(null)).toBeNull();
@@ -85,6 +90,11 @@ describe('lireVigilance', () => {
 
 describe('vueMeteo', () => {
 	const meteo = { temperature: 11.6, code: 80, rafales: 45.2 };
+	it('la nuit vient d’Open-Meteo ; un relevé plus ancien compte comme de jour', () => {
+		expect(vueMeteo({ meteo: { temperature: 12, code: 0, rafales: null, nuit: true }, vigilance: null }, '2026-11-04').meteo?.nuit).toBe(true);
+		expect(vueMeteo({ meteo: { temperature: 12, code: 0, rafales: null }, vigilance: null }, '2026-11-04').meteo?.nuit).toBe(false);
+	});
+
 	it('la ligne, l’ambiance et la vigilance dès l’orange, jour par jour', () => {
 		const jours = [
 			{ date: '2026-11-01', niveau: 4, phenomenes: ['vent violent'] },
@@ -92,7 +102,7 @@ describe('vueMeteo', () => {
 			{ date: '2026-11-03', niveau: 4, phenomenes: ['orages'] }
 		];
 		expect(vueMeteo({ meteo, vigilance: jours }, '2026-11-02', 'Ille-et-Vilaine')).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
+			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', nuit: false },
 			vigilance: { etat: 'ok', niveau: 4, lignes: ['Vigilance orange pluie-inondation et orages, aujourd’hui', 'Vigilance rouge orages, demain'], lieu: 'Ille-et-Vilaine' }
 		});
 	});

@@ -19,7 +19,7 @@
 	const ici = (params: Record<string, string> = {}) => `?${new URLSearchParams({ annee: String(e.annee), etape: data.etape, ...params })}`;
 	const vers = (etape: string) => `?annee=${e.annee}&etape=${etape}`;
 	const action = (nom: string, params: Record<string, string> = {}) => `?/${nom}&${ici(params).slice(1)}`;
-	const equipe = (id: number | null) => e.equipes.find((x) => x.id === id) ?? { id: 0, nom: 'Sans équipe', couleur: '#8a949e' };
+	const equipe = (id: number | null) => e.equipes.find((x) => x.id === id) ?? { id: 0, nom: e.proposee || e.ete?.publiee ? 'Sans groupe' : 'Sans équipe', couleur: '#8a949e' };
 	const reglage = $derived(e.ete ?? { debut: e.defaut.debut, fin: new Date(Date.parse(`${e.defaut.fin}T00:00:00Z`) + 7 * 864e5).toISOString().slice(0, 10), dateLimite: e.defaut.dateLimite, publiee: false });
 	// La période se saisit par jours de relève : « fin » est la relève de la dernière semaine.
 	const derniereReleve = $derived(new Date(Date.parse(`${reglage.fin}T00:00:00Z`) - 7 * 864e5).toISOString().slice(0, 10));

@@ -116,7 +116,7 @@
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} />{/if}
+		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={data.meteo.meteo?.nuit} />{/if}
 		<div class="devant">
 			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
 		</div>
@@ -216,16 +216,17 @@
 		display: flex;
 		gap: 8px;
 		align-items: center;
-		margin: 4px 0 0;
-		font-size: 0.8125rem;
+		margin: 6px 0 0;
+		font-size: 0.9375rem;
+		font-weight: 500;
 	}
 	.vigilance-discrete a {
-		color: var(--doux);
+		color: var(--encre);
 	}
 	.vigilance-discrete .jeton {
 		flex: none;
-		width: 10px;
-		height: 10px;
+		width: 12px;
+		height: 12px;
 		border-radius: 50%;
 		border: 1px solid var(--statut-neutre-trait);
 		background: var(--statut-neutre-fond);
@@ -235,15 +236,15 @@
 		background: var(--statut-ok-trait);
 	}
 	.vigilance-discrete.niveau-2 {
-		font-size: 0.9375rem;
+		font-size: 1rem;
 		font-weight: 600;
 	}
 	.vigilance-discrete.niveau-2 a {
 		color: var(--statut-alerte-texte);
 	}
 	.vigilance-discrete.niveau-2 .jeton {
-		width: 12px;
-		height: 12px;
+		width: 14px;
+		height: 14px;
 		border-color: var(--statut-alerte-texte);
 		background: #f2c200;
 	}

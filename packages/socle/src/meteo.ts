@@ -10,12 +10,13 @@ import { personne, releve } from './schema.ts';
 export const AMBIANCES = ['clair', 'nuageux', 'pluie', 'orage', 'neige', 'vent', 'brouillard', 'chaleur', 'gel'] as const;
 export type Ambiance = (typeof AMBIANCES)[number];
 
-export type Meteo = { temperature: number; code: number; rafales: number | null };
+// `nuit` : le soleil est couché au centre (absent des relevés écrits avant : compté comme de jour).
+export type Meteo = { temperature: number; code: number; rafales: number | null; nuit?: boolean };
 export type JourVigilance = { date: string; niveau: number; phenomenes: string[] };
 // vigilance : null = aucun relevé (pas de clé, rien à montrer) ; 'indisponible' = relevé trop vieux ou lecture jamais réussie.
 export type Releves = { meteo: Meteo | null; vigilance: JourVigilance[] | 'indisponible' | null };
 export type VueVigilance = { etat: 'ok'; niveau: number; lignes: string[]; lieu: string } | { etat: 'indisponible' };
-export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string } | null; vigilance: VueVigilance | null };
+export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string; nuit: boolean } | null; vigilance: VueVigilance | null };
 
 export const URL_VIGILANCE = 'https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours';
 const UNE_HEURE = 60;
@@ -62,13 +63,13 @@ export function texteMeteo(m: Meteo): string {
 const nombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 export const urlOpenMeteo = (p: { latitude: number; longitude: number }) =>
-	`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code,wind_gusts_10m&wind_speed_unit=kmh`;
+	`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,weather_code,wind_gusts_10m,is_day&wind_speed_unit=kmh`;
 
 // La réponse d'Open-Meteo ; null si elle n'a pas la forme attendue.
 export function lireOpenMeteo(json: unknown): Meteo | null {
 	const c = (json as { current?: Record<string, unknown> } | null)?.current;
 	if (!c || !nombre(c.temperature_2m) || !nombre(c.weather_code)) return null;
-	return { temperature: c.temperature_2m, code: c.weather_code, rafales: nombre(c.wind_gusts_10m) ? c.wind_gusts_10m : null };
+	return { temperature: c.temperature_2m, code: c.weather_code, rafales: nombre(c.wind_gusts_10m) ? c.wind_gusts_10m : null, nuit: c.is_day === 0 };
 }
 
 // Phénomènes de la vigilance Météo-France, par numéro.
@@ -119,7 +120,7 @@ const ligneVigilance = (j: JourVigilance, aujourdhui: string) =>
 // Ce que montre l'Accueil : la ligne météo et l'ambiance ; la vigilance toujours (verte, jaune, orange, rouge), aujourd'hui et demain.
 // Les lignes parlent des jours au niveau le plus élevé, sauf le vert qui n'en a pas. `lieu` : le nom (ou le numéro) du département.
 export function vueMeteo(r: Releves, aujourdhui: string, lieu = ''): VueMeteo {
-	const meteo = r.meteo ? { ambiance: classer(r.meteo.code, r.meteo.temperature, r.meteo.rafales), texte: texteMeteo(r.meteo) } : null;
+	const meteo = r.meteo ? { ambiance: classer(r.meteo.code, r.meteo.temperature, r.meteo.rafales), texte: texteMeteo(r.meteo), nuit: r.meteo.nuit === true } : null;
 	if (r.vigilance === null) return { meteo, vigilance: null };
 	const jours = r.vigilance === 'indisponible' ? [] : r.vigilance.filter((j) => j.date >= aujourdhui && j.date <= ajouterJours(aujourdhui, 1));
 	if (jours.length === 0) return { meteo, vigilance: { etat: 'indisponible' } };

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { avecGroupe } from './astreinte.ts';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import type { EquipePlanning, SemaineCalculee } from '@gyro-caserne/socle';
 	import { jourLong, moisDeLAnnee } from './dates.ts';
@@ -18,7 +19,7 @@
 		maintenant
 	}: {
 		mois: number;
-		semaines: (SemaineCalculee & { mienne: boolean })[];
+		semaines: (SemaineCalculee & { mienne: boolean; groupe?: string | null })[];
 		equipes: EquipePlanning[];
 		donnees: Donnees;
 		mode: Mode;
@@ -65,7 +66,7 @@
 				</tr>
 			</thead>
 			{#each lignes as l (l.semaine.debut)}
-				{@const e = equipe(l.semaine.equipeId)}
+				{@const e = avecGroupe(equipe(l.semaine.equipeId), l.semaine)}
 				{@const mienne = mode === 'moi' && l.semaine.mienne}
 				<tbody style:--equipe={e.couleur} class:mienne>
 					<tr>

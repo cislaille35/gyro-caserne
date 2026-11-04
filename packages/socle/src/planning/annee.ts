@@ -13,6 +13,7 @@ import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFet
 import { colonnesPublication } from './manoeuvres.ts';
 import { avis } from './avis.ts';
 import { jourEnLettres, texteDemande } from '../remplacements/tranches.ts';
+import { groupeDeLaSemaine, nomsDeGroupes, requeteEtes } from './groupes.ts';
 import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
@@ -360,7 +361,7 @@ export type PlanningAgent =
 			annee: number;
 			peutPreparer: boolean;
 			equipes: EquipePlanning[];
-			semaines: (SemaineCalculee & { mienne: boolean })[];
+			semaines: (SemaineCalculee & { mienne: boolean; groupe: string | null })[];
 			manoeuvres: (ManoeuvreVue & { convoque: boolean })[];
 			vacances: Vacances[];
 			feries: { date: string; nom: string }[];
@@ -369,7 +370,7 @@ export type PlanningAgent =
 			// Les remplacements conclus de l'année ; `moi` : je cède ma période, ou je prends celle d'un autre.
 			remplacements: { debut: string; fin: string; titulaire: string; remplacant: string; moi: 'cede' | 'prend' | null }[];
 			prochaine: {
-				astreinte: { debut: string; fin: string; equipeId: number; enCours: boolean; periodes: Periode[] } | null;
+				astreinte: { debut: string; fin: string; equipeId: number; groupe: string | null; enCours: boolean; periodes: Periode[] } | null;
 				// `reponse` : la mienne, si la manœuvre est déjà annoncée.
 				manoeuvre: (ManoeuvreVue & { reponse: ReponseEvenement | null }) | null;
 				fete: { fete: Fete; date: string } | null;
@@ -386,8 +387,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	// Dès la mi-décembre de l'année d'avant : une semaine commencée fin décembre peut être encore en cours.
 	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4))) - 1}-12-18`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
-	const [[annees, changees, manoeuvres, vacances, equipes, , conclues, lignesPlages], affectations, gerer] = await Promise.all([
-		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`), requetePlagesPubliees(base, debutLecture, finLecture)]),
+	const [[annees, changees, manoeuvres, vacances, equipes, , conclues, lignesPlages, etes], affectations, gerer] = await Promise.all([
+		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`), requetePlagesPubliees(base, debutLecture, finLecture), requeteEtes(base)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
@@ -399,9 +400,11 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	// Mes heures de la semaine : celles de mon équipe, ou mes plages de l'été publié (renfort compris, vacances retirées).
 	const plages = lignesPlages.map(lirePlage);
 	const miennes = (s: SemaineCalculee) => heuresDe(s, equipeLe(affectations, s.debut), moi, plages);
+	const groupes = nomsDeGroupes(equipes);
 	const avecMesHeures = (s: SemaineCalculee) => {
 		const h = miennes(s);
-		return h.length ? { ...s, periodes: h, mienne: true } : { ...s, mienne: false };
+		const groupe = groupeDeLaSemaine(etes, groupes, s);
+		return h.length ? { ...s, periodes: h, mienne: true, groupe } : { ...s, mienne: false, groupe };
 	};
 	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s).map(avecMesHeures);
 	const prochaineSemaine = toutes.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
@@ -440,7 +443,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 			.map(({ debut, fin, titulaire, remplacant, titulaireId, remplacantId }) => ({ debut, fin, titulaire, remplacant, moi: titulaireId === moi ? ('cede' as const) : remplacantId === moi ? ('prend' as const) : null })),
 		prochaine: {
 			astreinte: prochaineSemaine
-				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16), periodes: prochaineSemaine.periodes }
+				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, groupe: prochaineSemaine.groupe, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16), periodes: prochaineSemaine.periodes }
 				: null,
 			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null } : null,
 			fete
