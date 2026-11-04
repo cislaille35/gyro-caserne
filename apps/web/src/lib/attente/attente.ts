@@ -3,22 +3,20 @@
 
 export const DELAIS_ATTENTE = [5, 10, 20];
 
-// Dit par le service worker à la page d'erreur de l'appli : c'est une coupure, un nouvel essai est permis.
-export const MESSAGE_COUPURE = 'Le serveur n’a pas pu répondre.';
 const MESSAGE_ENVOI = 'Le serveur n’a pas pu répondre : votre envoi n’est peut-être pas passé. Vérifiez, puis réessayez dans un instant.';
 
-export type Genre = 'page' | 'formulaire' | 'donnees' | 'action';
+export type Genre = 'page' | 'formulaire' | 'action';
 
 // 1102 : 503 en texte brut, « error code: 1102 ». Une page d'erreur habillée est aussi prévue. Tout le reste vient de l'appli.
 export const estCoupure = (status: number, texte: string) => status === 503 && /error(\s+code:)?\s*(<[^>]*>\s*)*1102|exceeded resource limits/i.test(texte);
 
-// Ce que le service worker surveille. Tout le reste passe sans lui.
+// Ce que le service worker surveille. Tout le reste passe sans lui : quand les données d'une navigation dans l'appli (`__data.json`) échouent,
+// SvelteKit recharge la page entière, qui passe alors par ici.
 export function genreDeRequete(r: { url: string; method: string; mode: string; headers: Headers }, origine: string): Genre | null {
 	const url = new URL(r.url);
 	if (url.origin !== origine) return null;
 	if (r.mode === 'navigate') return r.method === 'GET' ? 'page' : 'formulaire';
 	if (r.method === 'POST' && r.headers.has('x-sveltekit-action')) return 'action';
-	if (r.method === 'GET' && url.pathname.endsWith('/__data.json')) return 'donnees';
 	return null;
 }
 
@@ -31,9 +29,6 @@ export function prochainEssai(etat: { essai: number; le: number } | null | undef
 
 // Le refus d'un envoi, au format de SvelteKit : la page et la saisie restent, `EnvoiCoupe.svelte` montre `form.coupure` sur tous les écrans.
 export const reponseAction = () => JSON.stringify({ type: 'failure', status: 503, data: JSON.stringify([{ coupure: 1 }, MESSAGE_ENVOI]) });
-
-// Les données d'une page : SvelteKit montre `+error.svelte` avec ce message.
-export const reponseDonnees = () => JSON.stringify({ message: MESSAGE_COUPURE });
 
 const GYRO = `<svg class="gyro" aria-hidden="true" viewBox="0 0 512 512" width="112" height="112">
 <g class="rayons" stroke-linecap="round" stroke-width="22"><line x1="121" y1="180" x2="78" y2="153" stroke="#f2c200"/><line x1="201" y1="114" x2="184" y2="67" stroke="#e5699a"/><line x1="311" y1="114" x2="328" y2="67" stroke="#3d7fd6"/><line x1="391" y1="180" x2="434" y2="153" stroke="#3fa34d"/></g>
@@ -68,7 +63,7 @@ export function pageAttente(genre: 'page' | 'formulaire'): string {
 		);
 	}
 	return page(
-		`<h1>Un instant, ça arrive…</h1><p id="etat" aria-live="polite">Le serveur reprend dans quelques secondes. La page va se recharger toute seule.</p><button class="bouton" type="button" id="essai" hidden>Réessayer</button>`,
+		`<h1>Un instant, ça arrive…</h1><p id="etat" aria-live="polite">La page va se recharger toute seule dans quelques secondes.</p><button class="bouton" type="button" id="essai" hidden>Réessayer</button>`,
 		`var calcul=(${prochainEssai.toString()})((history.state||{}).attenteGyro,Date.now(),${JSON.stringify(DELAIS_ATTENTE)});
 history.replaceState(Object.assign({},history.state,{attenteGyro:calcul.etat}),'');
 document.getElementById('essai').addEventListener('click',function(){location.reload()});

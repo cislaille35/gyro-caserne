@@ -2,7 +2,7 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-import { ENTETES_ATTENTE, estCoupure, genreDeRequete, pageAttente, reponseAction, reponseDonnees, type Genre } from './lib/attente/attente.ts';
+import { ENTETES_ATTENTE, estCoupure, genreDeRequete, pageAttente, reponseAction, type Genre } from './lib/attente/attente.ts';
 
 // Le service worker ne met rien en cache : il reçoit les notifications, les ouvre, et remplace l'erreur de coupure par une attente.
 const sw = self as unknown as ServiceWorkerGlobalScope;
@@ -10,11 +10,8 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 sw.addEventListener('install', () => void sw.skipWaiting());
 sw.addEventListener('activate', (event) => event.waitUntil(sw.clients.claim()));
 
-const JSON_SANS_CACHE = { 'content-type': 'application/json', 'cache-control': 'no-store' };
-
 function repli(genre: Genre): Response {
-	if (genre === 'action') return new Response(reponseAction(), { status: 200, headers: JSON_SANS_CACHE });
-	if (genre === 'donnees') return new Response(reponseDonnees(), { status: 503, headers: JSON_SANS_CACHE });
+	if (genre === 'action') return new Response(reponseAction(), { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 	return new Response(pageAttente(genre), { status: 503, headers: ENTETES_ATTENTE });
 }
 

@@ -65,12 +65,12 @@ test.describe('connecté', () => {
 		await expect(page.getByText('Un instant, ça arrive…')).toHaveCount(0);
 	});
 
-	test('navigation dans l’appli coupée : attente sur place, puis la page revient', async ({ page, context }) => {
+	test('navigation dans l’appli coupée : SvelteKit recharge la page, attente, puis la page revient', async ({ page, context }) => {
 		test.setTimeout(60_000);
 		await page.goto('/');
 		await controlee(page);
-		await couper(context, /\/planning\/__data\.json/);
-		await page.getByRole('navigation').getByRole('link', { name: 'Planning', exact: true }).first().click();
+		await couper(context, /\/planning(\/__data\.json.*)?$/);
+		await page.locator('a[href="/planning"]').first().click();
 		await expect(page.getByRole('heading', { name: 'Un instant, ça arrive…' })).toBeVisible();
 		await context.unrouteAll();
 		await expect(page.getByRole('heading', { level: 1, name: 'Planning' })).toBeVisible({ timeout: 15_000 });

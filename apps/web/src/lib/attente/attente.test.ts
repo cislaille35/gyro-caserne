@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DELAIS_ATTENTE, estCoupure, genreDeRequete, MESSAGE_COUPURE, pageAttente, prochainEssai, reponseAction, reponseDonnees } from './attente.ts';
+import { DELAIS_ATTENTE, estCoupure, genreDeRequete, pageAttente, prochainEssai, reponseAction } from './attente.ts';
 
 // Ce que renvoie vraiment Cloudflare (relevé le 4 novembre 2026 sur un Worker jetable) : 503, text/plain, 17 octets.
 const VRAIE_REPONSE = 'error code: 1102\n';
@@ -33,18 +33,16 @@ describe('genreDeRequete', () => {
 	});
 	const origine = 'https://gyro.test';
 
-	it('distingue page, formulaire, données et action', () => {
+	it('distingue page, formulaire et action', () => {
 		expect(genreDeRequete(requete(`${origine}/planning`, { mode: 'navigate' }), origine)).toBe('page');
 		expect(genreDeRequete(requete(`${origine}/connexion`, { mode: 'navigate', method: 'POST' }), origine)).toBe('formulaire');
-		expect(genreDeRequete(requete(`${origine}/planning/__data.json?x=1`), origine)).toBe('donnees');
-		expect(genreDeRequete(requete(`${origine}/__data.json`), origine)).toBe('donnees');
 		expect(genreDeRequete(requete(`${origine}/planning?/ajouter`, { method: 'POST', action: true }), origine)).toBe('action');
 	});
 
 	it('laisse passer tout le reste : rien n’est intercepté ni mis en cache', () => {
 		expect(genreDeRequete(requete(`${origine}/_app/immutable/a.js`), origine)).toBeNull();
 		expect(genreDeRequete(requete(`${origine}/moi/notifications/abonnement`, { method: 'POST' }), origine)).toBeNull();
-		expect(genreDeRequete(requete('https://ailleurs.test/planning/__data.json'), origine)).toBeNull();
+		expect(genreDeRequete(requete(`${origine}/planning/__data.json`), origine)).toBeNull();
 		expect(genreDeRequete(requete('https://ailleurs.test/x', { method: 'POST', action: true }), origine)).toBeNull();
 	});
 });
@@ -106,9 +104,5 @@ describe('réponses de repli', () => {
 		const [objet, texte] = JSON.parse(corps.data);
 		expect(objet).toEqual({ coupure: 1 });
 		expect(texte).toContain('n’est peut-être pas passé');
-	});
-
-	it('les données d’une page : l’erreur que reconnaît la page d’erreur', () => {
-		expect(JSON.parse(reponseDonnees())).toEqual({ message: MESSAGE_COUPURE });
 	});
 });

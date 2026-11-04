@@ -151,7 +151,7 @@ describe('mettreAJourReleves et relevesDe', () => {
 		expect(appels).toHaveLength(1);
 		expect(appels[0]!.url).toContain('latitude=48.1&longitude=-1.7');
 		const avant = base.requetes;
-		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2 }, vigilance: null });
+		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2, nuit: false }, vigilance: null });
 		expect(base.requetes - avant).toBe(1);
 	});
 
