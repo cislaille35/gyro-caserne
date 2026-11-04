@@ -59,6 +59,9 @@ test.describe('météo et vigilance', () => {
 				await page.goto('/');
 				await expect(page.getByRole('region', { name: 'Vigilance météo' })).toHaveCount(0);
 				await expect(page.getByRole('link', { name: texte })).toHaveAttribute('href', 'https://vigilance.meteofrance.fr/');
+				// Parité : la ligne se voit autant au téléphone qu'à l'ordinateur.
+				await expect(page.getByRole('link', { name: texte })).toBeVisible();
+				expect(parseFloat(await page.getByRole('link', { name: texte }).evaluate((e) => getComputedStyle(e).fontSize))).toBeGreaterThanOrEqual(15);
 				const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 				expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 			});
@@ -76,6 +79,17 @@ test.describe('météo et vigilance', () => {
 			expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 		});
 	}
+
+	test('ciel dégagé : le soleil de jour, pas la nuit', async ({ page }) => {
+		const clair = (nuit: boolean) => executer(`UPDATE releve SET donnees = '${JSON.stringify({ temperature: 12, code: 0, rafales: 10, nuit })}' WHERE cle = 'meteo';`);
+		clair(false);
+		await page.goto('/');
+		await expect(page.locator('.meteo.m-clair .soleil')).toHaveCount(1);
+		clair(true);
+		await page.goto('/');
+		await expect(page.locator('.meteo.m-clair')).toHaveCount(1);
+		await expect(page.locator('.meteo.m-clair .soleil')).toHaveCount(0);
+	});
 
 	test('affichage Sobre : pas d’ambiance animée, la météo reste écrite', async ({ context, page }) => {
 		await context.addCookies([{ name: 'niveau', value: 'sobre', url: ADRESSE }]);

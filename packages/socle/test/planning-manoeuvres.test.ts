@@ -66,6 +66,8 @@ describe('annonce à deux semaines', () => {
 		expect((await base.select().from(manoeuvre).where(eq(manoeuvre.id, id)))[0]!.publicationId).toBe(p!.id);
 		// Seulement les convoqués : Alice (équipe 1).
 		expect(await destinataires()).toEqual([alice.id]);
+		// Le jour est écrit en toutes lettres.
+		expect((await base.select().from(notification))[0]!.texte).toContain('dimanche 29 novembre, 8 h 30 · Caserne');
 		expect(await base.select().from(envoiPush)).toHaveLength(1);
 		const vue = (await lireMur(base, alice, 'centre', {}, '2026-11-15T09:00')).publications[0]!;
 		expect(vue.auteur).toMatchObject({ prenom: 'Planning', nom: 'du centre', ecrireA: null });

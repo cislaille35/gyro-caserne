@@ -1,17 +1,25 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
 
-	// Un envoi coupé (voir attente.ts) : le message, sur tous les écrans, sans toucher à la page ni à la saisie.
-	const texte = $derived((page.form as { coupure?: string } | null)?.coupure ?? null);
-	let fermeePour = $state<string | null | object>(null);
-	const visible = $derived(texte !== null && fermeePour !== page.form);
+	// Un envoi coupé (voir attente.ts) : le message dit par le service worker, sur tous les écrans, sans toucher à la page ni à la saisie.
+	let texte = $state<string | null>(null);
+	$effect(() => {
+		const sw = navigator.serviceWorker;
+		if (!sw) return;
+		const recu = (e: MessageEvent) => {
+			if (typeof e.data?.coupure === 'string') texte = e.data.coupure;
+		};
+		sw.addEventListener('message', recu);
+		return () => sw.removeEventListener('message', recu);
+	});
+	afterNavigate(() => (texte = null));
 </script>
 
 <div role="alert" class="zone">
-	{#if visible}
+	{#if texte}
 		<div class="message">
 			<p>{texte}</p>
-			<button type="button" onclick={() => (fermeePour = page.form)}>Fermer</button>
+			<button type="button" onclick={() => (texte = null)}>Fermer</button>
 		</div>
 	{/if}
 </div>

@@ -3,15 +3,15 @@
 
 export const DELAIS_ATTENTE = [5, 10, 20];
 
-const MESSAGE_ENVOI = 'Le serveur n’a pas pu répondre : votre envoi n’est peut-être pas passé. Vérifiez, puis réessayez dans un instant.';
+export const MESSAGE_ENVOI = 'Le serveur n’a pas pu répondre : votre envoi n’est peut-être pas passé. Vérifiez, puis réessayez dans un instant.';
 
 export type Genre = 'page' | 'formulaire' | 'action';
 
 // 1102 : 503 en texte brut, « error code: 1102 ». Une page d'erreur habillée est aussi prévue. Tout le reste vient de l'appli.
-export const estCoupure = (status: number, texte: string) => status === 503 && /error(\s+code:)?\s*(<[^>]*>\s*)*1102|exceeded resource limits/i.test(texte);
+export const estCoupure = (status: number, texte: string) => status === 503 && /\berror(\s+code:)?\s*(<[^>]*>\s*)*1102\b|exceeded resource limits/i.test(texte);
 
-// Ce que le service worker surveille. Tout le reste passe sans lui : quand les données d'une navigation dans l'appli (`__data.json`) échouent,
-// SvelteKit recharge la page entière, qui passe alors par ici.
+// Ce que le service worker surveille. Tout le reste passe sans lui : quand les données d'une navigation dans l'appli (`__data.json`) échouent
+// deux fois, SvelteKit recharge la page entière, qui passe alors par ici ; sinon il montre `+error.svelte`, avec « Réessayer ».
 export function genreDeRequete(r: { url: string; method: string; mode: string; headers: Headers }, origine: string): Genre | null {
 	const url = new URL(r.url);
 	if (url.origin !== origine) return null;
@@ -27,7 +27,8 @@ export function prochainEssai(etat: { essai: number; le: number } | null | undef
 	return { delai: essai < delais.length ? delais[essai]! : null, etat: { essai: essai + 1, le: maintenant } };
 }
 
-// Le refus d'un envoi, au format de SvelteKit : la page et la saisie restent, `EnvoiCoupe.svelte` montre `form.coupure` sur tous les écrans.
+// Le refus d'un envoi, au format de SvelteKit : la page et la saisie restent. Le service worker envoie le message à `EnvoiCoupe.svelte`,
+// qui le montre sur tous les écrans, y compris ceux qui traitent eux-mêmes la réponse.
 export const reponseAction = () => JSON.stringify({ type: 'failure', status: 503, data: JSON.stringify([{ coupure: 1 }, MESSAGE_ENVOI]) });
 
 const GYRO = `<svg class="gyro" aria-hidden="true" viewBox="0 0 512 512" width="112" height="112">

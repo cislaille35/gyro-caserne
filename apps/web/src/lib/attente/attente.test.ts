@@ -14,6 +14,10 @@ describe('estCoupure', () => {
 		expect(estCoupure(503, '<title>Worker exceeded resource limits</title>')).toBe(true);
 	});
 
+	it('ne prend pas un autre nombre pour 1102', () => {
+		expect(estCoupure(503, 'error code: 11020')).toBe(false);
+	});
+
 	it('ne confond jamais avec une erreur de l’appli', () => {
 		expect(estCoupure(503, 'Service Unavailable')).toBe(false);
 		expect(estCoupure(503, '<p>Fiche de l’agent 1102</p>')).toBe(false);

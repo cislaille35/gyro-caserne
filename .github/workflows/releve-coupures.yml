@@ -23,6 +23,7 @@ jobs:
           COMPTE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CENTRES: ${{ vars.CENTRE_PREPROD }} ${{ vars.CENTRE_PRODUCTION }}
         run: |
+          if [ -z "${CENTRES// /}" ]; then echo '::error::Aucun centre : variables CENTRE_PREPROD et CENTRE_PRODUCTION vides'; exit 1; fi
           jour=$(date -u -d yesterday +%F)
           coupures=0
           echo "### Relevé du $jour (UTC)" >> "$GITHUB_STEP_SUMMARY"
@@ -38,14 +39,14 @@ jobs:
             fi
             ligne=$(jq -r --arg w "$worker" '
               (map(.sum.requests) | add // 0) as $n
-              | (map(select(.dimensions.status == "exceededResources").sum.requests) | add // 0) as $c
-              | (map(select(.dimensions.status != "exceededResources" and .dimensions.status != "success").sum.requests) | add // 0) as $e
+              | (map(select(.dimensions.status | startswith("exceeded")).sum.requests) | add // 0) as $c
+              | (map(select((.dimensions.status | startswith("exceeded") | not) and .dimensions.status != "success").sum.requests) | add // 0) as $e
               | (map(.sum.cpuTimeUs) | add // 0) as $t
               | def ms: (. / 100 | round / 10 | tostring) + " ms";
               "| \($w) | \($n) | \($c) | \($e) | \((if $n > 0 then $t / $n else 0 end) | ms) | \((map(select(.dimensions.status == "success").quantiles.cpuTimeP50) | max // 0) | ms) | \((map(select(.dimensions.status == "success").quantiles.cpuTimeP99) | max // 0) | ms) |"' <<< "$lignes")
             echo "$ligne" >> "$GITHUB_STEP_SUMMARY"
             echo "$ligne"
-            n=$(jq '[.[] | select(.dimensions.status == "exceededResources").sum.requests] | add // 0' <<< "$lignes")
+            n=$(jq '[.[] | select(.dimensions.status | startswith("exceeded")).sum.requests] | add // 0' <<< "$lignes")
             if [ "$n" -gt 0 ]; then
               echo "::error::$worker : $n requêtes coupées le $jour (erreur 1102)"
               coupures=$((coupures + n))

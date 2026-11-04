@@ -56,6 +56,15 @@ test.describe('connecté', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Planning' })).toBeVisible();
 	});
 
+	test('un 503 qui n’est pas une coupure passe tel quel', async ({ page, context }) => {
+		await page.goto('/');
+		await controlee(page);
+		await context.route(/\/planning$/, (r) => r.fulfill({ status: 503, contentType: 'text/html', body: '<!doctype html><html lang="fr"><title>x</title><h1>Maintenance</h1></html>' }));
+		await page.goto('/planning');
+		await expect(page.getByRole('heading', { name: 'Maintenance' })).toBeVisible();
+		await expect(page.getByText('Un instant, ça arrive…')).toHaveCount(0);
+	});
+
 	test('une erreur de l’appli n’est jamais prise pour une coupure', async ({ page }) => {
 		await page.goto('/');
 		await controlee(page);
@@ -91,6 +100,8 @@ test.describe('connecté', () => {
 		await expect(page.getByText('votre envoi n’est peut-être pas passé')).toBeVisible();
 		await expect(formulaire.getByLabel('Votre message', { exact: true })).toHaveValue('Message à ne pas perdre');
 		expect(envois).toBe(1);
+		await page.getByRole('button', { name: 'Fermer' }).click();
+		await expect(page.getByText('votre envoi n’est peut-être pas passé')).toHaveCount(0);
 	});
 });
 

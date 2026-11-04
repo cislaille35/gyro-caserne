@@ -19,7 +19,7 @@ export function veille(date: string): string {
 // Appelée des centaines de fois par page (calendrier) : sans analyse de texte par Date.
 export function ajouterJours(date: string, jours: number): string {
 	const jour = new Date(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10) + jours));
-	if (Number.isNaN(jour.getTime())) throw new RangeError(`Date illisible : ${date}`);
+	if (date.length !== 10 || Number.isNaN(jour.getTime())) throw new RangeError(`Date illisible : ${date}`);
 	const mois = jour.getUTCMonth() + 1;
 	const quantieme = jour.getUTCDate();
 	return `${jour.getUTCFullYear()}-${mois < 10 ? '0' : ''}${mois}-${quantieme < 10 ? '0' : ''}${quantieme}`;
