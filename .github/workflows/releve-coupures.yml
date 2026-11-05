@@ -1,7 +1,7 @@
 name: Relevé des coupures
 
 # Chaque matin : la veille, combien de requêtes Cloudflare a coupées (erreur 1102, limite de calcul de l'offre gratuite) et le temps de calcul.
-# Coupures la veille : le passage échoue, GitHub prévient par courriel. Le résumé du passage donne les chiffres.
+# Coupures la veille : le passage échoue, GitHub prévient par courriel. Le résumé du passage donne les chiffres (statuts « exceeded… »).
 on:
   schedule:
     - cron: '17 5 * * *'
