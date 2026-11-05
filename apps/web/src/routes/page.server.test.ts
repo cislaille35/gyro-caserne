@@ -43,6 +43,7 @@ describe('load de /', () => {
 			anniversaire: false,
 			aujourdhui: aujourdhuiParis(),
 			astreinte: null,
+			priseOuverte: false,
 			maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
 			meteo: { meteo: null, vigilance: null }
 		});
