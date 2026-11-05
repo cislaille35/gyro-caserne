@@ -68,10 +68,22 @@ describe('/engins/anomalies', () => {
 		expect(close).toMatch(/Une autre anomalie ouverte le bloque encore[\s\S]*?value="remettre"/);
 	});
 
+	it('signaler : sans engin d’avance, aucun coché, et le choix est obligatoire', () => {
+		const page = html(Signaler, { engins: [{ id: 2, nom: 'FPT 1', type: 'FPT' }], enginId: null, peutSignaler: true });
+		expect(page).toMatch(/name="engin"[^>]*value="2"[^>]*required/);
+		expect(page).not.toMatch(/name="engin"[^>]*checked/);
+		expect(page).toContain('FPT 1');
+		expect(page).toMatch(/FPT 1[\s\S]*?class="sous[^"]*">FPT</);
+	});
+
 	it('signaler : l’engin choisi d’avance, abîmé coché par défaut ; refus dit à qui ne peut pas', () => {
 		const page = html(Signaler, { engins: [{ id: 1, nom: 'VTU', type: 'VTU' }, { id: 2, nom: 'FPT', type: 'FPT' }], enginId: 1, peutSignaler: true });
-		expect(page).toMatch(/<option value="1" selected[^>]*>VTU</);
-		expect(page).toMatch(/value="abime" checked/);
+		// Un geste pour choisir l'engin, plus de liste déroulante.
+		expect(page).not.toContain('<select');
+		expect(page).toMatch(/<input[^>]*type="radio"[^>]*name="engin"[^>]*value="1"[^>]*checked/);
+		expect(page).toMatch(/name="genre"[^>]*value="abime"[^>]*checked/);
+		expect(page).toMatch(/<input[^>]*name="photo"[^>]*type="file"[^>]*capture="environment"/);
+		expect(page).toContain('Ajouter une photo');
 		expect(page).toContain('Sur VTU.');
 		expect(html(Signaler, { engins: [], enginId: null, peutSignaler: false })).toContain('Le signalement est réservé aux agents du centre.');
 	});

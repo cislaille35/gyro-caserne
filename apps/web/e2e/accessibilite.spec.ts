@@ -134,6 +134,76 @@ for (const theme of ['auto', 'sombre']) {
 			});
 		}
 
+		test.describe('écrans en pleine place', () => {
+			test.use({ storageState: ETAT_CONNECTE });
+
+			test('une conversation : au téléphone, ni en-tête ni onglets, le retour et le nom restent ; une seule cloche partout', async ({ page }) => {
+				const telephone = page.viewportSize()!.width < 1024;
+				const groupe = await groupeAvecMessages(page, `Groupe ${nouvelleMarque()}`);
+				await page.goto(groupe);
+				await page.waitForLoadState('networkidle');
+				const onglets = page.getByRole('navigation', { name: 'Navigation principale' });
+				const cloche = page.getByRole('link', { name: /^Notifications/ });
+				const retour = page.getByRole('link', { name: 'Retour aux messages' });
+				await expect(retour).toBeVisible();
+				await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+				await expect(page.getByRole('button', { name: /^Couper les notifications/ })).toBeVisible();
+				await expect(onglets).toBeVisible({ visible: !telephone });
+				await expect(cloche).toBeVisible({ visible: !telephone });
+				// La saisie est tout en bas de l'écran, sans barre dessous au téléphone.
+				const saisie = (await page.getByLabel('Votre message').boundingBox())!;
+				expect(saisie.y + saisie.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+				expect(page.viewportSize()!.height - (saisie.y + saisie.height)).toBeLessThan(40);
+				// « Aller au contenu » reste le premier arrêt du clavier.
+				await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+				await page.locator('body').press('Tab');
+				await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
+				await page.keyboard.press('Enter');
+				await expect(page.locator('main')).toBeFocused();
+				// Les infos, puis le retour : chaque page retrouve sa navigation.
+				await page.locator('a.qui').click();
+				await expect(page).toHaveURL(/\/infos$/);
+				await expect(onglets).toBeVisible();
+				for (const chemin of ['/echanges/messages', '/echanges/messages/nouveau', '/echanges/vie', '/echanges/messages/999999']) {
+					await page.goto(chemin);
+					await expect(onglets, chemin).toBeVisible();
+				}
+			});
+
+			test('Agents : à l’ordinateur une colonne par équipe, au téléphone des équipes repliées', async ({ page }) => {
+				await page.goto('/agents');
+				await page.waitForLoadState('networkidle');
+				const equipe = (n: number) => page.getByRole('button', { name: new RegExp(`^Équipe ${n}`) });
+				if (page.viewportSize()!.width >= 1024) {
+					const [a, b] = [(await equipe(1).boundingBox())!, (await equipe(2).boundingBox())!];
+					expect(b.y).toBe(a.y);
+					expect(b.x).toBeGreaterThan(a.x);
+					await expect(page.locator('li.agent').first()).toBeVisible();
+				} else {
+					await expect(equipe(1)).toHaveAttribute('aria-expanded', 'false');
+					await expect(page.locator('li.agent').first()).toBeHidden();
+					await equipe(1).focus();
+					await page.keyboard.press('Enter');
+					await expect(page.locator('li.agent').first()).toBeVisible();
+				}
+			});
+
+			test('la photo se choisit au clavier : le focus se voit, le nom du fichier s’affiche, on peut la retirer', async ({ page }) => {
+				await page.goto('/engins/anomalies/signaler?engin=1');
+				await page.waitForLoadState('networkidle');
+				const champ = page.getByLabel('Photo');
+				await champ.focus();
+				await expect(page.locator('.zone')).toHaveCSS('outline-style', 'solid');
+				await champ.setInputFiles({ name: 'phare.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') });
+				await expect(page.locator('.zone')).toContainText('phare.jpg');
+				expect((await page.locator('.zone').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+				await page.getByRole('button', { name: /^Retirer/ }).click();
+				await expect(page.locator('.zone')).toContainText('Ajouter une photo');
+				await expect(champ).toBeFocused();
+				expect(await champ.inputValue()).toBe('');
+			});
+		});
+
 		// La messagerie, remplie : la liste, nouveau message, un groupe et ses infos, une conversation à deux, au niveau Vivant.
 		for (const mouvement of ['no-preference', 'reduce'] as const) {
 			test.describe(`messagerie, niveau vivant, mouvement ${mouvement}`, () => {
@@ -324,6 +394,13 @@ async function domaineOuvert(page: Page, nom: string) {
 		await expect(premier).toBeVisible({ timeout: 1000 });
 	}).toPass();
 	return { bouton, groupe };
+}
+
+// Au téléphone, les équipes sont repliées : on ouvre celle demandée (une fois la page prête, sinon elle se replierait après coup).
+async function ouvrirEquipe(page: Page, titre = 'Équipe 1') {
+	await page.waitForLoadState('networkidle');
+	const bouton = page.getByRole('button', { name: new RegExp(`^${titre}`) });
+	if ((await bouton.getAttribute('aria-expanded')) === 'false') await bouton.click();
 }
 
 // Adresse de la fiche, lue dans la liste de gestion.
@@ -823,6 +900,7 @@ test.describe('agents', () => {
 
 		await gestion.goto(await ficheDe(gestion, nom));
 		await agent.goto('/agents');
+		await ouvrirEquipe(agent);
 		await expect(agent.getByText(nom)).toBeVisible();
 
 		const depart = await blocDeFiche(gestion, 'Départ du centre', (b) => b.getByLabel('Je confirme'));
@@ -864,6 +942,7 @@ test.describe('nominations', () => {
 		await expect(carte.getByRole('list').getByText('Chef de garde — Équipe 1', { exact: true })).toBeVisible();
 
 		await agent.goto('/agents');
+		await ouvrirEquipe(agent);
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef de garde (Équipe 1)');
 
 		// Changer la date de fin : le rôle reste, avec sa nouvelle fin.

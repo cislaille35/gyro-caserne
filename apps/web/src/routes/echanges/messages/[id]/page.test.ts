@@ -1,6 +1,7 @@
 import type { InfosConversation, VueConversation, VueMessage } from '@gyro-caserne/socle';
 import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
+import { DESSINS } from '#lib/ui/icones-roles.ts';
 
 vi.mock('$app/navigation', () => ({ invalidate: () => {}, goto: () => {}, afterNavigate: () => {} }));
 vi.mock('$app/forms', () => ({ enhance: () => ({}), applyAction: () => {}, deserialize: () => ({}) }));
@@ -159,9 +160,12 @@ describe('une conversation', () => {
 		expect(aside).not.toContain('?renommer');
 	});
 
-	it('la cloche barrée dans l’en-tête : bascule nommée, sans JavaScript aussi', () => {
+	it('couper les notifications dans l’en-tête : bascule nommée, sans JavaScript aussi ; pas une seconde cloche', () => {
 		const page = html({ coupe: true } as never);
 		const entete = page.match(/<header class="entete[\s\S]*?<\/header>/)![0];
 		expect(entete).toMatch(/action="\?\/couper"[\s\S]*?name="oui" value="0"[\s\S]*?aria-pressed="true"[\s\S]*?Couper les notifications de Départ de Thomas/);
+		expect(entete).not.toContain(DESSINS.cloche);
+		expect(html({ coupe: false } as never).match(/<header class="entete[\s\S]*?<\/header>/)![0]).not.toContain(DESSINS.cloche);
+		expect(entete).toContain(DESSINS.sonCoupe);
 	});
 });

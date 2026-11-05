@@ -7,7 +7,7 @@
 	import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 	import { heure } from '#lib/murs/quand.ts';
 	import Bulle from '#lib/ui/Bulle.svelte';
-	import ClocheCoupee from '#lib/ui/ClocheCoupee.svelte';
+	import CouperNotifications from '#lib/ui/CouperNotifications.svelte';
 	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
@@ -43,7 +43,7 @@
 		// « Répondre en privé » depuis un mur.
 		prerempli?: string;
 		form?: Reponse;
-		// La cloche barrée de l'en-tête : coupées ou non au téléphone ; nulle, pas de cloche (conversation pas encore née).
+		// Le bouton de l'en-tête : notifications coupées ou non au téléphone ; nul, pas de bouton (conversation pas encore née).
 		coupe?: boolean | null;
 	} = $props();
 
@@ -278,7 +278,7 @@
 				{#if sousTitre}<span class="sous">{sousTitre}</span>{/if}
 			</span>
 		</svelte:element>
-		{#if coupe !== null && !nouvelle}<ClocheCoupee {coupe} nom={vue.nom} />{/if}
+		{#if coupe !== null && !nouvelle}<CouperNotifications {coupe} nom={vue.nom} />{/if}
 	</header>
 
 	<div class="fil" role="log" aria-label="Messages de {vue.nom}">
@@ -383,7 +383,7 @@
 	/* La conversation occupe toute la place : l'en-tête reste en haut, la saisie en bas. */
 	.conversation {
 		margin: -1rem -1rem -6rem;
-		min-height: calc(100dvh - var(--hauteur-entete));
+		min-height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		background: var(--fond);
@@ -569,8 +569,7 @@
 		position: sticky;
 		bottom: 0;
 		z-index: 5;
-		/* Au téléphone, la barre de navigation passe par-dessus le bas de la saisie. */
-		padding-bottom: calc(3.5rem + 1px + env(safe-area-inset-bottom));
+		padding-bottom: env(safe-area-inset-bottom);
 		background: var(--surface);
 		border-top: 1px solid var(--trait-doux);
 	}
@@ -678,6 +677,7 @@
 	@media (min-width: 1024px) {
 		.conversation {
 			margin: -1rem -1rem -1.5rem;
+			min-height: calc(100dvh - var(--hauteur-entete));
 		}
 		.bas {
 			padding-bottom: 0;

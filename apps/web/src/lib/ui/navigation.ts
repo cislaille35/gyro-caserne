@@ -21,6 +21,11 @@ const rangement: Record<string, string[]> = {
 
 const sous = (chemin: string, racine: string) => chemin === racine || chemin.startsWith(`${racine}/`);
 
+// Une conversation ouverte prend tout l'écran du téléphone ; une page d'erreur garde sa navigation.
+export function dansUneConversation(route: string | null, erreur: unknown): boolean {
+	return !erreur && (route === '/echanges/messages/[id]' || route === '/echanges/messages/a/[personne]');
+}
+
 // L'entrée (onglet, « Moi » ou cloche) dont descend la page courante.
 export function rubriqueDe(chemin: string): string {
 	if (chemin === '/') return '/';

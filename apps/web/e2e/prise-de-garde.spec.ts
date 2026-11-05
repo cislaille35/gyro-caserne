@@ -104,17 +104,25 @@ test.describe('agents, côté chef', () => {
 	test.use({ storageState: ETAT_SUPER });
 
 	test('toute la ligne ouvre la fiche, 44 px au moins', async ({ page }) => {
-		await page.goto('/agents');
-		await page.waitForLoadState('networkidle');
-		const ligne = page.locator('li.agent').first();
-		await expect(ligne).toBeVisible();
-		const b = (await ligne.boundingBox())!;
+		const ouvrir = async () => {
+			await page.goto('/agents');
+			await page.waitForLoadState('networkidle');
+			// Au téléphone, les équipes sont repliées : elles s'ouvrent une à une, et l'ordinateur les montre en colonnes.
+			const entete = page.getByRole('button', { name: /^Équipe 1/ });
+			if (page.viewportSize()!.width < 1024) {
+				await expect(entete).toHaveAttribute('aria-expanded', 'false');
+				await entete.click();
+			} else await expect(entete).toHaveAttribute('aria-expanded', 'true');
+			const ligne = page.locator('li.agent').first();
+			await expect(ligne).toBeVisible();
+			return (await ligne.boundingBox())!;
+		};
+		const b = await ouvrir();
 		expect(b.height).toBeGreaterThanOrEqual(44);
 		for (const x of [b.x + 4, b.x + b.width - 4]) {
 			await page.mouse.click(x, b.y + b.height / 2);
 			await expect(page).toHaveURL(/\/agents\/\d+/);
-			await page.goto('/agents');
-			await page.waitForLoadState('networkidle');
+			await ouvrir();
 		}
 	});
 });

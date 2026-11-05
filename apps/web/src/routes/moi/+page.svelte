@@ -65,7 +65,7 @@
 			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" icone="groupe" /></li>
 			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" icone="etoile" dessin={SOLEIL} /></li>
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" icone="camion" dessin={CALENDRIER} /></li>
-			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
+			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.son} /></li>
 		{/if}
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" icone="cle" dessin={DESSINS.affichage} /></li>
 	</ListeRangees>

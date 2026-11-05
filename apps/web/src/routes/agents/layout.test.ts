@@ -104,16 +104,48 @@ describe('/agents : vue de tous', () => {
 	});
 });
 
+describe('/agents : les colonnes', () => {
+	const equipe = (n: number) => ({ cle: `equipe:${n}`, titre: `Équipe ${n}`, equipe: { couleur: '#b3121f', chefs: ['A. Martin'] }, personnes: [{ id: n, prenom: 'Alice', nom: `Martin${n}`, grade: null, roles: [] }] });
+	const hors = (cle: string, titre: string) => ({ cle, titre, equipe: null, personnes: [{ id: 90 + titre.length, prenom: 'Test', nom: titre, grade: null, roles: [] }] });
+	const colonnes = (mise: string) => {
+		const bloc = mise.slice(mise.indexOf('class="colonnes'));
+		return { equipes: bloc.slice(0, bloc.indexOf('class="pile')), pile: bloc.slice(bloc.indexOf('class="pile')) };
+	};
+
+	it('de 2 à 6 équipes : une colonne chacune, dans l’ordre ; les autres groupes ensemble dans une dernière colonne', () => {
+		for (const n of [2, 6]) {
+			const liste = Array.from({ length: n }, (_, i) => equipe(i + 1));
+			const { equipes, pile } = colonnes(html(Layout, { data: { gestion: false, groupes: [...liste, hors('sans-equipe', 'Sans équipe'), hors('exterieurs', 'Extérieurs')] }, children: enfants }));
+			expect([...equipes.matchAll(/<span class="titre[^"]*">(Équipe \d)/g)].map((m) => m[1])).toEqual(liste.map((e) => e.titre));
+			expect(equipes).not.toContain('Extérieurs');
+			expect(pile).toMatch(/Sans équipe[\s\S]*Extérieurs/);
+		}
+	});
+
+	it('sans autre groupe : pas de colonne vide', () => {
+		expect(html(Layout, { data: { gestion: false, groupes: [equipe(1)] }, children: enfants })).not.toContain('class="pile');
+	});
+
+	it('une fiche ouverte : la liste passe à côté d’elle', () => {
+		Object.assign(etat.page, { url: new URL('http://x/agents/2') });
+		try {
+			expect(html(Layout, { data: gestion(), children: enfants })).toMatch(/class="page[^"]*a-cote/);
+		} finally {
+			Object.assign(etat.page, { url: new URL('http://x/agents') });
+		}
+	});
+});
+
 describe('/agents : gestion', () => {
-	it('montre la liste, le volet, l’invite et les liens de gestion', () => {
+	it('montre la liste et les liens de gestion ; sans fiche ouverte, plus d’invite à côté : les colonnes prennent la place', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
 		expect(mise).toMatch(/<a[^>]*href="\/agents\/fichier"[^>]*>[\s\S]*?Fichier<span class="masque[^"]*"> de l’effectif<\/span><\/a>/);
 		expect(mise).toMatch(/<a class="action[^"]*" href="\/agents\/nouveau">[\s\S]*?Ajouter<\/span>/);
 		expect(mise).toContain('class="detail');
 		expect(mise).toContain('Contenu de la page');
 		expect(tete(Layout, { data: gestion(), children: enfants })).not.toContain('<title>');
-		expect(html(Page, { data: gestion() })).toContain('Choisissez un agent dans la liste.');
-		expect(html(Page, { data: gestion() })).toContain('Sa fiche s’ouvre ici');
+		expect(html(Page, { data: gestion() })).not.toContain('Choisissez un agent');
+		expect(mise).not.toMatch(/class="page[^"]*a-cote/);
 	});
 
 	it('une ligne : lien vers la fiche au nom de l’agent, grade, statut hors opérationnel, fiche à compléter ; pas d’e-mail', () => {

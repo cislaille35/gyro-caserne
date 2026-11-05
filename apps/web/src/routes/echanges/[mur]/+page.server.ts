@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		const equipes = mur.mur.type === 'equipe' ? [] : await locals.base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation));
 		// « Vie du centre » souhaite les anniversaires du jour.
 		const anniversaires = mur.mur.type === 'vie' ? await anniversairesDuJour(locals.base, aujourdhuiParis()) : [];
-		// La cloche barrée de l'en-tête : nulle pour le super administrateur, qui ne reçoit rien.
+		// Le bouton « couper » de l'en-tête : nul pour le super administrateur, qui ne reçoit rien.
 		const coupe = acteur.type === 'personne' ? await estCoupe(locals.base, acteur, `mur:${params.mur}`) : null;
 		return { ...mur, equipes, anniversaires, plusAnciennes: avant !== null, coupe };
 	} catch (erreur) {
