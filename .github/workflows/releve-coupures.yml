@@ -32,7 +32,10 @@ jobs:
           for centre in $CENTRES; do
             worker="gyro-caserne-$centre"
             requete="{viewer{accounts(filter:{accountTag:\"$COMPTE\"}){workersInvocationsAdaptive(limit:100,filter:{scriptName:\"$worker\",datetime_geq:\"${jour}T00:00:00Z\",datetime_lt:\"$(date -u +%F)T00:00:00Z\"}){dimensions{status} sum{requests errors cpuTimeUs} quantiles{cpuTimeP50 cpuTimeP99}}}}}"
-            reponse=$(curl -sS --max-time 30 https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $JETON" -H 'content-type: application/json' -d "$(jq -n --arg query "$requete" '{query: $query}')")
+            if ! reponse=$(curl -sS --max-time 25 --retry 2 --retry-all-errors --retry-delay 5 https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $JETON" -H 'content-type: application/json' -d "$(jq -n --arg query "$requete" '{query: $query}')"); then
+              echo "::error::Cloudflare ne répond pas pour $worker : relevé impossible, pas forcément une coupure"
+              exit 1
+            fi
             if ! lignes=$(jq -ec '.data.viewer.accounts[0].workersInvocationsAdaptive' <<< "$reponse"); then
               echo "::error::Lecture impossible pour $worker : $(jq -c '[.errors[]?.message]' <<< "$reponse")"
               exit 1
