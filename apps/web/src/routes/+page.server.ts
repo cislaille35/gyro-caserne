@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const m = apercus.find((x) => x.cle === n.cle);
 		return { ...n, icone: m?.icone ?? null, couleur: m?.couleur ?? null, numero: m?.numero ?? null };
 	});
-	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, maintenant, meteo: vueMeteo(releves, aujourdhui) };
+	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, maintenant, meteo: vueMeteo(centre.departement ? releves : { ...releves, vigilance: null }, aujourdhui, centre.departementNom ?? centre.departement) };
 };
 
 // « À ne pas manquer » : prise de connaissance et réponse à un événement sur place. Le socle vérifie les droits.

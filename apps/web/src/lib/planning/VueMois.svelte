@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { avecGroupe } from './astreinte.ts';
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import type { EquipePlanning, SemaineCalculee } from '@gyro-caserne/socle';
 	import { jourLong, moisDeLAnnee } from './dates.ts';
 	import { grilleDuMois, reperesDeLaGrille, SIGNES, type Donnees, type Mode, type Repere } from './vues.ts';
@@ -17,7 +19,7 @@
 		maintenant
 	}: {
 		mois: number;
-		semaines: (SemaineCalculee & { mienne: boolean })[];
+		semaines: (SemaineCalculee & { mienne: boolean; groupe?: string | null })[];
 		equipes: EquipePlanning[];
 		donnees: Donnees;
 		mode: Mode;
@@ -40,7 +42,7 @@
 		return liste.sort((a, b) => a.date.localeCompare(b.date));
 	});
 	const vacancesLe = (date: string) => donnees.vacances.some((v) => v.debut <= date && date <= v.fin);
-	const court = (date: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+	const court = (date: string) => formatDeDate({ weekday: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 	const ICONES: Record<string, string> = { manoeuvre: 'M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z', ferie: 'M5 21V4h11l-2 4 2 4H5', fete: 'M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.5-.8z', vacances: 'M12 4a8 8 0 0 1 8 8H4a8 8 0 0 1 8-8z M12 12v8' };
 </script>
 
@@ -64,7 +66,7 @@
 				</tr>
 			</thead>
 			{#each lignes as l (l.semaine.debut)}
-				{@const e = equipe(l.semaine.equipeId)}
+				{@const e = avecGroupe(equipe(l.semaine.equipeId), l.semaine)}
 				{@const mienne = mode === 'moi' && l.semaine.mienne}
 				<tbody style:--equipe={e.couleur} class:mienne>
 					<tr>

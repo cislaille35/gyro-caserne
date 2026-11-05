@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { EquipePlanning, SemaineCalculee } from '@gyro-caserne/socle';
+	import { avecGroupe } from './astreinte.ts';
 	import { duAu, finDeSemaine, jourLong, semainesParMois } from './dates.ts';
 	import { reperesDe, resumeDuMois, SIGNES, type Donnees, type Mode } from './vues.ts';
 
@@ -14,7 +15,7 @@
 		maintenant = ''
 	}: {
 		mode: Mode;
-		semaines: (SemaineCalculee & { mienne: boolean })[];
+		semaines: (SemaineCalculee & { mienne: boolean; groupe?: string | null })[];
 		equipes: EquipePlanning[];
 		donnees: Donnees;
 		moisOuvert: number;
@@ -47,7 +48,7 @@
 				{/if}
 				<ol role="list">
 					{#each liste as s (s.debut)}
-						{@const e = equipe(s.equipeId)}
+						{@const e = avecGroupe(equipe(s.equipeId), s)}
 						{@const r = reperesDe(s, donnees, mode)}
 						<li class="semaine" class:mienne={mode === 'moi' && s.mienne} class:discrete={mode === 'moi' && !s.mienne} style:--equipe={e.couleur}>
 							<p class="ligne">

@@ -38,7 +38,30 @@ describe('/remplacements', () => {
 		expect(vue.demande).toMatchObject({ etat: 'conclue', mot: 'Mariage', remplacant: { prenom: 'Bruno' } });
 		const miennes = await charger(load, locaux(jeu.base, jeu.alice), '/remplacements?onglet=miennes');
 		expect(miennes.miennes.map((v: { id: number }) => v.id)).toEqual([id]);
-		expect(await envoyer(actionsDetail, 'desister', locaux(jeu.base, jeu.bruno), [['id', String(id)]], { id: String(id) })).toEqual({ succes: expect.stringContaining('titulaire est prévenu') });
+		// Il ne remplace plus et la demande n'attend pas de lui : sa page ne lui est plus ouverte.
+		await expect(envoyer(actionsDetail, 'desister', locaux(jeu.base, jeu.bruno), [['id', String(id)]], { id: String(id) })).rejects.toMatchObject({ status: 303, location: '/remplacements?fait=desister' });
+	});
+
+	it('refuser depuis la page de la demande, qui ne regarde alors plus l’agent : retour à la liste, avec le résultat', async () => {
+		const jeu = await preparer();
+		const nuit = await premiereNuit(jeu);
+		await envoyer(actionsDemander, 'default', locaux(jeu.base, jeu.alice), [['periode', `${nuit.debut}|${nuit.fin}`], ['pour', 'tous']]).catch(() => null);
+		const { pourMoi } = await charger(load, locaux(jeu.base, jeu.bruno));
+		const id = String(pourMoi[0].id);
+		await expect(envoyer(actionsDetail, 'refuser', locaux(jeu.base, jeu.bruno), [['id', id]], { id })).rejects.toMatchObject({ status: 303, location: '/remplacements?fait=refuser' });
+		await expect(charger(detail, locaux(jeu.base, jeu.bruno), `/remplacements/${id}`, { id })).rejects.toMatchObject({ status: 403 });
+		expect((await charger(load, locaux(jeu.base, jeu.bruno), '/remplacements?fait=refuser')).fait).toBe('Demande refusée.');
+		expect((await charger(load, locaux(jeu.base, jeu.bruno), '/remplacements?fait=inconnu')).fait).toBeNull();
+	});
+
+	it('annuler depuis la page de la demande : on y reste, le valideur la voit toujours', async () => {
+		const jeu = await preparer();
+		const nuit = await premiereNuit(jeu);
+		await envoyer(actionsDemander, 'default', locaux(jeu.base, jeu.alice), [['periode', `${nuit.debut}|${nuit.fin}`], ['pour', 'tous']]).catch(() => null);
+		const { pourMoi } = await charger(load, locaux(jeu.base, jeu.bruno));
+		const id = String(pourMoi[0].id);
+		expect(await envoyer(actionsDetail, 'annuler', locaux(jeu.base, jeu.chef), [['id', id]], { id })).toEqual({ succes: 'Demande annulée.' });
+		expect((await charger(detail, locaux(jeu.base, jeu.chef), `/remplacements/${id}`, { id })).demande.etat).toBe('annulee');
 	});
 
 	it('rien de coché : un message ; destinataire non choisi : un message', async () => {

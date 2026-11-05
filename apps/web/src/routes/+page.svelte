@@ -23,6 +23,9 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
+	const vigilance = $derived(data.meteo.vigilance);
+	const bandeau = $derived(vigilance?.etat === 'ok' && vigilance.niveau >= 3 ? vigilance : null);
+	const discrete = $derived(vigilance && !bandeau ? vigilance : null);
 	const ambiance = $derived(data.meteo.meteo?.ambiance ?? null);
 	const aFaire = $derived(nombreAFaire(data.aNePasManquer));
 	const phrase = $derived(
@@ -63,6 +66,14 @@
 	{#if data.meteo.meteo}
 		<p class="meteo"><span class="masque">{'Temps au centre : '}</span><span class="source">{data.meteo.meteo.texte}</span> <a class="source" href="https://open-meteo.com/" rel="external">Météo : Open-Meteo</a></p>
 	{/if}
+	{#if discrete}
+		<p class="vigilance-discrete" class:niveau-1={discrete.etat === 'ok' && discrete.niveau === 1} class:niveau-2={discrete.etat === 'ok' && discrete.niveau === 2}>
+			<span class="jeton" aria-hidden="true"></span>
+			<a href="https://vigilance.meteofrance.fr/" rel="external"
+				>{#if discrete.etat === 'indisponible'}Vigilance indisponible, voir Météo-France{:else}{discrete.niveau === 1 ? 'Vigilance verte' : discrete.lignes.join(' ; ')}{#if discrete.lieu}<span class="source">{` · ${discrete.lieu}`}</span>{/if}{/if}</a
+			>
+		</p>
+	{/if}
 {/snippet}
 
 {#snippet decider(liste: { texte: string; lien: string }[])}
@@ -95,19 +106,19 @@
 
 <div class="page">
 	<TirerPourActualiser />
-	{#if data.meteo.vigilance}
-		<section class="vigilance" class:rouge={data.meteo.vigilance.niveau === 4} aria-label="Vigilance météo">
+	{#if bandeau}
+		<section class="vigilance" class:rouge={bandeau.niveau === 4} aria-label="Vigilance météo">
 			<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z M12 10v4 M12 17h.01" /></svg>
 			<div>
-				{#each data.meteo.vigilance.lignes as ligne (ligne)}<p class="ligne">{ligne}</p>{/each}
+				{#each bandeau.lignes as ligne (ligne)}<p class="ligne">{ligne}</p>{/each}
 				<a href="https://vigilance.meteofrance.fr/" rel="external">Consignes sur vigilance.meteofrance.fr</a>
 			</div>
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} />{/if}
+		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={data.meteo.meteo?.nuit} />{/if}
 		<div class="devant">
-			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
+			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
 		</div>
 	</div>
 
@@ -200,6 +211,42 @@
 		margin-left: 0.5ch;
 		color: var(--doux);
 		font-size: 0.8125rem;
+	}
+	.vigilance-discrete {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		margin: 6px 0 0;
+		font-size: 0.9375rem;
+		font-weight: 500;
+	}
+	.vigilance-discrete a {
+		color: var(--encre);
+	}
+	.vigilance-discrete .jeton {
+		flex: none;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		border: 1px solid var(--statut-neutre-trait);
+		background: var(--statut-neutre-fond);
+	}
+	.vigilance-discrete.niveau-1 .jeton {
+		border-color: var(--statut-ok-texte);
+		background: var(--statut-ok-trait);
+	}
+	.vigilance-discrete.niveau-2 {
+		font-size: 1rem;
+		font-weight: 600;
+	}
+	.vigilance-discrete.niveau-2 a {
+		color: var(--statut-alerte-texte);
+	}
+	.vigilance-discrete.niveau-2 .jeton {
+		width: 14px;
+		height: 14px;
+		border-color: var(--statut-alerte-texte);
+		background: #f2c200;
 	}
 	.vigilance {
 		display: flex;

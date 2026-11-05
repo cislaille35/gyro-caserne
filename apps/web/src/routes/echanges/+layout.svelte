@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
@@ -51,7 +52,7 @@
 	const apercu = (t: TuileMur) => (t.derniere ? `${t.derniere.auteur} : ${t.derniere.texte}` : 'Rien de publié pour l’instant');
 	const souhaiter = (prenom: string) => `/echanges/publier?mur=vie&texte=${encodeURIComponent(`Joyeux anniversaire ${prenom} !`)}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
-	const date = (iso: string, options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const jourCourt = (iso: string) => {
 		const d = date(iso, { weekday: 'short', day: 'numeric', month: 'short' });
 		return d.charAt(0).toUpperCase() + d.slice(1);

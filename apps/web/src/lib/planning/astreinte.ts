@@ -1,12 +1,16 @@
+import { formatDeDate } from '@gyro-caserne/socle/dates';
 import type { Astreinte } from '@gyro-caserne/socle';
 import { heure } from '../murs/quand.ts';
 
 // Les dates du planning sont à l'heure de Paris, lues telles quelles.
 const jour = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 const ecart = (de: string, a: string) => Math.round((jour(a).getTime() - jour(de).getTime()) / 864e5);
-const nomDuJour = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: 'UTC' }).format(jour(iso));
+const nomDuJour = (iso: string) => formatDeDate({ weekday: 'long', timeZone: 'UTC' }).format(jour(iso));
 // « ven. 20 nov. »
-const court = (iso: string) => new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(jour(iso)).replace(/(^|\s)1(?=\s)/, '$11er');
+const court = (iso: string) => formatDeDate({ weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(jour(iso)).replace(/(^|\s)1(?=\s)/, '$11er');
+
+// L'équipe telle qu'on l'affiche cette semaine-là : en été, son groupe.
+export const avecGroupe = <E extends { nom: string }>(e: E, s: { groupe?: string | null }): E => (s.groupe ? { ...e, nom: s.groupe } : e);
 
 // « ce soir 18 h », « demain 6 h », « lundi 6 h », vu d'aujourd'hui.
 export function quandRelatif(iso: string, maintenant: string): string {

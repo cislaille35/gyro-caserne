@@ -8,7 +8,7 @@
 		></span
 	>
 	<div>
-		<h2>Erreur {page.status}</h2>
+		<h2>Page indisponible</h2>
 		<p>{page.error?.message}</p>
 	</div>
 </div>

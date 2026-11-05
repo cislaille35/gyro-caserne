@@ -51,8 +51,13 @@ describe('texteMeteo', () => {
 });
 
 describe('lireOpenMeteo', () => {
+	it('is_day à 0 : la nuit', () => {
+		expect(lireOpenMeteo({ current: { temperature_2m: 10, weather_code: 0, is_day: 0 } })?.nuit).toBe(true);
+		expect(lireOpenMeteo({ current: { temperature_2m: 10, weather_code: 0, is_day: 1 } })?.nuit).toBe(false);
+	});
+
 	it('lit le temps du moment', () => {
-		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2 });
+		expect(lireOpenMeteo(averses)).toEqual({ temperature: 11.6, code: 80, rafales: 45.2, nuit: false });
 	});
 	it('rend null sur une réponse inattendue', () => {
 		expect(lireOpenMeteo(null)).toBeNull();
@@ -85,19 +90,43 @@ describe('lireVigilance', () => {
 
 describe('vueMeteo', () => {
 	const meteo = { temperature: 11.6, code: 80, rafales: 45.2 };
+	it('la nuit vient d’Open-Meteo ; un relevé plus ancien compte comme de jour', () => {
+		expect(vueMeteo({ meteo: { temperature: 12, code: 0, rafales: null, nuit: true }, vigilance: null }, '2026-11-04').meteo?.nuit).toBe(true);
+		expect(vueMeteo({ meteo: { temperature: 12, code: 0, rafales: null }, vigilance: null }, '2026-11-04').meteo?.nuit).toBe(false);
+	});
+
 	it('la ligne, l’ambiance et la vigilance dès l’orange, jour par jour', () => {
 		const jours = [
 			{ date: '2026-11-01', niveau: 4, phenomenes: ['vent violent'] },
 			{ date: '2026-11-02', niveau: 3, phenomenes: ['pluie-inondation', 'orages'] },
 			{ date: '2026-11-03', niveau: 4, phenomenes: ['orages'] }
 		];
-		expect(vueMeteo({ meteo, vigilance: jours }, '2026-11-02')).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' },
-			vigilance: { niveau: 4, lignes: ['Vigilance orange pluie-inondation et orages, aujourd’hui', 'Vigilance rouge orages, demain'] }
+		expect(vueMeteo({ meteo, vigilance: jours }, '2026-11-02', 'Ille-et-Vilaine')).toEqual({
+			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', nuit: false },
+			vigilance: { etat: 'ok', niveau: 4, lignes: ['Vigilance orange pluie-inondation et orages, aujourd’hui', 'Vigilance rouge orages, demain'], lieu: 'Ille-et-Vilaine' }
 		});
 	});
-	it('rien sous l’orange, rien sans relevé', () => {
-		expect(vueMeteo({ meteo: null, vigilance: [{ date: '2026-11-02', niveau: 2, phenomenes: ['orages'] }] }, '2026-11-02')).toEqual({ meteo: null, vigilance: null });
+	it('vert : le niveau seul ; jaune : le phénomène et le jour ; le plus élevé des deux jours décide', () => {
+		const vue = (jours: { date: string; niveau: number; phenomenes: string[] }[]) => vueMeteo({ meteo: null, vigilance: jours }, '2026-11-02', '35').vigilance;
+		expect(vue([{ date: '2026-11-02', niveau: 1, phenomenes: [] }, { date: '2026-11-03', niveau: 1, phenomenes: [] }])).toEqual({ etat: 'ok', niveau: 1, lignes: [], lieu: '35' });
+		expect(vue([{ date: '2026-11-02', niveau: 1, phenomenes: [] }, { date: '2026-11-03', niveau: 2, phenomenes: ['orages', 'vent violent'] }])).toEqual({
+			etat: 'ok',
+			niveau: 2,
+			lignes: ['Vigilance jaune orages et vent violent, demain'],
+			lieu: '35'
+		});
+		expect(vue([{ date: '2026-11-02', niveau: 2, phenomenes: ['orages'] }])).toMatchObject({ lignes: ['Vigilance jaune orages, aujourd’hui'] });
+		// Orange aujourd'hui, jaune demain : le bandeau ne parle que de l'orange.
+		expect(vue([{ date: '2026-11-02', niveau: 3, phenomenes: ['orages'] }, { date: '2026-11-03', niveau: 2, phenomenes: ['vent violent'] }])).toMatchObject({ niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'] });
+	});
+	it('passé minuit, le jour d’hier disparaît et « demain » devient « aujourd’hui »', () => {
+		const jours = [{ date: '2026-11-02', niveau: 3, phenomenes: ['orages'] }, { date: '2026-11-03', niveau: 2, phenomenes: ['vent violent'] }];
+		expect(vueMeteo({ meteo: null, vigilance: jours }, '2026-11-03', '35').vigilance).toEqual({ etat: 'ok', niveau: 2, lignes: ['Vigilance jaune vent violent, aujourd’hui'], lieu: '35' });
+	});
+	it('relevé indisponible : signalé ; sans relevé ou jours sans rapport : rien ou indisponible', () => {
+		expect(vueMeteo({ meteo: null, vigilance: 'indisponible' }, '2026-11-02').vigilance).toEqual({ etat: 'indisponible' });
+		expect(vueMeteo({ meteo: null, vigilance: [{ date: '2026-10-30', niveau: 1, phenomenes: [] }] }, '2026-11-02').vigilance).toEqual({ etat: 'indisponible' });
+		expect(vueMeteo({ meteo: null, vigilance: null }, '2026-11-02').vigilance).toBeNull();
 	});
 });
 
@@ -122,8 +151,36 @@ describe('mettreAJourReleves et relevesDe', () => {
 		expect(appels).toHaveLength(1);
 		expect(appels[0]!.url).toContain('latitude=48.1&longitude=-1.7');
 		const avant = base.requetes;
-		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2 }, vigilance: null });
+		expect(await relevesDe(base, '2026-11-02T10:30')).toEqual({ meteo: { temperature: 11.6, code: 80, rafales: 45.2, nuit: false }, vigilance: null });
 		expect(base.requetes - avant).toBe(1);
+	});
+
+	it('deux délais : la vigilance toutes les 15 minutes, la météo toutes les heures', async () => {
+		const base = await baseDeTest();
+		const r = reseau({ meteo: averses, vigilance: vigilance({ 1: 1 }) });
+		const vig = () => r.appels.filter((a) => a.url.startsWith(URL_VIGILANCE)).length;
+		for (const h of ['10:00', '10:05', '10:10']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, r.recuperer, 'cle');
+		expect(vig()).toBe(1);
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:15', r.recuperer, 'cle');
+		expect(vig()).toBe(2);
+		expect(r.appels).toHaveLength(3);
+		await mettreAJourReleves(base, lieu, '2026-11-02T11:00', r.recuperer, 'cle');
+		expect(r.appels).toHaveLength(5);
+	});
+
+	it('vigilance : valable moins de 2 heures, ensuite « indisponible » ; sans lecture réussie avec une clé : « indisponible » aussi', async () => {
+		const base = await baseDeTest();
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:00', reseau({ meteo: averses, vigilance: vigilance({ 1: 1 }) }).recuperer, 'cle');
+		expect((await relevesDe(base, '2026-11-02T11:59')).vigilance).toEqual([{ date: '2026-11-02', niveau: 1, phenomenes: [] }, { date: '2026-11-03', niveau: 1, phenomenes: [] }]);
+		expect((await relevesDe(base, '2026-11-02T12:00')).vigilance).toBe('indisponible');
+		// La météo garde sa règle des 6 heures.
+		expect((await relevesDe(base, '2026-11-02T12:00')).meteo).not.toBeNull();
+		const neuve = await baseDeTest();
+		await mettreAJourReleves(neuve, lieu, '2026-11-02T10:00', reseau({ meteo: averses }).recuperer, 'cle');
+		expect((await relevesDe(neuve, '2026-11-02T10:05')).vigilance).toBe('indisponible');
+		// Une lecture ratée ne remplace pas un bon relevé.
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:15', reseau({ meteo: averses }).recuperer, 'cle');
+		expect((await relevesDe(base, '2026-11-02T10:20')).vigilance).toHaveLength(2);
 	});
 
 	it('une fois par heure : un relevé récent n’est pas redemandé', async () => {
@@ -151,7 +208,7 @@ describe('mettreAJourReleves et relevesDe', () => {
 			throw new Error('réseau');
 		}) as typeof fetch;
 		await expect(mettreAJourReleves(base, lieu, '2026-11-02T10:00', panne, 'cle')).resolves.toBeUndefined();
-		expect(await relevesDe(base, '2026-11-02T10:00')).toEqual({ meteo: null, vigilance: null });
+		expect(await relevesDe(base, '2026-11-02T10:00')).toEqual({ meteo: null, vigilance: 'indisponible' });
 	});
 
 	it('sans clé, ou sans département, la vigilance n’est jamais demandée', async () => {
@@ -205,6 +262,16 @@ describe('passage au rouge', () => {
 		await mettreAJourReleves(base, lieu, '2026-11-02T13:00', reseau({ meteo: averses, vigilance: vigilance({ 3: 2 }) }).recuperer, 'cle');
 		await mettreAJourReleves(base, lieu, '2026-11-02T14:00', rouge, 'cle');
 		expect(await envois(base)).toHaveLength(2);
+	});
+
+	it('lue toutes les 15 minutes, l’alerte ne repart pas ; une lecture ratée au milieu non plus', async () => {
+		const base = await jeu();
+		const rouge = reseau({ meteo: averses, vigilance: vigilance({ 3: 4 }) }).recuperer;
+		const panne = reseau({ meteo: averses }).recuperer;
+		for (const h of ['10:00', '10:15', '10:30']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:45', panne, 'cle');
+		for (const h of ['11:00', '11:15', '11:30']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
+		expect(await envois(base)).toHaveLength(1);
 	});
 
 	it('l’orange ne prévient personne', async () => {

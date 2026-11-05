@@ -12,7 +12,7 @@ export type Fete = 'noel' | 'nouvel_an';
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
 // 0 pour lundi, 6 pour dimanche.
-export const rangDuJour = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
+export const rangDuJour = (date: string) => (new Date(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10))).getUTCDay() + 6) % 7;
 
 function paques(annee: number): string {
 	const a = annee % 19;

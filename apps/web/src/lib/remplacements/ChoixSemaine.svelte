@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { duAu, finDeSemaine } from '../planning/dates.ts';
 	import { pluriel } from '../pluriel.ts';
 	import { cle, plage, raccourcis, RAISONS, type Periode, type Tranche } from './guide.ts';
@@ -26,7 +27,7 @@
 	} = $props();
 
 	const libres = (s: { tranches: Tranche[] }) => s.tranches.filter((t) => t.etat === 'libre').length;
-	const format = (options: Intl.DateTimeFormatOptions, iso: string) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
+	const format = (options: Intl.DateTimeFormatOptions, iso: string) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
 	const jourEntier = (iso: string) => format({ weekday: 'long' }, iso);
 	const dateCourte = (iso: string) => format({ day: 'numeric', month: 'short' }, iso);
 	const coche = (t: Tranche) => choisies.some((p) => cle(p) === cle(t));

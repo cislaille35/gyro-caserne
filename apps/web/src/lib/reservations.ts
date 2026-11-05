@@ -1,3 +1,4 @@
+import { formatDeDate } from '@gyro-caserne/socle/dates';
 import { chevauche, jourCourt, restantParJour, type EtatReservation, type Prise, type Ressource } from '@gyro-caserne/socle';
 import { heure } from './murs/quand.ts';
 
@@ -18,7 +19,7 @@ export function etatAffiche(r: { etat: EtatReservation; fin: string }, aujourdhu
 
 const date = (jour: string) => new Date(`${jour.slice(0, 10)}T00:00:00Z`);
 const iso = (d: Date) => d.toISOString().slice(0, 10);
-const format = (options: Intl.DateTimeFormatOptions, jour: string) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(date(jour));
+const format = (options: Intl.DateTimeFormatOptions, jour: string) => formatDeDate({ ...options, timeZone: 'UTC' }).format(date(jour));
 
 export function decaler(jour: string, jours: number): string {
 	const d = date(jour);

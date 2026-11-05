@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { iconeDuComite, iconeDuRole, type Droit } from '@gyro-caserne/socle';
@@ -34,6 +35,7 @@
 
 	let ouvreArchives = $state(false);
 	const courant = (href: string) => page.url.pathname === href;
+	const dateCourte = (iso: string) => formatDeDate({ timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 </script>
 
 {#snippet role(r: Resp)}
@@ -97,11 +99,11 @@
 			<ul class="archives">
 				{#each archives as r (r.id)}
 					<li>
-						<Rangee href="/reglages/roles/{r.id}" courant={courant(`/reglages/roles/${r.id}`)} icone={iconeDuRole(r)} titre={r.nom} sous="Archivé le {new Date(`${r.archiveeLe}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC' })}" />
+						<Rangee href="/reglages/roles/{r.id}" courant={courant(`/reglages/roles/${r.id}`)} icone={iconeDuRole(r)} titre={r.nom} sous="Archivé le {dateCourte(r.archiveeLe!)}" />
 					</li>
 				{/each}
 				{#each dissous as c (c.id)}
-					<li class="dissous">{c.nom}, comité dissous le {new Date(`${c.dissousLe}T00:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC' })}</li>
+					<li class="dissous">{c.nom}, comité dissous le {dateCourte(c.dissousLe!)}</li>
 				{/each}
 			</ul>
 		</Groupe>

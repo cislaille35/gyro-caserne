@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
 	import type { Personne } from '@gyro-caserne/socle';
@@ -11,7 +12,7 @@
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
 	const noms = (liste: Personne[]) => (liste.length === 0 ? 'personne' : liste.map(nom).join(', '));
 	const quand = (iso: string) =>
-		new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+		formatDeDate({ day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
 	// Une seule zone annoncée par page, pour toutes les réponses des formulaires.
 	const annonceSucces = $derived(form?.succes ?? '');

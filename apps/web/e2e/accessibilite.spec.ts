@@ -615,14 +615,18 @@ test.describe('échanges', () => {
 		const { email } = await nouvelAgent(gestion);
 		await gestion.context().close();
 		const envois: Request[] = [];
-		page.on('request', (r) => {
+		// Un envoi passé par le service worker apparaît deux fois : vu de la page, et tel qu'il part vraiment vers le serveur, seul à porter sa longueur.
+		page.context().on('request', (r) => {
 			if (r.method() === 'POST') envois.push(r);
 		});
 		await connecter(page, email);
 		await page.goto('/echanges/vie');
 		await publier(page, { texte: `Essai d’envoi ${nouvelleMarque()}`, photo: await photoFictive(page) });
 		expect(envois.map((r) => new URL(r.url()).pathname + new URL(r.url()).search)).toEqual(expect.arrayContaining(['/connexion', '/echanges/publier?/publier']));
-		for (const r of envois) expect((await r.allHeaders())['content-length'], r.url()).toMatch(/^[1-9]\d*$/);
+		for (const url of new Set(envois.map((r) => r.url()))) {
+			const longueurs = await Promise.all(envois.filter((r) => r.url() === url).map(async (r) => (await r.allHeaders())['content-length']));
+			expect(longueurs.some((l) => /^[1-9]\d*$/.test(l ?? '')), url).toBe(true);
+		}
 	});
 });
 

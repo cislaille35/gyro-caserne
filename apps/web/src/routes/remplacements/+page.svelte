@@ -25,6 +25,7 @@
 		historique: { titre: 'Pas encore d’historique.', texte: 'Les demandes terminées, annulées ou expirées restent ici.' }
 	} as const;
 	const REMPLACER = 'M7 7h11l-3-3 M17 17H6l3 3';
+	const annonce = $derived(form?.succes ?? (data.personne ? data.fait : null) ?? '');
 </script>
 
 <svelte:head>
@@ -42,7 +43,7 @@
 			<a class="lien-secondaire" href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
 		</div>
 	{/if}
-	<p class="reussite" class:masque={!form?.succes} role="status">{form?.succes ?? ''}</p>
+	<p class="reussite" class:masque={!annonce} role="status">{annonce}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
 	{#if !data.personne}

@@ -130,7 +130,7 @@ describe('été : proposer, ajuster, publier', () => {
 		await publierEte(base, chef, 2027, maintenant, reglage);
 		await expect(proposerEte(base, chef, 2027, maintenant, reglage)).rejects.toThrow('Été déjà publié');
 		const avis = await base.select().from(avisEte);
-		expect(avis.find((x) => x.personneId === p.alice)!.texte).toBe('Planning d’été : vous êtes en renfort de l’Équipe 2 la semaine du vendredi 25 juin.');
+		expect(avis.find((x) => x.personneId === p.alice)!.texte).toBe('Planning d’été : vous êtes en renfort du Groupe B la semaine du vendredi 25 juin.');
 		expect(avis.find((x) => x.personneId === p.fred)!.texte).toBe('Planning d’été : vous n’êtes pas d’astreinte sur une partie de la semaine du vendredi 25 juin.');
 		expect(avis.some((x) => x.personneId === p.gina)).toBe(false);
 
@@ -151,7 +151,7 @@ describe('été : proposer, ajuster, publier', () => {
 		const lien = await monLienAgenda(base, a(p.alice), '2027-06-20T10:00');
 		const ics = (await agendaDe(base, `${lien}.ics`.replace('.ics', ''), '2027-06-20T10:00', reglage))!;
 		expect(ics).toContain('UID:astreinte-2027-06-25-1@gyro-caserne');
-		expect(ics).toMatch(/DTSTART:20270628T160000Z\r\nDTEND:20270629T040000Z\r\nSUMMARY:Astreinte · Équipe 2/);
+		expect(ics).toMatch(/DTSTART:20270628T160000Z\r\nDTEND:20270629T040000Z\r\nSUMMARY:Astreinte · Groupe B/);
 
 		const ctx = await lireContexte(base, '2027-06-20T10:00', reglage);
 		const nuitLundi = { debut: LUN, fin: '2027-06-29T06:00' };
@@ -183,9 +183,9 @@ describe('été : proposer, ajuster, publier', () => {
 		await proposerEte(base, chef, 2027, maintenant, reglage);
 		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
 		const feuille = d.feuilles.find((f) => f.nom === 'Été')!;
-		expect(feuille.entetes).toEqual(['N°', 'Agent', 'Équipe', '25/06 nuit', '26/06 24 h', '27/06 24 h', '28/06 nuit', '29/06 nuit', '30/06 nuit', '01/07 nuit']);
+		expect(feuille.entetes).toEqual(['N°', 'Agent', 'Groupe', '25/06 nuit', '26/06 24 h', '27/06 24 h', '28/06 nuit', '29/06 nuit', '30/06 nuit', '01/07 nuit']);
 		const ligne = (id: number) => feuille.lignes.find((l) => l[0] === String(id))!;
-		expect(ligne(p.alice)).toEqual([String(p.alice), 'Alice Test', 'Équipe 1', 'X', '', '', 'X', '', 'X', '']);
+		expect(ligne(p.alice)).toEqual([String(p.alice), 'Alice Test', 'Groupe A', 'X', '', '', 'X', '', 'X', '']);
 		expect(ligne(p.gina).slice(3)).toEqual(['', '', '', '', '', '', '']);
 		const lu = {
 			feuilles: { Été: [{ numero: 2, cellules: [...ligne(p.alice).slice(0, 3), '', '', '', 'X', '', 'X', ''] }, { numero: 3, cellules: [...ligne(p.hugo).slice(0, 3), 'X', ...ligne(p.hugo).slice(4)] }] },

@@ -1,14 +1,14 @@
-const format = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
-const heure = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+import { formatDeDate } from '@gyro-caserne/socle/dates';
+
 
 // Date du jour à Paris, au format AAAA-MM-JJ.
 export function aujourdhuiParis(date = new Date()): string {
-	return format.format(date);
+	return formatDeDate({ timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }, 'fr-CA').format(date);
 }
 
 // Date et heure de Paris, au format AAAA-MM-JJTHH:MM:SS.
 export function maintenantParis(date = new Date()): string {
-	return `${aujourdhuiParis(date)}T${heure.format(date)}`;
+	return `${aujourdhuiParis(date)}T${formatDeDate({ timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(date)}`;
 }
 
 // La même heure, sept jours plus tard, au format AAAA-MM-JJTHH:MM (clôture d'un sondage par défaut).

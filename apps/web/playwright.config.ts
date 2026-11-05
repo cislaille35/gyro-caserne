@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+// Pour que context.route voie aussi les requêtes du service worker (e2e/attente.spec.ts).
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1';
 import { ADRESSE } from './e2e/serveur.ts';
 
 // Tests d'accessibilité dans Chromium, à la taille d'un téléphone et d'un ordinateur.

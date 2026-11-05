@@ -50,6 +50,16 @@ describe('onglet Planning', () => {
 		expect(html).toContain('Ajouter à mon agenda');
 	});
 
+	it('semaine d’été : son groupe à la place de l’équipe, dans les vues et la carte ; le reste de l’année ne change pas', () => {
+		const ete = { ...publiee, semaines: semaines.map((s) => (s.debut === '2026-11-06' ? { ...s, groupe: 'Groupe A' } : { ...s, groupe: null })), prochaine: { ...publiee.prochaine, astreinte: { ...publiee.prochaine.astreinte, groupe: 'Groupe A' } } };
+		for (const vue of ['semaine', 'mois', 'annee']) {
+			const html = page({ planning: ete, vue });
+			expect(html).toContain('Groupe A');
+		}
+		expect(page({ planning: ete, vue: 'annee' })).toContain('Équipe 2');
+		expect(page({ planning: ete, vue: 'annee' })).not.toContain('Groupe B');
+	});
+
 	it('sans équipe : la carte de la semaine en cours, la vue des équipes', () => {
 		const sansEquipe = { ...publiee, monEquipe: null, semaines: semaines.map((s) => ({ ...s, mienne: false })), prochaine: { ...publiee.prochaine, astreinte: null } };
 		const html = page({ planning: sansEquipe, vue: 'equipes' });

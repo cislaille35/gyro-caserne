@@ -33,6 +33,13 @@ async function geste(locals: App.Locals, request: Request, faire: Geste, succes:
 const m = () => maintenantParis();
 const r = centre.astreinte;
 
+// Ces gestes peuvent faire perdre l'accès à la demande : leur résultat doit aussi pouvoir se dire sur la liste.
+export const RESULTATS = {
+	refuser: 'Demande refusée.',
+	desister: 'Vous ne remplacez plus : le titulaire est prévenu.',
+	refuserValidation: 'Remplacement refusé : la demande repart, les deux agents sont prévenus.'
+} as const;
+
 // Les gestes d'une demande, communs à la liste et au détail.
 export const gestesRemplacement = {
 	accepter: async ({ locals, request }: { locals: App.Locals; request: Request }) => {
@@ -46,11 +53,11 @@ export const gestesRemplacement = {
 		}
 		return { succes: etat === 'a_valider' ? 'Accepté : le chef de garde doit maintenant valider. Vous serez prévenu.' : 'Accepté : c’est conclu. Pensez à mettre à jour votre disponibilité dans l’appli du SDIS.' };
 	},
-	refuser: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => refuserDemande(b, a, id, m(), r), 'Demande refusée.'),
+	refuser: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => refuserDemande(b, a, id, m(), r), RESULTATS.refuser),
 	ouvrir: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => ouvrirATous(b, a, id, m(), r), 'Demande ouverte à tous les disponibles.'),
 	annuler: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => annulerDemande(b, a, id, m(), r), 'Demande annulée.'),
-	desister: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => desister(b, a, id, m(), r), 'Vous ne remplacez plus : le titulaire est prévenu.'),
+	desister: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => desister(b, a, id, m(), r), RESULTATS.desister),
 	valider: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => valider(b, a, id, m(), r), 'Remplacement validé : les deux agents sont prévenus.'),
 	refuserValidation: ({ locals, request }: { locals: App.Locals; request: Request }) =>
-		geste(locals, request, (b, a, id, f) => refuserValidation(b, a, id, typeof f.get('motif') === 'string' ? (f.get('motif') as string) : null, m(), r), 'Remplacement refusé : la demande repart, les deux agents sont prévenus.')
+		geste(locals, request, (b, a, id, f) => refuserValidation(b, a, id, typeof f.get('motif') === 'string' ? (f.get('motif') as string) : null, m(), r), RESULTATS.refuserValidation)
 };

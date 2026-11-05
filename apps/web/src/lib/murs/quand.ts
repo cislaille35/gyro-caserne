@@ -1,7 +1,8 @@
+import { formatDeDate } from '@gyro-caserne/socle/dates';
 import { aujourdhuiParis } from '../aujourdhui.ts';
 
 const jour = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
-const format = (options: Intl.DateTimeFormatOptions, iso: string) => new Intl.DateTimeFormat('fr-FR', { ...options, timeZone: 'UTC' }).format(jour(iso));
+const format = (options: Intl.DateTimeFormatOptions, iso: string) => formatDeDate({ ...options, timeZone: 'UTC' }).format(jour(iso));
 
 // « 9 h », « 14 h 05 »
 export function heure(iso: string): string {

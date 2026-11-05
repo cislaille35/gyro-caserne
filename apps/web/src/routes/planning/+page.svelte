@@ -8,7 +8,7 @@
 	import VueAnnee from '#lib/planning/VueAnnee.svelte';
 	import VueMois from '#lib/planning/VueMois.svelte';
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
-	import { phraseAstreinte } from '#lib/planning/astreinte.ts';
+	import { avecGroupe, phraseAstreinte } from '#lib/planning/astreinte.ts';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
 	import { ETATS, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -46,11 +46,11 @@
 	const carte = $derived.by((): Astreinte | null => {
 		if (!p.publiee) return null;
 		const a = p.prochaine.astreinte;
-		if (a) return { ...a, equipe: equipe(a.equipeId), mienne: true };
+		if (a) return { ...a, equipe: avecGroupe(equipe(a.equipeId), a), mienne: true };
 		// Avec une équipe et sans prochaine astreinte : l'année suivante n'est pas publiée.
 		if (mode === 'moi') return null;
 		const s = p.semaines.find((x) => x.periodes[0]!.debut <= m && m < x.periodes.at(-1)!.fin);
-		return s ? { debut: s.periodes[0]!.debut, fin: s.periodes.at(-1)!.fin, periodes: s.periodes, equipe: equipe(s.equipeId), enCours: true, mienne: false } : null;
+		return s ? { debut: s.periodes[0]!.debut, fin: s.periodes.at(-1)!.fin, periodes: s.periodes, equipe: avecGroupe(equipe(s.equipeId), s), enCours: true, mienne: false } : null;
 	});
 	const phrase = $derived(
 		!p.publiee
@@ -167,7 +167,7 @@
 				</nav>
 
 				{#if data.vue === 'semaine' && semaine}
-					<VueSemaine {semaine} equipe={equipe(semaine.equipeId)} {donnees} {mode} {precedente} {suivante} maintenant={m} />
+					<VueSemaine {semaine} equipe={avecGroupe(equipe(semaine.equipeId), semaine)} {donnees} {mode} {precedente} {suivante} maintenant={m} />
 				{:else if data.vue === 'mois'}
 					<VueMois mois={data.mois} semaines={p.semaines} equipes={p.equipes} {donnees} {mode} precedent={moisPrecedent} suivant={moisSuivant} lienJour={(s, j) => `${lien({ vue: 'semaine', semaine: s })}#jour-${j}`} maintenant={m} />
 				{:else}
