@@ -32,6 +32,7 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
   2. **PR** : sa description est le compte rendu (voir plus bas) ;
   3. le porteur valide ou refuse ;
   4. Claude fusionne la PR en **un seul commit** (squash) et le confirme.
+- Refonte de l'interface : les lots passent par la branche `refonte-ui`, avec leurs propres règles de fusion (décision 0022).
 - Déploiement (à mettre en place) : chaque fusion sur `main` part en **préprod**. La **production** ne part que d'un **tag** `vX.Y.Z` sur `main`, posé par Claude après accord du porteur.
 
 ## Terminé, c'est
