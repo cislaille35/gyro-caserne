@@ -26,7 +26,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## Couper
 
-- **Un mur ou une conversation** : la cloche dans son en-tête (barrée quand c'est coupé). Une coupure vaut pour tout ce qui vient de ce lieu, commentaires sous ses propres publications compris.
+- **Un mur ou une conversation** : le haut-parleur dans son en-tête (barré quand c'est coupé). Une seule cloche à l'écran : celle de l'appli. Une coupure vaut pour tout ce qui vient de ce lieu, commentaires sous ses propres publications compris.
 - **Tout** : l'interrupteur « Tout couper » de Moi → Notifications, qui liste aussi ce qui est coupé, avec « Réactiver ».
 - Couper ne retire que le son du téléphone : la cloche de l'appli montre toujours tout. Aucune notification n'est impossible à couper.
 
