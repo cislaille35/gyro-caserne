@@ -45,8 +45,8 @@
 	]);
 	// Ce qui attend une décision passe avant tout le reste, sur toutes les casquettes.
 	const enTete = $derived(data.contenu.type === 'astreinte' ? [] : data.contenu.aDecider);
-	// « Mon astreinte » n'a rien à montrer à côté de « À ne pas manquer ».
-	const seule = $derived(data.contenu.type === 'astreinte');
+	// Rien à montrer à côté de « À ne pas manquer » : « Mon astreinte », et le chef de garde quand « À décider » est passé en tête.
+	const seule = $derived(data.contenu.type === 'astreinte' || (data.contenu.type === 'equipe' && enTete.length > 0));
 
 	// « À décider » : les trois premiers, le reste derrière « Voir les autres ».
 	const VISIBLES = 3;
@@ -137,11 +137,9 @@
 						{/each}
 					</ListeRangees>
 				{:else if data.contenu.type === 'equipe'}
-					{#if enTete.length === 0}
-						<ListeRangees titre="À décider">
-							<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
-						</ListeRangees>
-					{/if}
+					<ListeRangees titre="À décider">
+						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
+					</ListeRangees>
 				{:else if data.contenu.type === 'role'}
 					<ListeRangees titre="Ce que ce rôle permet">
 						{#each data.contenu.permet as permis (permis)}

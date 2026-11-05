@@ -53,7 +53,7 @@ En option, un **sondage** : une question, 2 à 6 réponses, une seule par person
 
 Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
 
-### Selon le niveau de vie
+### Selon la présence de Gyro
 
 Couleurs, visages et cartes restent à tous les niveaux. Gyro (en-tête, bravo) n'apparaît pas en Sobre, reste immobile en Équilibré et s'anime une fois à l'arrivée en Vivant ; « Réduire les animations » l'arrête. La phrase d'en-tête prend une pointe d'humour en Vivant.
 

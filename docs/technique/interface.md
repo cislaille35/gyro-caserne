@@ -55,7 +55,7 @@ Sur l'accueil (`/`), une casquette par rôle tenu (`accueilDe` du socle) : « Le
 ## Pages
 
 - `/` : l'accueil, Gyro, la carte d'astreinte (lien « Faire la prise de garde » pour son équipe, de 2 h avant à 24 h après la relève, `priseDeGardeOuverte`), « À décider » s'il n'est pas vide, « À ne pas manquer » (`ANePasManquer.svelte`, absente si rien n'attend), et à côté ce qui reste de la casquette choisie (voir plus haut) ; « Mon astreinte » n'a qu'une colonne. Actions `?/prendreConnaissance` et `?/repondre` (envoyées vers `?casquette=<choisie>&/<action>` : la casquette reste sans JavaScript).
-- `/caserne` : liens vers « Agents », et selon les droits « Nominations », « Réglages » ; « Engins » et « Comités » à venir.
+- `/caserne` : liens vers « Agents », et selon les droits « Nominations », « Réglages » ; « Engins », « Anomalies » et « Réservations » ; « Comités » à venir.
 - `/moi` : « Mon profil », « Affichage », « Se déconnecter ».
 - `/planning` : les vues sous le titre, la carte d'astreinte condensée et le lien « Remplacements » (avec le nombre de demandes à traiter), puis le calendrier et « À venir » (dessous au téléphone, à côté à partir de 1024 px). Le même ordre de lecture et de tabulation aux deux tailles.
 - `/notifications` (la cloche) : pour qui modère la messagerie (`signalementsDe`, liste vide pour les autres), « Messages signalés » en tête : texte copié, photos copiées (`GET /notifications/signalements/[id]/photo/[photo]`, `photoSignalee`, `Cache-Control: private, no-store`, 404 sans le droit), auteur, date, qui a signalé ; actions `?/retirer` (toujours confirmée : `<dialog>` avec JavaScript, sinon le lien `?retirer=<id>` l'ouvre dans la carte, comme `?quitter` des infos) et `?/classer`, réussite dans la zone `role="status"`, refus dans `role="alert"`, focus sur le titre de la section. Puis le fil (`filDeNotifications`) : « Aujourd’hui » puis « Plus tôt », une ligne par publication ou commentaire reçu (visage de l'auteur, « … a publié dans … » ou « … a commenté votre publication », extrait, heure), lien vers la publication ; non lue : liseré, gras, point et « Non lu, » pour les lecteurs d'écran ; « Tout marquer comme lu » (`?/toutLu`) dans l'en-tête s'il y a du non-lu ; sinon « Rien de nouveau pour vous. ». Le nombre de la cloche est calculé dans le layout racine (`lireEnTete` : non-lues par `enTeteDe`, une lecture, plus les signalements, super administrateur compris ; 0 en cas de panne de lecture).
@@ -134,7 +134,7 @@ Dans `src/lib/ui/` :
 Dans `src/lib/gyro/` :
 
 - `Gyro.svelte` : le dessin, ses 42 tenues et leurs animations ; `decoratif` le cache aux lecteurs d'écran, sinon il est décrit par le libellé de sa tenue.
-- `GyroDuMoment.svelte` : Gyro selon le niveau de vie, dans la tenue du moment.
+- `GyroDuMoment.svelte` : Gyro selon le réglage « Présence de Gyro » (`niveau`), dans la tenue du moment.
 - `moment.ts` : tenue du moment, à l'heure de Paris. Priorité : fête du jour, nuit (23 h-6 h), p'tit-déj (6 h-10 h), calendriers (novembre et décembre), saison, normal.
 - `GyroAccueil.svelte` : sur l'accueil, Gyro est un bouton (le dessin ne contient donc aucun texte : un texte visible contredirait le nom du bouton, WCAG 2.5.3) ; cinq appuis en 2 s (doigt, Entrée ou Espace) allument son gyrophare et affichent « pin-pon ! ».
 

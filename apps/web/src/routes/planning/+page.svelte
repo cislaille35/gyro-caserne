@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { enhance } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
@@ -82,6 +82,12 @@
 	const reussite = $derived(form && 'succes' in form ? String(form.succes) : '');
 	const echec = $derived(form && 'message' in form && !('succes' in form) ? String(form.message) : '');
 
+	// Après une réponse, SvelteKit remet le focus en haut de la page : on le rend au bouton, sous le calendrier au téléphone.
+	const garderFocus: SubmitFunction = ({ submitter }) => async ({ update }) => {
+		await update({ reset: false });
+		if (submitter instanceof HTMLElement && submitter.isConnected) submitter.focus();
+	};
+
 	// La dernière vue choisie est retenue sur l'appareil.
 	const retenir = (vue: string) => {
 		try {
@@ -129,7 +135,7 @@
 		<div class="acces">
 			{#if carte}<CarteAstreinte a={carte} maintenant={m} />{/if}
 			<a class="remplacements" href="/remplacements"
-				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.echanges} /></svg>Remplacements{#if aTraiter > 0}<Pastille ton="alerte">{aTraiter} à traiter</Pastille>{/if}</a
+				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.echanges} /></svg>Remplacements{#if aTraiter > 0}{' '}<Pastille ton="alerte">{aTraiter} à traiter</Pastille>{/if}</a
 			>
 		</div>
 
@@ -160,7 +166,7 @@
 								<Rangee titre={manoeuvre.theme} sous="Manœuvre · {momentLong(manoeuvre.debut)} · {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ' · petit-déjeuner' : ''}">
 									{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
 									{#if manoeuvre.publicationId}
-										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={() => async ({ update }) => update({ reset: false })}>
+										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={garderFocus}>
 											<input type="hidden" name="id" value={manoeuvre.publicationId} />
 											<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
 											<div role="group" aria-labelledby="reponse-manoeuvre" class="boutons">
@@ -327,9 +333,14 @@
 		font: 600 0.9375rem var(--police);
 		cursor: pointer;
 	}
+	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.bascule[aria-pressed='true'] {
 		border-color: var(--encre);
 		background: var(--encre);
 		color: var(--surface);
+	}
+	.bascule[aria-pressed='true']::before {
+		content: '✓ ';
+		content: '✓ ' / '';
 	}
 </style>

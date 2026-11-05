@@ -70,6 +70,8 @@ describe('jetons', () => {
 		// Le numéro de semaine et les jours hors du mois sur « ma semaine » : à l'encre, seule couleur sûre sur toute bande.
 		expect(vue).toMatch(/\.numero \{[^}]*color: var\(--encre\)/);
 		expect(vue).toMatch(/\.mienne \.hors a \{[^}]*color: var\(--encre\)/);
+		// Sur « ma semaine », seule la taille distingue alors les jours hors du mois : jamais la couleur seule.
+		expect(vue).toMatch(/\.hors \.jour \{[^}]*font-size: 0\.8125rem/);
 		for (const equipe of ['#d4a017', '#c2185b', '#1565c0', '#2e7d32', '#8a949e', '#ffffff', '#000000'])
 			for (const part of [0.1, 0.22, 0.3]) expect(contraste(t.encre, melange(equipe, part, t.surface)), `${equipe} à ${part}`).toBeGreaterThanOrEqual(4.5);
 	});

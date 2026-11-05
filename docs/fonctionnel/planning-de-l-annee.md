@@ -37,13 +37,14 @@ Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouv
 ## Ce que voit l'agent
 
 - **Accueil** : une carte d'astreinte en tête, à la couleur de son équipe (toujours nommée) : « Votre équipe est d'astreinte dans 19 jours — du ven. 20 nov. 18 h au ven. 27 nov. 6 h », ou « Vous êtes d'astreinte jusqu'à vendredi 6 h » et la prochaine plage. Sans équipe (chef de centre) : « Cette semaine : Équipe 2 d'astreinte ». Elle mène au Planning.
-- **Planning** : une phrase vivante en tête, la même carte avec « Me faire remplacer » et « Ajouter à mon agenda », puis **À venir** : la prochaine manœuvre (réponse Présent / Absent / Incertain sur place une fois annoncée), la garde de fête de son équipe, ses remplacements en cours.
+- **Accueil, à la relève** : la carte porte aussi « Faire la prise de garde », de 2 h avant à 24 h après le début de l'astreinte.
+- **Planning** : une phrase vivante en tête, les **vues**, la même carte condensée avec « Me faire remplacer » et « Ajouter à mon agenda », le lien « Remplacements » avec le nombre de demandes à traiter, le calendrier, puis **À venir** : la prochaine manœuvre (réponse Présent / Absent / Incertain sur place une fois annoncée), la garde de fête de son équipe, ses remplacements en cours.
 - Quatre **vues** en puces, la dernière retenue sur l'appareil :
   - **Semaine** : du jour de relève à la veille de la suivante, jour par jour, les plages réelles (« 18 h – 6 h », « 24 h »), l'équipe, « X remplace Y », manœuvres, fériés ; flèches semaine précédente et suivante.
   - **Mois** : par semaine d'astreinte (du vendredi au jeudi), une bande à la couleur de l'équipe, numéro et équipe écrits, au-dessus de ses sept jours (des cases d'au moins 44 px au téléphone) ; marques pour manœuvre, férié, fête (25 et 31 décembre), vacances, dites en toutes lettres sous la grille ; toucher un jour ouvre sa semaine.
   - **Année** : douze mois repliés sauf le mois en cours, chacun résumé (« 1 astreinte · 1 manœuvre · 1 férié ») ; « Seulement mes semaines ».
   - **Équipes** : la même présentation, pour toutes les équipes. Un agent sans équipe la voit d'emblée.
-- À l'ordinateur, deux colonnes : la carte et « À venir » à gauche, la vue à droite.
+- À l'ordinateur, deux colonnes : le calendrier en grand, « À venir » à côté ; la carte et les remplacements au-dessus.
 - L'équipe de l'agent est celle de **la date** de chaque semaine : un changement d'équipe en cours d'année est suivi.
 
 ## Manœuvres annoncées toutes seules

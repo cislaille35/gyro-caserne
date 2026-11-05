@@ -423,7 +423,6 @@ async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) =
 	return bloc;
 }
 
-// Une page du super administrateur, dans le thème voulu.
 // À 390 px : un titre sur plusieurs lignes ne mord plus sur sa sous-ligne, et les trois réponses tiennent sur une ligne.
 test.describe('accueil au téléphone', () => {
 	test.use({ storageState: ETAT_CONNECTE });
@@ -462,6 +461,7 @@ test.describe('accueil au téléphone', () => {
 	});
 });
 
+// Une page du super administrateur, dans le thème voulu.
 async function pageSuper(browser: Browser, theme?: string): Promise<Page> {
 	const contexte = await browser.newContext({ storageState: ETAT_SUPER });
 	if (theme) await contexte.addCookies([{ name: 'theme', value: theme, url: ADRESSE }]);

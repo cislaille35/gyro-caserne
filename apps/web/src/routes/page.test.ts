@@ -176,7 +176,6 @@ describe('accueil', () => {
 
 		it.each([
 			['le centre', centre, { type: 'centre', aDecider }],
-			['un chef de garde', { id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, { type: 'equipe', aDecider }],
 			['un rôle', { id: 'role:6', nom: 'Référent', icone: 'camion', compte: 1 }, { type: 'role', permet: [], aDecider }],
 			['un comité', { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 1 }, { type: 'comite', membres: [], aDecider }]
 		])('%s : avant « À ne pas manquer », dans la première colonne', (_nom, casquette, contenu) => {
@@ -186,6 +185,13 @@ describe('accueil', () => {
 			expect(colonnes(html)[0]).toContain('À décider');
 			expect(colonnes(html)[0]).toContain('À ne pas manquer');
 			expect(colonnes(html)[1]).not.toContain('À décider');
+		});
+
+		it('un chef de garde : en tête, sans colonne vide à côté', () => {
+			const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', aNePasManquer, contenu: { type: 'equipe', aDecider } });
+			expect(html.indexOf('À décider')).toBeLessThan(html.indexOf('À ne pas manquer'));
+			expect(colonnes(html)).toHaveLength(1);
+			expect(html).toMatch(/class="colonnes[^"]*seule/);
 		});
 
 		it('rien à décider : « À ne pas manquer » d’abord, la phrase vraie à côté', () => {
