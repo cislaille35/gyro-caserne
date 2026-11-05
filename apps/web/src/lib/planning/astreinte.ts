@@ -20,13 +20,6 @@ export function quandRelatif(iso: string, maintenant: string): string {
 	return `${nomDuJour(iso)} ${heure(iso)}`;
 }
 
-// Le lien vers la prise de garde : de 2 h avant la relève (décision 0018) à 24 h après, pas toute la semaine.
-const minute = (iso: string) => Date.parse(`${iso.slice(0, 16)}:00Z`) / 6e4;
-export function priseDeGardeOuverte(debut: string, maintenant: string): boolean {
-	const ecoulees = minute(maintenant) - minute(debut);
-	return ecoulees >= -2 * 60 && ecoulees <= 24 * 60;
-}
-
 export const duAuCourt = (debut: string, fin: string) => `du ${court(debut)} ${heure(debut)} au ${court(fin)} ${heure(fin)}`;
 
 // Ce que dit la carte astreinte, à l'Accueil comme au Planning.

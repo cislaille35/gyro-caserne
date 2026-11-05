@@ -3,9 +3,6 @@
 	import Frise from '#lib/remplacements/Frise.svelte';
 	import { frise, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
-	import ListeRangees from '#lib/ui/ListeRangees.svelte';
-	import Pastille from '#lib/ui/Pastille.svelte';
-	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
 
@@ -13,6 +10,12 @@
 	const v = $derived(data.demande);
 	const nom = (q: { prenom: string; nom: string }) => `${q.prenom} ${q.nom}`.trim();
 	const envoyee = $derived(data.envoyee && v.moi === 'demandeur');
+	const groupes = $derived(
+		[
+			{ titre: 'Sans validation', phrase: 'Ont vos aptitudes contrôlées.', agents: data.disponibles.filter((a) => a.aptitudes) },
+			{ titre: 'À faire valider par le chef', phrase: 'Il leur manque une de vos aptitudes contrôlées.', agents: data.disponibles.filter((a) => !a.aptitudes) }
+		].filter((g) => g.agents.length > 0)
+	);
 	const sdis = $derived(v.etat === 'conclue' && v.genre !== 'manoeuvre' && (v.moi === 'demandeur' || v.moi === 'remplacant'));
 </script>
 
@@ -37,18 +40,22 @@
 	<CarteDemande {v} detail={false} niveau={2} />
 
 	{#if v.moi === 'demandeur' && v.ouverte && v.etat === 'attente'}
-		<ListeRangees titre="Disponibles" compte={data.disponibles.length}>
-			{#each data.disponibles as a (a.id)}
-				<li>
-					<Rangee titre={nom(a)} sous={a.aptitudes ? 'A vos aptitudes contrôlées' : 'Il lui manque une de vos aptitudes contrôlées : le chef devra valider'}>
-						{#snippet tete()}<Visage prenom={a.prenom} nom={a.nom} couleur={null} taille={40} />{/snippet}
-						{#snippet droite()}{#if a.aptitudes}<Pastille ton="ok">Aptitudes</Pastille>{/if}{/snippet}
-					</Rangee>
-				</li>
+		<section class="disponibles" aria-labelledby="titre-disponibles">
+			<h2 id="titre-disponibles" class="rubrique">Disponibles{#if data.disponibles.length}{' '}<span class="compte">{data.disponibles.length}</span>{/if}</h2>
+			{#each groupes as g (g.titre)}
+				<section class="carte groupe" aria-label={g.titre}>
+					<h3>{g.titre} <span class="compte">{g.agents.length}</span></h3>
+					<p class="doux">{g.phrase}</p>
+					<ul role="list">
+						{#each g.agents as a (a.id)}
+							<li><Visage prenom={a.prenom} nom={a.nom} couleur={null} taille={30} /><span>{nom(a)}</span></li>
+						{/each}
+					</ul>
+				</section>
 			{:else}
-				<li><Rangee titre="Personne n’est disponible sur ces périodes pour le moment." icone="groupe" /></li>
+				<p class="carte">Personne n’est disponible sur ces périodes pour le moment.</p>
 			{/each}
-		</ListeRangees>
+		</section>
 		{#if data.recue !== null}<p class="doux">Demande envoyée à {pluriel(data.recue, 'collègue')}, prévenus en même temps.</p>{/if}
 	{/if}
 
@@ -75,6 +82,50 @@
 		background: var(--surface);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
+	}
+	.disponibles,
+	.groupe {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.rubrique,
+	h3 {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+	}
+	h3 {
+		font: 700 1.0625rem var(--police-titre);
+	}
+	.compte {
+		min-width: 24px;
+		height: 24px;
+		padding: 0 7px;
+		border-radius: 12px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
+		font: 700 0.8125rem var(--police);
+	}
+	/* Des noms à lire, sans geste : ils tiennent sur plusieurs colonnes dès que la place le permet. */
+	ul {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+		gap: 8px 12px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.sdis {
 		padding: 12px 14px;

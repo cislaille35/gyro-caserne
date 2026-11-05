@@ -101,18 +101,16 @@ describe('accueil', () => {
 	describe('lien vers la prise de garde', () => {
 		const periodes = [{ debut: '2026-11-06T18:00', fin: '2026-11-09T06:00' }];
 		const carte = (autres = {}) => ({ debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: true, mienne: true, periodes, ...autres });
-		const accueil = (a: unknown, maintenant: string) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant });
+		const accueil = (a: unknown, priseOuverte: boolean) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, priseOuverte, maintenant: '2026-11-06T18:30' });
 		const LIEN = /<a[^>]*href="\/engins\/prise"[^>]*>[\s\S]*?Faire la prise de garde/;
 
-		it('mon astreinte : de 2 h avant la relève à 24 h après, et pas le reste de la semaine', () => {
-			expect(accueil(carte({ enCours: false }), '2026-11-06T16:00')).toMatch(LIEN);
-			expect(accueil(carte(), '2026-11-07T18:00')).toMatch(LIEN);
-			expect(accueil(carte({ enCours: false }), '2026-11-06T15:59')).not.toContain('/engins/prise');
-			expect(accueil(carte(), '2026-11-09T09:00')).not.toContain('/engins/prise');
+		it('présent seulement quand la fenêtre de la relève est ouverte', () => {
+			expect(accueil(carte(), true)).toMatch(LIEN);
+			expect(accueil(carte(), false)).not.toContain('/engins/prise');
 		});
 
 		it('l’astreinte d’une autre équipe : pas de lien', () => {
-			expect(accueil(carte({ mienne: false }), '2026-11-06T18:30')).not.toContain('/engins/prise');
+			expect(accueil(carte({ mienne: false }), true)).not.toContain('/engins/prise');
 		});
 	});
 

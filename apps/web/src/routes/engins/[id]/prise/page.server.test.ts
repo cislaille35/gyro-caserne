@@ -25,8 +25,8 @@ describe('/engins/[id]/prise', () => {
 		const ecart = await agir('geste', moi, vsav, [['prise', id], ['quoi', 'ecart'], ['element', String(gilets.ref)], ['zone', String(fiche.zones[0]!.ref)], ['genre', 'manquant'], ['manque', '1'], ['note', 'Sous le siège'], ['photo', jpeg()]]);
 		expect(ecart).toMatchObject({ succes: 'Écart enregistré.', zone: fiche.zones[0]!.ref });
 		expect(await agir('valider', moi, vsav, [['prise', id]])).toMatchObject({ status: 400, data: { message: expect.stringMatching(/zones à voir/) } });
-		// « Tout est complet » : la zone reste ouverte (un écart s'y signale encore) ; la page ouvre aussi la suivante à voir.
-		for (const z of fiche.zones) expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']])).toMatchObject({ zone: z.ref, succes: 'Zone complète.' });
+		// « Tout est complet » : la page passe à la zone suivante à voir et propose d'annuler.
+		for (const z of fiche.zones) expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'zone'], ['zone', String(z.ref)], ['vue', '1']])).toMatchObject({ zone: null, zoneFaite: z.ref, succes: 'Zone complète.' });
 		// Une zone marquée complète accepte encore un écart.
 		const radio = fiche.zones[0]!.elements.find((e) => e.quantite === null)!;
 		expect(await agir('geste', moi, vsav, [['prise', id], ['quoi', 'ecart'], ['element', String(radio.ref)], ['zone', String(fiche.zones[0]!.ref)], ['genre', 'abime']])).toMatchObject({ succes: 'Écart enregistré.' });
@@ -52,6 +52,41 @@ describe('/engins/[id]/prise', () => {
 		await agir('commencer', locaux(base, alice), vsav, []);
 		const [p] = await base.select().from(priseGarde);
 		await expect(agir('abandonner', locaux(base, alice), vsav, [['prise', String(p!.id)]])).rejects.toMatchObject({ status: 303, location: `/engins/${vsav}/prise` });
+		expect(await base.select().from(priseGarde)).toHaveLength(0);
+	});
+
+	it('lire ne crée rien ; le premier « Tout est complet » commence la prise', async () => {
+		const { base, alice, vsav, types } = await preparer();
+		const moi = locaux(base, alice);
+		const vue = await charger(moi, vsav);
+		expect(vue.prise).toBeNull();
+		expect(vue.zones.length).toBeGreaterThan(0);
+		expect(await base.select().from(priseGarde)).toHaveLength(0);
+		const zone = (await lireFiche(base, types.VSAV)).zones[0]!;
+		expect(await agir('geste', moi, vsav, [['prise', ''], ['quoi', 'zone'], ['zone', String(zone.ref)], ['vue', '1'], ['cible', `zone:${zone.ref}`]])).toMatchObject({ zone: null, zoneFaite: zone.ref, succes: 'Zone complète.' });
+		const apres = await charger(moi, vsav);
+		expect(apres.prise.saisie.zones).toEqual([zone.ref]);
+		expect(apres.prise.commenceePar).toBe('Alice Test');
+		// Annuler garde la zone à l'écran et le brouillon.
+		expect(await agir('geste', moi, vsav, [['prise', String(apres.prise.id)], ['quoi', 'zone'], ['zone', String(zone.ref)], ['vue', '0']])).toMatchObject({ zone: zone.ref, succes: 'Zone enregistrée.' });
+		expect((await charger(moi, vsav)).prise.saisie.zones).toEqual([]);
+	});
+
+	it('premier geste sans le droit, ou sur un engin parti : refus dit sur la page, aucun brouillon ; sans droit, peutFaire est faux', async () => {
+		const { base, sans, alice, vsav, parti, types } = await preparer();
+		const zone = String((await lireFiche(base, types.VSAV)).zones[0]!.ref);
+		const corps: [string, string][] = [['prise', ''], ['quoi', 'zone'], ['zone', zone], ['vue', '1'], ['cible', `zone:${zone}`]];
+		expect((await charger(locaux(base, alice), parti)).peutFaire).toBe(false);
+		expect(await agir('geste', locaux(base, alice), parti, corps)).toMatchObject({ status: 400 });
+		expect(await base.select().from(priseGarde)).toHaveLength(0);
+		await expect(agir('geste', locaux(base, sans), vsav, corps)).rejects.toMatchObject({ status: 403 });
+		expect(await base.select().from(priseGarde)).toHaveLength(0);
+	});
+
+	it('un identifiant de prise mal écrit ne commence rien', async () => {
+		const { base, alice, vsav, types } = await preparer();
+		const zone = String((await lireFiche(base, types.VSAV)).zones[0]!.ref);
+		expect(await agir('geste', locaux(base, alice), vsav, [['prise', 'abc'], ['quoi', 'zone'], ['zone', zone], ['vue', '1']])).toMatchObject({ status: 400 });
 		expect(await base.select().from(priseGarde)).toHaveLength(0);
 	});
 

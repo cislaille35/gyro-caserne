@@ -10,9 +10,11 @@ import {
 	commencerPrise,
 	gestePrise,
 	historiquePrises,
+	lienPriseOuvert,
 	lirePrise,
 	lirePriseFaite,
 	photoAnomalie,
+	premierGestePrise,
 	prisesDeLaReleve,
 	prisesEnRetard,
 	releveDe,
@@ -20,7 +22,8 @@ import {
 	validerPrise
 } from '../src/prises.ts';
 import { accueilDe, casquettesDe } from '../src/casquettes.ts';
-import { anomalie, attribution, engin, equipe, ficheVersion, personne, priseGarde } from '../src/schema.ts';
+import { RefusDroit } from '../src/erreurs.ts';
+import { anomalie, attribution, engin, equipe, ficheVersion, notification, personne, priseGarde } from '../src/schema.ts';
 import { photo as octets } from '../src/schema-photos.ts';
 import { jeuEngins } from './de-test-engins.ts';
 
@@ -64,6 +67,47 @@ describe('relève', () => {
 		// Le vendredi 1er janvier 2027 : la relève appartient à 2027.
 		expect(releveDe('2027-01-01T08:00', reglage)).toBe('2026-12-25T18:00');
 		expect(releveDe('2027-01-02T10:00', reglage)).toBe('2027-01-01T18:00');
+	});
+});
+
+describe('lien de l’accueil vers la prise de garde', () => {
+	// La carte d'une astreinte qui commence avec la relève du vendredi 6 novembre.
+	it.each([
+		['la veille', '2026-11-05T18:00', false],
+		['2 h 01 avant', '2026-11-06T15:59', false],
+		['2 h avant pile', '2026-11-06T16:00', true],
+		['à la relève', '2026-11-06T18:00', true],
+		['24 h après pile', '2026-11-07T18:00', true],
+		['24 h après, les secondes ne comptent pas', '2026-11-07T18:00:59', true],
+		['24 h 01 après', '2026-11-07T18:01', false],
+		['le reste de la semaine', '2026-11-10T09:00', false]
+	])('%s', (_cas, maintenant, attendu) => {
+		expect(lienPriseOuvert('2026-11-06T18:00', maintenant, reglage)).toBe(attendu);
+	});
+
+	it('été : l’astreinte commence dimanche, le lien suit la relève du vendredi', () => {
+		const plage = '2027-07-11T08:00';
+		expect(releveDe('2027-07-09T18:30', reglage)).toBe('2027-07-09T18:00');
+		expect(lienPriseOuvert(plage, '2027-07-09T15:59', reglage)).toBe(false);
+		expect(lienPriseOuvert(plage, '2027-07-09T16:00', reglage)).toBe(true);
+		expect(lienPriseOuvert(plage, '2027-07-10T18:00', reglage)).toBe(true);
+		expect(lienPriseOuvert(plage, '2027-07-10T18:01', reglage)).toBe(false);
+		// Le jour de sa plage, la relève est passée depuis plus de 24 h.
+		expect(lienPriseOuvert(plage, '2027-07-11T08:00', reglage)).toBe(false);
+	});
+
+	it('l’astreinte d’une autre semaine : pas de lien', () => {
+		// La semaine qui finit (l'équipe descendante, deux heures avant la relève).
+		expect(lienPriseOuvert('2026-10-30T18:00', '2026-11-06T17:00', reglage)).toBe(false);
+		// Une semaine à venir : la relève du jour n'est pas la sienne.
+		expect(lienPriseOuvert('2026-11-13T18:00', '2026-11-06T18:30', reglage)).toBe(false);
+		// Le dernier moment de la semaine reste dans la semaine.
+		expect(lienPriseOuvert('2026-11-13T17:59', '2026-11-06T18:30', reglage)).toBe(true);
+	});
+
+	it('passe le changement d’année', () => {
+		expect(lienPriseOuvert('2027-01-01T18:00', '2027-01-01T16:00', reglage)).toBe(true);
+		expect(lienPriseOuvert('2027-01-01T18:00', '2027-01-02T18:00', reglage)).toBe(true);
 	});
 });
 
@@ -196,6 +240,94 @@ describe('prise de garde', () => {
 		await gestePrise(j.base, j.base.photos, j.alice, id, { ...ecart, photo: jpeg() }, PENDANT, reglage);
 		await gestePrise(j.base, j.base.photos, j.alice, id, { quoi: 'retirer_ecart', element: j.radio.ref }, PENDANT, reglage);
 		expect(await j.base.photos.select().from(octets)).toHaveLength(0);
+	});
+});
+
+describe('le premier geste commence la prise', () => {
+	const idDe = (a: unknown) => (a as { id: number }).id;
+	const complet = (zone: number) => ({ quoi: 'zone' as const, zone, vue: true });
+
+	it('lire ne crée rien ; le premier « Tout est complet » crée le brouillon et marque la zone, en mon nom', async () => {
+		const j = await jeu();
+		const vue = await lirePrise(j.base, j.alice, j.vsav, PENDANT, reglage);
+		expect(vue.prise).toBeNull();
+		expect(vue.zones.length).toBeGreaterThan(0);
+		expect(await j.base.select().from(priseGarde)).toHaveLength(0);
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(j.cabine.ref), PENDANT, reglage);
+		const [p] = await j.base.select().from(priseGarde);
+		expect(p).toMatchObject({ enginId: j.vsav, releve: RELEVE, etat: 'en_cours', commenceePar: idDe(j.alice), modifieePar: idDe(j.alice), compteur: 1 });
+		const s = JSON.parse(p!.saisie);
+		expect(s.zones).toEqual([j.cabine.ref]);
+		expect(s.participants).toEqual([idDe(j.alice)]);
+		const [v] = await j.base.select().from(ficheVersion).where(eq(ficheVersion.id, p!.versionId));
+		expect(v!.utilisee).toBe(1);
+	});
+
+	it('un écart ou un signalement retrouvé commencent aussi la prise', async () => {
+		const j = await jeu();
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
+		const [p] = await j.base.select().from(priseGarde);
+		expect(Object.keys(JSON.parse(p!.saisie).ecarts)).toEqual([String(j.radio.ref)]);
+	});
+
+	it('annuler ou choisir les participants sans prise : refusé, aucun brouillon', async () => {
+		const j = await jeu();
+		for (const geste of [{ quoi: 'zone' as const, zone: j.cabine.ref, vue: false }, { quoi: 'retirer_ecart' as const, element: j.radio.ref }, { quoi: 'participants' as const, ids: [idDe(j.alice)] }]) {
+			await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, geste, PENDANT, reglage)).rejects.toThrow('Prise inconnue');
+		}
+		expect(await j.base.select().from(priseGarde)).toHaveLength(0);
+	});
+
+	it('sans le droit, ou un engin parti : refusé, aucun brouillon', async () => {
+		const j = await jeu();
+		await expect(premierGestePrise(j.base, j.base.photos, j.sansProfil, j.vsav, complet(j.cabine.ref), PENDANT, reglage)).rejects.toThrow(RefusDroit);
+		await j.base.update(engin).set({ situation: 'parti', partiLe: '2026-10-30' }).where(eq(engin.id, j.vsav));
+		await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(j.cabine.ref), PENDANT, reglage)).rejects.toThrow('Engin parti');
+		expect(await j.base.select().from(priseGarde)).toHaveLength(0);
+	});
+
+	it('la fenêtre : 2 h 01 avant la relève, le geste vaut pour la relève en cours ; 2 h avant, pour celle qui vient', async () => {
+		const j = await jeu();
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(j.cabine.ref), '2026-11-06T15:59', reglage);
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.fpt, complet((await lireFiche(j.base, j.types.FPT)).zones[0]!.ref), '2026-11-06T16:00', reglage);
+		const lignes = await j.base.select().from(priseGarde).orderBy(priseGarde.id);
+		expect(lignes.map((l) => l.releve)).toEqual([RELEVE, '2026-11-06T18:00']);
+	});
+
+	it('un collègue a commencé entre-temps : son brouillon est repris, il en reste l’auteur', async () => {
+		const j = await jeu();
+		const id = await commencerPrise(j.base, j.base.photos, j.referent, j.vsav, PENDANT, reglage);
+		expect(await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(j.cabine.ref), '2026-10-30T18:20', reglage)).toBe(id);
+		const lignes = await j.base.select().from(priseGarde);
+		expect(lignes).toHaveLength(1);
+		expect(lignes[0]).toMatchObject({ commenceePar: idDe(j.referent), modifieePar: idDe(j.alice), modifieeLe: '2026-10-30T18:20' });
+	});
+
+	it('une prise déjà validée par un collègue : refusé, elle ne change pas', async () => {
+		const j = await jeu();
+		const id = await commencerPrise(j.base, j.base.photos, j.referent, j.vsav, PENDANT, reglage);
+		await toutVoir(j, id);
+		await validerPrise(j.base, j.alice, id, PENDANT, reglage);
+		const [avant] = await j.base.select().from(priseGarde);
+		await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(j.cabine.ref), PENDANT, reglage)).rejects.toThrow('Prise déjà validée');
+		expect((await j.base.select().from(priseGarde))[0]).toEqual(avant);
+	});
+
+	it('deux collègues au même moment : un seul brouillon, les deux gestes gardés par le compteur', async () => {
+		const j = await jeu();
+		const [a, b] = j.fiche.zones;
+		await Promise.all([premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, complet(a!.ref), PENDANT, reglage), premierGestePrise(j.base, j.base.photos, j.referent, j.vsav, complet(b!.ref), PENDANT, reglage)]);
+		const lignes = await j.base.select().from(priseGarde);
+		expect(lignes).toHaveLength(1);
+		expect(JSON.parse(lignes[0]!.saisie).zones.sort()).toEqual([a!.ref, b!.ref].sort());
+		expect(lignes[0]!.compteur).toBe(2);
+	});
+
+	it('le geste ne prévient personne : les notifications partent à la validation, comme avant', async () => {
+		const j = await jeu();
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
+		expect(await j.base.select().from(notification)).toHaveLength(0);
+		expect(await j.base.select().from(anomalie)).toHaveLength(0);
 	});
 });
 

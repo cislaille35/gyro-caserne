@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import centre from '$centre';
-import { accueilDe, astreinteDe, apercusDesMurs, monAnniversaire, prenomDe, relevesDe, vueMeteo } from '@gyro-caserne/socle';
+import { accueilDe, astreinteDe, apercusDesMurs, lienPriseOuvert, monAnniversaire, prenomDe, relevesDe, vueMeteo } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { aNePasManquerDe } from '#lib/server/a-faire.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
@@ -26,7 +26,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const m = apercus.find((x) => x.cle === n.cle);
 		return { ...n, icone: m?.icone ?? null, couleur: m?.couleur ?? null, numero: m?.numero ?? null };
 	});
-	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, maintenant, meteo: vueMeteo(centre.departement ? releves : { ...releves, vigilance: null }, aujourdhui, centre.departementNom ?? centre.departement) };
+	const priseOuverte = astreinte !== null && lienPriseOuvert(astreinte.debut, maintenant, centre.astreinte);
+	return { prenom, ...accueil, aNePasManquer: { ...aNePasManquer, nouveautes }, anniversaire, aujourdhui, astreinte, priseOuverte, maintenant, meteo: vueMeteo(centre.departement ? releves : { ...releves, vigilance: null }, aujourdhui, centre.departementNom ?? centre.departement) };
 };
 
 // « À ne pas manquer » : prise de connaissance et réponse à un événement sur place. Le socle vérifie les droits.

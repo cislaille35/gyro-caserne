@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import centre from '$centre';
-import { abandonnerPrise, commencerPrise, DonneeInvalide, gestePrise, lirePrise, RefusDroit, TAILLE_PHOTO_MAX, validerPrise, type GenreEcart, type GestePrise } from '@gyro-caserne/socle';
+import { abandonnerPrise, commencerPrise, DonneeInvalide, gestePrise, lirePrise, premierGestePrise, RefusDroit, TAILLE_PHOTO_MAX, validerPrise, type GenreEcart, type GestePrise } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { accesEngins, champ, idDe, phraseDe } from '#lib/server/engins.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -86,13 +86,15 @@ export const actions: Actions = {
 		const geste = await gesteDe(f);
 		if (!geste) return refusPrise(new DonneeInvalide('Geste inconnu'), { cible, zone });
 		try {
-			const prise = idDe(champ(f, 'prise'));
-			await gestePrise(base, locals.basePhotos, acteur, prise, geste, maintenantParis(), centre.astreinte, idDe(params.id));
+			// Sans prise en cours, le geste la commence.
+			if (champ(f, 'prise') === '') await premierGestePrise(base, locals.basePhotos, acteur, idDe(params.id), geste, maintenantParis(), centre.astreinte);
+			else await gestePrise(base, locals.basePhotos, acteur, idDe(champ(f, 'prise')), geste, maintenantParis(), centre.astreinte, idDe(params.id));
 		} catch (erreur) {
 			return refusPrise(erreur, { cible, zone });
 		}
-		// La zone touchée reste ouverte (on y signale encore un écart) ; la page ouvre aussi la suivante à voir.
-		return { cible, zone, succes: geste.quoi === 'zone' && geste.vue ? 'Zone complète.' : SUCCES[geste.quoi] };
+		// Zone complète : la page passe à la suivante à voir et propose d'annuler. Sinon, on reste sur la zone touchée.
+		if (geste.quoi === 'zone' && geste.vue) return { cible, zone: null, zoneFaite: geste.zone, succes: 'Zone complète.' };
+		return { cible, zone, succes: SUCCES[geste.quoi] };
 	},
 	valider: async ({ locals, params, request }) => {
 		const { acteur, base } = await accesEngins(locals);
