@@ -169,7 +169,7 @@
 				{#if e.conflits.length}
 					<!-- Replié, le nombre reste visible : l'alerte ne se fait pas oublier. -->
 					<details class="alerte">
-						<summary><h3><span aria-hidden="true">⚠ </span>{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3></summary>
+						<summary><h3><span aria-hidden="true">⚠</span>{' '}{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3></summary>
 						<ul>{#each e.conflits as t (t)}<li>{t}</li>{/each}</ul>
 					</details>
 				{/if}

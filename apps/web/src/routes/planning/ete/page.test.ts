@@ -99,7 +99,7 @@ describe('Été : le parcours du chef', () => {
 		const html = page(ete({ conflits }));
 		const bloc = html.match(/<details class="alerte[^"]*">[\s\S]*?<\/details>/)![0];
 		expect(bloc).not.toMatch(/<details[^>]* open/);
-		expect(bloc).toMatch(/<summary[^>]*>[\s\S]*?2 remplacements à revoir[\s\S]*?<\/summary>/);
+		expect(bloc).toMatch(/<summary[^>]*>[\s\S]*?⚠<\/span> 2 remplacements à revoir[\s\S]*?<\/summary>/);
 		expect(bloc).toContain(conflits[0]);
 		expect(html.indexOf('2 remplacements à revoir')).toBeLessThan(html.indexOf('Semaine du'));
 		expect(page(ete())).not.toContain('class="alerte');
