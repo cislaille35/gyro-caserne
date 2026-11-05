@@ -68,6 +68,14 @@ describe('/engins/anomalies', () => {
 		expect(close).toMatch(/Une autre anomalie ouverte le bloque encore[\s\S]*?value="remettre"/);
 	});
 
+	it('signaler refusé : les choix faits sont gardés', () => {
+		const engins = [{ id: 1, nom: 'VTU', type: 'VTU' }, { id: 2, nom: 'FPT', type: 'FPT' }];
+		const refus = html(Signaler, { engins, enginId: 1, peutSignaler: true }, { engin: '2', genre: 'manquant', libelle: 'Treuil', message: 'Non' });
+		expect(refus).toMatch(/name="engin"[^>]*value="2"[^>]*checked/);
+		expect(refus).not.toMatch(/name="engin"[^>]*value="1"[^>]*checked/);
+		expect(refus).toMatch(/name="genre"[^>]*value="manquant"[^>]*checked/);
+	});
+
 	it('signaler : sans engin d’avance, aucun coché, et le choix est obligatoire', () => {
 		const page = html(Signaler, { engins: [{ id: 2, nom: 'FPT 1', type: 'FPT' }], enginId: null, peutSignaler: true });
 		expect(page).toMatch(/name="engin"[^>]*value="2"[^>]*required/);
@@ -83,7 +91,6 @@ describe('/engins/anomalies', () => {
 		expect(page).toMatch(/<input[^>]*type="radio"[^>]*name="engin"[^>]*value="1"[^>]*checked/);
 		expect(page).toMatch(/name="genre"[^>]*value="abime"[^>]*checked/);
 		expect(page).toMatch(/<input[^>]*name="photo"[^>]*type="file"[^>]*capture="environment"/);
-		expect(page).toContain('Ajouter une photo');
 		expect(page).toContain('Sur VTU.');
 		expect(html(Signaler, { engins: [], enginId: null, peutSignaler: false })).toContain('Le signalement est réservé aux agents du centre.');
 	});

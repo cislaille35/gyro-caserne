@@ -58,13 +58,13 @@ describe('ChoixRadio', () => {
 describe('ChampPhoto', () => {
 	const page = (props: Record<string, unknown> = {}) => render(ChampPhoto, { props: { id: 'photo', name: 'photo', libelle: 'Photo', ...props } }).body;
 
-	it('le champ natif reste, nommé ; le bouton écrit lui est relié, et attend le JavaScript', () => {
+	it('le champ natif, nommé par un seul libellé ; le bouton écrit attend le JavaScript', () => {
 		const html = page({ precision: '(facultative)', capture: 'environment' });
 		expect(html).toMatch(/<label class="titre[^"]*" for="photo">Photo/);
 		expect(html).toContain('(facultative)');
 		expect(html).toMatch(/<input[^>]*id="photo"[^>]*name="photo"[^>]*type="file"[^>]*accept="image\/\*"[^>]*capture="environment"/);
-		expect(html).toMatch(/<div class="ligne[^"]*" hidden/);
-		expect(html).toMatch(/<label class="zone[^"]*" for="photo">[\s\S]*Ajouter une photo/);
+		expect(html.match(/<label/g)).toHaveLength(1);
+		expect(html).not.toContain('Ajouter une photo');
 		expect(html).not.toContain('Retirer');
 	});
 
@@ -73,7 +73,6 @@ describe('ChampPhoto', () => {
 		expect(html).toMatch(/<input[^>]*multiple/);
 		expect(html).toMatch(/<input[^>]*aria-invalid="true"[^>]*aria-describedby="photo-aide photo-erreur"/);
 		expect(html).toMatch(/id="photo-erreur"[^>]*>Photo illisible\.</);
-		expect(html).toContain('Ajouter des photos');
 	});
 });
 

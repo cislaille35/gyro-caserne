@@ -245,6 +245,10 @@
 		margin: 0;
 		min-width: 0;
 	}
+	legend {
+		padding: 0 0 8px;
+		font-weight: 700;
+	}
 	label,
 	summary {
 		font-weight: 600;

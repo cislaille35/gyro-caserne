@@ -81,7 +81,9 @@
 
 {#snippet groupe(g: GroupeAgents)}
 	{@const sansChef = g.equipe?.chefs.length === 0}
-	<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.cle)}>
+	<!-- Une valeur à part : relire la page (une fiche enregistrée) ne referme pas ce qu'on a ouvert. -->
+	{@const depart = ouvert(g.cle)}
+	<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={depart}>
 		{#snippet action()}
 			{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="masque">un chef pour {g.titre}</span></a>{/if}
 		{/snippet}
@@ -347,14 +349,15 @@
 			flex-wrap: wrap;
 		}
 		.page:not(.a-cote) .identite {
-			flex-basis: calc(100% - 56px);
+			flex-basis: calc(100% - 52px);
 		}
 		.page:not(.a-cote) .etat {
-			flex-basis: 100%;
+			flex-basis: calc(100% - 52px);
 			flex-direction: row;
 			flex-wrap: wrap;
 			align-items: center;
-			margin-left: 56px;
+			margin-left: 52px;
+			white-space: normal;
 		}
 		/* Toute la ligne ouvre la fiche : le chevron prendrait la place du nom. */
 		.page:not(.a-cote) .chevron {

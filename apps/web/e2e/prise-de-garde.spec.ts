@@ -53,6 +53,7 @@ test.describe('prise de garde', () => {
 		await expect(page.getByText('Commencée par')).toBeVisible();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeVisible();
 		expect(await page.locator('input[name="photo"]').first().inputValue()).toBe('');
+		await expect(page.locator('.zone').first()).not.toContainText('p.png');
 		await page.getByRole('button', { name: /^Retirer l’écart/ }).click();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeHidden();
 
@@ -102,6 +103,21 @@ test.describe('prise de garde', () => {
 
 test.describe('agents, côté chef', () => {
 	test.use({ storageState: ETAT_SUPER });
+
+	test('au téléphone, une équipe ouverte le reste après une fiche enregistrée', async ({ page }) => {
+		test.skip(page.viewportSize()!.width >= 1024, 'la liste reste à côté de la fiche');
+		await page.goto('/agents');
+		await page.waitForLoadState('networkidle');
+		const entete = page.getByRole('button', { name: /^Équipe 1/ });
+		await entete.click();
+		await page.locator('li.agent a').first().click();
+		await expect(page).toHaveURL(/\/agents\/\d+/);
+		const reponse = page.waitForResponse((r) => r.request().method() === 'POST');
+		await page.getByRole('button', { name: 'Enregistrer', exact: true }).first().click();
+		await reponse;
+		await page.getByRole('link', { name: /Agents$/ }).click();
+		await expect(entete).toHaveAttribute('aria-expanded', 'true');
+	});
 
 	test('toute la ligne ouvre la fiche, 44 px au moins', async ({ page }) => {
 		const ouvrir = async () => {

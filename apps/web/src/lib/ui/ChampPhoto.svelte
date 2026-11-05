@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { DESSINS } from './icones-roles.ts';
 
-	// Choisir une ou des photos : le champ natif reste (clavier, lecteur d'écran), un bouton écrit le remplace à l'œil.
+	// Choisir une ou des photos : le champ natif reste (clavier, lecteur d'écran), invisible par-dessus un bouton écrit.
 	// Sans JavaScript, le champ natif s'affiche : il dit lui-même ce qui est choisi.
 	let {
 		id,
@@ -31,23 +31,17 @@
 		choisi = '';
 		champ.focus();
 	};
-	onMount(() => {
-		js = true;
-		const formulaire = champ?.form;
-		const vider = () => (choisi = '');
-		formulaire?.addEventListener('reset', vider);
-		return () => formulaire?.removeEventListener('reset', vider);
-	});
+	onMount(() => (js = true));
 </script>
 
 <div class="champ" class:js>
 	<label class="titre" for={id}>{libelle}{#if precision}{' '}<span class="doux">{precision}</span>{/if}</label>
 	{#if aide}<p id="{id}-aide" class="aide">{aide}</p>{/if}
-	<input bind:this={champ} class="fichier" {id} {name} type="file" {accept} {capture} {multiple} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit} onchange={lire} />
-	<div class="ligne" hidden={!js}>
-		<label class="zone" for={id}
-			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.photo} /></svg><span class="texte">{choisi || appel}</span></label
-		>
+	<div class="ligne">
+		<span class="zone">
+			{#if js}<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.photo} /></svg><span class="texte">{choisi || appel}</span>{/if}
+			<input bind:this={champ} {id} {name} type="file" {accept} {capture} {multiple} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit} onchange={lire} />
+		</span>
 		{#if choisi}<button type="button" class="retirer" onclick={retirer}>Retirer<span class="masque">{` : ${choisi}`}</span></button>{/if}
 	</div>
 	{#if erreur}<p id="{id}-erreur" class="erreur">{erreur}</p>{/if}
@@ -58,7 +52,6 @@
 		margin: 0;
 	}
 	.champ {
-		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -79,31 +72,23 @@
 		font-weight: 600;
 		font-size: 0.9375rem;
 	}
-	/* Sans JavaScript : le champ natif, à la bonne taille. */
-	.fichier {
-		min-height: var(--cible);
-		font: inherit;
-	}
-	/* Avec : masqué à l'œil, toujours atteignable ; le bouton écrit montre le focus. */
-	.js .fichier {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		min-height: 0;
-		opacity: 0;
-	}
 	.ligne {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 4px 8px;
 	}
-	.ligne[hidden] {
-		display: none;
-	}
 	.zone {
 		min-width: 0;
 		max-width: 100%;
+	}
+	/* Sans JavaScript : le champ natif, à la bonne taille. */
+	input {
+		min-height: var(--cible);
+		font: inherit;
+	}
+	.js .zone {
+		position: relative;
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
@@ -114,10 +99,25 @@
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
+	}
+	.js .zone:hover {
+		border-color: var(--encre);
+	}
+	/* Toute la zone est le champ ; c'est elle qui montre le focus. */
+	.js input {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
 		cursor: pointer;
 	}
-	.zone:hover {
-		border-color: var(--encre);
+	.js .zone:has(input:focus-visible) {
+		outline: 3px solid var(--focus);
+		outline-offset: 2px;
+	}
+	.js .zone:has(input[aria-invalid='true']) {
+		border: 2px solid var(--accent);
 	}
 	.zone svg {
 		flex: none;
@@ -127,13 +127,6 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
-	}
-	.fichier:focus-visible ~ .ligne .zone {
-		outline: 3px solid var(--focus);
-		outline-offset: 2px;
-	}
-	.fichier[aria-invalid='true'] ~ .ligne .zone {
-		border: 2px solid var(--accent);
 	}
 	.retirer {
 		min-height: var(--cible);

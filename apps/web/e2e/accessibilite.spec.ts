@@ -160,6 +160,13 @@ for (const theme of ['auto', 'sombre']) {
 				await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
 				await page.keyboard.press('Enter');
 				await expect(page.locator('main')).toBeFocused();
+				// La conversation qui va naître, écrite à une personne : pareil.
+				await page.goto('/echanges/messages/nouveau');
+				await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
+				await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
+				await expect(page.getByLabel('Votre message')).toBeVisible();
+				await expect(onglets).toBeVisible({ visible: !telephone });
+				await page.goto(groupe);
 				// Les infos, puis le retour : chaque page retrouve sa navigation.
 				await page.locator('a.qui').click();
 				await expect(page).toHaveURL(/\/infos$/);

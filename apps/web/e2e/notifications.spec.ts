@@ -40,7 +40,7 @@ test('une publication arrive dans la cloche ; « Tout marquer comme lu »', asyn
 	await expect(ligne).not.toContainText('Non lu');
 });
 
-// La cloche barrée d'un mur, puis « Réactiver » dans Moi → Notifications.
+// Couper un mur (le haut-parleur de son en-tête), puis « Réactiver » dans Moi → Notifications.
 test('couper un mur, le retrouver dans Moi → Notifications, le réactiver', async ({ page }) => {
 	await page.goto('/echanges/vie');
 	await page.waitForLoadState('networkidle');

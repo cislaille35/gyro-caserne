@@ -108,7 +108,10 @@
 			if (result.type === 'success') {
 				formElement.closest('details')?.removeAttribute('open');
 				// `reset: false` garde le fichier choisi : il ne doit pas repartir avec le prochain écart.
-				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => (champ.value = ''));
+				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => {
+					champ.value = '';
+					champ.dispatchEvent(new Event('change'));
+				});
 			}
 			await tick();
 			if (reponse?.zoneFaite) {
@@ -267,6 +270,8 @@
 						{#each z.elements as el (el.ref)}
 							{@const o = ouverteSur(el.ref)}
 							{@const ecart = s?.ecarts[String(el.ref)]}
+							<!-- Une valeur à part : après un refus, la page se relit, et le choix en cours ne doit pas sauter. -->
+							{@const genre = ecart?.genre ?? 'manquant'}
 							<li class:alerte={o || ecart}>
 								<div class="ligne">
 									<span class="libelle">{el.libelle}</span>
@@ -281,7 +286,7 @@
 												<input type="hidden" name="element" value={el.ref} />
 												<input type="hidden" name="zone" value={z.ref} />
 												<input type="hidden" name="cible" value="element:{el.ref}" />
-												<ChoixRadio id="genre-{el.ref}" legende="Quel écart ?" name="genre" valeur={ecart?.genre ?? 'manquant'} options={Object.entries(GENRES).map(([valeur, libelle]) => ({ valeur, libelle }))} />
+												<ChoixRadio id="genre-{el.ref}" legende="Quel écart ?" name="genre" valeur={genre} options={Object.entries(GENRES).map(([valeur, libelle]) => ({ valeur, libelle }))} />
 												{#if el.quantite !== null}
 													<div class="champ">
 														<label for="manque-{el.ref}">Combien manquent ? <span class="doux">(sur {el.quantite}, si manquant)</span></label>
@@ -292,7 +297,7 @@
 													<label for="note-{el.ref}">Note <span class="doux">(facultative)</span></label>
 													<textarea id="note-{el.ref}" name="note" maxlength="300" rows="2">{ecart?.note ?? ''}</textarea>
 												</div>
-												<ChampPhoto id="photo-{el.ref}" name="photo" libelle={ecart?.photo ? 'Remplacer la photo' : 'Photo'} precision="(facultative)" capture="environment" />
+												<ChampPhoto id="photo-{el.ref}" name="photo" libelle={ecart?.photo ? 'Remplacer la photo' : 'Photo'} precision="(facultative)" appel={ecart?.photo ? 'Choisir une autre photo' : undefined} capture="environment" />
 												{#if ecart?.photo}<label class="choix"><input type="checkbox" name="retirer_photo" value="1" /> Retirer la photo</label>{/if}
 												<div class="gestes">
 													<Bouton type="submit">Enregistrer l’écart<span class="masque">{' '}: {el.libelle}</span></Bouton>
