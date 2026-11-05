@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import PastilleEquipe from '../ui/PastilleEquipe.svelte';
-	import { phraseAstreinte } from './astreinte.ts';
+	import { phraseAstreinte, priseDeGardeOuverte } from './astreinte.ts';
 
 	// La carte astreinte, à la couleur de l'équipe (toujours nommée). Compacte à l'Accueil : la phrase en tête et « Voir le planning ».
 	// Les mêmes gestes partout, au téléphone comme à l'ordinateur.
@@ -9,6 +9,8 @@
 
 	const p = $derived(phraseAstreinte(a, maintenant));
 	const rubrique = $derived(!a.mienne ? 'Astreinte de la semaine' : a.enCours ? 'Mon astreinte en cours' : 'Ma prochaine astreinte');
+	const prise = $derived(compacte && a.mienne && priseDeGardeOuverte(a.debut, maintenant));
+	const PRISE = 'M9 4h6v3H9z M9 5.5H5V21h14V5.5h-4 M9 14l2 2 4-4';
 	const AGENDA = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M12 13v5 M9.5 15.5h5';
 	const REMPLACER = 'M7 7h11l-3-3 M17 17H6l3 3';
 </script>
@@ -34,6 +36,11 @@
 <section class="carte" class:compacte style:--equipe={a.equipe.couleur} aria-label={rubrique}>
 	{@render corps()}
 	<div class="gestes">
+		{#if prise}
+			<a class="prise" href="/engins/prise"
+				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={PRISE} /></svg>Faire la prise de garde</a
+			>
+		{/if}
 		{#if compacte}
 			<a href="/planning"
 				>Voir le planning<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg></a
@@ -142,5 +149,11 @@
 	}
 	.gestes a:hover {
 		border-color: var(--encre);
+	}
+	/* Le geste du moment, à la relève. */
+	.gestes .prise {
+		border-color: var(--encre);
+		background: var(--encre);
+		color: var(--surface);
 	}
 </style>

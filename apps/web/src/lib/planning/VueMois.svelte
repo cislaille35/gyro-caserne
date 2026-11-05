@@ -171,7 +171,8 @@
 	.numero {
 		font-size: 0.75rem;
 		font-weight: 400;
-		color: var(--doux);
+		/* L'encre, seule couleur lisible sur toutes les bandes (le doux tombe sous 4,5:1 sur « ma semaine », en sombre). */
+		color: var(--encre);
 		font-variant-numeric: tabular-nums;
 	}
 	.equipe {
@@ -221,6 +222,12 @@
 	}
 	.hors a {
 		color: var(--doux);
+	}
+	.mienne .hors a {
+		color: var(--encre);
+	}
+	.hors .jour {
+		font-size: 0.8125rem;
 	}
 	.aujourdhui .jour {
 		min-width: 26px;

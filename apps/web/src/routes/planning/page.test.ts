@@ -60,6 +60,10 @@ describe('onglet Planning', () => {
 		expect(page({ planning: ete, vue: 'annee' })).not.toContain('Groupe B');
 	});
 
+	it('la carte du Planning ne propose pas la prise de garde, même à la relève', () => {
+		expect(page({ maintenant: '2026-11-06T18:30' })).not.toContain('/engins/prise');
+	});
+
 	it('sans équipe : la carte de la semaine en cours, la vue des équipes', () => {
 		const sansEquipe = { ...publiee, monEquipe: null, semaines: semaines.map((s) => ({ ...s, mienne: false })), prochaine: { ...publiee.prochaine, astreinte: null } };
 		const html = page({ planning: sansEquipe, vue: 'equipes' });

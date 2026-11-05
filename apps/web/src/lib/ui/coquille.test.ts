@@ -115,9 +115,18 @@ describe('rubriqueDe', () => {
 		expect(rubriqueDe('/profil')).toBe('/moi');
 		expect(rubriqueDe('/affichage')).toBe('/moi');
 		expect(rubriqueDe('/notifications')).toBe('/notifications');
+		expect(rubriqueDe('/engins')).toBe('/caserne');
+		expect(rubriqueDe('/engins/3/prise')).toBe('/caserne');
+		expect(rubriqueDe('/engins/prise')).toBe('/caserne');
+		expect(rubriqueDe('/remplacements')).toBe('/planning');
+		expect(rubriqueDe('/remplacements/7')).toBe('/planning');
+		expect(rubriqueDe('/remplacements/demander')).toBe('/planning');
+		expect(rubriqueDe('/moi/agenda')).toBe('/moi');
 	});
 	it('ne confond pas un chemin qui commence pareil', () => {
 		expect(rubriqueDe('/agentsx')).not.toBe('/caserne');
+		expect(rubriqueDe('/enginsx')).not.toBe('/caserne');
+		expect(rubriqueDe('/remplacementsx')).not.toBe('/planning');
 	});
 });
 

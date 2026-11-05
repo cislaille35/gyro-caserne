@@ -67,7 +67,7 @@
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" icone="camion" dessin={CALENDRIER} /></li>
 			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
 		{/if}
-		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>
+		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" icone="cle" dessin={DESSINS.affichage} /></li>
 	</ListeRangees>
 
 	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
