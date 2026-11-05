@@ -347,6 +347,7 @@
 		}
 		.page:not(.a-cote) .agent {
 			flex-wrap: wrap;
+			gap: 2px 12px;
 		}
 		.page:not(.a-cote) .identite {
 			flex-basis: calc(100% - 52px);

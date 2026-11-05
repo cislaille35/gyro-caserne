@@ -206,7 +206,7 @@
 			{:else if e.proposee}
 				<ul class="recap" role="list">
 					<li>{pluriel(e.semaines.length, 'semaine')}, {pluriel(e.semaines.reduce((n, s) => n + s.plages.length, 0), 'plage')}</li>
-					<li>{aRevoir === 0 ? 'FPT armé sur chaque plage' : `${pluriel(aRevoir, 'plage', 'plages')} où le FPT n’est pas armé`}{#if aRevoir} · <a href={vers('repartition')}>Revoir</a>{/if}</li>
+					<li>{aRevoir === 0 ? 'FPT armé sur chaque plage' : `${pluriel(aRevoir, 'plage', 'plages')} où le FPT n’est pas armé`}{#if aRevoir}{' · '}<a href={vers('repartition')}>Revoir</a>{/if}</li>
 					{#if e.conflits.length}<li>{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')} · <a href={vers('repartition')}>Revoir</a></li>{/if}
 					<li>{pluriel(sansReponse.length, 'agent sans réponse', 'agents sans réponse')} (comptés disponibles)</li>
 				</ul>

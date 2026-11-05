@@ -84,6 +84,7 @@ describe('Été : le parcours du chef', () => {
 		const derniere = page(ete(), { etape: 'publier' });
 		expect(derniere).toMatch(/<div class="barre[^"]*"[\s\S]*action="\?\/publier[\s\S]*Publier l’été 2027/);
 		expect(derniere).toContain('1 plage sans FPT armé : vous pouvez publier quand même.');
+		expect(derniere).toMatch(/1 plage où le FPT n’est pas armé · <a [^>]*>Revoir/);
 		// Rien à publier encore : le récapitulatif renvoie à la répartition, sans bouton.
 		const sansProposition = page(ete({ proposee: false, semaines: [] }), { etape: 'publier' });
 		expect(sansProposition).not.toContain('<div class="barre');
