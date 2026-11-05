@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { connecter } from './connexion.ts';
-import { ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
+import { ETAT_SUPER } from './serveur.ts';
 
 async function sansViolation(page: Page) {
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -209,21 +209,18 @@ test.describe('agent : mon année et mon agenda', () => {
 	});
 });
 
-test.describe('agent : répondre à une manœuvre au Planning', () => {
-	test.use({ storageState: ETAT_CONNECTE });
-
-	test('réponses sur une ligne à 390 px, le focus reste sur le bouton', async ({ page }, info) => {
-		test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
-		await page.goto('/planning?vue=annee');
-		await page.waitForLoadState('networkidle');
-		const groupe = page.getByRole('group', { name: /^Votre réponse/ });
-		test.skip((await groupe.count()) === 0, 'aucune manœuvre annoncée à cette date dans le jeu fictif');
-		const incertain = groupe.getByRole('button', { name: 'Incertain' });
-		await incertain.focus();
-		await page.keyboard.press('Enter');
-		await expect(incertain).toHaveAttribute('aria-pressed', 'true');
-		await expect(incertain).toBeFocused();
-		const hauts = await groupe.getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
-		expect(new Set(hauts).size).toBe(1);
-	});
+test('agent d’équipe, au Planning : réponses sur une ligne à 390 px, le focus reste sur le bouton', async ({ page }, info) => {
+	test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
+	await connecter(page, 'alice.martin@exemple.fr');
+	await page.goto('/planning?vue=annee');
+	await page.waitForLoadState('networkidle');
+	const groupe = page.getByRole('group', { name: /^Votre réponse/ });
+	test.skip((await groupe.count()) === 0, 'aucune manœuvre annoncée à cette date dans le jeu fictif');
+	const incertain = groupe.getByRole('button', { name: 'Incertain' });
+	await incertain.focus();
+	await page.keyboard.press('Enter');
+	await expect(incertain).toHaveAttribute('aria-pressed', 'true');
+	await expect(incertain).toBeFocused();
+	const hauts = await groupe.getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
+	expect(new Set(hauts).size).toBe(1);
 });
