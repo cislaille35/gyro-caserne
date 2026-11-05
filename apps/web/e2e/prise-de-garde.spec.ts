@@ -53,6 +53,7 @@ test.describe('prise de garde', () => {
 		await expect(page.getByText('Commencée par')).toBeVisible();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeVisible();
 		expect(await page.locator('input[name="photo"]').first().inputValue()).toBe('');
+		await expect(page.locator('span.zone').first()).not.toContainText('p.png');
 		await page.getByRole('button', { name: /^Retirer l’écart/ }).click();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeHidden();
 
@@ -103,18 +104,40 @@ test.describe('prise de garde', () => {
 test.describe('agents, côté chef', () => {
 	test.use({ storageState: ETAT_SUPER });
 
-	test('toute la ligne ouvre la fiche, 44 px au moins', async ({ page }) => {
+	test('au téléphone, une équipe ouverte le reste en revenant d’une fiche', async ({ page }) => {
+		test.skip(page.viewportSize()!.width >= 1024, 'la liste reste à côté de la fiche');
 		await page.goto('/agents');
 		await page.waitForLoadState('networkidle');
-		const ligne = page.locator('li.agent').first();
-		await expect(ligne).toBeVisible();
-		const b = (await ligne.boundingBox())!;
+		const entete = page.getByRole('button', { name: /^Équipe 2/ });
+		await entete.click();
+		await page.locator('li.agent a:visible').first().click();
+		await expect(page).toHaveURL(/\/agents\/\d+/);
+		await page.getByRole('link', { name: /Agents$/ }).first().click();
+		await expect(page).toHaveURL(/\/agents$/);
+		await expect(entete).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.getByRole('button', { name: /^Équipe 1/ })).toHaveAttribute('aria-expanded', 'false');
+	});
+
+	test('toute la ligne ouvre la fiche, 44 px au moins', async ({ page }) => {
+		const ouvrir = async () => {
+			await page.goto('/agents');
+			await page.waitForLoadState('networkidle');
+			// Au téléphone, les équipes sont repliées : elles s'ouvrent une à une, et l'ordinateur les montre en colonnes.
+			const entete = page.getByRole('button', { name: /^Équipe 1/ });
+			if (page.viewportSize()!.width < 1024) {
+				await expect(entete).toHaveAttribute('aria-expanded', 'false');
+				await entete.click();
+			} else await expect(entete).toHaveAttribute('aria-expanded', 'true');
+			const ligne = page.locator('li.agent').first();
+			await expect(ligne).toBeVisible();
+			return (await ligne.boundingBox())!;
+		};
+		const b = await ouvrir();
 		expect(b.height).toBeGreaterThanOrEqual(44);
 		for (const x of [b.x + 4, b.x + b.width - 4]) {
 			await page.mouse.click(x, b.y + b.height / 2);
 			await expect(page).toHaveURL(/\/agents\/\d+/);
-			await page.goto('/agents');
-			await page.waitForLoadState('networkidle');
+			await ouvrir();
 		}
 	});
 });

@@ -2,7 +2,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Coquille from './Coquille.svelte';
-import { entreesNavigation, rubriqueDe } from './navigation.ts';
+import { dansUneConversation, entreesNavigation, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
@@ -13,6 +13,23 @@ function html(chemin: string, connecte = true, cloche = 0, nonLus = 0, visage: {
 }
 
 describe('Coquille', () => {
+	it('dans une conversation seulement, en bon état : les barres se masquent', () => {
+		expect(dansUneConversation('/echanges/messages/[id]', null)).toBe(true);
+		expect(dansUneConversation('/echanges/messages/a/[personne]', null)).toBe(true);
+		for (const route of ['/echanges/messages', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/echanges/messages/[id]/infos', '/echanges/[mur]', '/', null]) {
+			expect(dansUneConversation(route, null), String(route)).toBe(false);
+		}
+		// Une page d'erreur garde sa navigation : sans elle, plus de sortie.
+		expect(dansUneConversation('/echanges/messages/[id]', { message: 'Introuvable' })).toBe(false);
+	});
+
+	it('une conversation : la coquille le sait, et le lien « Aller au contenu » reste', () => {
+		const page = render(Coquille, { props: { chemin: '/echanges/messages/7', connecte: true, nomCentre: 'CIS Test', conversation: true, children: contenu } }).body;
+		expect(page).toMatch(/class="coquille[^"]*conversation/);
+		expect(page).toContain('href="#contenu"');
+		expect(html('/echanges/messages')).not.toMatch(/class="coquille[^"]*conversation/);
+	});
+
 	it('commence par le lien « Aller au contenu » et porte le contenu principal', () => {
 		const page = html('/');
 		const premierLien = page.match(/<a\b[^>]*>[\s\S]*?<\/a>/)![0];

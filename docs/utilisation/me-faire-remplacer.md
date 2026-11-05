@@ -9,4 +9,4 @@ La page de la demande montre où elle en est : envoyée, acceptée, validée par
 
 Une fois conclu, mettez à jour votre disponibilité dans l'appli du SDIS : c'est elle qui fait foi pour l'alerte.
 
-Pour échanger avec un collègue : Remplacements → « Échanger avec un collègue » (ou « Plutôt échanger avec un collègue ? » à la première étape) : votre période, le collègue, sa période, vérifier.
+Pour échanger avec un collègue : Remplacements → « Échanger avec un collègue », sous la liste (ou « Plutôt échanger avec un collègue ? » à la première étape) : votre période, le collègue, sa période, vérifier.

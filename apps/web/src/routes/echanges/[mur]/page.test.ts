@@ -320,7 +320,7 @@ describe('cartes par type', () => {
 		expect(html({ messagerie: true, publications: [pub()] })).not.toContain('Répondre en privé');
 	});
 
-	it('la cloche barrée dans l’en-tête : un bouton à bascule, nommé, qui marche sans JavaScript ; absente sans fiche', () => {
+	it('couper les notifications dans l’en-tête : un bouton à bascule, nommé, qui marche sans JavaScript ; absente sans fiche', () => {
 		const actif = html({ coupe: false });
 		expect(actif).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/couper"[\s\S]*?<input type="hidden" name="oui" value="1"[\s\S]*?<button[^>]*aria-pressed="false"[^>]*>[\s\S]*?Couper les notifications de Vie du centre/);
 		const coupe = html({ coupe: true });

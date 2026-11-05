@@ -40,7 +40,8 @@ test.describe('chef : préparer l’année', () => {
 			await expect(page.getByText(/Répartition proposée/)).toBeVisible();
 		}
 		await expect(page.getByText(/FPT armé \d+\/\d+|à revoir/).first()).toBeVisible();
-		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toBeVisible();
+		// Un seul geste de publication par étape : ici le lien, le bouton à l'étape suivante.
+		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toHaveCount(0);
 		await sansViolation(page);
 		await page.locator('details.semaine summary').first().click();
 		await page.locator('.plages a').first().click();
@@ -53,6 +54,9 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByRole('dialog', { name: 'Recalculer la proposition ?' })).toBeVisible();
 		await page.getByRole('link', { name: 'Annuler' }).click();
 		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await page.getByRole('navigation', { name: 'Étape précédente ou suivante' }).getByRole('link', { name: /^Publier/ }).click();
+		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toBeVisible();
+		await sansViolation(page);
 	});
 
 	test('partir d’une proposition : le panneau, accepter, le brouillon sans annonce', async ({ page }) => {

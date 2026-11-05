@@ -33,16 +33,12 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Remplacements" phrase="Se faire remplacer, échanger, et répondre aux collègues." retour={{ href: '/planning', libelle: 'Planning' }} />
-	{#if data.personne}
-		<div class="gestes">
-			<a class="principal" href="/remplacements/demander"
-				><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d={REMPLACER} /></svg>Me faire remplacer</a
-			>
-			<a class="lien-secondaire" href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
-			<a class="lien-secondaire" href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
-		</div>
-	{/if}
+	<EnTetePage
+		titre="Remplacements"
+		phrase="Se faire remplacer, échanger, et répondre aux collègues."
+		retour={{ href: '/planning', libelle: 'Planning' }}
+		action={data.personne ? { href: '/remplacements/demander', libelle: 'Me faire remplacer', dessin: REMPLACER } : undefined}
+	/>
 	<p class="reussite" class:masque={!annonce} role="status">{annonce}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
@@ -62,7 +58,6 @@
 					<li>Un collègue libre accepte : tous les disponibles, ou celui que vous avez choisi.</li>
 					<li>Votre chef de garde est prévenu, et chacun met à jour sa disponibilité dans l’appli du SDIS.</li>
 				</ol>
-				<a class="principal" href="/remplacements/demander">Me faire remplacer</a>
 			</section>
 		{:else if liste.length === 0}
 			<Vide titre={VIDES[data.onglet].titre} texte={VIDES[data.onglet].texte} />
@@ -73,6 +68,10 @@
 				{/each}
 			</ul>
 		{/if}
+		<p class="echanges">
+			<a href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
+			<a href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
+		</p>
 	{/if}
 </div>
 
@@ -124,26 +123,17 @@
 		font-size: 0.875rem;
 		text-align: center;
 	}
-	.gestes {
+	.echanges {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 0 24px;
 	}
-	.principal {
+	.echanges a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 20px 0 16px;
-		border: 2px solid var(--encre);
-		border-radius: 999px;
-		background: var(--rouge);
-		color: var(--sur-rouge);
-		font-weight: 700;
-		text-decoration: none;
-	}
-	.principal:hover {
-		background: var(--rouge-survol);
+		color: var(--encre);
+		font-weight: 600;
 	}
 	.deroule {
 		display: flex;

@@ -8,6 +8,7 @@
 	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
 	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
+	import { dansUneConversation } from '#lib/ui/navigation.ts';
 
 	let { data, children } = $props();
 
@@ -46,7 +47,7 @@
 	afterNavigate(({ from, to }) => suivi?.apresNavigation(from?.url.pathname, to?.url.pathname));
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
 	{@render children()}
 	<EnvoiCoupe />
 </Coquille>

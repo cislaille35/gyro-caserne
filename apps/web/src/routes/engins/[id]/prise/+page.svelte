@@ -8,6 +8,8 @@
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
+	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
+	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Panneau from '#lib/planning/Panneau.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
@@ -106,7 +108,10 @@
 			if (result.type === 'success') {
 				formElement.closest('details')?.removeAttribute('open');
 				// `reset: false` garde le fichier choisi : il ne doit pas repartir avec le prochain écart.
-				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => (champ.value = ''));
+				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => {
+					champ.value = '';
+					champ.dispatchEvent(new Event('change', { bubbles: true }));
+				});
 			}
 			await tick();
 			if (reponse?.zoneFaite) {
@@ -265,6 +270,8 @@
 						{#each z.elements as el (el.ref)}
 							{@const o = ouverteSur(el.ref)}
 							{@const ecart = s?.ecarts[String(el.ref)]}
+							<!-- Une valeur à part : après un refus, la page se relit, et le choix en cours ne doit pas sauter. -->
+							{@const genre = ecart?.genre ?? 'manquant'}
 							<li class:alerte={o || ecart}>
 								<div class="ligne">
 									<span class="libelle">{el.libelle}</span>
@@ -279,12 +286,7 @@
 												<input type="hidden" name="element" value={el.ref} />
 												<input type="hidden" name="zone" value={z.ref} />
 												<input type="hidden" name="cible" value="element:{el.ref}" />
-												<fieldset>
-													<legend>Quel écart ?</legend>
-													{#each Object.entries(GENRES) as [valeur, libelle] (valeur)}
-														<label class="choix"><input type="radio" name="genre" value={valeur} checked={(ecart?.genre ?? 'manquant') === valeur} /> {libelle}</label>
-													{/each}
-												</fieldset>
+												<ChoixRadio id="genre-{el.ref}" legende="Quel écart ?" name="genre" valeur={genre} options={Object.entries(GENRES).map(([valeur, libelle]) => ({ valeur, libelle }))} />
 												{#if el.quantite !== null}
 													<div class="champ">
 														<label for="manque-{el.ref}">Combien manquent ? <span class="doux">(sur {el.quantite}, si manquant)</span></label>
@@ -295,11 +297,8 @@
 													<label for="note-{el.ref}">Note <span class="doux">(facultative)</span></label>
 													<textarea id="note-{el.ref}" name="note" maxlength="300" rows="2">{ecart?.note ?? ''}</textarea>
 												</div>
-												<div class="champ">
-													<label for="photo-{el.ref}">{ecart?.photo ? 'Remplacer la photo' : 'Photo'} <span class="doux">(facultative)</span></label>
-													<input id="photo-{el.ref}" name="photo" type="file" accept="image/*" capture="environment" />
-													{#if ecart?.photo}<label class="choix"><input type="checkbox" name="retirer_photo" value="1" /> Retirer la photo</label>{/if}
-												</div>
+												<ChampPhoto id="photo-{el.ref}" name="photo" libelle={ecart?.photo ? 'Remplacer la photo' : 'Photo'} precision="(facultative)" appel={ecart?.photo ? 'Choisir une autre photo' : undefined} capture="environment" />
+												{#if ecart?.photo}<label class="choix"><input type="checkbox" name="retirer_photo" value="1" /> Retirer la photo</label>{/if}
 												<div class="gestes">
 													<Bouton type="submit">Enregistrer l’écart<span class="masque">{' '}: {el.libelle}</span></Bouton>
 												</div>

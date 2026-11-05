@@ -11,8 +11,9 @@
 		cloche = 0,
 		nonLus = 0,
 		visage = null,
+		conversation = false,
 		children
-	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; visage?: { prenom: string; nom: string; couleur: string | null } | null; children: Snippet } = $props();
+	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; visage?: { prenom: string; nom: string; couleur: string | null } | null; conversation?: boolean; children: Snippet } = $props();
 
 	const entrees = $derived(entreesNavigation(connecte));
 	// Sans connexion, seule la page elle-même est marquée.
@@ -43,7 +44,7 @@
 
 <a class="evitement" href="#contenu">Aller au contenu</a>
 
-<div class="coquille">
+<div class="coquille" class:conversation>
 	<header>
 		<div class="titre">
 			<span class="appli">Gyro Caserne</span>
@@ -229,6 +230,14 @@
 		color: var(--encre);
 		font-weight: 700;
 		box-shadow: inset 0 3px 0 var(--accent);
+	}
+
+	/* Au téléphone, une conversation garde tout l'écran : son propre en-tête ramène à la liste. */
+	@media (max-width: 1023px) {
+		.conversation header,
+		.conversation nav {
+			display: none;
+		}
 	}
 
 	@media (min-width: 1024px) {

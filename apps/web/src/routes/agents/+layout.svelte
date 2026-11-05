@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { emailCherche, rechercheListe } from '#lib/liste-agents.ts';
@@ -15,13 +16,25 @@
 	let { data, children } = $props();
 
 	type Personne = { id: number; prenom: string; nom: string; email?: string; grade: string | null; roles: string[]; statut?: StatutPersonne; aCompleter?: boolean };
+	type GroupeAgents = { cle: string; titre: string; equipe: { couleur: string; chefs: string[] } | null; personnes: Personne[] };
 
 	const enfant = $derived(page.url.pathname !== '/agents');
+	const equipes = $derived<GroupeAgents[]>(data.groupes.filter((g) => g.equipe));
+	const horsEquipes = $derived<GroupeAgents[]>(data.groupes.filter((g) => !g.equipe));
 	const agents = (n: number) => pluriel(n, 'agent');
 	const resume = (n: number, equipe: { chefs: string[] } | null) =>
 		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef de garde` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
-	// Les partis restent repliés, sauf quand on les cherche.
-	const ouvert = (cle: string) => cle !== 'partis' || (data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== ''));
+	// Au téléphone, les équipes s'ouvrent à la demande. Le serveur ne connaît pas l'écran : tout part ouvert, ce qui reste lisible sans JavaScript.
+	let replier = $state(false);
+	onMount(() => {
+		const ecran = matchMedia('(max-width: 1023px)');
+		const suivre = () => (replier = ecran.matches);
+		suivre();
+		ecran.addEventListener('change', suivre);
+		return () => ecran.removeEventListener('change', suivre);
+	});
+	// Les partis restent repliés, sauf quand on les cherche. Une recherche ou un filtre montre toujours ses résultats.
+	const ouvert = (cle: string) => (cle === 'partis' ? data.gestion && (data.filtres.filtre === 'partis' || data.filtres.texte !== '') : cherche || !replier);
 	const filtres = $derived(
 		data.gestion
 			? [
@@ -66,13 +79,27 @@
 	</li>
 {/snippet}
 
+{#snippet groupe(g: GroupeAgents)}
+	{@const sansChef = g.equipe?.chefs.length === 0}
+	<!-- Une valeur à part : relire la page (une fiche enregistrée) ne referme pas ce qu'on a ouvert. -->
+	{@const depart = ouvert(g.cle)}
+	<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={depart}>
+		{#snippet action()}
+			{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="masque">un chef pour {g.titre}</span></a>{/if}
+		{/snippet}
+		<ul>
+			{#each g.personnes as p (p.id)}{@render agent(p, g.equipe?.couleur ?? null)}{/each}
+		</ul>
+	</Groupe>
+{/snippet}
+
 <!-- Pour la gestion, le titre vient de la page affichée dans le volet. -->
 <svelte:head>
 	{#if !data.gestion}<title>Agents · Gyro Caserne</title>{/if}
 </svelte:head>
 
-<div class="page">
-	<section class="liste" class:masquee={enfant && data.gestion} class:seule={!data.gestion} aria-label="Agents">
+<div class="page" class:a-cote={enfant}>
+	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents">
 		{#if data.gestion}
 			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
 				{#snippet secondaire()}
@@ -97,23 +124,21 @@
 			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." gyro />
 		{/if}
 
-		{#each data.groupes as g (g.cle)}
-			{@const sansChef = g.equipe?.chefs.length === 0}
-			<Groupe titre={g.titre} resume={resume(g.personnes.length, g.equipe)} couleur={g.equipe?.couleur} alerte={sansChef} ouvert={ouvert(g.cle)}>
-				{#snippet action()}
-					{#if data.gestion && sansChef}<a class="nommer" href="/nominations">Nommer <span class="masque">un chef pour {g.titre}</span></a>{/if}
-				{/snippet}
-				<ul>
-					{#each g.personnes as p (p.id)}{@render agent(p, g.equipe?.couleur ?? null)}{/each}
-				</ul>
-			</Groupe>
+		{#if data.groupes.length > 0}
+			<!-- À l'ordinateur : une colonne par équipe, et une dernière pour ceux qui n'en ont pas. -->
+			<div class="colonnes">
+				{#each equipes as g (g.cle)}{@render groupe(g)}{/each}
+				{#if horsEquipes.length > 0}
+					<div class="pile">
+						{#each horsEquipes as g (g.cle)}{@render groupe(g)}{/each}
+					</div>
+				{/if}
+			</div>
+		{:else if cherche}
+			<Vide titre="Personne ici" texte="Aucun agent ne correspond. Essayez un autre nom ou un autre filtre." action={{ href: '/agents', libelle: 'Tout afficher' }} />
 		{:else}
-			{#if cherche}
-				<Vide titre="Personne ici" texte="Aucun agent ne correspond. Essayez un autre nom ou un autre filtre." action={{ href: '/agents', libelle: 'Tout afficher' }} />
-			{:else}
-				<Vide titre="Personne ici" texte="Aucun agent à afficher pour l’instant." />
-			{/if}
-		{/each}
+			<Vide titre="Personne ici" texte="Aucun agent à afficher pour l’instant." />
+		{/if}
 	</section>
 
 	{#if data.gestion || page.error}
@@ -143,6 +168,13 @@
 		gap: 16px;
 	}
 	.liste {
+		gap: 14px;
+	}
+	.colonnes,
+	.pile {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
 		gap: 14px;
 	}
 	.masquee,
@@ -297,18 +329,54 @@
 		.detail {
 			order: 0;
 		}
-		.masquee,
-		.masque-detail {
+		.masquee {
 			display: flex;
 		}
-		.liste {
+		/* Une fiche ouverte : la liste à gauche, sur une colonne. */
+		.a-cote .liste {
 			flex: 0 1 460px;
-		}
-		.liste.seule {
-			flex: 0 1 44rem;
 		}
 		.detail {
 			flex: 1 1 0;
+		}
+		/* Sinon, une colonne par équipe. De 2 à 6 équipes, les colonnes se partagent la largeur et passent à la ligne s'il le faut. */
+		.page:not(.a-cote) .colonnes {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+			align-items: start;
+		}
+		.page:not(.a-cote) .agent {
+			flex-wrap: wrap;
+			gap: 2px 12px;
+		}
+		.page:not(.a-cote) .identite {
+			flex-basis: calc(100% - 52px);
+		}
+		.page:not(.a-cote) .etat {
+			flex-basis: calc(100% - 52px);
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			margin-left: 52px;
+			white-space: normal;
+		}
+		/* Toute la ligne ouvre la fiche : le chevron prendrait la place du nom. */
+		.page:not(.a-cote) .chevron {
+			display: none;
+		}
+		.page:not(.a-cote) .filtres {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: 10px 16px;
+		}
+		.page:not(.a-cote) .filtres > :global(.recherche) {
+			flex: 0 1 26rem;
+		}
+		.page:not(.a-cote) .puces {
+			flex: 1 1 auto;
+			margin: -4px 0;
+			padding: 4px;
 		}
 		/* La liste est à côté : pas de retour. */
 		.retour {

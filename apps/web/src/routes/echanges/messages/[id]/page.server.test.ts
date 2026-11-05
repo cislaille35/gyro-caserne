@@ -203,7 +203,7 @@ describe('une conversation : gestes', () => {
 		expect(await agir('reagir', locaux(base, alice), id, [['id', 'x'], ['emoji', '👍']])).toMatchObject({ status: 400 });
 	});
 
-	it('la cloche barrée : coupe puis réactive cette conversation au téléphone ; seulement pour un membre', async () => {
+	it('couper les notifications : coupe puis réactive cette conversation au téléphone ; seulement pour un membre', async () => {
 		const { base, alice, bruno, chef } = await preparer();
 		const { conversation } = await envoyer(base, base.photos, alice, { personne: bruno.id }, { texte: 'Salut' }, '2026-10-28T09:00');
 		const params = { id: String(conversation) };

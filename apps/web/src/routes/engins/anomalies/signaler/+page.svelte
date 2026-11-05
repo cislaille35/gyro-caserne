@@ -3,6 +3,8 @@
 	import { GENRES } from '#lib/engins/textes.ts';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
+	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
+	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 
 	type Donnees = { engins: { id: number; nom: string; type: string }[]; enginId: number | null; peutSignaler: boolean };
@@ -51,33 +53,17 @@
 		<p class="panneau">Le signalement est réservé aux agents du centre.</p>
 	{:else}
 		<form method="POST" enctype="multipart/form-data" use:enhance={soumettre} class="panneau">
-			<div class="champ">
-				<label for="engin">Engin</label>
-				<select id="engin" name="engin" required>
-					<option value="" disabled selected={choisi === ''}>Choisir l’engin</option>
-					{#each data.engins as e (e.id)}<option value={e.id} selected={String(e.id) === choisi}>{e.nom === e.type ? e.nom : `${e.nom} · ${e.type}`}</option>{/each}
-				</select>
-			</div>
+			<ChoixRadio id="engin" legende="Engin" name="engin" disposition="tuiles" requis valeur={choisi} options={data.engins.map((e) => ({ valeur: String(e.id), libelle: e.nom, sous: e.nom === e.type ? undefined : e.type }))} />
 			<div class="champ">
 				<label for="libelle">Le problème</label>
 				<input id="libelle" name="libelle" type="text" maxlength="120" required autocomplete="off" placeholder="Ex. : treuil hors service" value={form?.libelle ?? ''} />
 			</div>
-			<fieldset>
-				<legend>C’est</legend>
-				<div class="choix-ligne">
-					{#each Object.entries(GENRES) as [valeur, libelle] (valeur)}
-						<label class="choix"><input type="radio" name="genre" value={valeur} checked={(form?.genre ?? 'abime') === valeur} /> {libelle}</label>
-					{/each}
-				</div>
-			</fieldset>
+			<ChoixRadio id="genre" legende="C’est" name="genre" valeur={form?.genre ?? 'abime'} options={Object.entries(GENRES).map(([valeur, libelle]) => ({ valeur, libelle }))} />
 			<div class="champ">
 				<label for="note">Note <span class="doux">(facultative)</span></label>
 				<textarea id="note" name="note" maxlength="300" rows="3">{form?.note ?? ''}</textarea>
 			</div>
-			<div class="champ">
-				<label for="photo">Photo <span class="doux">(facultative)</span></label>
-				<input id="photo" name="photo" type="file" accept="image/*" capture="environment" />
-			</div>
+			<ChampPhoto id="photo" name="photo" libelle="Photo" precision="(facultative)" capture="environment" />
 			{#if erreurPhoto}<p class="echec" role="alert">{erreurPhoto}</p>{/if}
 			{#if form?.message}<p class="echec" role="alert">{form.message}</p>{/if}
 			<div><Bouton type="submit" desactive={envoi}>Signaler</Bouton></div>
@@ -107,32 +93,10 @@
 		flex-direction: column;
 		gap: 6px;
 	}
-	label,
-	legend {
+	label {
 		font-weight: 700;
 	}
-	fieldset {
-		margin: 0;
-		padding: 0;
-		border: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	.choix-ligne {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 18px;
-	}
-	.choix {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		min-height: var(--cible);
-		font-weight: 400;
-	}
 	input[type='text'],
-	select,
 	textarea {
 		min-height: var(--cible);
 		padding: 8px 12px;

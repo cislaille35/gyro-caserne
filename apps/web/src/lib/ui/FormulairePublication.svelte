@@ -11,7 +11,9 @@
 	import { phraseAudience } from '#lib/murs/phrases.ts';
 	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
 	import { teinteDuMur } from '#lib/murs/teinte.ts';
+	import ChampPhoto from './ChampPhoto.svelte';
 	import Champ from './Champ.svelte';
+	import ChoixRadio from './ChoixRadio.svelte';
 
 	type Valeurs = { mur?: string; type?: string; texte?: string; priseDeConnaissance?: boolean; debut?: string; lieu?: string; equipes?: string[]; question?: string; reponses?: string[]; ouverture?: string; cloture?: string };
 	let {
@@ -71,7 +73,7 @@
 	let erreurPhotos = $state('');
 	let envoi = $state(false);
 	// Les photos sont réduites avant l'envoi ; un fichier illisible arrête l'envoi avec un message.
-	let champPhotos: HTMLInputElement;
+	let champPhotos = $state<HTMLInputElement>();
 	const surEnvoi: SubmitFunction = async ({ formData, cancel }) => {
 		erreurPhotos = '';
 		const fichiers = formData.getAll('photos').filter((f): f is File => typeof f !== 'string' && f.size > 0);
@@ -84,7 +86,7 @@
 			envoi = false;
 			cancel();
 			await tick();
-			champPhotos.focus();
+			champPhotos?.focus();
 			return;
 		}
 		// Envoyée : on part sur le mur, à la publication. Refusée : le premier champ en erreur prend le focus.
@@ -101,46 +103,28 @@
 <!-- Annoncé par la zone unique de la page ; ici, seulement visible. -->
 {#if concerne && (form?.message || form?.erreurs)}<p class="echec">{form?.message ?? 'La publication contient des erreurs.'}</p>{/if}
 <form method="POST" action="?/publier" enctype="multipart/form-data" class="formulaire" use:enhance={surEnvoi}>
-	<fieldset class="bloc" aria-describedby={erreurs.mur ? 'publier-mur-erreur' : undefined}>
-		<legend>Où publier ?</legend>
-		{#if erreurs.mur}<p id="publier-mur-erreur" class="erreur">{erreurs.mur}</p>{/if}
-		<div class="murs" class:js class:en-erreur={Boolean(erreurs.mur)}>
-			{#each murs as m (m.cle)}
-				{@const t = teinteDuMur(m.type, m)}
-				<label class="mur" style:--choix-fond={t.fond} style:--choix-encre={t.encre} style:--choix-trait={t.trait === 'transparent' ? 'var(--encre)' : t.trait}>
-					<input
-						type="radio"
-						name="mur"
-						value={m.cle}
-						bind:group={mur}
-						required
-					/>
-					<span class="nom">{m.nom}</span>
-					<span class="qui" hidden={js}>{phraseAudience(m.type, m.nom, m.audience)}.</span>
-				</label>
-			{/each}
-		</div>
-		{#if js}
-			{@const t = choix ? teinteDuMur(choix.type, choix) : null}
-			<p class="visible" aria-live="polite" hidden={!choix} style:--visible-fond={t?.fond} style:--visible-encre={t?.encre}>
-				<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-				<span>{choix ? `${phraseAudience(choix.type, choix.nom, choix.audience)}.` : ''}</span>
-			</p>
-		{/if}
-	</fieldset>
+	<ChoixRadio
+		id="publier-mur"
+		legende="Où publier ?"
+		name="mur"
+		bind:valeur={mur}
+		requis
+		disposition={js ? 'pastilles' : 'rangees'}
+		erreur={erreurs.mur}
+		options={murs.map((m) => {
+			const t = teinteDuMur(m.type, m);
+			return { valeur: m.cle, libelle: m.nom, sous: js ? undefined : `${phraseAudience(m.type, m.nom, m.audience)}.`, teinte: { fond: t.fond, encre: t.encre, trait: t.trait === 'transparent' ? 'var(--encre)' : t.trait } };
+		})}
+	/>
+	{#if js}
+		{@const t = choix ? teinteDuMur(choix.type, choix) : null}
+		<p class="visible" aria-live="polite" hidden={!choix} style:--visible-fond={t?.fond} style:--visible-encre={t?.encre}>
+			<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+			<span>{choix ? `${phraseAudience(choix.type, choix.nom, choix.audience)}.` : ''}</span>
+		</p>
+	{/if}
 
-	<fieldset class="bloc" aria-describedby={erreurs.type ? 'publier-type-erreur' : undefined}>
-		<legend>Quel genre ?</legend>
-		<div class="genres">
-			{#each GENRES as g (g.valeur)}
-				<label class="genre">
-					<input type="radio" name="type" value={g.valeur} bind:group={type} />
-					<span class="textes"><strong>{g.libelle}</strong><span class="sous">{g.sous}</span></span>
-				</label>
-			{/each}
-		</div>
-		{#if erreurs.type}<p id="publier-type-erreur" class="erreur">{erreurs.type}</p>{/if}
-	</fieldset>
+	<ChoixRadio id="publier-type" legende="Quel genre ?" name="type" bind:valeur={type} disposition="tuiles" erreur={erreurs.type} options={GENRES} />
 
 	{#if unModere}
 		<!-- Sans JavaScript, la case reste visible avec sa mention ; avec, seulement pour une annonce sur un mur qu'on modère. -->
@@ -192,21 +176,7 @@
 		{/if}
 	</fieldset>
 
-	<div class="champ">
-		<label for="publier-photos">Photos</label>
-		<p id="publier-photos-aide" class="aide">4 au plus, en JPEG ou WebP. Elles sont réduites avant l’envoi.</p>
-		<input
-			bind:this={champPhotos}
-			id="publier-photos"
-			name="photos"
-			type="file"
-			accept="image/jpeg,image/webp,image/*"
-			multiple
-			aria-invalid={erreurPhoto ? 'true' : undefined}
-			aria-describedby={erreurPhoto ? 'publier-photos-aide publier-photos-erreur' : 'publier-photos-aide'}
-		/>
-		{#if erreurPhoto}<p id="publier-photos-erreur" class="erreur">{erreurPhoto}</p>{/if}
-	</div>
+	<ChampPhoto bind:champ={champPhotos} id="publier-photos" name="photos" libelle="Photos" aide="4 au plus, en JPEG ou WebP. Elles sont réduites avant l’envoi." appel="Ajouter des photos" accept="image/jpeg,image/webp,image/*" multiple erreur={erreurPhoto} />
 
 	<details class="sondage" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
 		<summary>Sondage</summary>
@@ -275,13 +245,6 @@
 		margin: 0;
 		min-width: 0;
 	}
-	.bloc {
-		padding: 0;
-		border: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
 	legend {
 		padding: 0 0 8px;
 		font-weight: 700;
@@ -292,53 +255,6 @@
 	}
 
 	/* Où publier ? */
-	.murs {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.murs.js {
-		flex-direction: row;
-		flex-wrap: wrap;
-	}
-	.mur {
-		min-height: var(--cible);
-		padding: 8px 14px;
-		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
-		background: var(--surface);
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		column-gap: 8px;
-		cursor: pointer;
-	}
-	.js .mur {
-		padding: 0 14px;
-		border-radius: 999px;
-	}
-	.en-erreur .mur {
-		border-color: var(--accent);
-	}
-	.mur:has(input:checked) {
-		border: 2px solid var(--choix-trait);
-		background: var(--choix-fond);
-		color: var(--choix-encre);
-	}
-	.mur input,
-	.genre input {
-		margin: 0;
-		width: 20px;
-		height: 20px;
-		accent-color: var(--encre);
-	}
-	.qui {
-		flex-basis: 100%;
-		padding-left: 28px;
-		font-weight: 400;
-		font-size: 0.9375rem;
-	}
-	.qui[hidden],
 	.visible[hidden] {
 		display: none;
 	}
@@ -356,37 +272,6 @@
 		flex: none;
 	}
 
-	/* Quel genre ? */
-	.genres {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 8px;
-	}
-	.genre {
-		min-height: 64px;
-		padding: 10px 12px;
-		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-grand);
-		background: var(--surface);
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		font-weight: 400;
-		cursor: pointer;
-	}
-	.genre:has(input:checked) {
-		border: 2px solid var(--encre);
-	}
-	.textes {
-		display: flex;
-		flex-direction: column;
-		min-width: 0;
-	}
-	.sous {
-		font-size: 0.8125rem;
-		color: var(--doux);
-	}
-
 	/* Champs */
 	.champ {
 		display: flex;
@@ -397,8 +282,7 @@
 		font-weight: 700;
 	}
 	textarea,
-	.saisie,
-	input[type='file'] {
+	.saisie {
 		min-height: var(--cible);
 		box-sizing: border-box;
 		width: 100%;
@@ -413,9 +297,6 @@
 		padding: 12px;
 		border-radius: 14px;
 		resize: vertical;
-	}
-	input[type='file'] {
-		padding: 10px 12px;
 	}
 	[aria-invalid='true'] {
 		border: 2px solid var(--accent);

@@ -7,7 +7,9 @@ import BarreActions from './BarreActions.svelte';
 import Bouton from './Bouton.svelte';
 import Carte from './Carte.svelte';
 import Champ from './Champ.svelte';
+import ChampPhoto from './ChampPhoto.svelte';
 import Choix from './Choix.svelte';
+import ChoixRadio from './ChoixRadio.svelte';
 import Groupe from './Groupe.svelte';
 import IconeRole from './IconeRole.svelte';
 import Initiales from './Initiales.svelte';
@@ -29,6 +31,50 @@ import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: Component<any>, props: Record<string, unknown>) => render(composant, { props }).body;
+
+describe('ChoixRadio', () => {
+	const options = [{ valeur: 'a', libelle: 'VTU' }, { valeur: 'b', libelle: 'FPT', sous: 'Fourgon' }];
+	const page = (props: Record<string, unknown> = {}) => render(ChoixRadio, { props: { id: 'engin', legende: 'Engin', name: 'engin', options, ...props } }).body;
+
+	it('des radios natifs groupés sous une légende, le choix coché, chaque ligne cliquable', () => {
+		const html = page({ valeur: 'b', requis: true });
+		expect(html).toMatch(/<fieldset[\s\S]*<legend[^>]*>Engin<\/legend>/);
+		expect(html.match(/<input[^>]*type="radio"[^>]*name="engin"[^>]*required/g)).toHaveLength(2);
+		expect(html).toMatch(/value="b"[^>]*checked/);
+		expect(html).not.toMatch(/value="a"[^>]*checked/);
+		expect(html).toMatch(/<label class="option[^"]*"[^>]*><input[\s\S]*?VTU[\s\S]*?<\/label>/);
+		expect(html).toContain('Fourgon');
+	});
+
+	it('l’erreur est reliée au groupe, et le groupe la montre', () => {
+		const html = page({ erreur: 'Choisissez un engin.' });
+		expect(html).toMatch(/<fieldset[^>]*aria-describedby="engin-erreur"/);
+		expect(html).toMatch(/id="engin-erreur"[^>]*>Choisissez un engin\.</);
+		expect(html).toMatch(/class="options[^"]*en-erreur/);
+		expect(page()).not.toContain('aria-describedby');
+	});
+});
+
+describe('ChampPhoto', () => {
+	const page = (props: Record<string, unknown> = {}) => render(ChampPhoto, { props: { id: 'photo', name: 'photo', libelle: 'Photo', ...props } }).body;
+
+	it('le champ natif, nommé par un seul libellé ; le bouton écrit attend le JavaScript', () => {
+		const html = page({ precision: '(facultative)', capture: 'environment' });
+		expect(html).toMatch(/<label class="titre[^"]*" for="photo">Photo/);
+		expect(html).toContain('(facultative)');
+		expect(html).toMatch(/<input[^>]*id="photo"[^>]*name="photo"[^>]*type="file"[^>]*accept="image\/\*"[^>]*capture="environment"/);
+		expect(html.match(/<label/g)).toHaveLength(1);
+		expect(html).not.toContain('Ajouter une photo');
+		expect(html).not.toContain('Retirer');
+	});
+
+	it('plusieurs photos, aide et erreur reliées au champ', () => {
+		const html = page({ multiple: true, appel: 'Ajouter des photos', aide: '4 au plus.', erreur: 'Photo illisible.' });
+		expect(html).toMatch(/<input[^>]*multiple/);
+		expect(html).toMatch(/<input[^>]*aria-invalid="true"[^>]*aria-describedby="photo-aide photo-erreur"/);
+		expect(html).toMatch(/id="photo-erreur"[^>]*>Photo illisible\.</);
+	});
+});
 
 describe('Champ', () => {
 	const base = { id: 'email', libelle: 'Adresse e-mail', name: 'email' };
