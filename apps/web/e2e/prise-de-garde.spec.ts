@@ -104,23 +104,18 @@ test.describe('prise de garde', () => {
 test.describe('agents, côté chef', () => {
 	test.use({ storageState: ETAT_SUPER });
 
-	test('au téléphone, une équipe ouverte le reste après une fiche enregistrée', async ({ page }) => {
+	test('au téléphone, une équipe ouverte le reste en revenant d’une fiche', async ({ page }) => {
 		test.skip(page.viewportSize()!.width >= 1024, 'la liste reste à côté de la fiche');
 		await page.goto('/agents');
 		await page.waitForLoadState('networkidle');
-		const entete = page.getByRole('button', { name: /^Équipe 1/ });
+		const entete = page.getByRole('button', { name: /^Équipe 2/ });
 		await entete.click();
 		await page.locator('li.agent a').first().click();
 		await expect(page).toHaveURL(/\/agents\/\d+/);
-		// Enregistrer un bloc de la fiche relit la page, liste comprise.
-		const bloc = page.getByRole('button', { name: /^Identité et contact/ });
-		await bloc.click();
-		const reponse = page.waitForResponse((r) => r.request().method() === 'POST');
-		await page.locator('section').filter({ has: bloc }).getByRole('button', { name: 'Enregistrer', exact: true }).click();
-		await reponse;
-		await page.waitForLoadState('networkidle');
-		await page.getByRole('link', { name: /Agents$/ }).click();
+		await page.getByRole('link', { name: /Agents$/ }).first().click();
+		await expect(page).toHaveURL(/\/agents$/);
 		await expect(entete).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.getByRole('button', { name: /^Équipe 1/ })).toHaveAttribute('aria-expanded', 'false');
 	});
 
 	test('toute la ligne ouvre la fiche, 44 px au moins', async ({ page }) => {

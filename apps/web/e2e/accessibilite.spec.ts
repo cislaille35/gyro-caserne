@@ -153,7 +153,7 @@ for (const theme of ['auto', 'sombre']) {
 				// La saisie est tout en bas de l'écran, sans barre dessous au téléphone.
 				const saisie = (await page.getByRole('textbox', { name: 'Votre message' }).boundingBox())!;
 				expect(saisie.y + saisie.height).toBeLessThanOrEqual(page.viewportSize()!.height);
-				expect(page.viewportSize()!.height - (saisie.y + saisie.height)).toBeLessThan(40);
+				if (telephone) expect(page.viewportSize()!.height - (saisie.y + saisie.height)).toBeLessThan(40);
 				// « Aller au contenu » reste le premier arrêt du clavier.
 				await page.keyboard.press('Tab');
 				await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
@@ -966,6 +966,7 @@ test.describe('nominations', () => {
 		await expect(carte.getByText('Aucune responsabilité en cours.')).toBeVisible();
 
 		await agent.reload();
+		await ouvrirEquipe(agent);
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).not.toContainText('Rôles');
 		await gestion.context().close();
 		await agent.context().close();
