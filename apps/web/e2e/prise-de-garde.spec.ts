@@ -110,7 +110,7 @@ test.describe('agents, côté chef', () => {
 		await page.waitForLoadState('networkidle');
 		const entete = page.getByRole('button', { name: /^Équipe 2/ });
 		await entete.click();
-		await page.locator('li.agent a').first().click();
+		await page.locator('li.agent a:visible').first().click();
 		await expect(page).toHaveURL(/\/agents\/\d+/);
 		await page.getByRole('link', { name: /Agents$/ }).first().click();
 		await expect(page).toHaveURL(/\/agents$/);
