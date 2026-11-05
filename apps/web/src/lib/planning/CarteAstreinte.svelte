@@ -3,7 +3,8 @@
 	import PastilleEquipe from '../ui/PastilleEquipe.svelte';
 	import { phraseAstreinte, priseDeGardeOuverte } from './astreinte.ts';
 
-	// La carte astreinte, à la couleur de l'équipe (toujours nommée). Compacte à l'Accueil : la phrase en tête et « Voir le planning ».
+	// La carte astreinte, à la couleur de l'équipe (toujours nommée). À l'Accueil (`compacte`) : la phrase en tête et « Voir le planning ».
+	// Au Planning : condensée, pour laisser le calendrier en haut ; la phrase est dans l'en-tête de la page.
 	// Les mêmes gestes partout, au téléphone comme à l'ordinateur.
 	let { a, maintenant, compacte = false }: { a: Astreinte; maintenant: string; compacte?: boolean } = $props();
 
@@ -21,13 +22,12 @@
 		<PastilleEquipe nom={a.equipe.nom} couleur={a.equipe.couleur} />
 	</div>
 	<div class="milieu">
-		{#if a.mienne && !a.enCours && p.jours > 1}
+		{#if compacte && a.mienne && !a.enCours && p.jours > 1}
 			<span class="rebours" aria-hidden="true"><strong>{p.jours}</strong>jours</span>
 		{/if}
 		<div class="textes">
-			<!-- Au Planning, la phrase est déjà dans l'en-tête : la carte donne les dates. -->
 			{#if compacte}<p class="titre">{p.titre}</p>{/if}
-			<p class="quand" class:titre={!compacte}>{p.quand.charAt(0).toUpperCase() + p.quand.slice(1)}</p>
+			<p class="quand">{p.quand.charAt(0).toUpperCase() + p.quand.slice(1)}</p>
 			{#if p.plage}<p class="plage">{p.plage}</p>{/if}
 		</div>
 	</div>
@@ -117,10 +117,7 @@
 		min-width: 0;
 	}
 	.titre {
-		font: 700 1.375rem/1.15 var(--police-titre);
-	}
-	.compacte .titre {
-		font-size: 1.25rem;
+		font: 700 1.25rem/1.15 var(--police-titre);
 	}
 	.quand {
 		font-weight: 600;
@@ -149,6 +146,25 @@
 	}
 	.gestes a:hover {
 		border-color: var(--encre);
+	}
+	.carte:not(.compacte) {
+		gap: 6px;
+		padding: 10px 12px 10px 14px;
+	}
+	.carte:not(.compacte) .gestes a {
+		padding: 0 12px;
+		font-size: 0.9375rem;
+	}
+	@media (min-width: 1024px) {
+		.carte:not(.compacte) {
+			flex-flow: row wrap;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px 20px;
+		}
+		.carte:not(.compacte) .haut {
+			justify-content: flex-start;
+		}
 	}
 	/* Le geste du moment, à la relève. */
 	.gestes .prise {

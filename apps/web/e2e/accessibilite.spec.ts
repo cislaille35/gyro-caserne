@@ -424,6 +424,44 @@ async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) =
 }
 
 // Une page du super administrateur, dans le thème voulu.
+// À 390 px : un titre sur plusieurs lignes ne mord plus sur sa sous-ligne, et les trois réponses tiennent sur une ligne.
+test.describe('accueil au téléphone', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('titre long : cible de 44 px, sans recouvrement ; réponses sur une ligne', async ({ browser, page }, info) => {
+		test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
+		const gestion = await pageSuper(browser);
+		const marque = nouvelleMarque();
+		await gestion.goto('/echanges/centre');
+		await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque} : désincarcération sur la plateforme du centre`, debut: '2099-06-02T18:30', lieu: 'Caserne' });
+		await gestion.context().close();
+
+		await page.goto('/');
+		const rangee = page.locator('li').filter({ hasText: marque });
+		const titre = rangee.locator('a.titre');
+		const texte = await titre.evaluate((a) => {
+			const plage = document.createRange();
+			plage.selectNodeContents(a);
+			const lignes = [...plage.getClientRects()];
+			return { lignes: new Set(lignes.map((l) => Math.round(l.top))).size, bas: Math.max(...lignes.map((l) => l.bottom)) };
+		});
+		expect(texte.lignes).toBeGreaterThan(1);
+		expect(texte.bas).toBeLessThanOrEqual((await rangee.locator('.sous').boundingBox())!.y);
+		expect((await titre.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+		const unSeulRang = async () => {
+			const hauts = await rangee.getByRole('group').getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
+			expect(hauts).toHaveLength(3);
+			expect(new Set(hauts).size).toBe(1);
+		};
+		await unSeulRang();
+		// Choisie, la réponse prend une coche et s'élargit.
+		await rangee.getByRole('button', { name: 'Incertain' }).click();
+		await expect(rangee.getByRole('button', { name: 'Incertain' })).toHaveAttribute('aria-pressed', 'true');
+		await unSeulRang();
+	});
+});
+
 async function pageSuper(browser: Browser, theme?: string): Promise<Page> {
 	const contexte = await browser.newContext({ storageState: ETAT_SUPER });
 	if (theme) await contexte.addCookies([{ name: 'theme', value: theme, url: ADRESSE }]);

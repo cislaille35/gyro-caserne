@@ -38,19 +38,15 @@
 	const rangee = $derived(data.casquettes.length >= 2);
 	const casquette = $derived(data.casquettes.find((c) => c.id === data.choisie));
 
-	type Lien = { href: string; titre: string; texte: string; icone: NomIcone; dessin?: string };
-	const gerer: Lien[] = $derived([
+	const gerer: { href: string; titre: string; texte: string; icone: NomIcone }[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque' },
 		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const }] : []),
 		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les rôles et les comités', icone: 'outil' as const }] : [])
 	]);
-	// Hors « Le centre » : de quoi aller vite là où l'on va le plus.
-	const raccourcis: Lien[] = $derived([
-		{ href: '/planning', titre: 'Planning', texte: 'Astreintes, manœuvres et remplacements', icone: 'cle', dessin: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4' },
-		{ href: '/echanges', titre: 'Échanges', texte: 'Les murs du centre et vos messages', icone: 'camion', dessin: DESSINS.echanges },
-		{ href: '/agents', titre: 'L’effectif', texte: 'Qui est qui au centre', icone: 'casque' },
-		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Téléphone, contact d’urgence', icone: 'livre' as const, dessin: DESSINS.profil }] : [])
-	]);
+	// Ce qui attend une décision passe avant tout le reste, sur toutes les casquettes.
+	const enTete = $derived(data.contenu.type === 'astreinte' ? [] : data.contenu.aDecider);
+	// « Mon astreinte » n'a rien à montrer à côté de « À ne pas manquer ».
+	const seule = $derived(data.contenu.type === 'astreinte');
 
 	// « À décider » : les trois premiers, le reste derrière « Voir les autres ».
 	const VISIBLES = 3;
@@ -96,14 +92,6 @@
 	</ListeRangees>
 {/snippet}
 
-{#snippet liens(titre: string, liste: Lien[])}
-	<ListeRangees {titre}>
-		{#each liste as l (l.href)}
-			<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} dessin={l.dessin} /></li>
-		{/each}
-	</ListeRangees>
-{/snippet}
-
 <div class="page">
 	<TirerPourActualiser />
 	{#if bandeau}
@@ -129,31 +117,32 @@
 	<div class="masque" role="status">{annonceSucces}</div>
 	<div class="masque" role="alert">{annonceEchec}</div>
 
-	<div class="colonnes">
+	<div class="colonnes" class:seule>
 		<div class="colonne">
+			{#if enTete.length > 0}{@render decider(enTete)}{/if}
 			<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
 		</div>
 
-		<div class="colonne">
-			{#if data.contenu.type === 'centre'}
-				{#if data.contenu.aDecider.length > 0}
-					{@render decider(data.contenu.aDecider)}
-				{:else}
-					<ListeRangees titre="À décider">
-						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
+		{#if !seule}
+			<div class="colonne">
+				{#if data.contenu.type === 'centre'}
+					{#if enTete.length === 0}
+						<ListeRangees titre="À décider">
+							<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
+						</ListeRangees>
+					{/if}
+					<ListeRangees titre="Gérer">
+						{#each gerer as l (l.href)}
+							<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} /></li>
+						{/each}
 					</ListeRangees>
-				{/if}
-				{@render liens('Gérer', gerer)}
-			{:else}
-				{#if (data.contenu.type === 'role' || data.contenu.type === 'comite' || data.contenu.type === 'equipe') && data.contenu.aDecider.length > 0}
-					{@render decider(data.contenu.aDecider)}
-				{/if}
-				{#if data.contenu.type === 'equipe' && data.contenu.aDecider.length === 0}
-					<ListeRangees titre="À décider">
-						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
-					</ListeRangees>
-				{/if}
-				{#if data.contenu.type === 'role'}
+				{:else if data.contenu.type === 'equipe'}
+					{#if enTete.length === 0}
+						<ListeRangees titre="À décider">
+							<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
+						</ListeRangees>
+					{/if}
+				{:else if data.contenu.type === 'role'}
 					<ListeRangees titre="Ce que ce rôle permet">
 						{#each data.contenu.permet as permis (permis)}
 							<li><Rangee titre={permis} icone={casquette?.icone ?? 'etoile'} /></li>
@@ -174,9 +163,8 @@
 						{/each}
 					</ListeRangees>
 				{/if}
-				{@render liens('Raccourcis', raccourcis)}
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </div>
 <Celebration moment={momentAnniversaire(data.anniversaire === true, data.aujourdhui)} qui={data.qui} />
@@ -325,6 +313,9 @@
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
 			gap: 28px;
+		}
+		.colonnes.seule {
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 </style>
