@@ -8,10 +8,9 @@
   - **Page d'attente** : dans le code du service worker, sans cache ni appel au serveur. Nouveaux essais à 5, 10, 20 s, le compte gardé dans l'historique du navigateur, puis un bouton. Rien d'autre n'est mis en cache : pas de hors-ligne.
   - **Navigation dans l'appli** : rien de plus à faire. Quand `__data.json` échoue deux fois, SvelteKit recharge la page entière, qui passe par le service worker ; si la seconde lecture réussit, c'est `+error.svelte`, avec « Réessayer ».
   - **Envois** : jamais de renvoi. Un envoi `enhance` coupé reçoit un refus au format de SvelteKit : la page et la saisie restent, et le service worker envoie le message à la page (`EnvoiCoupe.svelte`), affiché sur tous les écrans. Un formulaire classique (connexion) : page d'attente sans nouvel essai, avec « Revenir au formulaire » (le navigateur restitue la saisie).
-  - **Groupes** : en été proposé ou publié, « Groupe A, B, C, D » au lieu de « Équipe N ». Correspondance : équipes actives dans l'ordre du roulement du centre (`ordre_rotation`), recalculée à l'affichage, rien en base.
+  - **Groupes** : « Groupe A, B, C, D » au lieu de « Équipe N » sur les semaines d'été. Les agents les voient à la publication de l'été (planning, carte astreinte, agenda, notifications) ; le chef dès la proposition (tableau de l'été, onglet Été du fichier). Décision du porteur à la relecture de la PR #47. Correspondance : équipes actives dans l'ordre du roulement du centre (`ordre_rotation`), recalculée à l'affichage, rien en base.
 - **Limites** :
   - La toute première visite, avant l'installation du service worker, montre encore l'erreur brute de Cloudflare, ainsi que les navigateurs sans service worker. Sans lui, un envoi coupé mène à `+error.svelte` : la saisie est perdue.
   - La page d'attente suit le thème de l'appareil, pas le choix fait dans l'appli : le cookie n'est pas lisible par le navigateur (`HttpOnly`).
-  - Un agent peut voir « Groupe » sur les semaines d'été dès la proposition, avant la publication.
   - Le budget de calcul reste celui de l'offre gratuite : ceci réduit les coupures et les rend supportables, sans les interdire.
-- **Validé par** : à valider par le porteur (PR de ce lot).
+- **Validé par** : le porteur (PR #47).

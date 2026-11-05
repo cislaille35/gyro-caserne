@@ -32,14 +32,13 @@ describe('la correspondance (calcul)', () => {
 		]);
 	});
 
-	it('une semaine compte en groupes si l’été est proposé ou publié, de sa première à sa dernière relève', () => {
-		const ete = { debut: '2027-06-25', fin: '2027-08-27', publieeLe: null, proposee: 1 };
+	it('pour les agents, une semaine compte en groupes si l’été est publié, de sa première à sa dernière relève', () => {
+		const ete = { debut: '2027-06-25', fin: '2027-08-27', publieeLe: '2027-05-20T10:00' };
 		expect(semaineEnGroupes([ete], '2027-06-25')).toBe(true);
 		expect(semaineEnGroupes([ete], '2027-08-27')).toBe(true);
 		expect(semaineEnGroupes([ete], '2027-06-18')).toBe(false);
 		expect(semaineEnGroupes([ete], '2027-09-03')).toBe(false);
-		expect(semaineEnGroupes([{ ...ete, proposee: 0 }], '2027-06-25')).toBe(false);
-		expect(semaineEnGroupes([{ ...ete, proposee: 0, publieeLe: '2027-05-20T10:00' }], '2027-06-25')).toBe(true);
+		expect(semaineEnGroupes([{ ...ete, publieeLe: null }], '2027-06-25')).toBe(false);
 	});
 });
 
@@ -64,15 +63,15 @@ describe('l’été ouvert, pas encore proposé : rien ne change', () => {
 });
 
 describe('l’été proposé', () => {
-	it('tableau de l’été, planning et carte astreinte en groupes ; le reste de l’année en équipes', async () => {
+	it('le tableau du chef en groupes ; planning, carte astreinte et agenda des agents encore en équipes', async () => {
 		const { base, chef, a, p } = await jeu();
 		await proposerEte(base, chef, 2027, maintenant, reglage);
 		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).equipes.map((e) => e.nom)).toEqual(['Groupe A', 'Groupe B', 'Groupe C', 'Groupe D']);
-		const planning = await planningDe(base, a(p.bruno), 2027, maintenant, reglage);
-		expect(nomDe(planning, ETE)).toBe('Groupe B');
-		expect(nomDe(planning, HORS_ETE)).toBeNull();
-		expect((await astreinteDe(base, a(p.bruno), `${ETE}T10:00`, reglage))!.equipe.nom).toBe('Groupe B');
-		expect((await astreinteDe(base, a(p.bruno), '2027-03-01T10:00', reglage))!.equipe.nom).toBe('Équipe 2');
+		expect(nomDe(await planningDe(base, a(p.bruno), 2027, maintenant, reglage), ETE)).toBeNull();
+		expect((await astreinteDe(base, a(p.bruno), `${ETE}T10:00`, reglage))!.equipe.nom).toBe('Équipe 2');
+		const ics = await agendaDe(base, await monLienAgenda(base, a(p.bruno), maintenant), maintenant, reglage);
+		expect(ics).not.toContain('Groupe');
+		expect(await base.select().from(avisEte)).toEqual([]);
 	});
 
 	it('le fichier : onglet Été en groupes, onglet Semaines en équipes', async () => {
@@ -88,10 +87,15 @@ describe('l’été proposé', () => {
 });
 
 describe('l’été publié', () => {
-	it('notifications de renfort et agenda en groupes', async () => {
+	it('planning, carte astreinte, notifications de renfort et agenda en groupes ; le reste de l’année en équipes', async () => {
 		const { base, chef, a, p } = await jeu();
 		await proposerEte(base, chef, 2027, maintenant, reglage);
 		await publierEte(base, chef, 2027, maintenant, reglage);
+		const planning = await planningDe(base, a(p.bruno), 2027, maintenant, reglage);
+		expect(nomDe(planning, ETE)).toBe('Groupe B');
+		expect(nomDe(planning, HORS_ETE)).toBeNull();
+		expect((await astreinteDe(base, a(p.bruno), `${ETE}T10:00`, reglage))!.equipe.nom).toBe('Groupe B');
+		expect((await astreinteDe(base, a(p.bruno), '2027-03-01T10:00', reglage))!.equipe.nom).toBe('Équipe 2');
 		const avis = await base.select().from(avisEte);
 		expect(avis.find((x) => x.personneId === p.alice)?.texte).toBe('Planning d’été : vous êtes en renfort du Groupe B la semaine du vendredi 25 juin.');
 		expect(nomDe(await planningDe(base, a(p.alice), 2027, maintenant, reglage), ETE)).toBe('Groupe B');

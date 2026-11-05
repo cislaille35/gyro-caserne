@@ -25,7 +25,7 @@ L'été déjà ouvert pour l'an prochain (dès l'automne) compte de la même fa�
 
 ## Groupes A, B, C, D
 
-Dès qu'un été est **proposé ou publié**, on parle de **Groupe A, B, C, D** au lieu d'« Équipe N » sur les semaines d'été : tableau de l'été, planning de chacun (semaine, mois, année), carte astreinte de l'Accueil, agenda, notifications de renfort, onglet « Été » du fichier. Hors été, et avant la proposition, rien ne change.
+**À la publication de l'été**, les agents lisent **Groupe A, B, C, D** au lieu d'« Équipe N » sur les semaines d'été : planning de chacun (semaine, mois, année), carte astreinte de l'Accueil, agenda, notifications de renfort. Le chef les voit **dès la proposition** dans le tableau de l'été et l'onglet « Été » du fichier. Hors été, rien ne change.
 
 La correspondance est fixe : les équipes actives, **dans l'ordre du roulement du centre** (Équipe 1 → Groupe A, Équipe 2 → Groupe B…). L'équipe de base reste utilisée en interne pour construire la proposition ; les autres écrans (préparer l'année, effectif, remplacements, prise de garde) gardent le nom des équipes.
 
