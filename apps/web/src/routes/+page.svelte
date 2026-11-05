@@ -112,7 +112,7 @@
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
-	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} compacte />{/if}
+	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} priseOuverte={data.priseOuverte} compacte />{/if}
 
 	<div class="masque" role="status">{annonceSucces}</div>
 	<div class="masque" role="alert">{annonceEchec}</div>

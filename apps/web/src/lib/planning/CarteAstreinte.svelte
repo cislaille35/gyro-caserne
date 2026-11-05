@@ -1,16 +1,16 @@
 <script lang="ts">
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import PastilleEquipe from '../ui/PastilleEquipe.svelte';
-	import { phraseAstreinte, priseDeGardeOuverte } from './astreinte.ts';
+	import { phraseAstreinte } from './astreinte.ts';
 
 	// La carte astreinte, à la couleur de l'équipe (toujours nommée). À l'Accueil (`compacte`) : la phrase en tête et « Voir le planning ».
 	// Au Planning : condensée, pour laisser le calendrier en haut ; la phrase est dans l'en-tête de la page.
-	// Les mêmes gestes partout, au téléphone comme à l'ordinateur.
-	let { a, maintenant, compacte = false }: { a: Astreinte; maintenant: string; compacte?: boolean } = $props();
+	// Les mêmes gestes partout, au téléphone comme à l'ordinateur. `priseOuverte` : la fenêtre de la relève, calculée sur le serveur.
+	let { a, maintenant, compacte = false, priseOuverte = false }: { a: Astreinte; maintenant: string; compacte?: boolean; priseOuverte?: boolean } = $props();
 
 	const p = $derived(phraseAstreinte(a, maintenant));
 	const rubrique = $derived(!a.mienne ? 'Astreinte de la semaine' : a.enCours ? 'Mon astreinte en cours' : 'Ma prochaine astreinte');
-	const prise = $derived(compacte && a.mienne && priseDeGardeOuverte(a.debut, maintenant));
+	const prise = $derived(compacte && a.mienne && priseOuverte);
 	const PRISE = 'M9 4h6v3H9z M9 5.5H5V21h14V5.5h-4 M9 14l2 2 4-4';
 	const AGENDA = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M12 13v5 M9.5 15.5h5';
 	const REMPLACER = 'M7 7h11l-3-3 M17 17H6l3 3';

@@ -39,21 +39,14 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
-			test('prise de garde : « Tout est complet » en tête de zone, panneau des participants, sans violation', async ({ page }) => {
+			test('prise de garde : le premier geste commence la prise, panneau des participants, sans violation', async ({ page }) => {
 				await page.goto('/engins/3/prise');
 				await page.waitForLoadState('networkidle');
-				const commencer = page.getByRole('button', { name: 'Commencer la prise' });
-				if (await commencer.count()) {
-					await commencer.click();
-					await expect(page.getByText('Commencée par')).toBeVisible();
-				}
-				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ }).first();
-				const revoir = page.getByRole('button', { name: /^Revoir la zone/ });
-				const avant = await revoir.count();
+				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ });
 				if (await complet.count()) {
 					await complet.click();
-					// La zone passe « Complet » et reste ouverte : son bouton « Revoir la zone » apparaît.
-					await expect(revoir).toHaveCount(avant + 1);
+					await expect(page.getByText('Commencée par')).toBeVisible();
+					await expect(page.getByRole('button', { name: /^Annuler/ })).toBeVisible();
 				}
 				await sansViolation(page);
 				await page.getByRole('link', { name: /Participants :/ }).click();

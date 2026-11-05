@@ -51,6 +51,33 @@ describe('page d’une demande', () => {
 		expect(html).toContain('mettez à jour votre disponibilité dans l’appli du SDIS');
 	});
 
+	describe('les disponibles, groupés', () => {
+		const agent = (id: number, prenom: string, aptitudes: boolean) => ({ id, prenom, nom: 'Test', aptitudes });
+		const PHRASE_OK = 'Ont vos aptitudes contrôlées.';
+		const PHRASE_CHEF = 'Il leur manque une de vos aptitudes contrôlées.';
+		const nb = (html: string, texte: string) => html.split(texte).length - 1;
+
+		it('« Sans validation » puis « À faire valider par le chef », la phrase une seule fois, les nombres venus des données', () => {
+			const html = page({ demande: demande(), disponibles: [agent(1, 'Ana', true), agent(2, 'Bob', true), agent(3, 'Cléa', true), agent(4, 'Dan', false)] });
+			expect(html).toMatch(/Disponibles[\s\S]*?<span class="compte[^"]*">4<[\s\S]*?Sans validation[\s\S]*?<span class="compte[^"]*">3<[\s\S]*?À faire valider par le chef[\s\S]*?<span class="compte[^"]*">1</);
+			expect(nb(html, PHRASE_OK)).toBe(1);
+			expect(nb(html, PHRASE_CHEF)).toBe(1);
+			expect(html).toMatch(/Ana Test[\s\S]*?Cléa Test[\s\S]*?Il leur manque[\s\S]*?Dan Test/);
+		});
+
+		it('un groupe vide n’apparaît pas', () => {
+			const html = page({ demande: demande(), disponibles: [agent(4, 'Dan', false)] });
+			expect(html).not.toContain('Sans validation');
+			expect(html).toContain('À faire valider par le chef');
+		});
+
+		it('personne de disponible : dit une fois', () => {
+			const html = page({ demande: demande(), disponibles: [] });
+			expect(html).toContain('Personne n’est disponible sur ces périodes pour le moment.');
+			expect(html).not.toContain('Sans validation');
+		});
+	});
+
 	it('« Demande envoyée » n’est dit qu’au demandeur', () => {
 		expect(page({ demande: demande({ moi: 'destinataire' }), envoyee: true })).not.toContain('Demande envoyée.');
 	});

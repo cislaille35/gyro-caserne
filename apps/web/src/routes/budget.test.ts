@@ -302,7 +302,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(await compter(async () => { expect((await (appliquerFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
 	});
 
-	it('prise de garde : la relève, la prise d’un engin, commencer, un geste, valider (12 engins, 150 agents)', async () => {
+	it('prise de garde : la relève, la prise d’un engin, premier geste, un geste, valider (12 engins, 150 agents)', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const [vsav] = await base.select().from(typeEngin).where(eq(typeEngin.nom, 'VSAV'));
 		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
@@ -313,7 +313,9 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		};
 		expect(await compter(async () => { await (racine as any)({ locals }); await (pageReleve as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(page)).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (actionsPrise.commencer as any)({ locals, params, request: await requeteFormulaire([]) }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		const lue = await (pagePrise as any)({ locals, params });
+		// Le premier « Tout est complet » commence la prise.
+		expect(await compter(async () => { await (actionsPrise.geste as any)({ locals, params, request: await requeteFormulaire([['prise', ''], ['quoi', 'zone'], ['zone', String(lue.zones[0].ref)], ['vue', '1']]) }); await page(); })).toBeLessThanOrEqual(BUDGET);
 		const vue = await (pagePrise as any)({ locals, params });
 		const id = String(vue.prise.id);
 		const zones = vue.zones as { ref: number; elements: { ref: number }[] }[];
