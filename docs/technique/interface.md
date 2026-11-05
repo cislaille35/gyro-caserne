@@ -54,7 +54,7 @@ Sur l'accueil (`/`), une casquette par rôle tenu (`accueilDe` du socle) : « Le
 
 ## Pages
 
-- `/` : l'accueil, Gyro, la carte d'astreinte (lien « Faire la prise de garde » pour son équipe, de 2 h avant à 24 h après la relève, `priseDeGardeOuverte`), « À décider » s'il n'est pas vide, « À ne pas manquer » (`ANePasManquer.svelte`, absente si rien n'attend), et à côté ce qui reste de la casquette choisie (voir plus haut) ; « Mon astreinte » n'a qu'une colonne. Actions `?/prendreConnaissance` et `?/repondre` (envoyées vers `?casquette=<choisie>&/<action>` : la casquette reste sans JavaScript).
+- `/` : l'accueil, Gyro, la carte d'astreinte (lien « Faire la prise de garde » pour son équipe, de 2 h avant à 24 h après la relève, `lienPriseOuvert`), « À décider » s'il n'est pas vide, « À ne pas manquer » (`ANePasManquer.svelte`, absente si rien n'attend), et à côté ce qui reste de la casquette choisie (voir plus haut) ; « Mon astreinte » n'a qu'une colonne. Actions `?/prendreConnaissance` et `?/repondre` (envoyées vers `?casquette=<choisie>&/<action>` : la casquette reste sans JavaScript).
 - `/caserne` : liens vers « Agents », et selon les droits « Nominations », « Réglages » ; « Engins », « Anomalies » et « Réservations » ; « Comités » à venir.
 - `/moi` : « Mon profil », « Affichage », « Se déconnecter ».
 - `/planning` : les vues sous le titre, la carte d'astreinte condensée et le lien « Remplacements » (avec le nombre de demandes à traiter), puis le calendrier et « À venir » (dessous au téléphone, à côté à partir de 1024 px). Le même ordre de lecture et de tabulation aux deux tailles.

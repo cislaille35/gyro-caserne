@@ -114,7 +114,7 @@
 	/* Des noms à lire, sans geste : ils tiennent sur plusieurs colonnes dès que la place le permet. */
 	ul {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
 		gap: 8px 12px;
 		margin: 0;
 		padding: 0;

@@ -306,7 +306,14 @@ export async function gestePrise(base: Base, basePhotos: BasePhotos, acteur: Act
 export async function premierGestePrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, enginId: number, geste: GestePrise, maintenant: string, reglage: Reglage): Promise<number> {
 	if (geste.quoi === 'participants' || geste.quoi === 'retirer_ecart' || (geste.quoi === 'zone' && !geste.vue)) throw new DonneeInvalide('Prise inconnue');
 	const id = await commencerPrise(base, basePhotos, acteur, enginId, maintenant, reglage);
-	await gestePrise(base, basePhotos, acteur, id, geste, maintenant, reglage, enginId);
+	try {
+		await gestePrise(base, basePhotos, acteur, id, geste, maintenant, reglage, enginId);
+	} catch (erreur) {
+		// Geste refusé : pas de brouillon vide. Celui d'un collègue, ou déjà touché, reste.
+		const moi = acteur.type === 'personne' ? acteur.id : 0;
+		await base.delete(priseGarde).where(and(eq(priseGarde.id, id), eq(priseGarde.etat, 'en_cours'), eq(priseGarde.compteur, 0), eq(priseGarde.commenceePar, moi)));
+		throw erreur;
+	}
 	return id;
 }
 

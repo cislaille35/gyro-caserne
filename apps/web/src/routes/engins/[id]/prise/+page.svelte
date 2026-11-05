@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { ElementFiche, VuePrise, ZoneFiche } from '@gyro-caserne/socle';
 	import { dateCourte, etatPrise, GENRES, heureCourte, texteEcart, texteEtape, texteReleve } from '#lib/engins/textes.ts';
@@ -37,12 +37,23 @@
 	const zoneFaite = $derived(s && data.zones.find((z) => z.ref === form?.zoneFaite && vue(z.ref)));
 	const etatZone = (z: ZoneFiche) => {
 		const n = ecartsDe(z.elements);
-		if (vue(z.ref)) return n ? `Complète sauf ${pluriel(n, 'écart')}` : 'Complète';
-		if (n) return `À finir · ${pluriel(n, 'écart')}`;
-		return z.elements.length ? `${z.elements.length} à voir` : 'À voir';
+		const signales = z.elements.filter((x) => { const o = ouverteSur(x.ref); return o && !s?.retrouves.includes(o.id); }).length;
+		const etat = vue(z.ref) ? (n ? `Complète sauf ${pluriel(n, 'écart')}` : 'Complète') : n ? `À finir · ${pluriel(n, 'écart')}` : z.elements.length ? `${z.elements.length} à voir` : 'À voir';
+		return signales ? `${etat} · ${pluriel(signales, 'signalé')}` : etat;
 	};
 	// Signalés sur des éléments absents de la fiche : ils ne se voient dans aucune zone.
 	const horsFiche = $derived(data.ouvertes.filter((o) => !data.zones.some((z) => z.elements.some((x) => x.ref === o.ref))));
+	const dansLaFiche = $derived(data.ouvertes.length - horsFiche.length);
+	// Après un choix de zone : son titre à l'écran et le focus. Le sélecteur à côté (ordinateur), on ne défile que si le titre est caché.
+	function montrerZone() {
+		const titre = document.getElementById('titre-zone');
+		const selecteur = document.querySelector('.selecteur');
+		if (!titre || !selecteur) return;
+		const { left, top, bottom } = titre.getBoundingClientRect();
+		const aCote = selecteur.getBoundingClientRect().right <= left;
+		if (!aCote || top < 0 || bottom > window.innerHeight) titre.scrollIntoView({ block: 'start' });
+		titre.focus({ preventScroll: true });
+	}
 	const astreinte = $derived(data.agents.filter((a) => a.astreinte));
 	const autres = $derived(data.agents.filter((a) => !a.astreinte));
 	const coche = (id: number) => s?.participants.includes(id) ?? false;
@@ -87,15 +98,22 @@
 		}
 		const zone = formData.get('zone');
 		return async ({ result, update, formElement }) => {
+			// Un refus vient souvent d'un collègue (abandon, validation) ou d'une nouvelle relève : la page se remet à jour.
+			if (result.type === 'failure') await invalidateAll();
 			await update({ reset: false });
 			const reponse = result.type === 'success' || result.type === 'failure' ? (result.data as Reponse) : null;
 			choisie = reponse?.zoneFaite ? null : (reponse?.zone ?? choisie);
-			if (result.type === 'success') formElement.closest('details')?.removeAttribute('open');
+			if (result.type === 'success') {
+				formElement.closest('details')?.removeAttribute('open');
+				// `reset: false` garde le fichier choisi : il ne doit pas repartir avec le prochain écart.
+				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => (champ.value = ''));
+			}
 			await tick();
 			if (reponse?.zoneFaite) {
-				// La suite se lit depuis le haut : la validation s'il ne reste rien, sinon le sélecteur et la zone suivante.
-				document.getElementById(toutVu ? 'valider' : 'parcours')?.scrollIntoView({ block: 'start' });
-				document.getElementById(toutVu ? 'titre-valider' : 'titre-zone')?.focus({ preventScroll: true });
+				if (toutVu) {
+					document.getElementById('valider')?.scrollIntoView({ block: 'start' });
+					document.getElementById('titre-valider')?.focus({ preventScroll: true });
+				} else montrerZone();
 			} else if (zone) document.getElementById('titre-zone')?.focus({ preventScroll: true });
 		};
 	};
@@ -158,13 +176,10 @@
 				{:else}
 					<p class="doux">La prise de garde est faite par les agents du centre.</p>
 				{/if}
-				<p class="doux">{data.ouvertes.length ? `${pluriel(data.ouvertes.length, 'écart encore signalé', 'écarts encore signalés')} sur cet engin, à voir dans leur zone.` : 'Aucun écart ouvert sur cet engin.'}</p>
-				{#if horsFiche.length}
-					<ul class="ouvertes" role="list">
-						{#each horsFiche as o (o.id)}
-							<li><span class="quoi">{o.libelle} <span class="doux">· {o.zone}</span></span>{@render signale(o)}</li>
-						{/each}
-					</ul>
+				{#if dansLaFiche}
+					<p class="doux">{pluriel(dansLaFiche, 'écart encore signalé', 'écarts encore signalés')} sur cet engin, à voir dans {dansLaFiche > 1 ? 'leur zone' : 'sa zone'}.</p>
+				{:else if !horsFiche.length}
+					<p class="doux">Aucun écart ouvert sur cet engin.</p>
 				{/if}
 				{#if data.peutFaire && data.zones.length === 0}
 					<!-- Une fiche encore vide : aucun autre geste ne peut commencer la prise. -->
@@ -173,6 +188,17 @@
 					</form>
 				{/if}
 				{@render message('commencer')}
+			</section>
+		{/if}
+
+		{#if horsFiche.length}
+			<section class="panneau" aria-labelledby="titre-hors-fiche">
+				<h2 id="titre-hors-fiche">Signalé hors de la fiche</h2>
+				<ul class="ouvertes" role="list">
+					{#each horsFiche as o (o.id)}
+						<li><span class="quoi">{o.libelle} <span class="doux">· {o.zone}</span></span>{@render signale(o)}</li>
+					{/each}
+				</ul>
 			</section>
 		{/if}
 
@@ -195,17 +221,6 @@
 			</section>
 		{/if}
 
-		{#if p && zoneFaite && data.peutFaire}
-			<form method="POST" action="?/geste" use:enhance={envoi} class="zone-faite">
-				<input type="hidden" name="prise" value={p.id} />
-				<input type="hidden" name="quoi" value="zone" />
-				<input type="hidden" name="zone" value={zoneFaite.ref} />
-				<input type="hidden" name="cible" value="zone:{zoneFaite.ref}" />
-				<p class="ok">{@render marque()} {zoneFaite.nom} : complète.</p>
-				<button type="submit" class="petit" name="vue" value="0">Annuler<span class="masque">{' '}: {zoneFaite.nom} à revoir</span></button>
-			</form>
-		{/if}
-
 		{#if zoneAffichee}
 			{@const z = zoneAffichee}
 			{@const n = ecartsDe(z.elements)}
@@ -215,13 +230,15 @@
 						{#each data.zones as zone (zone.ref)}
 							<li>
 								<a
-									href="?zone={zone.ref}"
+									href="?zone={zone.ref}#titre-zone"
 									aria-current={zone.ref === z.ref ? 'true' : undefined}
 									data-sveltekit-preload-data="off"
 									data-sveltekit-noscroll
-									onclick={(ev) => {
+									onclick={async (ev) => {
 										ev.preventDefault();
 										choisie = zone.ref;
+										await tick();
+										montrerZone();
 									}}
 								>
 									<span class="nom-zone">{zone.nom}</span>
@@ -234,6 +251,16 @@
 
 				<section class="contenu" aria-labelledby="titre-zone">
 					<h2 id="titre-zone" tabindex="-1">{z.nom}</h2>
+					{#if p && zoneFaite && data.peutFaire}
+						<form method="POST" action="?/geste" use:enhance={envoi} class="zone-faite">
+							<input type="hidden" name="prise" value={p.id} />
+							<input type="hidden" name="quoi" value="zone" />
+							<input type="hidden" name="zone" value={zoneFaite.ref} />
+							<input type="hidden" name="cible" value="zone:{zoneFaite.ref}" />
+							<p class="ok">{@render marque()} {zoneFaite.nom} : complète.</p>
+							<button type="submit" class="petit" name="vue" value="0">Annuler<span class="masque">{' '}: {zoneFaite.nom} à revoir</span></button>
+						</form>
+					{/if}
 					<ul role="list" class="elements">
 						{#each z.elements as el (el.ref)}
 							{@const o = ouverteSur(el.ref)}
@@ -253,7 +280,7 @@
 												<input type="hidden" name="zone" value={z.ref} />
 												<input type="hidden" name="cible" value="element:{el.ref}" />
 												<fieldset>
-													<legend>Écart</legend>
+													<legend>Quel écart ?</legend>
 													{#each Object.entries(GENRES) as [valeur, libelle] (valeur)}
 														<label class="choix"><input type="radio" name="genre" value={valeur} checked={(ecart?.genre ?? 'manquant') === valeur} /> {libelle}</label>
 													{/each}
@@ -441,8 +468,8 @@
 		list-style: none;
 	}
 	#valider,
-	#parcours {
-		scroll-margin-top: 80px;
+	#titre-zone {
+		scroll-margin-top: 16px;
 	}
 	.parcours {
 		display: flex;
@@ -524,9 +551,11 @@
 		gap: 0 10px;
 		min-height: var(--cible);
 	}
+	.libelle {
+		flex: 1 1 8rem;
+	}
 	.libelle,
 	.quoi {
-		flex: 1 1 8rem;
 		font-weight: 600;
 		overflow-wrap: anywhere;
 	}

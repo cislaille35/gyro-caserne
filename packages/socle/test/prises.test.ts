@@ -263,11 +263,42 @@ describe('le premier geste commence la prise', () => {
 		expect(v!.utilisee).toBe(1);
 	});
 
-	it('un écart ou un signalement retrouvé commencent aussi la prise', async () => {
+	it('un écart avec photo commence aussi la prise', async () => {
 		const j = await jeu();
-		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '', photo: jpeg() }, PENDANT, reglage);
 		const [p] = await j.base.select().from(priseGarde);
-		expect(Object.keys(JSON.parse(p!.saisie).ecarts)).toEqual([String(j.radio.ref)]);
+		const e = JSON.parse(p!.saisie).ecarts[String(j.radio.ref)];
+		expect(e.photo).toEqual(expect.any(Number));
+		expect(await j.base.photos.select().from(octets)).toHaveLength(1);
+	});
+
+	it('un signalement retrouvé commence aussi la prise', async () => {
+		const j = await jeu();
+		const avant = await commencerPrise(j.base, j.base.photos, j.alice, j.vsav, PENDANT, reglage);
+		await gestePrise(j.base, j.base.photos, j.alice, avant, { quoi: 'ecart', element: j.radio.ref, genre: 'abime', manque: null, note: '' }, PENDANT, reglage);
+		await toutVoir(j, avant);
+		await validerPrise(j.base, j.alice, avant, PENDANT, reglage);
+		const [a] = await j.base.select().from(anomalie);
+		const id = await premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, { quoi: 'retrouve', anomalie: a!.id, oui: true }, '2026-11-06T18:10', reglage);
+		const [p] = await j.base.select().from(priseGarde).where(eq(priseGarde.id, id));
+		expect(p!.releve).toBe('2026-11-06T18:00');
+		expect(JSON.parse(p!.saisie).retrouves).toEqual([a!.id]);
+	});
+
+	it('premier écart refusé : aucun brouillon ; celui d’un collègue, ou déjà touché, reste', async () => {
+		const j = await jeu();
+		const refuse = { quoi: 'ecart' as const, element: 999999, genre: 'abime' as const, manque: null, note: '' };
+		await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, refuse, PENDANT, reglage)).rejects.toThrow('Élément inconnu');
+		expect(await j.base.select().from(priseGarde)).toHaveLength(0);
+		// Le brouillon vide d'un collègue.
+		await commencerPrise(j.base, j.base.photos, j.referent, j.vsav, PENDANT, reglage);
+		await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.vsav, refuse, PENDANT, reglage)).rejects.toThrow('Élément inconnu');
+		expect(await j.base.select().from(priseGarde)).toHaveLength(1);
+		// Mon brouillon déjà touché.
+		const fpt = (await lireFiche(j.base, j.types.FPT)).zones[0]!;
+		await premierGestePrise(j.base, j.base.photos, j.alice, j.fpt, complet(fpt.ref), PENDANT, reglage);
+		await expect(premierGestePrise(j.base, j.base.photos, j.alice, j.fpt, refuse, PENDANT, reglage)).rejects.toThrow('Élément inconnu');
+		expect(await j.base.select().from(priseGarde)).toHaveLength(2);
 	});
 
 	it('annuler ou choisir les participants sans prise : refusé, aucun brouillon', async () => {

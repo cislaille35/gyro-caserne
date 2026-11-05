@@ -40,7 +40,21 @@ test.describe('prise de garde', () => {
 		await expect(zones.nth(1)).toHaveAttribute('aria-current', 'true');
 		await expect(page.locator('#titre-zone')).not.toHaveText(premier!);
 		expect(requetes).toEqual([]);
+		// Le titre de la zone choisie est à l'écran et reçoit le focus.
+		await expect(page.locator('#titre-zone')).toBeFocused();
+		await expect(page.locator('#titre-zone')).toBeInViewport();
 		await zones.nth(0).click();
+		await expect(page.locator('#titre-zone')).toHaveText(premier!);
+
+		// Un écart avec photo commence la prise ; le fichier ne repart pas avec l'écart suivant.
+		await ecart.click();
+		await page.locator('input[name="photo"]').first().setInputFiles({ name: 'p.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') });
+		await page.getByRole('button', { name: /^Enregistrer l’écart/ }).first().click();
+		await expect(page.getByText('Commencée par')).toBeVisible();
+		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeVisible();
+		expect(await page.locator('input[name="photo"]').first().inputValue()).toBe('');
+		await page.getByRole('button', { name: /^Retirer l’écart/ }).click();
+		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeHidden();
 
 		const complet = page.getByRole('button', { name: /^Tout est complet/ });
 		for (let i = 0; i < nombre; i++) {
@@ -65,6 +79,20 @@ test.describe('prise de garde', () => {
 		await page.getByRole('button', { name: /^Annuler/ }).click();
 		await expect(page.getByRole('button', { name: 'Valider la prise' })).toBeHidden();
 		await expect(zones.nth(nombre - 1)).toHaveAttribute('aria-current', 'true');
+
+		// Un collègue abandonne ailleurs : le geste suivant est refusé, et la page se remet à jour sans recharger.
+		const ailleurs = await page.context().newPage();
+		await ailleurs.goto('/engins/2/prise');
+		await ailleurs.waitForLoadState('networkidle');
+		await ailleurs.getByText('Abandonner la prise…').click();
+		await ailleurs.getByRole('button', { name: 'Oui, abandonner' }).click();
+		await expect(ailleurs.getByText('Commencée par')).toBeHidden();
+		await ailleurs.close();
+		await complet.click();
+		await expect(page.locator('.echec')).toBeVisible();
+		await expect(page.getByText('Commencée par')).toBeHidden();
+		await complet.click();
+		await expect(page.getByText('Commencée par')).toBeVisible();
 
 		await abandon.click();
 		await page.getByRole('button', { name: 'Oui, abandonner' }).click();

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 // La page lit son adresse : `?participants` ouvre le panneau.
 const adresse = vi.hoisted(() => ({ url: new URL('http://x/engins/1/prise') }));
 vi.mock('$app/state', () => ({ page: adresse }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), invalidateAll: vi.fn() }));
 const { default: Page } = await import('./+page.svelte');
 
 const zones = [
@@ -42,8 +42,8 @@ describe('/engins/[id]/prise', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html(data());
 		expect(page).toMatch(/<nav[^>]*aria-label="Zones de l’engin"/);
-		expect(page).toMatch(/href="\?zone=1"[^>]*aria-current="true"[\s\S]*?Cabine[\s\S]*?1 à voir/);
-		expect(page).toMatch(/href="\?zone=2"[\s\S]*?Coffres[\s\S]*?1 à voir/);
+		expect(page).toMatch(/href="\?zone=1#titre-zone"[^>]*aria-current="true"[\s\S]*?Cabine[\s\S]*?1 à voir/);
+		expect(page).toMatch(/href="\?zone=2#titre-zone"[\s\S]*?Coffres[\s\S]*?1 à voir/);
 		expect(page).toContain('Radio : essai');
 		expect(page).not.toContain('Lances');
 		expect(avant('Radio : essai', 'Tout est complet', page)).toBe(true);
@@ -61,18 +61,18 @@ describe('/engins/[id]/prise', () => {
 	it('plus de quatre zones aux noms longs : toutes listées', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html({ ...data(), zones: zonesLongues });
-		for (const z of zonesLongues) expect(page).toContain(`href="?zone=${z.ref}"`);
+		for (const z of zonesLongues) expect(page).toContain(`href="?zone=${z.ref}#titre-zone"`);
 		expect(page).toContain('Coffre arrière droit numéro 7 sous le marchepied');
 	});
 
 	it('après « Tout est complet » : la zone suivante à voir, et la possibilité d’annuler', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html(data({ zones: [1] }), { cible: 'zone:1', zone: null, zoneFaite: 1, succes: 'Zone complète.' });
-		expect(page).toMatch(/href="\?zone=2"[^>]*aria-current="true"/);
+		expect(page).toMatch(/href="\?zone=2#titre-zone"[^>]*aria-current="true"/);
 		expect(page).toContain('Lances');
 		expect(page).not.toContain('Radio : essai');
 		expect(page).toMatch(/name="zone" value="1"[\s\S]*?Cabine : complète[\s\S]*?name="vue" value="0"[\s\S]*?Annuler/);
-		expect(page).toMatch(/href="\?zone=1"[\s\S]*?Complète/);
+		expect(page).toMatch(/href="\?zone=1#titre-zone"[\s\S]*?Complète/);
 	});
 
 	it('une zone déjà complète se revoit : « Complet », et le geste s’annule', () => {
@@ -131,13 +131,40 @@ describe('/engins/[id]/prise', () => {
 		}
 	});
 
-	it('avant de commencer : les signalements hors de la fiche restent listés, les autres sont dits dans leur zone', () => {
+	const commune = { genre: 'abime', manque: null, note: null, photo: null, signaleeLe: '2026-10-23T18:30', signaleePar: 'Mila Clément', etape: 'signalee', motif: null, bloquante: false };
+	const surRadio = { ...commune, id: 3, ref: 10, zone: 'Cabine', libelle: 'Radio : essai' };
+	const horsFiche = { ...commune, id: 4, ref: null, zone: 'Autre', libelle: 'Phare avant' };
+
+	it('avant de commencer : le compte des signalements de la fiche, ceux hors de la fiche listés, le sélecteur le dit', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
-		const commune = { genre: 'abime', manque: null, note: null, photo: null, signaleeLe: '2026-10-23T18:30', signaleePar: 'Mila Clément', etape: 'signalee', motif: null, bloquante: false };
-		const page = html(lecture({ ouvertes: [{ ...commune, id: 3, ref: 10, zone: 'Cabine', libelle: 'Radio : essai' }, { ...commune, id: 4, ref: null, zone: 'Autre', libelle: 'Phare avant' }] }));
-		expect(page).toContain('2 écarts encore signalés');
-		expect(page).toMatch(/Phare avant[\s\S]*?Signalé le/);
+		const page = html(lecture({ ouvertes: [surRadio, horsFiche] }));
+		expect(page).toContain('1 écart encore signalé sur cet engin, à voir dans sa zone.');
+		expect(page).toMatch(/Signalé hors de la fiche[\s\S]*?Phare avant[\s\S]*?Signalé le/);
+		expect(page).toContain('1 à voir · 1 signalé');
 		expect(page).toContain('Oui, clore le signalement');
+		expect(page).not.toContain('Aucun écart ouvert');
+	});
+
+	it('seulement hors de la fiche : pas de phrase qui renvoie à une zone', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const page = html(lecture({ ouvertes: [horsFiche] }));
+		expect(page).not.toContain('à voir dans');
+		expect(page).not.toContain('Aucun écart ouvert');
+	});
+
+	it('la prise commencée : les signalements hors de la fiche et le compte par zone restent', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const page = html({ ...data(), ouvertes: [surRadio, horsFiche] });
+		expect(page).toContain('Phare avant');
+		expect(page).toContain('1 à voir · 1 signalé');
+		// Retrouvé, il n'est plus compté.
+		expect(html({ ...data({ retrouves: [3] }), ouvertes: [surRadio] })).not.toContain('· 1 signalé');
+	});
+
+	it('« Annuler » vient après le titre de la zone, où se pose le focus', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const page = html(data({ zones: [1] }), { cible: 'zone:1', zone: null, zoneFaite: 1, succes: 'Zone complète.' });
+		expect(page).toMatch(/id="titre-zone"[\s\S]*?Cabine : complète[\s\S]*?Annuler[\s\S]*?Lances/);
 	});
 
 	it('les participants : une rangée en tête (« vous + 2 »), rappelés à la validation ; pas de liste à plat', () => {
