@@ -6,9 +6,6 @@ on:
   schedule:
     - cron: '17 5 * * *'
   workflow_dispatch:
-  push: # essai sur la branche, retiré avant la fusion
-    branches: ['correctif/calcul-et-reprises']
-    paths: ['.github/workflows/releve-coupures.yml']
 
 permissions: {}
 
