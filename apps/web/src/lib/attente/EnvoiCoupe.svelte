@@ -15,9 +15,9 @@
 	afterNavigate(() => (texte = null));
 </script>
 
-<div role="alert" class="zone">
+<div class="zone">
 	{#if texte}
-		<div class="message">
+		<div class="message" role="alert">
 			<p>{texte}</p>
 			<button type="button" onclick={() => (texte = null)}>Fermer</button>
 		</div>
