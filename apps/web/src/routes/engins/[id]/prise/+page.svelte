@@ -196,7 +196,7 @@
 				<h2 id="titre-hors-fiche">Signalé hors de la fiche</h2>
 				<ul class="ouvertes" role="list">
 					{#each horsFiche as o (o.id)}
-						<li><span class="quoi">{o.libelle} <span class="doux">· {o.zone}</span></span>{@render signale(o)}</li>
+						<li><span class="quoi">{o.libelle}{#if o.zone}{' '}<span class="doux">· {o.zone}</span>{/if}</span>{@render signale(o)}</li>
 					{/each}
 				</ul>
 			</section>

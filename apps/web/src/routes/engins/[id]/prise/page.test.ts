@@ -149,6 +149,7 @@ describe('/engins/[id]/prise', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html(lecture({ ouvertes: [horsFiche] }));
 		expect(page).not.toContain('à voir dans');
+		expect(html(lecture({ ouvertes: [{ ...horsFiche, zone: '' }] }))).not.toMatch(/Phare avant[^<]*<span class="doux[^"]*">·/);
 		expect(page).not.toContain('Aucun écart ouvert');
 	});
 
