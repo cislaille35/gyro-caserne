@@ -53,7 +53,7 @@ test.describe('prise de garde', () => {
 		await expect(page.getByText('Commencée par')).toBeVisible();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeVisible();
 		expect(await page.locator('input[name="photo"]').first().inputValue()).toBe('');
-		await expect(page.locator('.zone').first()).not.toContainText('p.png');
+		await expect(page.locator('span.zone').first()).not.toContainText('p.png');
 		await page.getByRole('button', { name: /^Retirer l’écart/ }).click();
 		await expect(page.getByRole('link', { name: /Photo de l’écart/ })).toBeHidden();
 
@@ -112,9 +112,13 @@ test.describe('agents, côté chef', () => {
 		await entete.click();
 		await page.locator('li.agent a').first().click();
 		await expect(page).toHaveURL(/\/agents\/\d+/);
+		// Enregistrer un bloc de la fiche relit la page, liste comprise.
+		const bloc = page.getByRole('button', { name: /^Identité et contact/ });
+		await bloc.click();
 		const reponse = page.waitForResponse((r) => r.request().method() === 'POST');
-		await page.getByRole('button', { name: 'Enregistrer', exact: true }).first().click();
+		await page.locator('section').filter({ has: bloc }).getByRole('button', { name: 'Enregistrer', exact: true }).click();
 		await reponse;
+		await page.waitForLoadState('networkidle');
 		await page.getByRole('link', { name: /Agents$/ }).click();
 		await expect(entete).toHaveAttribute('aria-expanded', 'true');
 	});

@@ -110,7 +110,7 @@
 				// `reset: false` garde le fichier choisi : il ne doit pas repartir avec le prochain écart.
 				document.querySelectorAll<HTMLInputElement>('input[name="photo"]').forEach((champ) => {
 					champ.value = '';
-					champ.dispatchEvent(new Event('change'));
+					champ.dispatchEvent(new Event('change', { bubbles: true }));
 				});
 			}
 			await tick();

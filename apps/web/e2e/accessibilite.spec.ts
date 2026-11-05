@@ -151,12 +151,11 @@ for (const theme of ['auto', 'sombre']) {
 				await expect(onglets).toBeVisible({ visible: !telephone });
 				await expect(cloche).toBeVisible({ visible: !telephone });
 				// La saisie est tout en bas de l'écran, sans barre dessous au téléphone.
-				const saisie = (await page.getByLabel('Votre message').boundingBox())!;
+				const saisie = (await page.getByRole('textbox', { name: 'Votre message' }).boundingBox())!;
 				expect(saisie.y + saisie.height).toBeLessThanOrEqual(page.viewportSize()!.height);
 				expect(page.viewportSize()!.height - (saisie.y + saisie.height)).toBeLessThan(40);
 				// « Aller au contenu » reste le premier arrêt du clavier.
-				await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-				await page.locator('body').press('Tab');
+				await page.keyboard.press('Tab');
 				await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
 				await page.keyboard.press('Enter');
 				await expect(page.locator('main')).toBeFocused();
@@ -164,7 +163,7 @@ for (const theme of ['auto', 'sombre']) {
 				await page.goto('/echanges/messages/nouveau');
 				await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
 				await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
-				await expect(page.getByLabel('Votre message')).toBeVisible();
+				await expect(page.getByRole('textbox', { name: 'Votre message' })).toBeVisible();
 				await expect(onglets).toBeVisible({ visible: !telephone });
 				await page.goto(groupe);
 				// Les infos, puis le retour : chaque page retrouve sa navigation.
@@ -199,13 +198,16 @@ for (const theme of ['auto', 'sombre']) {
 				await page.goto('/engins/anomalies/signaler?engin=1');
 				await page.waitForLoadState('networkidle');
 				const champ = page.getByLabel('Photo');
-				await champ.focus();
-				await expect(page.locator('.zone')).toHaveCSS('outline-style', 'solid');
+				// Au clavier : depuis la note, Tab arrive sur la photo.
+				await page.getByLabel(/^Note/).focus();
+				await page.keyboard.press('Tab');
+				await expect(champ).toBeFocused();
+				await expect(page.locator('span.zone')).toHaveCSS('outline-style', 'solid');
 				await champ.setInputFiles({ name: 'phare.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') });
-				await expect(page.locator('.zone')).toContainText('phare.jpg');
-				expect((await page.locator('.zone').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+				await expect(page.locator('span.zone')).toContainText('phare.jpg');
+				expect((await page.locator('span.zone').boundingBox())!.height).toBeGreaterThanOrEqual(44);
 				await page.getByRole('button', { name: /^Retirer/ }).click();
-				await expect(page.locator('.zone')).toContainText('Ajouter une photo');
+				await expect(page.locator('span.zone')).toContainText('Ajouter une photo');
 				await expect(champ).toBeFocused();
 				expect(await champ.inputValue()).toBe('');
 			});
