@@ -95,7 +95,25 @@ describe('accueil', () => {
 		expect(html).toContain('Votre équipe est d’astreinte dans 19 jours');
 		expect(html).toContain('Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
 		expect(html).toContain('Équipe 3');
-		expect(html.indexOf('Ma prochaine astreinte')).toBeLessThan(html.indexOf('Raccourcis'));
+		expect(html).toMatch(/class="rebours/);
+	});
+
+	describe('lien vers la prise de garde', () => {
+		const periodes = [{ debut: '2026-11-06T18:00', fin: '2026-11-09T06:00' }];
+		const carte = (autres = {}) => ({ debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: true, mienne: true, periodes, ...autres });
+		const accueil = (a: unknown, maintenant: string) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant });
+		const LIEN = /<a[^>]*href="\/engins\/prise"[^>]*>[\s\S]*?Faire la prise de garde/;
+
+		it('mon astreinte : de 2 h avant la relève à 24 h après, et pas le reste de la semaine', () => {
+			expect(accueil(carte({ enCours: false }), '2026-11-06T16:00')).toMatch(LIEN);
+			expect(accueil(carte(), '2026-11-07T18:00')).toMatch(LIEN);
+			expect(accueil(carte({ enCours: false }), '2026-11-06T15:59')).not.toContain('/engins/prise');
+			expect(accueil(carte(), '2026-11-09T09:00')).not.toContain('/engins/prise');
+		});
+
+		it('l’astreinte d’une autre équipe : pas de lien', () => {
+			expect(accueil(carte({ mienne: false }), '2026-11-06T18:30')).not.toContain('/engins/prise');
+		});
 	});
 
 	it('plusieurs casquettes : rangée de liens, la choisie marquée, le compteur dans le libellé', () => {
@@ -117,7 +135,7 @@ describe('accueil', () => {
 		expect(html.indexOf('Bonjour Alice')).toBeLessThan(html.indexOf('aria-label="Casquettes"'));
 	});
 
-	it('« Le centre » : « À décider » et les raccourcis permis', () => {
+	it('« Le centre » : « À décider » et les liens permis', () => {
 		const html = page({
 			casquettes: [centre, astreinte],
 			choisie: 'centre',
@@ -151,9 +169,49 @@ describe('accueil', () => {
 		expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*>Voir les 2 autres<\/summary>[\s\S]*?Engins à pourvoir[\s\S]*?Fiches à pourvoir/);
 	});
 
-	it('un agent : ses raccourcis et une phrase qui dit ce qui l’attend', () => {
+	describe('« À décider » en tête', () => {
+		const aDecider = [{ texte: 'Équipe 2 sans chef de garde', lien: '/nominations' }];
+		const aNePasManquer = { ...vide, sondages: [{ id: 4, cle: 'vie', nomMur: 'Vie du centre', titre: 'Repas ?' }] };
+		const colonnes = (html: string) => html.split(/class="colonne\s/).slice(1);
+
+		it.each([
+			['le centre', centre, { type: 'centre', aDecider }],
+			['un rôle', { id: 'role:6', nom: 'Référent', icone: 'camion', compte: 1 }, { type: 'role', permet: [], aDecider }],
+			['un comité', { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 1 }, { type: 'comite', membres: [], aDecider }]
+		])('%s : avant « À ne pas manquer », dans la première colonne', (_nom, casquette, contenu) => {
+			const html = page({ casquettes: [casquette, astreinte], choisie: casquette.id, aNePasManquer, contenu });
+			expect(html.indexOf('À décider')).toBeLessThan(html.indexOf('À ne pas manquer'));
+			expect(colonnes(html)).toHaveLength(2);
+			expect(colonnes(html)[0]).toContain('À décider');
+			expect(colonnes(html)[0]).toContain('À ne pas manquer');
+			expect(colonnes(html)[1]).not.toContain('À décider');
+		});
+
+		it('un chef de garde : en tête, sans colonne vide à côté', () => {
+			const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', aNePasManquer, contenu: { type: 'equipe', aDecider } });
+			expect(html.indexOf('À décider')).toBeLessThan(html.indexOf('À ne pas manquer'));
+			expect(colonnes(html)).toHaveLength(1);
+			expect(html).toMatch(/class="colonnes[^"]*seule/);
+		});
+
+		it('rien à décider : « À ne pas manquer » d’abord, la phrase vraie à côté', () => {
+			const html = page({ casquettes: [centre, astreinte], choisie: 'centre', aNePasManquer, contenu: { type: 'centre', aDecider: [] } });
+			expect(colonnes(html)[0]).toContain('À ne pas manquer');
+			expect(colonnes(html)[1]).toContain('Rien à décider pour le moment.');
+		});
+
+		it('« Gérer » reste au chef', () => {
+			const html = page({ casquettes: [centre, astreinte], choisie: 'centre', contenu: { type: 'centre', aDecider } });
+			expect(colonnes(html)[1]).toMatch(/Gérer[\s\S]*?href="\/agents"/);
+		});
+	});
+
+	it('un agent : plus de raccourcis, une colonne, et une phrase qui dit ce qui l’attend', () => {
 		const html = page({ estPersonne: true, casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
-		for (const href of ['/echanges', '/agents', '/profil']) expect(html).toContain(`href="${href}"`);
+		expect(html).not.toContain('Raccourcis');
+		for (const href of ['/echanges', '/agents', '/profil']) expect(html).not.toContain(`href="${href}"`);
+		expect(html.split(/class="colonne\s/)).toHaveLength(2);
+		expect(html).toMatch(/class="colonnes[^"]*seule/);
 		// « Tout est à jour » une seule fois.
 		expect(html.match(/[Tt]out est à jour/g)).toHaveLength(1);
 		const occupe = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...vide, sondages: [{ id: 4, cle: 'vie', nomMur: 'Vie du centre', titre: 'Repas ?' }] } });

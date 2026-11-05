@@ -13,7 +13,7 @@
 	const decalage = $derived(decalageDe(tenue));
 	const reflet = $derived(aReflet(tenue));
 	const socle = $derived(tenue !== 'hiver');
-	const couleurSocle = $derived(tenue === 'nuit' ? '#0f141b' : '#1d2733');
+	const couleurSocle = $derived(tenue === 'nuit' ? '#0f141b' : 'var(--gyro-socle)');
 
 	const a = (nom: string) => (anime ? nom : undefined);
 	const cl = $derived({
@@ -233,7 +233,7 @@
 <rect x="28" y="84" width="64" height="11" rx="5" fill="#f4c400"></rect>
 <rect x="70" y="88" width="11" height="22" rx="4" fill="#f4c400"></rect>
 <rect x="70" y="102" width="11" height="4" fill="#ec5fa6"></rect>
-<rect x="24" y="96" width="72" height="12" rx="5" fill="#1d2733"></rect>
+<rect x="24" y="96" width="72" height="12" rx="5" fill="var(--gyro-socle)"></rect>
 </g>{/if}
 {#if socle}<rect x="24" y="92" width="72" height="16" rx="5" fill={couleurSocle}></rect>{/if}
 {#if tenue === 'bal14'}<g>

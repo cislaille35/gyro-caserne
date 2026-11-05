@@ -5,6 +5,6 @@
 3. En orange ou rouge, un grand bandeau apparaît en haut de l'Accueil, aujourd'hui ou demain. Touchez « Consignes sur vigilance.meteofrance.fr » pour les détails.
 4. « Vigilance indisponible, voir Météo-France » : l'appli n'a pas pu lire la vigilance depuis plus de 2 heures. Ne vous fiez pas à un vert : ouvrez le lien.
 5. En vigilance rouge, une notification arrive sur votre téléphone, une fois par épisode (si les notifications sont activées).
-6. Pour couper l’animation de l’Accueil : Moi → Affichage, puis « Niveau de vie » : Sobre.
+6. Pour couper l’animation de l’Accueil : Moi → Affichage, puis « Présence de Gyro » : Sobre.
 
 La météo est une information : elle ne remplace jamais une alerte du SDIS.

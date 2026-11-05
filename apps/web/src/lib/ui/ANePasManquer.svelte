@@ -139,6 +139,11 @@
 	.geste:hover {
 		border-color: var(--encre);
 	}
+	/* Les trois réponses tiennent sur une ligne à 390 px. */
+	.bascule {
+		padding: 0 8px;
+		white-space: nowrap;
+	}
 	/* Bouton à bascule : l'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.bascule[aria-pressed='true'] {
 		border: 2px solid var(--encre);

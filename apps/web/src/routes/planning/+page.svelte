@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { enhance } from '$app/forms';
+	import { enhance, type SubmitFunction } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
@@ -77,8 +77,16 @@
 		...data.remplacements.aValider.filter((v) => !data.remplacements.pourMoi.some((x) => x.id === v.id)).map((v) => ({ v, alerte: true, sous: 'À valider' })),
 		...data.remplacements.miennes.map((v) => ({ v, alerte: false, sous: ETATS[v.etat].libelle }))
 	]);
+	const aTraiter = $derived(demandes.filter((d) => d.alerte).length);
+	const aVenir = $derived(manoeuvre !== null || fete !== null || demandes.length > 0);
 	const reussite = $derived(form && 'succes' in form ? String(form.succes) : '');
 	const echec = $derived(form && 'message' in form && !('succes' in form) ? String(form.message) : '');
+
+	// Après une réponse, SvelteKit remet le focus en haut de la page : on le rend au bouton, sous le calendrier au téléphone.
+	const garderFocus: SubmitFunction = ({ submitter }) => async ({ update }) => {
+		await update({ reset: false });
+		if (submitter instanceof HTMLElement && submitter.isConnected) submitter.focus();
+	};
 
 	// La dernière vue choisie est retenue sur l'appareil.
 	const retenir = (vue: string) => {
@@ -117,55 +125,22 @@
 			<a href="?annee={p.annee + 1}">{p.annee + 1} ›</a>
 		</nav>
 	{:else if donnees}
-		<div class="colonnes">
-			<div class="gauche">
-				{#if carte}<CarteAstreinte a={carte} maintenant={m} />{/if}
+		<nav class="vues" aria-label="Vue du planning">
+			{#each VUES as [vue, libelle] (vue)}
+				<a href={lien({ vue })} aria-current={data.vue === vue ? 'page' : undefined} onclick={() => retenir(vue)} data-sveltekit-reset="false">{libelle}</a>
+			{/each}
+		</nav>
 
-				<ListeRangees titre="À venir">
-					{#if manoeuvre}
-						<li>
-							<Rangee titre={manoeuvre.theme} sous="Manœuvre · {momentLong(manoeuvre.debut)} · {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ' · petit-déjeuner' : ''}">
-								{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
-								{#if manoeuvre.publicationId}
-									<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={() => async ({ update }) => update({ reset: false })}>
-										<input type="hidden" name="id" value={manoeuvre.publicationId} />
-										<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
-										<div role="group" aria-labelledby="reponse-manoeuvre" class="boutons">
-											{#each REPONSES as [valeur, libelle] (valeur)}
-												<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={manoeuvre.reponse === valeur}>{libelle}</button>
-											{/each}
-										</div>
-									</form>
-								{:else}
-									<span class="note">Annoncée deux semaines avant : vous pourrez répondre ici.</span>
-								{/if}
-								{#if manoeuvre.convocation !== 'tous'}
-									<a class="echanger" href="/remplacements/manoeuvre?mienne={manoeuvre.id}&depuis=planning">Je ne peux pas : échanger ma place<span class="masque">{` à « ${manoeuvre.theme} »`}</span></a>
-								{/if}
-							</Rangee>
-						</li>
-					{/if}
-					{#if fete}
-						<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}{fete.date.slice(0, 4) === m.slice(0, 4) ? '' : ` ${fete.date.slice(0, 4)}`}." icone="etoile" /></li>
-					{/if}
-					{#each demandes as d (d.v.id)}
-						<li>
-							<Rangee href="/remplacements/{d.v.id}" titre={titreDemande(d.v)} sous="{d.v.texte} · {d.sous}" alerte={d.alerte}>
-								{#snippet droite()}<Pastille ton={ETATS[d.v.etat].ton}>{ETATS[d.v.etat].libelle}</Pastille>{/snippet}
-							</Rangee>
-						</li>
-					{/each}
-					<li><Rangee href="/remplacements" titre="Remplacements" sous="Me faire remplacer, échanger, répondre aux collègues" icone="groupe" dessin={DESSINS.echanges} /></li>
-				</ListeRangees>
-			</div>
+		<!-- Au-dessus du calendrier : la vue Année est longue, et les remplacements restent à portée, avec ou sans astreinte. -->
+		<div class="acces">
+			{#if carte}<CarteAstreinte a={carte} maintenant={m} />{/if}
+			<a class="remplacements" href="/remplacements"
+				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.echanges} /></svg>Remplacements{#if aTraiter > 0}{' '}<Pastille ton="alerte">{aTraiter} à traiter</Pastille>{/if}</a
+			>
+		</div>
 
-			<div class="droite">
-				<nav class="vues" aria-label="Vue du planning">
-					{#each VUES as [vue, libelle] (vue)}
-						<a href={lien({ vue })} aria-current={data.vue === vue ? 'page' : undefined} onclick={() => retenir(vue)} data-sveltekit-reset="false">{libelle}</a>
-					{/each}
-				</nav>
-
+		<div class="colonnes" class:seule={!aVenir}>
+			<div class="calendrier">
 				{#if data.vue === 'semaine' && semaine}
 					<VueSemaine {semaine} equipe={avecGroupe(equipe(semaine.equipeId), semaine)} {donnees} {mode} {precedente} {suivante} maintenant={m} />
 				{:else if data.vue === 'mois'}
@@ -182,6 +157,46 @@
 					<a href={lien({ annee: p.annee + 1, vue: data.vue })}>{p.annee + 1} ›</a>
 				</nav>
 			</div>
+
+			{#if aVenir}
+				<div class="a-cote">
+					<ListeRangees titre="À venir">
+						{#if manoeuvre}
+							<li>
+								<Rangee titre={manoeuvre.theme} sous="Manœuvre · {momentLong(manoeuvre.debut)} · {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ' · petit-déjeuner' : ''}">
+									{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
+									{#if manoeuvre.publicationId}
+										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={garderFocus}>
+											<input type="hidden" name="id" value={manoeuvre.publicationId} />
+											<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
+											<div role="group" aria-labelledby="reponse-manoeuvre" class="boutons">
+												{#each REPONSES as [valeur, libelle] (valeur)}
+													<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={manoeuvre.reponse === valeur}>{libelle}</button>
+												{/each}
+											</div>
+										</form>
+									{:else}
+										<span class="note">Annoncée deux semaines avant : vous pourrez répondre ici.</span>
+									{/if}
+									{#if manoeuvre.convocation !== 'tous'}
+										<a class="echanger" href="/remplacements/manoeuvre?mienne={manoeuvre.id}&depuis=planning">Je ne peux pas : échanger ma place<span class="masque">{` à « ${manoeuvre.theme} »`}</span></a>
+									{/if}
+								</Rangee>
+							</li>
+						{/if}
+						{#if fete}
+							<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}{fete.date.slice(0, 4) === m.slice(0, 4) ? '' : ` ${fete.date.slice(0, 4)}`}." icone="etoile" /></li>
+						{/if}
+						{#each demandes as d (d.v.id)}
+							<li>
+								<Rangee href="/remplacements/{d.v.id}" titre={titreDemande(d.v)} sous="{d.v.texte} · {d.sous}" alerte={d.alerte}>
+									{#snippet droite()}<Pastille ton={ETATS[d.v.etat].ton}>{ETATS[d.v.etat].libelle}</Pastille>{/snippet}
+								</Rangee>
+							</li>
+						{/each}
+					</ListeRangees>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -194,20 +209,52 @@
 		max-width: 76rem;
 	}
 	.colonnes,
-	.gauche,
-	.droite {
+	.calendrier {
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
 	}
+	.acces {
+		display: grid;
+		gap: 8px;
+	}
+	.remplacements {
+		justify-self: start;
+		min-height: var(--cible);
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 0 12px;
+		border: 1px solid var(--trait);
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--encre);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.remplacements:hover {
+		border-color: var(--encre);
+	}
 	@media (min-width: 1024px) {
+		.vues {
+			max-width: 32rem;
+		}
+		.acces {
+			grid-template-columns: minmax(0, 1fr) auto;
+			align-items: center;
+			gap: 12px;
+		}
 		.colonnes {
 			display: grid;
-			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+			grid-template-columns: minmax(0, 8fr) minmax(0, 5fr);
 			align-items: start;
 			gap: 28px;
 		}
-		.gauche {
+		.colonnes.seule {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.a-cote {
 			position: sticky;
 			top: calc(var(--hauteur-entete) + 16px);
 		}
@@ -277,7 +324,8 @@
 	}
 	.bascule {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 8px;
+		white-space: nowrap;
 		border: 1px solid var(--trait);
 		border-radius: 999px;
 		background: var(--surface);
@@ -285,9 +333,14 @@
 		font: 600 0.9375rem var(--police);
 		cursor: pointer;
 	}
+	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.bascule[aria-pressed='true'] {
 		border-color: var(--encre);
 		background: var(--encre);
 		color: var(--surface);
+	}
+	.bascule[aria-pressed='true']::before {
+		content: '✓ ';
+		content: '✓ ' / '';
 	}
 </style>

@@ -12,6 +12,13 @@ describe('page Affichage', () => {
 		expect(html(false)).not.toContain('href="/moi"');
 	});
 
+	it('le même vocabulaire que « Moi » : le thème et la présence de Gyro', () => {
+		const page = html(true);
+		expect(page).toContain('Le thème et la présence de Gyro, sur cet appareil.');
+		expect(page).toMatch(/<legend[^>]*>Présence de Gyro<\/legend>/);
+		expect(page).not.toContain('Niveau de vie');
+	});
+
 	it('les choix enregistrés sont cochés', () => {
 		const page = html(true);
 		expect(page).toMatch(/<input type="radio" name="niveau" value="equilibre"[^>]*checked/);

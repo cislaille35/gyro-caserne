@@ -23,6 +23,12 @@ describe('Gyro', () => {
 		expect(html({ tenue })).not.toContain('<text');
 	});
 
+	it('le socle suit le thème par son jeton ; la tenue « nuit » garde le sien', () => {
+		expect(html({})).toMatch(/<rect x="24" y="92"[^>]*fill="var\(--gyro-socle\)"/);
+		expect(html({ tenue: 'hiver' })).toMatch(/<rect x="24" y="96"[^>]*fill="var\(--gyro-socle\)"/);
+		expect(html({ tenue: 'nuit' })).toMatch(/<rect x="24" y="92"[^>]*fill="#0f141b"/);
+	});
+
 	it('prend la tenue normale par défaut', () => {
 		expect(html({})).toContain('aria-label="Gyro, souriant"');
 	});

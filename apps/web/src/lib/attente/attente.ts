@@ -33,12 +33,12 @@ export const reponseAction = () => JSON.stringify({ type: 'failure', status: 503
 
 const GYRO = `<svg class="gyro" aria-hidden="true" viewBox="0 0 512 512" width="112" height="112">
 <g class="rayons" stroke-linecap="round" stroke-width="22"><line x1="121" y1="180" x2="78" y2="153" stroke="#f2c200"/><line x1="201" y1="114" x2="184" y2="67" stroke="#e5699a"/><line x1="311" y1="114" x2="328" y2="67" stroke="#3d7fd6"/><line x1="391" y1="180" x2="434" y2="153" stroke="#3fa34d"/></g>
-<g transform="translate(4 4) scale(4.2)"><path d="M32 94V62Q32 30 60 30Q88 30 88 62V94Z" fill="#e3262b"/><ellipse cx="49" cy="64" rx="8" ry="10" fill="#fff"/><ellipse cx="71" cy="64" rx="8" ry="10" fill="#fff"/><circle cx="51" cy="66" r="4.5" fill="#1d2733"/><circle cx="73" cy="66" r="4.5" fill="#1d2733"/><path d="M50 80Q60 88 70 80" fill="none" stroke="#1d2733" stroke-width="4" stroke-linecap="round"/><rect x="24" y="92" width="72" height="16" rx="5" fill="#1d2733"/></g>
+<g transform="translate(4 4) scale(4.2)"><path d="M32 94V62Q32 30 60 30Q88 30 88 62V94Z" fill="#e3262b"/><ellipse cx="49" cy="64" rx="8" ry="10" fill="#fff"/><ellipse cx="71" cy="64" rx="8" ry="10" fill="#fff"/><circle cx="51" cy="66" r="4.5" fill="#1d2733"/><circle cx="73" cy="66" r="4.5" fill="#1d2733"/><path d="M50 80Q60 88 70 80" fill="none" stroke="#1d2733" stroke-width="4" stroke-linecap="round"/><rect x="24" y="92" width="72" height="16" rx="5" fill="var(--socle)"/></g>
 </svg>`;
 
 // Les couleurs de l'appli, en clair et en sombre (selon l'appareil : le choix du thème de l'appli n'est pas lisible ici).
-const STYLE = `:root{color-scheme:light dark;--fond:#f6f3ef;--encre:#1d2733;--doux:#4a5562}
-@media (prefers-color-scheme: dark){:root{--fond:#11171f;--encre:#e6ebf0;--doux:#a7b2bd}}
+const STYLE = `:root{color-scheme:light dark;--fond:#f6f3ef;--encre:#1d2733;--doux:#4a5562;--socle:#1d2733}
+@media (prefers-color-scheme: dark){:root{--fond:#11171f;--encre:#e6ebf0;--doux:#a7b2bd;--socle:#6b7a8a}}
 *{box-sizing:border-box}
 body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:var(--fond);color:var(--encre);font:400 1.0625rem/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 main{max-width:26rem;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}

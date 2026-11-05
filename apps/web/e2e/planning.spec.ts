@@ -208,3 +208,19 @@ test.describe('agent : mon année et mon agenda', () => {
 		expect((await page.request.get(lien)).status()).toBe(404);
 	});
 });
+
+test('agent d’équipe, au Planning : réponses sur une ligne à 390 px, le focus reste sur le bouton', async ({ page }, info) => {
+	test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
+	await connecter(page, 'alice.martin@exemple.fr');
+	await page.goto('/planning?vue=annee');
+	await page.waitForLoadState('networkidle');
+	const groupe = page.getByRole('group', { name: /^Votre réponse/ });
+	test.skip((await groupe.count()) === 0, 'aucune manœuvre annoncée à cette date dans le jeu fictif');
+	const incertain = groupe.getByRole('button', { name: 'Incertain' });
+	await incertain.focus();
+	await page.keyboard.press('Enter');
+	await expect(incertain).toHaveAttribute('aria-pressed', 'true');
+	await expect(incertain).toBeFocused();
+	const hauts = await groupe.getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
+	expect(new Set(hauts).size).toBe(1);
+});

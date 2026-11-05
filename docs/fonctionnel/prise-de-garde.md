@@ -63,6 +63,7 @@ La prise enregistre l'agent qui l'a faite et l'équipe d'astreinte du moment.
 
 ## Ce que fait le lot B (prise de garde)
 
+- **Depuis l'accueil** : sur la carte d'astreinte de son équipe, « Faire la prise de garde », de 2 h avant à 24 h après le début de l'astreinte.
 - **Caserne → Engins → Prise de garde** : la relève en cours (« Relève du ven. 30 oct., équipe 2 ») et chaque engin : « Prise faite par l'équipe 2, ven. 18 h 40 », « Prise en cours (Alice Martin) » ou « Prise à faire », et ses écarts encore ouverts. La liste des engins dit la même chose sous chaque engin.
 - **La prise d'un engin** : d'abord ce qui reste signalé depuis la dernière prise ; puis la fiche zone par zone, « Tout est complet » en un geste, en tête de chaque zone (lot C, demande du porteur : on le touche d'abord, puis seulement les éléments à problème ; la zone suivante s'ouvre dessous), un écart seulement là où il y en a (manquant avec le nombre manquant s'il se compte, abîmé, à remplacer ; note et photo facultatives) ; « Oui, clore le signalement » si un élément signalé est retrouvé ; les participants (une rangée en tête de la prise, « Participants : vous + 2 », qui ouvre un panneau : l'équipe d'astreinte d'abord, une recherche pour un remplaçant ou un renfort ; rappelés au résumé de la validation) ; valider. Gyro porte la check-list.
 - **Brouillon partagé** : une prise par engin et par relève, gardée sur le serveur ; un collègue la reprend sur son téléphone. On peut l'abandonner (brouillon et photos effacés).

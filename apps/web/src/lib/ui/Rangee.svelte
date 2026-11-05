@@ -120,13 +120,12 @@
 		color: inherit;
 		overflow-wrap: anywhere;
 	}
-	/* Cible de 44 px, sans écarter la sous-ligne. */
+	/* Cible de 44 px, sans écarter la sous-ligne : la marge négative compense exactement le remplissage, quel que soit le nombre de lignes. */
 	a.titre {
-		min-height: var(--cible);
-		margin: -10px 0;
-		display: inline-flex;
-		align-items: center;
+		display: block;
 		align-self: flex-start;
+		padding: 11px 0;
+		margin: -11px 0;
 		text-decoration: none;
 	}
 	.sous {

@@ -60,6 +60,60 @@ describe('onglet Planning', () => {
 		expect(page({ planning: ete, vue: 'annee' })).not.toContain('Groupe B');
 	});
 
+	it('la carte du Planning ne propose pas la prise de garde, même à la relève', () => {
+		expect(page({ maintenant: '2026-11-06T18:30' })).not.toContain('/engins/prise');
+	});
+
+	describe('haut de page', () => {
+		const demande = { id: 7, genre: 'remplacement', etat: 'attente', demandeur: { id: 2, prenom: 'Bruno', nom: 'Petit' }, cible: null, remplacant: null, texte: 'nuit du lundi 9 novembre', moi: 'destinataire', gestes: {} };
+		const CALENDRIER = { semaine: 'id="titre-semaine"', mois: 'id="titre-mois"', annee: 'id="titre-annee"', equipes: 'id="titre-annee"' };
+		const ordonne = (html: string, ...reperes: string[]) => {
+			const places = reperes.map((r) => html.indexOf(r));
+			expect(places.every((x) => x >= 0), reperes.join(' ; ')).toBe(true);
+			expect(places).toEqual([...places].sort((a, b) => a - b));
+		};
+
+		it.each(Object.entries(CALENDRIER))('vue %s : les vues, la carte et les remplacements avant le calendrier, « À venir » après', (vue, calendrier) => {
+			ordonne(page({ vue }), '<h1', 'aria-label="Vue du planning"', 'href="/remplacements/demander?semaine=2026-11-06"', 'href="/remplacements"', calendrier, 'aria-label="Années"', '>À venir');
+		});
+
+		it('hors astreinte, même vue Année : les remplacements restent au-dessus du calendrier', () => {
+			const sansEquipe = { ...publiee, monEquipe: null, semaines: semaines.map((s) => ({ ...s, mienne: false })), prochaine: { ...publiee.prochaine, astreinte: null } };
+			ordonne(page({ planning: sansEquipe, vue: 'annee' }), 'aria-label="Vue du planning"', 'href="/remplacements"', 'id="titre-annee"');
+			const finDAnnee = { ...publiee, prochaine: { ...publiee.prochaine, astreinte: null } };
+			ordonne(page({ planning: finDAnnee, vue: 'annee', maintenant: '2026-12-30T10:00' }), 'href="/remplacements"', 'id="titre-annee"');
+		});
+
+		it('les réponses aux collègues et les validations sont comptées en haut, une demande une seule fois', () => {
+			const html = page({ vue: 'annee', remplacements: { ...vides, pourMoi: [demande], aValider: [demande, { ...demande, id: 8 }] } });
+			ordonne(html, 'href="/remplacements"', '2 à traiter', 'id="titre-annee"');
+			expect(page({ vue: 'annee' })).not.toContain('à traiter');
+			// Mes propres demandes ne sont pas à traiter.
+			expect(page({ remplacements: { ...vides, miennes: [demande] } })).not.toContain('à traiter');
+		});
+
+		it('un seul lien vers les remplacements ; sans rien à venir, pas de section vide', () => {
+			const vide = { ...publiee, prochaine: { ...publiee.prochaine, manoeuvre: null, fete: null } };
+			const html = page({ planning: vide });
+			expect(html.match(/href="\/remplacements"/g)).toHaveLength(1);
+			expect(html).not.toContain('À venir');
+			expect(html).toMatch(/class="colonnes[^"]*seule/);
+			expect(page({})).not.toMatch(/class="colonnes[^"]*seule/);
+		});
+
+		it('la carte condensée : ni compte à rebours ni grand titre, les gestes restent', () => {
+			const html = page({});
+			expect(html).not.toContain('class="rebours');
+			expect(html).not.toMatch(/class="quand[^"]*titre/);
+			expect(html).toContain('Me faire remplacer');
+			expect(html).toContain('Ajouter à mon agenda');
+		});
+
+		it('changer de vue garde la position', () => {
+			expect(page({}).match(/<a[^>]*href="\?annee=2026&amp;vue=[a-z]+"[^>]*data-sveltekit-reset="false"/g)).toHaveLength(4);
+		});
+	});
+
 	it('sans équipe : la carte de la semaine en cours, la vue des équipes', () => {
 		const sansEquipe = { ...publiee, monEquipe: null, semaines: semaines.map((s) => ({ ...s, mienne: false })), prochaine: { ...publiee.prochaine, astreinte: null } };
 		const html = page({ planning: sansEquipe, vue: 'equipes' });
