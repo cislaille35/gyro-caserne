@@ -38,9 +38,9 @@
 
 	const affichage = lireAffichageContexte();
 	const REPONSES = [
-		['present', 'Présent', '✓'],
-		['absent', 'Absent', '✕'],
-		['incertain', 'Incertain', '?']
+		['present', 'Présent'],
+		['absent', 'Absent'],
+		['incertain', 'Incertain']
 	] as const;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
@@ -130,11 +130,9 @@
 			{#if agir && e.convoque && !p.annulee}
 				<form method="POST" action="?/repondre" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={p.id} />
-					<div role="group" aria-label="Votre réponse" class="reponses">
-						{#each REPONSES as [valeur, libelle, signe] (valeur)}
-							<button type="submit" class="reponse {valeur}" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}
-								><span aria-hidden="true">{signe}</span> {libelle}{#if e.reponse === valeur}<span class="choisie" aria-hidden="true">votre réponse</span>{/if}</button
-							>
+					<div role="group" aria-label="Votre réponse" class="segments reponses">
+						{#each REPONSES as [valeur, libelle] (valeur)}
+							<button type="submit" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
 						{/each}
 					</div>
 				</form>
@@ -249,13 +247,21 @@
 </article>
 
 <style>
+	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
+	.reponses {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.reponses button {
+		padding: 0 4px;
+	}
 	.publication {
 		position: relative;
 		overflow: hidden;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 5%, transparent);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 	}
 	.contenu,
 	.pied {
@@ -344,7 +350,7 @@
 		width: 100%;
 		min-height: 48px;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--encre);
 		color: var(--surface);
 		font: 600 1rem var(--police);
@@ -381,54 +387,6 @@
 	}
 	.visages > :global(* + *) {
 		margin-left: -8px;
-	}
-	.reponses {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 8px;
-	}
-	.reponse {
-		min-height: 48px;
-		padding: 0 6px;
-		border: 2px solid var(--statut-neutre-trait);
-		border-radius: 14px;
-		background: var(--statut-neutre-fond);
-		color: var(--statut-neutre-texte);
-		font: 600 0.9375rem var(--police);
-		cursor: pointer;
-	}
-	.reponse.present {
-		border-color: var(--statut-ok-trait);
-		background: var(--statut-ok-fond);
-		color: var(--statut-ok-texte);
-	}
-	.reponse.absent {
-		border-color: var(--statut-danger-trait);
-		background: var(--statut-danger-fond);
-		color: var(--statut-danger-texte);
-	}
-	/* Appuyé : les couleurs s'inversent (clair sur foncé), pas seulement la teinte. */
-	.reponse[aria-pressed='true'] {
-		border-color: var(--statut-neutre-texte);
-		background: var(--statut-neutre-texte);
-		color: var(--statut-neutre-fond);
-		font-weight: 700;
-	}
-	/* La marque écrite double l'inversion des couleurs ; l'état est déjà annoncé par aria-pressed. */
-	.choisie {
-		display: block;
-		font-size: 0.75rem;
-		font-weight: 600;
-	}
-	.reponse.present[aria-pressed='true'] {
-		border-color: var(--statut-ok-texte);
-		background: var(--statut-ok-texte);
-		color: var(--statut-ok-fond);
-	}
-	.reponse.absent[aria-pressed='true'] {
-		border-color: var(--statut-danger-texte);
-		background: var(--statut-danger-texte);
-		color: var(--statut-danger-fond);
 	}
 
 	/* Bravo */
@@ -467,7 +425,7 @@
 		align-items: center;
 		padding: 0 14px;
 		border: 1px solid var(--trait-doux);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 0.9375rem var(--police);

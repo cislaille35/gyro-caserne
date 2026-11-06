@@ -92,7 +92,8 @@
 		gap: 6px;
 		padding: 14px 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		overflow-wrap: anywhere;
 	}
@@ -140,7 +141,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
 		text-decoration: none;

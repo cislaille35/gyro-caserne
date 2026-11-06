@@ -216,7 +216,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 0 20px 0 16px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 35%, transparent);

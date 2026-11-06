@@ -95,7 +95,7 @@
 		gap: 8px;
 		padding: 0 16px 0 12px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;

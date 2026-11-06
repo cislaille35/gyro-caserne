@@ -109,7 +109,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);

@@ -140,7 +140,7 @@
 	--menu-actif: #1a222c;
 	--segment-fond: #252e39;
 	/* En sombre, la surface plus claire que le fond suffit. */
-	--ombre-carte: none;
+	--ombre-carte: 0 0 0 transparent;
 
 	color-scheme: dark;
 }
@@ -205,7 +205,7 @@
 		--menu-actif: #1a222c;
 		--segment-fond: #252e39;
 		/* En sombre, la surface plus claire que le fond suffit. */
-		--ombre-carte: none;
+		--ombre-carte: 0 0 0 transparent;
 
 		color-scheme: dark;
 	}

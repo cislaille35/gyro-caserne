@@ -181,7 +181,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
 		text-decoration: none;

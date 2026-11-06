@@ -132,7 +132,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-size: 1.5rem;

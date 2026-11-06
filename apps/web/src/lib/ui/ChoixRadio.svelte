@@ -67,7 +67,7 @@
 	}
 	.pastilles .option {
 		padding: 0 14px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 	}
 	.tuiles .option {
 		min-height: 64px;

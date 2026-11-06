@@ -461,8 +461,9 @@
 	.entete {
 		overflow: hidden;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 	}
 	.bandeau {
 		height: 64px;

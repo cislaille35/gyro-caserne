@@ -118,7 +118,7 @@
 		flex: none;
 		min-width: 48px;
 		height: 48px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;

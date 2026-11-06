@@ -325,7 +325,7 @@
 		flex: none;
 		min-height: 44px;
 		padding: 0 16px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		background: var(--surface);
@@ -369,8 +369,9 @@
 		flex-direction: column;
 		gap: 8px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
 	.a-venir ul {
@@ -402,12 +403,12 @@
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 		text-decoration: none;
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 6%, transparent);
 	}
 	.bandeau {
 		display: flex;
@@ -461,8 +462,9 @@
 		align-items: center;
 		gap: 12px;
 		padding: 12px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 		text-decoration: none;
@@ -535,8 +537,9 @@
 
 	/* Sections repliées */
 	.repli {
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
 	.repli summary {

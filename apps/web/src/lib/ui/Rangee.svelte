@@ -81,8 +81,9 @@
 		align-items: center;
 		gap: 12px;
 		padding: 10px 12px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 		text-decoration: none;

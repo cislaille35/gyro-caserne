@@ -125,7 +125,7 @@
 			<a href="?annee={p.annee + 1}">{p.annee + 1} ›</a>
 		</nav>
 	{:else if donnees}
-		<nav class="vues" aria-label="Vue du planning">
+		<nav class="segments vues" aria-label="Vue du planning">
 			{#each VUES as [vue, libelle] (vue)}
 				<a href={lien({ vue })} aria-current={data.vue === vue ? 'page' : undefined} onclick={() => retenir(vue)} data-sveltekit-reset="false">{libelle}</a>
 			{/each}
@@ -169,9 +169,9 @@
 										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={garderFocus}>
 											<input type="hidden" name="id" value={manoeuvre.publicationId} />
 											<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
-											<div role="group" aria-labelledby="reponse-manoeuvre" class="boutons">
+											<div role="group" aria-labelledby="reponse-manoeuvre" class="segments boutons">
 												{#each REPONSES as [valeur, libelle] (valeur)}
-													<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={manoeuvre.reponse === valeur}>{libelle}</button>
+													<button type="submit" name="reponse" value={valeur} aria-pressed={manoeuvre.reponse === valeur}>{libelle}</button>
 												{/each}
 											</div>
 										</form>
@@ -202,6 +202,14 @@
 </div>
 
 <style>
+	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
+	.boutons {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.boutons button {
+		padding: 0 4px;
+	}
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -226,7 +234,7 @@
 		gap: 8px;
 		padding: 0 12px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-size: 0.9375rem;
@@ -259,32 +267,6 @@
 			top: calc(var(--hauteur-entete) + 16px);
 		}
 	}
-	.vues {
-		display: flex;
-		gap: 6px;
-	}
-	.vues a {
-		flex: 1;
-		justify-content: center;
-		min-height: var(--cible);
-		padding: 0 8px;
-		border-radius: 999px;
-		display: inline-flex;
-		align-items: center;
-		border: 1px solid var(--trait-doux);
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.vues a:hover {
-		border-color: var(--trait);
-	}
-	.vues a[aria-current='page'] {
-		border-color: var(--encre);
-		background: var(--encre);
-		color: var(--surface);
-	}
 	.titre-vue {
 		margin: 0 0 10px;
 		font: 700 1.375rem var(--police-titre);
@@ -316,31 +298,5 @@
 	}
 	form {
 		margin-top: 6px;
-	}
-	.boutons {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-	}
-	.bascule {
-		min-height: var(--cible);
-		padding: 0 8px;
-		white-space: nowrap;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font: 600 0.9375rem var(--police);
-		cursor: pointer;
-	}
-	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
-	.bascule[aria-pressed='true'] {
-		border-color: var(--encre);
-		background: var(--encre);
-		color: var(--surface);
-	}
-	.bascule[aria-pressed='true']::before {
-		content: '✓ ';
-		content: '✓ ' / '';
 	}
 </style>

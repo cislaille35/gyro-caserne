@@ -114,7 +114,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-size: 1.5rem;
@@ -186,7 +186,8 @@
 	.jours {
 		display: flex;
 		flex-direction: column;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		overflow: hidden;

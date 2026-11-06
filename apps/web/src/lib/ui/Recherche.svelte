@@ -36,7 +36,7 @@
 		min-height: 48px;
 		padding: 0 16px 0 48px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 400 1rem var(--police);
@@ -57,7 +57,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--doux);
 		cursor: pointer;

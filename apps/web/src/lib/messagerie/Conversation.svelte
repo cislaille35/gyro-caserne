@@ -658,7 +658,7 @@
 	.choix button {
 		min-height: var(--cible);
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;

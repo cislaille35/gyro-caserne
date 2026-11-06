@@ -30,7 +30,7 @@
 		gap: 6px;
 		padding: 0 10px;
 		border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: color-mix(in srgb, var(--surface) 70%, transparent);
 		color: inherit;
 		font: 600 0.9375rem var(--police);

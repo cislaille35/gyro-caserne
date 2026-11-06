@@ -45,7 +45,7 @@
 	{#if !data.personne}
 		<Vide titre="Réservé aux agents." texte="Le super administrateur n’a pas d’astreinte." />
 	{:else}
-		<nav class="onglets" aria-label="Remplacements">
+		<nav class="segments onglets" aria-label="Remplacements">
 			{#each onglets as o (o.id)}
 				<a href="?onglet={o.id}" aria-current={data.onglet === o.id ? 'page' : undefined}>{o.libelle}{#if o.n > 0}<span class="compte"><span class="masque"> : </span>{o.n}</span>{/if}</a>
 			{/each}
@@ -91,29 +91,6 @@
 		display: grid;
 		gap: 10px;
 	}
-	.onglets {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-	.onglets a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		padding: 0 16px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.onglets a[aria-current='page'] {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
-	}
 	.compte {
 		min-width: 1.5em;
 		padding: 0 6px;
@@ -142,7 +119,8 @@
 		gap: 10px;
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.deroule h2 {

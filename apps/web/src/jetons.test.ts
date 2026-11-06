@@ -98,7 +98,8 @@ describe('jetons', () => {
 		expect(themes.clair['rayon-grand']).toBe('14px');
 		expect(themes.clair['rayon-bouton']).toBe('10px');
 		expect(themes.clair['ombre-carte']).toMatch(/rgb\(/);
-		expect(themes.sombre['ombre-carte']).toBe('none');
+		// Une ombre invisible plutôt que « none » : elle se combine avec une autre ombre.
+		expect(themes.sombre['ombre-carte']).toBe('0 0 0 transparent');
 		expect(luminance(themes.sombre.surface)).toBeGreaterThan(luminance(themes.sombre.fond));
 	});
 
