@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { abonnementPush, abonner, envoiPush, notifierPublication, publier } from '@gyro-caserne/socle';
 import { preparer } from '../../routes/echanges/de-test.ts';
-import { envoyerApres, envoyerLot, LOT_IMMEDIAT } from './envoi-push.ts';
+import { envoisDuGeste, envoyerApres, envoyerLot, LOT_IMMEDIAT } from './envoi-push.ts';
 import { clesVapid } from './webpush.ts';
 import { paireVapid } from './vapid-de-test.ts';
 
@@ -93,5 +93,54 @@ describe('envoyerApres', () => {
 		await base.insert(envoiPush).values(Array.from({ length: 25 }, () => ({ abonnementId: modele!.abonnementId, donnees: modele!.donnees, creeLe: maintenant })));
 		expect(await envoyerApres(base, cles, [], () => true, envoyer)).toEqual({ envoyes: 20, perimes: 0 });
 		expect(await base.select().from(envoiPush)).toHaveLength(8);
+	});
+});
+
+describe('envoisDuGeste (le suivi d’une requête dans les hooks)', () => {
+	it('une tâche en arrière-plan qui met en file, puis une autre qu’elle inscrit : le lot part après les deux', async () => {
+		const { base, cles } = await enFile();
+		const attendus: Promise<unknown>[] = [];
+		const envois = envoisDuGeste((t) => attendus.push(t));
+		const envoyer = vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 201 }));
+		const ordre: string[] = [];
+		envois.enArrierePlan(
+			Promise.resolve().then(() => {
+				envois.siEnFile();
+				envois.enArrierePlan(new Promise((r) => setTimeout(r, 5)).then(() => ordre.push('seconde')));
+			})
+		);
+		envois.terminer(base, cles, async (url, init) => (ordre.push('envoi'), envoyer(url, init)));
+		await Promise.all(attendus);
+		await Promise.all(attendus);
+		expect(ordre[0]).toBe('seconde');
+		expect(envoyer).toHaveBeenCalledTimes(3);
+	});
+
+	it('rien mis en file (une page lue, une action qui échoue) : aucun envoi, aucune requête', async () => {
+		const { base, cles } = await enFile();
+		const attendus: Promise<unknown>[] = [];
+		const envois = envoisDuGeste((t) => attendus.push(t));
+		const envoyer = vi.fn();
+		const avant = base.requetes;
+		envois.enArrierePlan(Promise.reject(new Error('échec')).catch(() => {}));
+		envois.terminer(base, cles, envoyer);
+		await Promise.all(attendus);
+		expect(envoyer).not.toHaveBeenCalled();
+		expect(base.requetes).toBe(avant);
+	});
+
+	it('une erreur de la base pendant l’envoi est écrite dans la console, sans rejet', async () => {
+		const { base } = await enFile();
+		base.batch = async () => {
+			throw new TypeError('base');
+		};
+		const attendus: Promise<unknown>[] = [];
+		const envois = envoisDuGeste((t) => attendus.push(t));
+		envois.siEnFile();
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		envois.terminer(base, null);
+		await Promise.all(attendus);
+		expect(erreur).toHaveBeenCalledWith('Notifications non envoyées', 'TypeError');
+		erreur.mockRestore();
 	});
 });

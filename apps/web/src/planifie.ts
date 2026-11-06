@@ -44,7 +44,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// La météo et la vigilance : regardées à chaque réveil, redemandées si elles ont plus d'une heure (météo) ou de 15 minutes (vigilance).
 				const lieu = { position: centre.position, departement: centre.departement };
 				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
-				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui n'a pas pu partir dès le geste qui l'a créé.
+				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
 				ctx.waitUntil(Promise.allSettled(taches).then(() => envoyerLot(base, clesVapid(env))));
 				return;
 			}
