@@ -55,14 +55,28 @@
 	--icone-outil-texte: #2f5560;
 	/* Mes bulles de message : une teinte chaude. */
 	--bulle-moi: #fbe1e4;
+	/* En-tête anthracite, menu de l’ordinateur, blocs de choix, bande de marquage. */
+	--entete-fond: #1d2733;
+	--entete-texte: #ffffff;
+	--entete-doux: #c3ccd5;
+	--entete-bouton: #2b3642;
+	--entete-focus: #7ab8ff;
+	--menu-fond: #ffffff;
+	--menu-actif: #efe9e1;
+	--segment-fond: #efe9e1;
+	--jaune: #f2c200;
+	--marquage: repeating-linear-gradient(-45deg, var(--jaune) 0 10px, var(--rouge) 10px 20px);
+	/* Les cartes : pas de bord, une ombre douce. */
+	--ombre-carte: 0 1px 2px rgb(29 39 51 / 6%), 0 6px 16px rgb(29 39 51 / 5%);
 
 	--police: 'Barlow', system-ui, sans-serif;
 	--police-titre: 'Barlow Condensed', 'Arial Narrow', sans-serif;
 	--rayon-petit: 6px;
-	--rayon-grand: 16px;
+	--rayon-grand: 14px;
+	--rayon-bouton: 10px;
 	--cible: 44px;
 	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
-	--hauteur-entete: 69px;
+	--hauteur-entete: 64px;
 
 	color-scheme: light;
 }
@@ -117,6 +131,16 @@
 	--icone-outil-fond: #1c2c31;
 	--icone-outil-texte: #a9cdd6;
 	--bulle-moi: #4a2228;
+	--entete-fond: #0b1016;
+	--entete-texte: #ffffff;
+	--entete-doux: #a7b2bd;
+	--entete-bouton: #1f2933;
+	--entete-focus: #7ab8ff;
+	--menu-fond: #0f141b;
+	--menu-actif: #1a222c;
+	--segment-fond: #252e39;
+	/* En sombre, la surface plus claire que le fond suffit. */
+	--ombre-carte: none;
 
 	color-scheme: dark;
 }
@@ -136,42 +160,52 @@
 		--rouge-survol: #9e101b;
 		--ok: #7cc95a;
 		--focus: #7ab8ff;
-	--statut-ok-fond: #1b3314;
-	--statut-ok-texte: #a9dd8f;
-	--statut-ok-trait: #3f6b30;
-	--statut-info-fond: #14283d;
-	--statut-info-texte: #a9d1ff;
-	--statut-info-trait: #2f5a85;
-	--statut-alerte-fond: #3a2a0a;
-	--statut-alerte-texte: #f2c879;
-	--statut-alerte-trait: #7a5a1f;
-	--statut-neutre-fond: #252e39;
-	--statut-neutre-texte: #a7b2bd;
-	--statut-neutre-trait: #3d4957;
-	--statut-danger-fond: #3a1a1d;
-	--statut-danger-texte: #ffb3b9;
-	--statut-danger-trait: #7a2f36;
-	--icone-etoile-fond: #3a1a1d;
-	--icone-etoile-texte: #ffb3b9;
-	--icone-casque-fond: #3a2a12;
-	--icone-casque-texte: #f5c58a;
-	--icone-camion-fond: #14283d;
-	--icone-camion-texte: #a9d1ff;
-	--icone-croix-fond: #1b3314;
-	--icone-croix-texte: #a9dd8f;
-	--icone-cle-fond: #262142;
-	--icone-cle-texte: #c9bff5;
-	--icone-ballon-fond: #10302e;
-	--icone-ballon-texte: #8fdcd3;
-	--icone-livre-fond: #33291a;
-	--icone-livre-texte: #e3c79a;
-	--icone-groupe-fond: #252e39;
-	--icone-groupe-texte: #c3ccd5;
-	--icone-coeur-fond: #3a1a2a;
-	--icone-coeur-texte: #f5a9cb;
-	--icone-outil-fond: #1c2c31;
-	--icone-outil-texte: #a9cdd6;
-	--bulle-moi: #4a2228;
+		--statut-ok-fond: #1b3314;
+		--statut-ok-texte: #a9dd8f;
+		--statut-ok-trait: #3f6b30;
+		--statut-info-fond: #14283d;
+		--statut-info-texte: #a9d1ff;
+		--statut-info-trait: #2f5a85;
+		--statut-alerte-fond: #3a2a0a;
+		--statut-alerte-texte: #f2c879;
+		--statut-alerte-trait: #7a5a1f;
+		--statut-neutre-fond: #252e39;
+		--statut-neutre-texte: #a7b2bd;
+		--statut-neutre-trait: #3d4957;
+		--statut-danger-fond: #3a1a1d;
+		--statut-danger-texte: #ffb3b9;
+		--statut-danger-trait: #7a2f36;
+		--icone-etoile-fond: #3a1a1d;
+		--icone-etoile-texte: #ffb3b9;
+		--icone-casque-fond: #3a2a12;
+		--icone-casque-texte: #f5c58a;
+		--icone-camion-fond: #14283d;
+		--icone-camion-texte: #a9d1ff;
+		--icone-croix-fond: #1b3314;
+		--icone-croix-texte: #a9dd8f;
+		--icone-cle-fond: #262142;
+		--icone-cle-texte: #c9bff5;
+		--icone-ballon-fond: #10302e;
+		--icone-ballon-texte: #8fdcd3;
+		--icone-livre-fond: #33291a;
+		--icone-livre-texte: #e3c79a;
+		--icone-groupe-fond: #252e39;
+		--icone-groupe-texte: #c3ccd5;
+		--icone-coeur-fond: #3a1a2a;
+		--icone-coeur-texte: #f5a9cb;
+		--icone-outil-fond: #1c2c31;
+		--icone-outil-texte: #a9cdd6;
+		--bulle-moi: #4a2228;
+		--entete-fond: #0b1016;
+		--entete-texte: #ffffff;
+		--entete-doux: #a7b2bd;
+		--entete-bouton: #1f2933;
+		--entete-focus: #7ab8ff;
+		--menu-fond: #0f141b;
+		--menu-actif: #1a222c;
+		--segment-fond: #252e39;
+		/* En sombre, la surface plus claire que le fond suffit. */
+		--ombre-carte: none;
 
 		color-scheme: dark;
 	}
@@ -235,7 +269,7 @@ body {
 	gap: 6px;
 	padding: 0 16px;
 	border: 1px solid var(--trait);
-	border-radius: 999px;
+	border-radius: var(--rayon-bouton);
 	background: var(--surface);
 	color: var(--encre);
 	font-weight: 600;
@@ -246,4 +280,50 @@ body {
 }
 .lien-secondaire:hover {
 	border-color: var(--encre);
+}
+/* Bloc de choix (vues, casquettes, réponses) : un fond, l’option choisie en encre pleine et en gras.
+   Les options sont des liens (aria-current) ou des boutons à bascule (aria-pressed, avec la coche). */
+.segments {
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+	margin: 0;
+	border-radius: 12px;
+	background: var(--segment-fond);
+	overflow-x: auto;
+	list-style: none;
+}
+.segments > li {
+	display: flex;
+	flex: 1 0 auto;
+}
+.segments :is(a, button) {
+	flex: 1 0 auto;
+	min-height: var(--cible);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--encre);
+	font: 600 0.9375rem var(--police);
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+}
+.segments :is(a, button):hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.segments :is([aria-current='page'], [aria-current='true'], [aria-pressed='true']) {
+	background: var(--encre);
+	color: var(--fond);
+	font-weight: 700;
+}
+.segments [aria-pressed='true']::before {
+	content: '✓';
+	content: '✓' / '';
 }
