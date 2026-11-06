@@ -5,6 +5,7 @@ import { affectationEquipe, engin, typeEngin, ajouterRessource, pourDemander, at
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
+import { envoyerApres } from '#lib/server/envoi-push.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
 import { actions as actionsNotifications, load as notifications } from './notifications/+page.server';
@@ -42,6 +43,7 @@ import { load as demandeRemplacementPage } from './remplacements/[id]/+page.serv
 import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
 import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
 import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
+import { load as eteDeLAnnee } from './planning/ete/+layout.server';
 import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
 import { load as mesVacancesPage } from './moi/vacances/+page.server';
 import { load as reglagesArmement } from './reglages/armement/+page.server';
@@ -75,13 +77,14 @@ async function centreDe150() {
 	await base.insert(attribution).values({ personneId: chef!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 	for (let i = 0; i < 150; i++) await base.insert(personne).values({ email: `agent${i}@exemple.fr`, prenom: `Agent${i}`, nom: 'Test', profilId: p!.id });
 	const [agent] = await base.select().from(personne).where(eq(personne.email, 'agent0@exemple.fr'));
-	// Ce qui part en arrière-plan (les notifications) compte dans la même requête du Worker.
+	// Ce qui part en arrière-plan (les notifications, puis leur envoi au téléphone, comme dans les hooks) compte dans la même requête du Worker.
 	const taches: Promise<unknown>[] = [];
 	const locals = { base, basePhotos: base.photos, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {}, enArrierePlan: (p: Promise<unknown>) => taches.push(p) };
 	const compter = async (etapes: () => Promise<unknown>) => {
 		const avant = base.requetes;
+		base.misEnFile = false;
 		await etapes();
-		await Promise.all(taches.splice(0));
+		await envoyerApres(base, null, taches.splice(0), () => base.misEnFile === true);
 		return base.requetes - avant;
 	};
 	return { base, locals, agent: agent!, compter };
@@ -185,6 +188,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			const n = await compter(async () => {
 				expect(await (actionsEte as any)[nom]({ locals, url, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
 				await (racine as any)({ locals });
+				await (eteDeLAnnee as any)({ locals, url });
 				await (pageEte as any)({ locals, url });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
@@ -215,7 +219,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const n = await compter(async () => {
 			expect(await (actionsEte as any).ajuster({ locals, url: ouverte, request: await requeteFormulaire([['debut', premiere!.debut], ['personne', String(agent.id)], ['present', 'oui']]) })).toMatchObject({ succes: expect.any(String) });
 			await (racine as any)({ locals });
-			expect((await (pageEte as any)({ locals, url: ouverte })).ete.detail).not.toBeNull();
+			await (eteDeLAnnee as any)({ locals, url: ouverte });
+			expect((await (pageEte as any)({ locals, url: ouverte })).detail).not.toBeNull();
 		});
 		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
@@ -249,7 +254,9 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const l of [locals, deLAgent]) {
 			const n = await compter(async () => {
 				await (racine as any)({ locals: l });
-				expect((await (accueil as any)({ locals: l, url: new URL('http://localhost/') })).astreinte).not.toBeNull();
+				const { astreinte } = await (accueil as any)({ locals: l, url: new URL('http://localhost/') });
+				// Le chef, sans équipe, n'a pas de carte entre deux semaines (le jour de la relève, en journée) : seul l'agent en a toujours une.
+				if (l === deLAgent) expect(astreinte).not.toBeNull();
 			});
 			expect(n, 'accueil').toBeLessThanOrEqual(BUDGET);
 		}

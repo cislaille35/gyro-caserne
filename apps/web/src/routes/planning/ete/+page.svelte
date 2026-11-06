@@ -148,7 +148,7 @@
 				</ul>
 			{/if}
 		{:else if data.etape === 'repartition'}
-			{@render retour(e.detail ? ['repartition'] : ['repartition', 'plage'])}
+			{@render retour(data.detail ? ['repartition'] : ['repartition', 'plage'])}
 			{#if !e.ete}
 				<p class="encadre">Ouvrez d’abord la saisie des vacances. <a href={vers('periode')}>Aller à la période</a></p>
 			{:else if e.sansRoulement}
@@ -257,7 +257,7 @@
 	</Panneau>
 {/if}
 
-{#snippet candidats(liste: NonNullable<typeof e.detail>['candidats'], debut: string)}
+{#snippet candidats(liste: NonNullable<typeof data.detail>['candidats'], debut: string)}
 	<ul class="liste" role="list">
 		{#each liste as x (x.id)}
 			<li>
@@ -274,8 +274,8 @@
 	</ul>
 {/snippet}
 
-{#if e.detail}
-	{@const d = e.detail}
+{#if data.detail}
+	{@const d = data.detail}
 	{@const utiles = d.candidats.filter((x) => x.utile)}
 	{@const autres = d.candidats.filter((x) => !x.utile)}
 	<Panneau titre={libellePlage(d)} fermer={ici()}>

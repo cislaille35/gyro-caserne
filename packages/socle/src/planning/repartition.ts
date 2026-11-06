@@ -130,14 +130,22 @@ const presentsDe = (lu: Lu, p: PlageEte, ecart: PlageLue | undefined) => [...lu.
 
 export type VuePlage = Periode & { presents: { id: number; prenom: string; nom: string; renfort: boolean }[]; arme: boolean; manque: Poste[] };
 
+const nomDe = (lu: Lu, id: number) => lu.agents.find((a) => a.id === id) ?? { id, prenom: '', nom: 'Agent parti' };
+
+// Une plage du tableau : ses présents (renforts après), FPT armé ou ce qui manque.
+function vueDe(lu: Lu, fpt: Postes, p: PlageEte): VuePlage & { semaine: string; equipeId: number } {
+	const ids = presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut));
+	const r = armement(fpt, ids.map((id) => ({ id, postes: lu.postes(id, p.debut.slice(0, 10)) })));
+	const presents = ids.map((id) => ({ ...pick(nomDe(lu, id)), renfort: !lu.base(p).includes(id) })).sort((a, b) => Number(a.renfort) - Number(b.renfort) || a.nom.localeCompare(b.nom, 'fr'));
+	return { debut: p.debut, fin: p.fin, semaine: p.semaine, equipeId: p.equipeId, presents, arme: r.arme, manque: r.manque };
+}
+
 // L'écran du chef : la période, qui a répondu, le tableau de l'été (s'il est proposé), les plages impossibles et les conflits.
-// `plage` : celle ouverte, avec les agents qu'on peut y ajouter.
-export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage, plage: string | null = null) {
+export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage) {
 	exigerAnnee(annee);
 	const aujourdhui = await exigerGestion(base, acteur, maintenant);
 	const [lu, relance] = await Promise.all([lireEte(base, annee, aujourdhui, reglage), requeteRelance(base, annee, aujourdhui)]);
 	const fpt = enginFpt(lu.fpt);
-	const nom = (id: number) => lu.agents.find((a) => a.id === id) ?? { id, prenom: '', nom: 'Agent parti' };
 	const date = lu.e && lu.e.debut > aujourdhui ? lu.e.debut : aujourdhui;
 	const concernes = agentsDeLete(lu.agents, lu.affectations, date);
 	const reponses = concernes.map((a) => {
@@ -145,15 +153,7 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 		return { id: a.id, prenom: a.prenom, nom: a.nom, equipeId: a.equipeId, reponse: (r ? (r.toutEte === 1 ? 'tout' : 'vacances') : null) as Reponse, periodes: lu.vacances.filter((v) => v.personneId === a.id).map(({ debut, fin }) => ({ debut, fin })) };
 	});
 	const proposee = lu.plages.length > 0;
-	const vues: (VuePlage & { semaine: string; equipeId: number })[] = proposee
-		? lu.plagesEte.map((p) => {
-				const ecart = lu.plages.find((x) => x.debut === p.debut);
-				const ids = presentsDe(lu, p, ecart);
-				const r = armement(fpt, ids.map((id) => ({ id, postes: lu.postes(id, p.debut.slice(0, 10)) })));
-				const presents = ids.map((id) => ({ ...pick(nom(id)), renfort: !lu.base(p).includes(id) })).sort((a, b) => Number(a.renfort) - Number(b.renfort) || a.nom.localeCompare(b.nom, 'fr'));
-				return { debut: p.debut, fin: p.fin, semaine: p.semaine, equipeId: p.equipeId, presents, arme: r.arme, manque: r.manque };
-			})
-		: [];
+	const vues = proposee ? lu.plagesEte.map((p) => vueDe(lu, fpt, p)) : [];
 	// Les remplacements conclus que la répartition contredit.
 	const conflits: string[] = [];
 	if (proposee) {
@@ -168,28 +168,6 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 	}
 	// Un agent en vacances qui se retrouve présent (équipe changée, vacances données après la proposition).
 	for (const v of vues) for (const x of v.presents) if (enVacances(lu.vacances, x.id, v)) conflits.push(`${texteTranche(v)} : ${x.prenom} ${x.nom} est en vacances, mais présent`);
-	const ouverte = plage && proposee ? lu.plagesEte.find((p) => p.debut === plage) : undefined;
-	const vue = ouverte ? vues.find((v) => v.debut === ouverte.debut)! : undefined;
-	// Le panneau d'une plage : le poste de chaque présent ; pour ajouter, ceux qui comblent un poste manquant d'abord.
-	const detail =
-		ouverte && vue
-			? (() => {
-					const date = ouverte.debut.slice(0, 10);
-					// Dans l'ordre des ids : le poste affiché ne change pas d'un chargement à l'autre.
-					const tenus = postesTenus(fpt, [...vue.presents].sort((a, b) => a.id - b.id).map((x) => ({ id: x.id, postes: lu.postes(x.id, date) })));
-					return {
-						...vue,
-						presents: vue.presents.map((x) => ({ ...x, poste: tenus.get(x.id) ?? null })),
-						candidats: lu.agents
-							.filter((a) => !vue.presents.some((x) => x.id === a.id) && a.statut === 'operationnel')
-							.map((a) => {
-								const siens = lu.postes(a.id, date);
-								return { id: a.id, prenom: a.prenom, nom: a.nom, equipeId: equipeLe(lu.affectationsDe(a.id), ouverte.semaine), vacances: enVacances(lu.vacances, a.id, ouverte), utile: vue.manque.some((m) => siens.has(m)), postes: [...siens].filter((x) => x !== 'agent') };
-							})
-							.sort((a, b) => Number(b.utile) - Number(a.utile) || Number(a.vacances) - Number(b.vacances) || b.postes.length - a.postes.length || a.nom.localeCompare(b.nom, 'fr'))
-					};
-				})()
-			: null;
 	return {
 		annee,
 		ete: lu.e,
@@ -202,8 +180,33 @@ export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, ma
 		proposee,
 		semaines: lu.semaines.map((s) => ({ debut: s.debut, equipeId: s.equipeId, plages: vues.filter((v) => v.semaine === s.debut).map(({ semaine: _s, equipeId: _e, ...v }) => v) })),
 		impossibles: vues.filter((v) => !v.arme).map((v) => texteManque(v, v.manque)),
-		conflits,
-		detail
+		conflits
+	};
+}
+
+// Le panneau d'une plage (?plage=), calculé seul : sans le reste de l'été, que la page garde. Le poste de chaque présent ;
+// pour ajouter, ceux qui comblent un poste manquant d'abord. Nul sans proposition ou si la plage n'existe pas.
+export async function plageAPreparer(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage, plage: string) {
+	exigerAnnee(annee);
+	const aujourdhui = await exigerGestion(base, acteur, maintenant);
+	const lu = await lireEte(base, annee, aujourdhui, reglage);
+	const ouverte = lu.plages.length > 0 ? lu.plagesEte.find((p) => p.debut === plage) : undefined;
+	if (!ouverte) return null;
+	const fpt = enginFpt(lu.fpt);
+	const { semaine: _s, equipeId: _e, ...vue } = vueDe(lu, fpt, ouverte);
+	const date = ouverte.debut.slice(0, 10);
+	// Dans l'ordre des ids : le poste affiché ne change pas d'un chargement à l'autre.
+	const tenus = postesTenus(fpt, [...vue.presents].sort((a, b) => a.id - b.id).map((x) => ({ id: x.id, postes: lu.postes(x.id, date) })));
+	return {
+		...vue,
+		presents: vue.presents.map((x) => ({ ...x, poste: tenus.get(x.id) ?? null })),
+		candidats: lu.agents
+			.filter((a) => !vue.presents.some((x) => x.id === a.id) && a.statut === 'operationnel')
+			.map((a) => {
+				const siens = lu.postes(a.id, date);
+				return { id: a.id, prenom: a.prenom, nom: a.nom, equipeId: equipeLe(lu.affectationsDe(a.id), ouverte.semaine), vacances: enVacances(lu.vacances, a.id, ouverte), utile: vue.manque.some((m) => siens.has(m)), postes: [...siens].filter((x) => x !== 'agent') };
+			})
+			.sort((a, b) => Number(b.utile) - Number(a.utile) || Number(a.vacances) - Number(b.vacances) || b.postes.length - a.postes.length || a.nom.localeCompare(b.nom, 'fr'))
 	};
 }
 

@@ -20,7 +20,6 @@ const ete = (autres: Record<string, unknown> = {}) => ({
 	impossibles: ['24 h du samedi 26 juin : pas de CA tout engins disponible'],
 	conflits: [],
 	relanceeAujourdhui: false,
-	detail: null,
 	...autres
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,7 +94,7 @@ describe('Été : le parcours du chef', () => {
 				{ id: 3, prenom: 'Gina', nom: 'Test', equipeId: 2, vacances: true, utile: false, postes: [] }
 			]
 		};
-		const html = page(ete({ detail }));
+		const html = page(ete(), { detail });
 		expect(html).toContain('Il manque : 1 CE');
 		expect(html.indexOf('Il manque : 1 CE')).toBeLessThan(html.indexOf('Cora Test'));
 		expect(html).toMatch(/CA tout engins[\s\S]*?Alice Test<span class="etiquette[^"]*">renfort<\/span>[\s\S]*?Conducteur[\s\S]*?Cora Test/);
