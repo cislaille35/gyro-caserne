@@ -506,7 +506,7 @@ async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) =
 test.describe('accueil au téléphone', () => {
 	test.use({ storageState: ETAT_CONNECTE });
 
-	test('titre long : cible de 44 px, sans recouvrement ; réponses sur une ligne', async ({ browser, page }, info) => {
+	test('titre long : la ligne entière en cible, sans recouvrement ; réponses sur une ligne', async ({ browser, page }, info) => {
 		test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
 		const gestion = await pageSuper(browser);
 		const marque = nouvelleMarque();
@@ -525,7 +525,9 @@ test.describe('accueil au téléphone', () => {
 		});
 		expect(texte.lignes).toBeGreaterThan(1);
 		expect(texte.bas).toBeLessThanOrEqual((await rangee.locator('.sous').boundingBox())!.y);
-		expect((await titre.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+		// La cible est la ligne entière : le lien du titre s'étend à toute la ligne.
+		expect(await titre.evaluate((a) => getComputedStyle(a, '::after').position)).toBe('absolute');
+		expect((await rangee.locator('.rangee').boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
 		const unSeulRang = async () => {
 			const hauts = await rangee.getByRole('group').getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));

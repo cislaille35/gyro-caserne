@@ -427,14 +427,17 @@ describe('EnTetePage', () => {
 });
 
 describe('Rangee', () => {
-	it('un lien : titre, sous-ligne, valeur et chevron décoratif', () => {
-		const page = net(Rangee, { href: '/agents', titre: 'Agents', sous: 'L’effectif du centre', valeur: '14 agents', icone: 'casque' });
+	it('un lien : toute la ligne, titre, sous-ligne, valeur et chevron décoratif', () => {
+		const page = net(Rangee, { href: '/agents', titre: 'Agents', sous: 'L’effectif du centre', valeur: '14 agents' });
 		expect(page).toMatch(/^<a[^>]*class="rangee[^"]*"[^>]*href="\/agents"/);
 		expect(page).toContain('Agents');
 		expect(page).toContain('L’effectif du centre');
 		expect(page).toContain('14 agents');
-		expect(page).toContain('var(--icone-casque-fond)');
 		expect(page).toMatch(/class="chevron[^"]*"[^>]*aria-hidden="true"/);
+	});
+	it('une tuile seulement sur demande : elle porte un sens (type, rôle)', () => {
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain('var(--icone-casque-fond)');
+		expect(net(Rangee, { href: '/agents', titre: 'Agents' })).not.toContain('tuile');
 	});
 	it('sans lien : ni chevron ni lien', () => {
 		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt' });
@@ -442,29 +445,29 @@ describe('Rangee', () => {
 		expect(page).not.toContain('<a');
 		expect(page).not.toContain('chevron');
 	});
-	it('avec des gestes dessous : seul le titre est un lien', () => {
+	it('avec des gestes dessous : le titre est le lien, étendu à toute la ligne ; les gestes passent par-dessus', () => {
 		const page = net(Rangee, { href: '/echanges/centre/2', titre: 'Manœuvre', children: contenu });
-		expect(page).toMatch(/^<div[^>]*class="rangee/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/2"[^>]*>Manœuvre<\/a>/);
-		expect(page).toContain('<span>Contenu</span>');
+		expect(page).toMatch(/^<div[^>]*class="rangee[^"]*\bgestes\b/);
+		expect(page).toMatch(/<a class="titre etire[^"]*"[^>]*href="\/echanges\/centre\/2"[^>]*>Manœuvre<\/a>/);
+		expect(page).toMatch(/<div class="inclus[^"]*"><span>Contenu<\/span><\/div>/);
+		expect(page).not.toContain('chevron');
 	});
-	it('alerte : une icône en plus de la couleur', () => {
+	it('alerte : le signe d’alerte en tête, jamais la couleur seule', () => {
 		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef de garde', alerte: true });
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});
-	it('alerte avec une icône : le signe d’alerte reste, jamais la couleur seule', () => {
-		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
-		expect(page).toContain('var(--icone-camion-fond)');
-		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
-		expect(net(Rangee, { titre: 'Photos', icone: 'camion' })).not.toContain('class="signe');
+	it('alerte avec une tête : le signe d’alerte passe à droite', () => {
+		const page = net(Rangee, { href: '/remplacements/2', titre: 'Remplacement', alerte: true, tete: contenu });
+		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
+		expect(net(Rangee, { titre: 'Photos', tete: contenu })).not.toContain('class="signe');
 	});
 	it('courant : la page affichée, dite par aria-current', () => {
 		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', courant: true })).toMatch(/^<a[^>]*aria-current="page"/);
 		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent' })).not.toContain('aria-current');
 	});
 	it('discret : ce qui n’existe pas encore, sans lien', () => {
-		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt', icone: 'camion', discret: true });
+		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt', discret: true });
 		expect(page).toMatch(/^<div[^>]*class="rangee[^"]*\bdiscret\b/);
 		expect(page).not.toContain('<a');
 	});
@@ -475,22 +478,18 @@ describe('Rangee', () => {
 });
 
 describe('ListeRangees', () => {
-	it('une liste explicite, sans rubrique', () => {
+	it('une seule carte pour le groupe : une liste explicite, sans rubrique', () => {
 		const page = net(ListeRangees, { children: contenu });
-		expect(page).toMatch(/^<ul[^>]*role="list"/);
+		expect(page).toMatch(/^<ul role="list" class="lignes[^"]*">/);
 		expect(page).not.toContain('<h2');
 	});
-	it('rubrique h2 reliée à sa section, avec son compteur', () => {
+	it('le titre du groupe au-dessus de la carte, relié à sa section, avec son compteur', () => {
 		const page = net(ListeRangees, { titre: 'À décider', compte: 5, children: contenu });
 		const ref = page.match(/<section[^>]*aria-labelledby="([^"]+)"/)![1];
-		expect(page).toMatch(new RegExp(`<h2[^>]*id="${ref}"[^>]*class="rubrique[^"]*"[^>]*>À décider <span class="compte[^"]*">5</span></h2>`));
+		expect(page).toMatch(new RegExp(`<h2[^>]*id="${ref}"[^>]*class="titre-groupe[^"]*"[^>]*>À décider <span class="compte[^"]*">5</span></h2>\\s*<ul role="list" class="lignes`));
 	});
 	it('ancre : le titre reçoit cet id et peut prendre le focus', () => {
 		expect(net(ListeRangees, { titre: 'À ne pas manquer', ancre: 'a-ne-pas-manquer', children: contenu })).toMatch(/<h2[^>]*id="a-ne-pas-manquer"[^>]*tabindex="-1"/);
-	});
-	it('un pied sous la liste', () => {
-		const page = net(ListeRangees, { titre: 'À décider', children: contenu, pied: createRawSnippet(() => ({ render: () => '<a href="#">Voir tout</a>' })) });
-		expect(page.indexOf('</ul>')).toBeLessThan(page.indexOf('Voir tout'));
 	});
 });
 

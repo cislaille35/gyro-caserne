@@ -43,8 +43,8 @@
 		<div class="principal">
 			{#if data.releve && presents.length}
 				<ListeRangees titre="Prise de garde et anomalies">
-					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" icone="livre" alerte={faites < presents.length} /></li>
-					<li><Rangee href="/engins/anomalies" titre="Anomalies" sous={ouvertes ? `${pluriel(ouvertes, 'ouverte', 'ouvertes')}, à suivre jusqu’à la réparation` : 'Aucune ouverte'} icone="outil" alerte={ouvertes > 0} /></li>
+					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" alerte={faites < presents.length} /></li>
+					<li><Rangee href="/engins/anomalies" titre="Anomalies" sous={ouvertes ? `${pluriel(ouvertes, 'ouverte', 'ouvertes')}, à suivre jusqu’à la réparation` : 'Aucune ouverte'} alerte={ouvertes > 0} /></li>
 				</ListeRangees>
 			{/if}
 
@@ -54,7 +54,7 @@
 				<ListeRangees titre="Au centre" compte={presents.length}>
 					{#each presents as e (e.id)}
 						<li>
-							<Rangee href="/engins/{e.id}" titre={e.nom} sous={sous(e)} icone="camion">
+							<Rangee href="/engins/{e.id}" titre={e.nom} sous={sous(e)}>
 								{#snippet droite()}<Pastille ton={affiche(e).ton}>{affiche(e).texte}</Pastille>{/snippet}
 							</Rangee>
 						</li>
@@ -66,7 +66,7 @@
 				<Groupe titre="Partis" resume="{pluriel(partis.length, 'engin sorti', 'engins sortis')} de la liste ; leur historique reste">
 					<ul class="liste" role="list">
 						{#each partis as e (e.id)}
-							<li><Rangee href="/engins/{e.id}" titre={e.nom} sous="{e.type} · {situationDe(e)}" icone="camion" discret /></li>
+							<li><Rangee href="/engins/{e.id}" titre={e.nom} sous="{e.type} · {situationDe(e)}" discret /></li>
 						{/each}
 					</ul>
 				</Groupe>
@@ -75,8 +75,8 @@
 
 		{#if data.gere}
 			<ListeRangees titre="Gérer">
-				<li><Rangee href="/engins/fiches" titre="Fiches de prise de garde" sous="Ce que l’on vérifie, zone par zone, pour chaque type" icone="livre" /></li>
-				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Toutes les fiches dans Excel ou LibreOffice" icone="outil" /></li>
+				<li><Rangee href="/engins/fiches" titre="Fiches de prise de garde" sous="Ce que l’on vérifie, zone par zone, pour chaque type" /></li>
+				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Toutes les fiches dans Excel ou LibreOffice" /></li>
 			</ListeRangees>
 		{/if}
 	</div>
@@ -90,10 +90,14 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.liste > li + li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	@media (min-width: 1024px) {
 		.colonnes {

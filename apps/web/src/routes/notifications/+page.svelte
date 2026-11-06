@@ -81,10 +81,10 @@
 {#if data.aValider > 0 || (data.remplacementsAValider ?? 0) > 0}
 	<ListeRangees titre="À trancher">
 		{#if (data.remplacementsAValider ?? 0) > 0}
-			<li><Rangee href="/remplacements?onglet=a-valider" titre="{pluriel(data.remplacementsAValider ?? 0, 'remplacement')} à valider" sous="Une aptitude contrôlée manque au remplaçant : à vous de trancher." icone="casque" alerte /></li>
+			<li><Rangee href="/remplacements?onglet=a-valider" titre="{pluriel(data.remplacementsAValider ?? 0, 'remplacement')} à valider" sous="Une aptitude contrôlée manque au remplaçant : à vous de trancher." alerte /></li>
 		{/if}
 		{#if data.aValider > 0}
-			<li><Rangee href="/reservations/a-valider" titre="{pluriel(data.aValider, 'demande')} de réservation à valider" sous="Accepter ou refuser, d’un geste." icone="cle" alerte /></li>
+			<li><Rangee href="/reservations/a-valider" titre="{pluriel(data.aValider, 'demande')} de réservation à valider" sous="Accepter ou refuser, d’un geste." alerte /></li>
 		{/if}
 	</ListeRangees>
 {/if}
@@ -137,8 +137,8 @@
 
 {#each groupes as g (g.titre)}
 	<section class="groupe" aria-labelledby="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}">
-		<h2 id="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}" class="rubrique">{g.titre}</h2>
-		<ul class="liste" role="list">
+		<h2 id="t-{g.titre === 'Plus tôt' ? 'avant' : 'jour'}" class="titre-groupe">{g.titre}</h2>
+		<ul class="lignes" role="list">
 			{#each g.lignes as l (`${l.type}-${l.id}`)}
 				<li>
 					{#if l.type === 'reservation'}
@@ -233,22 +233,21 @@
 		flex-direction: column;
 		gap: 8px;
 	}
+	/* Une ligne de la carte du groupe : toute la ligne est le lien. */
 	.ligne {
 		min-height: 64px;
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 10px 12px;
-		border: 1px solid transparent;
-		box-shadow: var(--ombre-carte);
-		border-radius: var(--rayon-grand);
-		background: var(--surface);
+		padding: 12px 14px;
 		color: var(--encre);
 		text-decoration: none;
 	}
 	.ligne:hover {
-		border-color: var(--trait);
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 8%, transparent);
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	}
+	.ligne:focus-visible {
+		outline-offset: -3px;
 	}
 	.ligne:hover .quoi {
 		text-decoration: underline;

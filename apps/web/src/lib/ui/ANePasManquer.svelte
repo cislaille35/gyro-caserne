@@ -45,7 +45,9 @@
 {/snippet}
 
 {#if rien}
-	<Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." />
+	<ListeRangees>
+		<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." /></li>
+	</ListeRangees>
 {:else}
 	<ListeRangees titre="À ne pas manquer" ancre="a-ne-pas-manquer">
 		{#each a.remplacements ?? [] as d (d.id)}

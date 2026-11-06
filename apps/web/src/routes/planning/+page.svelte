@@ -185,7 +185,7 @@
 							</li>
 						{/if}
 						{#if fete}
-							<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}{fete.date.slice(0, 4) === m.slice(0, 4) ? '' : ` ${fete.date.slice(0, 4)}`}." icone="etoile" /></li>
+							<li><Rangee titre="Garde {FETES[fete.fete]}" sous="Votre équipe la tient, le {jourLong(fete.date)}{fete.date.slice(0, 4) === m.slice(0, 4) ? '' : ` ${fete.date.slice(0, 4)}`}." /></li>
 						{/if}
 						{#each demandes as d (d.v.id)}
 							<li>

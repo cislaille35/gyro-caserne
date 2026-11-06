@@ -33,7 +33,7 @@
 
 {#snippet ligne(a: AnomalieListee, close: boolean)}
 	<li>
-		<Rangee href="/engins/anomalies/{a.id}" titre={close ? `${a.engin} · ${a.libelle}` : a.libelle} sous={close ? `Close le ${dateCourte(a.closeLe ?? '')}` : sous(a)} icone="outil" discret={close}>
+		<Rangee href="/engins/anomalies/{a.id}" titre={close ? `${a.engin} · ${a.libelle}` : a.libelle} sous={close ? `Close le ${dateCourte(a.closeLe ?? '')}` : sous(a)} discret={close}>
 			{#snippet droite()}
 				<span class="pastilles">
 					{#if a.bloquante && !close}<Pastille ton="danger">Engin indisponible</Pastille>{/if}

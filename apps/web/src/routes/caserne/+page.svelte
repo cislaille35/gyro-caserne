@@ -4,19 +4,18 @@
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
-	import type { IconeRole } from '#lib/ui/icones-roles.ts';
 
 	let { data } = $props();
 
-	const liens: { href: string; titre: string; texte: string; icone: IconeRole; valeur?: string }[] = $derived([
-		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
-		...(data.engins === null ? [] : [{ href: '/engins', titre: 'Engins', texte: 'Leur état et leur fiche de prise de garde', icone: 'camion' as const, valeur: data.engins === undefined ? undefined : pluriel(data.engins, 'engin') }]),
-		...(data.anomalies === null || data.anomalies === undefined ? [] : [{ href: '/engins/anomalies', titre: 'Anomalies', texte: 'Ce qui est signalé sur les engins, jusqu’à la réparation', icone: 'outil' as const, valeur: data.anomalies ? pluriel(data.anomalies, 'ouverte', 'ouvertes') : 'Aucune ouverte' }]),
-		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale', icone: 'cle' as const },
+	const liens: { href: string; titre: string; texte: string; valeur?: string }[] = $derived([
+		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
+		...(data.engins === null ? [] : [{ href: '/engins', titre: 'Engins', texte: 'Leur état et leur fiche de prise de garde', valeur: data.engins === undefined ? undefined : pluriel(data.engins, 'engin') }]),
+		...(data.anomalies === null || data.anomalies === undefined ? [] : [{ href: '/engins/anomalies', titre: 'Anomalies', texte: 'Ce qui est signalé sur les engins, jusqu’à la réparation', valeur: data.anomalies ? pluriel(data.anomalies, 'ouverte', 'ouvertes') : 'Aucune ouverte' }]),
+		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale' },
 		...(data.peutNominations
-			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const, valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
+			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
 			: []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les comités et les responsabilités du centre', icone: 'outil' as const }] : [])
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les comités et les responsabilités du centre' }] : [])
 	]);
 </script>
 
@@ -29,12 +28,12 @@
 	<div class="colonnes">
 		<ListeRangees titre="Organisation">
 			{#each liens as l (l.href)}
-				<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} valeur={l.valeur} /></li>
+				<li><Rangee href={l.href} titre={l.titre} sous={l.texte} valeur={l.valeur} /></li>
 			{/each}
 		</ListeRangees>
 		<ListeRangees titre="Bientôt">
 			<li>
-				<Rangee titre="Comités" sous="Les pages des comités arrivent bientôt." icone="groupe" discret>
+				<Rangee titre="Comités" sous="Les pages des comités arrivent bientôt." discret>
 					{#snippet droite()}<Pastille ton="neutre">Bientôt</Pastille>{/snippet}
 				</Rangee>
 			</li>

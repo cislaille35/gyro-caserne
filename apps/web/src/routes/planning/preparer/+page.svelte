@@ -69,10 +69,10 @@
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
-	<ul class="raccourcis" role="list">
-		<li><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></li>
-		<li><a href="/planning/ete?annee={p.annee}">Été {p.annee}</a> <span class="doux">: vacances des agents et répartition qui arme le FPT.</span></li>
-	</ul>
+	<ListeRangees>
+		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
+		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
+	</ListeRangees>
 
 	{#if peutProposer}
 		<div class="proposer">
@@ -367,18 +367,6 @@
 <Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
-	.raccourcis {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.raccourcis a {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		font-weight: 700;
-		color: var(--texte);
-	}
 	.page {
 		display: flex;
 		flex-direction: column;
