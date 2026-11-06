@@ -20,6 +20,9 @@ export function quandRelatif(iso: string, maintenant: string): string {
 	return `${nomDuJour(iso)} ${heure(iso)}`;
 }
 
+// Le début et la fin de la plaque d’astreinte : « ven. 13 nov. 18 h ».
+export const bornesAstreinte = (a: { debut: string; fin: string }) => ({ debut: `${court(a.debut)} ${heure(a.debut)}`, fin: `${court(a.fin)} ${heure(a.fin)}` });
+
 export const duAuCourt = (debut: string, fin: string) => `du ${court(debut)} ${heure(debut)} au ${court(fin)} ${heure(fin)}`;
 
 // Ce que dit la carte astreinte, à l'Accueil comme au Planning.

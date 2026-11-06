@@ -56,7 +56,7 @@
 	<title>Accueil · Gyro Caserne</title>
 </svelte:head>
 
-{#snippet gyro()}<GyroAccueil taille={72} {ambiance} />{/snippet}
+{#snippet gyroAccueil()}<GyroAccueil taille={72} {ambiance} />{/snippet}
 
 {#snippet meteo()}
 	{#if data.meteo.meteo}
@@ -106,7 +106,7 @@
 	<div class="ciel">
 		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={data.meteo.meteo?.nuit} />{/if}
 		<div class="devant">
-			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
+			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyroAccueil : undefined} />
 		</div>
 	</div>
 

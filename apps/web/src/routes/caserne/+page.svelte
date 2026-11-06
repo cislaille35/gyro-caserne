@@ -25,7 +25,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Caserne" phrase="Le centre, ses agents et son organisation." gyro />
+	<EnTetePage titre="Caserne" phrase="Le centre, ses agents et son organisation." />
 	<div class="colonnes">
 		<ListeRangees titre="Organisation">
 			{#each liens as l (l.href)}

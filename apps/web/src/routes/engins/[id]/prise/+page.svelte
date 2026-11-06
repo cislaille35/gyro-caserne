@@ -145,7 +145,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Prise de garde · {e.nom}" phrase="{texteReleve(data.releve)} · fiche {e.type}" gyro tenue="garde" retour={{ href: '/engins/prise', libelle: 'Prise de garde' }} />
+	<EnTetePage titre="Prise de garde · {e.nom}" phrase="{texteReleve(data.releve)} · fiche {e.type}" retour={{ href: '/engins/prise', libelle: 'Prise de garde' }} />
 
 	<div role="status" class="masque">{form?.succes ?? ''}</div>
 

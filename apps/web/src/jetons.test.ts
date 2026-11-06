@@ -58,27 +58,22 @@ describe('jetons', () => {
 		expect(contraste(t.focus, t.fond), 'focus/fond').toBeGreaterThanOrEqual(3);
 	});
 
-	// Couleurs d'équipe : celles du centre d'exemple, et les extrêmes qu'un autre centre pourrait choisir.
-	const canal = (hex: string, i: number) => parseInt(hex.slice(1 + 2 * i, 3 + 2 * i), 16);
-	const melange = (couleur: string, part: number, fond: string) =>
-		`#${[0, 1, 2]
-			.map((i) =>
-				Math.round(canal(couleur, i) * part + canal(fond, i) * (1 - part))
-					.toString(16)
-					.padStart(2, '0')
-			)
-			.join('')}`;
-
-	it.each(['clair', 'sombre'])('%s : la vue Mois reste lisible sur toutes les bandes, « ma semaine » comprise', (nom) => {
+	it.each(['clair', 'sombre'])('%s : la vue Mois reste lisible, « ma semaine » comprise', (nom) => {
 		const t = { ...themes.clair, ...themes[nom] };
 		const vue = readFileSync(new URL('./lib/planning/VueMois.svelte', import.meta.url), 'utf8');
-		// Le numéro de semaine et les jours hors du mois sur « ma semaine » : à l'encre, seule couleur sûre sur toute bande.
-		expect(vue).toMatch(/\.numero \{[^}]*color: var\(--encre\)/);
-		expect(vue).toMatch(/\.mienne \.hors a \{[^}]*color: var\(--encre\)/);
+		// Les autres semaines : le nom de l'équipe à l'encre sur la carte, à côté d'un carré de couleur décoratif.
+		expect(vue).toMatch(/\.equipe \{[^}]*color: var\(--encre\)/);
+		expect(vue).toMatch(/<span class="carre" aria-hidden="true"><\/span>\s*<span class="equipe">\{e\.nom\}<\/span>/);
+		expect(contraste(t.encre, t.surface)).toBeGreaterThanOrEqual(4.5);
+		// « Ma semaine » : l'à-plat de l'équipe, tout en encre choisie pour elle (au moins 4,5:1, voir encreSur).
+		expect(vue).toMatch(/style:--sur-equipe=\{mienne \? encreSur\(e\.couleur\) : undefined\}/);
+		expect(vue).toMatch(/\.mienne th,\s*\.mienne td \{[^}]*background: var\(--equipe\)/);
+		expect(vue).toMatch(/\.mienne \.equipe,\s*\.mienne \.numero,\s*\.mienne \.marque,\s*\.mienne td a,\s*\.mienne \.signes span \{[^}]*color: var\(--sur-equipe\)/);
+		expect(vue).toMatch(/\.mienne \{[^}]*--focus: var\(--sur-equipe\)/);
 		// Sur « ma semaine », seule la taille distingue alors les jours hors du mois : jamais la couleur seule.
 		expect(vue).toMatch(/\.hors \.jour \{[^}]*font-size: 0\.8125rem/);
-		for (const equipe of ['#d4a017', '#c2185b', '#1565c0', '#2e7d32', '#8a949e', '#ffffff', '#000000'])
-			for (const part of [0.1, 0.22, 0.3]) expect(contraste(t.encre, melange(equipe, part, t.surface)), `${equipe} à ${part}`).toBeGreaterThanOrEqual(4.5);
+		for (const equipe of ['#f2c200', '#e5699a', '#3d7fd6', '#3fa34d', '#d4a017', '#c2185b', '#1565c0', '#2e7d32', '#8a949e'])
+			expect(contraste(encreSur(equipe), equipe), equipe).toBeGreaterThanOrEqual(4.5);
 	});
 
 	it('le socle de Gyro : inchangé en clair, visible sur le fond sombre', () => {

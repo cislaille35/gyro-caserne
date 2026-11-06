@@ -8,17 +8,24 @@ Dans `apps/web/src/app.css`, en variables CSS. On ne met jamais une couleur en d
 
 | Jeton | Rôle |
 |---|---|
-| `--fond`, `--surface`, `--trait`, `--trait-doux` | Fond de page (crème en clair), cartes, bordures, bord des cartes et groupes |
+| `--fond`, `--surface`, `--trait`, `--trait-doux` | Fond de page (crème en clair), cartes, bordures, séparateurs |
+| `--ombre-carte` | L’ombre douce des cartes en clair ; invisible en sombre, où la surface plus claire que le fond suffit. Une carte n’a plus de bord fin : `border: 1px solid transparent` (le bord reste visible en mode contrasté) et `box-shadow: var(--ombre-carte)` |
+| `--entete-fond`, `--entete-texte`, `--entete-doux`, `--entete-bouton`, `--entete-focus` | L’en-tête anthracite (plus foncé que le fond en sombre), le nom du centre, la cloche et « Moi », le repère du clavier sur l’en-tête |
+| `--menu-fond`, `--menu-actif` | Le menu de l’ordinateur et son entrée active |
+| `--segment-fond` | Le fond des blocs de choix (classe `.segments`) |
+| `--jaune`, `--marquage` | La bande de marquage jaune et rouge sous l’en-tête |
 | `--encre`, `--doux` | Texte, texte secondaire |
 | `--rouge`, `--sur-rouge`, `--accent` | Rouge pompier (boutons), texte posé dessus, repère de l'entrée active |
 | `--focus` | Repère du clavier (contour de 3 px) |
 | `--statut-<ok\|info\|alerte\|danger\|neutre>-<fond\|texte\|trait>` | Badges de statut, pastilles |
 | `--icone-<icône>-<fond\|texte>` | Tuile de chaque icône de rôle |
 | `--police`, `--police-titre` | Barlow, Barlow Condensed (servies par l'appli) |
-| `--rayon-petit`, `--rayon-grand` (16 px, cartes), `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
+| `--rayon-petit`, `--rayon-grand` (14 px, cartes), `--rayon-bouton` (10 px), `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
 
 Chaque jeton a sa valeur claire et sombre ; les contrastes AA sont vérifiés par `src/jetons.test.ts`.
-Les couleurs d'équipe viennent du centre (`centres/<id>/centre.ts`), jamais du code.
+Les couleurs d'équipe viennent du centre (`centres/<id>/centre.ts`), jamais du code. Un texte posé sur l'une d'elles prend `encreSur` (`src/lib/couleurs.ts`) : l'anthracite ou le blanc, le plus lisible, et le noir pur quand aucun des deux n'atteint 4,5:1 (le bleu de Laillé) ; vérifié pour toute couleur dans `jetons.test.ts`.
+
+Formes (`src/formes.test.ts`) : boutons et liens d'action en rectangles arrondis (`--rayon-bouton`), cartes arrondies (`--rayon-grand`) ; la pilule (`999px`) est réservée aux états (pastilles, compteurs, interrupteurs, marques écrites), liste fermée dans le test.
 
 ## Réglage d'affichage
 
@@ -44,20 +51,20 @@ La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le
 
 ## Coquille
 
-`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête avec la cloche « Notifications » et « Moi » (le visage de l'agent, `Visage`, nommé « Moi » ; l'icône de profil pour le super administrateur), navigation en bas sur téléphone et menu latéral à partir de 1024 px, `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Sous 1024 px, une conversation ouverte (`dansUneConversation`, d'après la route, sauf page d'erreur) masque en-tête et navigation : son propre en-tête ramène à la liste.
+`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête anthracite (« Gyro Caserne » en Barlow Condensed, le nom du centre en gris clair) avec la cloche « Notifications » et « Moi » (le visage de l'agent, `Visage`, nommé « Moi » ; l'icône de profil pour le super administrateur) en carrés arrondis de 44 px, puis la bande de marquage (4 px, `--marquage`, `aria-hidden`, immobile), navigation en bas sur téléphone (onglet actif : gras et barre rouge en haut) et, à partir de 1024 px, l'en-tête et sa bande sur toute la largeur, le menu dessous à gauche (`--menu-fond`, entrée active sur `--menu-actif` et en gras), `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Sous 1024 px, une conversation ouverte (`dansUneConversation`, d'après la route, sauf page d'erreur) masque en-tête, bande et navigation : son propre en-tête ramène à la liste.
 
 Connecté, quatre onglets fixes (`navigation.ts`) : « Accueil », « Planning », « Caserne », « Échanges ». Les droits n'ajoutent pas d'onglet, seulement des liens dans les pages. `rubriqueDe` dit quel onglet (ou « Moi », ou la cloche) est actif : `/agents`, `/engins`, `/nominations`, `/reglages`, `/reservations` sont rangés sous « Caserne », `/remplacements` sous « Planning », `/profil`, `/affichage` et `/moi/notifications` sous « Moi ». `/connexion` n'a d'onglet que déconnecté ; `/agenda/<fichier>` est un fichier, pas une page.
 
 ## Casquettes
 
-Sur l'accueil (`/`), une casquette par rôle tenu (`accueilDe` du socle) : « Le centre » (chef de centre, adjoint, super administrateur), « Chef de garde · … », « Mon astreinte » (tout agent), un référent, un comité. Avec deux casquettes ou plus, `Casquettes.svelte` les montre en rangée : `<nav aria-label="Casquettes">` de liens `?casquette=<id>` (rendu serveur, pas de motif d'onglets), la choisie en `aria-current="true"` (« page » est déjà sur l'onglet « Accueil ») avec contour épais et texte gras. La rangée défile seule (`overflow-x: auto`) ; à partir de 1024 px, la colonne du contenu est en `minmax(0, 1fr)` pour qu'une longue rangée n'élargisse pas la page. Listes sans puces : `role="list"` (VoiceOver). Sans `?casquette`, la casquette où quelque chose attend, sinon la première. Avec une seule, pas de rangée.
+Sur l'accueil (`/`), une casquette par rôle tenu (`accueilDe` du socle) : « Le centre » (chef de centre, adjoint, super administrateur), « Chef de garde · … », « Mon astreinte » (tout agent), un référent, un comité. Avec deux casquettes ou plus, `Casquettes.svelte` les montre en bloc segmenté (`.segments`) : `<nav aria-label="Casquettes">` de liens `?casquette=<id>` (rendu serveur, pas de motif d'onglets), la choisie en `aria-current="true"` (« page » est déjà sur l'onglet « Accueil ») en encre pleine et en gras. La rangée défile seule (`overflow-x: auto`) ; à partir de 1024 px, la colonne du contenu est en `minmax(0, 1fr)` pour qu'une longue rangée n'élargisse pas la page. Listes sans puces : `role="list"` (VoiceOver). Sans `?casquette`, la casquette où quelque chose attend, sinon la première. Avec une seule, pas de rangée.
 
 ## Pages
 
-- `/` : l'accueil, Gyro, la carte d'astreinte (lien « Faire la prise de garde » pour son équipe, de 2 h avant à 24 h après la relève, `lienPriseOuvert`), « À décider » s'il n'est pas vide, « À ne pas manquer » (`ANePasManquer.svelte`, absente si rien n'attend), et à côté ce qui reste de la casquette choisie (voir plus haut) ; « Mon astreinte » n'a qu'une colonne. Actions `?/prendreConnaissance` et `?/repondre` (envoyées vers `?casquette=<choisie>&/<action>` : la casquette reste sans JavaScript).
+- `/` : l'accueil, Gyro à droite du titre, la plaque d'astreinte (`CarteAstreinte` : à-plat de la couleur de l'équipe, texte selon `encreSur` ; le grand compte à rebours et les dates à droite, ou, la veille et le jour de la relève, l'heure en grand, « ce soir 18 h », ou « En cours » ; « Faire la prise de garde » sur la plaque pour son équipe, de 2 h avant à 24 h après la relève, `lienPriseOuvert` ; dessous, une bande claire : « Me faire remplacer » et « Ajouter à mon agenda », ou « Voir ma semaine » autour de la relève ; « Voir le planning » pour l'astreinte d'une autre équipe), « À décider » s'il n'est pas vide, « À ne pas manquer » (`ANePasManquer.svelte`, absente si rien n'attend), et à côté ce qui reste de la casquette choisie (voir plus haut) ; « Mon astreinte » n'a qu'une colonne. Actions `?/prendreConnaissance` et `?/repondre` (envoyées vers `?casquette=<choisie>&/<action>` : la casquette reste sans JavaScript).
 - `/caserne` : liens vers « Agents », et selon les droits « Nominations », « Réglages » ; « Engins », « Anomalies » et « Réservations » ; « Comités » à venir.
 - `/moi` : « Mon profil », « Affichage », « Se déconnecter ».
-- `/planning` : les vues sous le titre, la carte d'astreinte condensée et le lien « Remplacements » (avec le nombre de demandes à traiter), puis le calendrier et « À venir » (dessous au téléphone, à côté à partir de 1024 px). Le même ordre de lecture et de tabulation aux deux tailles.
+- `/planning` : les vues sous le titre (bloc segmenté), la plaque d'astreinte condensée et le lien « Remplacements » (avec le nombre de demandes à traiter), puis le calendrier et « À venir » (dessous au téléphone, à côté à partir de 1024 px). Le même ordre de lecture et de tabulation aux deux tailles.
 - `/notifications` (la cloche) : pour qui modère la messagerie (`signalementsDe`, liste vide pour les autres), « Messages signalés » en tête : texte copié, photos copiées (`GET /notifications/signalements/[id]/photo/[photo]`, `photoSignalee`, `Cache-Control: private, no-store`, 404 sans le droit), auteur, date, qui a signalé ; actions `?/retirer` (toujours confirmée : `<dialog>` avec JavaScript, sinon le lien `?retirer=<id>` l'ouvre dans la carte, comme `?quitter` des infos) et `?/classer`, réussite dans la zone `role="status"`, refus dans `role="alert"`, focus sur le titre de la section. Puis le fil (`filDeNotifications`) : « Aujourd’hui » puis « Plus tôt », une ligne par publication ou commentaire reçu (visage de l'auteur, « … a publié dans … » ou « … a commenté votre publication », extrait, heure), lien vers la publication ; non lue : liseré, gras, point et « Non lu, » pour les lecteurs d'écran ; « Tout marquer comme lu » (`?/toutLu`) dans l'en-tête s'il y a du non-lu ; sinon « Rien de nouveau pour vous. ». Le nombre de la cloche est calculé dans le layout racine (`lireEnTete` : non-lues par `enTeteDe`, une lecture, plus les signalements, super administrateur compris ; 0 en cas de panne de lecture).
 - `/moi/notifications` : « Ce téléphone » (`CeTelephone.svelte`, selon `etatPush` de `lib/push.ts` : activer, désactiver, étapes iPhone, bloquées, navigateur sans notifications, centre sans clés), « Tout couper » (bouton `role="switch"`, formulaire sans JavaScript), « Coupés » avec « Réactiver ». `POST`/`DELETE /moi/notifications/abonnement` pour l'appareil.
 - Haut-parleur (`CouperNotifications.svelte`) dans l'en-tête d'un mur et d'une conversation : bouton à bascule (`aria-pressed`), action `?/couper`, « Coupées » écrit quand c'est coupé. La seule cloche visible est celle de l'appli.
@@ -110,13 +117,14 @@ Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-message
 
 Dans `src/lib/ui/` :
 
-- `Bouton` : `principal` ou `secondaire`, 44 px de haut au moins ; `onclick` facultatif pour un bouton hors formulaire.
+- `Bouton` : `principal` ou `secondaire`, 44 px de haut au moins, rectangle arrondi (`--rayon-bouton`) ; `onclick` facultatif pour un bouton hors formulaire.
+- `.segments` (classe de `app.css`, pas un composant) : bloc de choix arrondi, un fond (`--segment-fond`), l'option choisie en encre pleine et en gras ; options en liens (`aria-current`) ou en boutons à bascule (`aria-pressed`, avec la coche). Vues du Planning, casquettes, « Murs » | « Messages », onglets des remplacements, réponses Présent / Absent / Incertain (accueil, publication, manœuvre du Planning).
 - `Champ` : libellé toujours visible, message d'erreur relié au champ.
 - `ChoixRadio` : choix unique en boutons radio natifs, sans liste déroulante ; `pastilles`, `tuiles` (précision en dessous) ou `rangees`. Utilisé par Publier, Signaler et l'écart de prise de garde.
 - `ChampPhoto` : le champ fichier natif, invisible par-dessus un bouton écrit de 44 px qui montre le fichier choisi et « Retirer » ; sans JavaScript, le champ natif seul. Mêmes écrans.
 - `Choix` : liste déroulante (`<select>`), mêmes règles que `Champ` (libellé, aide, erreur reliés) ; `valeur` se lie avec `bind:`. La sélection n'est pas imposée au navigateur quand la page devient prête (choix de départ par `selected`) : un choix fait avant est gardé et repris dans `valeur`. Ensuite, une nouvelle `valeur` de la page s'applique, et la remise à zéro du formulaire revient au choix de départ.
 - `Carte` : section titrée ; avec `ancre`, le titre prend cet id et `tabindex="-1"`, pour y mettre le focus par programme.
-- `PastilleEquipe` : couleur **et** nom de l'équipe.
+- `PastilleEquipe` : couleur **et** nom de l'équipe. Au Planning (vue Mois), le même repère : un carré de couleur et le nom à l'encre ; « ma semaine » en à-plat de la couleur de l'équipe, texte selon `encreSur`, « Mon astreinte » écrit.
 - `Statut` : badge avec texte (jamais la couleur seule).
 - `Tableau` : défile dans sa boîte sur petit écran, avec une légende.
 - `Vide` : message « rien à afficher », avec Gyro.
@@ -137,6 +145,7 @@ Dans `src/lib/gyro/` :
 
 - `Gyro.svelte` : le dessin, ses 42 tenues et leurs animations ; `decoratif` le cache aux lecteurs d'écran, sinon il est décrit par le libellé de sa tenue.
 - `GyroDuMoment.svelte` : Gyro selon le réglage « Présence de Gyro » (`niveau`), dans la tenue du moment.
+- Où il paraît : l'accueil (à droite du titre), les écrans vides (`Vide`) et les réussites (`Celebration`, Bravo). Pas dans les titres ordinaires : `EnTetePage` n'a plus d'option Gyro (vérifié par `composants.test.ts`).
 - `moment.ts` : tenue du moment, à l'heure de Paris. Priorité : fête du jour, nuit (23 h-6 h), p'tit-déj (6 h-10 h), calendriers (novembre et décembre), saison, normal.
 - `GyroAccueil.svelte` : sur l'accueil, Gyro est un bouton (le dessin ne contient donc aucun texte : un texte visible contredirait le nom du bouton, WCAG 2.5.3) ; cinq appuis en 2 s (doigt, Entrée ou Espace) allument son gyrophare et affichent « pin-pon ! ».
 

@@ -1,18 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import GyroDuMoment from '../gyro/GyroDuMoment.svelte';
 	import Retour from './Retour.svelte';
-	import type { Tenue } from '../gyro/tenues.ts';
 	import { DESSINS } from './icones-roles.ts';
-	import { gyroSelonNiveau, lireAffichageContexte } from '../gyro/niveau.ts';
 
-	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, complément sous la phrase, Gyro (selon le niveau) ou une tête sur mesure, action secondaire, action principale (bouton rouge, icône et libellé).
+	// En-tête d'écran, comme Échanges : retour « ‹ Moi », titre (h1), phrase, complément sous la phrase, une tête à droite du titre (Gyro de l’Accueil), action secondaire, action principale (bouton rouge, icône et libellé).
 	let {
 		titre,
 		phrase,
 		complement,
-		gyro = false,
-		tenue = 'normal',
 		tete,
 		retour,
 		secondaire,
@@ -21,31 +16,22 @@
 		titre: string;
 		phrase?: string;
 		complement?: Snippet;
-		gyro?: boolean;
-		tenue?: Tenue;
 		tete?: Snippet;
 		retour?: { href: string; libelle: string };
 		secondaire?: Snippet;
 		action?: { href: string; libelle: string; dessin?: string };
 	} = $props();
-
-	const affichage = lireAffichageContexte();
-	const avecGyro = $derived(gyro && gyroSelonNiveau(affichage.niveau).visible);
 </script>
 
 <header class="entete">
 	{#if retour}<Retour href={retour.href} libelle={retour.libelle} />{/if}
 	<div class="ligne">
-		{#if tete}
-			<span class="tete">{@render tete()}</span>
-		{:else if avecGyro}
-			<span class="mascotte"><GyroDuMoment {tenue} taille={72} decoratif /></span>
-		{/if}
 		<div class="titres">
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 			{#if complement}{@render complement()}{/if}
 		</div>
+		{#if tete}<span class="tete">{@render tete()}</span>{/if}
 		{#if secondaire || action}
 			<div class="actions">
 				{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
@@ -85,12 +71,11 @@
 		align-items: center;
 		gap: 8px;
 	}
-	.tete,
-	.mascotte {
+	/* Gyro posé à droite du titre, sur la plaque qui suit. */
+	.tete {
 		flex: none;
-	}
-	.mascotte {
-		margin: -10px -8px -10px -12px;
+		align-self: flex-end;
+		margin-bottom: -8px;
 	}
 	.titres {
 		flex: 1 1 11rem;

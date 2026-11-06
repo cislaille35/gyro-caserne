@@ -44,8 +44,6 @@
 	<EnTetePage
 		titre="Signaler un problème"
 		phrase={nomChoisi ? `Sur ${nomChoisi}. L’engin reste disponible : le référent engins et les chefs sont prévenus et décident.` : 'L’engin reste disponible : le référent engins et les chefs sont prévenus et décident.'}
-		gyro
-		tenue="anomalie"
 		retour={data.enginId !== null && nomChoisi ? { href: `/engins/${data.enginId}`, libelle: nomChoisi } : { href: '/engins/anomalies', libelle: 'Anomalies' }}
 	/>
 

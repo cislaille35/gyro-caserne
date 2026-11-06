@@ -86,31 +86,50 @@ describe('accueil', () => {
 		expect(html).not.toContain('Ma prochaine astreinte');
 	});
 
-	it('la carte astreinte en tête, compacte, vers le Planning ; l’équipe écrite', () => {
+	describe('la plaque d’astreinte', () => {
 		const periodes = [{ debut: '2026-11-20T18:00', fin: '2026-11-23T06:00' }, { debut: '2026-11-23T18:00', fin: '2026-11-27T06:00' }];
-		const a = { debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes };
-		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant: '2026-11-01T10:00' });
-		expect(html).toMatch(/class="carte[^"]*compacte[\s\S]*?<a[^>]*href="\/planning"[^>]*>Voir le planning/);
-		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-20"');
-		expect(html).toContain('Votre équipe est d’astreinte dans 19 jours');
-		expect(html).toContain('Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
-		expect(html).toContain('Équipe 3');
-		expect(html).toMatch(/class="rebours/);
-	});
+		const carte = (autres = {}) => ({ debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes, ...autres });
+		const accueil = (a: unknown, maintenant: string, priseOuverte = false) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant, priseOuverte });
+		const texte = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
-	describe('lien vers la prise de garde', () => {
-		const periodes = [{ debut: '2026-11-06T18:00', fin: '2026-11-09T06:00' }];
-		const carte = (autres = {}) => ({ debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: true, mienne: true, periodes, ...autres });
-		const accueil = (a: unknown, priseOuverte: boolean) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, priseOuverte, maintenant: '2026-11-06T18:30' });
-		const LIEN = /<a[^>]*href="\/engins\/prise"[^>]*>[\s\S]*?Faire la prise de garde/;
-
-		it('présent seulement quand la fenêtre de la relève est ouverte', () => {
-			expect(accueil(carte(), true)).toMatch(LIEN);
-			expect(accueil(carte(), false)).not.toContain('/engins/prise');
+		it('à venir : à-plat de la couleur de l’équipe, texte noir ou blanc selon elle, grand compte à rebours, dates à droite', () => {
+			const html = accueil(carte(), '2026-11-01T10:00');
+			expect(html).toMatch(/class="plaque[^"]*compacte[^"]*"[^>]*style="--equipe: #1565c0; --sur-equipe: #ffffff; --sur-bouton: #1d2733;"/);
+			expect(html).toMatch(/<h2 class="masque">Ma prochaine astreinte<\/h2>/);
+			expect(texte(html)).toContain('19 jours avant votre astreinte');
+			expect(texte(html)).toContain('Équipe 3 Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
+			// Les gestes dans la bande sous la plaque.
+			expect(html).toMatch(/class="gestes[\s\S]*?href="\/remplacements\/demander\?semaine=2026-11-20"[\s\S]*?Me faire remplacer[\s\S]*?href="\/moi\/agenda"/);
+			expect(html).not.toContain('Voir le planning');
+			// Le bleu de Laillé : ni l'anthracite ni le blanc n'atteignent 4,5:1, le noir pur oui.
+			expect(accueil(carte({ equipe: { id: 3, nom: 'Équipe 3', couleur: '#3d7fd6' } }), '2026-11-01T10:00')).toContain('--sur-equipe: #000000; --sur-bouton: #ffffff;');
+			expect(accueil(carte({ equipe: { id: 1, nom: 'Équipe 1', couleur: '#f2c200' } }), '2026-11-01T10:00')).toContain('--sur-equipe: #1d2733; --sur-bouton: #ffffff;');
 		});
 
-		it('l’astreinte d’une autre équipe : pas de lien', () => {
-			expect(accueil(carte({ mienne: false }), true)).not.toContain('/engins/prise');
+		it('le soir de la relève : « ce soir 18 h » en grand, « Faire la prise de garde » sur la plaque, « Voir ma semaine »', () => {
+			const html = accueil(carte(), '2026-11-20T16:30', true);
+			expect(texte(html)).toContain('Équipe 3 · relève jusqu’au ven. 27 nov. 6 h');
+			expect(html).toMatch(/<p class="grand[^"]*">ce soir 18 h<\/p>/);
+			expect(html).toMatch(/class="aplat[\s\S]*?<a class="prise[^"]*" href="\/engins\/prise">[\s\S]*?Faire la prise de garde/);
+			expect(html).toContain('href="/planning?annee=2026&amp;vue=semaine&amp;semaine=2026-11-20"');
+			expect(accueil(carte(), '2026-11-20T16:30', false)).not.toContain('/engins/prise');
+			// La veille : « demain 18 h ».
+			expect(accueil(carte(), '2026-11-19T12:00')).toMatch(/<p class="grand[^"]*">demain 18 h<\/p>/);
+		});
+
+		it('en cours : « En cours », la plage du moment', () => {
+			const html = accueil(carte({ enCours: true }), '2026-11-21T10:00');
+			expect(html).toMatch(/<h2 class="masque">Mon astreinte en cours<\/h2>/);
+			expect(html).toMatch(/<p class="grand[^"]*">En cours<\/p>/);
+			expect(texte(html)).toContain('En ce moment, jusqu’à');
+		});
+
+		it('une autre équipe : son nom en grand, « Voir le planning », ni remplacement ni prise', () => {
+			const html = accueil(carte({ mienne: false }), '2026-11-20T19:00', true);
+			expect(texte(html)).toContain('Équipe 3 d’astreinte');
+			expect(html).toMatch(/<a class="planning[^"]*" href="\/planning">Voir le planning/);
+			expect(html).not.toContain('/remplacements/demander');
+			expect(html).not.toContain('/engins/prise');
 		});
 	});
 

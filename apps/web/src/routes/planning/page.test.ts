@@ -191,7 +191,7 @@ describe('onglet Planning', () => {
 	it('Mois au téléphone : la bande de la semaine au-dessus de ses sept jours, pour des cases d’au moins 44 px', () => {
 		const html = page({ vue: 'mois' });
 		expect((html.match(/<tbody/g) ?? []).length).toBe(5);
-		expect(html).toMatch(/<tbody[^>]*>\s*<tr[^>]*><th scope="rowgroup" colspan="7"[^>]*>[\s\S]*?S45[\s\S]*?Équipe 1[\s\S]*?Mon astreinte/);
+		expect(html).toMatch(/<tbody[^>]*>\s*<tr[^>]*><th scope="rowgroup" colspan="7"[^>]*>[\s\S]*?Équipe 1[\s\S]*?S45[\s\S]*?Mon astreinte/);
 		expect(html).not.toContain('scope="row"');
 		for (const semaine of html.split('<tbody').slice(1)) expect((semaine.split('</tbody>')[0]!.match(/<td/g) ?? []).length).toBe(7);
 	});

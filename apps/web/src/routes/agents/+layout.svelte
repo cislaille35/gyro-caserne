@@ -121,7 +121,7 @@
 				</div>
 			</form>
 		{:else}
-			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." gyro />
+			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." />
 		{/if}
 
 		{#if data.groupes.length > 0}

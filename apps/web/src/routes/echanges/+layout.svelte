@@ -106,7 +106,7 @@
 		<!-- Sur un mur, aucun titre ici : celui du mur (h1) vient en premier. -->
 		<nav class="murs" aria-label="Murs">
 			{#if !actif}
-				<EnTetePage titre="Échanges" {phrase} gyro action={{ href: '/echanges/publier', libelle: 'Écrire' }} />
+				<EnTetePage titre="Échanges" {phrase} action={{ href: '/echanges/publier', libelle: 'Écrire' }} />
 				{#if data.avis}<p class="avis" role="status">{data.avis}</p>{/if}
 				{#if data.messagerie}<FiltresEchanges actif="murs" nonLus={nonLus.nombre} />{/if}
 			{/if}
