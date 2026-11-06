@@ -24,3 +24,15 @@ export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (u
 	await oublierAbonnements(base, perimes);
 	return { envoyes: envois.length, perimes: perimes.length };
 }
+
+// Envoyés dès le geste, après la réponse : 20 au plus, pour que la requête de l'auteur reste légère (environ 0,5 ms de calcul
+// par envoi). Le reste part au réveil suivant de la tâche planifiée (toutes les cinq minutes), par lots de 40.
+export const LOT_IMMEDIAT = 20;
+
+// Après la réponse : attend ce qui part en arrière-plan (les notifications du geste), puis envoie un lot, seulement si une
+// requête a mis des envois en file (`misEnFile`, voir creerBaseD1). Sinon, rien : pas même une lecture de la file.
+export async function envoyerApres(base: Base, cles: ClesVapid | null, taches: Promise<unknown>[], misEnFile: () => boolean, envoyer: (url: string, init: RequestInit) => Promise<Response> = fetch) {
+	await Promise.allSettled(taches);
+	if (!misEnFile()) return null;
+	return envoyerLot(base, cles, envoyer, LOT_IMMEDIAT);
+}

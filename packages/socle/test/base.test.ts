@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { personne } from '../src/schema.ts';
+import { creerBaseD1 } from '../src/base.ts';
+import { mettreEnFile } from '../src/notifications.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 describe('base de test', () => {
@@ -23,5 +25,29 @@ describe('base de test', () => {
 		const valeurs = { email: 'a@exemple.fr', prenom: 'Anne', nom: 'Durand' };
 		await expect(base.batch([base.insert(personne).values(valeurs), base.insert(personne).values(valeurs)])).rejects.toThrow();
 		expect(await base.select().from(personne)).toHaveLength(0);
+	});
+});
+
+describe('base D1', () => {
+	// Une fausse liaison D1 qui note les requêtes et ne rend rien.
+	const fausseD1 = () => {
+		const requetes: string[] = [];
+		const instruction = { bind: () => instruction, all: async () => ({ results: [] }), raw: async () => [], run: async () => ({ results: [] }) };
+		return { requetes, d1: { prepare: (sql: string) => (requetes.push(sql), instruction), batch: async () => [] } as unknown as D1Database };
+	};
+	const donnees = { titre: 'T', texte: 'x', url: '/', tag: 't' };
+
+	it('prévient quand une requête met des envois au téléphone en file (pour les faire partir tout de suite), pas pour le reste', async () => {
+		const { d1, requetes } = fausseD1();
+		let enFile = 0;
+		const base = creerBaseD1(d1, () => enFile++);
+		await base.select().from(personne);
+		await base.insert(personne).values({ email: 'a@exemple.fr', prenom: 'Anne', nom: 'Durand' });
+		expect(enFile).toBe(0);
+		await mettreEnFile(base, [1], 'tout', donnees, '2026-11-06T10:00');
+		expect(requetes.at(-1)).toMatch(/^insert into "envoi_push"/);
+		expect(enFile).toBe(1);
+		// Sans rien à prévenir : comme avant.
+		await mettreEnFile(creerBaseD1(fausseD1().d1), [1], 'tout', donnees, '2026-11-06T10:00');
 	});
 });

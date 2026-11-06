@@ -3,17 +3,19 @@ import { DatabaseSync } from 'node:sqlite';
 import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import * as schema from '../src/schema.ts';
 import * as schemaPhotos from '../src/schema-photos.ts';
-import { ecrit, type Base, type BasePhotos } from '../src/base.ts';
+import { ecrit, metEnFile, type Base, type BasePhotos } from '../src/base.ts';
 import { oublierDroits } from '../src/droits.ts';
 
-type Compteurs = { requetes: number; parametresMax: number };
+type Compteurs = { requetes: number; parametresMax: number; misEnFile?: boolean };
 
 // La base principale et, dans `photos`, la base des photos, comme les deux bases D1 de l'appli.
-// `requetes` compte les appels aux deux bases (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus).
+// `requetes` compte les appels aux deux bases (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus) ;
+// `misEnFile` passe à vrai quand une requête met des envois au téléphone en file, comme le signale creerBaseD1.
 // Comme creerBaseD1, toute écriture dans la base principale fait oublier les droits lus.
 export async function baseDeTest(): Promise<Base & Compteurs & { photos: BasePhotos }> {
 	const base = ouvrir(new URL('../migrations/', import.meta.url), schema, (requetes) => {
 		if (requetes.some(ecrit)) oublierDroits(base);
+		if (requetes.some(metEnFile)) base.misEnFile = true;
 	}) as Base & Compteurs & { photos: BasePhotos };
 	base.photos = ouvrir(new URL('../migrations-photos/', import.meta.url), schemaPhotos, () => {}, base) as unknown as BasePhotos;
 	return base;

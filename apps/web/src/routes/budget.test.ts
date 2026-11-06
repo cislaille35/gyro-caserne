@@ -5,6 +5,7 @@ import { affectationEquipe, engin, typeEngin, ajouterRessource, pourDemander, at
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
+import { envoyerApres } from '#lib/server/envoi-push.ts';
 import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
 import { actions as actionsNotifications, load as notifications } from './notifications/+page.server';
@@ -76,13 +77,14 @@ async function centreDe150() {
 	await base.insert(attribution).values({ personneId: chef!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 	for (let i = 0; i < 150; i++) await base.insert(personne).values({ email: `agent${i}@exemple.fr`, prenom: `Agent${i}`, nom: 'Test', profilId: p!.id });
 	const [agent] = await base.select().from(personne).where(eq(personne.email, 'agent0@exemple.fr'));
-	// Ce qui part en arrière-plan (les notifications) compte dans la même requête du Worker.
+	// Ce qui part en arrière-plan (les notifications, puis leur envoi au téléphone, comme dans les hooks) compte dans la même requête du Worker.
 	const taches: Promise<unknown>[] = [];
 	const locals = { base, basePhotos: base.photos, acteur: { type: 'personne' as const, id: chef!.id }, superAdmins: [], affichage: {}, enArrierePlan: (p: Promise<unknown>) => taches.push(p) };
 	const compter = async (etapes: () => Promise<unknown>) => {
 		const avant = base.requetes;
+		base.misEnFile = false;
 		await etapes();
-		await Promise.all(taches.splice(0));
+		await envoyerApres(base, null, taches.splice(0), () => base.misEnFile === true);
 		return base.requetes - avant;
 	};
 	return { base, locals, agent: agent!, compter };
