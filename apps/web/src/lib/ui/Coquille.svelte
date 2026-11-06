@@ -62,6 +62,7 @@
 			</a>
 		{/if}
 	</header>
+	<div class="marquage" aria-hidden="true"></div>
 
 	<nav aria-label="Navigation principale">
 		{#each entrees as entree (entree.href)}
@@ -104,26 +105,37 @@
 		display: flex;
 		flex-direction: column;
 	}
+	/* L'en-tête anthracite, la marque de l'appli : le repère du clavier y est clair. */
 	header {
+		min-height: 60px;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem;
-		background: var(--surface);
-		border-bottom: 1px solid var(--trait);
+		gap: 10px;
+		padding: 8px 12px 8px 16px;
+		background: var(--entete-fond);
+		color: var(--entete-texte);
+		--focus: var(--entete-focus);
+	}
+	/* La bande de marquage jaune et rouge des engins, fine et immobile. */
+	.marquage {
+		height: 4px;
+		flex: none;
+		background: var(--marquage);
 	}
 	.titre {
 		flex: 1;
 		min-width: 0;
 		display: flex;
-		flex-direction: column;
+		flex-wrap: wrap;
+		align-items: baseline;
+		column-gap: 10px;
 	}
 	header a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
-		color: var(--encre);
+		color: var(--entete-texte);
 		text-decoration: none;
 	}
 	.rond {
@@ -133,9 +145,12 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 50%;
-		border: 1px solid var(--trait-doux);
-		background: var(--surface);
+		border-radius: 12px;
+		background: var(--entete-bouton);
+		color: var(--entete-texte);
+	}
+	header :global(.visage) {
+		border-radius: 12px;
 	}
 	.cloche {
 		position: relative;
@@ -151,12 +166,15 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 999px;
-		border: 2px solid var(--surface);
+		border: 2px solid var(--entete-fond);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-size: 0.75rem;
 		font-weight: 700;
 		line-height: 1;
+	}
+	nav .nombre {
+		border-color: var(--surface);
 	}
 	.dessin {
 		position: relative;
@@ -167,34 +185,28 @@
 		right: -14px;
 	}
 	.moi {
-		border-radius: 50%;
+		border-radius: 12px;
 	}
-	header a.moi[aria-current='page'] {
-		text-decoration: none;
-	}
-	/* La page « Moi » ou une de ses pages : un anneau autour du visage. */
-	header a.moi[aria-current='page'] :global(.visage) {
-		box-shadow:
-			0 0 0 2px var(--surface),
-			0 0 0 4px var(--accent);
-	}
-	header a[aria-current='page'] {
-		text-decoration: underline;
-		text-underline-offset: 4px;
-	}
-	header a[aria-current='page'] .rond,
+	/* La page « Moi » ou la cloche : un anneau clair autour du carré, pas seulement une couleur. */
+	header a.moi[aria-current='page'] :global(.visage),
+	header a.moi[aria-current='page'] .rond,
 	header a.rond[aria-current='page'] {
-		border: 2px solid var(--accent);
+		box-shadow:
+			0 0 0 2px var(--entete-fond),
+			0 0 0 4px var(--entete-texte);
 	}
 	.appli {
-		font-family: var(--police-titre);
-		font-size: 1.4rem;
-		font-weight: 700;
+		font: 700 1.375rem/1.1 var(--police-titre);
+		letter-spacing: 0.02em;
 		text-transform: uppercase;
-		line-height: 1.1;
 	}
 	.centre {
-		color: var(--doux);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--entete-doux);
+		font-size: 0.8125rem;
 	}
 	main {
 		flex: 1;
@@ -210,11 +222,12 @@
 		display: flex;
 		padding-bottom: env(safe-area-inset-bottom);
 		background: var(--surface);
-		border-top: 1px solid var(--trait);
+		border-top: 1px solid var(--trait-doux);
 	}
 	nav a {
+		position: relative;
 		flex: 1;
-		min-height: 3.5rem;
+		min-height: 4rem;
 		min-width: var(--cible);
 		display: flex;
 		flex-direction: column;
@@ -224,17 +237,28 @@
 		padding: 0.25rem;
 		color: var(--doux);
 		text-decoration: none;
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
 	}
 	nav a[aria-current='page'] {
 		color: var(--encre);
 		font-weight: 700;
-		box-shadow: inset 0 3px 0 var(--accent);
+	}
+	/* L'onglet actif : une barre rouge en haut, en plus du gras. */
+	nav a[aria-current='page']::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 22%;
+		right: 22%;
+		height: 3px;
+		border-radius: 0 0 3px 3px;
+		background: var(--accent);
 	}
 
 	/* Au téléphone, une conversation garde tout l'écran : son propre en-tête ramène à la liste. */
 	@media (max-width: 1023px) {
 		.conversation header,
+		.conversation .marquage,
 		.conversation nav {
 			display: none;
 		}
@@ -243,45 +267,58 @@
 	@media (min-width: 1024px) {
 		.coquille {
 			display: grid;
-			grid-template-columns: 16rem minmax(0, 1fr);
-			grid-template-rows: auto 1fr;
+			grid-template-columns: 13.75rem minmax(0, 1fr);
+			grid-template-rows: auto auto 1fr;
 			grid-template-areas:
-				'menu entete'
+				'entete entete'
+				'marquage marquage'
 				'menu contenu';
-			/* Le fond et le trait du menu descendent jusqu'en bas, même sur une page plus haute que l'écran. */
-			background: linear-gradient(to right, var(--surface) calc(16rem - 1px), var(--trait) calc(16rem - 1px) 16rem, transparent 16rem);
+			/* Le fond du menu descend jusqu'en bas, même sur une page plus haute que l'écran. */
+			background: linear-gradient(to right, var(--menu-fond) 13.75rem, transparent 13.75rem);
 		}
 		header {
 			grid-area: entete;
+			gap: 12px;
+			padding: 8px 20px;
 		}
-		.titre {
-			flex-direction: row;
-			align-items: baseline;
-			gap: 0.75rem;
+		.marquage {
+			grid-area: marquage;
+		}
+		.appli {
+			font-size: 1.5rem;
+		}
+		.centre {
+			font-size: 0.875rem;
 		}
 		nav {
 			grid-area: menu;
 			position: sticky;
 			top: 0;
-			height: 100dvh;
+			align-self: start;
 			flex-direction: column;
-			gap: 0.25rem;
-			padding: 1.5rem 1rem;
+			gap: 4px;
+			padding: 16px 12px;
 			border-top: 0;
-			margin-right: 1px;
+			background: var(--menu-fond);
 		}
 		nav a {
 			flex: none;
+			min-height: 46px;
 			flex-direction: row;
 			justify-content: flex-start;
-			gap: 0.75rem;
-			padding: 0 0.75rem;
+			gap: 12px;
+			padding: 0 14px;
+			border-radius: 10px;
 			font-size: 1rem;
-			border-radius: var(--rayon-petit);
+			font-weight: 500;
 		}
 		nav a[aria-current='page'] {
-			background: var(--fond);
-			box-shadow: inset 4px 0 0 var(--accent);
+			background: var(--menu-actif);
+			color: var(--encre);
+			font-weight: 700;
+		}
+		nav a[aria-current='page']::before {
+			display: none;
 		}
 		main {
 			grid-area: contenu;
