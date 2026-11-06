@@ -320,6 +320,9 @@
 		nav a[aria-current='page']::before {
 			display: none;
 		}
+		nav .nombre {
+			border-color: var(--menu-fond);
+		}
 		main {
 			grid-area: contenu;
 			padding-bottom: 1.5rem;

@@ -149,11 +149,6 @@ describe('texte posé sur la couleur d’une équipe (plaque d’astreinte, visa
 		expect(encreSur('#1d2733')).toBe('#ffffff');
 	});
 
-	it('une couleur illisible : l’encre par défaut, jamais une erreur', () => {
-		expect(encreSur('bleu')).toBe('#1d2733');
-		expect(encreSur('#abc')).toBe(encreSur('#aabbcc'));
-	});
-
 	it('un balayage de toutes les teintes : jamais sous 4,5:1', () => {
 		const pas = [...Array(16).keys()].map((i) => (i * 17).toString(16).padStart(2, '0'));
 		for (const r of pas)

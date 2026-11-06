@@ -286,7 +286,7 @@ body {
 .segments {
 	display: flex;
 	gap: 4px;
-	padding: 4px;
+	padding: 5px;
 	margin: 0;
 	border-radius: 12px;
 	background: var(--segment-fond);
@@ -322,6 +322,12 @@ body {
 	background: var(--encre);
 	color: var(--fond);
 	font-weight: 700;
+}
+/* En mode contrasté, le fond plein disparaît : un contour garde l'option choisie visible. */
+@media (forced-colors: active) {
+	.segments :is([aria-current='page'], [aria-current='true'], [aria-pressed='true']) {
+		outline: 2px solid CanvasText;
+	}
 }
 .segments [aria-pressed='true']::before {
 	content: '✓';

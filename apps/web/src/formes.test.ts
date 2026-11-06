@@ -78,7 +78,9 @@ describe('formes', () => {
 			['lib/ui/Rangee.svelte', '.rangee'],
 			['lib/ui/Groupe.svelte', '.groupe'],
 			['lib/ui/Publication.svelte', '.publication'],
-			['routes/echanges/+layout.svelte', '.centre']
+			['routes/echanges/+layout.svelte', '.centre'],
+			['lib/planning/CarteAstreinte.svelte', '.plaque'],
+			['lib/planning/VueMois.svelte', '.carte']
 		];
 		for (const [f, sel] of cartes) {
 			const regle = source(f).match(new RegExp(`\\n\\t${sel.replace('.', '\\.')} \\{([^}]*)\\}`))![1];
@@ -88,11 +90,21 @@ describe('formes', () => {
 		}
 	});
 
+	it('le repère du clavier reste visible : dans les liens de la bande de la plaque (rognée) et sur « ma semaine »', () => {
+		expect(source('lib/planning/CarteAstreinte.svelte')).toMatch(/\.gestes a:focus-visible \{\s*outline-offset: -3px;/);
+		expect(source('lib/planning/VueMois.svelte')).toMatch(/\.mienne td a \{[^}]*outline-offset: -3px;/);
+		expect(source('lib/planning/CarteAstreinte.svelte')).toMatch(/\.aplat \{[^}]*--focus: var\(--sur-equipe\)/);
+	});
+
 	it('le bloc de choix : un fond, l’option choisie en encre pleine, en gras, avec la coche pour une bascule', () => {
 		const css = readFileSync(join(racine, 'app.css'), 'utf8');
 		expect(css).toMatch(/\.segments \{[^}]*background: var\(--segment-fond\)/);
 		expect(css).toMatch(/\.segments :is\(\[aria-current='page'\], \[aria-current='true'\], \[aria-pressed='true'\]\) \{[^}]*background: var\(--encre\);[^}]*color: var\(--fond\);[^}]*font-weight: 700/);
 		expect(css).toMatch(/\.segments \[aria-pressed='true'\]::before \{[^}]*content: '✓' \/ ''/);
 		expect(css).toMatch(/\.segments :is\(a, button\) \{[^}]*min-height: var\(--cible\)/);
+		// En mode contrasté, le fond plein disparaît : un contour le remplace.
+		expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.segments :is\(\[aria-current='page'\], \[aria-current='true'\], \[aria-pressed='true'\]\) \{\s*outline: 2px solid CanvasText;/);
+		// Quatre onglets des remplacements : à la ligne, aucun caché hors de l'écran.
+		expect(source('routes/remplacements/+page.svelte')).toMatch(/\.onglets \{\s*flex-wrap: wrap;/);
 	});
 });

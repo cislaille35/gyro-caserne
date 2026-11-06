@@ -144,9 +144,9 @@
 		gap: 6px 8px;
 	}
 	.pastille {
-		width: 12px;
-		height: 12px;
-		border-radius: 6px;
+		width: 14px;
+		height: 14px;
+		border-radius: 4px;
 		background: var(--equipe);
 	}
 	.marque {
@@ -197,7 +197,7 @@
 		flex-direction: column;
 		gap: 4px;
 		padding: 10px 14px;
-		scroll-margin-top: calc(var(--hauteur-entete) + 12px);
+		scroll-margin-top: 12px;
 	}
 	.jours > li + li {
 		border-top: 1px solid var(--trait-doux);

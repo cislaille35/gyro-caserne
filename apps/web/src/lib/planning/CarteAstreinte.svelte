@@ -31,7 +31,7 @@
 {/snippet}
 
 {#snippet dates()}
-	<p class="dates"><span class="masque">Du </span>{bornes.debut}<br /><span class="masque"> au </span>{bornes.fin}</p>
+	<p class="dates"><span class="masque">{'Du '}</span>{bornes.debut}<br /><span class="masque">{' au '}</span>{bornes.fin}</p>
 {/snippet}
 
 <section class="plaque" class:compacte style:--equipe={a.equipe.couleur} style:--sur-equipe={encre} style:--sur-bouton={surBouton} aria-label={rubrique}>
@@ -53,10 +53,10 @@
 				</div>
 			{:else}
 				<div class="ligne haut">
-					<p class="equipe">{a.equipe.nom} · {forme === 'encours' ? 'en cours' : 'relève'}</p>
+					<p class="equipe">{a.equipe.nom}{forme === 'releve' ? ' · relève' : ''}</p>
 					<p class="jusqua">jusqu’au {bornes.fin}</p>
 				</div>
-				<p class="grand">{forme === 'encours' ? 'En cours' : quandRelatif(a.debut, maintenant)}</p>
+				<p class="grand">{#if forme === 'releve'}<span class="masque">{'Début de l’astreinte : '}</span>{/if}{forme === 'encours' ? 'En cours' : quandRelatif(a.debut, maintenant)}</p>
 				{#if p.plage}<p class="plage">{p.plage}</p>{/if}
 			{/if}
 			{#if prise}
@@ -94,6 +94,7 @@
 
 <style>
 	.plaque {
+		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		overflow: hidden;
 		background: var(--surface);
@@ -202,6 +203,10 @@
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
+	}
+	/* Le repère du clavier à l'intérieur du lien : la plaque rogne ce qui dépasse. */
+	.gestes a:focus-visible {
+		outline-offset: -3px;
 	}
 	.gestes a + a {
 		border-left: 1px solid var(--trait-doux);

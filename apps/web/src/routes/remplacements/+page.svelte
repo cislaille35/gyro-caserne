@@ -76,6 +76,10 @@
 </div>
 
 <style>
+	/* Quatre onglets : à la ligne plutôt qu'à faire défiler, pour qu'aucun ne se cache. */
+	.onglets {
+		flex-wrap: wrap;
+	}
 	.page {
 		display: flex;
 		flex-direction: column;

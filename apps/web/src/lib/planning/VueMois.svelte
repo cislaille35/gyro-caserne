@@ -159,6 +159,7 @@
 	}
 	.carte {
 		padding: 4px 6px 6px;
+		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		box-shadow: var(--ombre-carte);
@@ -234,8 +235,10 @@
 	.mienne .signes span {
 		color: var(--sur-equipe);
 	}
+	/* Le repère du clavier reste sur l'à-plat, où son encre se voit. */
 	.mienne td a {
 		font-weight: 600;
+		outline-offset: -3px;
 	}
 	td a {
 		min-height: var(--cible);

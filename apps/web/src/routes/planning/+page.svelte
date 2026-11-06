@@ -264,7 +264,7 @@
 		}
 		.a-cote {
 			position: sticky;
-			top: calc(var(--hauteur-entete) + 16px);
+			top: 16px;
 		}
 	}
 	.titre-vue {
