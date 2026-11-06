@@ -10,13 +10,17 @@ export type Base = BaseSQLiteDatabase<'async', unknown, typeof schema> & Pick<Dr
 
 // Une requête qui n'est pas une lecture peut changer des droits : ceux déjà lus sont oubliés.
 export const ecrit = (sql: string) => !/^\s*select\b/i.test(sql);
+// Une requête qui met des envois au téléphone en file (mettreEnFile).
+export const metEnFile = (sql: string) => /^\s*insert into "envoi_push"/i.test(sql);
 
-export function creerBaseD1(d1: D1Database): Base {
+// `siEnFile` : prévenu quand une requête met des envois en file, pour les faire partir tout de suite.
+export function creerBaseD1(d1: D1Database, siEnFile?: () => void): Base {
 	const surveillee = new Proxy(d1, {
 		get(cible, cle) {
 			if (cle === 'prepare')
 				return (sql: string) => {
 					if (ecrit(sql)) oublierDroits(base);
+					if (siEnFile && metEnFile(sql)) siEnFile();
 					return cible.prepare(sql);
 				};
 			const valeur = Reflect.get(cible, cle);

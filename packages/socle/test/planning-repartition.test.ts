@@ -6,7 +6,7 @@ import { planningDe } from '../src/planning/annee.ts';
 import { astreinteDe } from '../src/planning/astreinte.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
 import { ajouterMesVacances, reglerEte } from '../src/planning/ete.ts';
-import { ajusterPlage, eteAPreparer, proposer, proposerEte, publierEte, texteManque } from '../src/planning/repartition.ts';
+import { ajusterPlage, eteAPreparer, plageAPreparer, proposer, proposerEte, publierEte, texteManque } from '../src/planning/repartition.ts';
 import { bandesDe, disponible, lireContexte, valideurs } from '../src/remplacements/contexte.ts';
 import { demanderRemplacement } from '../src/remplacements/demandes.ts';
 import { attribution, responsabilite } from '../src/schema.ts';
@@ -74,6 +74,7 @@ describe('été : proposer, ajuster, publier', () => {
 		const { base, p, a } = await jeu();
 		await expect(eteAPreparer(base, a(p.alice), 2027, maintenant, reglage)).rejects.toThrow(RefusDroit);
 		await expect(proposerEte(base, a(p.alice), 2027, maintenant, reglage)).rejects.toThrow(RefusDroit);
+		await expect(plageAPreparer(base, a(p.alice), 2027, maintenant, reglage, LUN)).rejects.toThrow(RefusDroit);
 	});
 
 	it('propose : toutes les plages armées, renforts répartis équitablement ; le tableau le montre', async () => {
@@ -90,28 +91,35 @@ describe('été : proposer, ajuster, publier', () => {
 			['2027-06-30T18:00', [p.alice], [p.gina]],
 			['2027-07-01T18:00', [chefId], [p.gina]]
 		]);
-		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage, LUN);
+		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage);
+		const detail = await plageAPreparer(base, chef, 2027, maintenant, reglage, LUN);
 		expect(vue.semaines).toHaveLength(1);
 		expect(vue.semaines[0]!.plages.every((x) => x.arme)).toBe(true);
 		expect(vue.semaines[0]!.plages[3]!.presents.map((x) => `${x.prenom}${x.renfort ? ' (renfort)' : ''}`)).toEqual(['Cora', 'Denis', 'Eva', 'Fred', 'Alice (renfort)', 'Chef (renfort)']);
-		expect(vue.detail!.candidats.find((x) => x.id === p.gina)).toMatchObject({ vacances: true });
-		expect(vue.detail!.candidats[0]).toMatchObject({ prenom: 'Hugo', postes: ['cod1'] });
+		expect(detail!.candidats.find((x) => x.id === p.gina)).toMatchObject({ vacances: true });
+		expect(detail!.candidats[0]).toMatchObject({ prenom: 'Hugo', postes: ['cod1'] });
+		// Le panneau, calculé seul, montre la plage comme le tableau.
+		const { presents, ...ligne } = vue.semaines[0]!.plages[3]!;
+		expect(detail).toMatchObject(ligne);
+		expect(detail!.presents.map(({ poste: _p, ...x }) => x)).toEqual(presents);
 		expect(vue.reponses.find((x) => x.id === p.gina)).toMatchObject({ reponse: 'vacances' });
 	});
 
 	it('le panneau d’une plage : chaque présent avec son poste ; FPT non armé, ceux qui ont l’aptitude manquante d’abord', async () => {
 		const { base, chef, p } = await jeu();
 		await proposerEte(base, chef, 2027, maintenant, reglage);
-		const vue = await eteAPreparer(base, chef, 2027, maintenant, reglage, MAR);
-		const postes = Object.fromEntries(vue.detail!.presents.map((x) => [x.prenom, x.poste]));
+		const detail = await plageAPreparer(base, chef, 2027, maintenant, reglage, MAR);
+		const postes = Object.fromEntries(detail!.presents.map((x) => [x.prenom, x.poste]));
 		expect(postes).toEqual({ Bruno: 'ca2', Cora: 'cod1', Denis: 'ce', Eva: 'ce', Fred: 'agent', Hugo: 'agent' });
 		// Sans Denis, il manque un CE : Alice (CA2, donc CE) passe devant Hugo (conducteur).
 		await ajusterPlage(base, chef, 2027, MAR, p.denis, false, maintenant, reglage);
-		const sans = await eteAPreparer(base, chef, 2027, maintenant, reglage, MAR);
-		expect(sans.detail!.manque).toEqual(['ce']);
-		expect(sans.detail!.candidats[0]).toMatchObject({ prenom: 'Alice', utile: true });
-		expect(sans.detail!.candidats.find((x) => x.id === p.denis)).toMatchObject({ utile: true });
-		expect(sans.detail!.candidats.find((x) => x.prenom === 'Chef')).toMatchObject({ utile: false });
+		const sans = (await plageAPreparer(base, chef, 2027, maintenant, reglage, MAR))!;
+		expect(sans.manque).toEqual(['ce']);
+		expect(sans.candidats[0]).toMatchObject({ prenom: 'Alice', utile: true });
+		expect(sans.candidats.find((x) => x.id === p.denis)).toMatchObject({ utile: true });
+		expect(sans.candidats.find((x) => x.prenom === 'Chef')).toMatchObject({ utile: false });
+		// Une plage inconnue : rien.
+		expect(await plageAPreparer(base, chef, 2027, maintenant, reglage, '2027-06-29T19:00')).toBeNull();
 	});
 
 	it('une plage impossible est signalée', async () => {
@@ -230,7 +238,7 @@ describe('été : proposer, ajuster, publier', () => {
 
 	it('un agent en vacances présent sur une plage (vacances données après la proposition) est signalé ; ?plage= sans proposition ne détaille rien', async () => {
 		const { base, chef, p, a } = await jeu();
-		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage, LUN)).detail).toBeNull();
+		expect(await plageAPreparer(base, chef, 2027, maintenant, reglage, LUN)).toBeNull();
 		await proposerEte(base, chef, 2027, maintenant, reglage);
 		await ajouterMesVacances(base, a(p.eva), 2027, { debut: '2027-06-29', fin: '2027-06-29' }, maintenant);
 		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).conflits).toEqual(['nuit du mardi 29 juin : Eva Test est en vacances, mais présent']);

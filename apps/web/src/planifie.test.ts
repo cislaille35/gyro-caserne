@@ -41,24 +41,43 @@ describe('avecPlanifie', () => {
 		expect(envoyerLot).not.toHaveBeenCalled();
 	});
 
-	it('chaque minute : un lot d’envois au téléphone, avec les clés VAPID du centre (nulles sans secrets)', async () => {
-		await lancer('* * * * *', '2026-10-29T10:01:00Z');
+	it('à chaque réveil (toutes les cinq minutes) : un lot d’envois au téléphone, filet des envois ratés, avec les clés VAPID du centre (nulles sans secrets)', async () => {
+		await lancer('*/5 * * * *', '2026-10-29T10:05:00Z');
 		expect(envoyerLot).toHaveBeenCalledOnce();
 		expect(vi.mocked(envoyerLot).mock.calls[0]![1]).toBeNull();
 		expect(effacerAnciens).not.toHaveBeenCalled();
 	});
 
+	it('le lot part après le reste du réveil : les annonces de 8 h et les relances partent au téléphone tout de suite', async () => {
+		const ordre: string[] = [];
+		const plusTard = (quoi: string) => async () => {
+			await new Promise((r) => setTimeout(r, 5));
+			ordre.push(quoi);
+			return { publiees: 0, relances: 0, expirees: 0 };
+		};
+		vi.mocked(planningDuMatin).mockImplementationOnce(plusTard('planning') as never);
+		vi.mocked(remplacementsDuMoment).mockImplementationOnce(plusTard('remplacements') as never);
+		vi.mocked(envoyerLot).mockImplementationOnce(async () => (ordre.push('envoi'), { envoyes: 0, perimes: 0 }));
+		const attendus: Promise<unknown>[] = [];
+		const worker = avecPlanifie({ fetch: vi.fn() }, { conservationMessagesMois: 6, position: { latitude: 48.1, longitude: -1.7 } });
+		worker.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.parse('2026-11-15T07:00:00Z') } as never, { BASE: {}, PHOTOS: {} } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
+		await Promise.all(attendus);
+		expect(ordre).toHaveLength(3);
+		expect(ordre.at(-1)).toBe('envoi');
+	});
+
 	it('le matin, à 8 h et 8 h 10 à Paris : les manœuvres du planning (annonces et relances), pas la nuit', async () => {
-		await lancer('* * * * *', '2026-11-15T07:00:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T07:00:00Z');
 		expect(planningDuMatin).toHaveBeenCalledOnce();
 		expect(vi.mocked(planningDuMatin).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
 		// Les rappels des vacances d'été partent avec.
 		expect(vi.mocked(rappelsEte).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
-		await lancer('* * * * *', '2026-11-15T07:10:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T07:10:00Z');
 		expect(planningDuMatin).toHaveBeenCalledOnce();
 		expect(envoyerLot).toHaveBeenCalledOnce();
-		for (const quand of ['2026-11-15T07:05:00Z', '2026-11-15T06:59:00Z', '2026-07-15T07:00:00Z']) {
-			await lancer('* * * * *', quand);
+		// Les réveils voisins (8 h 05, 7 h 55) et 8 h l'été (6 h à Greenwich) n'annoncent rien.
+		for (const quand of ['2026-11-15T07:05:00Z', '2026-11-15T06:55:00Z', '2026-07-15T07:00:00Z']) {
+			await lancer('*/5 * * * *', quand);
 			expect(planningDuMatin, quand).not.toHaveBeenCalled();
 		}
 		await lancer('30 3 * * *', '2026-11-15T03:30:00Z');
@@ -66,29 +85,25 @@ describe('avecPlanifie', () => {
 	});
 
 	it('toutes les dix minutes : les remplacements (expirés, relancés la veille)', async () => {
-		await lancer('* * * * *', '2026-11-15T09:20:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T09:20:00Z');
 		expect(remplacementsDuMoment).toHaveBeenCalledOnce();
 		expect(vi.mocked(remplacementsDuMoment).mock.calls[0]![1]).toBe('2026-11-15T10:20:00');
-		await lancer('* * * * *', '2026-11-15T09:21:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T09:25:00Z');
 		expect(remplacementsDuMoment).not.toHaveBeenCalled();
 	});
 
-	it('toutes les cinq minutes (à 0 et à 5) : la météo et la vigilance du centre (clé facultative)', async () => {
-		await lancer('* * * * *', '2026-11-15T09:25:00Z', { VIGILANCE_CLE: 'cle-fictive' });
+	it('à chaque réveil : la météo et la vigilance du centre (clé facultative)', async () => {
+		await lancer('*/5 * * * *', '2026-11-15T09:25:00Z', { VIGILANCE_CLE: 'cle-fictive' });
 		expect(mettreAJourReleves).toHaveBeenCalledOnce();
 		const [, lieu, maintenant, recuperer, cle] = vi.mocked(mettreAJourReleves).mock.calls[0]!;
 		expect(lieu).toEqual({ position: { latitude: 48.1, longitude: -1.7 }, departement: '35' });
 		expect(maintenant).toBe('2026-11-15T10:25');
 		expect(typeof recuperer).toBe('function');
 		expect(cle).toBe('cle-fictive');
-		await lancer('* * * * *', '2026-11-15T09:25:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T09:25:00Z');
 		expect(vi.mocked(mettreAJourReleves).mock.calls[0]![4]).toBeUndefined();
-		await lancer('* * * * *', '2026-11-15T09:30:00Z');
+		await lancer('*/5 * * * *', '2026-11-15T09:30:00Z');
 		expect(mettreAJourReleves).toHaveBeenCalledOnce();
-		for (const quand of ['2026-11-15T09:26:00Z', '2026-11-15T09:29:00Z']) {
-			await lancer('* * * * *', quand);
-			expect(mettreAJourReleves, quand).not.toHaveBeenCalled();
-		}
 		await lancer('30 3 * * *', '2026-11-15T03:35:00Z');
 		expect(mettreAJourReleves).not.toHaveBeenCalled();
 	});

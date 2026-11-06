@@ -18,8 +18,9 @@ type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: st
 
 // Les notifications du fil sont gardées 30 jours.
 const CONSERVATION_NOTIFICATIONS_JOURS = 30;
-// Le ménage, chaque nuit ; les autres déclenchements (chaque minute) envoient les notifications au téléphone. Voir wrangler.jsonc.
+// Le ménage, chaque nuit ; le réveil, toutes les cinq minutes. Voir wrangler.jsonc.
 export const CRON_NUIT = '30 3 * * *';
+export const CRON_REVEIL = '*/5 * * * *';
 
 // Le worker de SvelteKit, plus le gestionnaire planifié.
 export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; position: { latitude: number; longitude: number }; departement?: string }) {
@@ -28,22 +29,23 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
 			const base = creerBaseD1(env.BASE);
 			if (controleur.cron !== CRON_NUIT) {
-				ctx.waitUntil(envoyerLot(base, clesVapid(env)));
+				const taches: Promise<unknown>[] = [];
+				// L'heure prévue du réveil (même s'il part en retard) : 8 h 00, 8 h 05…
+				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
 				// Les manœuvres du planning s'annoncent le matin, pas en pleine nuit : à 8 h (Paris), et à 8 h 10 si le passage de 8 h a manqué.
 				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
-				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
 				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) {
-					ctx.waitUntil(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
+					taches.push(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
 					// Les rappels des vacances d'été : chacun n'est envoyé qu'une fois.
-					ctx.waitUntil(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', e)));
+					taches.push(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', e)));
 				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes.
-				if (maintenant[15] === '0') ctx.waitUntil(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
-				// (Les remplacements ci-dessus : toutes les dix minutes.) La météo et la vigilance : regardées toutes les cinq minutes (à 0 et 5), redemandées si elles ont plus d'une heure (météo) ou de 15 minutes (vigilance).
-				if (maintenant[15] === '0' || maintenant[15] === '5') {
-					const lieu = { position: centre.position, departement: centre.departement };
-					ctx.waitUntil(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
-				}
+				if (maintenant[15] === '0') taches.push(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
+				// La météo et la vigilance : regardées à chaque réveil, redemandées si elles ont plus d'une heure (météo) ou de 15 minutes (vigilance).
+				const lieu = { position: centre.position, departement: centre.departement };
+				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
+				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
+				ctx.waitUntil(Promise.allSettled(taches).then(() => envoyerLot(base, clesVapid(env))));
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);
