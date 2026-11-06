@@ -322,7 +322,8 @@
 
 	/* Sondage */
 	.sondage {
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -417,7 +418,7 @@
 	}
 	.publier {
 		min-height: 52px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		border: 2px solid var(--encre);
 		background: var(--rouge);
 		color: var(--sur-rouge);

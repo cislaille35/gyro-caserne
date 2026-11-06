@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { avecGroupe } from './astreinte.ts';
+	import { encreSur } from '../couleurs.ts';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import type { EquipePlanning, SemaineCalculee } from '@gyro-caserne/socle';
 	import { jourLong, moisDeLAnnee } from './dates.ts';
 	import { grilleDuMois, reperesDeLaGrille, SIGNES, type Donnees, type Mode, type Repere } from './vues.ts';
 
-	// Le mois en bandes : par semaine d'astreinte, une bande à la couleur de son équipe (numéro et équipe écrits) au-dessus de ses sept jours.
+	// Le mois dans une carte : par semaine d'astreinte, le repère de son équipe (carré de couleur, nom écrit à l'encre, numéro) au-dessus de ses sept jours.
+	// « Ma semaine » en à-plat de la couleur de l'équipe, le texte en noir ou en blanc selon elle, et « Mon astreinte » écrit.
 	// Toucher un jour ouvre la semaine sur ce jour.
 	let {
 		mois,
@@ -58,6 +60,7 @@
 	</div>
 
 	{#if lignes.length}
+		<div class="carte">
 		<table>
 			<caption class="masque">{moisDeLAnnee[mois - 1]} {donnees.annee}, une bande par semaine d’astreinte au-dessus de ses jours</caption>
 			<thead>
@@ -68,12 +71,13 @@
 			{#each lignes as l (l.semaine.debut)}
 				{@const e = avecGroupe(equipe(l.semaine.equipeId), l.semaine)}
 				{@const mienne = mode === 'moi' && l.semaine.mienne}
-				<tbody style:--equipe={e.couleur} class:mienne>
+				<tbody style:--equipe={e.couleur} style:--sur-equipe={mienne ? encreSur(e.couleur) : undefined} class:mienne>
 					<tr>
 						<th scope="rowgroup" colspan="7">
 							<span class="bande">
-								<span class="numero">S{l.semaine.numero}</span>
+								<span class="carre" aria-hidden="true"></span>
 								<span class="equipe">{e.nom}</span>
+								<span class="numero">S{l.semaine.numero}</span>
 								{#if mienne}<span class="marque">Mon astreinte</span>{/if}
 							</span>
 						</th>
@@ -96,6 +100,7 @@
 				</tbody>
 			{/each}
 		</table>
+		</div>
 	{/if}
 
 	{#if reperes.length}
@@ -132,7 +137,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-size: 1.5rem;
@@ -152,59 +157,88 @@
 		font-weight: 600;
 		text-transform: capitalize;
 	}
-	/* La bande de la semaine, sur toute la largeur : les sept cases gardent au moins 44 px au téléphone. */
+	.carte {
+		padding: 4px 6px 6px;
+		border: 1px solid transparent;
+		border-radius: var(--rayon-grand);
+		background: var(--surface);
+		box-shadow: var(--ombre-carte);
+	}
+	/* Le repère de la semaine, sur toute la largeur : les sept cases gardent au moins 44 px au téléphone. */
 	th[scope='rowgroup'] {
-		padding: 8px 0 0;
+		padding: 0;
 		text-align: left;
+	}
+	tbody + tbody th[scope='rowgroup'] {
+		border-top: 1px solid var(--trait-doux);
 	}
 	.bande {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		flex-wrap: wrap;
 		gap: 2px 8px;
-		padding: 4px 10px 4px 14px;
-		box-shadow: inset 6px 0 0 var(--equipe);
-		border-radius: 10px 10px 0 0;
-		background: color-mix(in srgb, var(--equipe) 22%, var(--surface));
+		padding: 8px 8px 2px;
 		line-height: 1.2;
 	}
-	.numero {
-		font-size: 0.75rem;
-		font-weight: 400;
-		/* L'encre, seule couleur lisible sur toutes les bandes (le doux tombe sous 4,5:1 sur « ma semaine », en sombre). */
-		color: var(--encre);
-		font-variant-numeric: tabular-nums;
+	/* Le carré de couleur, décoratif : le nom de l'équipe est écrit à côté, à l'encre. */
+	.carre {
+		flex: none;
+		width: 14px;
+		height: 14px;
+		border-radius: 4px;
+		background: var(--equipe);
 	}
 	.equipe {
-		font-size: 0.875rem;
-		font-weight: 700;
+		font: 700 0.9375rem var(--police-titre);
+		color: var(--encre);
+	}
+	.numero {
+		font-size: 0.8125rem;
+		font-weight: 400;
+		color: var(--doux);
+		font-variant-numeric: tabular-nums;
 	}
 	.marque {
-		align-self: center;
-		padding: 0 6px;
-		border-radius: 999px;
-		background: var(--encre);
-		color: var(--surface);
-		font-size: 0.6875rem;
-		font-weight: 700;
+		margin-left: auto;
+		font: 700 0.875rem var(--police-titre);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 	}
 	td {
 		padding: 0;
-		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
-		border-bottom: 1px solid color-mix(in srgb, var(--equipe) 40%, transparent);
 	}
-	/* La barre de l'équipe en ombre intérieure : elle ne prend pas de largeur aux cases (44 px à 360 px). */
-	td:first-child {
-		box-shadow: inset 6px 0 0 var(--equipe);
-		border-radius: 0 0 0 10px;
+	/* « Ma semaine » : un à-plat de la couleur de l'équipe ; tout y est écrit (et le repère du clavier) dans l'encre choisie pour elle. */
+	.mienne {
+		--focus: var(--sur-equipe);
 	}
-	td:last-child {
-		border-right: 1px solid color-mix(in srgb, var(--equipe) 40%, transparent);
-		border-radius: 0 0 10px 0;
+	.mienne th,
+	.mienne td {
+		background: var(--equipe);
 	}
-	.mienne td,
-	.mienne .bande {
-		background: color-mix(in srgb, var(--equipe) 30%, var(--surface));
+	.mienne th[scope='rowgroup'] {
+		border-top: 0;
+		border-radius: 12px 12px 0 0;
+	}
+	.mienne td:first-child {
+		border-radius: 0 0 0 12px;
+	}
+	.mienne td:last-child {
+		border-radius: 0 0 12px 0;
+	}
+	.mienne .carre {
+		display: none;
+	}
+	.mienne .equipe,
+	.mienne .numero,
+	.mienne .marque,
+	.mienne td a,
+	.mienne .signes span {
+		color: var(--sur-equipe);
+	}
+	/* Le repère du clavier reste sur l'à-plat, où son encre se voit. */
+	.mienne td a {
+		font-weight: 600;
+		outline-offset: -3px;
 	}
 	td a {
 		min-height: var(--cible);
@@ -223,15 +257,17 @@
 	.hors a {
 		color: var(--doux);
 	}
-	.mienne .hors a {
-		color: var(--encre);
-	}
 	.hors .jour {
 		font-size: 0.8125rem;
 	}
+	.mienne .aujourdhui .jour {
+		background: var(--sur-equipe);
+		color: var(--equipe);
+	}
 	.aujourdhui .jour {
-		min-width: 26px;
-		border-radius: 999px;
+		min-width: 30px;
+		padding: 2px 0;
+		border-radius: 8px;
 		background: var(--encre);
 		color: var(--surface);
 		font-weight: 700;

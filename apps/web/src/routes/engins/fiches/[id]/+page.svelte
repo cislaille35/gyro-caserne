@@ -241,7 +241,7 @@
 		gap: 6px;
 		min-height: var(--cible);
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 0.9375rem var(--police);
@@ -269,7 +269,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
@@ -336,7 +336,8 @@
 		gap: 8px;
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.succes,

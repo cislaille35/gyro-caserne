@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createRawSnippet, type Component } from 'svelte';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
@@ -407,9 +407,19 @@ describe('EnTetePage', () => {
 		expect(page).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Retour : <\/span>Moi<\/a>/);
 		expect(page.indexOf('href="/moi"')).toBeLessThan(page.indexOf('<h1'));
 	});
-	it('Gyro seulement sur demande et selon le niveau', () => {
-		expect(net(EnTetePage, { titre: 'Planning', gyro: true })).toContain('class="mascotte');
-		expect(net(EnTetePage, { titre: 'Planning' })).not.toContain('class="mascotte');
+	it('la tête (Gyro de l’Accueil) se pose à droite du titre', () => {
+		const page = net(EnTetePage, { titre: 'Bonjour', tete: contenu });
+		expect(page.indexOf('<h1')).toBeLessThan(page.indexOf('<span>Contenu</span>'));
+		expect(page).not.toContain('mascotte');
+	});
+	it('pas de Gyro dans les titres ordinaires : il reste à l’Accueil, dans les écrans vides et les réussites', () => {
+		const source = readFileSync(new URL('./EnTetePage.svelte', import.meta.url), 'utf8');
+		expect(source).not.toMatch(/GyroDuMoment|gyro\?:/);
+		const racine = new URL('../../routes/', import.meta.url);
+		const pages = (readdirSync(racine, { recursive: true }) as string[]).filter((p) => p.endsWith('.svelte'));
+		for (const p of pages) {
+			for (const m of readFileSync(new URL(p, racine), 'utf8').matchAll(/<EnTetePage\b[^>]*?\/?>/g)) expect(m[0], p).not.toMatch(/\sgyro\b/);
+		}
 	});
 	it('une action secondaire à côté', () => {
 		expect(net(EnTetePage, { titre: 'Agents', secondaire: contenu })).toContain('<span>Contenu</span>');

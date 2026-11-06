@@ -17,7 +17,7 @@
 		gap: 2px;
 		margin: -6px 0 -4px -6px;
 		padding: 0 10px 0 4px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		color: var(--doux);
 		font-weight: 600;
 		text-decoration: none;

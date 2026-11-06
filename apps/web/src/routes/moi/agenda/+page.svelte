@@ -118,7 +118,8 @@
 		flex-direction: column;
 		gap: 12px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}

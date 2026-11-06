@@ -298,8 +298,9 @@
 		gap: 10px;
 		padding: 12px 14px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 	}
 	/* Icône, nom, « Nommer » ; les titulaires dessous, dans l'ordre du code (lecteurs d'écran, clavier). */
 	.tete {
@@ -323,7 +324,7 @@
 		min-height: var(--cible);
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 1rem var(--police);

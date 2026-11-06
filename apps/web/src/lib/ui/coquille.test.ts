@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
@@ -102,6 +103,36 @@ describe('Coquille', () => {
 
 	it('affiche le nom du centre', () => {
 		expect(html('/')).toContain('CIS Test');
+	});
+
+	const source = readFileSync(new URL('./Coquille.svelte', import.meta.url), 'utf8');
+	const regle = (selecteur: string) => source.match(new RegExp(`\\n\\t*${selecteur.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+
+	it('la bande de marquage sous l’en-tête : décorative, en jetons, masquée avec l’en-tête dans une conversation', () => {
+		const page = html('/');
+		expect(page).toMatch(/<\/header>\s*<div class="marquage[^"]*" aria-hidden="true"><\/div>/);
+		expect(regle('.marquage')).toMatch(/height: 4px/);
+		expect(regle('.marquage')).toMatch(/background: var\(--marquage\)/);
+		expect(source).toMatch(/\.conversation header,\s*\.conversation \.marquage,\s*\.conversation nav \{\s*display: none;/);
+		// Sans connexion aussi : la marque de l'appli.
+		expect(html('/connexion', false)).toContain('class="marquage ');
+	});
+
+	it('l’en-tête anthracite : « Gyro Caserne » en condensé, cloche et visage en carrés arrondis de 44 px, repère du clavier clair', () => {
+		expect(regle('header')).toMatch(/background: var\(--entete-fond\)/);
+		expect(regle('header')).toMatch(/color: var\(--entete-texte\)/);
+		expect(regle('header')).toMatch(/--focus: var\(--entete-focus\)/);
+		expect(regle('.appli')).toMatch(/var\(--police-titre\)/);
+		expect(regle('.centre')).toMatch(/color: var\(--entete-doux\)/);
+		expect(regle('.rond')).toMatch(/width: var\(--cible\)[\s\S]*border-radius: 12px[\s\S]*background: var\(--entete-bouton\)/);
+		expect(source).toMatch(/header :global\(\.visage\) \{[^}]*border-radius: 12px/);
+		expect(html('/')).toMatch(/<span class="appli[^"]*">Gyro Caserne<\/span>/);
+	});
+
+	it('à l’ordinateur, l’en-tête et sa bande prennent toute la largeur, le menu dessous à gauche', () => {
+		expect(source).toMatch(/'entete entete'\s*'marquage marquage'\s*'menu contenu'/);
+		expect(source).toMatch(/background: var\(--menu-fond\)/);
+		expect(source).toMatch(/nav a\[aria-current='page'\] \{[^}]*background: var\(--menu-actif\)[^}]*font-weight: 700/);
 	});
 });
 

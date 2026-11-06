@@ -5,7 +5,7 @@
 	const nonLusEnTexte = $derived(`${nonLus} ${nonLus > 1 ? 'messages non lus' : 'message non lu'}`);
 </script>
 
-<nav class="filtres" aria-label="Filtrer les échanges">
+<nav class="segments filtres" aria-label="Filtrer les échanges">
 	<a href="/echanges" aria-current={actif === 'murs' ? 'page' : undefined}>Murs</a>
 	<a href="/echanges/messages" aria-current={actif === 'messages' ? 'page' : undefined}
 		>Messages{#if nonLus > 0}
@@ -14,32 +14,6 @@
 </nav>
 
 <style>
-	.filtres {
-		display: flex;
-		gap: 8px;
-	}
-	a {
-		min-height: var(--cible);
-		padding: 0 18px;
-		border-radius: 999px;
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		border: 1px solid var(--trait-doux);
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	a:hover {
-		border-color: var(--trait);
-		color: var(--encre);
-	}
-	a[aria-current='page'] {
-		border-color: var(--encre);
-		background: var(--encre);
-		color: var(--surface);
-	}
 	.nombre {
 		min-width: 20px;
 		height: 20px;

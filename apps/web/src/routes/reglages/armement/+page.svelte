@@ -130,7 +130,8 @@
 		padding: 0;
 		list-style: none;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.rangees li {
@@ -159,7 +160,7 @@
 		align-items: center;
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -168,7 +169,8 @@
 	.repli {
 		padding: 0 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.repli summary {
@@ -240,7 +242,7 @@
 	.pas {
 		width: var(--cible);
 		height: var(--cible);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);

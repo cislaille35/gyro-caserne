@@ -293,7 +293,8 @@
 	.tete,
 	.carte {
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.tete {
@@ -326,7 +327,7 @@
 		min-height: var(--cible);
 		padding: 0 18px;
 		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		color: var(--encre);
@@ -526,7 +527,7 @@
 	.choix button {
 		min-height: var(--cible);
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		font: inherit;

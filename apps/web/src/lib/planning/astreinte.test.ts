@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { periodesDeLaSemaine, feries } from '@gyro-caserne/socle';
 import centre from '$centre';
-import { phraseAstreinte } from './astreinte.ts';
+import { bornesAstreinte, phraseAstreinte } from './astreinte.ts';
 
 const f = new Set(feries(2026).map((x) => x.date));
 const semaine = (debut: string) => {
@@ -35,5 +35,12 @@ describe('phrase de la carte astreinte', () => {
 
 	it('sans équipe : l’équipe de la semaine', () => {
 		expect(phraseAstreinte(a('2026-11-20', { enCours: true, mienne: false }), '2026-11-24T14:00').titre).toBe('Cette semaine : Équipe 3 d’astreinte');
+	});
+});
+
+describe('bornes de la plaque d’astreinte', () => {
+	it('le début et la fin, courts, avec l’heure de la relève du centre', () => {
+		expect(bornesAstreinte(a('2026-11-20'))).toEqual({ debut: 'ven. 20 nov. 18 h', fin: 'ven. 27 nov. 6 h' });
+		expect(bornesAstreinte(a('2026-10-30'))).toEqual({ debut: 'ven. 30 oct. 18 h', fin: 'ven. 6 nov. 6 h' });
 	});
 });

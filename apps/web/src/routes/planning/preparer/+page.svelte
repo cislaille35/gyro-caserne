@@ -418,7 +418,7 @@
 		align-items: center;
 		padding: 0 18px;
 		border: 1px solid var(--trait-doux);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -437,7 +437,8 @@
 		justify-content: space-between;
 		gap: 12px 16px;
 		padding: 14px 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -528,7 +529,8 @@
 		flex-direction: column;
 		gap: 14px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -580,7 +582,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		cursor: pointer;
@@ -697,7 +699,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
 		font: 600 0.9375rem var(--police);
@@ -708,7 +710,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
@@ -794,7 +796,7 @@
 		align-items: center;
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;

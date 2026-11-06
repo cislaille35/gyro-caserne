@@ -44,8 +44,6 @@
 	<EnTetePage
 		titre="Signaler un problème"
 		phrase={nomChoisi ? `Sur ${nomChoisi}. L’engin reste disponible : le référent engins et les chefs sont prévenus et décident.` : 'L’engin reste disponible : le référent engins et les chefs sont prévenus et décident.'}
-		gyro
-		tenue="anomalie"
 		retour={data.enginId !== null && nomChoisi ? { href: `/engins/${data.enginId}`, libelle: nomChoisi } : { href: '/engins/anomalies', libelle: 'Anomalies' }}
 	/>
 
@@ -85,7 +83,8 @@
 		margin: 0;
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.champ {

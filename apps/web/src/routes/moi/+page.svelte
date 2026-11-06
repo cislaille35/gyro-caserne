@@ -89,11 +89,13 @@
 		align-items: center;
 		gap: 14px;
 		padding: 18px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
+		border: 1px solid transparent;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		/* Un liseré à la couleur de l'équipe, quand il y en a une. */
-		box-shadow: inset 0 4px 0 var(--teinte, transparent);
+		box-shadow:
+			inset 0 4px 0 var(--teinte, transparent),
+			var(--ombre-carte);
 	}
 	.qui {
 		min-width: 0;
@@ -122,7 +124,7 @@
 		gap: 8px;
 		padding: 0 16px;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
 		font: 600 1rem var(--police);

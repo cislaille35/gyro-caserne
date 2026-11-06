@@ -31,7 +31,8 @@
 		gap: 6px;
 		padding: 14px 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		overflow-wrap: anywhere;
 	}
