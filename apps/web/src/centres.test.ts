@@ -3,6 +3,7 @@ import { erreursCentre, type Centre } from '@gyro-caserne/centre';
 import { unstable_readConfig } from 'wrangler';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { CRON_NUIT, CRON_REVEIL } from './planifie.ts';
 
 // Tous les centres décrits dans le dépôt, pas seulement celui de la compilation en cours
 const fichiers = import.meta.glob<{ default: Centre }>('../../../centres/*/centre.ts');
@@ -18,10 +19,6 @@ describe('centres du dépôt', () => {
 		expect(Object.keys(fichiers).length).toBeGreaterThan(0);
 	});
 
-	it('centres/exemple fait son ménage chaque nuit, à 3 h 30 (UTC), et envoie les notifications chaque minute', () => {
-		expect(configCloudflare('../../../centres/exemple/centre.ts').config.triggers.crons).toEqual(['30 3 * * *', '* * * * *']);
-	});
-
 	for (const [chemin, charger] of Object.entries(fichiers)) {
 		const dossier = chemin.split('/').at(-2);
 
@@ -29,6 +26,11 @@ describe('centres du dépôt', () => {
 			const { default: centre } = await charger();
 			expect(erreursCentre(centre)).toEqual([]);
 			expect(centre.id).toBe(dossier);
+		});
+
+		it(`${dossier} fait son ménage chaque nuit, à 3 h 30 (UTC), et se réveille toutes les cinq minutes`, () => {
+			expect(configCloudflare(chemin).config.triggers.crons).toEqual([CRON_NUIT, CRON_REVEIL]);
+			expect(CRON_REVEIL).toBe('*/5 * * * *');
 		});
 
 		it(`${dossier} a sa config Cloudflare, qui déploie l'appli sous son propre nom`, () => {

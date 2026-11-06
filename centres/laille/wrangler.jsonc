@@ -7,8 +7,8 @@
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
-	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; chaque minute, les notifications en file partent au téléphone.
-	"triggers": { "crons": ["30 3 * * *", "* * * * *"] },
+	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les cinq minutes, les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
+	"triggers": { "crons": ["30 3 * * *", "*/5 * * * *"] },
 	// database_id : remplissage, le vrai identifiant sera posé avec le déploiement.
 	"d1_databases": [
 		{
