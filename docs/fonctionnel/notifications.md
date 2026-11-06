@@ -22,7 +22,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 - La notification dit le lieu et l'auteur (« Équipe 2 · Élodie Martin », « Message de Romain », « Départ de Thomas · Manon ») et le début du texte. Pas de photo.
 - La toucher ouvre la publication ou la conversation, et la marque lue.
 - Plusieurs messages d'une même conversation se remplacent : une seule notification par conversation à l'écran.
-- Délai : moins d'une minute jusqu'à une quarantaine de téléphones ; un peu plus pour « Le centre » quand il y a beaucoup d'abonnés (une minute par tranche de 40).
+- Délai : tout de suite (quelques secondes) jusqu'à 20 téléphones ; au-delà, le reste dans les cinq minutes, puis cinq minutes de plus par tranche de 40 (« Le centre » avec 100 appareils : 20 tout de suite, le reste en 10 minutes au plus). Une notification qui n'a pas pu partir est rattrapée dans les cinq minutes.
 
 ## Couper
 
