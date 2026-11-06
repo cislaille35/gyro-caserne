@@ -1,19 +1,18 @@
 import centre from '$centre';
-import { ajusterPlage, eteAPreparer, proposerEte, publierEte, reglerEte, relancerEte } from '@gyro-caserne/socle';
-import { etapeEteDe } from '#lib/planning/ete.ts';
+import { ajusterPlage, plageAPreparer, proposerEte, publierEte, reglerEte, relancerEte } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { champ, echecPlanning } from '#lib/server/formulaire-planning.ts';
 import { anneeDe, connecte, ouRefus } from '#lib/server/planning.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-// L'été de l'année (?annee=), à l'étape ?etape= ; ?plage= ouvre une plage pour y ajouter ou retirer un agent ;
+// Par-dessus l'été (+layout.server.ts) : ?plage= ouvre une plage pour y ajouter ou retirer un agent, calculée seule ;
 // ?panneau= ouvre la période ou la confirmation de « Recalculer ».
 export const load: PageServerLoad = async ({ locals, url }) => {
-	const { acteur, base } = connecte(locals);
-	const annee = anneeDe(url);
-	const ete = await ouRefus(eteAPreparer(base, acteur, annee, maintenantParis(), centre.astreinte, url.searchParams.get('plage')), 'L’été est réservé à qui gère le planning du centre.');
+	const plage = url.searchParams.get('plage');
 	const panneau = url.searchParams.get('panneau');
-	return { ete, etape: etapeEteDe(url, ete), panneau: panneau === 'periode' || panneau === 'recalculer' ? panneau : null };
+	const { acteur, base } = connecte(locals);
+	const detail = plage ? await ouRefus(plageAPreparer(base, acteur, anneeDe(url), maintenantParis(), centre.astreinte, plage), 'L’été est réservé à qui gère le planning du centre.') : null;
+	return { detail, panneau: panneau === 'periode' || panneau === 'recalculer' ? panneau : null };
 };
 
 async function agir(locals: App.Locals, cible: string, succes: string, faire: (m: string) => Promise<unknown>) {

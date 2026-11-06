@@ -42,6 +42,7 @@ import { load as demandeRemplacementPage } from './remplacements/[id]/+page.serv
 import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
 import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
 import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
+import { load as eteDeLAnnee } from './planning/ete/+layout.server';
 import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
 import { load as mesVacancesPage } from './moi/vacances/+page.server';
 import { load as reglagesArmement } from './reglages/armement/+page.server';
@@ -185,6 +186,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			const n = await compter(async () => {
 				expect(await (actionsEte as any)[nom]({ locals, url, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
 				await (racine as any)({ locals });
+				await (eteDeLAnnee as any)({ locals, url });
 				await (pageEte as any)({ locals, url });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
@@ -215,7 +217,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const n = await compter(async () => {
 			expect(await (actionsEte as any).ajuster({ locals, url: ouverte, request: await requeteFormulaire([['debut', premiere!.debut], ['personne', String(agent.id)], ['present', 'oui']]) })).toMatchObject({ succes: expect.any(String) });
 			await (racine as any)({ locals });
-			expect((await (pageEte as any)({ locals, url: ouverte })).ete.detail).not.toBeNull();
+			await (eteDeLAnnee as any)({ locals, url: ouverte });
+			expect((await (pageEte as any)({ locals, url: ouverte })).detail).not.toBeNull();
 		});
 		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
@@ -249,7 +252,9 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const l of [locals, deLAgent]) {
 			const n = await compter(async () => {
 				await (racine as any)({ locals: l });
-				expect((await (accueil as any)({ locals: l, url: new URL('http://localhost/') })).astreinte).not.toBeNull();
+				const { astreinte } = await (accueil as any)({ locals: l, url: new URL('http://localhost/') });
+				// Le chef, sans équipe, n'a pas de carte entre deux semaines (le jour de la relève, en journée) : seul l'agent en a toujours une.
+				if (l === deLAgent) expect(astreinte).not.toBeNull();
 			});
 			expect(n, 'accueil').toBeLessThanOrEqual(BUDGET);
 		}
