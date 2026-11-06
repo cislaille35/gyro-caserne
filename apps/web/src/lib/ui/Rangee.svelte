@@ -79,6 +79,7 @@
 <style>
 	.rangee {
 		position: relative;
+		isolation: isolate;
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
@@ -140,7 +141,7 @@
 		outline: 3px solid var(--focus);
 		outline-offset: -3px;
 	}
-	/* Les gestes de la ligne restent touchables, au-dessus du lien. */
+	/* Les gestes de la ligne restent touchables, au-dessus du lien ; entre eux, le clic va à la ligne. */
 	.inclus {
 		position: relative;
 		z-index: 1;
@@ -148,6 +149,10 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 2px;
+		pointer-events: none;
+	}
+	.inclus > :global(*) {
+		pointer-events: auto;
 	}
 	.sous {
 		color: var(--doux);

@@ -91,7 +91,7 @@
 
 {#if data.signalements.length > 0}
 	<section class="signalements" aria-labelledby="t-signalements">
-		<h2 id="t-signalements" class="rubrique" tabindex="-1">Messages signalés</h2>
+		<h2 id="t-signalements" class="titre-groupe" tabindex="-1">Messages signalés</h2>
 		<p class="doux">Seul le message signalé vous est transmis, jamais le reste de la conversation.</p>
 		<ul class="liste" role="list">
 			{#each data.signalements as s (s.id)}

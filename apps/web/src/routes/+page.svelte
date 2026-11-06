@@ -342,6 +342,7 @@
 		gap: 6px;
 		padding: 8px 4px;
 		color: var(--encre);
+		font-size: 0.9375rem;
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;

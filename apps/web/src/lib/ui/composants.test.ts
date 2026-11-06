@@ -24,6 +24,7 @@ import Visage from './Visage.svelte';
 import EnTetePage from './EnTetePage.svelte';
 import ListeRangees from './ListeRangees.svelte';
 import Rangee from './Rangee.svelte';
+import CarteDemande from '../remplacements/CarteDemande.svelte';
 import Vide from './Vide.svelte';
 import Recherche from './Recherche.svelte';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
@@ -457,6 +458,11 @@ describe('Rangee', () => {
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});
+	it('alerte avec une tuile : le signe d’alerte reste, à droite', () => {
+		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
+		expect(page).toContain('var(--icone-camion-fond)');
+		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
+	});
 	it('alerte avec une tête : le signe d’alerte passe à droite', () => {
 		const page = net(Rangee, { href: '/remplacements/2', titre: 'Remplacement', alerte: true, tete: contenu });
 		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
@@ -474,6 +480,36 @@ describe('Rangee', () => {
 	it('une tête et une droite sur mesure', () => {
 		const page = net(Rangee, { titre: 'Claire', tete: contenu, droite: contenu });
 		expect(page.match(/<span>Contenu<\/span>/g)).toHaveLength(2);
+	});
+});
+
+describe('CarteDemande', () => {
+	const v = {
+		id: 7,
+		genre: 'remplacement',
+		etat: 'attente',
+		moi: 'remplacant',
+		demandeur: { prenom: 'David', nom: 'Leroy' },
+		texte: 'nuit du 18 nov.',
+		remplacant: null,
+		cible: null,
+		manque: [],
+		manquePourMoi: [],
+		gestes: { accepter: true }
+	};
+	it('le titre mène à la demande, étendu à toute la demande ; plus de lien « Détails »', () => {
+		const page = net(CarteDemande, { v, niveau: 2 });
+		expect(page).toMatch(/<h2[^>]*><a class="etire[^"]*" href="\/remplacements\/7">Je remplace David Leroy<span class="masque">[^<]*nuit du 18 nov\.<\/span><\/a><\/h2>/);
+		expect(page).not.toContain('Détails');
+		expect(page).toMatch(/<button type="submit"[^>]*>Accepter/);
+	});
+	it('sur sa page : le titre seul, sans lien', () => {
+		const page = net(CarteDemande, { v, detail: false });
+		expect(page).not.toContain('href="/remplacements/7"');
+	});
+	it('dans une liste : une ligne de la carte, pas une carte', () => {
+		expect(net(CarteDemande, { v, ligne: true })).toMatch(/<article class="carte[^"]*\bligne\b/);
+		expect(net(CarteDemande, { v })).not.toMatch(/<article class="carte[^"]*\bligne\b/);
 	});
 });
 

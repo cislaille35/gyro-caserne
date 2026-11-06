@@ -116,16 +116,17 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.archives {
 		list-style: none;
 		margin: 0;
-		padding: 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
+		padding: 0;
+	}
+	.archives > li + li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	.dissous {
-		padding: 4px 12px;
+		padding: 12px 14px;
 		color: var(--doux);
 	}
 </style>

@@ -23,7 +23,7 @@
 <article class="carte" class:ligne id="demande-{v.id}" aria-labelledby="demande-{v.id}-titre">
 	<div class="haut">
 		<svelte:element this={`h${niveau}`} id="demande-{v.id}-titre" class="titre"
-			>{#if detail}<a class="etire" href="/remplacements/{v.id}">{titreDemande(v)}</a>{:else}{titreDemande(v)}{/if}</svelte:element
+			>{#if detail}<a class="etire" href="/remplacements/{v.id}">{titreDemande(v)}<span class="masque">{` : ${v.texte}`}</span></a>{:else}{titreDemande(v)}{/if}</svelte:element
 		>
 		<Pastille ton={etat.ton}>{etat.libelle}</Pastille>
 	</div>
@@ -90,6 +90,7 @@
 <style>
 	.carte {
 		position: relative;
+		isolation: isolate;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -131,12 +132,14 @@
 		outline-offset: -3px;
 		border-radius: inherit;
 	}
-	/* Les pastilles, liens et gestes restent touchables, au-dessus du lien. */
-	.haut :global(.pastille),
-	.carte :is(a:not(.etire), details),
+	/* Les gestes restent touchables, au-dessus du lien ; entre eux, le clic va à la demande. */
 	.gestes {
 		position: relative;
 		z-index: 1;
+		pointer-events: none;
+	}
+	.gestes > * {
+		pointer-events: auto;
 	}
 	.haut {
 		display: flex;

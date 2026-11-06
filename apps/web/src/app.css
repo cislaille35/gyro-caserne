@@ -300,6 +300,15 @@ body {
 .lignes > li + li {
 	border-top: 1px solid var(--trait-doux);
 }
+/* Le repère du clavier suit l'arrondi de la carte sur la première et la dernière ligne. */
+.lignes > li:first-child > * {
+	border-top-left-radius: var(--rayon-grand);
+	border-top-right-radius: var(--rayon-grand);
+}
+.lignes > li:last-child > * {
+	border-bottom-left-radius: var(--rayon-grand);
+	border-bottom-right-radius: var(--rayon-grand);
+}
 /* Lien secondaire arrondi (« Fichier », « Comité », « Tout afficher ») : un contour, pas la couleur de l'action principale. */
 .lien-secondaire {
 	min-height: 48px;

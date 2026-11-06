@@ -23,7 +23,7 @@ test.describe('remplacements', () => {
 			await page.getByRole('link', { name: 'Mes demandes' }).click();
 			await expect(page.getByRole('heading', { level: 2, name: 'Je remplace David Leroy' })).toBeVisible();
 			await expect(page.getByText('Conclu', { exact: true })).toBeVisible();
-			await page.getByRole('link', { name: 'Je remplace David Leroy' }).click();
+			await page.getByRole('link', { name: /^Je remplace David Leroy/ }).click();
 			await expect(page.getByText(/mettez à jour votre disponibilité dans l’appli du SDIS/)).toBeVisible();
 			await sansViolation(page);
 			// Vue Année : le mois du remplacement peut être replié.

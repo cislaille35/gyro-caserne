@@ -541,7 +541,8 @@
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
-		background: var(--surface);		overflow: hidden;
+		background: var(--surface);
+		overflow: hidden;
 	}
 	.repli summary:focus-visible {
 		outline-offset: -3px;

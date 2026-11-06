@@ -90,10 +90,14 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.liste > li + li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	.pastilles {
 		display: flex;

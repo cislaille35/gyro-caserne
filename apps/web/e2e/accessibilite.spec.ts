@@ -539,6 +539,9 @@ test.describe('accueil au téléphone', () => {
 		await rangee.getByRole('button', { name: 'Incertain' }).click();
 		await expect(rangee.getByRole('button', { name: 'Incertain' })).toHaveAttribute('aria-pressed', 'true');
 		await unSeulRang();
+		// Toute la ligne mène à la publication : un appui sur la sous-ligne l'ouvre.
+		await rangee.locator('.sous').click();
+		await expect(page).toHaveURL(/\/echanges\/[^/]+\/\d+/);
 	});
 });
 
