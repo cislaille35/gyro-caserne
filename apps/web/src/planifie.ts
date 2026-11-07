@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -61,7 +61,9 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerAnciens(base, photos, avant),
 					effacerVieillesPublications(base, photos, publications),
 					effacerVieillesNotifications(base, notifications),
-					effacerVieillesReservations(base, reservations)
+					effacerVieillesReservations(base, reservations),
+					// Les octets de PHOTOS que plus rien ne référence (un effacement raté) : une tranche par nuit.
+					effacerPhotosOrphelines(base, photos, maintenantParis(quand))
 				])
 			);
 		}
