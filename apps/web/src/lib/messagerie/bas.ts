@@ -23,6 +23,10 @@ export function suivreLeBas(fenetre: Fenetre, observer: (rappel: () => void) => 
 			actif = true;
 			y = fenetre.scrollY;
 		},
+		// Un geste qui mène ailleurs que le bas (plus anciens, message cité), même sans défilement.
+		lacher() {
+			actif = false;
+		},
 		arreter() {
 			fenetre.removeEventListener('scroll', defile);
 			couper();

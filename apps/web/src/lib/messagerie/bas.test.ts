@@ -45,6 +45,14 @@ describe('suivreLeBas', () => {
 		expect(s.descendre).toHaveBeenCalledOnce();
 	});
 
+	it('lâché (plus anciens chargés, saut vers un message cité) : la page qui grandit ne redescend plus', () => {
+		const s = scene();
+		s.suivi.suivre();
+		s.suivi.lacher();
+		s.grandir();
+		expect(s.descendre).not.toHaveBeenCalled();
+	});
+
 	it('arrêté : plus d’écoute ni d’observation', () => {
 		const s = scene();
 		s.suivi.arreter();

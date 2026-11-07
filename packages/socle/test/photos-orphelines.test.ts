@@ -51,6 +51,15 @@ describe('ménage des photos orphelines (tâche de nuit)', () => {
 		expect(orpheline).toBeDefined();
 	});
 
+	it('la copie d’un signalement classé ne protège plus sa photo', async () => {
+		const j = await jeu();
+		const moi = (j.alice as { id: number }).id;
+		const [id] = await j.ajouter(1);
+		await j.base.insert(signalementMessage).values({ messageId: null, par: moi, le: VIEILLE, auteur: moi, envoyeLe: VIEILLE, texteCopie: '', photosCopie: JSON.stringify([id]), classeLe: VIEILLE });
+		expect(await effacerPhotosOrphelines(j.base, j.base.photos, NUIT)).toBe(1);
+		expect(await j.restantes()).toEqual([]);
+	});
+
 	it('garde une photo de moins d’un jour, même sans référence : une publication peut être en cours d’envoi', async () => {
 		const j = await jeu();
 		const [recente] = await j.ajouter(1, '2026-11-09T22:00');
@@ -60,19 +69,23 @@ describe('ménage des photos orphelines (tâche de nuit)', () => {
 		expect(ancienne).toBeDefined();
 	});
 
-	it(`examine ${FENETRE_ORPHELINES} identifiants par nuit au plus, une tranche différente chaque nuit ; 4 requêtes au plus, 100 paramètres au plus`, async () => {
+	it(`examine ${FENETRE_ORPHELINES} identifiants par nuit au plus, une tranche d’après le jour ; 4 requêtes au plus, 100 paramètres au plus`, async () => {
 		const j = await jeu();
 		const ids = await j.ajouter(450);
+		// Référencées, aux deux bouts de la deuxième tranche : gardées.
+		const moi = (j.alice as { id: number }).id;
+		await j.base.insert(signalementMessage).values({ messageId: null, par: moi, le: VIEILLE, auteur: moi, envoyeLe: VIEILLE, texteCopie: 'x', photosCopie: JSON.stringify([201, 400]) });
 		j.base.parametresMax = 0;
 		const effacees: number[] = [];
-		for (const nuit of ['2026-11-10T03:30', '2026-11-11T03:30', '2026-11-12T03:30']) {
+		// Trois tranches ; la dernière vidée, il en reste deux : une nuit de plus.
+		for (const nuit of ['2026-11-10T03:30', '2026-11-11T03:30', '2026-11-12T03:30', '2026-11-13T03:30']) {
 			const requetes = j.base.requetes;
 			effacees.push(await effacerPhotosOrphelines(j.base, j.base.photos, nuit));
 			expect(j.base.requetes - requetes).toBeLessThanOrEqual(4);
 		}
-		expect(effacees.every((n) => n > 0 && n <= FENETRE_ORPHELINES)).toBe(true);
-		expect(effacees.reduce((a, b) => a + b)).toBe(ids.length);
-		expect(await j.restantes()).toEqual([]);
+		expect(effacees).toEqual([198, 50, 0, 200]);
+		expect(effacees.reduce((a, b) => a + b)).toBe(ids.length - 2);
+		expect(await j.restantes()).toEqual([201, 400]);
 		expect(j.base.parametresMax).toBeLessThanOrEqual(100);
 	});
 

@@ -10,7 +10,7 @@ export const FENETRE_ORPHELINES = 200;
 
 // Ménage de nuit : efface les octets de PHOTOS que plus rien ne référence dans la base principale (un effacement d'octets
 // qui a échoué laisse des orphelins). Les deux bases sont à part : chaque nuit examine une tranche de 200 identifiants,
-// une autre la nuit suivante (la tranche dépend du jour), et toutes en autant de nuits que de tranches.
+// une autre la nuit suivante (la tranche dépend du jour) : toutes en à peu près autant de nuits que de tranches.
 // Une photo de moins d'un jour est gardée : une publication en cours d'envoi peut ne pas encore la référencer.
 // Références : photos des publications, des messages, des anomalies, des écarts d'une prise de garde (saisie, JSON),
 // copies des signalements non classés (JSON). 4 requêtes au plus. Rend le nombre de photos effacées.

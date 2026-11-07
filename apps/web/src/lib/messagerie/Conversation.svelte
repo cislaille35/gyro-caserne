@@ -156,6 +156,7 @@
 		const premier = messages[0]?.id;
 		if (!premier) return;
 		e.preventDefault();
+		bas?.lacher();
 		try {
 			const r = await fetch(`/echanges/messages/${id}/suite?avant=${premier}`);
 			if (!r.ok) return;
@@ -271,6 +272,7 @@
 	function allerA(cible: number) {
 		const noeud = document.getElementById(`message-${cible}`);
 		if (!noeud) return;
+		bas?.lacher();
 		noeud.scrollIntoView({ block: 'center', behavior: calme() ? 'auto' : 'smooth' });
 		noeud.focus({ preventScroll: true });
 	}
