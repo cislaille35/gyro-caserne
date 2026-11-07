@@ -10,7 +10,7 @@ import { nomActeur } from '../actions/personnes.ts';
 import { STATUTS_AVEC_ACCES } from '../listes.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { chevauche, jourEnLettres, texteTranche, tranchesDe } from '../remplacements/tranches.ts';
-import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, equipe, ete, personne, plageEte, reponseEte, semaineChangee, vacancesAgent } from '../schema.ts';
+import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, avisEte, equipe, ete, personne, plageEte, reponseEte, semaineChangee, vacancesAgent } from '../schema.ts';
 import { equipeLe, exigerAnnee, semainesCalculees } from './annee.ts';
 import { dansLaSemaine, enVacances, heuresDe, lirePlage, type PlageLue } from './plages.ts';
 import type { Periode, Reglage, SemaineCalculee } from './calendrier.ts';
@@ -144,7 +144,9 @@ function vueDe(lu: Lu, fpt: Postes, p: PlageEte): VuePlage & { semaine: string; 
 export async function eteAPreparer(base: Base, acteur: Acteur, annee: number, maintenant: string, reglage: Reglage) {
 	exigerAnnee(annee);
 	const aujourdhui = await exigerGestion(base, acteur, maintenant);
-	const [lu, relance] = await Promise.all([lireEte(base, annee, aujourdhui, reglage), requeteRelance(base, annee, aujourdhui)]);
+	// Ouvrir l'été marque lus les avis qui y mènent (vacances changées), dans le même envoi à la base.
+	const lus = acteur.type === 'personne' ? [base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), sql`${avisEte.url} like '/planning/ete%'`, isNull(avisEte.lueLe)))] : [];
+	const [lu, [relance]] = await Promise.all([lireEte(base, annee, aujourdhui, reglage), base.batch([requeteRelance(base, annee, aujourdhui), ...lus])]);
 	const fpt = enginFpt(lu.fpt);
 	const date = lu.e && lu.e.debut > aujourdhui ? lu.e.debut : aujourdhui;
 	const concernes = agentsDeLete(lu.agents, lu.affectations, date);

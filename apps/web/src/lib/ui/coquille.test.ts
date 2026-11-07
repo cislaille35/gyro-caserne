@@ -25,7 +25,7 @@ describe('Coquille', () => {
 	});
 
 	it('les pages dont l’ouverture marque des notifications lues : la cloche est relue après elles seulement', () => {
-		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/engins/anomalies/[id]', '/reservations/miennes']) expect(marqueDesLues(route), route).toBe(true);
+		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes']) expect(marqueDesLues(route), route).toBe(true);
 		for (const route of ['/', '/planning', '/notifications', '/echanges/messages/[id]', '/engins/[id]', '/reservations', null]) expect(marqueDesLues(route), String(route)).toBe(false);
 	});
 

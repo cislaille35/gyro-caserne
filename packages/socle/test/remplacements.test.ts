@@ -354,6 +354,18 @@ describe('effets d’un remplacement conclu', () => {
 });
 
 describe('cloche, accueil, tâche planifiée, départ', () => {
+	it('ouvrir une demande marque lus ses avis, pour qui l’ouvre seulement', async () => {
+		const { base, alice, bruno } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		const autre = await demanderRemplacement(base, alice, { periodes: [{ debut: '2026-11-10T18:00', fin: '2026-11-11T06:00' }], cibleId: null }, maintenant, reglage);
+		expect((await filDeNotifications(base, bruno, maintenant)).nonLues).toBe(2);
+		await demandeVue(base, bruno, id, maintenant, reglage);
+		const fil = await filDeNotifications(base, bruno, maintenant);
+		expect(fil.nonLues).toBe(1);
+		expect(fil.lignes.find((l) => l.type === 'remplacement' && l.demandeId === autre)).toMatchObject({ lue: false });
+		expect(fil.lignes.find((l) => l.type === 'remplacement' && l.demandeId === id)).toMatchObject({ lue: true });
+	});
+
 	it('la cloche dit l’avis ; le chef compte la demande à valider jusqu’à sa décision ; À décider de sa casquette', async () => {
 		const { base, alice, bruno, elodie, n } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
