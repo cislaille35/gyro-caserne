@@ -36,7 +36,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Les secrets Cloudflare ne sont donnés qu'aux deux étapes qui écrivent en ligne.
+      # Les secrets Cloudflare ne sont donnés qu'aux étapes qui parlent à Cloudflare.
       # Si la mise à jour de la base échoue, l'appli n'est pas déployée.
       - run: pnpm --filter @gyro-caserne/web base-en-ligne
         env:
@@ -66,6 +66,13 @@ jobs:
             | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
         env:
           VIGILANCE_CLE: ${{ secrets.VIGILANCE_CLE }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Contrôle : réglages indispensables sur le Worker (noms seulement, jamais les valeurs) et /connexion qui répond 200.
+      # Lecture seule, aucun courriel envoyé. Voir docs/technique/README.md.
+      - name: Contrôle du déploiement
+        run: pnpm --filter @gyro-caserne/web controle-deploiement
+        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
@@ -124,6 +131,13 @@ jobs:
             | pnpm --filter @gyro-caserne/web exec wrangler secret bulk --config ../../centres/$CENTRE/wrangler.jsonc
         env:
           VIGILANCE_CLE: ${{ secrets.VIGILANCE_CLE }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Contrôle : réglages indispensables sur le Worker (noms seulement, jamais les valeurs) et /connexion qui répond 200.
+      # Lecture seule, aucun courriel envoyé. Voir docs/technique/README.md.
+      - name: Contrôle du déploiement
+        run: pnpm --filter @gyro-caserne/web controle-deploiement
+        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # Journal des mises en production : une fiche par version réellement déployée

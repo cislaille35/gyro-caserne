@@ -79,7 +79,7 @@ describe('adresse en local', () => {
 			writeFileSync(join(dossier, '.dev.vars'), 'BETTER_AUTH_URL=http://localhost:5174\n');
 			const { workerOptions } = unstable_getMiniflareWorkerOptions(join(dossier, 'wrangler.jsonc'));
 			expect(config.vars.BETTER_AUTH_URL).toMatch(/^https:/);
-			expect(workerOptions.bindings?.BETTER_AUTH_URL).toBe('http://localhost:5174');
+			expect((workerOptions.bindings as Record<string, unknown> | undefined)?.BETTER_AUTH_URL).toBe('http://localhost:5174');
 		} finally {
 			rmSync(dossier, { recursive: true, force: true });
 		}
