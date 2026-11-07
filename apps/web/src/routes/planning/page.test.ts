@@ -30,7 +30,7 @@ const publiee = {
 const vides = { miennes: [], pourMoi: [], aValider: [] };
 const page = (data: Record<string, unknown>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	render(Page as any, { props: { data: { maintenant: '2026-11-01T10:00', vue: 'semaine', vueDemandee: false, semaine: '2026-11-06', mois: 11, moisCourant: 11, remplacements: vides, planning: publiee, ...data }, form: null } }).body;
+	render(Page as any, { props: { data: { maintenant: '2026-11-01T10:00', vue: 'semaine', semaine: '2026-11-06', mois: 11, moisCourant: 11, remplacements: vides, planning: publiee, ...data }, form: null } }).body;
 
 describe('onglet Planning', () => {
 	it('non publié : la phrase et un vide soigné ; « Préparer l’année » pour le chef seulement', () => {

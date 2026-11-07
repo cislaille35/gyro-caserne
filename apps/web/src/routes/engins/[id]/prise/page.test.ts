@@ -226,4 +226,12 @@ describe('/engins/[id]/prise', () => {
 		const page = html({ ...d, prise: { ...d.prise, etat: 'validee', valideeLe: '2026-10-30T19:00' } });
 		expect(page).toContain('3 participants, 0 écart, 0 élément retrouvé');
 	});
+
+	it('la prise faite : la pastille dit qui l’a faite et quand, jamais « [object Object] »', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const d = data();
+		const page = html({ ...d, prise: { ...d.prise, etat: 'validee', valideeLe: '2026-10-30T19:00' } });
+		expect(page).not.toContain('[object Object]');
+		expect(page).toMatch(/class="pastille[^"]*"[^>]*>(<!---->)?Prise faite par l’équipe 4, ven\. 19 h/);
+	});
 });

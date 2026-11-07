@@ -16,7 +16,8 @@ export async function preparer({ publiee = true } = {}) {
 export const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhotos: base.photos, acteur });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const charger = (load: unknown, locals: unknown, recherche = '') => (load as any)({ locals, url: new URL(`http://x/planning${recherche}`) });
+export const charger = (load: unknown, locals: unknown, recherche = '', biscuits: Record<string, string> = {}) =>
+	(load as any)({ locals, url: new URL(`http://x/planning${recherche}`), cookies: { get: (nom: string) => biscuits[nom] } });
 
 // Une action comme SvelteKit l'appelle.
 export function envoyer(actions: Record<string, unknown>, nom: string, locals: unknown, corps: [string, string][], recherche = '') {

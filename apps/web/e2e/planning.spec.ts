@@ -196,6 +196,14 @@ test.describe('agent : mon année et mon agenda', () => {
 		// La dernière vue est retenue sur l'appareil.
 		await page.goto('/planning');
 		await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Équipes' })).toHaveAttribute('aria-current', 'page');
+		// Toucher l'onglet Planning, déjà ouvert, deux fois : la vue ne change pas.
+		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' }).click();
+		await expect(page).toHaveURL(/vue=annee/);
+		for (let i = 0; i < 2; i++) {
+			await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Planning' }).click();
+			await expect(page).toHaveURL(/\/planning$/);
+			await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' })).toHaveAttribute('aria-current', 'page');
+		}
 
 		await page.goto('/moi');
 		await page.getByRole('link', { name: /Ajouter à mon agenda/ }).click();
