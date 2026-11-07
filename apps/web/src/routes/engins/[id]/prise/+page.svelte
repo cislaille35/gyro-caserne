@@ -40,8 +40,10 @@
 	const etatZone = (z: ZoneFiche) => {
 		const n = ecartsDe(z.elements);
 		const signales = z.elements.filter((x) => { const o = ouverteSur(x.ref); return o && !s?.retrouves.includes(o.id); }).length;
-		const etat = vue(z.ref) ? (n ? `Complet sauf ${pluriel(n, 'écart')}` : 'Tout est complet') : n ? `À finir · ${pluriel(n, 'écart')}` : z.elements.length ? `${z.elements.length} à voir` : 'À voir';
-		return signales ? `${etat} · ${pluriel(signales, 'signalé')}` : etat;
+		const etat = vue(z.ref) ? [n ? `Complet sauf ${pluriel(n, 'écart')}` : 'Tout est complet'] : n ? ['À finir', pluriel(n, 'écart')] : [z.elements.length ? `${z.elements.length} à voir` : 'À voir'];
+		const infos = signales ? [...etat, pluriel(signales, 'signalé')] : etat;
+		// Deux infos courtes : un point ; trois : des virgules.
+		return infos.join(infos.length > 2 ? ', ' : ' · ');
 	};
 	// Signalés sur des éléments absents de la fiche : ils ne se voient dans aucune zone.
 	const horsFiche = $derived(data.ouvertes.filter((o) => !data.zones.some((z) => z.elements.some((x) => x.ref === o.ref))));
@@ -371,7 +373,7 @@
 							<input type="hidden" name="zone" value={z.ref} />
 							<input type="hidden" name="cible" value="zone:{z.ref}" />
 							{#if vue(z.ref)}
-								<p class="ok">{@render marque()} Complet{n ? ` sauf ${pluriel(n, 'écart')}` : ''}</p>
+								<p class="ok">{@render marque()} {n ? `Complet sauf ${pluriel(n, 'écart')}` : 'Tout est complet'}</p>
 								<button type="submit" class="petit" name="vue" value="0">Revoir la zone<span class="masque">{' '}{z.nom}</span></button>
 							{:else}
 								<Bouton type="submit">{n ? 'Le reste est complet' : 'Tout est complet'}<span class="masque">{' '}: {z.nom}</span></Bouton>
@@ -551,7 +553,7 @@
 	/* Les zones passent à la ligne : on les voit toutes d'un coup, quels que soient leur nombre et leurs noms. */
 	.selecteur ul {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
 		gap: 8px;
 	}
 	.selecteur a {
@@ -626,6 +628,10 @@
 	}
 	.elements li {
 		padding: 3px 6px 3px 14px;
+	}
+	/* Dans la carte, l'encadré et le message gardent leur petit arrondi (pas celui de la carte). */
+	.elements > li > :is(.encadre, .echec) {
+		border-radius: var(--rayon-petit);
 	}
 	.elements li:has(details[open], .encadre) {
 		padding-bottom: 12px;
@@ -781,6 +787,10 @@
 		text-underline-offset: 3px;
 		cursor: pointer;
 		list-style: none;
+	}
+	/* Le repère du clavier reste dans la ligne : la carte rogne ce qui dépasse. */
+	summary:focus-visible {
+		outline-offset: -3px;
 	}
 	summary::-webkit-details-marker {
 		display: none;

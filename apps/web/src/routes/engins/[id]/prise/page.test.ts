@@ -78,7 +78,7 @@ describe('/engins/[id]/prise', () => {
 	it('une zone déjà complète se revoit : « Complet », et le geste s’annule', () => {
 		adresse.url = new URL('http://x/engins/1/prise?zone=1');
 		const page = html(data({ zones: [1] }));
-		expect(page).toMatch(/Radio : essai[\s\S]*?Complet<\/p>[\s\S]*?Revoir la zone/);
+		expect(page).toMatch(/Radio : essai[\s\S]*?Tout est complet<\/p>[\s\S]*?Revoir la zone/);
 	});
 
 	it('un refus ou un écart : on reste sur la zone touchée', () => {
@@ -194,7 +194,7 @@ describe('/engins/[id]/prise', () => {
 		// Avant le premier geste : la plaque, sans participants.
 		const lu = html(lecture());
 		expect(lu).toMatch(/class="compteur[^"]*"><span class="nombre[^"]*">0<span aria-hidden="true"> \/ /);
-		expect(lu).not.toContain('class="bande"');
+		expect(lu).not.toMatch(/class="bande[\s"]/);
 	});
 
 	it('les zones en tuiles : vue en vert avec la coche et « Tout est complet », sauf ses écarts écrits', () => {
@@ -202,6 +202,15 @@ describe('/engins/[id]/prise', () => {
 		const page = html(data({ zones: [1, 2], ecarts: { '20': { genre: 'manquant', manque: 1, note: '', photo: null } } }));
 		expect(page).toMatch(/href="\?zone=1#titre-zone" class="vue[^"]*"[^>]*>[\s\S]*?<svg[\s\S]*?Tout est complet/);
 		expect(page).toMatch(/href="\?zone=2#titre-zone" class="vue[^"]*" aria-current="true"[^>]*>[\s\S]*?Complet sauf 1 écart/);
+	});
+
+	it('l’état d’une zone : trois infos en virgules, deux avec un point', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const ouverte = { id: 3, ref: 20, zone: 'Coffres', libelle: 'Lances', genre: 'abime', manque: null, note: null, photo: null, signaleeLe: '2026-10-23T18:30', signaleePar: 'Mila Clément', etape: 'signalee', motif: null, bloquante: false };
+		const zones2 = [zones[0], { ...zones[1], elements: [...zones[1].elements, { ref: 21, libelle: 'Tricoises', quantite: null }] }];
+		const page = html({ ...data({ ecarts: { '21': { genre: 'manquant', manque: null, note: '', photo: null } } }), zones: zones2, ouvertes: [ouverte] });
+		expect(page).toContain('À finir, 1 écart, 1 signalé');
+		expect(html({ ...data({ ecarts: { '21': { genre: 'manquant', manque: null, note: '', photo: null } } }), zones: zones2 })).toContain('À finir · 1 écart');
 	});
 
 	it('la zone choisie : titre en majuscules espacées avec son nombre d’éléments, la liste dans une seule carte', () => {
