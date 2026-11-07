@@ -17,6 +17,7 @@ import {
 	filDeNotifications,
 	mesNotifications,
 	estCoupe,
+	marquerLue,
 	notifierCommentaire,
 	notifierMessage,
 	notifierPublication,
@@ -24,7 +25,7 @@ import {
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
-import { abonnementPush, affectationEquipe, attribution, coupure, envoiPush, equipe, notification, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, envoiPush, equipe, notification, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-31T10:00';
@@ -280,6 +281,30 @@ describe('le fil et la cloche', () => {
 		await notifierPublication(base, id, maintenant);
 		await supprimerPublication(base, base.photos, acteur(chef), id, maintenant);
 		expect((await filDeNotifications(base, acteur(bruno), maintenant)).lignes).toEqual([]);
+	});
+
+	it('marquerLue : ouvrir une ligne de la cloche la marque lue, quel que soit son genre, pour soi seul, en 1 requête', async () => {
+		const { base, chef, bruno, chloe } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		// L'avis d'été mène au planning, qui ne marque rien : seule la cloche peut le marquer.
+		await base.insert(avisEte).values([bruno, chloe].map((personneId) => ({ personneId, quoi: 'repartition' as const, texte: 'Planning d’été : renfort', url: '/planning', creeLe: maintenant })));
+		await base.insert(avisAnomalie).values({ personneId: chloe, titre: 'Prise de garde · VSAV', texte: '1 anomalie', url: '/engins/anomalies?engin=1', creeLe: maintenant });
+		const nonLues = async (id: number) => (await enTeteDe(base, acteur(id), aujourdhui)).nonLues;
+		expect([await nonLues(bruno), await nonLues(chloe)]).toEqual([2, 3]);
+		const lignes = (await filDeNotifications(base, acteur(chloe), maintenant)).lignes;
+		const avant = base.requetes;
+		for (const l of lignes) await marquerLue(base, acteur(chloe), l.type, l.id, maintenant);
+		expect(base.requetes - avant).toBe(3);
+		expect([await nonLues(bruno), await nonLues(chloe)]).toEqual([2, 0]);
+		// La ligne d'un autre n'est pas touchée, même avec son identifiant.
+		const deBruno = (await filDeNotifications(base, acteur(bruno), maintenant)).lignes.find((l) => l.type === 'ete')!;
+		await marquerLue(base, acteur(chloe), 'ete', deBruno.id, maintenant);
+		expect(await nonLues(bruno)).toBe(2);
+		for (const genre of ['reservation', 'remplacement', 'commentaire']) await marquerLue(base, acteur(chloe), genre, 999, maintenant);
+		await expect(marquerLue(base, acteur(chloe), 'inconnu', 1, maintenant)).rejects.toThrow(DonneeInvalide);
+		const ensuite = base.requetes;
+		await marquerLue(base, superAdmin, 'ete', deBruno.id, maintenant);
+		expect(base.requetes).toBe(ensuite);
 	});
 
 	it('le fil garde les 50 plus récentes', async () => {
