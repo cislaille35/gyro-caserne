@@ -10,3 +10,4 @@
 - **Pourquoi** : un test d'ensemble sans toucher à la préprod, et un lot reste annulable seul après la fusion.
 - **Exception** à la décision 0004, limitée à la refonte.
 - **Validé par** : le porteur du projet, le 05/11/2026.
+- **Terminée** : refonte testée et validée par le porteur le 07/11/2026, fusionnée sur `main` ; `deployer-refonte.yml` retiré.
