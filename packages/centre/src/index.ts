@@ -38,6 +38,8 @@ export interface Centre {
 	};
 	/** Durée de conservation des messages de la messagerie, en mois (12 si omise) ; ensuite, ils sont effacés */
 	conservationMessagesMois?: number;
+	/** Durée de conservation des publications des murs, en mois (24 si omise) ; ensuite, elles sont effacées, sauf si elles sont épinglées */
+	conservationPublicationsMois?: number;
 	/** Le suivi des anomalies : étapes « en attente » (oui si omis) et « vérifiée » par une autre personne (non si omis), libellés renommés */
 	anomalies?: Partial<ReglageAnomalies>;
 }
@@ -46,7 +48,7 @@ export type EtapeReglable = 'signalee' | 'prise_en_charge' | 'en_attente' | 'rep
 export type ReglageAnomalies = { enAttente: boolean; verifiee: boolean; libelles: Partial<Record<EtapeReglable, string>> };
 
 /** Un centre déclaré par defineCentre : les valeurs par défaut sont posées. */
-export type CentreDeclare = Centre & { conservationMessagesMois: number; anomalies: ReglageAnomalies };
+export type CentreDeclare = Centre & { conservationMessagesMois: number; conservationPublicationsMois: number; anomalies: ReglageAnomalies };
 
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -97,6 +99,9 @@ export function erreursCentre(centre: Centre): string[] {
 	}
 	const mois = centre.conservationMessagesMois;
 	if (mois !== undefined && !(Number.isInteger(mois) && mois >= 1)) erreurs.push(`conservation des messages : ${mois} mois, un nombre entier de 1 au moins attendu`);
+	const moisPublications = centre.conservationPublicationsMois;
+	if (moisPublications !== undefined && !(Number.isInteger(moisPublications) && moisPublications >= 1))
+		erreurs.push(`conservation des publications : ${moisPublications} mois, un nombre entier de 1 au moins attendu`);
 	for (const [etape, libelle] of Object.entries(centre.anomalies?.libelles ?? {}))
 		if (typeof libelle !== 'string' || libelle.trim().length < 1 || libelle.length > 30) erreurs.push(`anomalies, libellé de l’étape « ${etape} » : de 1 à 30 caractères`);
 	return erreurs;
@@ -107,5 +112,5 @@ export function defineCentre(centre: Centre): CentreDeclare {
 	const erreurs = erreursCentre(centre);
 	if (erreurs.length) throw new Error(`Centre « ${centre.id} » mal décrit :\n- ${erreurs.join('\n- ')}`);
 	const a = centre.anomalies;
-	return { ...centre, conservationMessagesMois: centre.conservationMessagesMois ?? 12, anomalies: { enAttente: a?.enAttente ?? true, verifiee: a?.verifiee ?? false, libelles: a?.libelles ?? {} } };
+	return { ...centre, conservationMessagesMois: centre.conservationMessagesMois ?? 12, conservationPublicationsMois: centre.conservationPublicationsMois ?? 24, anomalies: { enAttente: a?.enAttente ?? true, verifiee: a?.verifiee ?? false, libelles: a?.libelles ?? {} } };
 }

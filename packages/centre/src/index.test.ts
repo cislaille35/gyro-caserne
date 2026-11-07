@@ -133,6 +133,13 @@ describe('defineCentre', () => {
 			expect(erreursCentre({ ...exemple, conservationMessagesMois: mois })).toEqual([`conservation des messages : ${mois} mois, un nombre entier de 1 au moins attendu`]);
 	});
 
+	it('garde les publications des murs 24 mois par défaut, ou la durée choisie ; même règle que les messages', () => {
+		expect(defineCentre(exemple).conservationPublicationsMois).toBe(24);
+		expect(defineCentre({ ...exemple, conservationPublicationsMois: 36 }).conservationPublicationsMois).toBe(36);
+		for (const mois of [0, 1.5, -3])
+			expect(erreursCentre({ ...exemple, conservationPublicationsMois: mois })).toEqual([`conservation des publications : ${mois} mois, un nombre entier de 1 au moins attendu`]);
+	});
+
 	it('anomalies : étape « en attente » oui, « vérifiée » non, libellés d’origine, par défaut ; ou le choix du centre', () => {
 		expect(defineCentre(exemple).anomalies).toEqual({ enAttente: true, verifiee: false, libelles: {} });
 		expect(defineCentre({ ...exemple, anomalies: { verifiee: true, libelles: { reparee: 'Remise en état' } } }).anomalies).toEqual({ enAttente: true, verifiee: true, libelles: { reparee: 'Remise en état' } });
