@@ -1,5 +1,7 @@
 // L'abonnement de cet appareil aux notifications (dans le navigateur).
 
+import { estInstallee, estIOS } from './installation.ts';
+
 export type EtatPush = 'indisponible' | 'ios-a-installer' | 'refuse' | 'inactif' | 'actif';
 
 const ADRESSE = '/moi/notifications/abonnement';
@@ -14,9 +16,6 @@ function octets(base64url: string): Uint8Array<ArrayBuffer> {
 const enBase64url = (tampon: ArrayBuffer | null | undefined) =>
 	tampon ? btoa(String.fromCharCode(...new Uint8Array(tampon))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : '';
 
-// iPadOS se présente comme un Mac, mais tactile.
-const estIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-const estInstallee = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
 // Le service worker de l'appli ; nul s'il ne répond pas (navigation privée, enregistrement refusé).
 async function inscription(): Promise<ServiceWorkerRegistration | null> {
@@ -35,7 +34,7 @@ const declarer = (abonnement: PushSubscription) => envoyer('POST', { ...abonneme
 // L'état de cet appareil. Abonné, il est redéclaré au serveur (rattaché à l'agent connecté, recréé s'il avait été retiré),
 // et réabonné si la clé du centre a changé.
 export async function etatPush(clePublique: string): Promise<EtatPush> {
-	if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return estIOS() && !estInstallee() ? 'ios-a-installer' : 'indisponible';
+	if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return estIOS(navigator) && !estInstallee(window.matchMedia('(display-mode: standalone)').matches, navigator as { standalone?: boolean }) ? 'ios-a-installer' : 'indisponible';
 	if (Notification.permission === 'denied') return 'refuse';
 	const sw = await inscription();
 	if (!sw) return 'indisponible';

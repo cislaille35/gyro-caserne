@@ -4,6 +4,7 @@
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
+	import Installer from '#lib/ui/Installer.svelte';
 	import MeteoAnim from '#lib/meteo/MeteoAnim.svelte';
 	import { soleilCouche } from '#lib/gyro/soleil.ts';
 	import centre from '$centre';
@@ -117,6 +118,8 @@
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
 	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} priseOuverte={data.priseOuverte} compacte />{/if}
+
+	<Installer mode="encart" />
 
 	<div class="masque" role="status">{annonceSucces}</div>
 	<div class="masque" role="alert">{annonceEchec}</div>

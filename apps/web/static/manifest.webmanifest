@@ -3,6 +3,7 @@
 	"short_name": "Gyro Caserne",
 	"description": "L'appli de la vie du centre d'incendie et de secours.",
 	"lang": "fr",
+	"id": "/",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",

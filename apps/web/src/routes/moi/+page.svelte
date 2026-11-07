@@ -2,6 +2,8 @@
 	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
 	import { oublierCetAppareil } from '#lib/push.ts';
+	import { appareil } from '#lib/installation.svelte.ts';
+	import { onMount } from 'svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
@@ -22,6 +24,11 @@
 		partir = true;
 		formulaire.requestSubmit();
 	}
+
+	// « Installer l'appli » : partout, sauf dans l'appli déjà installée (seul le navigateur le sait).
+	let monte = $state(false);
+	onMount(() => (monte = true));
+	const installee = $derived(monte && appareil().installee);
 
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
@@ -65,6 +72,7 @@
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>
 			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" /></li>
 		{/if}
+		{#if !installee}<li><Rangee href="/moi/installer" titre="Installer l’appli" sous="Sur l’écran d’accueil, avec les notifications" /></li>{/if}
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" /></li>
 	</ListeRangees>
 

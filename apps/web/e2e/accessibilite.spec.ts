@@ -33,11 +33,38 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
 			}
+
+			test('aide à l’installation : encart iPhone sur l’accueil et bouton de Chrome, sans violation ; « Plus tard » l’écarte', async ({ browser }) => {
+				const iphone = await browser.newContext({ storageState: ETAT_CONNECTE, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' });
+				await iphone.addCookies([{ name: 'theme', value: theme, url: ADRESSE }]);
+				const page = await iphone.newPage();
+				await page.goto('/');
+				const encart = page.getByRole('region', { name: 'Ajoutez Gyro à votre écran d’accueil' });
+				await expect(encart).toBeVisible();
+				await sansViolation(page);
+				await encart.getByRole('button', { name: 'Plus tard' }).click();
+				await expect(encart).toBeHidden();
+				await page.reload();
+				await expect(page.getByRole('heading', { name: /^Bonjour/ })).toBeVisible();
+				await expect(encart).toBeHidden();
+				await iphone.close();
+			});
+
+			test('bouton « Installer Gyro Caserne » quand le navigateur propose l’installation, sans violation', async ({ page }) => {
+				await page.goto('/moi/installer');
+				await expect(page.getByRole('heading', { name: 'Installer depuis le navigateur' })).toBeVisible();
+				await page.evaluate(() => {
+					const e = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: async () => {}, userChoice: Promise.resolve({ outcome: 'dismissed' }) });
+					window.dispatchEvent(e);
+				});
+				await expect(page.getByRole('button', { name: 'Installer Gyro Caserne' })).toBeVisible();
+				await sansViolation(page);
+			});
 
 			test('prise de garde : le premier geste commence la prise, panneau des participants, sans violation', async ({ page }) => {
 				await page.goto('/engins/3/prise');

@@ -9,6 +9,9 @@
 	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
 	import { dansUneConversation, marqueDesLues } from '#lib/ui/navigation.ts';
+	import { poserPastille } from '#lib/pastille.ts';
+	// Dès le chargement : l'invitation à installer de Chrome et Edge n'arrive qu'une fois, tôt.
+	import '#lib/installation.svelte.ts';
 
 	let { data, children } = $props();
 
@@ -44,6 +47,8 @@
 			suivi = null;
 		};
 	});
+	// La pastille sur l'icône de l'appli suit la cloche, relue après une lecture (`app:cloche`) ; déconnecté, elle s'efface.
+	$effect(() => void poserPastille(navigator, data.connecte ? data.cloche : 0));
 	afterNavigate(({ from, to }) => {
 		suivi?.apresNavigation(from?.url.pathname, to?.url.pathname);
 		// La cloche vient de la racine, que SvelteKit ne recharge pas d'une page à l'autre : relue en arrivant sur une page qui a pu

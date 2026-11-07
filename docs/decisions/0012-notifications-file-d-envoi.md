@@ -41,3 +41,12 @@
   - Ordre : un envoi repris ne remplace jamais un envoi plus récent du même fil. Il part sans `Topic`, et il porte son numéro dans la file : le service worker garde la notification affichée si elle est plus récente (`lib/notification-recue.ts`).
 - **Conséquences** : une requête D1 de plus par lot non vide (2 au lieu de 1 ; le retrait des abonnements périmés y est compris) : un geste qui notifie passe de 28 à 29 requêtes au plus, sous les 45 du budget ; le réveil reste à 1 requête quand la file est vide, 2 sinon. Calcul : inchangé (le jeton est un `randomUUID`).
 - **Validé par** : le porteur, le 7 novembre 2026.
+
+## Révision du 7 novembre 2026 : la pastille sur l'icône, et la notification touchée marquée lue
+
+- **Contexte** : appli fermée, l'icône ne disait rien des non-lues ; et une notification touchée au téléphone ouvrait sa page sans marquer lue sa ligne de la cloche (avis d'été, rappel des vacances, anomalies).
+- **Choix** :
+  - **Pastille** : la charge porte `pastille`, le chiffre de la cloche de la personne (mêmes sources que l'en-tête des pages). Il est compté pour tout le lot dans la **même requête** que la réservation des envois (`prendreEnvois`) : aucune requête de plus. Le service worker le pose avec `navigator.setAppBadge` (ou l'efface à 0) ; l'appli ouverte fait de même avec la cloche.
+  - **Notification touchée** : chaque envoi qui a sa ligne de cloche (publication, commentaire, avis de réservation, de remplacement, d'été, d'anomalie) la retrouve à l'écriture (`mettreEnFile`, la plus récente de la personne, écrite juste avant dans le même batch) ; l'adresse de la charge devient `/notifications/ouvrir?genre=…&id=…&vers=…`, qui la marque lue puis redirige (adresses externes refusées). Sans ligne (message, demande de réservation à trancher, vigilance rouge) : l'adresse directe.
+- **Coût** : un lot d'envois reste à 2 requêtes D1 (1 si la file est vide) ; une notification touchée coûte une requête de plus (marquer lue) et une redirection. Calcul : quelques sous-requêtes SQL de plus par lot, côté base.
+- **Validé par** : le porteur, le 7 novembre 2026 (le fond) ; la mise en œuvre est à valider (PR #60).
