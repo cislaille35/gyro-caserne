@@ -146,7 +146,7 @@ async function demandesParCasquette(base: Base, liste: Omit<Casquette, 'compte'>
 		.orderBy(asc(reservation.debut), asc(reservation.id));
 	for (const l of lignes) {
 		const id = l.roleId !== null ? `role:${l.roleId}` : `comite:${l.comiteId}`;
-		const texte = [l.ressource, ...(l.forme === 'jours' ? [String(l.quantite)] : []), periodeCourte(l.forme, l.debut, l.fin), l.nomDemandeur ?? `${l.prenom} ${l.nom}`].join(' · ');
+		const texte = [l.ressource, ...(l.forme === 'jours' ? [String(l.quantite)] : []), periodeCourte(l.forme, l.debut, l.fin), l.nomDemandeur ?? `${l.prenom} ${l.nom}`].join(', ');
 		parCasquette.set(id, [...(parCasquette.get(id) ?? []), { texte, lien: '/reservations/a-valider' }]);
 	}
 	return parCasquette;

@@ -74,7 +74,7 @@ test.describe('chef : préparer l’année', () => {
 			const panneau = page.getByRole('dialog', { name: `Proposition pour ${annee}` });
 			await expect(panneau).toBeVisible();
 			await expect(panneau.getByRole('heading', { level: 3, name: 'État des équipes' })).toBeVisible();
-			await expect(panneau.getByText(/\d+ semaines · Noël : .* · Nouvel An : /)).toBeVisible();
+			await expect(panneau.getByText(/\d+ semaines, Noël : .*, Nouvel An : /)).toBeVisible();
 			await sansViolation(page);
 			await panneau.getByRole('button', { name: 'Accepter et écrire le brouillon' }).click();
 			await expect(page.getByText('Proposition acceptée')).toBeVisible();

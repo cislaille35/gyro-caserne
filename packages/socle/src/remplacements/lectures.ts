@@ -207,7 +207,7 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 	};
 	return demandes
 		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(acteur.id))
-		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider · ${nom(d.demandeurId)} · ${texteDemande(periodesDe(d.periodes))}` }));
+		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}` }));
 }
 
 // Les demandes reçues qui attendent une réponse de l'acteur (À ne pas manquer). Une requête.

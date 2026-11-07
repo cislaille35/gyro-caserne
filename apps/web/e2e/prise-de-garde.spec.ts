@@ -69,17 +69,20 @@ test.describe('prise de garde', () => {
 				await expect(zones.nth(i + 1)).toHaveAttribute('aria-current', 'true');
 				await expect(page.locator('#titre-zone')).toBeFocused();
 				await expect(page.locator('#titre-zone')).toBeInViewport();
-				await expect(page.getByRole('button', { name: 'Valider la prise' })).toBeHidden();
+				// Le bandeau du bas dit ce qu'il reste ; le bouton est grisé, lu avec sa raison.
+				await expect(page.getByRole('button', { name: 'Valider la prise' })).toHaveAttribute('aria-disabled', 'true');
+				await expect(page.getByRole('button', { name: 'Valider la prise' })).toHaveAccessibleDescription(`Encore ${nombre - i - 1 > 1 ? `${nombre - i - 1} zones` : '1 zone'} à voir avant de valider.`);
 			}
 			if (i === 0) await sansViolation(page);
 		}
 		await expect(page.locator('#titre-valider')).toBeFocused();
 		await expect(page.getByRole('button', { name: 'Valider la prise' })).toBeInViewport();
+		await expect(page.getByRole('button', { name: 'Valider la prise' })).not.toHaveAttribute('aria-disabled');
 		await sansViolation(page);
 
 		// Le dernier geste s'annule d'un toucher.
 		await page.getByRole('button', { name: /^Annuler/ }).click();
-		await expect(page.getByRole('button', { name: 'Valider la prise' })).toBeHidden();
+		await expect(page.getByRole('button', { name: 'Valider la prise' })).toHaveAttribute('aria-disabled', 'true');
 		await expect(zones.nth(nombre - 1)).toHaveAttribute('aria-current', 'true');
 
 		// Un collègue abandonne ailleurs : le geste suivant est refusé, et la page se remet à jour sans recharger.

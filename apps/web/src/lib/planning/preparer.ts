@@ -54,7 +54,7 @@ export function recapitulatif(p: { semaines: SemaineCalculee[]; manoeuvres: { an
 
 const nomEquipe = (equipes: EquipePlanning[], id: number | null) => (id === null ? 'personne' : (equipes.find((e) => e.id === id)?.nom ?? 'Équipe archivée'));
 
-// « 52 semaines · Noël : Équipe 2 · Nouvel An : Équipe 4 · 11 manœuvres reprises · Équipe 3 incomplète »
+// « 52 semaines, Noël : Équipe 2, Nouvel An : Équipe 4, 11 manœuvres reprises, Équipe 3 incomplète »
 export function resumeProposition(p: Pick<PropositionAnnee, 'semaines' | 'fetes' | 'manoeuvres' | 'vacances' | 'equipes'>, equipes: EquipePlanning[]): string {
 	return [
 		pluriel(p.semaines, 'semaine'),
@@ -63,7 +63,7 @@ export function resumeProposition(p: Pick<PropositionAnnee, 'semaines' | 'fetes'
 		p.manoeuvres.length ? pluriel(p.manoeuvres.length, 'manœuvre reprise', 'manœuvres reprises') : 'Aucune manœuvre reprise',
 		...p.equipes.filter((e) => !e.arme).map((e) => `${e.nom} incomplète`),
 		...(p.vacances ? [] : ['Aucune période de vacances saisie'])
-	].join(' · ');
+	].join(', ');
 }
 
 // « Équipe 3 : 6 agents, il manque 1 CE »

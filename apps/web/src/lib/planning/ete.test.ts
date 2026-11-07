@@ -27,10 +27,10 @@ describe('tableau de l’été', () => {
 			{ reponse: null, periodes: [] }
 		];
 		const e = { ete: { publiee: false }, proposee: true, semaines: [{ plages: plages(7, 7) }, { plages: plages(7, 7) }], reponses };
-		expect(resumeEte(e)).toBe('Proposé · 2 semaines · FPT armé partout · 1 agent en vacances · 1 sans réponse');
-		expect(resumeEte({ ...e, semaines: [{ plages: plages(7, 5) }] })).toBe('Proposé · 1 semaine · FPT non armé sur 2 plages · 1 agent en vacances · 1 sans réponse');
-		expect(resumeEte({ ...e, ete: { publiee: true } })).toMatch(/^Publié · /);
-		expect(resumeEte({ ete: { publiee: false }, proposee: false, semaines: [{ plages: [] }], reponses: [] })).toBe('Vacances en cours · 1 semaine · 0 agent en vacances · 0 sans réponse');
+		expect(resumeEte(e)).toBe('Proposé, 2 semaines, FPT armé partout, 1 agent en vacances, 1 sans réponse');
+		expect(resumeEte({ ...e, semaines: [{ plages: plages(7, 5) }] })).toBe('Proposé, 1 semaine, FPT non armé sur 2 plages, 1 agent en vacances, 1 sans réponse');
+		expect(resumeEte({ ...e, ete: { publiee: true } })).toMatch(/^Publié, /);
+		expect(resumeEte({ ete: { publiee: false }, proposee: false, semaines: [{ plages: [] }], reponses: [] })).toBe('Vacances en cours, 1 semaine, 0 agent en vacances, 0 sans réponse');
 		expect(resumeEte({ ete: null, proposee: false, semaines: [], reponses: [] })).toBe('Pas encore ouvert');
 	});
 

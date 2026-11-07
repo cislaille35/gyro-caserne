@@ -68,8 +68,8 @@
 		identite: [fiche.email, fiche.telephone].filter(Boolean).join(' · '),
 		parcours: [fiche.grade?.libelle ?? 'Aucun grade', fiche.entreeCentre && `au centre depuis ${fiche.entreeCentre.slice(0, 4)}`].filter(Boolean).join(' · '),
 		equipe: `${fiche.equipe?.nom ?? 'Aucune équipe'} · ${LIBELLES_STATUT[fiche.statut]}`,
-		aptitudes: data.aptitudes.length ? data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (expirée)`)).join(' · ') : 'Aucune aptitude',
-		roles: [enCours.length ? enCours.map(intitule).join(' · ') : 'Aucun rôle en cours', data.attributions.aVenir.length && `${data.attributions.aVenir.length} à venir`].filter(Boolean).join(' · '),
+		aptitudes: data.aptitudes.length ? data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (expirée)`)).join(', ') : 'Aucune aptitude',
+		roles: [enCours.length ? enCours.map(intitule).join(', ') : 'Aucun rôle en cours', data.attributions.aVenir.length && `${data.attributions.aVenir.length} à venir`].filter(Boolean).join(', '),
 		depart: fiche.statut === 'parti' ? 'A quitté le centre' : (data.raison ?? 'Fin des rôles, données personnelles effacées')
 	});
 
@@ -362,7 +362,7 @@
 							<li>
 								<div>
 									<strong>{a.nom}{#if !a.valide}<span class="expiree">Pas valable aujourd’hui</span>{/if}</strong>
-									<span class="note">obtenue le {date(a.obtenueLe)}{a.expireLe ? `, expire le ${date(a.expireLe)}` : ''}{a.controlee ? ' · contrôlée en remplacement' : ''}</span>
+									<span class="note">obtenue le {date(a.obtenueLe)}{a.expireLe ? `, expire le ${date(a.expireLe)}` : ''}{a.controlee ? ', contrôlée en remplacement' : ''}</span>
 								</div>
 								{#if !data.raison}
 									<form method="POST" action={action('oterAptitude')} class="terminer">

@@ -7,7 +7,7 @@
 	// Une réservation : ressource, quantité et période, état écrit, qui la demande (`demandeur`, pour qui gère) ou le nom saisi par la réserve citoyenne,
 	// le téléphone s'il est visible, le mot et le motif ; les gestes en dessous.
 	let { r, aujourdhui, demandeur = false, children }: { r: VueReservation; aujourdhui: string; demandeur?: boolean; children?: Snippet } = $props();
-	const qui = $derived(demandeur ? `${r.demandeur}${r.nomDemandeur ? ' · réserve citoyenne' : ''}` : r.nomDemandeur);
+	const qui = $derived(demandeur ? `${r.demandeur}${r.nomDemandeur ? ', réserve citoyenne' : ''}` : r.nomDemandeur);
 	const etat = $derived(etatAffiche(r, aujourdhui));
 	const quand = $derived(`${r.forme === 'jours' ? `${r.quantite} · ` : ''}${periodeCourte(r.forme, r.debut, r.fin)}`);
 </script>
@@ -18,7 +18,7 @@
 		<Pastille ton={etat.ton}>{etat.libelle}</Pastille>
 	</div>
 	<p class="quand">{quand}</p>
-	{#if qui}<p>{demandeur ? 'Demandé par' : 'Pour'} {qui}{#if r.telephone} · <a href="tel:{r.telephone}">{r.telephone}</a>{/if}</p>{/if}
+	{#if qui}<p>{demandeur ? 'Demandé par' : 'Pour'} {qui}{#if r.telephone}, <a href="tel:{r.telephone}">{r.telephone}</a>{/if}</p>{/if}
 	{#if r.mot}<p class="mot">« {r.mot} »</p>{/if}
 	{#if r.motif}<p class="motif">Motif : {r.motif}</p>{/if}
 	{#if children}<div class="gestes">{@render children()}</div>{/if}

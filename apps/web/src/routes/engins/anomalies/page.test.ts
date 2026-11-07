@@ -1,8 +1,11 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
-import Liste from './+page.svelte';
-import Anomalie from './[id]/+page.svelte';
-import Signaler from './signaler/+page.svelte';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('$app/state', () => ({ page: { url: new URL('http://x/engins/anomalies/3') } }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+const { default: Liste } = await import('./+page.svelte');
+const { default: Anomalie } = await import('./[id]/+page.svelte');
+const { default: Signaler } = await import('./signaler/+page.svelte');
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const html = (Page: unknown, data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data, form } }).body;
@@ -37,7 +40,7 @@ const vue = (plus: Record<string, unknown> = {}) => ({
 describe('/engins/anomalies', () => {
 	it('les ouvertes par engin, leur étape écrite, l’engin indisponible dit ; « Signaler » pour qui peut', () => {
 		const page = html(Liste, { ouvertes: [ligne(1, { bloquante: true, etape: 'en_attente', motif: 'garage' })], closes: [ligne(2, { closeLe: '2026-10-29T10:00' })], engins: [{ id: 1, nom: 'VTU' }], peutSignaler: true, enginId: null });
-		expect(page).toMatch(/<h2[^>]*>VTU[\s\S]*?href="\/engins\/anomalies\/1"[\s\S]*?Treuil HS[\s\S]*?Coffres · Abîmé · signalée le 30 oct\. 2026[\s\S]*?Engin indisponible[\s\S]*?En attente · au garage/);
+		expect(page).toMatch(/<h2[^>]*>VTU[\s\S]*?href="\/engins\/anomalies\/1"[\s\S]*?Treuil HS[\s\S]*?Coffres, Abîmé, signalée le 30 oct\. 2026[\s\S]*?Engin indisponible[\s\S]*?En attente · au garage/);
 		expect(page).toMatch(/Closes récemment[\s\S]*?Close le 29 oct\. 2026/);
 		expect(page).toContain('href="/engins/anomalies/signaler"');
 		expect(html(Liste, { ouvertes: [], closes: [], engins: [], peutSignaler: false, enginId: null })).toContain('Aucune anomalie ouverte.');
@@ -61,7 +64,8 @@ describe('/engins/anomalies', () => {
 
 	it('les gestes permis ; la décision d’indisponibilité à part ; remise en service avec l’alerte des autres blocages', () => {
 		const page = html(Anomalie, { anomalie: vue({ etape: 'signalee', motif: null, gestes: ['prendre', 'attente', 'reparee', 'clore', 'indisponible'] }) });
-		for (const g of ['prendre', 'attente', 'reparee', 'clore', 'indisponible']) expect(page).toContain(`value="${g}"`);
+		for (const g of ['prendre', 'indisponible']) expect(page).toContain(`value="${g}"`);
+		for (const g of ['attente', 'reparee', 'clore']) expect(page).toContain(`href="?panneau=${g}"`);
 		expect(page).toMatch(/Disponibilité de VTU[\s\S]*?Rendre l’engin indisponible/);
 		const close = html(Anomalie, { anomalie: vue({ close: { le: '2026-11-01T10:00', par: 'Rémi Durand', aLaPrise: false }, bloquante: true, engin: { id: 1, nom: 'VTU', type: 'VTU', etat: 'indisponible', situation: 'centre' }, gestes: ['remettre'], autresBloquantes: 1 }) });
 		expect(close).toMatch(/VTU est indisponible[\s\S]*?Décidé depuis cette anomalie/);

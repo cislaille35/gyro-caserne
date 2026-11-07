@@ -23,7 +23,11 @@
 		}, [])
 	);
 	const filtre = $derived(data.engins.find((e) => e.id === data.enginId));
-	const sous = (a: AnomalieListee) => [a.zone, texteEcart({ genre: a.genre, manque: a.manque, note: null }), `signalée le ${dateCourte(a.signaleeLe)}`].filter(Boolean).join(' · ');
+	// Deux infos courtes : un point ; trois : des virgules.
+	const sous = (a: AnomalieListee) => {
+		const infos = [a.zone, texteEcart({ genre: a.genre, manque: a.manque, note: null }), `signalée le ${dateCourte(a.signaleeLe)}`].filter(Boolean);
+		return infos.join(infos.length > 2 ? ', ' : ' · ');
+	};
 	const signaler = $derived(data.enginId ? `/engins/anomalies/signaler?engin=${data.enginId}` : '/engins/anomalies/signaler');
 </script>
 

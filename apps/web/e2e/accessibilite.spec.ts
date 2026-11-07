@@ -1073,6 +1073,39 @@ test.describe('nominations', () => {
 	});
 });
 
+test.describe('anomalie', () => {
+	test.use({ storageState: ETAT_SUPER });
+	test('« Clore » et « Réparée » en panneaux : focus au titre, Échap ferme et rend le focus, l’envoi ferme', async ({ page }) => {
+		await page.goto('/engins/anomalies/signaler?engin=1');
+		await page.waitForLoadState('networkidle');
+		await page.getByLabel('Le problème').fill(`Rétroviseur ${nouvelleMarque()}`);
+		await page.getByRole('button', { name: 'Signaler' }).click();
+		await expect(page).toHaveURL(/\/engins\/anomalies\/\d+\?signalee$/);
+		await page.waitForLoadState('networkidle');
+		await expect(page.locator('textarea, input[name="texte"]')).toHaveCount(0);
+
+		const clore = page.getByRole('link', { name: 'Clore sans réparation…' });
+		await clore.focus();
+		await page.keyboard.press('Enter');
+		const panneau = page.getByRole('dialog', { name: 'Clore sans réparation' });
+		await expect(panneau).toBeVisible();
+		await expect(panneau.getByRole('heading', { level: 2, name: 'Clore sans réparation' })).toBeFocused();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await expect(panneau).toHaveCount(0);
+		await expect(clore).toBeFocused();
+
+		await page.getByRole('link', { name: 'Réparée…' }).click();
+		const reparee = page.getByRole('dialog', { name: 'Réparée' });
+		await reparee.getByLabel(/^Ce qui a été fait/).fill('Vis resserrée');
+		await reparee.getByRole('button', { name: 'Enregistrer la réparation' }).click();
+		await expect(reparee).toHaveCount(0);
+		await expect(page.getByRole('status').filter({ hasText: 'Réparation enregistrée.' })).toHaveCount(1);
+		await expect(page.getByText('Vis resserrée')).toBeVisible();
+		await expect(page).not.toHaveURL(/panneau/);
+	});
+});
+
 test.describe('cases à cocher', () => {
 	test.use({ storageState: ETAT_SUPER, colorScheme: 'dark' });
 	test('dessinées partout pareil, sur une ligne de 44 px, grisées en tirets', async ({ page }) => {

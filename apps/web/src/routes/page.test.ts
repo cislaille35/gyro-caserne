@@ -276,9 +276,9 @@ describe('accueil', () => {
 	});
 
 	it('chef de garde : les remplacements à valider « À décider »', () => {
-		const aDecider = [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: '/remplacements/3' }];
+		const aDecider = [{ texte: 'Remplacement à valider, Alice Test, nuit du lundi 9 novembre', lien: '/remplacements/3' }];
 		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider } });
-		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider · Alice Test/);
+		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider, Alice Test/);
 	});
 
 	it('rôle : ce qu’il permet, en phrases', () => {
@@ -288,9 +288,9 @@ describe('accueil', () => {
 	});
 
 	it('rôle ou comité qui gère une ressource : ses demandes de réservation « À décider », en tête', () => {
-		const aDecider = [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }];
+		const aDecider = [{ texte: 'Bancs, 4, du 12 au 14 nov., Alice Test', lien: '/reservations/a-valider' }];
 		const amicale = page({ casquettes: [astreinte, { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 1 }], choisie: 'comite:2', contenu: { type: 'comite', membres: [], aDecider } });
-		expect(amicale).toMatch(/<h2[^>]*>À décider[\s\S]*?href="\/reservations\/a-valider"[\s\S]*?Bancs · 4 · du 12 au 14 nov\. · Alice Test[\s\S]*?Membres/);
+		expect(amicale).toMatch(/<h2[^>]*>À décider[\s\S]*?href="\/reservations\/a-valider"[\s\S]*?Bancs, 4, du 12 au 14 nov\., Alice Test[\s\S]*?Membres/);
 		const engins = page({ casquettes: [astreinte, { id: 'role:6', nom: 'Référent engins', icone: 'camion', compte: 0 }], choisie: 'role:6', contenu: { type: 'role', permet: [], aDecider: [] } });
 		expect(engins).not.toContain('À décider');
 	});
