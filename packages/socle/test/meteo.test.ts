@@ -44,8 +44,8 @@ describe('classer', () => {
 
 describe('texteMeteo', () => {
 	it('température arrondie, temps, rafales dès 40 km/h', () => {
-		expect(texteMeteo({ temperature: 11.6, code: 80, rafales: 45.2 })).toBe('12 °C · averses · rafales 45 km/h');
-		expect(texteMeteo({ temperature: -0.4, code: 0, rafales: 12 })).toBe('0 °C · ciel dégagé');
+		expect(texteMeteo({ temperature: 11.6, code: 80, rafales: 45.2 })).toBe('12 °C, averses, rafales 45 km/h');
+		expect(texteMeteo({ temperature: -0.4, code: 0, rafales: 12 })).toBe('0 °C, ciel dégagé');
 		expect(texteMeteo({ temperature: 9, code: 999, rafales: null })).toBe('9 °C');
 	});
 });
@@ -102,7 +102,7 @@ describe('vueMeteo', () => {
 			{ date: '2026-11-03', niveau: 4, phenomenes: ['orages'] }
 		];
 		expect(vueMeteo({ meteo, vigilance: jours }, '2026-11-02', 'Ille-et-Vilaine')).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', nuit: false },
+			meteo: { ambiance: 'pluie', texte: '12 °C, averses, rafales 45 km/h', nuit: false },
 			vigilance: { etat: 'ok', niveau: 4, lignes: ['Vigilance orange pluie-inondation et orages, aujourd’hui', 'Vigilance rouge orages, demain'], lieu: 'Ille-et-Vilaine' }
 		});
 	});

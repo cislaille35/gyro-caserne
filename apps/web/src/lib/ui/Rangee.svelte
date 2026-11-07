@@ -6,7 +6,7 @@
 	// Une ligne d'un groupe (dans la carte de `ListeRangees`) : tête (tuile qui porte un sens, visage, date), titre, sous-ligne, valeur ou `droite` ;
 	// avec `href`, toute la ligne est un lien, avec chevron. Avec `children` (des gestes sous le texte), le lien du titre s'étend à la ligne
 	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a une tête) ;
-	// `discret`, pour ce qui n'existe pas encore.
+	// `discret`, pour ce qui n'existe pas encore. `sous` en liste : une ligne par info, quand elles sont trop nombreuses pour une seule.
 	let {
 		titre,
 		sous,
@@ -22,7 +22,7 @@
 		children
 	}: {
 		titre: string;
-		sous?: string;
+		sous?: string | string[];
 		href?: string;
 		icone?: NomIcone;
 		dessin?: string;
@@ -55,7 +55,7 @@
 	{/if}
 	<div class="corps">
 		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
-		{#if sous}<span class="sous">{sous}</span>{/if}
+		{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}
 		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>
 	<!-- Avec une icône en tête, le signe d'alerte passe à droite : jamais la couleur seule. -->

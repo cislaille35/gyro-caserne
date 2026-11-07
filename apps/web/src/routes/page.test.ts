@@ -1,6 +1,8 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
+import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 
 const astreinte = { id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 };
 const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile', compte: 2 };
@@ -14,18 +16,18 @@ const texte = (html: string) => html.replace(/<!--.*?-->|<[^>]+>/g, '');
 
 describe('accueil, météo et vigilance', () => {
 	const base = { casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } };
-	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h' }, vigilance: null };
+	const pluie = { meteo: { ambiance: 'pluie', texte: '12 °C, averses, rafales 45 km/h' }, vigilance: null };
 
 	it('la ligne météo sous « Bonjour », avec la mention Open-Meteo ; l’ambiance décorative', () => {
 		const html = page({ ...base, meteo: pluie });
-		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C · averses · rafales 45 km\/h<\/span> <a class="source/);
+		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C, averses, rafales 45 km\/h<\/span> <a class="source/);
 		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
 	});
 
 	it('affichage Sobre : la ligne reste, sans ambiance', () => {
 		const html = page({ ...base, meteo: pluie }, null, 'sobre');
-		expect(html).toContain('12 °C · averses');
+		expect(html).toContain('12 °C, averses');
 		expect(html).not.toContain('m-pluie');
 	});
 
@@ -34,6 +36,14 @@ describe('accueil, météo et vigilance', () => {
 		expect(html).not.toContain('Open-Meteo');
 		expect(html).not.toMatch(/class="meteo m-/);
 		expect(html).not.toContain('Vigilance');
+	});
+
+	it('Vivant : l’humeur du jour de Gyro sous « Bonjour » ; aucune en Équilibré ni à côté d’un bandeau de vigilance', () => {
+		const humeur = humeurDuJour(aujourdhuiParis(), 'accueil');
+		expect(texte(page(base))).toContain(humeur);
+		const sansHumeur = (html: string) => HUMEURS.every((h) => !texte(html).includes(h));
+		expect(sansHumeur(page(base, null, 'equilibre'))).toBe(true);
+		expect(sansHumeur(page({ ...base, meteo: { meteo: null, vigilance: { etat: 'ok', niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'], lieu: '35' } } }))).toBe(true);
 	});
 
 	it('vigilance : bandeau en tête, le niveau écrit, lien vers Météo-France ; rouge marqué', () => {
@@ -50,7 +60,7 @@ describe('accueil, météo et vigilance', () => {
 	const lienVigilance = /<a [^>]*href="https:\/\/vigilance.meteofrance.fr\/"[^>]*>/;
 	it('vert : une petite ligne à côté de la ligne météo, avec le département et le lien', () => {
 		const html = page({ ...base, meteo: { meteo: pluie.meteo, vigilance: { etat: 'ok', niveau: 1, lignes: [], lieu: 'Ille-et-Vilaine' } } });
-		expect(html).toMatch(/12 °C · averses[\s\S]*class="vigilance-discrete[^"]*"/);
+		expect(html).toMatch(/12 °C, averses[\s\S]*class="vigilance-discrete[^"]*"/);
 		expect(texte(html)).toContain('Vigilance verte · Ille-et-Vilaine');
 		expect(html).toMatch(lienVigilance);
 		expect(html).not.toContain('aria-label="Vigilance météo"');

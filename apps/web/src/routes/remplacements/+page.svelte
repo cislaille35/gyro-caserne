@@ -35,7 +35,6 @@
 <div class="page">
 	<EnTetePage
 		titre="Remplacements"
-		phrase="Se faire remplacer, échanger, et répondre aux collègues."
 		retour={{ href: '/planning', libelle: 'Planning' }}
 		action={data.personne ? { href: '/remplacements/demander', libelle: 'Me faire remplacer', dessin: REMPLACER } : undefined}
 	/>

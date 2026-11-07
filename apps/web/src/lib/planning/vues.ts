@@ -102,11 +102,11 @@ export function reperesDeLaGrille(lignes: { semaine: SemaineCalculee }[], d: Don
 	return liste.sort((a, b) => a.date.localeCompare(b.date) || ordre.indexOf(a.genre) - ordre.indexOf(b.genre));
 }
 
-// « 1 astreinte · 1 manœuvre · 2 fériés » (moi) ; « 4 semaines · … » (toutes les équipes).
+// « 1 astreinte, 1 manœuvre, 2 fériés » (moi) ; « 4 semaines, … » (toutes les équipes).
 export function resumeDuMois(annee: number, mois: number, semaines: (SemaineCalculee & { mienne: boolean })[], d: Donnees, mode: Mode): string {
 	const prefixe = `${annee}-${String(mois).padStart(2, '0')}`;
 	const manoeuvres = d.manoeuvres.filter((m) => m.debut.startsWith(prefixe) && (mode === 'equipes' || m.convoque)).length;
 	const feries = d.feries.filter((f) => f.date.startsWith(prefixe)).length;
 	const miennes = semaines.filter((s) => s.mienne).length;
-	return [mode === 'moi' ? (miennes ? pluriel(miennes, 'astreinte') : 'Aucune astreinte') : pluriel(semaines.length, 'semaine'), ...(manoeuvres ? [pluriel(manoeuvres, 'manœuvre')] : []), ...(feries ? [pluriel(feries, 'férié')] : [])].join(' · ');
+	return [mode === 'moi' ? (miennes ? pluriel(miennes, 'astreinte') : 'Aucune astreinte') : pluriel(semaines.length, 'semaine'), ...(manoeuvres ? [pluriel(manoeuvres, 'manœuvre')] : []), ...(feries ? [pluriel(feries, 'férié')] : [])].join(', ');
 }

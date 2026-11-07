@@ -59,7 +59,7 @@
 				? `${phraseAstreinte(carte, m).titre}.`
 				: mode === 'moi'
 					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
-					: 'Les astreintes et les manœuvres de l’année.'
+					: undefined
 	);
 
 	const donnees = $derived(p.publiee ? { annee: p.annee, feries: p.feries, vacances: p.vacances, manoeuvres: p.manoeuvres, remplacements: p.remplacements } : null);
@@ -163,7 +163,7 @@
 					<ListeRangees titre="À venir">
 						{#if manoeuvre}
 							<li>
-								<Rangee titre={manoeuvre.theme} sous="Manœuvre · {momentLong(manoeuvre.debut)} · {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ' · petit-déjeuner' : ''}">
+								<Rangee titre={manoeuvre.theme} sous="Manœuvre, {momentLong(manoeuvre.debut)}, {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ', petit-déjeuner' : ''}">
 									{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
 									{#if manoeuvre.publicationId}
 										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={garderFocus}>

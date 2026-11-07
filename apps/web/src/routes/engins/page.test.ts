@@ -36,7 +36,7 @@ describe('/engins', () => {
 		const prises = { 1: { prise: { etat: 'validee', valideeLe: '2026-10-30T18:40', equipe: 'Équipe 2', par: 'A' }, ouvertes: 2 }, 2: { prise: null, ouvertes: 0 } };
 		const page = html({ engins, gere: false, releve, prises });
 		expect(page).toMatch(/href="\/engins\/prise"[\s\S]*?Relève du ven\. 30 oct\., équipe 2[\s\S]*?1 sur 2 prise faite/);
-		expect(page).toMatch(/VSAV 1[\s\S]*?Prise faite par l’équipe 2, ven\. 18 h 40 · 2 anomalies ouvertes[\s\S]*?Avertissement/);
+		expect(page).toMatch(/VSAV 1[\s\S]*?<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise faite par l’équipe 2, ven\. 18 h 40 · 2 anomalies ouvertes[\s\S]*?Avertissement/);
 		expect(page).toMatch(/VSAV 23[\s\S]*?Prise à faire/);
 		expect(page).toMatch(/href="\/engins\/anomalies"[\s\S]*?2 ouvertes, à suivre jusqu’à la réparation/);
 	});

@@ -14,7 +14,7 @@ describe('page Affichage', () => {
 
 	it('le même vocabulaire que « Moi » : le thème et la présence de Gyro', () => {
 		const page = html(true);
-		expect(page).toContain('Le thème et la présence de Gyro, sur cet appareil.');
+		expect(page).toContain('Sur cet appareil seulement.');
 		expect(page).toMatch(/<legend[^>]*>Présence de Gyro<\/legend>/);
 		expect(page).not.toContain('Niveau de vie');
 	});

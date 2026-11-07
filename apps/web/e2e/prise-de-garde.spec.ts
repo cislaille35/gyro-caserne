@@ -63,7 +63,8 @@ test.describe('prise de garde', () => {
 			const liste = await page.locator('.elements').boundingBox();
 			expect((await complet.boundingBox())!.y).toBeGreaterThanOrEqual(liste!.y);
 			await complet.click();
-			await expect(page.getByText(`${i + 1} ${i ? 'zones vues' : 'zone vue'} sur ${nombre}`)).toBeVisible();
+			// Le compte de la plaque : « 1 / 4 » à l'écran, « 1 sur 4 » pour les lecteurs d'écran.
+			await expect(page.locator('.compteur')).toContainText(`${i + 1} / sur ${nombre}`);
 			if (i + 1 < nombre) {
 				await expect(zones.nth(i + 1)).toHaveAttribute('aria-current', 'true');
 				await expect(page.locator('#titre-zone')).toBeFocused();

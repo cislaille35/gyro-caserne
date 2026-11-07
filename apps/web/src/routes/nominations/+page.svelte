@@ -36,7 +36,7 @@
 	const annonce = (role: number) => (form?.succes && (form.role === role || concerne(`attribuer-${role}`)) ? form.message : null);
 
 	const vides = $derived(aPourvoir(data.roles));
-	const phrase = $derived(vides === 0 ? 'Qui tient quel rôle. Chaque rôle a son titulaire.' : `Qui tient quel rôle. ${pluriel(vides, 'rôle')} à pourvoir.`);
+	const phrase = $derived(vides === 0 ? 'Chaque rôle a son titulaire.' : `${pluriel(vides, 'rôle')} à pourvoir.`);
 
 	// Recherche d'un rôle ou d'un agent, sans accents ni majuscules.
 	let recherche = $derived(data.recherche);

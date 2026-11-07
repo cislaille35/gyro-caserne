@@ -57,7 +57,7 @@ describe('load de /', () => {
 			{ cle: 'vigilance', donnees: JSON.stringify({ jours: [{ date: aujourdhuiParis(), niveau: 3, phenomenes: ['orages'] }], rouge: false }), majLe: maintenant }
 		]);
 		expect((await appeler({ acteur: alice, base })).meteo).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', nuit: false },
+			meteo: { ambiance: 'pluie', texte: '12 °C, averses, rafales 45 km/h', nuit: false },
 			vigilance: { etat: 'ok', niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'], lieu: expect.any(String) }
 		});
 	});

@@ -425,6 +425,15 @@ describe('EnTetePage', () => {
 	it('une action secondaire à côté', () => {
 		expect(net(EnTetePage, { titre: 'Agents', secondaire: contenu })).toContain('<span>Contenu</span>');
 	});
+	it('pas de phrase qui répète le titre ou l’évidence sous les en-têtes (audit C8) : seulement une info, un nombre, une date, un état', () => {
+		const racine = new URL('../../routes/', import.meta.url);
+		const enTetes = (p: string) => [...readFileSync(new URL(p, racine), 'utf8').matchAll(/<EnTetePage\b[\s\S]*?\/?>/g)].map((m) => m[0]);
+		for (const p of ['agents/+layout.svelte', 'caserne/+page.svelte', 'moi/+page.svelte', 'moi/agenda/+page.svelte', 'reservations/miennes/+page.svelte', 'reservations/materiel/+page.svelte', 'engins/+page.svelte', 'engins/anomalies/+page.svelte', 'remplacements/+page.svelte', 'reglages/+page.svelte'])
+			for (const t of enTetes(p)) expect(t, p).not.toMatch(/\sphrase[=\s>]/);
+		const sources = ['affichage/+page.svelte', 'reservations/a-valider/+page.svelte', 'engins/fiches/+page.svelte', 'engins/fiches/[id]/+page.svelte', 'nominations/+page.svelte', 'planning/+page.svelte', 'moi/vacances/+page.svelte', 'engins/prise/+page.svelte'].map((p) => readFileSync(new URL(p, racine), 'utf8')).join('\n');
+		for (const t of ['Le thème et la présence de Gyro', 'Les demandes de réservation des ressources que vous gérez', 'ce que l’équipe vérifie, zone par zone', 'Ce que l’équipe vérifie à la prise de garde', 'Qui tient quel rôle', 'Les astreintes et les manœuvres de l’année', 'Vos vacances d’été, pour le planning', 'Choisissez un engin'])
+			expect(sources).not.toContain(t);
+	});
 });
 
 describe('Rangee', () => {
@@ -435,6 +444,10 @@ describe('Rangee', () => {
 		expect(page).toContain('L’effectif du centre');
 		expect(page).toContain('14 agents');
 		expect(page).toMatch(/class="chevron[^"]*"[^>]*aria-hidden="true"/);
+	});
+	it('une sous-ligne par info quand il y en a trop pour une ligne', () => {
+		const page = net(Rangee, { titre: 'VSAV 1', sous: ['VSAV · AB-123-CD', 'Prise à faire · 1 anomalie ouverte'] });
+		expect(page).toMatch(/<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise à faire · 1 anomalie ouverte<\/span>/);
 	});
 	it('une tuile seulement sur demande : elle porte un sens (type, rôle)', () => {
 		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain('var(--icone-casque-fond)');

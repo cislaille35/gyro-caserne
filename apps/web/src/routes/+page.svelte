@@ -7,6 +7,8 @@
 	import MeteoAnim from '#lib/meteo/MeteoAnim.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { nombreAFaire } from '#lib/a-faire.ts';
+	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+	import { humeurDuJour } from '#lib/gyro/humeurs.ts';
 	import ANePasManquer from '#lib/ui/ANePasManquer.svelte';
 	import Casquettes from '#lib/ui/Casquettes.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -32,7 +34,8 @@
 		[
 			// Sans rien à faire, « Tout est à jour » est dit une fois, dans « À ne pas manquer ».
 			aFaire === 0 ? '' : `${pluriel(aFaire, 'publication')} ${aFaire > 1 ? 'vous attendent' : 'vous attend'}.`,
-			affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : ''
+			// Pas d'humeur à côté d'un bandeau de vigilance.
+			affichage.niveau === 'vivant' && !bandeau ? humeurDuJour(aujourdhuiParis(), 'accueil') : ''
 		].join(' ').trim()
 	);
 	const rangee = $derived(data.casquettes.length >= 2);

@@ -85,10 +85,11 @@
 					<tr>
 						{#each l.jours as j (j.date)}
 							{@const du = parJour.filter((x) => x.date === j.date)}
-							<td class:hors={!j.dansLeMois} class:aujourdhui={j.date === maintenant.slice(0, 10)}>
-								<a href={lienJour(l.semaine.debut, j.date)}>
+							{@const ajd = j.date === maintenant.slice(0, 10)}
+							<td class:hors={!j.dansLeMois} class:aujourdhui={ajd}>
+								<a href={lienJour(l.semaine.debut, j.date)} aria-current={ajd ? 'date' : undefined}>
 									<span class="jour" aria-hidden="true">{Number(j.date.slice(8, 10))}</span>
-									<span class="masque">{jourLong(j.date)}{du.map((x) => `, ${SIGNES[x.genre]}`).join('')}{vacancesLe(j.date) ? ', vacances' : ''}</span>
+									<span class="masque">{jourLong(j.date)}{ajd ? ', aujourd’hui' : ''}{du.map((x) => `, ${SIGNES[x.genre]}`).join('')}{vacancesLe(j.date) ? ', vacances' : ''}</span>
 									<span class="signes" aria-hidden="true">
 										{#each du as x, i (i)}<span class={x.genre}>{@render icone(x.genre)}</span>{/each}
 										{#if vacancesLe(j.date)}<span class="vacances">{@render icone('vacances')}</span>{/if}
@@ -264,14 +265,17 @@
 		background: var(--sur-equipe);
 		color: var(--equipe);
 	}
+	/* Aujourd'hui : un carré d'encre pleine, et « aujourd'hui » dit aux lecteurs d'écran. */
 	.aujourdhui .jour {
-		min-width: 30px;
-		padding: 2px 0;
-		border-radius: 8px;
+		width: 32px;
+		height: 32px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
 		background: var(--encre);
 		color: var(--surface);
 		font-weight: 700;
-		text-align: center;
 	}
 	.signes {
 		display: flex;

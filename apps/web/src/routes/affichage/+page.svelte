@@ -24,7 +24,7 @@
 
 <div class="page">
 	<!-- Sans connexion, « Affichage » est un onglet : pas de retour. -->
-	<EnTetePage titre="Affichage" phrase="Le thème et la présence de Gyro, sur cet appareil." retour={data.connecte ? { href: '/moi', libelle: 'Moi' } : undefined} />
+	<EnTetePage titre="Affichage" phrase="Sur cet appareil seulement." retour={data.connecte ? { href: '/moi', libelle: 'Moi' } : undefined} />
 	<form method="post">
 		<fieldset>
 			<legend class="rubrique">Présence de Gyro</legend>

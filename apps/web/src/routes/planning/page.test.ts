@@ -176,7 +176,7 @@ describe('onglet Planning', () => {
 		const html = page({ vue: 'annee' });
 		expect((html.match(/<details/g) ?? []).length).toBe(12);
 		expect((html.match(/<details[^>]*open/g) ?? []).length).toBe(1);
-		expect(html).toMatch(/<details[^>]*open[^>]*><summary[^>]*><h3[^>]*>Novembre<\/h3><span class="resume[^"]*">1 astreinte · 1 manœuvre · 2 fériés/);
+		expect(html).toMatch(/<details[^>]*open[^>]*><summary[^>]*><h3[^>]*>Novembre<\/h3><span class="resume[^"]*">1 astreinte, 1 manœuvre, 2 fériés/);
 		expect(html).toContain('Seulement mes semaines');
 		expect((html.match(/Mon astreinte/g) ?? []).length).toBeGreaterThanOrEqual(semaines.filter((s) => s.mienne).length);
 	});
@@ -194,6 +194,13 @@ describe('onglet Planning', () => {
 		expect(html).toMatch(/<tbody[^>]*>\s*<tr[^>]*><th scope="rowgroup" colspan="7"[^>]*>[\s\S]*?Équipe 1[\s\S]*?S45[\s\S]*?Mon astreinte/);
 		expect(html).not.toContain('scope="row"');
 		for (const semaine of html.split('<tbody').slice(1)) expect((semaine.split('</tbody>')[0]!.match(/<td/g) ?? []).length).toBe(7);
+	});
+
+	it('Mois : aujourd’hui en carré d’encre, dit aussi aux lecteurs d’écran ; les autres jours sans marque', () => {
+		const html = page({ vue: 'mois', maintenant: '2026-11-12T10:00' });
+		expect(html).toMatch(/<td class="[^"]*aujourdhui[^"]*"><a[^>]*aria-current="date"[^>]*>\s*<span class="jour[^"]*" aria-hidden="true">12<\/span>\s*<span class="masque">Jeudi 12 novembre, aujourd’hui/i);
+		expect((html.match(/aria-current="date"/g) ?? []).length).toBe(1);
+		expect((html.match(/aujourd’hui/g) ?? []).length).toBe(1);
 	});
 
 	it('Mois de décembre : le signe « Fête » le 25 et le 31, même quand la relève tombe à Noël', () => {
