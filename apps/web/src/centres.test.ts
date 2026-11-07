@@ -38,6 +38,8 @@ describe('centres du dépôt', () => {
 			expect(config.name).toBe(`gyro-caserne-${dossier}`);
 			expect(config.main).toBe(resolve(appli, '.svelte-kit/cloudflare/_worker.js'));
 			expect(resolve(dirname(fichier), config.assets?.directory ?? '')).toBe(resolve(appli, '.svelte-kit/cloudflare'));
+			// Aucune version d'essai en ligne : les adresses de prévisualisation sont coupées à chaque déploiement.
+			expect(config.preview_urls, 'preview_urls').toBe(false);
 		});
 
 		// Après une mise à jour du code, un centre doit recopier les réglages techniques de centres/exemple
