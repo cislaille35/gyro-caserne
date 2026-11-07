@@ -54,10 +54,10 @@ function temps(code: number): string | null {
 	return null;
 }
 
-// « 12 °C · averses · rafales 45 km/h » ; les rafales dès 40 km/h.
+// « 12 °C, averses, rafales 45 km/h » ; les rafales dès 40 km/h.
 export function texteMeteo(m: Meteo): string {
 	const rafales = m.rafales !== null && m.rafales >= 40 ? `rafales ${Math.round(m.rafales)} km/h` : null;
-	return [`${Math.round(m.temperature) || 0} °C`, temps(m.code), rafales].filter(Boolean).join(' · ');
+	return [`${Math.round(m.temperature) || 0} °C`, temps(m.code), rafales].filter(Boolean).join(', ');
 }
 
 const nombre = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);

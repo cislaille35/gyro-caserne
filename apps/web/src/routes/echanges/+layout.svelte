@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { humeurDuJour } from '#lib/gyro/humeurs.ts';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
@@ -38,13 +39,10 @@
 	// La supervision, repliée, a son propre compte dans son résumé.
 	const total = $derived(somme([s.centre, ...s.groupes, ...s.autres]));
 	const totalSupervision = $derived(somme(s.supervision));
-	const VARIANTES = ['Le café est encore chaud.', 'Rien ne vous a échappé : Gyro veille.', 'La caserne bavarde, voici l’essentiel.'];
-	const jourDeLAnnee = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${iso.slice(0, 4)}-01-01T00:00:00Z`)) / 864e5) + 1;
 	const phrase = $derived.by(() => {
 		const premiere = total === 0 ? 'Rien de neuf depuis votre dernière visite.' : `${pluriel(total, 'nouveauté')} depuis votre dernière visite.`;
 		if (affichage.niveau !== 'vivant') return premiere;
-		const aujourdhui = aujourdhuiParis();
-		return `${premiere} ${VARIANTES[jourDeLAnnee(aujourdhui) % 3]}`;
+		return `${premiere} ${humeurDuJour(aujourdhuiParis(), 'echanges')}`;
 	});
 
 	const SORTES: Record<TuileMur['type'], string | null> = { centre: null, vie: 'tout le monde', equipe: 'équipe', comite: 'comité' };

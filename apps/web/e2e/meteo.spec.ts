@@ -35,7 +35,7 @@ test.describe('météo et vigilance', () => {
 			await expect(bandeau).toContainText('Vigilance orange orages, aujourd’hui');
 			await expect(bandeau).toContainText('Vigilance rouge vent violent, demain');
 			await expect(bandeau.getByRole('link', { name: /vigilance\.meteofrance\.fr/ })).toBeVisible();
-			await expect(page.getByText('12 °C · averses · rafales 45 km/h')).toBeVisible();
+			await expect(page.getByText('12 °C, averses, rafales 45 km/h')).toBeVisible();
 			await expect(page.getByRole('link', { name: 'Météo : Open-Meteo' })).toBeVisible();
 			const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 			expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
@@ -94,7 +94,7 @@ test.describe('météo et vigilance', () => {
 	test('affichage Sobre : pas d’ambiance animée, la météo reste écrite', async ({ context, page }) => {
 		await context.addCookies([{ name: 'niveau', value: 'sobre', url: ADRESSE }]);
 		await page.goto('/');
-		await expect(page.getByText('12 °C · averses · rafales 45 km/h')).toBeVisible();
+		await expect(page.getByText('12 °C, averses, rafales 45 km/h')).toBeVisible();
 		await expect(page.locator('.meteo.m-pluie')).toHaveCount(0);
 	});
 

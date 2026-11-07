@@ -3,6 +3,7 @@ import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
 
 const etat = vi.hoisted(() => ({ page: { params: {} as Record<string, string>, url: new URL('http://x/echanges') } }));
 vi.mock('$app/state', () => etat);
@@ -119,12 +120,12 @@ describe('liste des murs', () => {
 		vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 		let page = html();
 		expect(page).not.toContain('class="gyro');
-		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. Rien ne vous a échappé : Gyro veille.');
+		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. Gyro a jeté un œil au ciel pour vous.');
 		vi.setSystemTime(new Date('2026-01-02T12:00:00Z'));
 		page = html();
-		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. La caserne bavarde, voici l’essentiel.');
-		vi.setSystemTime(new Date('2026-01-03T12:00:00Z'));
-		expect(texte(html())).toContain('depuis votre dernière visite. Le café est encore chaud.');
+		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. La barre de descente brille comme un sou neuf.');
+		// Jamais la même que sur l'accueil le même jour.
+		expect(texte(page)).not.toContain(humeurDuJour('2026-01-02', 'accueil'));
 	});
 
 	it('deux anniversaires d’homonymes : deux lignes, deux liens « Souhaiter »', () => {
@@ -151,7 +152,8 @@ describe('liste des murs', () => {
 		etat.page.params = {};
 		const vide = { ...sections, centre: { ...sections.centre, nouveautes: 0 }, groupes: [], supervision: [] };
 		const page = html({ sections: vide }, 'equilibre');
-		expect(texte(page)).toMatch(/Rien de neuf depuis votre dernière visite\. (?!Le café|Rien ne|La caserne)/);
+		expect(texte(page)).toContain('Rien de neuf depuis votre dernière visite.');
+		expect(HUMEURS.some((h) => texte(page).includes(h))).toBe(false);
 		expect(texte(html({ sections: { ...vide, groupes: [sections.groupes[0]] } }, 'equilibre'))).toContain('1 nouveauté depuis votre dernière visite.');
 	});
 
