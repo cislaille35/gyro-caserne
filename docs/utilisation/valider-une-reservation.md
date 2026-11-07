@@ -1,6 +1,6 @@
 # Comment accepter ou refuser une demande de réservation ?
 
-Pour les membres de l'amicale (matériel) et le référent engins (VL).
+Pour les membres du comité qui gère le matériel (l'amicale, au départ) et le référent engins (VL).
 
 1. Touchez la notification, ou ouvrez la cloche : rubrique « À trancher », « … demandes de réservation à valider ». Elles sont aussi dans « À décider » de l'Accueil, sur votre casquette.
 2. Sur « À valider », lisez la demande : qui, quoi, quand, et son mot.

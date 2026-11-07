@@ -44,11 +44,11 @@ Le VSAV 1 part en réparation. Le centre reçoit en prêt le VSAV 23 d'un autre 
 
 ## Rythme
 
-Une prise par engin **à chaque relève**, c'est-à-dire à chaque prise d'astreinte du centre (à Laillé, le vendredi à 18 h). L'appli signale un engin dont la prise est en retard. Pas encore de rythme réglable (chaque jour, par type d'engin…).
+Une prise par engin **à chaque relève**, c'est-à-dire à chaque prise d'astreinte du centre (à Laillé, le vendredi à 18 h). L'appli signale un engin dont la prise est en retard.
 
 ## Qui fait la prise
 
-**Tout agent** qui a le droit « Faire la prise de garde » (profil Agent). Le lien de l'Accueil, lui, n'apparaît qu'aux agents d'astreinte dans la semaine de la relève. Pas encore de réglage qui la réserverait à l'équipe d'astreinte.
+**Tout agent** qui a le droit « Faire la prise de garde » (profil Agent). Le lien de l'Accueil, lui, n'apparaît qu'aux agents d'astreinte dans la semaine de la relève.
 
 La prise est au nom de ses participants (celui qui valide en fait partie) et de l'équipe d'astreinte du moment.
 

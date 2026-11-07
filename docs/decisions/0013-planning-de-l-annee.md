@@ -10,5 +10,5 @@
   - **Agenda** : fichier iCalendar en UTC, servi à `/agenda/<id>-<clé>.ics`. Clé aléatoire de 32 octets, gardée en clair (pour réafficher le lien), comparée en temps constant, jamais journalisée par l'appli. 404 sans détail sinon. La clé est dans le chemin de l'adresse : si les journaux de requêtes de Cloudflare sont activés pour le centre, elle y figure (« Changer le lien » la remplace). Une manœuvre y dure 3 h.
 - **Pourquoi** : peu de données, rien à resynchroniser quand le roulement change, gratuit.
 - **Conséquences** : changer un réglage d'heures dans `centre.ts` change aussi l'affichage des années passées.
-- **Validé par** : à valider par le porteur (PR #28).
+- **Validé par** : le porteur du projet, à la fusion de la PR #28 (01/11/2026).
 - **Remplacée en partie** par la [révision du 6 novembre 2026 de 0012](0012-notifications-file-d-envoi.md#révision-du-6-novembre-2026--envoi-immédiat-réveil-toutes-les-cinq-minutes) : les annonces de 8 h et 8 h 10 partent du réveil de toutes les cinq minutes.

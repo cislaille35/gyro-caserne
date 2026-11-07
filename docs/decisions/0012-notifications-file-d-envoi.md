@@ -13,7 +13,7 @@
 - **Pourquoi** : rien de nouveau à installer, tout reste gratuit, et l'auteur n'attend jamais. Délai : moins d'une minute jusqu'à 40 appareils.
 - **Conséquences** : au-delà de 40 appareils, une minute de plus par tranche de 40 (« Le centre » avec 150 appareils : environ 4 minutes). Si ce délai gêne, passer aux Queues (option 3). La tâche de chaque minute coûte une requête D1 quand la file est vide (1 440 par jour).
 - **Détails** : [la spec](../superpowers/specs/2026-10-31-notifications-design.md), [socle.md](../technique/socle.md).
-- **Validé par** : à valider par le porteur (PR #26).
+- **Validé par** : le porteur du projet, à la fusion de la PR #26 (31/10/2026).
 
 ## Révision du 6 novembre 2026 : envoi immédiat, réveil toutes les cinq minutes
 

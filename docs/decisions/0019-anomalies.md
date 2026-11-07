@@ -8,4 +8,4 @@
   - **Prévenus** (cloche et téléphone) : au signalement, ceux qui traitent au centre et le chef de garde de l'équipe d'astreinte (une ligne par prise validée, pas une par écart) ; à chaque étape, le déclarant et qui l'a prise en charge, jamais l'auteur du geste.
   - **Pas de réouverture** d'une anomalie close : on en signale une nouvelle.
 - **Pourquoi** : le plus simple qui tient le déroulé d'`anomalies.md` et la règle du porteur (décision à part, jamais automatique), sans écran de réglage ni catégories avant d'en avoir besoin.
-- **Validé par** : à valider par le porteur (PR #42).
+- **Validé par** : le porteur du projet, à la fusion de la PR #42 (02/11/2026).

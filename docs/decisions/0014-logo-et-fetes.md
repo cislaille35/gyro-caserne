@@ -7,4 +7,4 @@
   - **Fêtes** : trois moments seulement. Mémoire dans le navigateur (aucune migration) : une fête peut revenir une fois sur un autre appareil. Coupées aussi au niveau Sobre. Anniversaire seulement si l'agent montre le sien. Première réservation : quand une seule réservation de l'agent est acceptée et qu'elle est à venir (les 30 dernières passées comptent).
   - **Annonce** : zone `aria-live` sans rôle `status`, pour garder une seule zone d'état par page ; aucune quand la page dit déjà la nouvelle.
 - **Pourquoi** : rien à stocker, rien qui bloque l'agent, rien sur les écrans d'urgence.
-- **Validé par** : à valider par le porteur.
+- **Validé par** : le porteur du projet, à la fusion de la PR #29 (01/11/2026).
