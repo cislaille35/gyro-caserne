@@ -1,5 +1,5 @@
 // Ce que le service worker affiche à la réception d'une notification. `envoi` : le numéro de l'envoi dans la file ;
-// `pastille` : le chiffre de la cloche, posé sur l'icône (pastille.ts).
+// `pastille` : le chiffre de la cloche plus les messages non lus, posé sur l'icône (pastille.ts).
 // Un envoi repris après une coupure peut arriver après un plus récent du même fil (même `tag`) : le plus récent reste
 // affiché (il faut toujours afficher quelque chose à la réception ; le remettre à l'identique ne fait pas sonner).
 export type Recue = { titre?: string; texte?: string; url?: string; tag?: string; envoi?: number; pastille?: number };

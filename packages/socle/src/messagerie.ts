@@ -565,6 +565,10 @@ export async function mesConversations(base: Base, acteur: Acteur, maintenant: s
 
 const totalNonLus = (base: Base, moi: number) => base.select({ n: count() }).from(message).innerJoin(membreConversation, nonLusDe(moi));
 
+// Le même total en SQL, pour la colonne d'une requête (la pastille sur l'icône de chaque personne d'un lot d'envois).
+export const nonLusPour = (qui: SQL, aujourdhui: string) =>
+	sql<number>`(case when ${aLaMessagerie(qui, aujourdhui)} then (select count(*) from ${message} join ${membreConversation} on ${membreConversation.conversationId} = ${message.conversationId} where ${membreConversation.personneId} = ${qui} and ${message.id} > ${membreConversation.luJusquA} and ${message.auteur} is not null and ${message.auteur} <> ${qui} and ${message.supprime} is null) else 0 end)`;
+
 // Total des non-lus de l'acteur (pastille d'Échanges), en une requête ; 0 sans messagerie.
 export async function nonLusTotal(base: Base, acteur: Acteur, aujourdhui: string): Promise<number> {
 	if (acteur.type !== 'personne') return 0;

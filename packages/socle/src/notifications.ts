@@ -3,7 +3,7 @@ import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
-import { aLaMessagerie, signalementsPour } from './messagerie.ts';
+import { aLaMessagerie, nonLusPour, signalementsPour } from './messagerie.ts';
 import { aTrancherPar } from './reservations-gestion.ts';
 import { agentsDuJour, estConvoque, type Convocation, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
@@ -493,7 +493,7 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 	await base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, acteur.id), eq(abonnementPush.endpoint, endpoint)));
 }
 
-// `essais` : 1 au premier envoi, plus après une coupure. `pastille` : le chiffre de la cloche de la personne, au moment du lot.
+// `essais` : 1 au premier envoi, plus après une coupure. `pastille` : le chiffre de la cloche de la personne et ses messages non lus, au moment du lot.
 export type Envoi = { id: number; abonnementId: number; personneId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush; pastille: number };
 
 // Un lot réserve ses envois, puis ne les retire de la file qu'une fois partis (finirEnvois). Coupé en route (Cloudflare arrête
@@ -504,8 +504,8 @@ export const REPRISE_MINUTES = 5;
 export const ESSAIS_MAX = 3;
 
 // Les plus anciens envois libres, réservés d'un même bloc (`jeton`) : deux lots qui se croisent ne prennent jamais le même.
-// Dans le même bloc, ceux coupés ESSAIS_MAX fois sont abandonnés, et le chiffre de la cloche de chaque personne du lot est compté
-// (la pastille sur l'icône de l'appli). Une requête à la base. `ici` : l'heure de Paris.
+// Dans le même bloc, ceux coupés ESSAIS_MAX fois sont abandonnés, et le chiffre de la cloche de chaque personne du lot est compté,
+// plus ses messages non lus (la pastille sur l'icône de l'appli). Une requête à la base. `ici` : l'heure de Paris.
 export async function prendreEnvois(base: Base, max: number, maintenant = new Date(), ici = heureDeParis(maintenant)): Promise<{ jeton: string; envois: Envoi[] }> {
 	const aujourdhui = exigerDateHeure(ici, 'Date');
 	const jeton = crypto.randomUUID();
@@ -529,7 +529,7 @@ export async function prendreEnvois(base: Base, max: number, maintenant = new Da
 			.where(eq(envoiPush.jeton, jeton))
 			.orderBy(asc(envoiPush.id)),
 		base
-			.select({ id: personne.id, n: clocheSql(sql`"personne"."id"`, aujourdhui, ici).as('n') })
+			.select({ id: personne.id, n: sql<number>`${clocheSql(sql`"personne"."id"`, aujourdhui, ici)} + ${nonLusPour(sql`"personne"."id"`, aujourdhui)}`.as('n') })
 			.from(personne)
 			.where(inArray(personne.id, duLot))
 	]);

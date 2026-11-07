@@ -26,8 +26,8 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## La pastille sur l'icône
 
-- L'icône de l'appli installée porte le **chiffre de la cloche** : le même nombre, des mêmes sources (non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher). Les messages n'y comptent pas : ils ont leur pastille sur Échanges.
-- Appli fermée, chaque notification reçue apporte le nombre du moment, et la pastille se met à jour. Appli ouverte, elle suit la cloche, relue après chaque lecture. Déconnecté, elle s'efface.
+- L'icône de l'appli installée porte le **chiffre de la cloche plus les messages non lus** : la cloche (non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher) et la pastille d'Échanges (conversations perso et de groupe, coupées comprises, comme sur Échanges). La cloche, elle, ne compte toujours pas les messages.
+- Appli fermée, chaque notification reçue apporte le nombre du moment, et la pastille se met à jour. Appli ouverte, elle suit la cloche, relue après chaque lecture, et la pastille d'Échanges, relue toutes les 30 s et pendant la lecture d'une conversation. Déconnecté, elle s'efface.
 - iPhone (16.4 ou plus récent, appli sur l'écran d'accueil) et ordinateur (Chrome ou Edge, appli installée) : le nombre. Android : souvent un simple point, selon le téléphone. Ailleurs : rien.
 - Une notification coupée (mur, conversation, « Tout couper ») n'arrive pas, et une lecture faite sur un autre appareil ne se voit pas tout de suite : la pastille se met à jour à la prochaine notification reçue, ou à l'ouverture de l'appli.
 
@@ -66,3 +66,5 @@ Rappels programmés, courriels, réactions qui notifient.
 ## Exemple
 
 Élodie publie « Manœuvre samedi 9 h » sur le mur de l'équipe 2. Romain (équipe 2) reçoit sur son téléphone « Équipe 2 · Élodie Martin — Manœuvre samedi 9 h » ; la cloche de son appli et l'icône sur son écran d'accueil passent à 1. Il touche la notification : la publication s'ouvre, le chiffre retombe, sur l'icône aussi. Manon, qui a coupé le mur de l'équipe 2, ne reçoit rien au téléphone, mais la publication est dans sa cloche.
+
+Plus tard, Thomas écrit à Romain dans la messagerie. Sa cloche reste à 0, mais l'icône passe à 1 avec la notification : c'est le message non lu. Il l'ouvre : l'icône s'efface.

@@ -50,3 +50,12 @@
   - **Notification touchée** : un avis d'été ou d'anomalie (leur page ne les marque pas lus) retrouve sa ligne de cloche à l'écriture (`mettreEnFile(…, ligne)`, la plus récente de la personne, écrite juste avant dans le même batch) ; l'adresse de la charge devient `/notifications/ouvrir?genre=…&id=…&vers=…`, qui la marque lue puis redirige (adresses externes refusées). Publications, commentaires, réservations et remplacements gardent l'adresse directe : leur page marque déjà lu ce qu'elle montre, sans requête de plus. Sans ligne (message, demande de réservation à trancher, vigilance rouge) : l'adresse directe.
 - **Coût** : un lot d'envois reste à 2 requêtes D1 (1 si la file est vide) ; un avis d'été ou d'anomalie touché coûte une requête de plus (marquer lu) et une redirection ; les autres, rien de plus. Calcul : quelques sous-requêtes SQL de plus par lot, côté base.
 - **Validé par** : le porteur, le 7 novembre 2026 (le fond) ; la mise en œuvre est à valider (PR #60).
+
+## Révision du 7 novembre 2026 : la pastille compte aussi les messages
+
+- **Contexte** : un message reçu, cloche à 0, laissait l'icône vide.
+- **Choix** : pastille = cloche + messages non lus, comptés comme la pastille d'Échanges (`nonLusTotal` : conversations perso et de groupe, coupées comprises, ni les siens ni les messages système ou supprimés, 0 sans accès à la messagerie). La cloche ne change pas.
+  - Appli fermée : une colonne de plus (`nonLusPour`) dans la même requête de `prendreEnvois`, pour tout le lot.
+  - Appli ouverte : le layout additionne `cloche` et `nonLus`, qu'il lit déjà (`chiffreIcone`).
+- **Coût** : aucune requête de plus (lot d'envois : toujours 2, 1 si la file est vide ; navigation : rien). Calcul : une sous-requête de plus par personne du lot, côté base.
+- **Validé par** : le porteur, le 7 novembre 2026.

@@ -10,7 +10,7 @@ import { requetePush, type ClesVapid } from './webpush.ts';
 const DELAI_ENVOI = 20_000;
 
 // Le contenu de la notification, avec le numéro de l'envoi (le téléphone garde la plus récente d'un fil, notification-recue.ts)
-// et le chiffre de la cloche de la personne (la pastille sur l'icône). Une ligne de la cloche passe par /notifications/ouvrir,
+// et le chiffre de la cloche de la personne plus ses messages non lus (la pastille sur l'icône). Une ligne de la cloche passe par /notifications/ouvrir,
 // qui la marque lue avant d'ouvrir sa page : touchée au téléphone, elle ne reste pas non lue.
 export function charge(e: Envoi) {
 	const { lue, ...donnees } = e.donnees;
