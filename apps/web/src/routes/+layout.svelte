@@ -6,6 +6,7 @@
 	import { untrack } from 'svelte';
 	import { definirAffichage } from '#lib/gyro/niveau.ts';
 	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
+	import { lireCloche } from '#lib/notifications/cloche.ts';
 	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
 	import { dansUneConversation } from '#lib/ui/navigation.ts';
@@ -44,10 +45,15 @@
 			suivi = null;
 		};
 	});
-	afterNavigate(({ from, to }) => suivi?.apresNavigation(from?.url.pathname, to?.url.pathname));
+	// La cloche : reçue avec la page, puis relue après chaque changement de page, qui a pu marquer des notifications lues.
+	let cloche = $derived(data.cloche);
+	afterNavigate(({ from, to }) => {
+		suivi?.apresNavigation(from?.url.pathname, to?.url.pathname);
+		if (from && data.connecte) void lireCloche().then((n) => n !== null && (cloche = n));
+	});
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} {cloche} visage={data.visage} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
 	{@render children()}
 	<EnvoiCoupe />
 </Coquille>
