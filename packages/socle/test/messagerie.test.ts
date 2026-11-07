@@ -1511,4 +1511,16 @@ describe('effacerAnciens', () => {
 		expect((await mesConversations(base, acteur(manon), maintenant)).map((c) => c.id)).toEqual([id]);
 		expect((await lireConversation(base, acteur(manon), id, {}, maintenant)).messages).toEqual([]);
 	});
+	it('trouve les vieux messages par un index, sans parcourir toute la table', async () => {
+		const { base, manon, romain } = await jeu();
+		await envoyer(base, base.photos, acteur(manon), { personne: romain }, { texte: 'Vieux' }, '2026-10-28T23:59');
+		base.jouees.length = 0;
+		await effacerAnciens(base, base.photos, '2026-10-29');
+		const plans = base.jouees.filter((r) => r.sql.includes('"message"."cree_le" <')).map((r) => base.plan(r));
+		expect(plans).toHaveLength(3);
+		for (const plan of plans) {
+			expect(plan.filter((l) => l.startsWith('SCAN')), plan.join('\n')).toEqual([]);
+			expect(plan).toContain('SEARCH message USING COVERING INDEX message_cree_le (cree_le<?)');
+		}
+	});
 });

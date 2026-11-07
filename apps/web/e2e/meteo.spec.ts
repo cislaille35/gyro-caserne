@@ -19,8 +19,14 @@ function releves() {
 	executer(`INSERT OR REPLACE INTO releve (cle, donnees, maj_le) VALUES ('meteo', '${meteo}', '${paris}'), ('vigilance', '${vigilance}', '${paris}');`);
 }
 
+// En cas d'échec, l'erreur porte les deux sorties de Wrangler (un échec à la CI, novembre 2026, sans qu'on puisse en lire la cause).
 function executer(sql: string) {
-	execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'BASE', '--local', '--config', `${centre}wrangler.jsonc`, '--persist-to', `${centre}.wrangler/state`, '--command', sql], { cwd: appli, stdio: 'ignore' });
+	try {
+		execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'execute', 'BASE', '--local', '--config', `${centre}wrangler.jsonc`, '--persist-to', `${centre}.wrangler/state`, '--command', sql], { cwd: appli, stdio: 'pipe' });
+	} catch (e) {
+		const { status, stdout, stderr } = e as { status: number | null; stdout?: Buffer; stderr?: Buffer };
+		throw new Error(`Wrangler d1 execute, statut ${status} :\n${String(stdout ?? '')}\n${String(stderr ?? '')}`);
+	}
 }
 
 test.describe('météo et vigilance', () => {

@@ -17,6 +17,7 @@
 	import Saisie from './Saisie.svelte';
 	import { lireNonLus } from './pastille.ts';
 	import { suivreConversation } from './suite.ts';
+	import { suivreLeBas } from './bas.ts';
 	import { toucher } from './toucher.ts';
 
 	type Reponse = { cible?: string; message?: string; succes?: string; valeurs?: { texte: string; reponseA: string } } | null | undefined;
@@ -72,8 +73,14 @@
 	let forcerBas = false;
 	const calme = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 	const enBas = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 96;
+	let bas: ReturnType<typeof suivreLeBas> | null = null;
+	let descenteDouce = false;
+	const descendre = () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: descenteDouce && !calme() ? 'smooth' : 'auto' });
 	function allerEnBas(doux = true) {
-		window.scrollTo({ top: document.documentElement.scrollHeight, behavior: doux && !calme() ? 'smooth' : 'auto' });
+		descenteDouce = doux;
+		descendre();
+		// Une photo qui se charge allonge la page : on suit le bas jusqu'à ce que la personne remonte.
+		bas?.suivre();
 		nouveauxEnDessous = 0;
 	}
 	function surDefilement() {
@@ -102,11 +109,21 @@
 	}
 	onMount(() => {
 		js = true;
+		bas = suivreLeBas(
+			window,
+			(rappel) => {
+				const o = new ResizeObserver(rappel);
+				o.observe(document.body);
+				return () => o.disconnect();
+			},
+			descendre
+		);
 		window.addEventListener('scroll', surDefilement, { passive: true });
 		if (!nouvelle && avant === null) suivre();
 		return () => {
 			ferme = true;
 			window.removeEventListener('scroll', surDefilement);
+			bas?.arreter();
 			suivi?.arreter();
 		};
 	});
@@ -139,6 +156,7 @@
 		const premier = messages[0]?.id;
 		if (!premier) return;
 		e.preventDefault();
+		bas?.lacher();
 		try {
 			const r = await fetch(`/echanges/messages/${id}/suite?avant=${premier}`);
 			if (!r.ok) return;
@@ -254,6 +272,7 @@
 	function allerA(cible: number) {
 		const noeud = document.getElementById(`message-${cible}`);
 		if (!noeud) return;
+		bas?.lacher();
 		noeud.scrollIntoView({ block: 'center', behavior: calme() ? 'auto' : 'smooth' });
 		noeud.focus({ preventScroll: true });
 	}

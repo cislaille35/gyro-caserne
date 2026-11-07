@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAnciens, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { effacerAnciens, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAnciens: vi.fn(async () => {}), effacerPhotosOrphelines: vi.fn(async () => 0), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -40,6 +40,8 @@ describe('avecPlanifie', () => {
 		expect(vi.mocked(effacerVieillesReservations).mock.calls[0]![1]).toBe('2025-10-29');
 		// Les publications des murs plus anciennes que la durée du centre (24 mois ici).
 		expect(vi.mocked(effacerVieillesPublications).mock.calls[0]![2]).toBe('2024-10-29');
+		// Le ménage des photos orphelines, à l'heure de Paris.
+		expect(vi.mocked(effacerPhotosOrphelines).mock.calls[0]![2]).toBe('2026-10-29T04:30:00');
 		expect(envoyerLot).not.toHaveBeenCalled();
 	});
 
@@ -49,6 +51,7 @@ describe('avecPlanifie', () => {
 		expect(vi.mocked(envoyerLot).mock.calls[0]![1]).toBeNull();
 		expect(effacerAnciens).not.toHaveBeenCalled();
 		expect(effacerVieillesPublications).not.toHaveBeenCalled();
+		expect(effacerPhotosOrphelines).not.toHaveBeenCalled();
 	});
 
 	it('le lot part après le reste du réveil : les annonces de 8 h et les relances partent au téléphone tout de suite', async () => {

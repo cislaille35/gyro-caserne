@@ -23,6 +23,7 @@ export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Ca
 export { apercusDesMurs, type Apercu as ApercuMur } from './apercus.ts';
 export { audiences, equipesConvoquees, exigerMur, mursDe, type CleMur, type Convocation, type Mur } from './murs.ts';
 export { TAILLE_PHOTO_MAX, type Photo } from './commun.ts';
+export { effacerPhotosOrphelines } from './photos-orphelines.ts';
 export { effacerVieillesPublications, epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication, type DonneesPublication, type RemplissagePhotos, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
 export { aNePasManquer, anniversairesDuJour, monAnniversaire, type ANePasManquer, type ItemANePasManquer } from './a-ne-pas-manquer.ts';

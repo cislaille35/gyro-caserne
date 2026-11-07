@@ -6,17 +6,19 @@ import * as schemaPhotos from '../src/schema-photos.ts';
 import { ecrit, metEnFile, type Base, type BasePhotos } from '../src/base.ts';
 import { oublierDroits } from '../src/droits.ts';
 
-type Compteurs = { requetes: number; parametresMax: number; misEnFile?: boolean };
+type Requete = { sql: string; params: unknown[] };
+type Compteurs = { requetes: number; parametresMax: number; misEnFile?: boolean; jouees: Requete[] };
 
 // La base principale et, dans `photos`, la base des photos, comme les deux bases D1 de l'appli.
 // `requetes` compte les appels aux deux bases (un batch compte pour un) ; `parametresMax` retient le plus de paramètres liés par une requête (D1 : 100 au plus) ;
 // `misEnFile` passe à vrai quand une requête met des envois au téléphone en file, comme le signale creerBaseD1.
+// `jouees` : les requêtes jouées sur la base principale ; `plan` donne le plan de SQLite d'une requête (EXPLAIN QUERY PLAN), pour vérifier les index.
 // Comme creerBaseD1, toute écriture dans la base principale fait oublier les droits lus.
-export async function baseDeTest(): Promise<Base & Compteurs & { photos: BasePhotos }> {
+export async function baseDeTest(): Promise<Base & Compteurs & { photos: BasePhotos; plan: (r: Requete) => string[] }> {
 	const base = ouvrir(new URL('../migrations/', import.meta.url), schema, (requetes) => {
 		if (requetes.some(ecrit)) oublierDroits(base);
 		if (requetes.some(metEnFile)) base.misEnFile = true;
-	}) as Base & Compteurs & { photos: BasePhotos };
+	}) as Base & Compteurs & { photos: BasePhotos; plan: (r: Requete) => string[] };
 	base.photos = ouvrir(new URL('../migrations-photos/', import.meta.url), schemaPhotos, () => {}, base) as unknown as BasePhotos;
 	return base;
 }
@@ -32,6 +34,7 @@ function ouvrir<S extends Record<string, unknown>>(dossierMigrations: URL, schem
 
 	const executer = (requete: string, params: unknown[], methode: 'run' | 'all' | 'values' | 'get') => {
 		cpt().parametresMax = Math.max(cpt().parametresMax, params.length);
+		if (!compteurs) base.jouees.push({ sql: requete, params });
 		const instruction = sqlite.prepare(requete);
 		instruction.setReturnArrays(true);
 		const valeurs = params as never[];
@@ -68,6 +71,8 @@ function ouvrir<S extends Record<string, unknown>>(dossierMigrations: URL, schem
 	const cpt = () => compteurs ?? base;
 	base.requetes = 0;
 	base.parametresMax = 0;
+	base.jouees = [];
+	Object.assign(base, { plan: (r: Requete) => sqlite.prepare(`EXPLAIN QUERY PLAN ${r.sql}`).all(...(r.params as never[])).map((l) => String(l.detail)) });
 	return base;
 }
 
