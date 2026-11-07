@@ -36,7 +36,7 @@
 	const annonce = (role: number) => (form?.succes && (form.role === role || concerne(`attribuer-${role}`)) ? form.message : null);
 
 	const vides = $derived(aPourvoir(data.roles));
-	const phrase = $derived(vides === 0 ? 'Qui tient quel rôle. Chaque rôle a son titulaire.' : `Qui tient quel rôle. ${pluriel(vides, 'rôle')} à pourvoir.`);
+	const phrase = $derived(vides === 0 ? 'Chaque rôle a son titulaire.' : `${pluriel(vides, 'rôle')} à pourvoir.`);
 
 	// Recherche d'un rôle ou d'un agent, sans accents ni majuscules.
 	let recherche = $derived(data.recherche);
@@ -68,10 +68,16 @@
 		}
 	};
 
-	const ouvrirNommer = (e: MouseEvent, role: number) => {
+	const ouvrirNommer = async (e: MouseEvent, role: number) => {
 		e.preventDefault();
 		retirer = null;
 		vue = form;
+		// Fermé par Échap, le volet n'est retiré qu'à l'événement « close », qui arrive un peu après :
+		// un appui entre les deux le recrée à neuf, et l'ancien, détaché, ne referme plus rien.
+		if (nommer === role) {
+			nommer = null;
+			await tick();
+		}
 		nommer = role;
 	};
 	const fermerNommer = (role: number) => {
@@ -210,7 +216,7 @@
 						open
 						aria-labelledby="titre-nommer-{id}"
 						onclose={(e) => {
-							if (!e.currentTarget.open) fermerNommer(id);
+							if (!e.currentTarget.open && e.currentTarget.isConnected) fermerNommer(id);
 						}}
 						{@attach enFenetre}
 					>
@@ -298,8 +304,9 @@
 		gap: 10px;
 		padding: 12px 14px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 	}
 	/* Icône, nom, « Nommer » ; les titulaires dessous, dans l'ordre du code (lecteurs d'écran, clavier). */
 	.tete {
@@ -323,7 +330,7 @@
 		min-height: var(--cible);
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 1rem var(--police);

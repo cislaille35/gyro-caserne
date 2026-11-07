@@ -33,23 +33,18 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Remplacements" phrase="Se faire remplacer, échanger, et répondre aux collègues." retour={{ href: '/planning', libelle: 'Planning' }} />
-	{#if data.personne}
-		<div class="gestes">
-			<a class="principal" href="/remplacements/demander"
-				><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d={REMPLACER} /></svg>Me faire remplacer</a
-			>
-			<a class="lien-secondaire" href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
-			<a class="lien-secondaire" href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
-		</div>
-	{/if}
+	<EnTetePage
+		titre="Remplacements"
+		retour={{ href: '/planning', libelle: 'Planning' }}
+		action={data.personne ? { href: '/remplacements/demander', libelle: 'Me faire remplacer', dessin: REMPLACER } : undefined}
+	/>
 	<p class="reussite" class:masque={!annonce} role="status">{annonce}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
 	{#if !data.personne}
 		<Vide titre="Réservé aux agents." texte="Le super administrateur n’a pas d’astreinte." />
 	{:else}
-		<nav class="onglets" aria-label="Remplacements">
+		<nav class="segments onglets" aria-label="Remplacements">
 			{#each onglets as o (o.id)}
 				<a href="?onglet={o.id}" aria-current={data.onglet === o.id ? 'page' : undefined}>{o.libelle}{#if o.n > 0}<span class="compte"><span class="masque"> : </span>{o.n}</span>{/if}</a>
 			{/each}
@@ -62,21 +57,28 @@
 					<li>Un collègue libre accepte : tous les disponibles, ou celui que vous avez choisi.</li>
 					<li>Votre chef de garde est prévenu, et chacun met à jour sa disponibilité dans l’appli du SDIS.</li>
 				</ol>
-				<a class="principal" href="/remplacements/demander">Me faire remplacer</a>
 			</section>
 		{:else if liste.length === 0}
 			<Vide titre={VIDES[data.onglet].titre} texte={VIDES[data.onglet].texte} />
 		{:else}
-			<ul role="list">
+			<ul role="list" class="lignes">
 				{#each liste as v (v.id)}
-					<li><CarteDemande {v} niveau={2} /></li>
+					<li><CarteDemande {v} niveau={2} ligne /></li>
 				{/each}
 			</ul>
 		{/if}
+		<p class="echanges">
+			<a href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
+			<a href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
+		</p>
 	{/if}
 </div>
 
 <style>
+	/* Quatre onglets : à la ligne plutôt qu'à faire défiler, pour qu'aucun ne se cache. */
+	.onglets {
+		flex-wrap: wrap;
+	}
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -84,36 +86,6 @@
 	}
 	p {
 		margin: 0;
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: grid;
-		gap: 10px;
-	}
-	.onglets {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-	.onglets a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		padding: 0 16px;
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.onglets a[aria-current='page'] {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
 	}
 	.compte {
 		min-width: 1.5em;
@@ -124,26 +96,17 @@
 		font-size: 0.875rem;
 		text-align: center;
 	}
-	.gestes {
+	.echanges {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 0 24px;
 	}
-	.principal {
+	.echanges a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 20px 0 16px;
-		border: 2px solid var(--encre);
-		border-radius: 999px;
-		background: var(--rouge);
-		color: var(--sur-rouge);
-		font-weight: 700;
-		text-decoration: none;
-	}
-	.principal:hover {
-		background: var(--rouge-survol);
+		color: var(--encre);
+		font-weight: 600;
 	}
 	.deroule {
 		display: flex;
@@ -152,7 +115,8 @@
 		gap: 10px;
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.deroule h2 {
@@ -184,11 +148,7 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 64rem;
-		}
-		ul {
-			grid-template-columns: 1fr 1fr;
-			align-items: start;
+			max-width: 48rem;
 		}
 	}
 </style>

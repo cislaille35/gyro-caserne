@@ -2,8 +2,10 @@ import { aLeDroit, enTeteDe, nombreAValider, nombreSignalements, nonLusTotal, pe
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, depends }) => {
 	const { acteur, base } = locals;
+	// Relue seule (sans recharger la page) après une page qui marque des notifications lues.
+	depends('app:cloche');
 	// « Réglages » : super administrateur, ou gestion des listes ou des comités du centre.
 	const peutReglages = acteur === null ? false : acteur.type === 'super' || (await peutReglerLeCentre(base, acteur));
 	// « Nominations » : dès qu'il y a au moins une responsabilité à attribuer.

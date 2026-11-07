@@ -10,7 +10,7 @@ describe('textes des engins', () => {
 		expect(situationDe({ ...engin, situation: 'parti', partiLe: '2026-11-02' })).toBe('Parti le 2 nov. 2026');
 	});
 	it('sous-ligne : type, plaque, prêt', () => {
-		expect(sousLigne(engin)).toBe('VSAV · AB-123-CD · prêté par CIS Exemple-Nord');
+		expect(sousLigne(engin)).toBe('VSAV, AB-123-CD, prêté par CIS Exemple-Nord');
 		expect(sousLigne({ ...engin, situation: 'centre', immatriculation: null })).toBe('VSAV');
 	});
 	it('compte zones et éléments', () => {

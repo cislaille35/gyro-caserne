@@ -77,7 +77,7 @@
 		align-self: flex-start;
 		min-height: var(--cible);
 		padding: 0 14px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		border: 1px solid var(--statut-neutre-trait);
 		background: var(--surface);
 		color: var(--encre);

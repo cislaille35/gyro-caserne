@@ -8,5 +8,8 @@
   - **Version de fiche** marquée utilisée dès le début de la prise : modifier la fiche pendant une prise crée la version suivante, la prise garde la sienne. L'historique relit la version de son époque.
   - **Anomalie minimale** (`anomalie`) créée à la validation, une par écart (sauf une déjà ouverte sur le même élément de l'engin), avec zone et libellé recopiés et la photo (base PHOTOS, 200 Ko) ; close seulement si l'agent dit « retrouvé » (jamais en silence). Suivi, étapes, indisponibilité et remise en service : lot C.
   - **Retard** : 3 h après la relève, les engins sans prise validée vont dans « À décider » du chef de garde de l'équipe d'astreinte (sinon « Le centre ») ; jamais d'indisponibilité automatique.
+  - **Le premier geste commence la prise** (porteur, 05/11/2026, refonte de l'interface) : la fiche se lit sans brouillon ; le premier « Tout est complet », écart ou signalement retrouvé crée le brouillon (ou reprend celui d'un collègue) puis s'applique. Droits, fenêtre de 2 h, compteur et notifications ne changent pas. Annuler ou choisir les participants ne commence rien. « Commencer la prise » ne reste que pour une fiche sans zone.
+  - **« Tout est complet » après la liste de la zone**, jamais fixé en bas d'écran (porteur, 05/11/2026) : c'est une check-list d'engin de secours, on ne valide pas sans la liste sous les yeux. Le geste reste annulable.
+  - **Lien de l'accueil sur la vraie relève** (porteur, 05/11/2026) : de 2 h avant la relève à 24 h après, pas sur le début d'astreinte de l'agent, qui peut tomber un autre jour en semaine à plages. Montré à qui a une astreinte dans la semaine de cette relève.
 - **Pourquoi** : le plus simple qui tient le parcours au téléphone, le travail à plusieurs et l'historique, sans préparer plus que ce que le lot C demande.
-- **Validé par** : à valider par le porteur (PR #41).
+- **Validé par** : à valider par le porteur (PR #41) ; les trois points du 05/11/2026 validés par le porteur.

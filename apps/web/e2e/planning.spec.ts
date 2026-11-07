@@ -23,7 +23,11 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByText('Étape 1 sur 4')).toBeVisible();
 		// Les deux tailles d'écran jouent ce test : l'une a pu ouvrir l'été avant l'autre.
 		const ouvrir = page.getByRole('button', { name: 'Ouvrir la saisie des vacances' });
-		if (await ouvrir.count()) await ouvrir.click();
+		// On attend la fin de l'envoi : la page qu'il relit écraserait sinon une navigation partie entre-temps.
+		if (await ouvrir.count()) {
+			await ouvrir.click();
+			await expect(ouvrir).toHaveCount(0);
+		}
 		await page.getByRole('link', { name: 'Modifier la période' }).click();
 		await expect(page.getByRole('dialog', { name: 'Période de l’été' })).toBeVisible();
 		await sansViolation(page);
@@ -40,7 +44,8 @@ test.describe('chef : préparer l’année', () => {
 			await expect(page.getByText(/Répartition proposée/)).toBeVisible();
 		}
 		await expect(page.getByText(/FPT armé \d+\/\d+|à revoir/).first()).toBeVisible();
-		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toBeVisible();
+		// Un seul geste de publication par étape : ici le lien, le bouton à l'étape suivante.
+		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toHaveCount(0);
 		await sansViolation(page);
 		await page.locator('details.semaine summary').first().click();
 		await page.locator('.plages a').first().click();
@@ -53,6 +58,9 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByRole('dialog', { name: 'Recalculer la proposition ?' })).toBeVisible();
 		await page.getByRole('link', { name: 'Annuler' }).click();
 		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await page.getByRole('navigation', { name: 'Étape précédente ou suivante' }).getByRole('link', { name: /^Publier/ }).click();
+		await expect(page.getByRole('button', { name: `Publier l’été ${annee}` })).toBeVisible();
+		await sansViolation(page);
 	});
 
 	test('partir d’une proposition : le panneau, accepter, le brouillon sans annonce', async ({ page }) => {
@@ -66,7 +74,7 @@ test.describe('chef : préparer l’année', () => {
 			const panneau = page.getByRole('dialog', { name: `Proposition pour ${annee}` });
 			await expect(panneau).toBeVisible();
 			await expect(panneau.getByRole('heading', { level: 3, name: 'État des équipes' })).toBeVisible();
-			await expect(panneau.getByText(/\d+ semaines · Noël : .* · Nouvel An : /)).toBeVisible();
+			await expect(panneau.getByText(/\d+ semaines, Noël : .*, Nouvel An : /)).toBeVisible();
 			await sansViolation(page);
 			await panneau.getByRole('button', { name: 'Accepter et écrire le brouillon' }).click();
 			await expect(page.getByText('Proposition acceptée')).toBeVisible();
@@ -192,6 +200,14 @@ test.describe('agent : mon année et mon agenda', () => {
 		// La dernière vue est retenue sur l'appareil.
 		await page.goto('/planning');
 		await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Équipes' })).toHaveAttribute('aria-current', 'page');
+		// Toucher l'onglet Planning, déjà ouvert, deux fois : la vue ne change pas.
+		await page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' }).click();
+		await expect(page).toHaveURL(/vue=annee/);
+		for (let i = 0; i < 2; i++) {
+			await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Planning' }).click();
+			await expect(page).toHaveURL(/\/planning$/);
+			await expect(page.getByRole('navigation', { name: 'Vue du planning' }).getByRole('link', { name: 'Année' })).toHaveAttribute('aria-current', 'page');
+		}
 
 		await page.goto('/moi');
 		await page.getByRole('link', { name: /Ajouter à mon agenda/ }).click();
@@ -207,4 +223,20 @@ test.describe('agent : mon année et mon agenda', () => {
 		expect(await page.getByLabel('Votre lien personnel').inputValue()).not.toBe(lien);
 		expect((await page.request.get(lien)).status()).toBe(404);
 	});
+});
+
+test('agent d’équipe, au Planning : réponses sur une ligne à 390 px, le focus reste sur le bouton', async ({ page }, info) => {
+	test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
+	await connecter(page, 'alice.martin@exemple.fr');
+	await page.goto('/planning?vue=annee');
+	await page.waitForLoadState('networkidle');
+	const groupe = page.getByRole('group', { name: /^Votre réponse/ });
+	test.skip((await groupe.count()) === 0, 'aucune manœuvre annoncée à cette date dans le jeu fictif');
+	const incertain = groupe.getByRole('button', { name: 'Incertain' });
+	await incertain.focus();
+	await page.keyboard.press('Enter');
+	await expect(incertain).toHaveAttribute('aria-pressed', 'true');
+	await expect(incertain).toBeFocused();
+	const hauts = await groupe.getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
+	expect(new Set(hauts).size).toBe(1);
 });

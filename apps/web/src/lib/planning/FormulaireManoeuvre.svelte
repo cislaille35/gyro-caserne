@@ -79,7 +79,8 @@
 		flex-direction: column;
 		gap: 16px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -112,16 +113,16 @@
 		flex-direction: column;
 		padding-left: 32px;
 	}
+	.case input[type='radio'] {
+		width: 22px;
+		height: 22px;
+		flex: none;
+	}
 	.case {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		min-height: var(--cible);
-	}
-	.case input {
-		width: 22px;
-		height: 22px;
-		flex: none;
 	}
 	.echec {
 		padding: 10px 14px;

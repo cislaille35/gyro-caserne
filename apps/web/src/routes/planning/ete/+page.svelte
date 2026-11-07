@@ -167,10 +167,11 @@
 					{/if}
 				</div>
 				{#if e.conflits.length}
-					<div class="alerte">
-						<h3>{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3>
+					<!-- Replié, le nombre reste visible : l'alerte ne se fait pas oublier. -->
+					<details class="alerte">
+						<summary><h3><span aria-hidden="true">⚠</span>{' '}{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3></summary>
 						<ul>{#each e.conflits as t (t)}<li>{t}</li>{/each}</ul>
-					</div>
+					</details>
 				{/if}
 				<ul class="rangees" role="list">
 					{#each semaines as s (s.debut)}
@@ -205,8 +206,8 @@
 			{:else if e.proposee}
 				<ul class="recap" role="list">
 					<li>{pluriel(e.semaines.length, 'semaine')}, {pluriel(e.semaines.reduce((n, s) => n + s.plages.length, 0), 'plage')}</li>
-					<li>{aRevoir === 0 ? 'FPT armé sur chaque plage' : `${pluriel(aRevoir, 'plage', 'plages')} où le FPT n’est pas armé`}{#if aRevoir} · <a href={vers('repartition')}>Revoir</a>{/if}</li>
-					{#if e.conflits.length}<li>{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</li>{/if}
+					<li>{aRevoir === 0 ? 'FPT armé sur chaque plage' : `${pluriel(aRevoir, 'plage', 'plages')} où le FPT n’est pas armé`}{#if aRevoir}{' · '}<a href={vers('repartition')}>Revoir</a>{/if}</li>
+					{#if e.conflits.length}<li>{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')} · <a href={vers('repartition')}>Revoir</a></li>{/if}
 					<li>{pluriel(sansReponse.length, 'agent sans réponse', 'agents sans réponse')} (comptés disponibles)</li>
 				</ul>
 				<p class="doux">À la publication, le planning, l’agenda et les remplacements suivent la répartition ; les renforts et les agents retirés sont prévenus.</p>
@@ -221,15 +222,10 @@
 		{#if rang < ETAPES_ETE.length - 1}<a class="suivante" href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
 
-	{#if e.ete}
-		<BarreActions message={e.ete.publiee ? '' : !e.proposee ? 'Proposez d’abord la répartition pour publier.' : aRevoir ? `${pluriel(aRevoir, 'plage', 'plages')} sans FPT armé : vous pouvez publier quand même.` : ''}>
-			{#if e.ete.publiee}
-				<p class="publiee"><Pastille ton="ok">Publiée</Pastille> L’été {e.annee} est publié.</p>
-			{:else if e.proposee}
-				<form method="POST" action={action('publier', { etape: 'publier' })}><Bouton type="submit">Publier l’été {e.annee}</Bouton></form>
-			{:else}
-				<a class="lien-bouton" href={vers('repartition')}>Aller à la répartition</a>
-			{/if}
+	<!-- Le bouton de publication vit à la dernière étape ; avant, « Publier › » y conduit. -->
+	{#if data.etape === 'publier' && e.proposee && !e.ete?.publiee}
+		<BarreActions message={aRevoir ? `${pluriel(aRevoir, 'plage', 'plages')} sans FPT armé : vous pouvez publier quand même.` : ''}>
+			<form method="POST" action={action('publier')}><Bouton type="submit">Publier l’été {e.annee}</Bouton></form>
 		</BarreActions>
 	{/if}
 </div>
@@ -263,7 +259,8 @@
 			<li>
 				<span>
 					{x.prenom} {x.nom}
-					<span class="doux">· {equipe(x.equipeId).nom}{x.postes.length ? ` · ${x.postes.map((y) => LIBELLES_POSTE[y]).join(', ')}` : ''}{x.vacances ? ' · en vacances' : ''}</span>
+					<span class="doux">· {equipe(x.equipeId).nom}{x.vacances ? ', en vacances' : ''}</span>
+					{#if x.postes.length}<span class="doux postes">{x.postes.map((y) => LIBELLES_POSTE[y]).join(', ')}</span>{/if}
 				</span>
 				<form method="POST" action={action('ajuster', { plage: debut })} use:enhance={garder}>
 					<input type="hidden" name="debut" value={debut} /><input type="hidden" name="personne" value={x.id} /><input type="hidden" name="present" value="oui" />
@@ -420,7 +417,8 @@
 	.carte {
 		padding: 14px 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.ligne {
@@ -440,7 +438,7 @@
 		justify-content: center;
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -453,7 +451,8 @@
 		padding: 0;
 		list-style: none;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.rangees > li + li {
@@ -529,7 +528,7 @@
 		align-items: center;
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font-weight: 600;
 		cursor: pointer;
 	}
@@ -592,7 +591,35 @@
 	.encadre {
 		border: 1px solid var(--trait);
 	}
-	.alerte ul,
+	.alerte {
+		padding: 0;
+	}
+	.alerte summary {
+		min-height: var(--cible);
+		padding: 6px 16px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		cursor: pointer;
+		list-style: none;
+	}
+	.alerte summary::-webkit-details-marker {
+		display: none;
+	}
+	.alerte summary::after {
+		content: '›';
+		font-size: 1.25rem;
+		color: var(--doux);
+		transition: transform 0.15s;
+	}
+	.alerte[open] summary::after {
+		transform: rotate(90deg);
+	}
+	.alerte ul {
+		margin: 0;
+		padding: 0 16px 12px 36px;
+	}
 	.recap {
 		margin: 6px 0 0;
 		padding-left: 20px;
@@ -608,7 +635,7 @@
 		align-items: center;
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -618,13 +645,6 @@
 		background: var(--encre);
 		border-color: var(--encre);
 		color: var(--surface);
-	}
-	.publiee {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: var(--cible);
-		font-weight: 600;
 	}
 
 	/* Panneaux */
@@ -679,6 +699,11 @@
 		gap: 12px;
 		min-height: var(--cible);
 		padding: 4px 0;
+	}
+	/* Les postes d'un candidat : une seconde ligne, ils sont déjà séparés par des virgules. */
+	.postes {
+		display: block;
+		font-size: 0.875rem;
 	}
 	.liste li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -739,7 +764,8 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.rangees summary::after {
+		.rangees summary::after,
+		.alerte summary::after {
 			transition: none;
 		}
 	}

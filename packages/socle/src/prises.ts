@@ -55,6 +55,13 @@ export function releveDe(maintenant: string, reglage: Reglage): string {
 	return moment <= m ? moment : `${ajouterJours(date, -7)}T${reglage.debut.heure}`;
 }
 
+// Le lien de l'accueil vers la prise de garde : de 2 h avant la relève à 24 h après, pour qui a son astreinte dans la semaine de cette relève.
+// `debutAstreinte` : le début de ses heures, qui peut tomber plus tard dans la semaine (été, renfort). Sans requête.
+export function lienPriseOuvert(debutAstreinte: string, maintenant: string, reglage: Reglage): boolean {
+	const releve = releveDe(maintenant, reglage);
+	return maintenant.slice(0, 16) <= decaler(releve, 24 * 60) && releve <= debutAstreinte && debutAstreinte < decaler(releve, 7 * 24 * 60);
+}
+
 // L'équipe d'astreinte d'une relève, d'après le planning publié de son année : trois lectures à placer dans un batch.
 function lecturesEquipe(base: Base, releve: string) {
 	const annee = Number(releve.slice(0, 4));
@@ -292,6 +299,22 @@ export async function gestePrise(base: Base, basePhotos: BasePhotos, acteur: Act
 			if (essai > 0) throw new DonneeInvalide('Prise changée entre-temps');
 		}
 	});
+}
+
+// Le premier geste sur la fiche, sans prise encore en cours : il la commence (ou reprend celle d'un collègue), puis s'applique.
+// Annuler ou choisir les participants ne commence rien.
+export async function premierGestePrise(base: Base, basePhotos: BasePhotos, acteur: Acteur, enginId: number, geste: GestePrise, maintenant: string, reglage: Reglage): Promise<number> {
+	if (geste.quoi === 'participants' || geste.quoi === 'retirer_ecart' || (geste.quoi === 'zone' && !geste.vue)) throw new DonneeInvalide('Prise inconnue');
+	const id = await commencerPrise(base, basePhotos, acteur, enginId, maintenant, reglage);
+	try {
+		await gestePrise(base, basePhotos, acteur, id, geste, maintenant, reglage, enginId);
+	} catch (erreur) {
+		// Geste refusé : pas de brouillon vide. Celui d'un collègue, ou déjà touché, reste.
+		const moi = acteur.type === 'personne' ? acteur.id : 0;
+		await base.delete(priseGarde).where(and(eq(priseGarde.id, id), eq(priseGarde.etat, 'en_cours'), eq(priseGarde.compteur, 0), eq(priseGarde.commenceePar, moi)));
+		throw erreur;
+	}
+	return id;
 }
 
 const photosDe = (s: Saisie) => Object.values(s.ecarts).flatMap((e) => (e.photo === null ? [] : [e.photo]));

@@ -439,7 +439,7 @@ export async function refuserValidation(base: Base, acteur: Acteur, id: number, 
 	if (d.etat !== 'a_valider') throw dejaTraitee();
 	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
 	const propre = motDe(motif);
-	const texte = [`${nomDe(ctx, d.remplacantId)} ne remplacera pas ${nomDe(ctx, d.demandeurId)}`, texteDe(ctx, d), ...(propre ? [propre] : [])].join(' · ');
+	const texte = [`${nomDe(ctx, d.remplacantId)} ne remplacera pas ${nomDe(ctx, d.demandeurId)}`, texteDe(ctx, d), ...(propre ? [propre] : [])].join(', ');
 	await base.batch([
 		...rouvrir(base, ctx, d, destinataires, moi, propre ?? 'Refusé par le chef de garde', maintenant),
 		journalDemande(base, moi, 'refuser_validation', id, {}, maintenant),

@@ -26,7 +26,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Ajouter à mon agenda" phrase="Votre planning dans l’agenda de votre téléphone." retour={{ href: '/moi', libelle: 'Moi' }} />
+	<EnTetePage titre="Ajouter à mon agenda" retour={{ href: '/moi', libelle: 'Moi' }} />
 
 	{#if !data.lien}
 		<p>{data.sansPlanning ? 'Le planning est réservé aux agents du centre.' : 'Le super administrateur n’a pas de planning à ajouter.'}</p>
@@ -118,7 +118,8 @@
 		flex-direction: column;
 		gap: 12px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}

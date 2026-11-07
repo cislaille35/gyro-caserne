@@ -4,7 +4,6 @@
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
-	import { DESSINS } from '#lib/ui/icones-roles.ts';
 
 	let { data }: { data: { ressources: Ressource[]; peutReserver: boolean; reserveCitoyenne: boolean; aValider: number; mesAVenir: number; peutGererMateriel: boolean } } = $props();
 
@@ -28,12 +27,12 @@
 	{:else}
 		<div class="colonnes">
 			<ListeRangees titre="Suivre">
-				<li><Rangee href="/reservations/miennes" titre="Mes réservations" sous="Vos demandes, à venir et passées" icone="livre" dessin={DESSINS.profil} valeur={data.mesAVenir > 0 ? `${data.mesAVenir} à venir` : undefined} /></li>
+				<li><Rangee href="/reservations/miennes" titre="Mes réservations" sous="Vos demandes, à venir et passées" valeur={data.mesAVenir > 0 ? `${data.mesAVenir} à venir` : undefined} /></li>
 				{#if gere}
-					<li><Rangee href="/reservations/a-valider" titre="À valider" sous="Les demandes qui attendent votre réponse" icone="cle" valeur={data.aValider > 0 ? `${data.aValider} en attente` : undefined} alerte={data.aValider > 0} /></li>
+					<li><Rangee href="/reservations/a-valider" titre="À valider" sous="Les demandes qui attendent votre réponse" valeur={data.aValider > 0 ? `${data.aValider} en attente` : undefined} alerte={data.aValider > 0} /></li>
 				{/if}
 				{#if data.peutGererMateriel}
-					<li><Rangee href="/reservations/materiel" titre="Gérer le matériel" sous="Ajouter, changer le stock, retirer" icone="outil" /></li>
+					<li><Rangee href="/reservations/materiel" titre="Gérer le matériel" sous="Ajouter, changer le stock, retirer" /></li>
 				{/if}
 			</ListeRangees>
 			<ListeRangees titre="Réserver">

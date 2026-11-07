@@ -33,7 +33,7 @@
 <!-- Toujours présent (masqué quand la recherche trouve), pour que le lecteur d'écran annonce une recherche sans résultat. -->
 <p class="aucune" class:masque={visibles.length > 0} role="status">{visibles.length === 0 ? 'Aucune conversation à ce nom.' : ''}</p>
 {#if visibles.length > 0}
-	<ul class:breve>
+	<ul class="lignes" class:breve>
 		{#each visibles as c (c.id)}
 			<li>
 				<a class="conversation" class:non-lue={nonLus(c) > 0} href="/echanges/messages/{c.id}" aria-current={c.id === actif ? 'page' : undefined}>
@@ -81,7 +81,7 @@
 		min-height: var(--cible);
 		padding: 0 16px 0 40px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -90,17 +90,10 @@
 		color: var(--doux);
 	}
 
-	ul {
-		list-style: none;
-		margin: 0 -8px;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-	}
+	/* Une conversation : une ligne de la carte, toute la ligne est le lien. */
 	.conversation {
 		min-height: 72px;
-		padding: 8px;
-		border-radius: var(--rayon-grand);
+		padding: 10px 14px;
 		display: flex;
 		align-items: center;
 		gap: 12px;
@@ -108,21 +101,21 @@
 		text-decoration: none;
 	}
 	.conversation:hover {
-		background: var(--surface);
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
 		color: var(--encre);
 	}
-	/* À côté d'une conversation : des lignes plus serrées, l'ouverte marquée d'un trait. */
-	.breve {
-		margin: 0;
-		gap: 2px;
+	.conversation:focus-visible {
+		outline-offset: -3px;
 	}
+	/* À côté d'une conversation : des lignes plus serrées, l'ouverte marquée d'un fond et d'un trait. */
 	.breve .conversation {
 		min-height: 60px;
+		padding: 8px 12px;
 		gap: 10px;
 	}
 	.conversation[aria-current='page'] {
-		background: var(--surface);
-		box-shadow: inset 3px 0 0 var(--accent);
+		background: var(--statut-neutre-fond);
+		box-shadow: inset 4px 0 0 var(--accent);
 	}
 	.groupe {
 		flex: none;

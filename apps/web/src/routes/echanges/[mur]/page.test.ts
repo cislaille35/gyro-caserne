@@ -194,13 +194,12 @@ describe('gestes sur une publication', () => {
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toContain('action="?/repondre"');
 		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
-			expect(page).toMatch(new RegExp(`<button[^>]*name="reponse" value="${valeur}"[^>]*aria-pressed="${appuye}"[^>]*><span aria-hidden="true"[^>]*>[✓✕?]</span> ${libelle}<`));
-		expect(page).toContain('2 présents · 0 absent · 1 incertain');
-		// La réponse choisie porte une marque écrite, pas seulement une couleur ; elle seule.
-		expect(page.match(/votre réponse</g)).toHaveLength(1);
-		expect(page).toMatch(/value="incertain"[^>]*aria-pressed="true"[^>]*>[\s\S]*?Incertain[\s\S]*?votre réponse<[\s\S]*?<\/button>/);
-		expect(page).not.toMatch(/aria-pressed="false"[^>]*>(?:(?!<\/button>)[\s\S])*votre réponse/);
-		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, reponse: null } }))).not.toContain('votre réponse<');
+			expect(page).toMatch(new RegExp(`<button[^>]*name="reponse" value="${valeur}"[^>]*aria-pressed="${appuye}"[^>]*>${libelle}</button>`));
+		expect(page).toContain('2 présents, 0 absent, 1 incertain');
+		// Un bloc segmenté : la réponse choisie en encre pleine, en gras et cochée (règle commune de app.css), une seule.
+		expect(page).toMatch(/role="group" aria-label="Votre réponse" class="segments reponses/);
+		expect(page.match(/aria-pressed="true"/g)).toHaveLength(1);
+		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, reponse: null } }))).not.toContain('aria-pressed="true"');
 		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, convoque: false } }))).not.toContain('?/repondre');
 	});
 
@@ -275,9 +274,9 @@ describe('cartes par type', () => {
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 5 novembre"/);
 		expect(page).toContain('19 h · Plateforme du centre');
-		expect(page).toContain('14 présents · 3 absents · 2 incertains');
+		expect(page).toContain('14 présents, 3 absents, 2 incertains');
 		expect(page).toContain('>TA<');
-		for (const mot of ['Présent', 'Absent', 'Incertain']) expect(page).toMatch(new RegExp(`aria-pressed="false"[^>]*><span aria-hidden="true"[^>]*>[^<]+</span> ${mot}<`));
+		for (const mot of ['Présent', 'Absent', 'Incertain']) expect(page).toMatch(new RegExp(`aria-pressed="false"[^>]*>${mot}</button>`));
 	});
 
 	it('bravo : « Applaudir » à la place de « J’aime » ; Gyro en victoire et confettis selon le niveau', () => {
@@ -320,7 +319,7 @@ describe('cartes par type', () => {
 		expect(html({ messagerie: true, publications: [pub()] })).not.toContain('Répondre en privé');
 	});
 
-	it('la cloche barrée dans l’en-tête : un bouton à bascule, nommé, qui marche sans JavaScript ; absente sans fiche', () => {
+	it('couper les notifications dans l’en-tête : un bouton à bascule, nommé, qui marche sans JavaScript ; absente sans fiche', () => {
 		const actif = html({ coupe: false });
 		expect(actif).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/couper"[\s\S]*?<input type="hidden" name="oui" value="1"[\s\S]*?<button[^>]*aria-pressed="false"[^>]*>[\s\S]*?Couper les notifications de Vie du centre/);
 		const coupe = html({ coupe: true });

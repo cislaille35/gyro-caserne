@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Coquille from './Coquille.svelte';
-import { entreesNavigation, rubriqueDe } from './navigation.ts';
+import { dansUneConversation, entreesNavigation, marqueDesLues, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
@@ -13,6 +14,28 @@ function html(chemin: string, connecte = true, cloche = 0, nonLus = 0, visage: {
 }
 
 describe('Coquille', () => {
+	it('dans une conversation seulement, en bon état : les barres se masquent', () => {
+		expect(dansUneConversation('/echanges/messages/[id]', null)).toBe(true);
+		expect(dansUneConversation('/echanges/messages/a/[personne]', null)).toBe(true);
+		for (const route of ['/echanges/messages', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/echanges/messages/[id]/infos', '/echanges/[mur]', '/', null]) {
+			expect(dansUneConversation(route, null), String(route)).toBe(false);
+		}
+		// Une page d'erreur garde sa navigation : sans elle, plus de sortie.
+		expect(dansUneConversation('/echanges/messages/[id]', { message: 'Introuvable' })).toBe(false);
+	});
+
+	it('les pages dont l’ouverture marque des notifications lues : la cloche est relue après elles seulement', () => {
+		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes']) expect(marqueDesLues(route), route).toBe(true);
+		for (const route of ['/', '/planning', '/notifications', '/echanges/messages/[id]', '/engins/[id]', '/reservations', null]) expect(marqueDesLues(route), String(route)).toBe(false);
+	});
+
+	it('une conversation : la coquille le sait, et le lien « Aller au contenu » reste', () => {
+		const page = render(Coquille, { props: { chemin: '/echanges/messages/7', connecte: true, nomCentre: 'CIS Test', conversation: true, children: contenu } }).body;
+		expect(page).toMatch(/class="coquille[^"]*conversation/);
+		expect(page).toContain('href="#contenu"');
+		expect(html('/echanges/messages')).not.toMatch(/class="coquille[^"]*conversation/);
+	});
+
 	it('commence par le lien « Aller au contenu » et porte le contenu principal', () => {
 		const page = html('/');
 		const premierLien = page.match(/<a\b[^>]*>[\s\S]*?<\/a>/)![0];
@@ -86,6 +109,36 @@ describe('Coquille', () => {
 	it('affiche le nom du centre', () => {
 		expect(html('/')).toContain('CIS Test');
 	});
+
+	const source = readFileSync(new URL('./Coquille.svelte', import.meta.url), 'utf8');
+	const regle = (selecteur: string) => source.match(new RegExp(`\\n\\t*${selecteur.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+
+	it('la bande de marquage sous l’en-tête : décorative, en jetons, masquée avec l’en-tête dans une conversation', () => {
+		const page = html('/');
+		expect(page).toMatch(/<\/header>\s*<div class="marquage[^"]*" aria-hidden="true"><\/div>/);
+		expect(regle('.marquage')).toMatch(/height: 4px/);
+		expect(regle('.marquage')).toMatch(/background: var\(--marquage\)/);
+		expect(source).toMatch(/\.conversation header,\s*\.conversation \.marquage,\s*\.conversation nav \{\s*display: none;/);
+		// Sans connexion aussi : la marque de l'appli.
+		expect(html('/connexion', false)).toContain('class="marquage ');
+	});
+
+	it('l’en-tête anthracite : « Gyro Caserne » en condensé, cloche et visage en carrés arrondis de 44 px, repère du clavier clair', () => {
+		expect(regle('header')).toMatch(/background: var\(--entete-fond\)/);
+		expect(regle('header')).toMatch(/color: var\(--entete-texte\)/);
+		expect(regle('header')).toMatch(/--focus: var\(--entete-focus\)/);
+		expect(regle('.appli')).toMatch(/var\(--police-titre\)/);
+		expect(regle('.centre')).toMatch(/color: var\(--entete-doux\)/);
+		expect(regle('.rond')).toMatch(/width: var\(--cible\)[\s\S]*border-radius: 12px[\s\S]*background: var\(--entete-bouton\)/);
+		expect(source).toMatch(/header :global\(\.visage\) \{[^}]*border-radius: 12px/);
+		expect(html('/')).toMatch(/<span class="appli[^"]*">Gyro Caserne<\/span>/);
+	});
+
+	it('à l’ordinateur, l’en-tête et sa bande prennent toute la largeur, le menu dessous à gauche', () => {
+		expect(source).toMatch(/'entete entete'\s*'marquage marquage'\s*'menu contenu'/);
+		expect(source).toMatch(/background: var\(--menu-fond\)/);
+		expect(source).toMatch(/nav a\[aria-current='page'\] \{[^}]*background: var\(--menu-actif\)[^}]*font-weight: 700/);
+	});
 });
 
 describe('entreesNavigation', () => {
@@ -115,9 +168,18 @@ describe('rubriqueDe', () => {
 		expect(rubriqueDe('/profil')).toBe('/moi');
 		expect(rubriqueDe('/affichage')).toBe('/moi');
 		expect(rubriqueDe('/notifications')).toBe('/notifications');
+		expect(rubriqueDe('/engins')).toBe('/caserne');
+		expect(rubriqueDe('/engins/3/prise')).toBe('/caserne');
+		expect(rubriqueDe('/engins/prise')).toBe('/caserne');
+		expect(rubriqueDe('/remplacements')).toBe('/planning');
+		expect(rubriqueDe('/remplacements/7')).toBe('/planning');
+		expect(rubriqueDe('/remplacements/demander')).toBe('/planning');
+		expect(rubriqueDe('/moi/agenda')).toBe('/moi');
 	});
 	it('ne confond pas un chemin qui commence pareil', () => {
 		expect(rubriqueDe('/agentsx')).not.toBe('/caserne');
+		expect(rubriqueDe('/enginsx')).not.toBe('/caserne');
+		expect(rubriqueDe('/remplacementsx')).not.toBe('/planning');
 	});
 });
 

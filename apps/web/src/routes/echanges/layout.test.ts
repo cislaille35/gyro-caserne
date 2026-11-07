@@ -3,6 +3,7 @@ import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
 
 const etat = vi.hoisted(() => ({ page: { params: {} as Record<string, string>, url: new URL('http://x/echanges') } }));
 vi.mock('$app/state', () => etat);
@@ -113,31 +114,18 @@ describe('liste des murs', () => {
 		expect(html()).toMatch(/<a[^>]*href="\/echanges\/publier"[^>]*>[\s\S]*?<span class="libelle[^"]*">Écrire<\/span>/);
 	});
 
-	it('Vivant : Gyro animé à l’arrivée, nouveautés puis une variante choisie par le jour de l’année', () => {
+	it('Vivant : nouveautés puis une variante choisie par le jour de l’année ; pas de Gyro dans le titre (il reste dans les écrans vides)', () => {
 		etat.page.params = {};
 		vi.useFakeTimers({ toFake: ['Date'] });
 		vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
 		let page = html();
-		expect(page).toContain('class="gyro');
-		expect(page).toContain('a-respire');
-		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. Rien ne vous a échappé : Gyro veille.');
+		expect(page).not.toContain('class="gyro');
+		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. Gyro a jeté un œil au ciel pour vous.');
 		vi.setSystemTime(new Date('2026-01-02T12:00:00Z'));
 		page = html();
-		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. La caserne bavarde, voici l’essentiel.');
-		vi.setSystemTime(new Date('2026-01-03T12:00:00Z'));
-		expect(texte(html())).toContain('depuis votre dernière visite. Le café est encore chaud.');
-	});
-
-	it('Vivant : Gyro s’immobilise après 5 s et ne repart pas seul (RGAA 13.8)', () => {
-		// Le minuteur d'arrêt (arreterApres, DUREE_DECOR) est éprouvé dans lib/gyro/mouvement.test.ts : la liste doit passer par GyroDuMoment, qui l'utilise.
-		const code = (fichier: URL) => compile(readFileSync(fichier, 'utf8'), { generate: 'client' }).js.code;
-		const liste = code(new URL('./+layout.svelte', import.meta.url));
-		expect(liste).toContain('EnTetePage');
-		expect(code(new URL('../../lib/ui/EnTetePage.svelte', import.meta.url))).toContain('GyroDuMoment');
-		expect(liste).not.toMatch(/from '#lib\/gyro\/Gyro\.svelte'/);
-		const gyro = code(new URL('../../lib/gyro/GyroDuMoment.svelte', import.meta.url));
-		expect(gyro).toContain('arreterApres(duree');
-		expect(gyro).toMatch(/duree = DUREE_DECOR|DUREE_DECOR\)/);
+		expect(texte(page)).toContain('5 nouveautés depuis votre dernière visite. La barre de descente brille comme un sou neuf.');
+		// Jamais la même que sur l'accueil le même jour.
+		expect(texte(page)).not.toContain(humeurDuJour('2026-01-02', 'accueil'));
 	});
 
 	it('deux anniversaires d’homonymes : deux lignes, deux liens « Souhaiter »', () => {
@@ -160,13 +148,12 @@ describe('liste des murs', () => {
 		expect(source).not.toMatch(/open=\{s\./);
 	});
 
-	it('Équilibré : Gyro immobile et la première phrase seule ; rien de neuf', () => {
+	it('Équilibré : la première phrase seule ; rien de neuf', () => {
 		etat.page.params = {};
 		const vide = { ...sections, centre: { ...sections.centre, nouveautes: 0 }, groupes: [], supervision: [] };
 		const page = html({ sections: vide }, 'equilibre');
-		expect(page).toContain('class="gyro');
-		expect(page).not.toContain('a-respire');
-		expect(texte(page)).toMatch(/Rien de neuf depuis votre dernière visite\. (?!Le café|Rien ne|La caserne)/);
+		expect(texte(page)).toContain('Rien de neuf depuis votre dernière visite.');
+		expect(HUMEURS.some((h) => texte(page).includes(h))).toBe(false);
 		expect(texte(html({ sections: { ...vide, groupes: [sections.groupes[0]] } }, 'equilibre'))).toContain('1 nouveauté depuis votre dernière visite.');
 	});
 

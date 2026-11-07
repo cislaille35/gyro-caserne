@@ -30,5 +30,7 @@ export const DESSINS = {
 	loupe: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4',
 	plus: 'M12 5v14M5 12h14',
 	cloche: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20a2 2 0 0 0 4 0',
-	clocheCoupee: 'M6 16v-5a6 6 0 0 1 9.5-4.9 M18 10.5V16l2 2H8 M10 20a2 2 0 0 0 4 0 M3 3l18 18'
+	son: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z M15.5 9a4 4 0 0 1 0 6 M18 6.5a7.5 7.5 0 0 1 0 11',
+	sonCoupe: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z M16 9.5l5 5 M21 9.5l-5 5',
+	photo: 'M4 8h3.5l2-3h5l2 3H20v11H4z M12 16.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6'
 } as const;

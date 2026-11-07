@@ -8,6 +8,7 @@
 	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
 	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
+	import { dansUneConversation, marqueDesLues } from '#lib/ui/navigation.ts';
 
 	let { data, children } = $props();
 
@@ -43,10 +44,15 @@
 			suivi = null;
 		};
 	});
-	afterNavigate(({ from, to }) => suivi?.apresNavigation(from?.url.pathname, to?.url.pathname));
+	afterNavigate(({ from, to }) => {
+		suivi?.apresNavigation(from?.url.pathname, to?.url.pathname);
+		// La cloche vient de la racine, que SvelteKit ne recharge pas d'une page à l'autre : relue en arrivant sur une page qui a pu
+		// la faire baisser. Au premier chargement aussi (notification push) : la racine a pu compter avant la lecture.
+		if (data.cloche > 0 && from?.url.pathname !== to?.url.pathname && marqueDesLues(to?.route.id ?? null)) void invalidate('app:cloche');
+	});
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
 	{@render children()}
 	<EnvoiCoupe />
 </Coquille>

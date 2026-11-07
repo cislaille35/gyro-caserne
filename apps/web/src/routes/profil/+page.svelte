@@ -126,9 +126,4 @@
 		color: var(--doux);
 		font-size: 0.875rem;
 	}
-	input[type='checkbox'] {
-		width: 1.5rem;
-		height: 1.5rem;
-		accent-color: var(--accent);
-	}
 </style>

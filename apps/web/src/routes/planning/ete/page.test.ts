@@ -28,7 +28,7 @@ const page = (e = ete(), autres: Record<string, unknown> = {}) => render(Page as
 describe('Été : le parcours du chef', () => {
 	it('le résumé en tête et les quatre étapes, l’étape en cours marquée', () => {
 		const html = page();
-		expect(html).toContain('Proposé · 1 semaine · FPT non armé sur 1 plage · 1 agent en vacances · 1 sans réponse');
+		expect(html).toContain('Proposé, 1 semaine, FPT non armé sur 1 plage, 1 agent en vacances, 1 sans réponse');
 		expect(html).toMatch(/Étape 3 sur 4/);
 		expect(html).toMatch(/<a href="\?annee=2027&amp;etape=repartition"[^>]*aria-current="step"/);
 	});
@@ -74,11 +74,35 @@ describe('Été : le parcours du chef', () => {
 		expect(confirmer).toMatch(/efface vos ajustements[\s\S]*action="\?\/proposer/);
 	});
 
-	it('publier : un bouton fixe en bas, sur chaque étape ; publié, l’état le dit', () => {
-		for (const etape of ['periode', 'vacances', 'repartition', 'publier']) expect(page(ete(), { etape })).toMatch(/class="barre[^"]*"[\s\S]*Publier l’été 2027/);
+	it('publier : un seul geste par étape, le lien vers l’étape avant, le bouton à la dernière ; publié, l’état le dit', () => {
+		for (const etape of ['periode', 'vacances', 'repartition']) {
+			expect(page(ete(), { etape })).not.toContain('Publier l’été 2027');
+			expect(page(ete(), { etape })).not.toContain('<div class="barre');
+		}
+		expect(page(ete(), { etape: 'repartition' })).toMatch(/<a class="suivante[^"]*" href="\?annee=2027&amp;etape=publier">Publier ›/);
+		const derniere = page(ete(), { etape: 'publier' });
+		expect(derniere).toMatch(/<div class="barre[^"]*"[\s\S]*action="\?\/publier[\s\S]*Publier l’été 2027/);
+		expect(derniere).toContain('1 plage sans FPT armé : vous pouvez publier quand même.');
+		expect(derniere).toMatch(/1 plage où le FPT n’est pas armé · <a [^>]*>Revoir/);
+		// Rien à publier encore : le récapitulatif renvoie à la répartition, sans bouton.
+		const sansProposition = page(ete({ proposee: false, semaines: [] }), { etape: 'publier' });
+		expect(sansProposition).not.toContain('<div class="barre');
+		expect(sansProposition.match(/Aller à la répartition/g)).toHaveLength(1);
 		const publie = page(ete({ ete: { ...ete().ete, publiee: true } }), { etape: 'publier' });
 		expect(publie).not.toContain('Publier l’été 2027');
 		expect(publie).toContain('Publiée');
+	});
+
+	it('les alertes de la répartition : repliées, avec leur nombre, dans un bloc atteignable au clavier, rappelées avant de publier', () => {
+		const conflits = ['nuit du 6 août : Thomas est en vacances, mais présent', '24 h du 7 août : Thomas est en vacances, mais présent'];
+		const html = page(ete({ conflits }));
+		const bloc = html.match(/<details class="alerte[^"]*">[\s\S]*?<\/details>/)![0];
+		expect(bloc).not.toMatch(/<details[^>]* open/);
+		expect(bloc).toMatch(/<summary[^>]*>[\s\S]*?⚠<\/span> 2 remplacements à revoir[\s\S]*?<\/summary>/);
+		expect(bloc).toContain(conflits[0]);
+		expect(html.indexOf('2 remplacements à revoir')).toBeLessThan(html.indexOf('Semaine du'));
+		expect(page(ete())).not.toContain('class="alerte');
+		expect(page(ete({ conflits }), { etape: 'publier' })).toMatch(/2 remplacements à revoir · <a href="\?annee=2027&amp;etape=repartition">Revoir/);
 	});
 
 	it('une plage ouverte : le poste de chacun, ce qui manque en tête ; ceux qui comblent le manque d’abord', () => {
@@ -101,6 +125,6 @@ describe('Été : le parcours du chef', () => {
 		expect(html).toMatch(/Retirer<span class="masque[^"]*"> Alice Test<\/span>/);
 		expect(html).toMatch(/Peuvent combler le manque[\s\S]*?Hugo Test[\s\S]*?Autres agents[\s\S]*?Gina Test/);
 		expect(html).toMatch(/Ajouter<span class="masque[^"]*"> Hugo Test<\/span>/);
-		expect(html).toContain('· en vacances');
+		expect(html).toContain(', en vacances');
 	});
 });

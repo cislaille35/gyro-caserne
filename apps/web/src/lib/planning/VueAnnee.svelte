@@ -119,8 +119,9 @@
 		transform: translateX(18px);
 	}
 	.repli {
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
 	.repli summary {

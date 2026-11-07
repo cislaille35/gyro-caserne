@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { aPropos, avecBrouillon, debut, gestesMembre, resumeGroupe } from './infos.ts';
 
 describe('infos d’une conversation', () => {
-	it('« Groupe · N membres · créé par X », vous quand c’est soi', () => {
-		expect(resumeGroupe({ membres: 4, creePar: 2, creeParPrenom: 'Romain' }, 1)).toBe('Groupe · 4 membres · créé par Romain');
-		expect(resumeGroupe({ membres: 2, creePar: 1, creeParPrenom: 'Thomas' }, 1)).toBe('Groupe · 2 membres · créé par vous');
-		expect(resumeGroupe({ membres: 1, creePar: 9, creeParPrenom: null }, 1)).toBe('Groupe · 1 membre');
+	it('« Groupe, N membres, créé par X », vous quand c’est soi', () => {
+		expect(resumeGroupe({ membres: 4, creePar: 2, creeParPrenom: 'Romain' }, 1)).toBe('Groupe, 4 membres, créé par Romain');
+		expect(resumeGroupe({ membres: 2, creePar: 1, creeParPrenom: 'Thomas' }, 1)).toBe('Groupe, 2 membres, créé par vous');
+		expect(resumeGroupe({ membres: 1, creePar: 9, creeParPrenom: null }, 1)).toBe('Groupe, 1 membre');
 	});
 
 	it('le menu d’un membre : écrire pour tous ; nommer et retirer pour les animateurs ; pas de nommer pour un animateur', () => {

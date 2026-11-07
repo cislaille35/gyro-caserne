@@ -121,7 +121,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;

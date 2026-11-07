@@ -110,3 +110,12 @@ describe('réponses de repli', () => {
 		expect(texte).toContain('n’est peut-être pas passé');
 	});
 });
+
+describe('écran d’attente en sombre', () => {
+	it('le socle de Gyro a les mêmes couleurs que dans l’appli', () => {
+		const page = pageAttente('page');
+		expect(page).toMatch(/<rect x="24" y="92"[^>]*fill="var\(--socle\)"/);
+		expect(page).toMatch(/:root\{[^}]*--socle:#1d2733/);
+		expect(page).toMatch(/prefers-color-scheme: dark\)\{:root\{[^}]*--socle:#6b7a8a/);
+	});
+});

@@ -69,10 +69,10 @@
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
-	<ul class="raccourcis" role="list">
-		<li><a href="/planning/preparer/fichier?annee={p.annee}">Exporter l’année ou importer un fichier</a> <span class="doux">: tout préparer d’un coup dans un tableur.</span></li>
-		<li><a href="/planning/ete?annee={p.annee}">Été {p.annee}</a> <span class="doux">: vacances des agents et répartition qui arme le FPT.</span></li>
-	</ul>
+	<ListeRangees>
+		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
+		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
+	</ListeRangees>
 
 	{#if peutProposer}
 		<div class="proposer">
@@ -367,18 +367,6 @@
 <Celebration moment={momentPlanningPublie(concerne('publier') && form?.succes ? p.annee : null)} qui={data.qui} annoncer={false} />
 
 <style>
-	.raccourcis {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-	.raccourcis a {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		font-weight: 700;
-		color: var(--texte);
-	}
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -418,7 +406,7 @@
 		align-items: center;
 		padding: 0 18px;
 		border: 1px solid var(--trait-doux);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -437,7 +425,8 @@
 		justify-content: space-between;
 		gap: 12px 16px;
 		padding: 14px 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -528,7 +517,8 @@
 		flex-direction: column;
 		gap: 14px;
 		padding: 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
@@ -580,7 +570,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		cursor: pointer;
@@ -697,7 +687,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
 		font: 600 0.9375rem var(--police);
@@ -708,7 +698,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
@@ -794,7 +784,7 @@
 		align-items: center;
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;

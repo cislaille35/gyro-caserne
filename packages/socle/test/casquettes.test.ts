@@ -294,9 +294,9 @@ describe('accueilDe', () => {
 
 		const deBruno = await accueilDe(base, acteur(bruno), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte);
 		expect(deBruno.casquettes.find((c) => c.id === `comite:${amicale}`)!.compte).toBe(1);
-		expect(deBruno).toMatchObject({ choisie: `comite:${amicale}`, contenu: { type: 'comite', aDecider: [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }] } });
+		expect(deBruno).toMatchObject({ choisie: `comite:${amicale}`, contenu: { type: 'comite', aDecider: [{ texte: 'Bancs, 4, du 12 au 14 nov., Alice Test', lien: '/reservations/a-valider' }] } });
 		const deRemi = await accueilDe(base, acteur(remi), null, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte);
-		expect(deRemi).toMatchObject({ choisie: `role:${role('Référent engins')}`, contenu: { type: 'role', aDecider: [{ texte: 'VL · 7 nov., 10 h – 11 h · Bruno Test', lien: '/reservations/a-valider' }] } });
+		expect(deRemi).toMatchObject({ choisie: `role:${role('Référent engins')}`, contenu: { type: 'role', aDecider: [{ texte: 'VL, 7 nov., 10 h – 11 h, Bruno Test', lien: '/reservations/a-valider' }] } });
 		// Alice, sans rien à gérer : aucune requête de plus, rien à décider.
 		expect((await casquettesDe(base, acteur(alice), aujourdhui)).every((c) => c.compte === 0)).toBe(true);
 	});

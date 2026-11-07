@@ -16,7 +16,7 @@
 		const niveaux = niveauxDe(m.droits);
 		const domaines = DOMAINES.filter((d) => niveaux[d.id] !== 0).map((d) => `${d.nom} : ${d.niveaux[niveaux[d.id] as number]?.libelle ?? 'Sur mesure'}`);
 		const pouvoir = m.droits.some((d) => ADMINISTRATION.some((a) => a.droit === d)) ? ['Administration de l’appli'] : [];
-		return [...domaines, ...pouvoir].join(' · ') || 'Aucun droit en plus de ceux de tout agent';
+		return [...domaines, ...pouvoir].join(', ') || 'Aucun droit en plus de ceux de tout agent';
 	}
 
 	const choisi = $derived(data.choisi);
@@ -101,7 +101,8 @@
 		min-height: 72px;
 		padding: 12px 14px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		color: var(--encre);
 		text-decoration: none;
@@ -134,7 +135,8 @@
 		max-width: 36rem;
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.formulaire > :global(button) {

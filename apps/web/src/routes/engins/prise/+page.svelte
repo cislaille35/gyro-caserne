@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Prise de garde" phrase="{texteReleve(data.releve)}. Choisissez un engin : sa fiche, zone par zone." gyro tenue="garde" retour={{ href: '/engins', libelle: 'Engins' }} />
+	<EnTetePage titre="Prise de garde" phrase="{texteReleve(data.releve)}." retour={{ href: '/engins', libelle: 'Engins' }} />
 
 	{#if data.engins.length === 0}
 		<Vide titre="Aucun engin à vérifier." texte="Les engins du centre apparaîtront ici à chaque relève." />
@@ -25,7 +25,7 @@
 		<ListeRangees titre="Engins" compte={data.engins.length}>
 			{#each data.engins as x (x.engin.id)}
 				<li>
-					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous={[x.engin.type, etatPrise(x.prise).texte, x.ouvertes ? pluriel(x.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ')} icone="camion" alerte={x.ouvertes > 0} />
+					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous={[x.engin.type, [etatPrise(x.prise).texte, x.ouvertes ? pluriel(x.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ')]} alerte={x.ouvertes > 0} />
 				</li>
 			{/each}
 		</ListeRangees>

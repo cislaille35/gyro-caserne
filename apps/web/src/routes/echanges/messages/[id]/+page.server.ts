@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			autrePrenom: vue.type === 'deux' ? (vue.membres.find((m) => m.id !== moi)?.prenom ?? null) : null,
 			// « Répondre en privé » depuis un mur.
 			prerempli,
-			// La cloche barrée de l'en-tête.
+			// Le bouton « couper » de l'en-tête.
 			coupe
 		};
 	} catch (erreur) {

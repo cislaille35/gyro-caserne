@@ -16,12 +16,12 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Fiches de prise de garde" phrase="Une fiche par type d’engin : ce que l’équipe vérifie, zone par zone. Une prise passée garde la fiche de son époque." retour={{ href: '/engins', libelle: 'Engins' }} />
+	<EnTetePage titre="Fiches de prise de garde" phrase="Une fiche par type d’engin. Une prise passée garde la fiche de son époque." retour={{ href: '/engins', libelle: 'Engins' }} />
 
 	<div class="colonnes">
 		<ListeRangees titre="Les fiches" compte={data.fiches.length}>
 			{#each data.fiches as f (f.typeId)}
-				<li><Rangee href="/engins/fiches/{f.typeId}" titre="Fiche {f.type}" sous={compteFiche(f.zones)} icone="livre" valeur="version {f.version.numero}" /></li>
+				<li><Rangee href="/engins/fiches/{f.typeId}" titre="Fiche {f.type}" sous={compteFiche(f.zones)} valeur="version {f.version.numero}" /></li>
 			{/each}
 		</ListeRangees>
 
@@ -35,7 +35,7 @@
 				</form>
 			</section>
 			<ListeRangees titre="En une fois">
-				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Exporter ou importer toutes les fiches dans Excel ou LibreOffice" icone="outil" /></li>
+				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Exporter ou importer toutes les fiches dans Excel ou LibreOffice" /></li>
 			</ListeRangees>
 		</div>
 	</div>
@@ -68,7 +68,8 @@
 	.panneau {
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	@media (min-width: 1024px) {

@@ -107,8 +107,9 @@
 	<Groupe titre="Administration de l’appli" resume={admin.length === 0 ? 'Aucun pouvoir' : admin.map((d) => ADMINISTRATION.find((a) => a.droit === d)?.libelle).join(', ')}>
 		<fieldset class="admin" aria-describedby={peutAdmin ? undefined : 'admin-aide'}>
 			<legend class="cache">Administration de l’appli</legend>
+			<!-- Grisées pour l'une de deux raisons : le rôle est figé, ou la personne ne gère pas le pouvoir. -->
 			{#if !peutAdmin}
-				<p id="admin-aide" class="aide">Seuls le chef de centre, son adjoint et le super administrateur cochent ou décochent ces cases.</p>
+				<p id="admin-aide" class="aide">{lectureSeule ? 'Ces cases ne se modifient pas sur ce rôle.' : 'Seuls le chef de centre, son adjoint et le super administrateur cochent ou décochent ces cases.'}</p>
 			{:else}
 				<input type="hidden" name="administration" value="oui" />
 			{/if}
@@ -247,11 +248,6 @@
 		gap: 10px;
 		min-height: var(--cible);
 	}
-	.case input {
-		width: 24px;
-		height: 24px;
-		flex: none;
-	}
 	.secondaire {
 		min-height: var(--cible);
 		padding: 0 20px;
@@ -264,7 +260,8 @@
 	}
 	.pli {
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		padding: 0 14px;
 	}

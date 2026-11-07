@@ -354,6 +354,18 @@ describe('effets d’un remplacement conclu', () => {
 });
 
 describe('cloche, accueil, tâche planifiée, départ', () => {
+	it('ouvrir une demande marque lus ses avis, pour qui l’ouvre seulement', async () => {
+		const { base, alice, bruno } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		const autre = await demanderRemplacement(base, alice, { periodes: [{ debut: '2026-11-10T18:00', fin: '2026-11-11T06:00' }], cibleId: null }, maintenant, reglage);
+		expect((await filDeNotifications(base, bruno, maintenant)).nonLues).toBe(2);
+		await demandeVue(base, bruno, id, maintenant, reglage);
+		const fil = await filDeNotifications(base, bruno, maintenant);
+		expect(fil.nonLues).toBe(1);
+		expect(fil.lignes.find((l) => l.type === 'remplacement' && l.demandeId === autre)).toMatchObject({ lue: false });
+		expect(fil.lignes.find((l) => l.type === 'remplacement' && l.demandeId === id)).toMatchObject({ lue: true });
+	});
+
 	it('la cloche dit l’avis ; le chef compte la demande à valider jusqu’à sa décision ; À décider de sa casquette', async () => {
 		const { base, alice, bruno, elodie, n } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
@@ -365,7 +377,7 @@ describe('cloche, accueil, tâche planifiée, départ', () => {
 		expect((await aNePasManquer(base, bruno, '2026-11-01', maintenant)).remplacements).toEqual([]);
 		const accueil = await accueilDe(base, elodie, null, '2026-11-01', maintenant, reglage);
 		expect(accueil.choisie).toBe(`equipe:${(await base.select().from(equipe).orderBy(equipe.ordreRotation))[0]!.id}`);
-		expect(accueil.contenu).toEqual({ type: 'equipe', aDecider: [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: `/remplacements/${id}` }] });
+		expect(accueil.contenu).toEqual({ type: 'equipe', aDecider: [{ texte: 'Remplacement à valider, Alice Test, nuit du lundi 9 novembre', lien: `/remplacements/${id}` }] });
 		await valider(base, elodie, id, maintenant, reglage);
 		expect((await accueilDe(base, elodie, null, '2026-11-01', maintenant, reglage)).contenu).toEqual({ type: 'equipe', aDecider: [] });
 		await toutMarquerLu(base, bruno, maintenant);

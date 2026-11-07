@@ -153,7 +153,7 @@
 		align-items: center;
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
@@ -193,13 +193,6 @@
 		border-style: dashed;
 		background: transparent;
 		color: var(--doux);
-	}
-	input {
-		flex: none;
-		width: 24px;
-		height: 24px;
-		margin: 0;
-		accent-color: var(--encre);
 	}
 	.texte {
 		display: flex;

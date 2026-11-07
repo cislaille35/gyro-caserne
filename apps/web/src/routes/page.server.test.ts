@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../../centres/exemple/centre.ts';
 import { attribution, chargerJeuDeDepart, equipe, grade, personne, priseConnaissance, publier, releve, reponseEvenement, responsabilite } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
@@ -43,6 +43,7 @@ describe('load de /', () => {
 			anniversaire: false,
 			aujourdhui: aujourdhuiParis(),
 			astreinte: null,
+			priseOuverte: false,
 			maintenant: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
 			meteo: { meteo: null, vigilance: null }
 		});
@@ -56,7 +57,7 @@ describe('load de /', () => {
 			{ cle: 'vigilance', donnees: JSON.stringify({ jours: [{ date: aujourdhuiParis(), niveau: 3, phenomenes: ['orages'] }], rouge: false }), majLe: maintenant }
 		]);
 		expect((await appeler({ acteur: alice, base })).meteo).toEqual({
-			meteo: { ambiance: 'pluie', texte: '12 °C · averses · rafales 45 km/h', nuit: false },
+			meteo: { ambiance: 'pluie', texte: '12 °C, averses, rafales 45 km/h', nuit: false },
 			vigilance: { etat: 'ok', niveau: 3, lignes: ['Vigilance orange orages, aujourd’hui'], lieu: expect.any(String) }
 		});
 	});
@@ -74,6 +75,22 @@ describe('load de /', () => {
 		expect((await appeler(l(alice))).astreinte).toMatchObject({ mienne: true, equipe: { nom: 'Équipe 1' } });
 		const deChef = (await appeler(l(chef))).astreinte;
 		if (deChef) expect(deChef).toMatchObject({ mienne: false, enCours: true });
+	});
+
+	describe('le lien de prise de garde, avec une vraie astreinte', () => {
+		afterEach(() => vi.useRealTimers());
+
+		it('ouvert juste après la relève de sa semaine, fermé trois jours plus tard', async () => {
+			const { base, alice } = await preparerPlanning();
+			const l = { base, basePhotos: base.photos, acteur: alice };
+			const { astreinte } = await appeler(l);
+			// L'heure de Paris a une ou deux heures d'avance sur UTC : on reste dans les 24 h.
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(`${astreinte.debut}:00Z`));
+			expect(await appeler(l)).toMatchObject({ astreinte: { debut: astreinte.debut }, priseOuverte: true });
+			vi.setSystemTime(new Date(Date.parse(`${astreinte.debut}:00Z`) + 3 * 864e5));
+			expect((await appeler(l)).priseOuverte).toBe(false);
+		});
 	});
 
 	it('dit si c’est l’anniversaire de l’agent, pour la fête du jour', async () => {

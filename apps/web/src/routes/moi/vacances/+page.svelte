@@ -21,7 +21,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Mes vacances" phrase={e ? `Été ${e.annee} : ${duAu(e.debut, dernierJour(e.fin))} ; à donner avant le ${jourLong(e.dateLimite)}.` : 'Vos vacances d’été, pour le planning.'} retour={{ href: '/moi', libelle: 'Moi' }} />
+	<EnTetePage titre="Mes vacances" phrase={e ? `Été ${e.annee} : ${duAu(e.debut, dernierJour(e.fin))} ; à donner avant le ${jourLong(e.dateLimite)}.` : undefined} retour={{ href: '/moi', libelle: 'Moi' }} />
 
 	{#if !v}
 		<p class="encadre">Réservé aux agents ayant une fiche.</p>
@@ -89,7 +89,8 @@
 	.carte {
 		padding: 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		display: flex;
 		flex-direction: column;

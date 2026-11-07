@@ -1,9 +1,9 @@
 export type GesteMembre = { cle: 'ecrire' | 'nommer' | 'retirer'; libelle: string; danger?: boolean };
 
-// « Groupe · 4 membres · créé par Romain ».
+// « Groupe, 4 membres, créé par Romain ».
 export function resumeGroupe(g: { membres: number; creePar: number; creeParPrenom: string | null }, moi: number): string {
 	const createur = g.creePar === moi ? 'vous' : g.creeParPrenom;
-	return [`Groupe · ${g.membres} membre${g.membres > 1 ? 's' : ''}`, createur && `créé par ${createur}`].filter(Boolean).join(' · ');
+	return ['Groupe', `${g.membres} membre${g.membres > 1 ? 's' : ''}`, createur && `créé par ${createur}`].filter(Boolean).join(', ');
 }
 
 // Le menu d'un membre : écrire pour tous ; nommer et retirer pour les animateurs.

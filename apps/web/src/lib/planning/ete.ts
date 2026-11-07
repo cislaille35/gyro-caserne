@@ -56,7 +56,7 @@ export function phrasePeriode(debut: string, fin: string, dateLimite: string): s
 	return `Du ${jourCourt().format(date(debut))} au ${jourCourt().format(date(veille))} · vacances avant le ${jourMois().format(date(dateLimite)).replace(/^1 /, '1er ')}`;
 }
 
-// « Proposé · 10 semaines · FPT armé partout · 4 agents en vacances · 3 sans réponse ».
+// « Proposé, 10 semaines, FPT armé partout, 4 agents en vacances, 3 sans réponse ».
 export function resumeEte(e: { ete: { publiee: boolean } | null; proposee: boolean; semaines: { plages: { arme: boolean }[] }[]; reponses: { reponse: string | null; periodes: unknown[] }[] }): string {
 	if (!e.ete) return 'Pas encore ouvert';
 	const nonArmees = e.semaines.flatMap((s) => s.plages).filter((p) => !p.arme).length;
@@ -66,7 +66,7 @@ export function resumeEte(e: { ete: { publiee: boolean } | null; proposee: boole
 		...(e.proposee ? [nonArmees === 0 ? 'FPT armé partout' : `FPT non armé sur ${pluriel(nonArmees, 'plage')}`] : []),
 		pluriel(e.reponses.filter((r) => r.reponse === 'vacances' && r.periodes.length > 0).length, 'agent en vacances', 'agents en vacances'),
 		`${e.reponses.filter((r) => r.reponse === null).length} sans réponse`
-	].join(' · ');
+	].join(', ');
 }
 
 // « 3 postes : CA 1 agrès, CE, agent » : les postes à zéro ne sont pas dits.

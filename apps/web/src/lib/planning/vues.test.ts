@@ -55,8 +55,8 @@ describe('vues du planning', () => {
 
 	it('résume un mois', () => {
 		const nov = semaines.filter((s) => s.debut.startsWith('2026-11'));
-		expect(resumeDuMois(2026, 11, nov, d, 'moi')).toBe('1 astreinte · 1 manœuvre · 2 fériés');
-		expect(resumeDuMois(2026, 11, nov, d, 'equipes')).toBe('4 semaines · 2 manœuvres · 2 fériés');
+		expect(resumeDuMois(2026, 11, nov, d, 'moi')).toBe('1 astreinte, 1 manœuvre, 2 fériés');
+		expect(resumeDuMois(2026, 11, nov, d, 'equipes')).toBe('4 semaines, 2 manœuvres, 2 fériés');
 		expect(
 			resumeDuMois(
 				2026,

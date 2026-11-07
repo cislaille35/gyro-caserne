@@ -24,10 +24,10 @@
 
 <div class="page">
 	<!-- Sans connexion, « Affichage » est un onglet : pas de retour. -->
-	<EnTetePage titre="Affichage" phrase="Le thème et le ton de l’appli, sur cet appareil." retour={data.connecte ? { href: '/moi', libelle: 'Moi' } : undefined} />
+	<EnTetePage titre="Affichage" phrase="Sur cet appareil seulement." retour={data.connecte ? { href: '/moi', libelle: 'Moi' } : undefined} />
 	<form method="post">
 		<fieldset>
-			<legend class="rubrique">Niveau de vie</legend>
+			<legend class="rubrique">Présence de Gyro</legend>
 			{#each niveaux as n (n.valeur)}
 				<label>
 					<input type="radio" name="niveau" value={n.valeur} checked={niveauChoisi === n.valeur} />

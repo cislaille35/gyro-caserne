@@ -5,7 +5,7 @@ import type { Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import type { EtatDemande, GenreDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
-import { demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
+import { avisRemplacement, demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
 import { bandesDe, candidats, disponibles, EN_COURS, lireContexte, manque, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
@@ -162,7 +162,9 @@ export async function demandeVue(base: Base, acteur: Acteur, id: number, mainten
 		base.batch([
 			base.select().from(demandeRemplacement).where(eq(demandeRemplacement.id, id)),
 			base.select().from(destinataireRemplacement).where(eq(destinataireRemplacement.demandeId, id)),
-			...lecturesCommunes(base, ajouterJours(aujourdhui, -400))
+			...lecturesCommunes(base, ajouterJours(aujourdhui, -400)),
+			// Ouvrir la demande marque lus ses avis, pour qui l'ouvre, dans le même envoi à la base.
+			base.update(avisRemplacement).set({ lueLe: maintenant }).where(and(eq(avisRemplacement.personneId, moi), eq(avisRemplacement.demandeId, id), isNull(avisRemplacement.lueLe)))
 		])
 	]);
 	const d = lignes[0];
@@ -207,7 +209,7 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 	};
 	return demandes
 		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(acteur.id))
-		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider · ${nom(d.demandeurId)} · ${texteDemande(periodesDe(d.periodes))}` }));
+		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}` }));
 }
 
 // Les demandes reçues qui attendent une réponse de l'acteur (À ne pas manquer). Une requête.

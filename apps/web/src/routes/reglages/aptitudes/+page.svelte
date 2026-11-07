@@ -71,7 +71,8 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.rangee {
@@ -100,7 +101,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 0.9375rem var(--police);
@@ -115,7 +116,8 @@
 		gap: 10px;
 		padding: 14px 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.ligne {
@@ -129,11 +131,6 @@
 		align-items: center;
 		gap: 10px;
 		font-weight: 600;
-	}
-	.case input {
-		width: 22px;
-		height: 22px;
-		accent-color: var(--encre);
 	}
 	.gestes {
 		display: flex;

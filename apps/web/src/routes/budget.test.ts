@@ -102,7 +102,7 @@ async function centreDe300Publications() {
 // Le mur « Le centre » tel que SvelteKit le charge : la racine, la liste, puis le mur.
 async function pageDuMur(locals: unknown) {
 	const url = new URL('http://localhost/echanges/centre');
-	await (racine as any)({ locals });
+	await (racine as any)({ depends: () => {}, locals });
 	await (echanges as any)({ locals, url });
 	return (mur as any)({ locals, params: { mur: 'centre' }, url });
 }
@@ -112,7 +112,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const { locals, agent, compter } = await centreDe150();
 		const url = new URL(`http://localhost/agents/${agent.id}`);
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (listeAgents as any)({ locals, url });
 			await (fiche as any)({ locals, params: { id: String(agent.id) } });
 		});
@@ -126,7 +126,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const request = new Request('http://localhost', { method: 'POST', body: new URLSearchParams({ nom: 'Nouveau' }) });
 		const n = await compter(async () => {
 			expect(await (actionsFiche.fiche as any)({ locals, params, request })).toMatchObject({ succes: true });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (listeAgents as any)({ locals, url });
 			await (fiche as any)({ locals, params });
 		});
@@ -137,7 +137,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const { base, locals, compter } = await centreDe150();
 		const [r] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Référent engins'));
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (reglages as any)({ locals });
 			await (role as any)({ locals, params: { id: String(r!.id) } });
 		});
@@ -147,7 +147,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/reglages : la liste et la jauge des photos', async () => {
 		const { locals, compter } = await centreDe150();
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			// SvelteKit charge la liste une fois et la passe à la page (parent).
 			const liste = await (reglages as any)({ locals });
 			const data = await (pageReglages as any)({ locals, parent: async () => liste });
@@ -159,7 +159,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/nominations', async () => {
 		const { locals, compter } = await centreDe150();
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (nominations as any)({ locals, url: new URL('http://localhost/nominations') });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
@@ -168,7 +168,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/caserne : l’effectif et ce qui est à pourvoir', async () => {
 		const { locals, compter } = await centreDe150();
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			const data = await (caserne as any)({ locals });
 			expect(data.agents).toBe(151);
 			expect(data.aPourvoir).toBeGreaterThan(0);
@@ -187,7 +187,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const nom of ['proposer', 'publier'] as const) {
 			const n = await compter(async () => {
 				expect(await (actionsEte as any)[nom]({ locals, url, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await (eteDeLAnnee as any)({ locals, url });
 				await (pageEte as any)({ locals, url });
 			});
@@ -195,7 +195,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			// Proposé, pas encore publié : l'accueil du chef compte les plages à revoir.
 			if (nom === 'proposer') {
 				const accueilChef = await compter(async () => {
-					await (racine as any)({ locals });
+					await (racine as any)({ depends: () => {}, locals });
 					const data = await (accueil as any)({ locals, url: new URL('http://localhost/?casquette=centre') });
 					expect(data.contenu.aDecider[0].texte).toMatch(new RegExp(`^Été ${annee} : \\d+ plages à revoir$`));
 				});
@@ -218,14 +218,14 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const ouverte = new URL(`${url}&plage=${premiere!.debut}`);
 		const n = await compter(async () => {
 			expect(await (actionsEte as any).ajuster({ locals, url: ouverte, request: await requeteFormulaire([['debut', premiere!.debut], ['personne', String(agent.id)], ['present', 'oui']]) })).toMatchObject({ succes: expect.any(String) });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (eteDeLAnnee as any)({ locals, url: ouverte });
 			expect((await (pageEte as any)({ locals, url: ouverte })).detail).not.toBeNull();
 		});
 		expect(n, 'ajuster').toBeLessThanOrEqual(BUDGET);
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
-		expect(await compter(async () => { await (racine as any)({ locals: deLAgent }); await (mesVacancesPage as any)({ locals: deLAgent }); })).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (racine as any)({ locals }); await (reglagesArmement as any)({ locals, url: new URL('http://localhost/reglages/armement?engin=FPT') }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals: deLAgent }); await (mesVacancesPage as any)({ locals: deLAgent }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await (reglagesArmement as any)({ locals, url: new URL('http://localhost/reglages/armement?engin=FPT') }); })).toBeLessThanOrEqual(BUDGET);
 		expect(base.parametresMax).toBeLessThanOrEqual(100);
 	});
 
@@ -245,15 +245,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const deLAgent = { ...locals, acteur: { type: 'personne' as const, id: agent.id } };
 		for (const l of [locals, deLAgent]) {
 			const n = await compter(async () => {
-				await (racine as any)({ locals: l });
-				expect((await (planning as any)({ locals: l, url: new URL('http://localhost/planning') })).planning.publiee).toBe(true);
+				await (racine as any)({ depends: () => {}, locals: l });
+				expect((await (planning as any)({ locals: l, url: new URL('http://localhost/planning'), cookies: { get: () => undefined } })).planning.publiee).toBe(true);
 			});
 			expect(n).toBeLessThanOrEqual(BUDGET);
 		}
 		// L'accueil avec la carte astreinte : l'agent et le chef de centre.
 		for (const l of [locals, deLAgent]) {
 			const n = await compter(async () => {
-				await (racine as any)({ locals: l });
+				await (racine as any)({ depends: () => {}, locals: l });
 				const { astreinte } = await (accueil as any)({ locals: l, url: new URL('http://localhost/') });
 				// Le chef, sans équipe, n'a pas de carte entre deux semaines (le jour de la relève, en journée) : seul l'agent en a toujours une.
 				if (l === deLAgent) expect(astreinte).not.toBeNull();
@@ -262,24 +262,24 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		}
 		const url = new URL(`http://localhost/planning/preparer?annee=${annee}`);
 		const page = () => (preparer as any)({ locals, url });
-		expect(await compter(async () => { await (racine as any)({ locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (racine as any)({ locals }); await (pageManoeuvre as any)({ locals, url: new URL('http://localhost/planning/preparer/manoeuvre?id=1') }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await (pageManoeuvre as any)({ locals, url: new URL('http://localhost/planning/preparer/manoeuvre?id=1') }); })).toBeLessThanOrEqual(BUDGET);
 		// Les semaines à venir (les commencées ne changent plus) : chacune prévient deux équipes.
 		const semainesForm = semaines.filter((s) => s.debut > m.slice(0, 10)).map((s): [string, string] => [`semaine-${s.debut}`, String(ids[2])]);
 		for (const [nom, corps] of [['semaines', semainesForm], ['roulement', ids.map((id): [string, string] => ['ordre', String(id)])]] as const) {
 			const n = await compter(async () => {
 				expect(await (actionsPreparer as any)[nom]({ locals, url, request: await requeteFormulaire(corps as [string, string][]) })).toMatchObject({ succes: expect.any(String) });
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await page();
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}
 		// La proposition de l'année d'après (20 manœuvres de l'année précédente, 150 agents) : le panneau, puis l'acceptation.
 		const urlProposition = new URL(`http://localhost/planning/preparer?annee=${annee + 2}&proposition=1`);
-		expect(await compter(async () => { await (racine as any)({ locals }); expect((await (preparer as any)({ locals, url: urlProposition })).proposition.manoeuvres.length).toBeGreaterThan(0); }), 'proposition').toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); expect((await (preparer as any)({ locals, url: urlProposition })).proposition.manoeuvres.length).toBeGreaterThan(0); }), 'proposition').toBeLessThanOrEqual(BUDGET);
 		const accepter = await compter(async () => {
 			expect(await (actionsPreparer as any).proposition({ locals, url: urlProposition, request: await requeteFormulaire([]) })).toMatchObject({ succes: expect.any(String) });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await page();
 		});
 		expect(accepter, 'accepter la proposition').toBeLessThanOrEqual(BUDGET);
@@ -291,15 +291,15 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
 		const corpsJson = (corps: unknown) => new Request('http://x', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps) });
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			expect((await (pageEngins as any)({ locals })).engins).toHaveLength(12);
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (racine as any)({ locals }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
 		const url = new URL(`http://x/engins/fiches/${vsav!.id}`);
 		const geste = await compter(async () => {
 			await (actionsFicheEngin.geste as any)({ locals, params: { id: String(vsav!.id) }, request: await requeteFormulaire([['quoi', 'ajouter_zone'], ['nom', 'Toit']]) });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (pageFicheEngin as any)({ locals, params: { id: String(vsav!.id) }, url });
 		});
 		expect(geste).toBeLessThanOrEqual(BUDGET);
@@ -309,18 +309,20 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(await compter(async () => { expect((await (appliquerFiches as any)({ locals, request: corpsJson(lu) })).status).toBe(200); })).toBeLessThanOrEqual(BUDGET);
 	});
 
-	it('prise de garde : la relève, la prise d’un engin, commencer, un geste, valider (12 engins, 150 agents)', async () => {
+	it('prise de garde : la relève, la prise d’un engin, premier geste, un geste, valider (12 engins, 150 agents)', async () => {
 		const { base, locals, compter } = await centreDe150();
 		const [vsav] = await base.select().from(typeEngin).where(eq(typeEngin.nom, 'VSAV'));
 		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
 		const params = { id: '1' };
 		const page = async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			return (pagePrise as any)({ locals, params });
 		};
-		expect(await compter(async () => { await (racine as any)({ locals }); await (pageReleve as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await (pageReleve as any)({ locals }); })).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(page)).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (actionsPrise.commencer as any)({ locals, params, request: await requeteFormulaire([]) }); await page(); })).toBeLessThanOrEqual(BUDGET);
+		const lue = await (pagePrise as any)({ locals, params });
+		// Le premier « Tout est complet » commence la prise.
+		expect(await compter(async () => { await (actionsPrise.geste as any)({ locals, params, request: await requeteFormulaire([['prise', ''], ['quoi', 'zone'], ['zone', String(lue.zones[0].ref)], ['vue', '1']]) }); await page(); })).toBeLessThanOrEqual(BUDGET);
 		const vue = await (pagePrise as any)({ locals, params });
 		const id = String(vue.prise.id);
 		const zones = vue.zones as { ref: number; elements: { ref: number }[] }[];
@@ -342,20 +344,20 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (let i = 1; i <= 12; i++) await base.insert(engin).values({ nom: `VSAV ${i}`, typeId: vsav!.id, creeLe: '2026-11-01T10:00' });
 		const signaler = async () => (actionsSignaler.default as any)({ locals, request: await requeteFormulaire([['engin', '1'], ['libelle', 'Phare HS'], ['genre', 'abime'], ['photo', jpeg()]]) }).catch((r: { status?: number; location?: string }) => r);
 		for (let i = 0; i < 39; i++) await signaler();
-		expect(await compter(async () => { await (racine as any)({ locals }); expect((await (pageAnomalies as any)({ locals, url: new URL('http://x/engins/anomalies') })).ouvertes).toHaveLength(39); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); expect((await (pageAnomalies as any)({ locals, url: new URL('http://x/engins/anomalies') })).ouvertes).toHaveLength(39); })).toBeLessThanOrEqual(BUDGET);
 		let fin: { location?: string } = {};
 		expect(await compter(async () => { fin = await signaler(); })).toBeLessThanOrEqual(BUDGET);
 		const params = { id: fin.location!.match(/\d+/)![0] };
-		const page = async () => { await (racine as any)({ locals }); await (pageAnomalie as any)({ locals, params, url: new URL('http://x/') }); };
+		const page = async () => { await (racine as any)({ depends: () => {}, locals }); await (pageAnomalie as any)({ locals, params, url: new URL('http://x/') }); };
 		expect(await compter(page)).toBeLessThanOrEqual(BUDGET);
 		expect(await compter(async () => { expect(await (actionsAnomalie.default as any)({ locals, params, request: await requeteFormulaire([['quoi', 'indisponible']]) })).toMatchObject({ succes: expect.any(String) }); await page(); })).toBeLessThanOrEqual(BUDGET);
-		expect(await compter(async () => { await (racine as any)({ locals }); await (accueil as any)({ locals, url: new URL('http://x/') }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
+		expect(await compter(async () => { await (racine as any)({ depends: () => {}, locals }); await (accueil as any)({ locals, url: new URL('http://x/') }); await (pageEngin as any)({ locals, params: { id: '1' } }); })).toBeLessThanOrEqual(BUDGET);
 	});
 
 	it('/moi : la carte d’identité', async () => {
 		const { locals, compter } = await centreDe150();
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			expect((await (moi as any)({ locals })).identite).toMatchObject({ prenom: 'Chef' });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
@@ -372,7 +374,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const url = new URL('http://localhost/');
 		for (const l of [locals, deLAgent]) {
 			const n = await compter(async () => {
-				await (racine as any)({ locals: l });
+				await (racine as any)({ depends: () => {}, locals: l });
 				await (accueil as any)({ locals: l, url });
 			});
 			expect(n).toBeLessThanOrEqual(BUDGET);
@@ -384,14 +386,14 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const [nom, champs] of gestes) {
 			const n = await compter(async () => {
 				expect(await (actionsAccueil as any)[nom]({ locals: deLAgent, params: {}, url, request: await requeteFormulaire(champs) })).toMatchObject({ succes: expect.any(String) });
-				await (racine as any)({ locals: deLAgent });
+				await (racine as any)({ depends: () => {}, locals: deLAgent });
 				const data = await (accueil as any)({ locals: deLAgent, url });
 				expect(data.aNePasManquer.annonces).toHaveLength(19);
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 		}
 		const n = await compter(async () => {
-			await (racine as any)({ locals: deLAgent });
+			await (racine as any)({ depends: () => {}, locals: deLAgent });
 			await (notifications as any)({ locals: deLAgent, url: new URL('http://localhost/notifications') });
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
@@ -407,10 +409,10 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await signaler(base, { type: 'personne', id }, m, maintenantParis());
 		}
 		// La racine, sur chaque page : la cloche n'y ajoute qu'un compte, sans lire les 30 copies.
-		expect(await compter(() => (racine as any)({ locals }))).toBeLessThanOrEqual(11);
+		expect(await compter(() => (racine as any)({ depends: () => {}, locals }))).toBeLessThanOrEqual(11);
 		let liste: { id: number }[] = [];
 		const page = await compter(async () => {
-			expect((await (racine as any)({ locals })).cloche).toBe(30);
+			expect((await (racine as any)({ depends: () => {}, locals })).cloche).toBe(30);
 			liste = (await (notifications as any)({ locals, url: new URL('http://localhost/notifications') })).signalements;
 		});
 		expect(liste).toHaveLength(30);
@@ -418,7 +420,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const [nom, s] of [['retirer', liste[0]!], ['classer', liste[1]!]] as const) {
 			const n = await compter(async () => {
 				expect(await (actionsNotifications as any)[nom]({ locals, request: await requeteFormulaire([['id', String(s.id)]]) })).toMatchObject({ succes: expect.any(String) });
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await (notifications as any)({ locals, url: new URL('http://localhost/notifications') });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
@@ -431,7 +433,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		await base.insert(publication).values(lignes.slice(0, 50));
 		await base.insert(publication).values(lignes.slice(50));
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			const data = await (echanges as any)({ locals, url: new URL('http://localhost/echanges') });
 			expect(data.sections.centre.derniere).not.toBeNull();
 		});
@@ -451,7 +453,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 	it('/echanges/publier : la page, puis une publication avec 4 photos et le mur rechargé', async () => {
 		const { locals, compter } = await centreDe300Publications();
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			const data = await (pagePublier as any)({ locals, url: new URL('http://localhost/echanges/publier?mur=centre') });
 			expect(data.choisi).toBe('centre');
 		});
@@ -475,7 +477,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		await base.insert(commentaire).values(Array.from({ length: 50 }, (_, i) => ({ publicationId: annonce, auteur: `personne:${agents[i]!.id}`, texte: `Commentaire ${i}`, creeLe: maintenant })));
 		const params = (id: number) => ({ mur: 'centre', id: String(id) });
 		const page = async (id: number) => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
 			return (publicationSeule as any)({ locals, params: params(id) });
 		};
@@ -507,7 +509,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
 			const n2 = await compter(async () => {
 				await (actionsMur as any)[nom]({ locals, params: { mur: 'centre' }, url, request: await requeteFormulaire([['id', String(id)], ...champs]) });
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await (echanges as any)({ locals, url: new URL('http://localhost/echanges/centre') });
 				await (mur as any)({ locals, params: { mur: 'centre' }, url });
 			});
@@ -523,7 +525,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		await creerGroupe(base, locals.acteur, { nom: 'Tout le monde', membres: ids.slice(0, 59) }, maintenantParis());
 		const url = new URL('http://localhost/echanges/messages');
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url });
 			const { conversations } = await (messages as any)({ locals, url, depends: () => {} });
 			expect(conversations).toHaveLength(30);
@@ -539,7 +541,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		for (const id of ids.slice(0, 30)) await envoyer(base, base.photos, { type: 'personne', id }, { personne: locals.acteur.id }, { texte: 'Bonjour' }, maintenantParis());
 		const page = async (chemin: string, charger: () => Promise<unknown>) =>
 			compter(async () => {
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await (echanges as any)({ locals, url: new URL(`http://localhost${chemin}`) });
 				await charger();
 			});
@@ -570,7 +572,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		// Arrivée par « Répondre en privé » : la publication est lue par le serveur.
 		const pub = await publier(base, base.photos, { type: 'personne', id: ids[0]! }, 'vie', { type: 'message', texte: 'Repas de Noël' }, maintenantParis());
 		const n = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url });
 			expect((await (layoutMessages as any)({ locals, url, depends: () => {} })).conversations).toHaveLength(31);
 			const page = await (conversationOuverte as any)({ locals, params, url: new URL(`${url}?publication=${pub}`) });
@@ -596,7 +598,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const params = { id: String(id) };
 		const url = new URL(`http://localhost/echanges/messages/${id}/infos`);
 		const page = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url });
 			expect((await (infos as any)({ locals, params, url })).infos.membres).toHaveLength(59);
 		});
@@ -607,14 +609,14 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const { conversation: aDeux } = await envoyer(base, base.photos, locals.acteur, { personne: ids[0]! }, { texte: 'Bonjour' }, maintenantParis());
 		const urlDeux = new URL(`http://localhost/echanges/messages/${aDeux}/infos`);
 		const deux = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url: urlDeux });
 			expect((await (infos as any)({ locals, params: { id: String(aDeux) }, url: urlDeux })).fiche).toBe(`/agents/${ids[0]}`);
 		});
 		expect(deux).toBeLessThanOrEqual(BUDGET);
 		const ajout = new URL(`http://localhost/echanges/messages/nouveau/groupe?ajouter=${id}`);
 		const selection = await compter(async () => {
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (echanges as any)({ locals, url: ajout });
 			await (nouveauGroupe as any)({ locals, url: ajout });
 		});
@@ -644,7 +646,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		];
 		for (const [nom, page] of pages) {
 			const n = await compter(async () => {
-				await (racine as any)({ locals });
+				await (racine as any)({ depends: () => {}, locals });
 				await page();
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
@@ -653,14 +655,14 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const n = await compter(async () => {
 			const envoi = (actionsReserver.default as any)({ locals, params: { id: String(bancs) }, request: await requeteFormulaire([['debut', jour(30)], ['fin', jour(31)], ['quantite', '3']]) });
 			await expect(envoi).rejects.toMatchObject({ status: 303 });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
 		});
 		expect(n, 'réserver').toBeLessThanOrEqual(BUDGET);
 		const { aVenir } = await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
 		const m = await compter(async () => {
 			expect(await (actionsMiennes.annuler as any)({ locals, request: await requeteFormulaire([['id', String(aVenir[0].id)]]) })).toMatchObject({ succes: expect.any(String) });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (miennes as any)({ locals, url: new URL('http://localhost/reservations/miennes') });
 		});
 		expect(m, 'annuler').toBeLessThanOrEqual(BUDGET);
@@ -674,7 +676,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		];
 		for (const [nom, page] of pagesGestion) {
 			const k = await compter(async () => {
-				await (racine as any)({ locals: gestion });
+				await (racine as any)({ depends: () => {}, locals: gestion });
 				await page();
 			});
 			expect(k, nom).toBeLessThanOrEqual(BUDGET);
@@ -683,7 +685,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		expect(demandes.length).toBeGreaterThanOrEqual(20);
 		const a = await compter(async () => {
 			expect(await (actionsAValider.accepter as any)({ locals: gestion, request: await requeteFormulaire([['id', String(demandes[0].demande.id)]]) })).toMatchObject({ succes: expect.any(String) });
-			await (racine as any)({ locals: gestion });
+			await (racine as any)({ depends: () => {}, locals: gestion });
 			await (pageAValider as any)({ locals: gestion });
 		});
 		expect(a, 'accepter').toBeLessThanOrEqual(BUDGET);
@@ -712,7 +714,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			['aptitudes', reglagesAptitudes, locals, '/reglages/aptitudes']
 		] as const) {
 			const n = await compter(async () => {
-				await (racine as any)({ locals: l });
+				await (racine as any)({ depends: () => {}, locals: l });
 				await (page as any)({ locals: l, url: new URL(`http://localhost${url}`) });
 			});
 			expect(n, nom).toBeLessThanOrEqual(BUDGET);
@@ -721,12 +723,12 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		const id = String(pourMoi[0].id);
 		const accepter = await compter(async () => {
 			expect(await (actionsRemplacements as any).accepter({ locals, request: new Request('http://x', { method: 'POST', body: new URLSearchParams([['id', id]]) }) })).toMatchObject({ succes: expect.any(String) });
-			await (racine as any)({ locals });
+			await (racine as any)({ depends: () => {}, locals });
 			await (remplacements as any)({ locals, url: new URL('http://localhost/remplacements') });
 		});
 		expect(accepter, 'accepter').toBeLessThanOrEqual(BUDGET);
 		const detail = await compter(async () => {
-			await (racine as any)({ locals: deLAgent });
+			await (racine as any)({ depends: () => {}, locals: deLAgent });
 			await (demandeRemplacementPage as any)({ locals: deLAgent, params: { id }, url: new URL(`http://localhost/remplacements/${id}?envoyee`) });
 		});
 		expect(detail, 'détail').toBeLessThanOrEqual(BUDGET);

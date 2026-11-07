@@ -39,21 +39,14 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
-			test('prise de garde : « Tout est complet » en tête de zone, panneau des participants, sans violation', async ({ page }) => {
+			test('prise de garde : le premier geste commence la prise, panneau des participants, sans violation', async ({ page }) => {
 				await page.goto('/engins/3/prise');
 				await page.waitForLoadState('networkidle');
-				const commencer = page.getByRole('button', { name: 'Commencer la prise' });
-				if (await commencer.count()) {
-					await commencer.click();
-					await expect(page.getByText('Commencée par')).toBeVisible();
-				}
-				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ }).first();
-				const revoir = page.getByRole('button', { name: /^Revoir la zone/ });
-				const avant = await revoir.count();
+				const complet = page.getByRole('button', { name: /^(Tout|Le reste) est complet/ });
 				if (await complet.count()) {
 					await complet.click();
-					// La zone passe « Complet » et reste ouverte : son bouton « Revoir la zone » apparaît.
-					await expect(revoir).toHaveCount(avant + 1);
+					await expect(page.getByText('Commencée par')).toBeVisible();
+					await expect(page.getByRole('button', { name: /^Annuler/ })).toBeVisible();
 				}
 				await sansViolation(page);
 				await page.getByRole('link', { name: /Participants :/ }).click();
@@ -140,6 +133,85 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			});
 		}
+
+		test.describe('écrans en pleine place', () => {
+			test.use({ storageState: ETAT_CONNECTE });
+
+			test('une conversation : au téléphone, ni en-tête ni onglets, le retour et le nom restent ; une seule cloche partout', async ({ page }) => {
+				const telephone = page.viewportSize()!.width < 1024;
+				const groupe = await groupeAvecMessages(page, `Groupe ${nouvelleMarque()}`);
+				await page.goto(groupe);
+				await page.waitForLoadState('networkidle');
+				const onglets = page.getByRole('navigation', { name: 'Navigation principale' });
+				const cloche = page.getByRole('link', { name: /^Notifications/ });
+				const retour = page.getByRole('link', { name: 'Retour aux messages' });
+				await expect(retour).toBeVisible();
+				await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+				await expect(page.getByRole('button', { name: /^Couper les notifications/ })).toBeVisible();
+				await expect(onglets).toBeVisible({ visible: !telephone });
+				await expect(cloche).toBeVisible({ visible: !telephone });
+				// La saisie est tout en bas de l'écran, sans barre dessous au téléphone.
+				const saisie = (await page.getByRole('textbox', { name: 'Votre message' }).boundingBox())!;
+				expect(saisie.y + saisie.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+				if (telephone) expect(page.viewportSize()!.height - (saisie.y + saisie.height)).toBeLessThan(40);
+				// « Aller au contenu » reste le premier arrêt du clavier.
+				await page.keyboard.press('Tab');
+				await expect(page.getByRole('link', { name: 'Aller au contenu' })).toBeFocused();
+				await page.keyboard.press('Enter');
+				await expect(page.locator('main')).toBeFocused();
+				// La conversation qui va naître, écrite à une personne : pareil.
+				await page.goto('/echanges/messages/nouveau');
+				await page.locator('h2:text-is("Tout le centre") ~ ul a').first().click();
+				await page.waitForURL(/\/echanges\/messages\/(a\/)?\d+/);
+				await expect(page.getByRole('textbox', { name: 'Votre message' })).toBeVisible();
+				await expect(onglets).toBeVisible({ visible: !telephone });
+				await page.goto(groupe);
+				// Les infos, puis le retour : chaque page retrouve sa navigation.
+				await page.locator('a.qui').click();
+				await expect(page).toHaveURL(/\/infos$/);
+				await expect(onglets).toBeVisible();
+				for (const chemin of ['/echanges/messages', '/echanges/messages/nouveau', '/echanges/vie', '/echanges/messages/999999']) {
+					await page.goto(chemin);
+					await expect(onglets, chemin).toBeVisible();
+				}
+			});
+
+			test('Agents : à l’ordinateur une colonne par équipe, au téléphone des équipes repliées', async ({ page }) => {
+				await page.goto('/agents');
+				await page.waitForLoadState('networkidle');
+				const equipe = (n: number) => page.getByRole('button', { name: new RegExp(`^Équipe ${n}`) });
+				if (page.viewportSize()!.width >= 1024) {
+					const [a, b] = [(await equipe(1).boundingBox())!, (await equipe(2).boundingBox())!];
+					expect(b.y).toBe(a.y);
+					expect(b.x).toBeGreaterThan(a.x);
+					await expect(page.locator('li.agent').first()).toBeVisible();
+				} else {
+					await expect(equipe(1)).toHaveAttribute('aria-expanded', 'false');
+					await expect(page.locator('li.agent').first()).toBeHidden();
+					await equipe(1).focus();
+					await page.keyboard.press('Enter');
+					await expect(page.locator('li.agent').first()).toBeVisible();
+				}
+			});
+
+			test('la photo se choisit au clavier : le focus se voit, le nom du fichier s’affiche, on peut la retirer', async ({ page }) => {
+				await page.goto('/engins/anomalies/signaler?engin=1');
+				await page.waitForLoadState('networkidle');
+				const champ = page.getByLabel('Photo');
+				// Au clavier : depuis la note, Tab arrive sur la photo.
+				await page.getByLabel(/^Note/).focus();
+				await page.keyboard.press('Tab');
+				await expect(champ).toBeFocused();
+				await expect(page.locator('span.zone')).toHaveCSS('outline-style', 'solid');
+				await champ.setInputFiles({ name: 'phare.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('x') });
+				await expect(page.locator('span.zone')).toContainText('phare.jpg');
+				expect((await page.locator('span.zone').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+				await page.getByRole('button', { name: /^Retirer/ }).click();
+				await expect(page.locator('span.zone')).toContainText('Ajouter une photo');
+				await expect(champ).toBeFocused();
+				expect(await champ.inputValue()).toBe('');
+			});
+		});
 
 		// La messagerie, remplie : la liste, nouveau message, un groupe et ses infos, une conversation à deux, au niveau Vivant.
 		for (const mouvement of ['no-preference', 'reduce'] as const) {
@@ -333,6 +405,13 @@ async function domaineOuvert(page: Page, nom: string) {
 	return { bouton, groupe };
 }
 
+// Au téléphone, les équipes sont repliées : on ouvre celle demandée (une fois la page prête, sinon elle se replierait après coup).
+async function ouvrirEquipe(page: Page, titre = 'Équipe 1') {
+	await page.waitForLoadState('networkidle');
+	const bouton = page.getByRole('button', { name: new RegExp(`^${titre}`) });
+	if ((await bouton.getAttribute('aria-expanded')) === 'false') await bouton.click();
+}
+
 // Adresse de la fiche, lue dans la liste de gestion.
 async function ficheDe(page: Page, nom: string): Promise<string> {
 	await page.goto(`/agents?texte=${encodeURIComponent(nom.split(' ')[1]!)}`);
@@ -422,6 +501,49 @@ async function blocDeFiche(page: Page, titre: string, attendu: (bloc: Locator) =
 	}).toPass();
 	return bloc;
 }
+
+// À 390 px : un titre sur plusieurs lignes ne mord plus sur sa sous-ligne, et les trois réponses tiennent sur une ligne.
+test.describe('accueil au téléphone', () => {
+	test.use({ storageState: ETAT_CONNECTE });
+
+	test('titre long : la ligne entière en cible, sans recouvrement ; réponses sur une ligne', async ({ browser, page }, info) => {
+		test.skip(info.project.name !== 'telephone', 'mesure à 390 px');
+		const gestion = await pageSuper(browser);
+		const marque = nouvelleMarque();
+		await gestion.goto('/echanges/centre');
+		await publier(gestion, { type: 'Événement', texte: `Manœuvre ${marque} : désincarcération sur la plateforme du centre`, debut: '2099-06-02T18:30', lieu: 'Caserne' });
+		await gestion.context().close();
+
+		await page.goto('/');
+		const rangee = page.locator('li').filter({ hasText: marque });
+		const titre = rangee.locator('a.titre');
+		const texte = await titre.evaluate((a) => {
+			const plage = document.createRange();
+			plage.selectNodeContents(a);
+			const lignes = [...plage.getClientRects()];
+			return { lignes: new Set(lignes.map((l) => Math.round(l.top))).size, bas: Math.max(...lignes.map((l) => l.bottom)) };
+		});
+		expect(texte.lignes).toBeGreaterThan(1);
+		expect(texte.bas).toBeLessThanOrEqual((await rangee.locator('.sous').boundingBox())!.y);
+		// La cible est la ligne entière : le lien du titre s'étend à toute la ligne.
+		expect(await titre.evaluate((a) => getComputedStyle(a, '::after').position)).toBe('absolute');
+		expect((await rangee.locator('.rangee').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+		const unSeulRang = async () => {
+			const hauts = await rangee.getByRole('group').getByRole('button').evaluateAll((boutons) => boutons.map((b) => b.getBoundingClientRect().top));
+			expect(hauts).toHaveLength(3);
+			expect(new Set(hauts).size).toBe(1);
+		};
+		await unSeulRang();
+		// Choisie, la réponse prend une coche et s'élargit.
+		await rangee.getByRole('button', { name: 'Incertain' }).click();
+		await expect(rangee.getByRole('button', { name: 'Incertain' })).toHaveAttribute('aria-pressed', 'true');
+		await unSeulRang();
+		// Toute la ligne mène à la publication : un appui sur la date, hors du titre, l'ouvre.
+		await rangee.locator('.rangee').click({ position: { x: 30, y: 30 } });
+		await expect(page).toHaveURL(/\/echanges\/[^/]+\/\d+/);
+	});
+});
 
 // Une page du super administrateur, dans le thème voulu.
 async function pageSuper(browser: Browser, theme?: string): Promise<Page> {
@@ -792,6 +914,7 @@ test.describe('agents', () => {
 
 		await gestion.goto(await ficheDe(gestion, nom));
 		await agent.goto('/agents');
+		await ouvrirEquipe(agent);
 		await expect(agent.getByText(nom)).toBeVisible();
 
 		const depart = await blocDeFiche(gestion, 'Départ du centre', (b) => b.getByLabel('Je confirme'));
@@ -833,6 +956,7 @@ test.describe('nominations', () => {
 		await expect(carte.getByRole('list').getByText('Chef de garde — Équipe 1', { exact: true })).toBeVisible();
 
 		await agent.goto('/agents');
+		await ouvrirEquipe(agent);
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).toContainText('Rôles : Chef de garde (Équipe 1)');
 
 		// Changer la date de fin : le rôle reste, avec sa nouvelle fin.
@@ -847,6 +971,7 @@ test.describe('nominations', () => {
 		await expect(carte.getByText('Aucune responsabilité en cours.')).toBeVisible();
 
 		await agent.reload();
+		await ouvrirEquipe(agent);
 		await expect(agent.getByRole('listitem').filter({ hasText: nom })).not.toContainText('Rôles');
 		await gestion.context().close();
 		await agent.context().close();
@@ -923,6 +1048,101 @@ test.describe('nominations', () => {
 		await nommer(page, 'Référent pharmacie', nom);
 		await page.getByLabel('Rechercher un rôle ou un agent').fill(nom);
 		await expect(page.locator('section.role h2')).toHaveText(['Référent pharmacie']);
+		await page.context().close();
+	});
+
+	test('/nominations : « Nommer » rouvre le volet même juste après Échap', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		await page.goto('/nominations');
+		await page.waitForLoadState('networkidle');
+		const ouvrir = carteRole(page, 'Référent technique').getByRole('button', { name: 'Nommer', exact: true });
+		const volet = page.getByRole('dialog', { name: 'Nommer : Référent technique' });
+		await ouvrir.click();
+		await volet.getByLabel('Fin', { exact: true }).evaluate((champ: HTMLInputElement) => (champ.value = '2099-12-31'));
+		// Le navigateur annonce la fermeture d'une fenêtre un peu plus tard (événement « close ») : un appui aussitôt après ne doit pas se perdre.
+		await page.evaluate(() => {
+			const fenetre = document.querySelector<HTMLDialogElement>('dialog[open]')!;
+			fenetre.close();
+			document.getElementById(fenetre.id.replace('volet-', 'nommer-'))!.click();
+		});
+		await expect(volet).toBeVisible();
+		await expect(volet.getByLabel('Agent', { exact: true })).toBeFocused();
+		// Rouvert, il repart à neuf.
+		await expect(volet.getByLabel('Fin', { exact: true })).toHaveValue('');
+		await page.context().close();
+	});
+});
+
+test.describe('anomalie', () => {
+	// Un agent du centre : il prend en charge, met en attente, répare (clore est réservé à qui traite).
+	test.use({ storageState: ETAT_CONNECTE });
+	test('« Mettre en attente » et « Réparée » en panneaux : focus au titre, Échap ferme et rend le focus, l’envoi ferme', async ({ page }) => {
+		await page.goto('/engins/anomalies/signaler?engin=1');
+		await page.waitForLoadState('networkidle');
+		await page.getByLabel('Le problème').fill(`Rétroviseur ${nouvelleMarque()}`);
+		await page.getByRole('button', { name: 'Signaler' }).click();
+		await expect(page).toHaveURL(/\/engins\/anomalies\/\d+\?signalee$/);
+		await page.waitForLoadState('networkidle');
+		await expect(page.locator('textarea, input[name="texte"]')).toHaveCount(0);
+
+		const attente = page.getByRole('link', { name: 'Mettre en attente…' });
+		await attente.focus();
+		await page.keyboard.press('Enter');
+		const panneau = page.getByRole('dialog', { name: 'Mettre en attente' });
+		await expect(panneau).toBeVisible();
+		await expect(panneau.getByRole('heading', { level: 2, name: 'Mettre en attente' })).toBeFocused();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await expect(panneau).toHaveCount(0);
+		await expect(attente).toBeFocused();
+
+		await page.getByRole('link', { name: 'Réparée…' }).click();
+		const reparee = page.getByRole('dialog', { name: 'Réparée' });
+		await reparee.getByLabel(/^Ce qui a été fait/).fill('Vis resserrée');
+		await sansViolation(page);
+		await reparee.getByRole('button', { name: 'Enregistrer la réparation' }).click();
+		await expect(reparee).toHaveCount(0);
+		await expect(page.locator('#titre-suivi')).toBeFocused();
+		await expect(page.getByRole('status').filter({ hasText: 'Réparation enregistrée.' })).toHaveCount(1);
+		await expect(page.getByText('Vis resserrée')).toBeVisible();
+		await expect(page).not.toHaveURL(/panneau/);
+	});
+});
+
+test.describe('cases à cocher', () => {
+	test.use({ colorScheme: 'dark' });
+	// Chaque case visible : dessinée (24 px), sur une ligne de 44 px, en tirets si elle est grisée. Rend le nombre de grisées.
+	async function verifier(page: Page, chemin: string): Promise<number> {
+		await page.goto(chemin);
+		await page.waitForLoadState('networkidle');
+		await toutOuvrir(page);
+		const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
+			liste.map((c) => {
+				const style = getComputedStyle(c);
+				const ligne = (c.closest('label') ?? c).getBoundingClientRect();
+				return { appearance: style.appearance, largeur: c.getBoundingClientRect().width, ligne: ligne.height, grisee: (c as HTMLInputElement).disabled, bord: style.borderTopStyle };
+			})
+		);
+		expect(cases.length, chemin).toBeGreaterThan(0);
+		for (const c of cases) {
+			expect(c, chemin).toMatchObject({ appearance: 'none', largeur: 24, bord: c.grisee ? 'dashed' : 'solid' });
+			expect(c.ligne, chemin).toBeGreaterThanOrEqual(44);
+		}
+		return cases.filter((c) => c.grisee).length;
+	}
+
+	test('réglages : dessinées, sur une ligne de 44 px, grisées en tirets', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER, colorScheme: 'dark' })).newPage();
+		// Le rôle système a ses cases d'administration grisées.
+		expect(await verifier(page, `/reglages/roles/${await idReglage(page, 'roles', 'Chef de centre')}`)).toBeGreaterThan(0);
+		await verifier(page, `/reglages/roles/${await idRole(page, 'Référent engins')}`);
+		await verifier(page, '/reglages/aptitudes');
+		await page.context().close();
+	});
+
+	test('mon profil : les mêmes cases', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_CONNECTE, colorScheme: 'dark' })).newPage();
+		await verifier(page, '/profil');
 		await page.context().close();
 	});
 });

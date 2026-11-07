@@ -23,7 +23,11 @@
 		}, [])
 	);
 	const filtre = $derived(data.engins.find((e) => e.id === data.enginId));
-	const sous = (a: AnomalieListee) => [a.zone, texteEcart({ genre: a.genre, manque: a.manque, note: null }), `signalée le ${dateCourte(a.signaleeLe)}`].filter(Boolean).join(' · ');
+	// Deux infos courtes : un point ; trois : des virgules.
+	const sous = (a: AnomalieListee) => {
+		const infos = [a.zone, texteEcart({ genre: a.genre, manque: a.manque, note: null }), `signalée le ${dateCourte(a.signaleeLe)}`].filter(Boolean);
+		return infos.join(infos.length > 2 ? ', ' : ' · ');
+	};
 	const signaler = $derived(data.enginId ? `/engins/anomalies/signaler?engin=${data.enginId}` : '/engins/anomalies/signaler');
 </script>
 
@@ -33,7 +37,7 @@
 
 {#snippet ligne(a: AnomalieListee, close: boolean)}
 	<li>
-		<Rangee href="/engins/anomalies/{a.id}" titre={close ? `${a.engin} · ${a.libelle}` : a.libelle} sous={close ? `Close le ${dateCourte(a.closeLe ?? '')}` : sous(a)} icone="outil" discret={close}>
+		<Rangee href="/engins/anomalies/{a.id}" titre={close ? `${a.engin} · ${a.libelle}` : a.libelle} sous={close ? `Close le ${dateCourte(a.closeLe ?? '')}` : sous(a)} discret={close}>
 			{#snippet droite()}
 				<span class="pastilles">
 					{#if a.bloquante && !close}<Pastille ton="danger">Engin indisponible</Pastille>{/if}
@@ -47,9 +51,6 @@
 <div class="page">
 	<EnTetePage
 		titre="Anomalies"
-		phrase={filtre ? `${filtre.nom} : ce qui est signalé et où en est la réparation.` : 'Ce qui est signalé sur les engins, et où en est la réparation.'}
-		gyro
-		tenue="anomalie"
 		retour={filtre ? { href: `/engins/${filtre.id}`, libelle: filtre.nom } : { href: '/engins', libelle: 'Engins' }}
 		action={data.peutSignaler ? { href: signaler, libelle: 'Signaler un problème', dessin: DESSINS.plus } : undefined}
 	/>
@@ -92,10 +93,14 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.liste > li + li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	.pastilles {
 		display: flex;
@@ -114,7 +119,7 @@
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		color: var(--encre);
 		font-weight: 600;
 		text-decoration: none;

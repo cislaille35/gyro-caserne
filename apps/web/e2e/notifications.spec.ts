@@ -40,7 +40,32 @@ test('une publication arrive dans la cloche ; « Tout marquer comme lu »', asyn
 	await expect(ligne).not.toContainText('Non lu');
 });
 
-// La cloche barrée d'un mur, puis « Réactiver » dans Moi → Notifications.
+// Consulter la publication depuis la cloche : le nombre baisse aussitôt, sans recharger la page.
+test('la cloche baisse quand on ouvre la publication, sans recharger', async ({ browser, page }) => {
+	const marque = `Galette ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+	test.setTimeout(60_000);
+	const auteur = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+	await auteur.goto('/echanges/publier?mur=vie');
+	const formulaire = auteur.locator('form[action="?/publier"]');
+	await formulaire.getByLabel('Votre message', { exact: true }).fill(marque);
+	await formulaire.getByRole('button', { name: /^Publier/ }).click();
+	await auteur.waitForURL(/\/echanges\/vie#publication-\d+$/);
+	await auteur.context().close();
+
+	const cloche = page.getByRole('link', { name: /^Notifications/ });
+	await expect(async () => {
+		await page.goto('/notifications');
+		await expect(page.getByRole('link', { name: new RegExp(`a publié dans Vie du centre ${marque}`) })).toBeVisible({ timeout: 1000 });
+	}).toPass({ timeout: 15_000 });
+	const nombre = async () => Number((await cloche.getAttribute('aria-label'))?.match(/\d+/)?.[0] ?? 0);
+	const avant = await nombre();
+	expect(avant).toBeGreaterThan(0);
+	await page.getByRole('link', { name: new RegExp(`a publié dans Vie du centre ${marque}`) }).click();
+	await page.waitForURL(/\/echanges\/vie\/\d+/);
+	await expect.poll(nombre).toBe(avant - 1);
+});
+
+// Couper un mur (le haut-parleur de son en-tête), puis « Réactiver » dans Moi → Notifications.
 test('couper un mur, le retrouver dans Moi → Notifications, le réactiver', async ({ page }) => {
 	await page.goto('/echanges/vie');
 	await page.waitForLoadState('networkidle');

@@ -186,7 +186,7 @@
 		min-height: var(--cible);
 		padding: 0 16px 0 40px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -256,6 +256,8 @@
 	.ligne input {
 		position: absolute;
 		inset: 0;
+		width: 100%;
+		height: 100%;
 		margin: 0;
 		opacity: 0;
 		cursor: pointer;
@@ -291,7 +293,7 @@
 		bottom: calc(4.5rem + env(safe-area-inset-bottom));
 		margin: 12px -8px 0;
 		padding: 10px 12px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		display: flex;
@@ -311,7 +313,8 @@
 	}
 	.rappel {
 		padding: 14px 16px;
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		display: flex;

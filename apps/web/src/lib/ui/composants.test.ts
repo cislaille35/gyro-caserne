@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createRawSnippet, type Component } from 'svelte';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
@@ -7,7 +7,9 @@ import BarreActions from './BarreActions.svelte';
 import Bouton from './Bouton.svelte';
 import Carte from './Carte.svelte';
 import Champ from './Champ.svelte';
+import ChampPhoto from './ChampPhoto.svelte';
 import Choix from './Choix.svelte';
+import ChoixRadio from './ChoixRadio.svelte';
 import Groupe from './Groupe.svelte';
 import IconeRole from './IconeRole.svelte';
 import Initiales from './Initiales.svelte';
@@ -22,6 +24,7 @@ import Visage from './Visage.svelte';
 import EnTetePage from './EnTetePage.svelte';
 import ListeRangees from './ListeRangees.svelte';
 import Rangee from './Rangee.svelte';
+import CarteDemande from '../remplacements/CarteDemande.svelte';
 import Vide from './Vide.svelte';
 import Recherche from './Recherche.svelte';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
@@ -29,6 +32,50 @@ import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: Component<any>, props: Record<string, unknown>) => render(composant, { props }).body;
+
+describe('ChoixRadio', () => {
+	const options = [{ valeur: 'a', libelle: 'VTU' }, { valeur: 'b', libelle: 'FPT', sous: 'Fourgon' }];
+	const page = (props: Record<string, unknown> = {}) => render(ChoixRadio, { props: { id: 'engin', legende: 'Engin', name: 'engin', options, ...props } }).body;
+
+	it('des radios natifs groupés sous une légende, le choix coché, chaque ligne cliquable', () => {
+		const html = page({ valeur: 'b', requis: true });
+		expect(html).toMatch(/<fieldset[\s\S]*<legend[^>]*>Engin<\/legend>/);
+		expect(html.match(/<input[^>]*type="radio"[^>]*name="engin"[^>]*required/g)).toHaveLength(2);
+		expect(html).toMatch(/value="b"[^>]*checked/);
+		expect(html).not.toMatch(/value="a"[^>]*checked/);
+		expect(html).toMatch(/<label class="option[^"]*"[^>]*><input[\s\S]*?VTU[\s\S]*?<\/label>/);
+		expect(html).toContain('Fourgon');
+	});
+
+	it('l’erreur est reliée au groupe, et le groupe la montre', () => {
+		const html = page({ erreur: 'Choisissez un engin.' });
+		expect(html).toMatch(/<fieldset[^>]*aria-describedby="engin-erreur"/);
+		expect(html).toMatch(/id="engin-erreur"[^>]*>Choisissez un engin\.</);
+		expect(html).toMatch(/class="options[^"]*en-erreur/);
+		expect(page()).not.toContain('aria-describedby');
+	});
+});
+
+describe('ChampPhoto', () => {
+	const page = (props: Record<string, unknown> = {}) => render(ChampPhoto, { props: { id: 'photo', name: 'photo', libelle: 'Photo', ...props } }).body;
+
+	it('le champ natif, nommé par un seul libellé ; le bouton écrit attend le JavaScript', () => {
+		const html = page({ precision: '(facultative)', capture: 'environment' });
+		expect(html).toMatch(/<label class="titre[^"]*" for="photo">Photo/);
+		expect(html).toContain('(facultative)');
+		expect(html).toMatch(/<input[^>]*id="photo"[^>]*name="photo"[^>]*type="file"[^>]*accept="image\/\*"[^>]*capture="environment"/);
+		expect(html.match(/<label/g)).toHaveLength(1);
+		expect(html).not.toContain('Ajouter une photo');
+		expect(html).not.toContain('Retirer');
+	});
+
+	it('plusieurs photos, aide et erreur reliées au champ', () => {
+		const html = page({ multiple: true, appel: 'Ajouter des photos', aide: '4 au plus.', erreur: 'Photo illisible.' });
+		expect(html).toMatch(/<input[^>]*multiple/);
+		expect(html).toMatch(/<input[^>]*aria-invalid="true"[^>]*aria-describedby="photo-aide photo-erreur"/);
+		expect(html).toMatch(/id="photo-erreur"[^>]*>Photo illisible\.</);
+	});
+});
 
 describe('Champ', () => {
 	const base = { id: 'email', libelle: 'Adresse e-mail', name: 'email' };
@@ -361,24 +408,50 @@ describe('EnTetePage', () => {
 		expect(page).toMatch(/<a[^>]*href="\/moi"[^>]*>[\s\S]*?Retour : <\/span>Moi<\/a>/);
 		expect(page.indexOf('href="/moi"')).toBeLessThan(page.indexOf('<h1'));
 	});
-	it('Gyro seulement sur demande et selon le niveau', () => {
-		expect(net(EnTetePage, { titre: 'Planning', gyro: true })).toContain('class="mascotte');
-		expect(net(EnTetePage, { titre: 'Planning' })).not.toContain('class="mascotte');
+	it('la tête (Gyro de l’Accueil) se pose à droite du titre', () => {
+		const page = net(EnTetePage, { titre: 'Bonjour', tete: contenu });
+		expect(page.indexOf('<h1')).toBeLessThan(page.indexOf('<span>Contenu</span>'));
+		expect(page).not.toContain('mascotte');
+	});
+	it('pas de Gyro dans les titres ordinaires : il reste à l’Accueil, dans les écrans vides et les réussites', () => {
+		const source = readFileSync(new URL('./EnTetePage.svelte', import.meta.url), 'utf8');
+		expect(source).not.toMatch(/GyroDuMoment|gyro\?:/);
+		const racine = new URL('../../routes/', import.meta.url);
+		const pages = (readdirSync(racine, { recursive: true }) as string[]).filter((p) => p.endsWith('.svelte'));
+		for (const p of pages) {
+			for (const m of readFileSync(new URL(p, racine), 'utf8').matchAll(/<EnTetePage\b[^>]*?\/?>/g)) expect(m[0], p).not.toMatch(/\sgyro\b/);
+		}
 	});
 	it('une action secondaire à côté', () => {
 		expect(net(EnTetePage, { titre: 'Agents', secondaire: contenu })).toContain('<span>Contenu</span>');
 	});
+	it('pas de phrase qui répète le titre ou l’évidence sous les en-têtes (audit C8) : seulement une info, un nombre, une date, un état', () => {
+		const racine = new URL('../../routes/', import.meta.url);
+		const enTetes = (p: string) => [...readFileSync(new URL(p, racine), 'utf8').matchAll(/<EnTetePage\b[\s\S]*?\/?>/g)].map((m) => m[0]);
+		for (const p of ['agents/+layout.svelte', 'caserne/+page.svelte', 'moi/+page.svelte', 'moi/agenda/+page.svelte', 'reservations/miennes/+page.svelte', 'reservations/materiel/+page.svelte', 'engins/+page.svelte', 'engins/anomalies/+page.svelte', 'remplacements/+page.svelte', 'reglages/+page.svelte'])
+			for (const t of enTetes(p)) expect(t, p).not.toMatch(/\sphrase[=\s>]/);
+		const sources = ['affichage/+page.svelte', 'reservations/a-valider/+page.svelte', 'engins/fiches/+page.svelte', 'engins/fiches/[id]/+page.svelte', 'nominations/+page.svelte', 'planning/+page.svelte', 'moi/vacances/+page.svelte', 'engins/prise/+page.svelte'].map((p) => readFileSync(new URL(p, racine), 'utf8')).join('\n');
+		for (const t of ['Le thème et la présence de Gyro', 'Les demandes de réservation des ressources que vous gérez', 'ce que l’équipe vérifie, zone par zone', 'Ce que l’équipe vérifie à la prise de garde', 'Qui tient quel rôle', 'Les astreintes et les manœuvres de l’année', 'Vos vacances d’été, pour le planning', 'Choisissez un engin'])
+			expect(sources).not.toContain(t);
+	});
 });
 
 describe('Rangee', () => {
-	it('un lien : titre, sous-ligne, valeur et chevron décoratif', () => {
-		const page = net(Rangee, { href: '/agents', titre: 'Agents', sous: 'L’effectif du centre', valeur: '14 agents', icone: 'casque' });
+	it('un lien : toute la ligne, titre, sous-ligne, valeur et chevron décoratif', () => {
+		const page = net(Rangee, { href: '/agents', titre: 'Agents', sous: 'L’effectif du centre', valeur: '14 agents' });
 		expect(page).toMatch(/^<a[^>]*class="rangee[^"]*"[^>]*href="\/agents"/);
 		expect(page).toContain('Agents');
 		expect(page).toContain('L’effectif du centre');
 		expect(page).toContain('14 agents');
-		expect(page).toContain('var(--icone-casque-fond)');
 		expect(page).toMatch(/class="chevron[^"]*"[^>]*aria-hidden="true"/);
+	});
+	it('une sous-ligne par info quand il y en a trop pour une ligne', () => {
+		const page = net(Rangee, { titre: 'VSAV 1', sous: ['VSAV · AB-123-CD', 'Prise à faire · 1 anomalie ouverte'] });
+		expect(page).toMatch(/<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise à faire · 1 anomalie ouverte<\/span>/);
+	});
+	it('une tuile seulement sur demande : elle porte un sens (type, rôle)', () => {
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain('var(--icone-casque-fond)');
+		expect(net(Rangee, { href: '/agents', titre: 'Agents' })).not.toContain('tuile');
 	});
 	it('sans lien : ni chevron ni lien', () => {
 		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt' });
@@ -386,29 +459,34 @@ describe('Rangee', () => {
 		expect(page).not.toContain('<a');
 		expect(page).not.toContain('chevron');
 	});
-	it('avec des gestes dessous : seul le titre est un lien', () => {
+	it('avec des gestes dessous : le titre est le lien, étendu à toute la ligne ; les gestes passent par-dessus', () => {
 		const page = net(Rangee, { href: '/echanges/centre/2', titre: 'Manœuvre', children: contenu });
-		expect(page).toMatch(/^<div[^>]*class="rangee/);
-		expect(page).toMatch(/<a[^>]*href="\/echanges\/centre\/2"[^>]*>Manœuvre<\/a>/);
-		expect(page).toContain('<span>Contenu</span>');
+		expect(page).toMatch(/^<div[^>]*class="rangee[^"]*\bgestes\b/);
+		expect(page).toMatch(/<a class="titre etire[^"]*"[^>]*href="\/echanges\/centre\/2"[^>]*>Manœuvre<\/a>/);
+		expect(page).toMatch(/<div class="inclus[^"]*"><span>Contenu<\/span><\/div>/);
+		expect(page).not.toContain('chevron');
 	});
-	it('alerte : une icône en plus de la couleur', () => {
+	it('alerte : le signe d’alerte en tête, jamais la couleur seule', () => {
 		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef de garde', alerte: true });
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});
-	it('alerte avec une icône : le signe d’alerte reste, jamais la couleur seule', () => {
+	it('alerte avec une tuile : le signe d’alerte reste, à droite', () => {
 		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
 		expect(page).toContain('var(--icone-camion-fond)');
-		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
-		expect(net(Rangee, { titre: 'Photos', icone: 'camion' })).not.toContain('class="signe');
+		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
+	});
+	it('alerte avec une tête : le signe d’alerte passe à droite', () => {
+		const page = net(Rangee, { href: '/remplacements/2', titre: 'Remplacement', alerte: true, tete: contenu });
+		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
+		expect(net(Rangee, { titre: 'Photos', tete: contenu })).not.toContain('class="signe');
 	});
 	it('courant : la page affichée, dite par aria-current', () => {
 		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', courant: true })).toMatch(/^<a[^>]*aria-current="page"/);
 		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent' })).not.toContain('aria-current');
 	});
 	it('discret : ce qui n’existe pas encore, sans lien', () => {
-		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt', icone: 'camion', discret: true });
+		const page = net(Rangee, { titre: 'Engins', sous: 'Bientôt', discret: true });
 		expect(page).toMatch(/^<div[^>]*class="rangee[^"]*\bdiscret\b/);
 		expect(page).not.toContain('<a');
 	});
@@ -418,23 +496,49 @@ describe('Rangee', () => {
 	});
 });
 
+describe('CarteDemande', () => {
+	const v = {
+		id: 7,
+		genre: 'remplacement',
+		etat: 'attente',
+		moi: 'remplacant',
+		demandeur: { prenom: 'David', nom: 'Leroy' },
+		texte: 'nuit du 18 nov.',
+		remplacant: null,
+		cible: null,
+		manque: [],
+		manquePourMoi: [],
+		gestes: { accepter: true }
+	};
+	it('le titre mène à la demande, étendu à toute la demande ; plus de lien « Détails »', () => {
+		const page = net(CarteDemande, { v, niveau: 2 });
+		expect(page).toMatch(/<h2[^>]*><a class="etire[^"]*" href="\/remplacements\/7">Je remplace David Leroy<span class="masque">[^<]*nuit du 18 nov\.<\/span><\/a><\/h2>/);
+		expect(page).not.toContain('Détails');
+		expect(page).toMatch(/<button type="submit"[^>]*>Accepter/);
+	});
+	it('sur sa page : le titre seul, sans lien', () => {
+		const page = net(CarteDemande, { v, detail: false });
+		expect(page).not.toContain('href="/remplacements/7"');
+	});
+	it('dans une liste : une ligne de la carte, pas une carte', () => {
+		expect(net(CarteDemande, { v, ligne: true })).toMatch(/<article class="carte[^"]*\bligne\b/);
+		expect(net(CarteDemande, { v })).not.toMatch(/<article class="carte[^"]*\bligne\b/);
+	});
+});
+
 describe('ListeRangees', () => {
-	it('une liste explicite, sans rubrique', () => {
+	it('une seule carte pour le groupe : une liste explicite, sans rubrique', () => {
 		const page = net(ListeRangees, { children: contenu });
-		expect(page).toMatch(/^<ul[^>]*role="list"/);
+		expect(page).toMatch(/^<ul role="list" class="lignes[^"]*">/);
 		expect(page).not.toContain('<h2');
 	});
-	it('rubrique h2 reliée à sa section, avec son compteur', () => {
+	it('le titre du groupe au-dessus de la carte, relié à sa section, avec son compteur', () => {
 		const page = net(ListeRangees, { titre: 'À décider', compte: 5, children: contenu });
 		const ref = page.match(/<section[^>]*aria-labelledby="([^"]+)"/)![1];
-		expect(page).toMatch(new RegExp(`<h2[^>]*id="${ref}"[^>]*class="rubrique[^"]*"[^>]*>À décider <span class="compte[^"]*">5</span></h2>`));
+		expect(page).toMatch(new RegExp(`<h2[^>]*id="${ref}"[^>]*class="titre-groupe[^"]*"[^>]*>À décider <span class="compte[^"]*">5</span></h2>\\s*<ul role="list" class="lignes`));
 	});
 	it('ancre : le titre reçoit cet id et peut prendre le focus', () => {
 		expect(net(ListeRangees, { titre: 'À ne pas manquer', ancre: 'a-ne-pas-manquer', children: contenu })).toMatch(/<h2[^>]*id="a-ne-pas-manquer"[^>]*tabindex="-1"/);
-	});
-	it('un pied sous la liste', () => {
-		const page = net(ListeRangees, { titre: 'À décider', children: contenu, pied: createRawSnippet(() => ({ render: () => '<a href="#">Voir tout</a>' })) });
-		expect(page.indexOf('</ul>')).toBeLessThan(page.indexOf('Voir tout'));
 	});
 });
 

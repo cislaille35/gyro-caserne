@@ -59,7 +59,7 @@
 
 	<Carte titre="Coupés">
 		{#if data.coupes.length === 0}
-			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, touchez la cloche dans son en-tête.</p>
+			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, touchez le haut-parleur dans son en-tête.</p>
 		{:else}
 			<ul role="list">
 				{#each data.coupes as c (c.lieu)}
@@ -177,7 +177,7 @@
 		min-height: var(--cible);
 		padding: 0 16px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 1rem var(--police);

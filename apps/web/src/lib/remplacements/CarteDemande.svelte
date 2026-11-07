@@ -5,8 +5,9 @@
 	import Pastille from '../ui/Pastille.svelte';
 	import { ETATS, majuscule, suite, titreDemande } from './textes.ts';
 
-	// Une demande : qui, quoi, son état écrit, ce qui reste à faire, et les gestes permis à l'agent. `detail` : un lien vers sa page.
-	let { v, detail = true, niveau = 3 }: { v: VueDemande; detail?: boolean; niveau?: 2 | 3 } = $props();
+	// Une demande : qui, quoi, son état écrit, ce qui reste à faire, et les gestes permis à l'agent.
+	// `detail` : le titre mène à sa page, et toute la demande avec (les gestes restent au-dessus). `ligne` : une ligne de la carte d'une liste.
+	let { v, detail = true, niveau = 3, ligne = false }: { v: VueDemande; detail?: boolean; niveau?: 2 | 3; ligne?: boolean } = $props();
 	const etat = $derived(ETATS[v.etat]);
 	const quoi = $derived(
 		v.genre === 'manoeuvre'
@@ -19,9 +20,11 @@
 	const qui = $derived(v.demandeur.prenom ? `${v.demandeur.prenom} ${v.demandeur.nom}` : v.demandeur.nom);
 </script>
 
-<article class="carte" id="demande-{v.id}" aria-labelledby="demande-{v.id}-titre">
+<article class="carte" class:ligne id="demande-{v.id}" aria-labelledby="demande-{v.id}-titre">
 	<div class="haut">
-		<svelte:element this={`h${niveau}`} id="demande-{v.id}-titre" class="titre">{titreDemande(v)}</svelte:element>
+		<svelte:element this={`h${niveau}`} id="demande-{v.id}-titre" class="titre"
+			>{#if detail}<a class="etire" href="/remplacements/{v.id}">{titreDemande(v)}<span class="masque">{` : ${v.texte}`}</span></a>{:else}{titreDemande(v)}{/if}</svelte:element
+		>
 		<Pastille ton={etat.ton}>{etat.libelle}</Pastille>
 	</div>
 	<p class="quoi">{quoi}</p>
@@ -33,7 +36,7 @@
 		<p class="avertissement"><strong>Attention :</strong> il vous manque {v.manquePourMoi.join(', ')}. Si vous acceptez, le chef de garde devra valider.</p>
 	{/if}
 
-	{#if Object.values(v.gestes).some(Boolean) || detail}
+	{#if Object.values(v.gestes).some(Boolean)}
 		<div class="gestes">
 			{#if v.gestes.accepter}
 				<form method="POST" action="?/accepter" use:enhance>
@@ -80,21 +83,63 @@
 					<button type="submit" class="bouton secondaire">Annuler la demande<span class="masque">{` : ${v.texte}`}</span></button>
 				</form>
 			{/if}
-			{#if detail}<a class="bouton lien" href="/remplacements/{v.id}">Détails<span class="masque">{` : ${titreDemande(v)}, ${v.texte}`}</span></a>{/if}
 		</div>
 	{/if}
 </article>
 
 <style>
 	.carte {
+		position: relative;
+		isolation: isolate;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
 		padding: 14px 16px;
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		overflow-wrap: anywhere;
+	}
+	/* Dans la carte d'une liste : une ligne, séparée des autres par un trait fin. */
+	.ligne {
+		border: 0;
+		box-shadow: none;
+		border-radius: 0;
+		background: none;
+	}
+	.ligne:has(.etire:hover) {
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	}
+	a.etire {
+		color: inherit;
+		text-decoration: none;
+	}
+	a.etire:hover {
+		text-decoration: underline;
+	}
+	/* Le lien du titre couvre toute la demande ; son repère du clavier aussi. */
+	.etire::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	.etire:focus-visible {
+		outline: none;
+	}
+	.etire:focus-visible::after {
+		outline: 3px solid var(--focus);
+		outline-offset: -3px;
+		border-radius: inherit;
+	}
+	/* Les gestes restent touchables, au-dessus du lien ; entre eux, le clic va à la demande. */
+	.gestes {
+		position: relative;
+		z-index: 1;
+		pointer-events: none;
+	}
+	.gestes > * {
+		pointer-events: auto;
 	}
 	.haut {
 		display: flex;
@@ -140,7 +185,7 @@
 		display: inline-flex;
 		align-items: center;
 		padding: 0 18px;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
 		text-decoration: none;
@@ -151,8 +196,7 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.secondaire,
-	.lien {
+	.secondaire {
 		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);

@@ -91,7 +91,8 @@
 	.carte,
 	.pli {
 		background: var(--surface);
-		border: 1px solid var(--trait-doux);
+		border: 1px solid transparent;
+		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		padding: 14px;
 		display: flex;
@@ -124,10 +125,6 @@
 		align-items: center;
 		gap: 10px;
 		min-height: var(--cible);
-	}
-	.case input {
-		width: 24px;
-		height: 24px;
 	}
 	.avertissement {
 		font-weight: 600;

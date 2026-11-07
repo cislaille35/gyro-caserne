@@ -45,7 +45,9 @@
 {/snippet}
 
 {#if rien}
-	<Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." />
+	<ListeRangees>
+		<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Tout est à jour" sous="Aucune annonce, aucun événement ni sondage ne vous attend." /></li>
+	</ListeRangees>
 {:else}
 	<ListeRangees titre="À ne pas manquer" ancre="a-ne-pas-manquer">
 		{#each a.remplacements ?? [] as d (d.id)}
@@ -63,9 +65,9 @@
 					<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
 						<input type="hidden" name="id" value={e.id} />
 						<p id="reponse-{e.id}" class="masque">Votre réponse{` : ${e.titre}`}</p>
-						<div role="group" aria-labelledby="reponse-{e.id}" class="boutons">
+						<div role="group" aria-labelledby="reponse-{e.id}" class="segments boutons">
 							{#each REPONSES as [valeur, libelle] (valeur)}
-								<button type="submit" class="bascule" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
+								<button type="submit" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
 							{/each}
 						</div>
 					</form>
@@ -108,6 +110,14 @@
 {/if}
 
 <style>
+	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
+	.boutons {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.boutons button {
+		padding: 0 4px;
+	}
 	form {
 		display: flex;
 		flex-direction: column;
@@ -118,36 +128,19 @@
 	.demain {
 		margin-top: 4px;
 	}
-	.boutons {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-	}
-	.bascule,
 	.geste {
 		min-height: var(--cible);
 		min-width: var(--cible);
 		padding: 0 12px;
 		border: 1px solid var(--trait);
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 600 0.9375rem var(--police);
 		cursor: pointer;
 	}
-	.bascule:hover,
 	.geste:hover {
 		border-color: var(--encre);
-	}
-	/* Bouton à bascule : l'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
-	.bascule[aria-pressed='true'] {
-		border: 2px solid var(--encre);
-		background: var(--fond);
-		font-weight: 700;
-	}
-	.bascule[aria-pressed='true']::before {
-		content: '✓ ';
-		content: '✓ ' / '';
 	}
 	.lien {
 		min-height: var(--cible);

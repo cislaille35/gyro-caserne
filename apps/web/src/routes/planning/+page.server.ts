@@ -3,14 +3,16 @@ import { DonneeInvalide, planningDe, RefusDroit, remplacementsDe } from '@gyro-c
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
 import { anneeDe, connecte, ouRefus } from '#lib/server/planning.ts';
+import { MEMOIRE_VUE } from '#lib/planning/memoire.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const VUES = ['semaine', 'mois', 'annee', 'equipes'] as const;
 type Vue = (typeof VUES)[number];
 
 // La vue est dans l'adresse (?vue=, ?semaine=, ?mois=) : flèches et puces marchent sans JavaScript.
-// Par défaut, la Semaine ; « Équipes » pour qui n'a pas d'équipe.
-export const load: PageServerLoad = async ({ locals, url }) => {
+// Sans ?vue (l'onglet Planning), la dernière vue choisie sur l'appareil, retenue dans un cookie.
+// Sinon, la Semaine ; « Équipes » pour qui n'a pas d'équipe.
+export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const { acteur, base } = connecte(locals);
 	const maintenant = maintenantParis().slice(0, 16);
 	const annee = anneeDe(url);
@@ -24,8 +26,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			: null
 	]);
 	const sansEquipe = planning.publiee && planning.monEquipe === null && !planning.semaines.some((s) => s.mienne);
-	const demandee = url.searchParams.get('vue') === 'moi' ? 'annee' : VUES.find((v) => v === url.searchParams.get('vue'));
-	const vue: Vue = demandee ?? (sansEquipe ? 'equipes' : 'semaine');
+	const lue = (brute: string | null | undefined) => (brute === 'moi' ? 'annee' : VUES.find((v) => v === brute));
+	const vue: Vue = lue(url.searchParams.get('vue')) ?? lue(cookies.get(MEMOIRE_VUE)) ?? (sansEquipe ? 'equipes' : 'semaine');
 
 	const semaines = planning.publiee ? planning.semaines : [];
 	const enCours = semaines.find((s) => s.periodes[0]!.debut.slice(0, 10) <= maintenant.slice(0, 10) && maintenant < s.periodes.at(-1)!.fin);
@@ -36,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const mois = Number.isInteger(moisBrut) && moisBrut >= 1 && moisBrut <= 12 ? moisBrut : moisCourant;
 
 	const remplacements = { miennes: listes?.miennes ?? [], pourMoi: listes?.pourMoi ?? [], aValider: listes?.aValider ?? [] };
-	return { planning, vue, vueDemandee: demandee !== undefined, semaine: semaine?.debut ?? null, mois, moisCourant, remplacements, maintenant };
+	return { planning, vue, semaine: semaine?.debut ?? null, mois, moisCourant, remplacements, maintenant };
 };
 
 // Répondre à la manœuvre annoncée, sans quitter le planning.

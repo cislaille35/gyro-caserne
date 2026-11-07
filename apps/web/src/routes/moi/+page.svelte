@@ -9,8 +9,6 @@
 	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data } = $props();
-	const CALENDRIER = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
-	const SOLEIL = 'M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8 M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4';
 
 	const id = $derived(data.identite);
 	// En partant, ni les brouillons ni les notifications de ce compte ne restent sur l'appareil (il peut être partagé).
@@ -33,7 +31,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Moi" phrase="Votre compte et vos réglages." />
+	<EnTetePage titre="Moi" />
 
 	<section class="carte" aria-label="Mon identité" style:--teinte={id?.equipe?.couleur ?? null}>
 		{#if id}
@@ -60,14 +58,14 @@
 	<ListeRangees>
 		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
 		{#if data.estPersonne}
-			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" icone="livre" dessin={DESSINS.profil} /></li>
-			<li><Rangee href="/remplacements/demander" titre="Me faire remplacer" sous="Une nuit, une garde, un week-end ; ou un échange" icone="casque" /></li>
-			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" icone="groupe" /></li>
-			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" icone="etoile" dessin={SOLEIL} /></li>
-			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" icone="camion" dessin={CALENDRIER} /></li>
-			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" icone="etoile" dessin={DESSINS.cloche} /></li>
+			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" /></li>
+			<li><Rangee href="/remplacements/demander" titre="Me faire remplacer" sous="Une nuit, une garde, un week-end ; ou un échange" /></li>
+			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" /></li>
+			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" /></li>
+			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>
+			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" /></li>
 		{/if}
-		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et niveau de vie de l’appli" icone="cle" dessin={DESSINS.affichage} /></li>
+		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" /></li>
 	</ListeRangees>
 
 	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
@@ -89,11 +87,13 @@
 		align-items: center;
 		gap: 14px;
 		padding: 18px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 20px;
+		border: 1px solid transparent;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		/* Un liseré à la couleur de l'équipe, quand il y en a une. */
-		box-shadow: inset 0 4px 0 var(--teinte, transparent);
+		box-shadow:
+			inset 0 4px 0 var(--teinte, transparent),
+			var(--ombre-carte);
 	}
 	.qui {
 		min-width: 0;
@@ -122,7 +122,7 @@
 		gap: 8px;
 		padding: 0 16px;
 		border: 0;
-		border-radius: 999px;
+		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
 		font: 600 1rem var(--police);

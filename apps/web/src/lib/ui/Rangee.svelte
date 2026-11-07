@@ -3,8 +3,10 @@
 	import IconeRole from './IconeRole.svelte';
 	import type { IconeRole as NomIcone } from './icones-roles.ts';
 
-	// Une rangée de liste : tête (icône, visage, pastille), titre, sous-ligne, valeur ou `droite` ; lien avec chevron si `href`.
-	// `courant` : la page affichée (liste à côté d'une page). Avec `children` (des gestes sous le texte), seul le titre est un lien. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a déjà une icône) ; `discret`, pour ce qui n'existe pas encore.
+	// Une ligne d'un groupe (dans la carte de `ListeRangees`) : tête (tuile qui porte un sens, visage, date), titre, sous-ligne, valeur ou `droite` ;
+	// avec `href`, toute la ligne est un lien, avec chevron. Avec `children` (des gestes sous le texte), le lien du titre s'étend à la ligne
+	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a une tête) ;
+	// `discret`, pour ce qui n'existe pas encore. `sous` en liste : une ligne par info, quand elles sont trop nombreuses pour une seule.
 	let {
 		titre,
 		sous,
@@ -20,7 +22,7 @@
 		children
 	}: {
 		titre: string;
-		sous?: string;
+		sous?: string | string[];
 		href?: string;
 		icone?: NomIcone;
 		dessin?: string;
@@ -52,9 +54,9 @@
 		{@render signe(false)}
 	{/if}
 	<div class="corps">
-		{#if href && !lien}<a class="titre" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
-		{#if sous}<span class="sous">{sous}</span>{/if}
-		{#if children}{@render children()}{/if}
+		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
+		{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}
+		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>
 	<!-- Avec une icône en tête, le signe d'alerte passe à droite : jamais la couleur seule. -->
 	{#if alerte && (tete || icone)}{@render signe(true)}{/if}
@@ -76,24 +78,27 @@
 
 <style>
 	.rangee {
-		min-height: 56px;
+		position: relative;
+		isolation: isolate;
+		min-height: var(--cible);
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 10px 12px;
-		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
-		background: var(--surface);
+		padding: 12px 14px;
 		color: var(--encre);
 		text-decoration: none;
 	}
-	a.rangee:hover {
-		border-color: var(--trait);
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 8%, transparent);
+	a.rangee:hover,
+	.rangee:has(.etire:hover) {
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
 	}
 	a.rangee:hover .titre,
-	a.titre:hover {
+	.etire:hover {
 		text-decoration: underline;
+	}
+	/* Le repère du clavier à l'intérieur de la ligne : la carte rogne ce qui dépasse. */
+	a.rangee:focus-visible {
+		outline-offset: -3px;
 	}
 	/* La page affichée : fond, liseré et titre en gras, pas la couleur seule. */
 	a.rangee[aria-current='page'] {
@@ -120,14 +125,34 @@
 		color: inherit;
 		overflow-wrap: anywhere;
 	}
-	/* Cible de 44 px, sans écarter la sous-ligne. */
 	a.titre {
-		min-height: var(--cible);
-		margin: -10px 0;
-		display: inline-flex;
-		align-items: center;
-		align-self: flex-start;
 		text-decoration: none;
+	}
+	/* Le lien du titre couvre toute la ligne ; son repère du clavier aussi. */
+	.etire::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	.etire:focus-visible {
+		outline: none;
+	}
+	.etire:focus-visible::after {
+		outline: 3px solid var(--focus);
+		outline-offset: -3px;
+	}
+	/* Les gestes de la ligne restent touchables, au-dessus du lien ; entre eux, le clic va à la ligne. */
+	.inclus {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2px;
+		pointer-events: none;
+	}
+	.inclus > :global(*) {
+		pointer-events: auto;
 	}
 	.sous {
 		color: var(--doux);
@@ -150,6 +175,7 @@
 		margin-left: -4px;
 		color: var(--doux);
 	}
+	/* À traiter : le signe d'alerte sur sa tuile, et le texte qui dit quoi. */
 	.signe {
 		flex: none;
 		width: 40px;
@@ -158,7 +184,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--surface);
+		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 	}
 	.a-droite {
@@ -166,21 +192,7 @@
 		height: 32px;
 		border-radius: 10px;
 	}
-	/* À traiter : fond chaud, icône d'alerte, texte qui dit quoi. */
-	.alerte {
-		background: var(--statut-alerte-fond);
-		border-color: var(--statut-alerte-trait);
-		color: var(--statut-alerte-texte);
-	}
-	.alerte .chevron,
-	.alerte .sous {
-		color: inherit;
-	}
-	/* Pas encore là : en retrait, sans ombre ni survol. */
-	.discret {
-		background: transparent;
-		border-style: dashed;
-	}
+	/* Pas encore là : en retrait. */
 	.discret .titre {
 		color: var(--doux);
 	}

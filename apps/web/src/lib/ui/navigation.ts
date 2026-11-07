@@ -14,11 +14,24 @@ export function entreesNavigation(connecte: boolean): EntreeNavigation[] {
 
 // Les pages rangées sous un onglet, ou sous « Moi », en plus de la sienne.
 const rangement: Record<string, string[]> = {
-	'/caserne': ['/agents', '/nominations', '/reglages', '/reservations'],
+	'/planning': ['/remplacements'],
+	'/caserne': ['/agents', '/engins', '/nominations', '/reglages', '/reservations'],
 	'/moi': ['/profil', '/affichage']
 };
 
 const sous = (chemin: string, racine: string) => chemin === racine || chemin.startsWith(`${racine}/`);
+
+// Une conversation ouverte prend tout l'écran du téléphone ; une page d'erreur garde sa navigation.
+export function dansUneConversation(route: string | null, erreur: unknown): boolean {
+	return !erreur && (route === '/echanges/messages/[id]' || route === '/echanges/messages/a/[personne]');
+}
+
+// Les pages dont l'ouverture marque des notifications lues (mur, publication, remplacements, anomalie, mes réservations) :
+// la cloche n'est relue qu'après elles, pour ne pas ajouter un appel au serveur à chaque page.
+const MARQUENT_LU = ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes'];
+export function marqueDesLues(route: string | null): boolean {
+	return route !== null && MARQUENT_LU.includes(route);
+}
 
 // L'entrée (onglet, « Moi » ou cloche) dont descend la page courante.
 export function rubriqueDe(chemin: string): string {

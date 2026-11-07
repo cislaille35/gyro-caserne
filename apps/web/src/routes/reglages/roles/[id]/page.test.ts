@@ -91,6 +91,14 @@ describe('page d’un rôle', () => {
 		expect(page).toContain('Valider un remplacement');
 	});
 
+	it('rôle système vu par le chef ou l’adjoint : les cases grisées disent pourquoi, sans parler de leurs droits', () => {
+		const raison = 'Ce rôle fait partie du système : ses droits sont fixés, il ne se modifie pas.';
+		const page = html({ peutPouvoir: true, modele: null, raison, role: role({ systeme: 'chef_equipe', modele: null }) });
+		expect(page).not.toContain('Seuls le chef de centre, son adjoint et le super administrateur');
+		expect(page).toMatch(/<p id="admin-aide" class="aide[^"]*">Ces cases ne se modifient pas sur ce rôle\./);
+		expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-aide"/);
+	});
+
 	it('message d’erreur à côté du bon formulaire, saisie réaffichée', () => {
 		const page = html({}, { cible: 'role', erreurs: { nom: 'Ce nom est déjà utilisé.' }, valeurs: { nom: 'Doublon' } });
 		expect(page).toContain('Ce nom est déjà utilisé.');

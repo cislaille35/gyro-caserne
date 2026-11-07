@@ -5,8 +5,12 @@
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
 	import MeteoAnim from '#lib/meteo/MeteoAnim.svelte';
+	import { soleilCouche } from '#lib/gyro/soleil.ts';
+	import centre from '$centre';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { nombreAFaire } from '#lib/a-faire.ts';
+	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+	import { humeurDuJour } from '#lib/gyro/humeurs.ts';
 	import ANePasManquer from '#lib/ui/ANePasManquer.svelte';
 	import Casquettes from '#lib/ui/Casquettes.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -14,7 +18,7 @@
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
-	import { DESSINS, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
+	import { DESSINS, ICONES_ROLES, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
 
 	let { data, form } = $props();
 
@@ -32,25 +36,21 @@
 		[
 			// Sans rien à faire, « Tout est à jour » est dit une fois, dans « À ne pas manquer ».
 			aFaire === 0 ? '' : `${pluriel(aFaire, 'publication')} ${aFaire > 1 ? 'vous attendent' : 'vous attend'}.`,
-			affichage.niveau === 'vivant' ? 'Gyro a fait le plein de café.' : ''
+			// Pas d'humeur à côté d'un bandeau de vigilance.
+			affichage.niveau === 'vivant' && !bandeau ? humeurDuJour(aujourdhuiParis(), 'accueil') : ''
 		].join(' ').trim()
 	);
 	const rangee = $derived(data.casquettes.length >= 2);
-	const casquette = $derived(data.casquettes.find((c) => c.id === data.choisie));
 
-	type Lien = { href: string; titre: string; texte: string; icone: NomIcone; dessin?: string };
-	const gerer: Lien[] = $derived([
-		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque' },
-		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const }] : []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les rôles et les comités', icone: 'outil' as const }] : [])
+	const gerer: { href: string; titre: string; icone: NomIcone }[] = $derived([
+		{ href: '/agents', titre: 'Agents', icone: 'casque' },
+		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', icone: 'etoile' as const }] : []),
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', icone: 'outil' as const }] : [])
 	]);
-	// Hors « Le centre » : de quoi aller vite là où l'on va le plus.
-	const raccourcis: Lien[] = $derived([
-		{ href: '/planning', titre: 'Planning', texte: 'Astreintes, manœuvres et remplacements', icone: 'cle', dessin: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4' },
-		{ href: '/echanges', titre: 'Échanges', texte: 'Les murs du centre et vos messages', icone: 'camion', dessin: DESSINS.echanges },
-		{ href: '/agents', titre: 'L’effectif', texte: 'Qui est qui au centre', icone: 'casque' },
-		...(data.estPersonne ? [{ href: '/profil', titre: 'Mon profil', texte: 'Téléphone, contact d’urgence', icone: 'livre' as const, dessin: DESSINS.profil }] : [])
-	]);
+	// Ce qui attend une décision passe avant tout le reste, sur toutes les casquettes.
+	const enTete = $derived(data.contenu.type === 'astreinte' ? [] : data.contenu.aDecider);
+	// Rien à montrer à côté de « À ne pas manquer » : « Mon astreinte », et le chef de garde quand « À décider » est passé en tête.
+	const seule = $derived(data.contenu.type === 'astreinte' || (data.contenu.type === 'equipe' && enTete.length > 0));
 
 	// « À décider » : les trois premiers, le reste derrière « Voir les autres ».
 	const VISIBLES = 3;
@@ -60,7 +60,7 @@
 	<title>Accueil · Gyro Caserne</title>
 </svelte:head>
 
-{#snippet gyro()}<GyroAccueil taille={72} {ambiance} />{/snippet}
+{#snippet gyroAccueil()}<GyroAccueil taille={72} {ambiance} />{/snippet}
 
 {#snippet meteo()}
 	{#if data.meteo.meteo}
@@ -81,8 +81,8 @@
 		{#each liste.slice(0, VISIBLES) as element, i (i)}
 			<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
 		{/each}
-		{#snippet pied()}
-			{#if liste.length > VISIBLES}
+		{#if liste.length > VISIBLES}
+			<li>
 				<details class="autres">
 					<summary>Voir {liste.length - VISIBLES > 1 ? `les ${liste.length - VISIBLES} autres` : 'l’autre'}</summary>
 					<ul role="list">
@@ -91,16 +91,8 @@
 						{/each}
 					</ul>
 				</details>
-			{/if}
-		{/snippet}
-	</ListeRangees>
-{/snippet}
-
-{#snippet liens(titre: string, liste: Lien[])}
-	<ListeRangees {titre}>
-		{#each liste as l (l.href)}
-			<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} dessin={l.dessin} /></li>
-		{/each}
+			</li>
+		{/if}
 	</ListeRangees>
 {/snippet}
 
@@ -116,49 +108,57 @@
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={data.meteo.meteo?.nuit} />{/if}
+		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={soleilCouche(new Date(), centre.position)} />{/if}
 		<div class="devant">
-			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyro : undefined} />
+			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyroAccueil : undefined} />
 		</div>
 	</div>
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
-	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} compacte />{/if}
+	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} priseOuverte={data.priseOuverte} compacte />{/if}
 
 	<div class="masque" role="status">{annonceSucces}</div>
 	<div class="masque" role="alert">{annonceEchec}</div>
 
-	<div class="colonnes">
+	<div class="colonnes" class:seule>
 		<div class="colonne">
+			{#if enTete.length > 0}{@render decider(enTete)}{/if}
 			<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
 		</div>
 
-		<div class="colonne">
-			{#if data.contenu.type === 'centre'}
-				{#if data.contenu.aDecider.length > 0}
-					{@render decider(data.contenu.aDecider)}
-				{:else}
-					<ListeRangees titre="À décider">
-						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
-					</ListeRangees>
-				{/if}
-				{@render liens('Gérer', gerer)}
-			{:else}
-				{#if (data.contenu.type === 'role' || data.contenu.type === 'comite' || data.contenu.type === 'equipe') && data.contenu.aDecider.length > 0}
-					{@render decider(data.contenu.aDecider)}
-				{/if}
-				{#if data.contenu.type === 'equipe' && data.contenu.aDecider.length === 0}
+		{#if !seule}
+			<div class="colonne">
+				{#if data.contenu.type === 'centre'}
+					{#if enTete.length === 0}
+						<ListeRangees titre="À décider">
+							<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
+						</ListeRangees>
+					{/if}
+					<!-- Des liens courts : trois cases de gestes, dans une seule carte. -->
+					<section class="gerer" aria-labelledby="t-gerer">
+						<h2 id="t-gerer" class="titre-groupe">Gérer</h2>
+						<ul role="list" class="lignes grille-gestes">
+							{#each gerer as l (l.href)}
+								<li>
+									<a href={l.href}
+										><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[l.icone]} /></svg
+										>{l.titre}</a
+									>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{:else if data.contenu.type === 'equipe'}
 					<ListeRangees titre="À décider">
 						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
 					</ListeRangees>
-				{/if}
-				{#if data.contenu.type === 'role'}
+				{:else if data.contenu.type === 'role'}
 					<ListeRangees titre="Ce que ce rôle permet">
 						{#each data.contenu.permet as permis (permis)}
-							<li><Rangee titre={permis} icone={casquette?.icone ?? 'etoile'} /></li>
+							<li><Rangee titre={permis} /></li>
 						{:else}
-							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." icone={casquette?.icone ?? 'etoile'} /></li>
+							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." /></li>
 						{/each}
 					</ListeRangees>
 				{:else if data.contenu.type === 'comite'}
@@ -170,13 +170,12 @@
 								</Rangee>
 							</li>
 						{:else}
-							<li><Rangee titre="Aucun membre pour le moment." icone="groupe" /></li>
+							<li><Rangee titre="Aucun membre pour le moment." /></li>
 						{/each}
 					</ListeRangees>
 				{/if}
-				{@render liens('Raccourcis', raccourcis)}
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </div>
 <Celebration moment={momentAnniversaire(data.anniversaire === true, data.aujourdhui)} qui={data.qui} />
@@ -283,16 +282,24 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* « Voir les autres » : une ligne de la carte, centrée. */
 	.autres summary {
 		min-height: var(--cible);
-		display: inline-flex;
+		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 8px;
-		padding: 0 4px;
+		padding: 0 14px;
 		color: var(--encre);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
+	}
+	.autres summary:focus-visible {
+		outline-offset: -3px;
+	}
+	.autres summary:hover {
+		text-decoration: underline;
 	}
 	.autres summary::-webkit-details-marker {
 		display: none;
@@ -303,21 +310,55 @@
 		height: 8px;
 		border-right: 2px solid currentColor;
 		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-	}
-	.autres[open] summary::before {
 		transform: rotate(45deg);
 	}
-	.autres[open] summary {
-		margin-bottom: 10px;
+	.autres[open] summary::before {
+		transform: rotate(-135deg);
 	}
 	.autres ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.autres li {
+		border-top: 1px solid var(--trait-doux);
+	}
+	.gerer {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 8px;
+	}
+	/* « Gérer » : une case par geste, côte à côte. */
+	.grille-gestes {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+	}
+	.grille-gestes > li + li {
+		border-top: 0;
+		border-left: 1px solid var(--trait-doux);
+	}
+	.grille-gestes a {
+		min-height: 76px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 8px 4px;
+		color: var(--encre);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		text-align: center;
+		text-decoration: none;
+		overflow-wrap: anywhere;
+	}
+	.grille-gestes a:hover {
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		text-decoration: underline;
+	}
+	.grille-gestes a:focus-visible {
+		outline-offset: -3px;
 	}
 	@media (min-width: 1024px) {
 		.colonnes {
@@ -325,6 +366,9 @@
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
 			gap: 28px;
+		}
+		.colonnes.seule {
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 </style>

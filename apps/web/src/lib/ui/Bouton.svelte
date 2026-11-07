@@ -16,7 +16,7 @@
 	button {
 		min-height: var(--cible);
 		padding: 0 20px;
-		border-radius: var(--rayon-petit);
+		border-radius: var(--rayon-bouton);
 		font: 700 1.0625rem var(--police);
 		cursor: pointer;
 	}
