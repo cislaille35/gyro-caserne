@@ -21,7 +21,7 @@ export function nomsDesSecrets(texte: string): string[] {
 	} catch {
 		liste = null;
 	}
-	if (!Array.isArray(liste) || !liste.every((s) => typeof s?.name === 'string')) throw new Error('Liste des secrets illisible');
+	if (!Array.isArray(liste) || !liste.every((s) => typeof s?.name === 'string')) throw new Error('Liste des secrets illisible : sortie de Wrangler inattendue, non affichée');
 	return liste.map((s: { name: string }) => s.name);
 }
 
@@ -40,7 +40,23 @@ export async function controleDeVie(adresse: string, { demander, attendre }: Out
 	return false;
 }
 
-async function controler() {
+// Le contrôle, sans accès à Cloudflare : il reçoit les noms des secrets et la config, et rend ce qu'il faut écrire au journal.
+export async function controler(centre: string, secrets: string[], vars: Record<string, unknown>, outils: Outils) {
+	const manquants = reglagesManquants(secrets, vars);
+	if (manquants.length)
+		return { ok: false, messages: [`::error::Réglages manquants sur le Worker gyro-caserne-${centre} : ${manquants.join(', ')}. Voir docs/technique/installer-un-centre.md.`] };
+	const messages = ['Réglages indispensables présents : ' + [...SECRETS_INDISPENSABLES, 'BETTER_AUTH_URL'].join(', ') + '.'];
+	// L'adresse contrôlée est celle de la config : chaque déploiement la pose sur le Worker.
+	const adresse = typeof vars.BETTER_AUTH_URL === 'string' ? vars.BETTER_AUTH_URL : '';
+	if (!adresse) {
+		messages.push("::warning::Adresse de l'appli en secret seulement : contrôle de vie impossible. Mettez-la dans vars de la config du centre.");
+		return { ok: true, messages };
+	}
+	if (!(await controleDeVie(adresse, outils))) return { ok: false, messages: [...messages, `::error::${adresse}/connexion ne répond pas 200 après le déploiement.`] };
+	return { ok: true, messages: [...messages, `${adresse}/connexion répond 200.`] };
+}
+
+async function lancer() {
 	const centre = process.env.CENTRE;
 	if (!centre) throw new Error('CENTRE à préciser, par exemple CENTRE=laille');
 	const appli = fileURLToPath(new URL('..', import.meta.url));
@@ -48,33 +64,24 @@ async function controler() {
 	const { unstable_readConfig } = await import('wrangler');
 	const vars = unstable_readConfig({ config: `${appli}${config}` }).vars as Record<string, unknown>;
 
-	const sortie = execFileSync('pnpm', ['exec', 'wrangler', 'secret', 'list', '--format', 'json', '--config', config], {
-		cwd: appli,
-		encoding: 'utf8',
-		stdio: ['ignore', 'pipe', 'inherit'],
-		env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }
-	});
-	const manquants = reglagesManquants(nomsDesSecrets(sortie), vars);
-	if (manquants.length) {
-		console.error(`::error::Réglages manquants sur le Worker gyro-caserne-${centre} : ${manquants.join(', ')}. Voir docs/technique/installer-un-centre.md.`);
-		process.exit(1);
+	let sortie: string;
+	try {
+		sortie = execFileSync('pnpm', ['exec', 'wrangler', 'secret', 'list', '--format', 'json', '--config', config], {
+			cwd: appli,
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'inherit'],
+			env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }
+		});
+	} catch {
+		// L'erreur de Node recopierait la sortie : seul le message de Wrangler, plus haut, est affiché.
+		throw new Error('wrangler secret list a échoué (voir son message ci-dessus)');
 	}
-	console.log('Réglages indispensables présents : ' + [...SECRETS_INDISPENSABLES, 'BETTER_AUTH_URL'].join(', ') + '.');
-
-	const adresse = typeof vars.BETTER_AUTH_URL === 'string' ? vars.BETTER_AUTH_URL : '';
-	if (!adresse) {
-		console.log("::warning::Adresse de l'appli en secret seulement : contrôle de vie impossible. Mettez-la dans vars de la config du centre.");
-		return;
-	}
-	const vivante = await controleDeVie(adresse, {
-		demander: async (url) => (await fetch(url, { redirect: 'manual' })).status,
+	const { ok, messages } = await controler(centre, nomsDesSecrets(sortie), vars, {
+		demander: async (url) => (await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })).status,
 		attendre: () => new Promise((r) => setTimeout(r, 10_000))
 	});
-	if (!vivante) {
-		console.error(`::error::${adresse}/connexion ne répond pas 200 après le déploiement.`);
-		process.exit(1);
-	}
-	console.log(`${adresse}/connexion répond 200.`);
+	for (const message of messages) console.log(message);
+	if (!ok) process.exit(1);
 }
 
-if (import.meta.main) await controler();
+if (import.meta.main) await lancer();

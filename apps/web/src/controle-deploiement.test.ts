@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { controleDeVie, nomsDesSecrets, reglagesManquants } from '../scripts/controle-deploiement.ts';
+import { controleDeVie, controler, nomsDesSecrets, reglagesManquants } from '../scripts/controle-deploiement.ts';
 
 const tous = ['BETTER_AUTH_SECRET', 'SUPER_ADMINS', 'BREVO_CLE'];
 const adresse = { BETTER_AUTH_URL: 'https://appli.exemple' };
@@ -70,5 +70,35 @@ describe('controleDeVie', () => {
 			attendre: sansAttente
 		});
 		expect(ok).toBe(false);
+	});
+});
+
+describe('controler', () => {
+	const repond = (statut: number) => ({ demander: async () => statut, attendre: async () => {} });
+
+	it('réussit quand tout est là et que /connexion répond', async () => {
+		const { ok, messages } = await controler('exemple', tous, adresse, repond(200));
+		expect(ok).toBe(true);
+		expect(messages.at(-1)).toBe('https://appli.exemple/connexion répond 200.');
+	});
+
+	it('échoue sur un réglage manquant, sans même appeler l’appli, en ne nommant que les réglages', async () => {
+		let appels = 0;
+		const { ok, messages } = await controler('exemple', ['BETTER_AUTH_SECRET'], adresse, { demander: async () => (appels++, 200), attendre: async () => {} });
+		expect(ok).toBe(false);
+		expect(appels).toBe(0);
+		expect(messages).toEqual(['::error::Réglages manquants sur le Worker gyro-caserne-exemple : SUPER_ADMINS, BREVO_CLE. Voir docs/technique/installer-un-centre.md.']);
+	});
+
+	it('échoue si /connexion ne répond pas 200', async () => {
+		const { ok, messages } = await controler('exemple', tous, adresse, repond(500));
+		expect(ok).toBe(false);
+		expect(messages.at(-1)).toContain('ne répond pas 200');
+	});
+
+	it('avertit sans échouer quand l’adresse n’est qu’en secret', async () => {
+		const { ok, messages } = await controler('exemple', [...tous, 'BETTER_AUTH_URL'], {}, repond(500));
+		expect(ok).toBe(true);
+		expect(messages.at(-1)).toMatch(/^::warning::/);
 	});
 });
