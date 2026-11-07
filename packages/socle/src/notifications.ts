@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, lt, ne, notExists, notInArray, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
 import type { Acteur } from './droits.ts';
@@ -96,7 +96,7 @@ export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: strin
 		.where(and(eq(coupure.personneId, abonnementPush.personneId), inArray(coupure.lieu, ['tout', lieu])));
 	return base.insert(envoiPush).select(
 		base
-			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`${JSON.stringify(donnees)}`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le') })
+			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`${JSON.stringify(donnees)}`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le'), jeton: sql<string | null>`null`.as('jeton'), reserveeLe: sql<string | null>`null`.as('reservee_le'), essais: sql<number>`0`.as('essais') })
 			.from(abonnementPush)
 			.where(and(inArray(abonnementPush.personneId, Array.isArray(ids) ? parmi(ids) : ids), notExists(coupe), si))
 	);
@@ -481,25 +481,45 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 
 export type Envoi = { id: number; abonnementId: number; endpoint: string; p256dh: string; auth: string; donnees: DonneesPush };
 
-// Les plus anciens envois en file, retirés d'un même bloc : deux lots qui se croisent ne prennent jamais le même.
-export async function prendreEnvois(base: Base, max: number): Promise<Envoi[]> {
-	const premiers = base.select({ id: envoiPush.id }).from(envoiPush).orderBy(asc(envoiPush.id)).limit(max);
-	const [lignes] = await base.batch([
+// Un lot réserve ses envois, puis ne les retire de la file qu'une fois partis (finirEnvois). Coupé en route (Cloudflare arrête
+// la requête), il laisse ses envois réservés : un passage suivant les reprend cinq minutes plus tard, trois fois au plus.
+// Un envoi repris alors qu'il était déjà parti ne s'affiche pas deux fois : même `tag` au téléphone, même `Topic` au service push.
+export const REPRISE_MINUTES = 5;
+export const ESSAIS_MAX = 3;
+
+// Les plus anciens envois libres, réservés d'un même bloc (`jeton`) : deux lots qui se croisent ne prennent jamais le même.
+// Dans le même bloc, ceux coupés ESSAIS_MAX fois sont abandonnés. Une requête à la base.
+export async function prendreEnvois(base: Base, max: number, maintenant = new Date()): Promise<{ jeton: string; envois: Envoi[] }> {
+	const jeton = crypto.randomUUID();
+	const limite = new Date(maintenant.getTime() - REPRISE_MINUTES * 60_000).toISOString();
+	const libres = or(isNull(envoiPush.reserveeLe), and(lte(envoiPush.reserveeLe, limite), lt(envoiPush.essais, ESSAIS_MAX)));
+	const premiers = base.select({ id: envoiPush.id }).from(envoiPush).where(libres).orderBy(asc(envoiPush.id)).limit(max);
+	const [abandonnes, , lignes] = await base.batch([
+		base
+			.delete(envoiPush)
+			.where(and(lte(envoiPush.reserveeLe, limite), gte(envoiPush.essais, ESSAIS_MAX)))
+			.returning({ id: envoiPush.id }),
+		base
+			.update(envoiPush)
+			.set({ jeton, reserveeLe: maintenant.toISOString(), essais: sql`${envoiPush.essais} + 1` })
+			.where(inArray(envoiPush.id, premiers)),
 		base
 			.select({ id: envoiPush.id, abonnementId: envoiPush.abonnementId, endpoint: abonnementPush.endpoint, p256dh: abonnementPush.p256dh, auth: abonnementPush.auth, donnees: envoiPush.donnees })
 			.from(envoiPush)
 			.innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId))
+			.where(eq(envoiPush.jeton, jeton))
 			.orderBy(asc(envoiPush.id))
-			.limit(max),
-		base.delete(envoiPush).where(inArray(envoiPush.id, premiers))
 	]);
-	return lignes.map((l) => ({ ...l, donnees: JSON.parse(l.donnees) as DonneesPush }));
+	if (abandonnes.length > 0) console.warn('Notifications abandonnées après des envois coupés', abandonnes.length);
+	return { jeton, envois: lignes.map((l) => ({ ...l, donnees: JSON.parse(l.donnees) as DonneesPush })) };
 }
 
-// Abonnements périmés (le service push répond 404 ou 410) : supprimés, avec leurs envois.
-export async function oublierAbonnements(base: Base, ids: number[]): Promise<void> {
-	if (ids.length === 0) return;
-	await base.delete(abonnementPush).where(inArray(abonnementPush.id, parmi(ids)));
+// Le lot est parti : ses envois sont retirés de la file, qu'ils aient été reçus ou refusés (jamais renvoyés), et les abonnements
+// périmés (le service push répond 404 ou 410) supprimés, avec leurs envois. Une requête à la base.
+export async function finirEnvois(base: Base, jeton: string, perimes: number[]): Promise<void> {
+	const retires = base.delete(envoiPush).where(eq(envoiPush.jeton, jeton));
+	if (perimes.length === 0) await retires;
+	else await base.batch([retires, base.delete(abonnementPush).where(inArray(abonnementPush.id, parmi(perimes)))]);
 }
 
 // Ménage de nuit : notifications et envois restés en file créés avant `avant` (AAAA-MM-JJ).

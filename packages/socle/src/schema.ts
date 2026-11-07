@@ -430,14 +430,18 @@ export const abonnementPush = sqliteTable(
 // Ce que la personne a coupé au téléphone : « tout », « mur:<clé> » ou « conversation:<id> ».
 export const coupure = sqliteTable('coupure', { personneId: versPersonne(), lieu: text('lieu').notNull() }, (t) => [primaryKey({ columns: [t.personneId, t.lieu] })]);
 
-// La file des envois au téléphone, vidée par lots (tâche planifiée). `donnees` : JSON { titre, texte, url, tag }.
+// La file des envois au téléphone, vidée par lots (dès le geste, puis au réveil). `donnees` : JSON { titre, texte, url, tag }.
+// Un lot réserve ses lignes (`jeton`, `reservee_le` en heure UTC, `essais`) et ne les retire qu'une fois parti : coupé en route, il est repris.
 export const envoiPush = sqliteTable('envoi_push', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
 	abonnementId: integer('abonnement_id')
 		.notNull()
 		.references(() => abonnementPush.id, { onDelete: 'cascade' }),
 	donnees: text('donnees').notNull(),
-	creeLe: text('cree_le').notNull()
+	creeLe: text('cree_le').notNull(),
+	jeton: text('jeton'),
+	reserveeLe: text('reservee_le'),
+	essais: integer('essais').notNull().default(0)
 });
 
 // Réservations (reservations.ts). Une ressource est gérée par un rôle ou par un comité, jamais les deux.

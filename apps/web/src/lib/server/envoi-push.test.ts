@@ -45,13 +45,39 @@ describe('envoyerLot', () => {
 		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint).sort()).toEqual(['https://fcm.googleapis.com/fcm/send/alice', 'https://fcm.googleapis.com/fcm/send/alice-tablette']);
 	});
 
-	it('pas plus de `max` par lot ; un appel à la base sans abonnement périmé', async () => {
+	it('pas plus de `max` par lot ; deux appels à la base (réserver, puis retirer ce qui est parti) ; un seul si la file est vide', async () => {
 		const { base, cles } = await enFile();
 		const envoyer = vi.fn(async () => new Response(null, { status: 201 }));
-		const avant = base.requetes;
+		let avant = base.requetes;
 		expect(await envoyerLot(base, cles, envoyer, 2)).toEqual({ envoyes: 2, perimes: 0 });
-		expect(base.requetes - avant).toBe(1);
+		expect(base.requetes - avant).toBe(2);
 		expect(await base.select().from(envoiPush)).toHaveLength(1);
+		await envoyerLot(base, cles, envoyer);
+		avant = base.requetes;
+		expect(await envoyerLot(base, cles, envoyer)).toEqual({ envoyes: 0, perimes: 0 });
+		expect(base.requetes - avant).toBe(1);
+	});
+
+	it('requête coupée en plein envoi : rien n’est perdu ; le lot est repris cinq minutes plus tard, pas avant', async () => {
+		const { base, cles } = await enFile();
+		const t = (minutes: number) => new Date(Date.UTC(2026, 9, 31, 9, minutes));
+		// Cloudflare arrête la requête : l'envoi ne répond jamais, le lot ne finit jamais.
+		void envoyerLot(base, cles, () => new Promise<Response>(() => {}), 40, t(0));
+		await new Promise((r) => setTimeout(r, 20));
+		expect(await base.select().from(envoiPush)).toHaveLength(3);
+		const envoyer = vi.fn(async () => new Response(null, { status: 201 }));
+		expect(await envoyerLot(base, cles, envoyer, 40, t(4))).toEqual({ envoyes: 0, perimes: 0 });
+		expect(await envoyerLot(base, cles, envoyer, 40, t(5))).toEqual({ envoyes: 3, perimes: 0 });
+		expect(envoyer).toHaveBeenCalledTimes(3);
+		expect(await base.select().from(envoiPush)).toEqual([]);
+	});
+
+	it('refusé par le service push (500) : pas renvoyé', async () => {
+		const { base, cles } = await enFile();
+		const avertir = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		expect(await envoyerLot(base, cles, async () => new Response(null, { status: 500 }))).toEqual({ envoyes: 3, perimes: 0 });
+		avertir.mockRestore();
+		expect(await base.select().from(envoiPush)).toEqual([]);
 	});
 
 	it('sans clés VAPID : la file est vidée sans rien envoyer', async () => {
