@@ -22,7 +22,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 - La notification dit le lieu et l'auteur (« Équipe 2 · Élodie Martin », « Message de Romain », « Départ de Thomas · Manon ») et le début du texte. Pas de photo.
 - La toucher ouvre la publication ou la conversation, et la marque lue.
 - Plusieurs messages d'une même conversation se remplacent : une seule notification par conversation à l'écran.
-- Délai : tout de suite (quelques secondes) jusqu'à 20 téléphones ; au-delà, le reste dans les cinq minutes, puis cinq minutes de plus par tranche de 40 (« Le centre » avec 100 appareils : 20 tout de suite, le reste en 10 minutes au plus). Une notification refusée par le téléphone n'est pas renvoyée.
+- Délai : tout de suite (quelques secondes) jusqu'à 20 téléphones ; au-delà, le reste dans les cinq minutes, puis cinq minutes de plus par tranche de 40 (« Le centre » avec 100 appareils : 20 tout de suite, le reste en 10 minutes au plus). Une notification refusée par le téléphone n'est pas renvoyée. Un envoi interrompu de notre côté (coupure de Cloudflare) n'est pas perdu : il repart 5 à 10 minutes plus tard, sans s'afficher deux fois.
 
 ## Couper
 
