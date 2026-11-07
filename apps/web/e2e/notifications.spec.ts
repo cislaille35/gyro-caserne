@@ -40,8 +40,8 @@ test('une publication arrive dans la cloche ; « Tout marquer comme lu »', asyn
 	await expect(ligne).not.toContainText('Non lu');
 });
 
-// Consulter la publication depuis la cloche : le nombre baisse aussitôt, sans recharger la page.
-test('la cloche baisse quand on ouvre la publication, sans recharger', async ({ browser, page }) => {
+// Ouvrir la publication depuis la cloche (le lien passe par /notifications/ouvrir) : la ligne est lue, le nombre baisse aussitôt.
+test('la cloche baisse quand on ouvre la publication depuis la cloche', async ({ browser, page }) => {
 	const marque = `Galette ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
 	test.setTimeout(60_000);
 	const auteur = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();

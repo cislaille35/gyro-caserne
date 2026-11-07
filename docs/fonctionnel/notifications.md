@@ -32,8 +32,8 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## La cloche
 
-- Un fil : une ligne par publication, commentaire ou réponse à une réservation, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
-- Le chiffre compte les **non lues**. Ouvrir un mur marque lues ses publications ; ouvrir une publication la marque lue avec ses commentaires. Ouvrir une demande de remplacement marque lus ses avis ; ouvrir l'été (chef) marque lus les avis qui y mènent (« vacances changées »), pas le rappel de donner ses vacances, qui mène à « Mes vacances ». Le chiffre baisse dès la page ouverte. « Tout marquer comme lu » en haut du fil.
+- Un fil : une ligne par publication, commentaire, réponse à une réservation, avis de remplacement, de l'été ou d'anomalie, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
+- Le chiffre compte les **non lues**. Toucher une ligne de la cloche la marque lue, quelle qu'elle soit, puis ouvre sa page. Ouvrir un mur marque lues ses publications ; ouvrir une publication la marque lue avec ses commentaires. Ouvrir une demande de remplacement marque lus ses avis ; ouvrir l'été (chef) marque lus les avis qui y mènent (« vacances changées »), pas le rappel de donner ses vacances, qui mène à « Mes vacances ». Le chiffre baisse dès la page ouverte. Une ligne non lue se reconnaît à son titre en gras et à son point ; les lecteurs d'écran disent « Non lu ». « Tout marquer comme lu » en haut du fil.
 - Pour qui gère une ressource, les demandes de réservation à trancher restent en tête et comptent tant que personne n'a tranché (elles sonnent une fois au téléphone).
 - Pour qui modère, les messages signalés restent en tête et comptent tant qu'ils ne sont pas traités (sans notification au téléphone). Le super administrateur ne voit qu'eux.
 - « À ne pas manquer » (répondre à un sondage, à un événement) reste sur l'Accueil.

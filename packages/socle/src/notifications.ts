@@ -345,6 +345,16 @@ export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: stri
 	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe)))]);
 }
 
+// Ouvrir une ligne de la cloche la marque lue, quelle que soit la page où elle mène. Une requête ; seulement les siennes.
+const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie };
+export async function marquerLue(base: Base, acteur: Acteur, genre: string, id: number, maintenant: string): Promise<void> {
+	exigerDateHeure(maintenant, 'Date');
+	if (!Object.hasOwn(TABLES, genre)) throw new DonneeInvalide('Notification inconnue');
+	if (acteur.type !== 'personne') return;
+	const t = TABLES[genre as keyof typeof TABLES];
+	await base.update(t).set({ lueLe: maintenant }).where(and(eq(t.id, id), eq(t.personneId, acteur.id), isNull(t.lueLe)));
+}
+
 // Écritures à placer dans un batch de lecture : ouvrir un mur marque lues ses publications ; ouvrir une publication, elle et ses commentaires.
 export const marquerLuesDuMur = (base: Base, moi: number, cle: string, maintenant: string) =>
 	base

@@ -6,6 +6,8 @@
 	"main": "../../apps/web/.svelte-kit/cloudflare/_worker.js",
 	"compatibility_date": "2026-10-01",
 	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
+	// Production, données réelles : jamais d’adresse de prévisualisation d’une version.
+	"preview_urls": false,
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les cinq minutes, les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/5 * * * *"] },
