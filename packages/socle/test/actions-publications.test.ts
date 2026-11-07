@@ -833,6 +833,17 @@ describe('conservation des publications (tâche de nuit)', () => {
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 
+	it('trouve les vieilles publications par un index, sans parcourir toute la table (ni celle des manœuvres)', async () => {
+		const { base, chef } = await jeu();
+		await base.insert(publication).values({ mur: 'centre', auteur: `personne:${chef}`, type: 'message', texte: 'Vieux', creeLe: vieux });
+		base.jouees.length = 0;
+		await effacerVieillesPublications(base, base.photos, avant);
+		const effacement = base.jouees.find((r) => r.sql.startsWith('delete from "publication"'))!;
+		const plan = base.plan(effacement);
+		expect(plan.filter((l) => l.startsWith('SCAN')), plan.join('\n')).toEqual([]);
+		expect(plan).toContain('SEARCH publication USING INDEX publication_conservation (epinglee=? AND cree_le<?)');
+	});
+
 	it('refuse une date mal formée', async () => {
 		const { base } = await jeu();
 		await expect(effacerVieillesPublications(base, base.photos, '2024-13-01')).rejects.toThrow(DonneeInvalide);

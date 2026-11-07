@@ -236,7 +236,9 @@ export const publication = sqliteTable(
 		check('publication_prise_de_connaissance', sql`${sql.identifier('prise_de_connaissance')} IN (0, 1)`),
 		check('publication_epinglee', sql`${sql.identifier('epinglee')} IN (0, 1)`),
 		check('publication_commentaires_fermes', sql`${sql.identifier('commentaires_fermes')} IN (0, 1)`),
-		index('publication_mur').on(t.mur, t.creeLe)
+		index('publication_mur').on(t.mur, t.creeLe),
+		// La conservation (tâche de nuit) : les vieilles publications non épinglées, sans parcourir toute la table.
+		index('publication_conservation').on(t.epinglee, t.creeLe)
 	]
 );
 
@@ -350,7 +352,9 @@ export const message = sqliteTable(
 		check('message_modifie', sql`${sql.identifier('modifie')} IN (0, 1)`),
 		check('message_supprime', sql`${sql.identifier('supprime')} IS NULL OR ${checkDans('supprime', SUPPRESSIONS_MESSAGE)}`),
 		index('message_conversation').on(t.conversationId, t.id),
-		index('message_conversation_maj').on(t.conversationId, t.majLe)
+		index('message_conversation_maj').on(t.conversationId, t.majLe),
+		// La conservation (tâche de nuit) : les vieux messages.
+		index('message_cree_le').on(t.creeLe)
 	]
 );
 
@@ -541,7 +545,7 @@ export const manoeuvre = sqliteTable(
 		// Annoncée sur « Le centre » : jamais une seconde fois, même si la publication est supprimée.
 		annonceeLe: text('annoncee_le')
 	},
-	(t) => [check('manoeuvre_petit_dejeuner', sql`${sql.identifier('petit_dejeuner')} IN (0, 1)`), index('manoeuvre_debut').on(t.debut)]
+	(t) => [check('manoeuvre_petit_dejeuner', sql`${sql.identifier('petit_dejeuner')} IN (0, 1)`), index('manoeuvre_debut').on(t.debut), index('manoeuvre_publication').on(t.publicationId)]
 );
 
 export const vacancesScolaires = sqliteTable('vacances_scolaires', {
