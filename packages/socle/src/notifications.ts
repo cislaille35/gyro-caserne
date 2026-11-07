@@ -479,11 +479,13 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 	await base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, acteur.id), eq(abonnementPush.endpoint, endpoint)));
 }
 
-export type Envoi = { id: number; abonnementId: number; endpoint: string; p256dh: string; auth: string; donnees: DonneesPush };
+// `essais` : 1 au premier envoi, plus après une coupure.
+export type Envoi = { id: number; abonnementId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush };
 
 // Un lot réserve ses envois, puis ne les retire de la file qu'une fois partis (finirEnvois). Coupé en route (Cloudflare arrête
 // la requête), il laisse ses envois réservés : un passage suivant les reprend cinq minutes plus tard, trois fois au plus.
-// Un envoi repris alors qu'il était déjà parti ne s'affiche pas deux fois : même `tag` au téléphone, même `Topic` au service push.
+// Un envoi repris alors qu'il était déjà parti remplace la notification encore affichée (même `tag`), sans en ajouter une ;
+// arrivé après un plus récent du même fil, il ne le remplace pas (voir notification-recue.ts de l'appli).
 export const REPRISE_MINUTES = 5;
 export const ESSAIS_MAX = 3;
 
@@ -504,7 +506,7 @@ export async function prendreEnvois(base: Base, max: number, maintenant = new Da
 			.set({ jeton, reserveeLe: maintenant.toISOString(), essais: sql`${envoiPush.essais} + 1` })
 			.where(inArray(envoiPush.id, premiers)),
 		base
-			.select({ id: envoiPush.id, abonnementId: envoiPush.abonnementId, endpoint: abonnementPush.endpoint, p256dh: abonnementPush.p256dh, auth: abonnementPush.auth, donnees: envoiPush.donnees })
+			.select({ id: envoiPush.id, abonnementId: envoiPush.abonnementId, endpoint: abonnementPush.endpoint, p256dh: abonnementPush.p256dh, auth: abonnementPush.auth, essais: envoiPush.essais, donnees: envoiPush.donnees })
 			.from(envoiPush)
 			.innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId))
 			.where(eq(envoiPush.jeton, jeton))

@@ -1,4 +1,4 @@
-import { finirEnvois, prendreEnvois, type Base } from '@gyro-caserne/socle';
+import { finirEnvois, prendreEnvois, type Base, type Envoi } from '@gyro-caserne/socle';
 import { requetePush, type ClesVapid } from './webpush.ts';
 
 // Un lot d'envois au téléphone, pris dans la file. 40 au plus : l'offre gratuite de Cloudflare permet 50 sous-requêtes par appel.
@@ -6,6 +6,12 @@ import { requetePush, type ClesVapid } from './webpush.ts';
 // suivant les reprend (voir prendreEnvois). Un envoi refusé n'est jamais renvoyé ; 404 ou 410 : l'abonnement n'existe plus
 // (appli désinstallée, autorisation retirée), il est supprimé. Sans clés VAPID, rien ne peut partir : le lot est seulement
 // retiré de la file. Deux requêtes à la base, une seule si la file est vide. Chargé aussi par la tâche planifiée : imports relatifs.
+// Un service push qui ne répond pas en 20 s : l'envoi est abandonné (journal), pour que le lot ne reste pas en vol jusqu'à sa reprise.
+const DELAI_ENVOI = 20_000;
+
+// Le contenu de la notification, avec le numéro de l'envoi : le téléphone garde la plus récente d'un fil (notification-recue.ts).
+export const charge = (e: Envoi) => ({ ...e.donnees, envoi: e.id });
+
 export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (url: string, init: RequestInit) => Promise<Response> = fetch, max = 40, maintenant = new Date()): Promise<{ envoyes: number; perimes: number }> {
 	const { jeton, envois } = await prendreEnvois(base, max, maintenant);
 	if (envois.length === 0) return { envoyes: 0, perimes: 0 };
@@ -18,8 +24,8 @@ export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (u
 	await Promise.all(
 		envois.map(async (e) => {
 			try {
-				const { url, init } = await requetePush(e, e.donnees, cles, jetons);
-				const reponse = await envoyer(url, init);
+				const { url, init } = await requetePush(e, charge(e), cles, jetons, e.essais === 1);
+				const reponse = await envoyer(url, { ...init, signal: AbortSignal.timeout(DELAI_ENVOI) });
 				if (reponse.status === 404 || reponse.status === 410) perimes.push(e.abonnementId);
 				else if (!reponse.ok) console.warn('Notification refusée par le service push', reponse.status);
 			} catch (erreur) {

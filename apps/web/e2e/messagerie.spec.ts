@@ -89,7 +89,8 @@ test('le brouillon est gardé, à la clé de la personne, puis effacé après l�
 });
 
 // La conversation sert aussi aux autres tests (et au téléphone) : le message long finit par une ligne propre à ce passage,
-// pour attendre son arrivée à lui. Sinon le clic sur « ↓ » tombe pendant l'envoi, qui interrompt le défilement.
+// pour attendre qu'il soit arrivé dans le fil, donc l'envoi fini. Sinon le clic sur « ↓ » tombe pendant l'envoi, dont la fin
+// (champ vidé, retour en bas après son propre message) interrompt le défilement.
 test('en lisant plus haut, le bouton « ↓ » ramène en bas', async ({ page }) => {
 	const marque = `Long ${Date.now().toString(36)}`;
 	const long = [...Array.from({ length: 59 }, (_, i) => `Ligne ${i + 1}`), `Fin ${marque}`].join('\n');

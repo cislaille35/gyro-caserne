@@ -2,6 +2,7 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
+import { aAfficher, type Recue } from './lib/notification-recue.ts';
 import { ENTETES_ATTENTE, estCoupure, genreDeRequete, MESSAGE_ENVOI, pageAttente, reponseAction, type Genre } from './lib/attente/attente.ts';
 
 // Le service worker ne met rien en cache : il reçoit les notifications, les ouvre, et remplace l'erreur de coupure par une attente.
@@ -36,21 +37,25 @@ sw.addEventListener('fetch', (event) => {
 });
 
 sw.addEventListener('push', (event) => {
-	let d: { titre?: string; texte?: string; url?: string; tag?: string } = {};
+	let d: Recue = {};
 	try {
 		d = event.data?.json() ?? {};
 	} catch {
 		d = { titre: event.data?.text() };
 	}
 	event.waitUntil(
-		sw.registration.showNotification(d.titre || 'Gyro Caserne', {
-			body: d.texte ?? '',
-			icon: '/icones/icone-192.png',
-			badge: '/icones/icone-192.png',
-			// Une seule notification à l'écran par conversation ou publication : la nouvelle remplace l'ancienne.
-			tag: d.tag,
-			data: { url: d.url ?? '/' }
-		})
+		(async () => {
+			const affichees = d.tag ? await sw.registration.getNotifications({ tag: d.tag }) : [];
+			const n = aAfficher(d, affichees.map((a) => ({ titre: a.title, texte: a.body, data: a.data })));
+			await sw.registration.showNotification(n.titre, {
+				body: n.texte,
+				icon: '/icones/icone-192.png',
+				badge: '/icones/icone-192.png',
+				// Une seule notification à l'écran par conversation ou publication : la plus récente remplace l'ancienne.
+				tag: d.tag,
+				data: { url: n.url, envoi: n.envoi }
+			});
+		})()
 	);
 });
 

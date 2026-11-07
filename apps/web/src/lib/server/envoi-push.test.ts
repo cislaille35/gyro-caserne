@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { abonnementPush, abonner, envoiPush, notifierPublication, publier } from '@gyro-caserne/socle';
 import { preparer } from '../../routes/echanges/de-test.ts';
-import { envoisDuGeste, envoyerApres, envoyerLot, LOT_IMMEDIAT } from './envoi-push.ts';
+import { charge, envoisDuGeste, envoyerApres, envoyerLot, LOT_IMMEDIAT } from './envoi-push.ts';
 import { clesVapid } from './webpush.ts';
 import { paireVapid } from './vapid-de-test.ts';
 
@@ -35,6 +35,8 @@ describe('envoyerLot', () => {
 		};
 		const envoyer = vi.fn(async (url: string, init: RequestInit) => {
 			expect((init.headers as Record<string, string>).Authorization).toMatch(/^vapid t=/);
+			// Un service push qui ne répond pas ne garde pas le lot en vol jusqu'à sa reprise.
+			expect(init.signal).toBeInstanceOf(AbortSignal);
 			return reponses[url]!();
 		});
 		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -65,10 +67,12 @@ describe('envoyerLot', () => {
 		void envoyerLot(base, cles, () => new Promise<Response>(() => {}), 40, t(0));
 		await new Promise((r) => setTimeout(r, 20));
 		expect(await base.select().from(envoiPush)).toHaveLength(3);
-		const envoyer = vi.fn(async () => new Response(null, { status: 201 }));
+		const envoyer = vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 201 }));
 		expect(await envoyerLot(base, cles, envoyer, 40, t(4))).toEqual({ envoyes: 0, perimes: 0 });
 		expect(await envoyerLot(base, cles, envoyer, 40, t(5))).toEqual({ envoyes: 3, perimes: 0 });
 		expect(envoyer).toHaveBeenCalledTimes(3);
+		// Repris : sans sujet (Topic), pour ne pas remplacer chez le service push un envoi plus récent du même fil.
+		for (const [, init] of envoyer.mock.calls) expect(init.headers).not.toHaveProperty('Topic');
 		expect(await base.select().from(envoiPush)).toEqual([]);
 	});
 
@@ -86,6 +90,13 @@ describe('envoyerLot', () => {
 		expect(await envoyerLot(base, null, envoyer)).toEqual({ envoyes: 0, perimes: 0 });
 		expect(envoyer).not.toHaveBeenCalled();
 		expect(await base.select().from(envoiPush).where(eq(envoiPush.id, envoiPush.id))).toEqual([]);
+	});
+});
+
+describe('charge', () => {
+	it('le contenu de la notification porte le numéro de l’envoi, pour que le téléphone garde la plus récente d’un fil', () => {
+		const donnees = { titre: 'T', texte: 'x', url: '/', tag: 'conversation:4' };
+		expect(charge({ id: 12, abonnementId: 1, endpoint: '', p256dh: '', auth: '', essais: 1, donnees })).toEqual({ ...donnees, envoi: 12 });
 	});
 });
 

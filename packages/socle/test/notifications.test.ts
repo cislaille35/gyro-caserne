@@ -364,7 +364,7 @@ describe('abonnements et file d’envoi', () => {
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const lot = await prendreEnvois(base, 2, heure('10:00'));
 		expect(lot.envois).toHaveLength(2);
-		expect(lot.envois[0]).toMatchObject({ endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BCle', auth: 'secret', donnees: { titre: 'Le centre · Chef Test', tag: expect.any(String) } });
+		expect(lot.envois[0]).toMatchObject({ endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BCle', auth: 'secret', essais: 1, donnees: { titre: 'Le centre · Chef Test', tag: expect.any(String) } });
 		expect(await file()).toHaveLength(3);
 		const suivant = await prendreEnvois(base, 2, heure('10:00'));
 		expect(suivant.envois.map((e) => e.endpoint.split('/').pop())).toEqual(['Chloe']);
@@ -383,10 +383,12 @@ describe('abonnements et file d’envoi', () => {
 		expect((await prendreEnvois(base, 40, heure('10:04'))).envois.map((e) => e.id)).not.toContain(coupe.envois[0]!.id);
 		const repris = await prendreEnvois(base, 40, heure('10:05'));
 		expect(repris.envois.map((e) => e.id)).toEqual(coupe.envois.map((e) => e.id));
+		expect(repris.envois.map((e) => e.essais)).toEqual([2, 2]);
 		await finirEnvois(base, coupe.jeton, []);
 		expect(await base.select().from(envoiPush).where(eq(envoiPush.jeton, repris.jeton))).toHaveLength(2);
 	});
 
+	// La base de test est synchrone : les deux passages s'enchaînent. Sur D1, la réservation est une transaction.
 	it('deux passages en même temps ne prennent jamais les mêmes envois', async () => {
 		const { base, chef } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
@@ -400,6 +402,9 @@ describe('abonnements et file d’envoi', () => {
 		const { base, chef } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		for (let i = 0; i < ESSAIS_MAX; i++) expect((await prendreEnvois(base, 1, heure(`1${i}:00`))).envois).toHaveLength(1);
+		// Son dernier essai est peut-être encore en cours : rien n'est abandonné avant cinq minutes.
+		await prendreEnvois(base, 1, heure('12:04'));
+		expect(await base.select().from(envoiPush)).toHaveLength(3);
 		const avertir = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const apres = await prendreEnvois(base, 1, heure('19:00'));
 		expect(avertir).toHaveBeenCalledWith('Notifications abandonnées après des envois coupés', 1);

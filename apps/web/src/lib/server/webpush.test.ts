@@ -71,7 +71,7 @@ describe('Web Push', () => {
 		expect(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, paire.publicKey, depuisB64u(signature!), enc.encode(`${tete}.${charge}`))).toBe(true);
 	});
 
-	it('requetePush : en-têtes Web Push, sujet tiré du tag, un jeton par service push', async () => {
+	it('requetePush : en-têtes Web Push, sujet tiré du tag (sauf demande contraire), un jeton par service push', async () => {
 		const { VAPID_PUBLIQUE, VAPID_PRIVEE } = await paireVapid();
 		const cles = clesVapid({ VAPID_PUBLIQUE, VAPID_PRIVEE, BETTER_AUTH_URL: 'https://appli.exemple' })!;
 		const nav = await navigateur();
@@ -82,7 +82,8 @@ describe('Web Push', () => {
 		const entetes = init.headers as Record<string, string>;
 		expect(entetes).toMatchObject({ 'Content-Encoding': 'aes128gcm', TTL: '86400', Topic: 'conversation-12' });
 		expect(entetes.Authorization).toMatch(new RegExp(`^vapid t=[\\w-]+\\.[\\w-]+\\.[\\w-]+, k=${VAPID_PUBLIQUE}$`));
-		await requetePush(abonnement, { titre: 'T', texte: 'x', url: '/', tag: 'publication:3' }, cles, jetons);
+		const sansSujet = await requetePush(abonnement, { titre: 'T', texte: 'x', url: '/', tag: 'publication:3' }, cles, jetons, false);
+		expect(sansSujet.init.headers).not.toHaveProperty('Topic');
 		expect([...jetons.keys()]).toEqual(['https://fcm.googleapis.com']);
 		await expect(requetePush({ ...abonnement, endpoint: 'http://x' }, { titre: 'T', texte: '', url: '/', tag: 't' }, cles, jetons)).rejects.toThrow();
 	});
