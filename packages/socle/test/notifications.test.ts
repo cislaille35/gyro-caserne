@@ -7,7 +7,9 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { commenter } from '../src/actions/interactions.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
 import { lireMur, lirePublication, publier, supprimerPublication } from '../src/actions/publications.ts';
-import { creerGroupe, envoyer } from '../src/messagerie.ts';
+import { creerGroupe, envoyer, nombreSignalements } from '../src/messagerie.ts';
+import { nombreAValider } from '../src/reservations.ts';
+import { avis as avisDEte } from '../src/planning/avis.ts';
 import {
 	abonner,
 	couper,
@@ -26,7 +28,7 @@ import {
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
-import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, envoiPush, equipe, notification, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, envoiPush, equipe, notification, personne, profil, reservation, responsabilite, ressource, signalementMessage } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-31T10:00';
@@ -396,6 +398,48 @@ describe('abonnements et file d’envoi', () => {
 		const ids = [...a!.envois, ...b!.envois].map((e) => e.id);
 		expect(ids).toHaveLength(3);
 		expect(new Set(ids).size).toBe(3);
+	});
+
+	it('prendreEnvois : chaque envoi porte la pastille de sa personne, le nombre de sa cloche, compté pour tout le lot dans la même requête', async () => {
+		const { base, chef, alice, bruno, chloe } = await jeu();
+		// Le chef : un message signalé à traiter et une réservation à trancher. Alice : un avis d'été. Bruno : tout lu.
+		await base.insert(signalementMessage).values({ par: alice, le: maintenant, auteur: bruno, envoyeLe: maintenant, texteCopie: 'x' });
+		const [chefCentre] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre'));
+		const [salle] = await base.insert(ressource).values({ nom: 'Salle', forme: 'creneau', icone: 'cle', gereeParResponsabiliteId: chefCentre!.id, creeLe: maintenant }).returning();
+		await base.insert(reservation).values({ ressourceId: salle!.id, personneId: alice, debut: '2026-11-02T10:00', fin: '2026-11-02T12:00', etat: 'attente', creeLe: maintenant });
+		await base.insert(avisEte).values({ personneId: alice, quoi: 'rappel', texte: 'Donnez vos vacances', url: '/moi/vacances', creeLe: maintenant });
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Un' }, maintenant), maintenant);
+		await notifierPublication(base, await publier(base, base.photos, acteur(alice), 'vie', { type: 'message', texte: 'Deux' }, maintenant), maintenant);
+		await toutMarquerLu(base, acteur(bruno), maintenant);
+		const avant = base.requetes;
+		const lot = await prendreEnvois(base, 40, heure('10:00'), maintenant);
+		expect(base.requetes - avant).toBe(1);
+		// La cloche de l'en-tête des pages (+layout.server.ts) : non lues, remplacements à valider, signalements, réservations à trancher.
+		const cloche = async (id: number) => {
+			const e = await enTeteDe(base, acteur(id), aujourdhui, maintenant);
+			return e.nonLues + e.remplacementsAValider + (await nombreSignalements(base, acteur(id), aujourdhui)) + (await nombreAValider(base, acteur(id), aujourdhui));
+		};
+		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
+		expect(pastilles).toEqual({ [chef]: 3, [alice]: 2, [bruno]: 0, [chloe]: 2 });
+		for (const id of [chef, alice, bruno, chloe]) expect(pastilles[id], `personne ${id}`).toBe(await cloche(id));
+	});
+
+	it('la notification d’une ligne de la cloche porte de quoi la marquer lue (genre et ligne de la personne) ; sans ligne, rien', async () => {
+		const { base, chef, alice, bruno, file, vider } = await jeu();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		const lignes = await base.select().from(notification);
+		const ligneDe = (id: number) => lignes.find((l) => l.personneId === id)!.id;
+		expect((await file()).find((e) => e.a === 'Alice')).toMatchObject({ lue: { genre: 'publication', id: ligneDe(alice) } });
+		expect((await file()).find((e) => e.a === 'Bruno')).toMatchObject({ lue: { genre: 'publication', id: ligneDe(bruno) } });
+		await vider();
+		await base.batch(avisDEte(base, [alice, bruno], 'rappel', 'Donnez vos vacances', '/moi/vacances', maintenant) as never);
+		const avis = await base.select().from(avisEte);
+		expect((await file()).map((e) => e.lue)).toEqual([alice, bruno].map((id) => ({ genre: 'ete', id: avis.find((a) => a.personneId === id)!.id })));
+		await vider();
+		const envoi = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Salut' }, maintenant);
+		await notifierMessage(base, envoi.message, maintenant);
+		expect(await file()).toMatchObject([{ a: 'Bruno' }]);
+		expect((await file())[0].lue).toBeUndefined();
 	});
 
 	it(`coupé ${ESSAIS_MAX} fois : l’envoi est abandonné, retiré de la file`, async () => {

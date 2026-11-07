@@ -11,7 +11,8 @@ const tient = (qui: SQL, systemes: string, equipe: SQL | null, aujourdhui: strin
 		and p.statut in (${STATUTS}) and a.debut <= ${aujourdhui} and (a.fin is null or a.fin >= ${aujourdhui})
 		${equipe === null ? sql`` : sql`and a.perimetre_id = ${equipe}`})`;
 
-export function aValiderPar(moi: number, aujourdhui: string, maintenant: string): SQL<number> {
+// `moi` : un identifiant, ou la colonne d'une requête (la pastille de chaque personne d'un lot d'envois).
+export function aValiderPar(moi: number | SQL, aujourdhui: string, maintenant: string): SQL<number> {
 	const equipe = sql`d.equipe_id`;
 	return sql<number>`(select count(*) from demande_remplacement d where d.etat = 'a_valider' and d.debut > ${maintenant.slice(0, 16)} and d.demandeur_id <> ${moi} and coalesce(d.remplacant_id, 0) <> ${moi} and (
 		${tient(sql`a.personne_id = ${moi}`, "'chef_equipe'", equipe, aujourdhui)}

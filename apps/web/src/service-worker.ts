@@ -3,6 +3,7 @@
 /// <reference lib="webworker" />
 
 import { aAfficher, type Recue } from './lib/notification-recue.ts';
+import { poserPastille } from './lib/pastille.ts';
 import { ENTETES_ATTENTE, estCoupure, genreDeRequete, MESSAGE_ENVOI, pageAttente, reponseAction, type Genre } from './lib/attente/attente.ts';
 
 // Le service worker ne met rien en cache : il reçoit les notifications, les ouvre, et remplace l'erreur de coupure par une attente.
@@ -55,11 +56,13 @@ sw.addEventListener('push', (event) => {
 				tag: d.tag,
 				data: { url: n.url, envoi: n.envoi }
 			});
+			// Le chiffre de la cloche sur l'icône, même appli fermée.
+			await poserPastille(sw.navigator, d.pastille);
 		})()
 	);
 });
 
-// Toucher la notification ouvre l'appli sur la publication ou la conversation (ce qui la marque lue).
+// Toucher la notification ouvre l'appli sur sa page ; une ligne de la cloche passe d'abord par /notifications/ouvrir, qui la marque lue.
 sw.addEventListener('notificationclick', (event) => {
 	event.notification.close();
 	const url = new URL((event.notification.data as { url?: string } | null)?.url ?? '/', sw.location.origin).href;

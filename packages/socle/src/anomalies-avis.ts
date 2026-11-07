@@ -56,6 +56,6 @@ export function avisAnomalies(base: Base, ids: number[], a: AvisAnomalie, mainte
 				.from(personne)
 				.where(and(inArray(personne.id, parmi(ids)), si))
 		),
-		mettreEnFile(base, ids, 'engins', { ...a, tag: `anomalie:${a.url}` }, maintenant, si)
+		mettreEnFile(base, ids, 'engins', { ...a, tag: `anomalie:${a.url}` }, maintenant, si, 'anomalie')
 	] as const;
 }

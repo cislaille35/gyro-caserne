@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql, type SQL } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { enCours } from './dates.ts';
 import { DROITS, STATUTS_AVEC_ACCES, type Droit, type ResponsabiliteSysteme, type TypePerimetre } from './listes.ts';
@@ -92,6 +92,16 @@ export function accorde(droits: DroitAccorde[], droit: Droit, vise: Perimetre): 
 
 export async function aLeDroit(base: Base, acteur: Acteur, droit: Droit, vise: Perimetre, date: string): Promise<boolean> {
 	return accorde(await droitsDe(base, acteur, date), droit, vise);
+}
+
+// Le même test en SQL, pour un droit sur le centre : `qui` est la colonne d'une requête (la pastille de chaque personne
+// d'un lot d'envois). Mêmes règles que lireDroits : par son profil, ou par une attribution en cours, sur le centre.
+export function aLeDroitAuCentreSql(qui: SQL, droit: Droit, date: string): SQL {
+	const statuts = sql.raw(STATUTS_AVEC_ACCES.map((s) => `'${s}'`).join(', '));
+	return sql`exists (select 1 from personne p where p.id = ${qui} and p.statut in (${statuts}) and (
+		exists (select 1 from profil_droit d where d.profil_id = p.profil_id and d.droit = ${droit} and d.perimetre_type = 'centre')
+		or exists (select 1 from attribution a join responsabilite_droit rd on rd.responsabilite_id = a.responsabilite_id join responsabilite r on r.id = a.responsabilite_id
+			where a.personne_id = p.id and rd.droit = ${droit} and a.perimetre_type = r.type_perimetre and a.perimetre_type = 'centre' and a.debut <= ${date} and (a.fin is null or a.fin >= ${date}))))`;
 }
 
 // Le chef de centre, c'est la personne qui a une attribution en cours de la responsabilité système chef_centre.

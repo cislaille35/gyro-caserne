@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { creerBaseD1 } from '../src/base.ts';
-import { aLeDroit, couvre, droitsDe, perimetreDe, type Acteur } from '../src/droits.ts';
+import { aLeDroit, aLeDroitAuCentreSql, couvre, droitsDe, perimetreDe, type Acteur } from '../src/droits.ts';
 import { attribution, equipe, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -47,6 +47,24 @@ async function jeuDeDonnees() {
 }
 
 const personneActeur = (id: number): Acteur => ({ type: 'personne', id });
+
+describe('aLeDroitAuCentreSql', () => {
+	it('même réponse que aLeDroit sur le centre : profil, attribution en cours ou finie, périmètre d’équipe, statut sans accès', async () => {
+		const { base, agent, chefEquipe, chefCentre, nouvelle, attribuer } = await jeuDeDonnees();
+		const parProfil = await nouvelle('a@x.fr', agent.id);
+		const chef = await nouvelle('b@x.fr', null);
+		await attribuer(chef, chefCentre.id, centre, '2026-01-01');
+		const fini = await nouvelle('c@x.fr', null);
+		await attribuer(fini, chefCentre.id, centre, '2026-01-01', '2026-10-24');
+		const chefDEquipe = await nouvelle('d@x.fr', null);
+		await attribuer(chefDEquipe, chefEquipe.id, equipe1, '2026-01-01');
+		const suspendu = await nouvelle('e@x.fr', agent.id, 'suspendu');
+		for (const [droit, id] of [['VOIR_PLANNING', parProfil], ['VOIR_PLANNING', chef], ['GERER_ACCES', chef], ['GERER_ACCES', fini], ['VALIDER_REMPLACEMENT', chefDEquipe], ['VOIR_PLANNING', suspendu]] as const) {
+			const [ligne] = await base.select({ oui: sql<number>`${aLeDroitAuCentreSql(sql`"personne"."id"`, droit, aujourdhui)}` }).from(personne).where(eq(personne.id, id));
+			expect(ligne!.oui === 1, `${droit} ${id}`).toBe(await aLeDroit(base, personneActeur(id), droit, centre, aujourdhui));
+		}
+	});
+});
 
 describe('couvre', () => {
 	it('le centre couvre tout', () => {

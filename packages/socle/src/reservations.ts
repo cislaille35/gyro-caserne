@@ -344,7 +344,7 @@ function prevenir(base: Base, acteur: Acteur, l: { id: number; personneId: numbe
 				.from(reservation)
 				.where(decidee)
 		),
-		mettreEnFile(base, [l.personneId], 'reservations', { titre: `${l.ressourceNom} : ${TITRES_AVIS[quoi]}`, texte, url: '/reservations/miennes', tag: `reservation:${l.id}` }, maintenant, sql`exists ${base.select({ un: sql`1` }).from(reservation).where(decidee)}`)
+		mettreEnFile(base, [l.personneId], 'reservations', { titre: `${l.ressourceNom} : ${TITRES_AVIS[quoi]}`, texte, url: '/reservations/miennes', tag: `reservation:${l.id}` }, maintenant, sql`exists ${base.select({ un: sql`1` }).from(reservation).where(decidee)}`, 'reservation')
 	];
 }
 
@@ -474,6 +474,10 @@ export async function acceptees(base: Base, acteur: Acteur, aujourdhui: string):
 		.limit(ACCEPTEES_MAX);
 	return lignes.map((l) => vue(l, moiDe(acteur), true, `${aujourdhui}T00:00`));
 }
+
+// Le même nombre en SQL, pour une personne ou la colonne d'une requête (la pastille de chaque personne d'un lot d'envois).
+export const aTrancherPar = (qui: SQL | number, aujourdhui: string) =>
+	sql<number>`(select count(*) from reservation join ressource on ressource.id = reservation.ressource_id where reservation.etat = 'attente' and ressource.retiree_le is null and substr(reservation.fin, 1, 10) >= ${aujourdhui} and ${gere(qui, aujourdhui)})`;
 
 // Le nombre de demandes à trancher par l'acteur : une requête (la cloche).
 export async function nombreAValider(base: Base, acteur: Acteur, aujourdhui: string): Promise<number> {

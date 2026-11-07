@@ -1,9 +1,10 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from './base.ts';
-import { exigerDate, exigerDateHeure } from './dates.ts';
+import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
-import { aLaMessagerie } from './messagerie.ts';
+import { aLaMessagerie, signalementsPour } from './messagerie.ts';
+import { aTrancherPar } from './reservations.ts';
 import { agentsDuJour, estConvoque, type Convocation, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { texteDemande } from './remplacements/tranches.ts';
@@ -18,7 +19,8 @@ import { abonnementPush, affectationEquipe, avisAnomalie, avisEte, avisRemplacem
 const EXTRAIT = 100;
 const FIL_MAX = 50;
 
-export type DonneesPush = { titre: string; texte: string; url: string; tag: string };
+// `lue` : la ligne de la cloche que la notification touchée marque lue (voir mettreEnFile) ; absente pour un message ou une vigilance.
+export type DonneesPush = { titre: string; texte: string; url: string; tag: string; lue?: { genre: string; id: number | null } };
 export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie;
 export type LigneAnomalie = { id: number; type: 'anomalie'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
@@ -70,6 +72,9 @@ const moiDe = (acteur: Acteur) => {
 	return acteur.id;
 };
 
+// Les tables des lignes de la cloche, par genre.
+const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie };
+
 // Écritures : le fil, puis un envoi par appareil des destinataires qui n'ont coupé ni tout, ni ce lieu.
 function ecrireFil(base: Base, ids: number[], publicationId: number, commentaireId: number | null, maintenant: string) {
 	return base.insert(notification).select(
@@ -88,15 +93,19 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 }
 
 // `ids` : une liste, ou une sous-requête d'identifiants de personnes. Lieu « reservations » : seul « tout » le coupe.
-// `si` : une condition de plus, vérifiée au moment de l'écriture.
-export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL) {
+// `si` : une condition de plus, vérifiée au moment de l'écriture. `ligne` : le genre de la ligne de cloche écrite juste avant
+// dans le même batch ; chaque envoi porte celle de sa personne (sa plus récente), pour que la toucher la marque lue.
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: keyof typeof TABLES) {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
 		.where(and(eq(coupure.personneId, abonnementPush.personneId), inArray(coupure.lieu, ['tout', lieu])));
+	const json = JSON.stringify(donnees);
+	const t = ligne === undefined ? null : TABLES[ligne];
+	const contenu = t === null ? sql<string>`${json}` : sql<string>`json_set(${json}, '$.lue', json_object('genre', ${ligne}, 'id', (select max(${t.id}) from ${t} where ${t.personneId} = "abonnement_push"."personne_id")))`;
 	return base.insert(envoiPush).select(
 		base
-			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`${JSON.stringify(donnees)}`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le'), jeton: sql<string | null>`null`.as('jeton'), reserveeLe: sql<string | null>`null`.as('reservee_le'), essais: sql<number>`0`.as('essais') })
+			.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: contenu.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le'), jeton: sql<string | null>`null`.as('jeton'), reserveeLe: sql<string | null>`null`.as('reservee_le'), essais: sql<number>`0`.as('essais') })
 			.from(abonnementPush)
 			.where(and(inArray(abonnementPush.personneId, Array.isArray(ids) ? parmi(ids) : ids), notExists(coupe), si))
 	);
@@ -124,7 +133,7 @@ export async function notifierPublication(base: Base, id: number, maintenant: st
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: `${nomDuMur(p.mur, equipes, comites)} · ${nomComplet(auteurs[0], p.auteur)}`, texte: extrait(p.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
-	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
+	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant, undefined, 'publication')]);
 }
 
 // Une publication du planning (manœuvre annoncée, changée, annulée ou relancée) : ses convoqués du jour seulement,
@@ -144,7 +153,7 @@ export async function notifierConvoques(base: Base, id: number, maintenant: stri
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: message.titre, texte: extrait(message.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
-	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
+	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant, undefined, 'publication')]);
 }
 
 // Un commentaire : l'auteur de la publication, s'il lit encore le mur et n'a pas commenté lui-même. Une lecture, une écriture.
@@ -168,7 +177,7 @@ export async function notifierCommentaire(base: Base, id: number, maintenant: st
 	const lecteur = agentsDuJour([agents, affectations, tenues], aujourdhui).find((x) => x.id === destinataire);
 	if (!lecteur || !(lecteur.a.tous || estMembre(lecteur.a, c.mur))) return;
 	const donnees = { titre: `${nomComplet(auteurs[0], c.auteur)} a commenté votre publication`, texte: extrait(c.texte), url: `/echanges/${c.mur}/${c.publicationId}`, tag: `commentaires:${c.publicationId}` };
-	await base.batch([ecrireFil(base, [destinataire], c.publicationId, id, maintenant), mettreEnFile(base, [destinataire], `mur:${c.mur}`, donnees, maintenant)]);
+	await base.batch([ecrireFil(base, [destinataire], c.publicationId, id, maintenant), mettreEnFile(base, [destinataire], `mur:${c.mur}`, donnees, maintenant, undefined, 'commentaire')]);
 }
 
 // Un message : les autres membres qui ont la messagerie, au téléphone seulement (les messages ont leur pastille). Une lecture, une écriture.
@@ -205,13 +214,18 @@ export async function notifierMessage(base: Base, id: number, maintenant: string
 	await base.batch([mettreEnFile(base, ids, `conversation:${m.conversationId}`, donnees, maintenant)]);
 }
 
-// Les non-lues : publications et commentaires, et avis de réservation. Une requête.
+// Les non-lues de `qui` (un identifiant, ou la colonne d'une requête) : publications et commentaires, et les avis.
+const nonLuesSql = (qui: number | SQL) =>
+	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null)`;
+
+// Le chiffre de la cloche d'une personne (la colonne d'une requête), comme l'en-tête des pages le compose (+layout.server.ts) :
+// non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher.
+const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)}`;
+
+// Les non-lues, et les remplacements à valider. Une requête.
 const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`) =>
 	base
-		.select({
-			aValider: aValider.as('a_valider'),
-			n: sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${moi} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${moi} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${moi} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${moi} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${moi} and ${avisAnomalie.lueLe} is null)`
-		})
+		.select({ aValider: aValider.as('a_valider'), n: nonLuesSql(moi) })
 		.from(personne)
 		.where(eq(personne.id, moi));
 
@@ -346,7 +360,6 @@ export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: stri
 }
 
 // Ouvrir une ligne de la cloche la marque lue, quelle que soit la page où elle mène. Une requête ; seulement les siennes.
-const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie };
 export async function marquerLue(base: Base, acteur: Acteur, genre: string, id: number, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	if (!Object.hasOwn(TABLES, genre)) throw new DonneeInvalide('Notification inconnue');
@@ -479,8 +492,8 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 	await base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, acteur.id), eq(abonnementPush.endpoint, endpoint)));
 }
 
-// `essais` : 1 au premier envoi, plus après une coupure.
-export type Envoi = { id: number; abonnementId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush };
+// `essais` : 1 au premier envoi, plus après une coupure. `pastille` : le chiffre de la cloche de la personne, au moment du lot.
+export type Envoi = { id: number; abonnementId: number; personneId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush; pastille: number };
 
 // Un lot réserve ses envois, puis ne les retire de la file qu'une fois partis (finirEnvois). Coupé en route (Cloudflare arrête
 // la requête), il laisse ses envois réservés : un passage suivant les reprend cinq minutes plus tard, trois fois au plus.
@@ -490,13 +503,16 @@ export const REPRISE_MINUTES = 5;
 export const ESSAIS_MAX = 3;
 
 // Les plus anciens envois libres, réservés d'un même bloc (`jeton`) : deux lots qui se croisent ne prennent jamais le même.
-// Dans le même bloc, ceux coupés ESSAIS_MAX fois sont abandonnés. Une requête à la base.
-export async function prendreEnvois(base: Base, max: number, maintenant = new Date()): Promise<{ jeton: string; envois: Envoi[] }> {
+// Dans le même bloc, ceux coupés ESSAIS_MAX fois sont abandonnés, et le chiffre de la cloche de chaque personne du lot est compté
+// (la pastille sur l'icône de l'appli). Une requête à la base. `ici` : l'heure de Paris.
+export async function prendreEnvois(base: Base, max: number, maintenant = new Date(), ici = heureDeParis(maintenant)): Promise<{ jeton: string; envois: Envoi[] }> {
+	const aujourdhui = exigerDateHeure(ici, 'Date');
 	const jeton = crypto.randomUUID();
 	const limite = new Date(maintenant.getTime() - REPRISE_MINUTES * 60_000).toISOString();
 	const libres = or(isNull(envoiPush.reserveeLe), and(lte(envoiPush.reserveeLe, limite), lt(envoiPush.essais, ESSAIS_MAX)));
 	const premiers = base.select({ id: envoiPush.id }).from(envoiPush).where(libres).orderBy(asc(envoiPush.id)).limit(max);
-	const [abandonnes, , lignes] = await base.batch([
+	const duLot = base.select({ id: abonnementPush.personneId }).from(envoiPush).innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId)).where(eq(envoiPush.jeton, jeton));
+	const [abandonnes, , lignes, cloches] = await base.batch([
 		base
 			.delete(envoiPush)
 			.where(and(lte(envoiPush.reserveeLe, limite), gte(envoiPush.essais, ESSAIS_MAX)))
@@ -506,14 +522,19 @@ export async function prendreEnvois(base: Base, max: number, maintenant = new Da
 			.set({ jeton, reserveeLe: maintenant.toISOString(), essais: sql`${envoiPush.essais} + 1` })
 			.where(inArray(envoiPush.id, premiers)),
 		base
-			.select({ id: envoiPush.id, abonnementId: envoiPush.abonnementId, endpoint: abonnementPush.endpoint, p256dh: abonnementPush.p256dh, auth: abonnementPush.auth, essais: envoiPush.essais, donnees: envoiPush.donnees })
+			.select({ id: envoiPush.id, abonnementId: envoiPush.abonnementId, personneId: abonnementPush.personneId, endpoint: abonnementPush.endpoint, p256dh: abonnementPush.p256dh, auth: abonnementPush.auth, essais: envoiPush.essais, donnees: envoiPush.donnees })
 			.from(envoiPush)
 			.innerJoin(abonnementPush, eq(abonnementPush.id, envoiPush.abonnementId))
 			.where(eq(envoiPush.jeton, jeton))
-			.orderBy(asc(envoiPush.id))
+			.orderBy(asc(envoiPush.id)),
+		base
+			.select({ id: personne.id, n: clocheSql(sql`"personne"."id"`, aujourdhui, ici).as('n') })
+			.from(personne)
+			.where(inArray(personne.id, duLot))
 	]);
 	if (abandonnes.length > 0) console.warn('Notifications abandonnées après des envois coupés', abandonnes.length);
-	return { jeton, envois: lignes.map((l) => ({ ...l, donnees: JSON.parse(l.donnees) as DonneesPush })) };
+	const pastille = new Map(cloches.map((c) => [c.id, c.n]));
+	return { jeton, envois: lignes.map((l) => ({ ...l, donnees: JSON.parse(l.donnees) as DonneesPush, pastille: pastille.get(l.personneId) ?? 0 })) };
 }
 
 // Le lot est parti : ses envois sont retirés de la file, qu'ils aient été reçus ou refusés (jamais renvoyés), et les abonnements

@@ -37,6 +37,12 @@ export function formatDeDate(options: Intl.DateTimeFormatOptions, langue = 'fr-F
 	return format;
 }
 
+// L'heure de Paris d'un instant, « AAAA-MM-JJTHH:MM ».
+export function heureDeParis(instant: Date): string {
+	const p = Object.fromEntries(formatDeDate({ timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }, 'fr-CA').formatToParts(instant).map((x) => [x.type, x.value]));
+	return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
 // Date et heure de Paris, « AAAA-MM-JJTHH:MM » (secondes permises) ; rend la date seule.
 export function exigerDateHeure(valeur: unknown, libelle: string): string {
 	if (typeof valeur !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(valeur)) throw new DonneeInvalide(`${libelle} invalide`);
