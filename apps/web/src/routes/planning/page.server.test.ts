@@ -36,6 +36,14 @@ describe('/planning', () => {
 		expect((await charger(load, locaux(base, alice), `?annee=${annee + 1}`)).planning).toMatchObject({ publiee: false, annee: annee + 1 });
 	});
 
+	it('sans ?vue (onglet Planning) : la vue retenue sur l’appareil ; ?vue l’emporte ; valeur inconnue ignorée', async () => {
+		const { base, alice, chef } = await preparer();
+		expect((await charger(load, locaux(base, alice), '', { 'planning-vue': 'annee' })).vue).toBe('annee');
+		expect((await charger(load, locaux(base, chef), '', { 'planning-vue': 'mois' })).vue).toBe('mois');
+		expect((await charger(load, locaux(base, alice), '?vue=semaine', { 'planning-vue': 'annee' })).vue).toBe('semaine');
+		expect((await charger(load, locaux(base, alice), '', { 'planning-vue': 'nimporte' })).vue).toBe('semaine');
+	});
+
 	it('sans équipe : toutes les équipes ; année invalide : celle en cours', async () => {
 		const { base, chef, annee } = await preparer();
 		expect((await charger(load, locaux(base, chef))).vue).toBe('equipes');

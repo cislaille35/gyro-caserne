@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { goto } from '$app/navigation';
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
@@ -88,24 +86,10 @@
 		if (submitter instanceof HTMLElement && submitter.isConnected) submitter.focus();
 	};
 
-	// La dernière vue choisie est retenue sur l'appareil.
+	// La dernière vue choisie est retenue sur l'appareil, pour l'onglet Planning (lue par le serveur).
 	const retenir = (vue: string) => {
-		try {
-			localStorage.setItem(MEMOIRE, vue);
-		} catch {
-			// Stockage indisponible : la vue par défaut suffit.
-		}
+		document.cookie = `${MEMOIRE}=${vue}; path=/planning; max-age=31536000; samesite=lax`;
 	};
-	onMount(() => {
-		if (data.vueDemandee || !p.publiee) return;
-		let retenue: string | null = null;
-		try {
-			retenue = localStorage.getItem(MEMOIRE);
-		} catch {
-			return;
-		}
-		if (retenue && retenue !== data.vue && VUES.some(([v]) => v === retenue)) goto(lien({ vue: retenue }), { replace: true, reset: false });
-	});
 </script>
 
 <svelte:head>
