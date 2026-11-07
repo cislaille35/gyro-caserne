@@ -17,6 +17,14 @@ describe('/moi', () => {
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/deconnecter"[\s\S]*?<button[^>]*type="submit"[^>]*>[\s\S]*?Se déconnecter/);
 	});
 
+	it('« Installer l’appli », pour tous (super administrateur compris), avant « Affichage »', () => {
+		for (const estPersonne of [true, false]) {
+			const page = html({ estPersonne });
+			expect(page).toMatch(/<a[^>]*href="\/moi\/installer"[^>]*>[\s\S]*?Installer l’appli/);
+			expect(page.indexOf('href="/moi/installer"')).toBeLessThan(page.indexOf('href="/affichage"'));
+		}
+	});
+
 	it('carte d’identité : visage à la couleur de l’équipe, nom, grade · équipe', () => {
 		const page = html({ estPersonne: true, identite: { prenom: 'Claire', nom: 'Chef', grade: 'Lieutenant', equipe: { nom: 'Équipe 1', couleur: '#d4a017' } } });
 		expect(page).toMatch(/class="visage[^"]*"[^>]*style="background: #d4a017;/);

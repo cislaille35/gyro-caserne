@@ -23,6 +23,7 @@ Format d'une page :
 - [Comment répondre à une convocation ?](repondre-a-une-convocation.md)
 - [Quand suis-je d'astreinte ?](voir-mon-planning.md)
 - [Comment ajouter le planning à mon agenda ?](ajouter-le-planning-a-mon-agenda.md)
+- [Comment installer l'appli sur mon téléphone ?](installer-l-appli.md)
 - [Comment préparer le planning de l'année ?](preparer-l-annee.md)
 - [Comment préparer l'année à partir de la précédente ?](partir-d-une-proposition.md)
 - [Comment préparer l'année dans un fichier ?](preparer-l-annee-par-fichier.md)

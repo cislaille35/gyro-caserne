@@ -18,11 +18,26 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 ## Au téléphone
 
 - Moi → Notifications → « Activer sur ce téléphone ». Plusieurs appareils par agent.
-- Sur iPhone, il faut d'abord ajouter l'appli à l'écran d'accueil (exigence d'Apple) : l'écran l'explique, étapes à l'appui.
+- Sur iPhone, il faut d'abord ajouter l'appli à l'écran d'accueil (exigence d'Apple) : l'écran l'explique, étapes à l'appui (voir « Installer l'appli » plus bas).
 - La notification dit le lieu et l'auteur (« Équipe 2 · Élodie Martin », « Message de Romain », « Départ de Thomas · Manon ») et le début du texte. Pas de photo.
-- La toucher ouvre la publication ou la conversation, et la marque lue.
+- La toucher ouvre sa page et marque lue sa ligne de la cloche, quelle qu'elle soit. Publications, commentaires, réservations et remplacements : leur page les marque déjà lues. Avis de l'été (dont le rappel des vacances) et anomalies, que leur page ne marque pas : la notification passe par la même adresse que la cloche (`/notifications/ouvrir`). Sans ligne de cloche (un message, une demande de réservation à trancher, une vigilance rouge) : sa page, directement.
 - Plusieurs messages d'une même conversation se remplacent : une seule notification par conversation à l'écran.
 - Délai : tout de suite (quelques secondes) jusqu'à 20 téléphones ; au-delà, le reste dans les cinq minutes, puis cinq minutes de plus par tranche de 40 (« Le centre » avec 100 appareils : 20 tout de suite, le reste en 10 minutes au plus). Une notification refusée par le téléphone n'est pas renvoyée. Un envoi interrompu de notre côté (coupure de Cloudflare) n'est pas perdu : il repart 5 à 10 minutes plus tard. Il remplace la notification encore affichée au lieu de s'ajouter, et ne recouvre jamais une notification plus récente de la même conversation ou publication.
+
+## La pastille sur l'icône
+
+- L'icône de l'appli installée porte le **chiffre de la cloche** : le même nombre, des mêmes sources (non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher). Les messages n'y comptent pas : ils ont leur pastille sur Échanges.
+- Appli fermée, chaque notification reçue apporte le nombre du moment, et la pastille se met à jour. Appli ouverte, elle suit la cloche, relue après chaque lecture. Déconnecté, elle s'efface.
+- iPhone (16.4 ou plus récent, appli sur l'écran d'accueil) et ordinateur (Chrome ou Edge, appli installée) : le nombre. Android : souvent un simple point, selon le téléphone. Ailleurs : rien.
+- Une notification coupée (mur, conversation, « Tout couper ») n'arrive pas, et une lecture faite sur un autre appareil ne se voit pas tout de suite : la pastille se met à jour à la prochaine notification reçue, ou à l'ouverture de l'appli.
+
+## Installer l'appli
+
+- **Accueil** : tant que l'appli n'est pas installée, un encart discret. Sur iPhone, les deux gestes (Partager, puis « Sur l'écran d'accueil »), avec l'argument : sans installation, ni notification ni pastille. Avec Chrome ou Edge (Android, ordinateur), le bouton « Installer Gyro Caserne », qui ouvre la fenêtre d'installation du navigateur. Ailleurs (Firefox, par exemple), rien sur l'Accueil.
+- « Plus tard » cache l'encart **5 jours** sur ce navigateur.
+- **Moi → Installer l'appli** : toujours là, sauf dans l'appli installée ; donne aussi le chemin du menu du navigateur quand il n'y a pas de bouton.
+- Rien sur la page de connexion. Déjà installée : rien nulle part.
+- Pas à pas : [Comment installer l'appli sur mon téléphone ?](../utilisation/installer-l-appli.md).
 
 ## Couper
 
@@ -50,4 +65,4 @@ Rappels programmés, courriels, réactions qui notifient.
 
 ## Exemple
 
-Élodie publie « Manœuvre samedi 9 h » sur le mur de l'équipe 2. Romain (équipe 2) reçoit sur son téléphone « Équipe 2 · Élodie Martin — Manœuvre samedi 9 h » ; la cloche de son appli passe à 1. Il touche la notification : la publication s'ouvre, le chiffre retombe. Manon, qui a coupé le mur de l'équipe 2, ne reçoit rien au téléphone, mais la publication est dans sa cloche.
+Élodie publie « Manœuvre samedi 9 h » sur le mur de l'équipe 2. Romain (équipe 2) reçoit sur son téléphone « Équipe 2 · Élodie Martin — Manœuvre samedi 9 h » ; la cloche de son appli et l'icône sur son écran d'accueil passent à 1. Il touche la notification : la publication s'ouvre, le chiffre retombe, sur l'icône aussi. Manon, qui a coupé le mur de l'équipe 2, ne reçoit rien au téléphone, mais la publication est dans sa cloche.

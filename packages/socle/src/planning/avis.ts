@@ -25,7 +25,7 @@ export function avis(base: Base, ids: number[], quoi: AvisEte, texte: string, ur
 				.from(personne)
 				.where(and(inArray(personne.id, parmi(ids)), si))
 		),
-		mettreEnFile(base, ids, 'planning', { titre: TITRES_ETE[quoi], texte, url, tag: `ete:${quoi}` }, maintenant, si)
+		mettreEnFile(base, ids, 'planning', { titre: TITRES_ETE[quoi], texte, url, tag: `ete:${quoi}` }, maintenant, si, 'ete')
 	] as const;
 }
 

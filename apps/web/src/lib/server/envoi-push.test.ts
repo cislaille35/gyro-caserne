@@ -94,9 +94,19 @@ describe('envoyerLot', () => {
 });
 
 describe('charge', () => {
-	it('le contenu de la notification porte le numéro de l’envoi, pour que le téléphone garde la plus récente d’un fil', () => {
-		const donnees = { titre: 'T', texte: 'x', url: '/', tag: 'conversation:4' };
-		expect(charge({ id: 12, abonnementId: 1, endpoint: '', p256dh: '', auth: '', essais: 1, donnees })).toEqual({ ...donnees, envoi: 12 });
+	const envoi = { id: 12, abonnementId: 1, personneId: 3, endpoint: '', p256dh: '', auth: '', essais: 1, pastille: 4 };
+	it('le contenu porte le numéro de l’envoi (le téléphone garde la plus récente d’un fil) et la pastille de l’icône', () => {
+		const donnees = { titre: 'T', texte: 'x', url: '/echanges/messages/4', tag: 'conversation:4' };
+		expect(charge({ ...envoi, donnees })).toEqual({ ...donnees, envoi: 12, pastille: 4 });
+	});
+
+	it('une ligne de la cloche : l’adresse passe par /notifications/ouvrir, qui la marque lue puis ouvre sa page', () => {
+		const donnees = { titre: 'Vos vacances d’été', texte: 'x', url: '/moi/vacances', tag: 'ete:rappel', lue: { genre: 'ete', id: 5 } };
+		expect(charge({ ...envoi, donnees })).toEqual({ titre: 'Vos vacances d’été', texte: 'x', url: '/notifications/ouvrir?genre=ete&id=5&vers=%2Fmoi%2Fvacances', tag: 'ete:rappel', envoi: 12, pastille: 4 });
+		const anomalie = charge({ ...envoi, donnees: { ...donnees, url: '/engins/anomalies?engin=3', lue: { genre: 'anomalie', id: 8 } } });
+		expect(new URL(anomalie.url, 'https://a.fr').searchParams.get('vers')).toBe('/engins/anomalies?engin=3');
+		// Ligne introuvable : l'adresse directe.
+		expect(charge({ ...envoi, donnees: { ...donnees, lue: { genre: 'ete', id: null } } }).url).toBe('/moi/vacances');
 	});
 });
 

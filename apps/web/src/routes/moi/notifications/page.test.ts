@@ -38,9 +38,10 @@ describe('page Moi → Notifications', () => {
 });
 
 describe('appli installable', () => {
-	it('le manifeste : nom, ouverture en plein écran, icônes présentes', () => {
+	it('le manifeste : ce que Chrome exige pour proposer l’installation (nom, plein écran, adresse de départ, icônes 192 et 512, couleurs)', () => {
 		const manifeste = JSON.parse(readFileSync(new URL('../../../../static/manifest.webmanifest', import.meta.url), 'utf8'));
-		expect(manifeste).toMatchObject({ name: 'Gyro Caserne', start_url: '/', display: 'standalone', lang: 'fr' });
+		expect(manifeste).toMatchObject({ id: '/', name: 'Gyro Caserne', short_name: 'Gyro Caserne', start_url: '/', scope: '/', display: 'standalone', lang: 'fr', theme_color: expect.stringMatching(/^#/), background_color: expect.stringMatching(/^#/) });
+		for (const taille of ['192x192', '512x512']) expect(manifeste.icons.some((i: { sizes: string; type: string }) => i.sizes === taille && i.type === 'image/png'), taille).toBe(true);
 		for (const icone of manifeste.icons) expect(readFileSync(new URL(`../../../../static${icone.src}`, import.meta.url)).length).toBeGreaterThan(0);
 		expect(manifeste.icons.some((i: { purpose?: string }) => i.purpose === 'maskable')).toBe(true);
 		const html = readFileSync(new URL('../../../app.html', import.meta.url), 'utf8');

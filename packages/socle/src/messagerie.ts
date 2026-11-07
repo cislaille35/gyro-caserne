@@ -5,7 +5,7 @@ import { requeteTenues } from './casquettes.ts';
 import { nomActeur } from './actions/personnes.ts';
 import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from './commun.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
-import { aLeDroit, type Acteur } from './droits.ts';
+import { aLeDroit, aLeDroitAuCentreSql, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { iconeDuComite, NOMS_ICONES, type NomIcone } from './icones.ts';
 import { ligneJournal } from './journal.ts';
@@ -1101,6 +1101,10 @@ export async function nombreSignalements(base: Base, acteur: Acteur, aujourdhui:
 	const [ligne] = await base.select({ n: count() }).from(signalementMessage).where(isNull(signalementMessage.classeLe));
 	return ligne?.n ?? 0;
 }
+
+// Le même nombre en SQL, pour la colonne d'une requête (la pastille de chaque personne d'un lot d'envois).
+export const signalementsPour = (qui: SQL, aujourdhui: string) =>
+	sql<number>`(case when ${aLeDroitAuCentreSql(qui, 'MODERER_MESSAGERIE', aujourdhui)} then (select count(*) from signalement_message where classe_le is null) else 0 end)`;
 
 // Une photo copiée par un signalement non classé, au modérateur seulement : l'accès se vérifie dans la base principale,
 // les octets se lisent ensuite dans PHOTOS. `idPhoto` : son identifiant dans PHOTOS.

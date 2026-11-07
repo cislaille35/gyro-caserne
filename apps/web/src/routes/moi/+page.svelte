@@ -2,6 +2,7 @@
 	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import { oublierBrouillons } from '#lib/messagerie/fil.ts';
 	import { oublierCetAppareil } from '#lib/push.ts';
+
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import IconeRole from '#lib/ui/IconeRole.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
@@ -65,6 +66,8 @@
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>
 			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" /></li>
 		{/if}
+		<!-- Cachée dans l'appli installée (ouverte en plein écran), sans attendre JavaScript. -->
+		<li class="installer"><Rangee href="/moi/installer" titre="Installer l’appli" sous="Sur l’écran d’accueil, avec les notifications" /></li>
 		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" /></li>
 	</ListeRangees>
 
@@ -109,6 +112,15 @@
 	}
 	.nom {
 		font: 700 1.5rem/1.15 var(--police-titre);
+	}
+	@media (display-mode: standalone) {
+		.installer {
+			display: none;
+		}
+		/* Super administrateur : la ligne cachée était la première de la carte. */
+		.installer:first-child + :global(li) {
+			border-top: 0;
+		}
 	}
 	form {
 		display: flex;

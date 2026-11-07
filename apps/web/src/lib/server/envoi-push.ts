@@ -9,8 +9,14 @@ import { requetePush, type ClesVapid } from './webpush.ts';
 // Un service push qui ne répond pas en 20 s : l'envoi est abandonné (journal), pour que le lot ne reste pas en vol jusqu'à sa reprise.
 const DELAI_ENVOI = 20_000;
 
-// Le contenu de la notification, avec le numéro de l'envoi : le téléphone garde la plus récente d'un fil (notification-recue.ts).
-export const charge = (e: Envoi) => ({ ...e.donnees, envoi: e.id });
+// Le contenu de la notification, avec le numéro de l'envoi (le téléphone garde la plus récente d'un fil, notification-recue.ts)
+// et le chiffre de la cloche de la personne (la pastille sur l'icône). Une ligne de la cloche passe par /notifications/ouvrir,
+// qui la marque lue avant d'ouvrir sa page : touchée au téléphone, elle ne reste pas non lue.
+export function charge(e: Envoi) {
+	const { lue, ...donnees } = e.donnees;
+	const url = lue?.id ? `/notifications/ouvrir?${new URLSearchParams({ genre: lue.genre, id: String(lue.id), vers: donnees.url })}` : donnees.url;
+	return { ...donnees, url, envoi: e.id, pastille: e.pastille };
+}
 
 export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (url: string, init: RequestInit) => Promise<Response> = fetch, max = 40, maintenant = new Date()): Promise<{ envoyes: number; perimes: number }> {
 	const { jeton, envois } = await prendreEnvois(base, max, maintenant);

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { avisEte, enTeteDe } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { locaux, preparer } from '../../echanges/de-test.ts';
+import { charge } from '#lib/server/envoi-push.ts';
 import { GET } from './+server';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -20,6 +21,13 @@ describe('/notifications/ouvrir', () => {
 		const { base, alice, avis, nonLues } = await avecAvis();
 		expect(await nonLues()).toBe(1);
 		await expect(ouvrir(locaux(base, alice), `?genre=ete&id=${avis.id}&vers=%2Fplanning%3Fsemaine%3D2%23ici`)).rejects.toMatchObject({ status: 303, location: '/planning?semaine=2#ici' });
+		expect(await nonLues()).toBe(0);
+	});
+
+	it('la notification touchée au téléphone (charge) passe par ici : marquée lue, puis sa page', async () => {
+		const { base, alice, avis, nonLues } = await avecAvis();
+		const { url } = charge({ id: 1, abonnementId: 1, personneId: alice.id, endpoint: '', p256dh: '', auth: '', essais: 1, pastille: 1, donnees: { titre: 'T', texte: 'x', url: '/engins/anomalies?engin=3', tag: 't', lue: { genre: 'ete', id: avis.id } } });
+		await expect(ouvrir(locaux(base, alice), url.replace('/notifications/ouvrir', ''))).rejects.toMatchObject({ status: 303, location: '/engins/anomalies?engin=3' });
 		expect(await nonLues()).toBe(0);
 	});
 
