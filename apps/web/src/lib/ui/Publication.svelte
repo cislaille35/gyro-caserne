@@ -125,7 +125,7 @@
 				{#if e.presents.length > 0}
 					<span class="visages">{#each e.presents as v, i (i)}<Visage prenom={v.prenom} nom={v.nom} couleur={v.couleur} taille={30} />{/each}</span>
 				{/if}
-				<span class="doux">{pluriel(e.compte.present, 'présent')} · {pluriel(e.compte.absent, 'absent')} · {pluriel(e.compte.incertain, 'incertain')}</span>
+				<span class="doux">{pluriel(e.compte.present, 'présent')}, {pluriel(e.compte.absent, 'absent')}, {pluriel(e.compte.incertain, 'incertain')}</span>
 			</p>
 			{#if agir && e.convoque && !p.annulee}
 				<form method="POST" action="?/repondre" use:enhance={garderFocus}>

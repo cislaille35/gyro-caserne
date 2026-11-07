@@ -25,7 +25,7 @@
 		<ListeRangees titre="Engins" compte={data.engins.length}>
 			{#each data.engins as x (x.engin.id)}
 				<li>
-					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous={[x.engin.type, etatPrise(x.prise).texte, x.ouvertes ? pluriel(x.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ')} alerte={x.ouvertes > 0} />
+					<Rangee href="/engins/{x.engin.id}/prise" titre={x.engin.nom} sous={[x.engin.type, [etatPrise(x.prise).texte, x.ouvertes ? pluriel(x.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ')]} alerte={x.ouvertes > 0} />
 				</li>
 			{/each}
 		</ListeRangees>

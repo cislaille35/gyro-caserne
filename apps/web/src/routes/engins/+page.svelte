@@ -13,11 +13,11 @@
 	type PriseEngin = { prise: PriseDeLaReleve['prise']; ouvertes: number };
 	let { data }: { data: { engins: EnginVu[]; gere: boolean; releve?: Releve; prises?: Record<number, PriseEngin> } } = $props();
 
-	// Sous chaque engin : son type, sa plaque, où en est sa prise, ses écarts ouverts.
+	// Sous chaque engin, sur deux lignes : son type et sa plaque ; où en est sa prise et ses écarts ouverts.
 	const sous = (e: EnginVu) => {
 		const p = data.prises?.[e.id];
 		if (!p) return sousLigne(e);
-		return [sousLigne(e), etatPrise(p.prise).texte, p.ouvertes ? pluriel(p.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ');
+		return [sousLigne(e), [etatPrise(p.prise).texte, p.ouvertes ? pluriel(p.ouvertes, 'anomalie ouverte', 'anomalies ouvertes') : ''].filter(Boolean).join(' · ')];
 	};
 	const affiche = (e: EnginVu) => ETATS[etatAffiche(e.etat, data.prises?.[e.id]?.ouvertes ?? 0)];
 	const ouvertes = $derived(Object.values(data.prises ?? {}).reduce((n, p) => n + p.ouvertes, 0));

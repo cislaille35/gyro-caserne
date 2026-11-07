@@ -22,7 +22,9 @@ export function situationDe(e: Pick<EnginVu, 'situation' | 'provenance' | 'parti
 
 // Sous-ligne d'un engin : son type, sa plaque, et d'où il vient s'il est prêté.
 export function sousLigne(e: EnginVu): string {
-	return [e.type, e.immatriculation, e.situation === 'prete' ? `prêté par ${e.provenance}` : null].filter(Boolean).join(' · ');
+	const infos = [e.type, e.immatriculation, e.situation === 'prete' ? `prêté par ${e.provenance}` : null].filter(Boolean);
+	// Deux infos courtes : un point ; trois : des virgules.
+	return infos.join(infos.length > 2 ? ', ' : ' · ');
 }
 
 const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];

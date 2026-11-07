@@ -195,7 +195,7 @@ describe('gestes sur une publication', () => {
 		expect(page).toContain('action="?/repondre"');
 		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
 			expect(page).toMatch(new RegExp(`<button[^>]*name="reponse" value="${valeur}"[^>]*aria-pressed="${appuye}"[^>]*>${libelle}</button>`));
-		expect(page).toContain('2 présents · 0 absent · 1 incertain');
+		expect(page).toContain('2 présents, 0 absent, 1 incertain');
 		// Un bloc segmenté : la réponse choisie en encre pleine, en gras et cochée (règle commune de app.css), une seule.
 		expect(page).toMatch(/role="group" aria-label="Votre réponse" class="segments reponses/);
 		expect(page.match(/aria-pressed="true"/g)).toHaveLength(1);
@@ -274,7 +274,7 @@ describe('cartes par type', () => {
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 5 novembre"/);
 		expect(page).toContain('19 h · Plateforme du centre');
-		expect(page).toContain('14 présents · 3 absents · 2 incertains');
+		expect(page).toContain('14 présents, 3 absents, 2 incertains');
 		expect(page).toContain('>TA<');
 		for (const mot of ['Présent', 'Absent', 'Incertain']) expect(page).toMatch(new RegExp(`aria-pressed="false"[^>]*>${mot}</button>`));
 	});

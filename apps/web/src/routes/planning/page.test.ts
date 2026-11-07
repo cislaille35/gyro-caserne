@@ -176,7 +176,7 @@ describe('onglet Planning', () => {
 		const html = page({ vue: 'annee' });
 		expect((html.match(/<details/g) ?? []).length).toBe(12);
 		expect((html.match(/<details[^>]*open/g) ?? []).length).toBe(1);
-		expect(html).toMatch(/<details[^>]*open[^>]*><summary[^>]*><h3[^>]*>Novembre<\/h3><span class="resume[^"]*">1 astreinte · 1 manœuvre · 2 fériés/);
+		expect(html).toMatch(/<details[^>]*open[^>]*><summary[^>]*><h3[^>]*>Novembre<\/h3><span class="resume[^"]*">1 astreinte, 1 manœuvre, 2 fériés/);
 		expect(html).toContain('Seulement mes semaines');
 		expect((html.match(/Mon astreinte/g) ?? []).length).toBeGreaterThanOrEqual(semaines.filter((s) => s.mienne).length);
 	});
