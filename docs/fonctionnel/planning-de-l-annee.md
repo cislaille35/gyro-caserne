@@ -41,8 +41,8 @@ Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouv
 - **Planning** : une phrase vivante en tête, les **vues**, la même carte condensée avec « Me faire remplacer » et « Ajouter à mon agenda », le lien « Remplacements » avec le nombre de demandes à traiter, le calendrier, puis **À venir** : la prochaine manœuvre (réponse Présent / Absent / Incertain sur place une fois annoncée), la garde de fête de son équipe, ses remplacements en cours.
 - Quatre **vues** en puces, la dernière retenue sur l'appareil :
   - **Semaine** : du jour de relève à la veille de la suivante, jour par jour, les plages réelles (« 18 h – 6 h », « 24 h »), l'équipe, « X remplace Y », manœuvres, fériés ; flèches semaine précédente et suivante.
-  - **Mois** : par semaine d'astreinte (du vendredi au jeudi), une bande à la couleur de l'équipe, numéro et équipe écrits, au-dessus de ses sept jours (des cases d'au moins 44 px au téléphone) ; marques pour manœuvre, férié, fête (25 et 31 décembre), vacances, dites en toutes lettres sous la grille ; toucher un jour ouvre sa semaine.
-  - **Année** : douze mois repliés sauf le mois en cours, chacun résumé (« 1 astreinte · 1 manœuvre · 1 férié ») ; « Seulement mes semaines ».
+  - **Mois** : par semaine d'astreinte (du vendredi au jeudi), une bande à la couleur de l'équipe, numéro et équipe écrits, au-dessus de ses sept jours (des cases d'au moins 44 px au téléphone) ; marques pour manœuvre, férié, fête (25 et 31 décembre), vacances, dites en toutes lettres sous la grille ; aujourd'hui en carré d'encre (et dit aux lecteurs d'écran) ; toucher un jour ouvre sa semaine.
+  - **Année** : douze mois repliés sauf le mois en cours, chacun résumé (« 1 astreinte, 1 manœuvre, 1 férié ») ; « Seulement mes semaines ».
   - **Équipes** : la même présentation, pour toutes les équipes. Un agent sans équipe la voit d'emblée.
 - À l'ordinateur, deux colonnes : le calendrier en grand, « À venir » à côté ; la carte et les remplacements au-dessus.
 - L'équipe de l'agent est celle de **la date** de chaque semaine : un changement d'équipe en cours d'année est suivi.
