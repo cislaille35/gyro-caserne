@@ -1074,8 +1074,9 @@ test.describe('nominations', () => {
 });
 
 test.describe('anomalie', () => {
-	test.use({ storageState: ETAT_SUPER });
-	test('« Clore » et « Réparée » en panneaux : focus au titre, Échap ferme et rend le focus, l’envoi ferme', async ({ page }) => {
+	// Un agent du centre : il prend en charge, met en attente, répare (clore est réservé à qui traite).
+	test.use({ storageState: ETAT_CONNECTE });
+	test('« Mettre en attente » et « Réparée » en panneaux : focus au titre, Échap ferme et rend le focus, l’envoi ferme', async ({ page }) => {
 		await page.goto('/engins/anomalies/signaler?engin=1');
 		await page.waitForLoadState('networkidle');
 		await page.getByLabel('Le problème').fill(`Rétroviseur ${nouvelleMarque()}`);
@@ -1084,20 +1085,21 @@ test.describe('anomalie', () => {
 		await page.waitForLoadState('networkidle');
 		await expect(page.locator('textarea, input[name="texte"]')).toHaveCount(0);
 
-		const clore = page.getByRole('link', { name: 'Clore sans réparation…' });
-		await clore.focus();
+		const attente = page.getByRole('link', { name: 'Mettre en attente…' });
+		await attente.focus();
 		await page.keyboard.press('Enter');
-		const panneau = page.getByRole('dialog', { name: 'Clore sans réparation' });
+		const panneau = page.getByRole('dialog', { name: 'Mettre en attente' });
 		await expect(panneau).toBeVisible();
-		await expect(panneau.getByRole('heading', { level: 2, name: 'Clore sans réparation' })).toBeFocused();
+		await expect(panneau.getByRole('heading', { level: 2, name: 'Mettre en attente' })).toBeFocused();
 		await sansViolation(page);
 		await page.keyboard.press('Escape');
 		await expect(panneau).toHaveCount(0);
-		await expect(clore).toBeFocused();
+		await expect(attente).toBeFocused();
 
 		await page.getByRole('link', { name: 'Réparée…' }).click();
 		const reparee = page.getByRole('dialog', { name: 'Réparée' });
 		await reparee.getByLabel(/^Ce qui a été fait/).fill('Vis resserrée');
+		await sansViolation(page);
 		await reparee.getByRole('button', { name: 'Enregistrer la réparation' }).click();
 		await expect(reparee).toHaveCount(0);
 		await expect(page.locator('#titre-suivi')).toBeFocused();
@@ -1108,30 +1110,40 @@ test.describe('anomalie', () => {
 });
 
 test.describe('cases à cocher', () => {
-	test.use({ storageState: ETAT_SUPER, colorScheme: 'dark' });
-	test('dessinées partout pareil, sur une ligne de 44 px, grisées en tirets', async ({ page }) => {
-		const chemins = [`/reglages/roles/${await idReglage(page, 'roles', 'Chef de centre')}`, `/reglages/roles/${await idRole(page, 'Référent engins')}`, '/profil', '/reglages/aptitudes'];
-		let grisees = 0;
-		for (const chemin of chemins) {
-			await page.goto(chemin);
-			await page.waitForLoadState('networkidle');
-			await toutOuvrir(page);
-			const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
-				liste.map((c) => {
-					const style = getComputedStyle(c);
-					const ligne = (c.closest('label') ?? c).getBoundingClientRect();
-					return { appearance: style.appearance, largeur: c.getBoundingClientRect().width, ligne: ligne.height, grisee: (c as HTMLInputElement).disabled, bord: style.borderTopStyle };
-				})
-			);
-			expect(cases.length, chemin).toBeGreaterThan(0);
-			for (const c of cases) {
-				expect(c, chemin).toMatchObject({ appearance: 'none', largeur: 24, bord: c.grisee ? 'dashed' : 'solid' });
-				expect(c.ligne, chemin).toBeGreaterThanOrEqual(44);
-				if (c.grisee) grisees++;
-			}
+	test.use({ colorScheme: 'dark' });
+	// Chaque case visible : dessinée (24 px), sur une ligne de 44 px, en tirets si elle est grisée. Rend le nombre de grisées.
+	async function verifier(page: Page, chemin: string): Promise<number> {
+		await page.goto(chemin);
+		await page.waitForLoadState('networkidle');
+		await toutOuvrir(page);
+		const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
+			liste.map((c) => {
+				const style = getComputedStyle(c);
+				const ligne = (c.closest('label') ?? c).getBoundingClientRect();
+				return { appearance: style.appearance, largeur: c.getBoundingClientRect().width, ligne: ligne.height, grisee: (c as HTMLInputElement).disabled, bord: style.borderTopStyle };
+			})
+		);
+		expect(cases.length, chemin).toBeGreaterThan(0);
+		for (const c of cases) {
+			expect(c, chemin).toMatchObject({ appearance: 'none', largeur: 24, bord: c.grisee ? 'dashed' : 'solid' });
+			expect(c.ligne, chemin).toBeGreaterThanOrEqual(44);
 		}
+		return cases.filter((c) => c.grisee).length;
+	}
+
+	test('réglages : dessinées, sur une ligne de 44 px, grisées en tirets', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER, colorScheme: 'dark' })).newPage();
 		// Le rôle système a ses cases d'administration grisées.
-		expect(grisees).toBeGreaterThan(0);
+		expect(await verifier(page, `/reglages/roles/${await idReglage(page, 'roles', 'Chef de centre')}`)).toBeGreaterThan(0);
+		await verifier(page, `/reglages/roles/${await idRole(page, 'Référent engins')}`);
+		await verifier(page, '/reglages/aptitudes');
+		await page.context().close();
+	});
+
+	test('mon profil : les mêmes cases', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_CONNECTE, colorScheme: 'dark' })).newPage();
+		await verifier(page, '/profil');
+		await page.context().close();
 	});
 });
 
