@@ -132,11 +132,6 @@
 		gap: 10px;
 		font-weight: 600;
 	}
-	.case input {
-		width: 22px;
-		height: 22px;
-		accent-color: var(--encre);
-	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;

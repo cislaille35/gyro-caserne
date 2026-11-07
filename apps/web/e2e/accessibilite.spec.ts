@@ -1050,6 +1050,101 @@ test.describe('nominations', () => {
 		await expect(page.locator('section.role h2')).toHaveText(['Référent pharmacie']);
 		await page.context().close();
 	});
+
+	test('/nominations : « Nommer » rouvre le volet même juste après Échap', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		await page.goto('/nominations');
+		await page.waitForLoadState('networkidle');
+		const ouvrir = carteRole(page, 'Référent technique').getByRole('button', { name: 'Nommer', exact: true });
+		const volet = page.getByRole('dialog', { name: 'Nommer : Référent technique' });
+		await ouvrir.click();
+		await volet.getByLabel('Fin', { exact: true }).evaluate((champ: HTMLInputElement) => (champ.value = '2099-12-31'));
+		// Le navigateur annonce la fermeture d'une fenêtre un peu plus tard (événement « close ») : un appui aussitôt après ne doit pas se perdre.
+		await page.evaluate(() => {
+			const fenetre = document.querySelector<HTMLDialogElement>('dialog[open]')!;
+			fenetre.close();
+			document.getElementById(fenetre.id.replace('volet-', 'nommer-'))!.click();
+		});
+		await expect(volet).toBeVisible();
+		await expect(volet.getByLabel('Agent', { exact: true })).toBeFocused();
+		// Rouvert, il repart à neuf.
+		await expect(volet.getByLabel('Fin', { exact: true })).toHaveValue('');
+		await page.context().close();
+	});
+});
+
+test.describe('anomalie', () => {
+	// Un agent du centre : il prend en charge, met en attente, répare (clore est réservé à qui traite).
+	test.use({ storageState: ETAT_CONNECTE });
+	test('« Mettre en attente » et « Réparée » en panneaux : focus au titre, Échap ferme et rend le focus, l’envoi ferme', async ({ page }) => {
+		await page.goto('/engins/anomalies/signaler?engin=1');
+		await page.waitForLoadState('networkidle');
+		await page.getByLabel('Le problème').fill(`Rétroviseur ${nouvelleMarque()}`);
+		await page.getByRole('button', { name: 'Signaler' }).click();
+		await expect(page).toHaveURL(/\/engins\/anomalies\/\d+\?signalee$/);
+		await page.waitForLoadState('networkidle');
+		await expect(page.locator('textarea, input[name="texte"]')).toHaveCount(0);
+
+		const attente = page.getByRole('link', { name: 'Mettre en attente…' });
+		await attente.focus();
+		await page.keyboard.press('Enter');
+		const panneau = page.getByRole('dialog', { name: 'Mettre en attente' });
+		await expect(panneau).toBeVisible();
+		await expect(panneau.getByRole('heading', { level: 2, name: 'Mettre en attente' })).toBeFocused();
+		await sansViolation(page);
+		await page.keyboard.press('Escape');
+		await expect(panneau).toHaveCount(0);
+		await expect(attente).toBeFocused();
+
+		await page.getByRole('link', { name: 'Réparée…' }).click();
+		const reparee = page.getByRole('dialog', { name: 'Réparée' });
+		await reparee.getByLabel(/^Ce qui a été fait/).fill('Vis resserrée');
+		await sansViolation(page);
+		await reparee.getByRole('button', { name: 'Enregistrer la réparation' }).click();
+		await expect(reparee).toHaveCount(0);
+		await expect(page.locator('#titre-suivi')).toBeFocused();
+		await expect(page.getByRole('status').filter({ hasText: 'Réparation enregistrée.' })).toHaveCount(1);
+		await expect(page.getByText('Vis resserrée')).toBeVisible();
+		await expect(page).not.toHaveURL(/panneau/);
+	});
+});
+
+test.describe('cases à cocher', () => {
+	test.use({ colorScheme: 'dark' });
+	// Chaque case visible : dessinée (24 px), sur une ligne de 44 px, en tirets si elle est grisée. Rend le nombre de grisées.
+	async function verifier(page: Page, chemin: string): Promise<number> {
+		await page.goto(chemin);
+		await page.waitForLoadState('networkidle');
+		await toutOuvrir(page);
+		const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
+			liste.map((c) => {
+				const style = getComputedStyle(c);
+				const ligne = (c.closest('label') ?? c).getBoundingClientRect();
+				return { appearance: style.appearance, largeur: c.getBoundingClientRect().width, ligne: ligne.height, grisee: (c as HTMLInputElement).disabled, bord: style.borderTopStyle };
+			})
+		);
+		expect(cases.length, chemin).toBeGreaterThan(0);
+		for (const c of cases) {
+			expect(c, chemin).toMatchObject({ appearance: 'none', largeur: 24, bord: c.grisee ? 'dashed' : 'solid' });
+			expect(c.ligne, chemin).toBeGreaterThanOrEqual(44);
+		}
+		return cases.filter((c) => c.grisee).length;
+	}
+
+	test('réglages : dessinées, sur une ligne de 44 px, grisées en tirets', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER, colorScheme: 'dark' })).newPage();
+		// Le rôle système a ses cases d'administration grisées.
+		expect(await verifier(page, `/reglages/roles/${await idReglage(page, 'roles', 'Chef de centre')}`)).toBeGreaterThan(0);
+		await verifier(page, `/reglages/roles/${await idRole(page, 'Référent engins')}`);
+		await verifier(page, '/reglages/aptitudes');
+		await page.context().close();
+	});
+
+	test('mon profil : les mêmes cases', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_CONNECTE, colorScheme: 'dark' })).newPage();
+		await verifier(page, '/profil');
+		await page.context().close();
+	});
 });
 
 test.describe('réglages', () => {

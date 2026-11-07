@@ -224,22 +224,6 @@
 		{#if erreurPhoto}<p class="echec" role="alert">{erreurPhoto}</p>{/if}
 		{@render message('valider')}
 
-		{#if p && data.peutFaire && toutVu}
-			<section class="panneau" id="valider" aria-labelledby="titre-valider">
-				<h2 id="titre-valider" tabindex="-1">Valider</h2>
-				<p>
-					{nbEcarts ? `${pluriel(nbEcarts, 'écart deviendra', 'écarts deviendront')} ${nbEcarts > 1 ? 'des anomalies suivies' : 'une anomalie suivie'}.` : 'Aucun écart.'}
-					{#if nbRetrouves}{pluriel(nbRetrouves, 'signalement retrouvé sera clos', 'signalements retrouvés seront clos')}.{/if}
-					L’engin reste disponible : seuls le référent engins et les chefs décident d’une indisponibilité.
-				</p>
-				<p class="valider-participants">La prise sera au nom de : <strong>{noms.join(', ') || 'vous'}</strong>. <a href="?participants" data-sveltekit-noscroll>Modifier les participants</a></p>
-				<form method="POST" action="?/valider" use:enhance>
-					<input type="hidden" name="prise" value={p.id} />
-					<Bouton type="submit">Valider la prise</Bouton>
-				</form>
-			</section>
-		{/if}
-
 		{#if zoneAffichee}
 			{@const z = zoneAffichee}
 			{@const n = ecartsDe(z.elements)}
@@ -385,6 +369,30 @@
 					{/if}
 				</section>
 			</div>
+		{/if}
+
+		<!-- En bas du contenu, toujours là : ce qu'il reste à voir, puis la validation. -->
+		{#if data.peutFaire && data.zones.length}
+			{#if p && toutVu}
+				<section class="panneau" id="valider" aria-labelledby="titre-valider">
+					<h2 id="titre-valider" tabindex="-1">Valider</h2>
+					<p>
+						{nbEcarts ? `${pluriel(nbEcarts, 'écart deviendra', 'écarts deviendront')} ${nbEcarts > 1 ? 'des anomalies suivies' : 'une anomalie suivie'}.` : 'Aucun écart.'}
+						{#if nbRetrouves}{pluriel(nbRetrouves, 'signalement retrouvé sera clos', 'signalements retrouvés seront clos')}.{/if}
+						L’engin reste disponible : seuls le référent engins et les chefs décident d’une indisponibilité.
+					</p>
+					<p class="valider-participants">La prise sera au nom de : <strong>{noms.join(', ') || 'vous'}</strong>. <a href="?participants" data-sveltekit-noscroll>Modifier les participants</a></p>
+					<form method="POST" action="?/valider" use:enhance>
+						<input type="hidden" name="prise" value={p.id} />
+						<Bouton type="submit">Valider la prise</Bouton>
+					</form>
+				</section>
+			{:else}
+				<section class="panneau bandeau-valider" aria-label="Valider la prise">
+					<p id="reste-zones">Encore {pluriel(data.zones.length - vues, 'zone')} à voir avant de valider.</p>
+					<button type="button" class="valider-bloque" aria-disabled="true" aria-describedby="reste-zones">Valider la prise</button>
+				</section>
+			{/if}
 		{/if}
 
 		{#if p && data.peutFaire}
@@ -738,6 +746,28 @@
 		border-radius: var(--rayon-bouton);
 		cursor: pointer;
 	}
+	/* Tant qu'il reste des zones : la raison, et le bouton grisé (toujours atteignable et lu avec sa raison). */
+	.bandeau-valider {
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.bandeau-valider p {
+		flex: 1 1 12rem;
+		color: var(--doux);
+	}
+	.valider-bloque {
+		min-height: var(--cible);
+		padding: 0 20px;
+		border: 2px dashed var(--doux);
+		border-radius: var(--rayon-bouton);
+		background: var(--segment-fond);
+		color: var(--doux);
+		font: 700 1.0625rem var(--police);
+		cursor: not-allowed;
+	}
 	.pastille-choix[hidden] {
 		display: none;
 	}
@@ -746,10 +776,10 @@
 		background: var(--encre);
 		color: var(--surface);
 	}
-	.pastille-choix input {
-		width: 20px;
-		height: 20px;
-		accent-color: var(--rouge);
+	/* Cochée, la pastille passe à l'encre : la case s'y détache en clair. */
+	.pastille-choix:has(input:checked) input {
+		--case-plein: var(--surface);
+		--case-coche: var(--encre);
 	}
 	input[type='search'] {
 		min-height: var(--cible);
@@ -821,11 +851,6 @@
 		align-items: center;
 		gap: 8px;
 		min-height: var(--cible);
-	}
-	.choix input {
-		width: 22px;
-		height: 22px;
-		accent-color: var(--rouge);
 	}
 	.champ {
 		display: flex;

@@ -16,7 +16,7 @@
 		const niveaux = niveauxDe(m.droits);
 		const domaines = DOMAINES.filter((d) => niveaux[d.id] !== 0).map((d) => `${d.nom} : ${d.niveaux[niveaux[d.id] as number]?.libelle ?? 'Sur mesure'}`);
 		const pouvoir = m.droits.some((d) => ADMINISTRATION.some((a) => a.droit === d)) ? ['Administration de l’appli'] : [];
-		return [...domaines, ...pouvoir].join(' · ') || 'Aucun droit en plus de ceux de tout agent';
+		return [...domaines, ...pouvoir].join(', ') || 'Aucun droit en plus de ceux de tout agent';
 	}
 
 	const choisi = $derived(data.choisi);

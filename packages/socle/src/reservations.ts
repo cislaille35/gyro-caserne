@@ -317,7 +317,7 @@ async function nomDe(base: Base, id: number): Promise<string> {
 }
 
 function demandeAuxGestionnaires(base: Base, demandeurId: number, r: Ressource, d: { demandeur: string; quantite: number; debut: string; fin: string }, si: SQL, aujourdhui: string, maintenant: string) {
-	const texte = [d.demandeur, ...(r.forme === 'jours' ? [String(d.quantite)] : []), periodeCourte(r.forme, d.debut, d.fin)].join(' · ');
+	const texte = [d.demandeur, ...(r.forme === 'jours' ? [String(d.quantite)] : []), periodeCourte(r.forme, d.debut, d.fin)].join(', ');
 	const qui = base.select({ id: personne.id }).from(personne).where(and(inArray(personne.id, gestionnairesDe(base, r.id, aujourdhui)), ne(personne.id, demandeurId)));
 	return mettreEnFile(base, qui, 'reservations', { titre: `Demande de réservation · ${r.nom}`, texte, url: '/reservations/a-valider', tag: 'reservations-a-valider' }, maintenant, si);
 }

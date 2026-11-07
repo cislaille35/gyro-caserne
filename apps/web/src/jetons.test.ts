@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 import { encreSur } from '#lib/couleurs.ts';
@@ -74,6 +74,42 @@ describe('jetons', () => {
 		expect(vue).toMatch(/\.hors \.jour \{[^}]*font-size: 0\.8125rem/);
 		for (const equipe of ['#f2c200', '#e5699a', '#3d7fd6', '#3fa34d', '#d4a017', '#c2185b', '#1565c0', '#2e7d32', '#8a949e'])
 			expect(contraste(encreSur(equipe), equipe), equipe).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it.each(['clair', 'sombre'])('%s : les cases à cocher, dessinées, lisibles, grisées à part', (nom) => {
+		const t = { ...themes.clair, ...themes[nom] };
+		const regle = (suite: string) => corps(`:where(input[type='checkbox']:not([role='switch']))${suite} {`);
+		const base = regle('');
+		expect(base).toMatch(/appearance: none/);
+		expect(base).toMatch(/border: 2px solid var\(--doux\)/);
+		expect(base).toMatch(/background: var\(--surface\)/);
+		expect(base).toMatch(/--case-plein: var\(--encre\);\s*--case-coche: var\(--surface\)/);
+		expect(regle(':checked')).toMatch(/background: var\(--case-plein\)/);
+		const grisee = regle(':disabled');
+		expect(grisee).toMatch(/--case-plein: var\(--segment-fond\);\s*--case-coche: var\(--doux\)/);
+		expect(grisee).toMatch(/border-style: dashed/);
+		// Le bord de la case se voit sur la carte et sur le fond (3:1) ; la coche se lit sur la case pleine ; grisée aussi.
+		expect(contraste(t.doux, t.surface)).toBeGreaterThanOrEqual(3);
+		expect(contraste(t.doux, t.fond)).toBeGreaterThanOrEqual(3);
+		expect(contraste(t.encre, t.surface), 'case pleine sur la carte').toBeGreaterThanOrEqual(3);
+		expect(contraste(t.surface, t.encre), 'coche').toBeGreaterThanOrEqual(4.5);
+		expect(contraste(t.doux, t['segment-fond']), 'coche grisée').toBeGreaterThanOrEqual(3);
+		// Grisée, la case ne ressemble ni à une case vide (fond de carte) ni à une case pleine.
+		expect(t['segment-fond']).not.toBe(t.surface);
+		expect(contraste(t['segment-fond'], t.encre)).toBeGreaterThanOrEqual(3);
+	});
+
+	it('aucun écran ne redessine la case à sa façon', () => {
+		const racine = new URL('./', import.meta.url);
+		const fichiers = (readdirSync(racine, { recursive: true }) as string[]).filter((p) => p.endsWith('.svelte'));
+		for (const f of fichiers) {
+			const texte = readFileSync(new URL(f, racine), 'utf8');
+			const debut = texte.includes('\n<style>') ? texte.lastIndexOf('\n<style>') : texte.length;
+			const [code, style] = [texte.slice(0, debut), texte.slice(debut)];
+			expect(style, f).not.toMatch(/type=.checkbox./);
+			// La couleur native (accent-color) reste aux boutons radio : un écran à cases ne s'en sert pas.
+			if (code!.includes('type="checkbox"')) expect(style, f).not.toMatch(/accent-color/);
+		}
 	});
 
 	it('le socle de Gyro : inchangé en clair, visible sur le fond sombre', () => {

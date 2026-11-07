@@ -194,13 +194,6 @@
 		background: transparent;
 		color: var(--doux);
 	}
-	input {
-		flex: none;
-		width: 24px;
-		height: 24px;
-		margin: 0;
-		accent-color: var(--encre);
-	}
 	.texte {
 		display: flex;
 		flex-wrap: wrap;

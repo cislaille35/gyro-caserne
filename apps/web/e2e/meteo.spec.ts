@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import exemple from '../../../centres/exemple/centre.ts';
+import { soleilCouche } from '../src/lib/gyro/soleil.ts';
 import { ADRESSE, ETAT_CONNECTE } from './serveur.ts';
 
 const appli = fileURLToPath(new URL('..', import.meta.url));
@@ -80,15 +82,17 @@ test.describe('météo et vigilance', () => {
 		});
 	}
 
-	test('ciel dégagé : le soleil de jour, pas la nuit', async ({ page }) => {
+	test('ciel dégagé : le soleil seulement s’il est levé au centre, quoi que dise le relevé', async ({ page }) => {
+		// Le soleil se calcule à l'heure de la page (le relevé, relu toutes les heures, peut retarder). Les heures fixées sont dans page.test.ts.
+		const leve = (decalage: number) => !soleilCouche(new Date(Date.now() + decalage), exemple.position);
+		test.skip(leve(-5 * 60_000) !== leve(5 * 60_000), 'à cinq minutes du lever ou du coucher');
 		const clair = (nuit: boolean) => executer(`UPDATE releve SET donnees = '${JSON.stringify({ temperature: 12, code: 0, rafales: 10, nuit })}' WHERE cle = 'meteo';`);
-		clair(false);
-		await page.goto('/');
-		await expect(page.locator('.meteo.m-clair .soleil')).toHaveCount(1);
-		clair(true);
-		await page.goto('/');
-		await expect(page.locator('.meteo.m-clair')).toHaveCount(1);
-		await expect(page.locator('.meteo.m-clair .soleil')).toHaveCount(0);
+		for (const nuit of [false, true]) {
+			clair(nuit);
+			await page.goto('/');
+			await expect(page.locator('.meteo.m-clair')).toHaveCount(1);
+			await expect(page.locator('.meteo.m-clair .soleil')).toHaveCount(leve(0) ? 1 : 0);
+		}
 	});
 
 	test('affichage Sobre : pas d’ambiance animée, la météo reste écrite', async ({ context, page }) => {

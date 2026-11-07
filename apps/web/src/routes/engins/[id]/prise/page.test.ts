@@ -88,12 +88,24 @@ describe('/engins/[id]/prise', () => {
 		expect(page).toContain('Prise changée entre-temps.');
 	});
 
-	it('« Valider la prise » : seulement quand les zones sont vues, au-dessus des zones', () => {
+	it('« Valider la prise » : toujours en bas, désactivé avec sa raison tant qu’il reste des zones', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
-		expect(html(data({ zones: [1] }))).not.toContain('Valider la prise');
-		const page = html(data({ zones: [1, 2] }));
-		expect(avant('Valider la prise', 'aria-label="Zones de l’engin"', page)).toBe(true);
-		expect(page).toContain('Abandonner la prise');
+		const reste = html(data({ zones: [1] }));
+		expect(reste).toMatch(/<p id="reste-zones"[^>]*>Encore 1 zone à voir avant de valider\.<\/p>/);
+		// Annoncé avec sa raison, et atteignable au clavier : pas « disabled », hors de tout formulaire.
+		expect(reste).toMatch(/<button type="button"[^>]*aria-disabled="true"[^>]*aria-describedby="reste-zones"[^>]*>Valider la prise<\/button>/);
+		expect(reste).not.toContain('action="?/valider"');
+		expect(avant('aria-label="Zones de l’engin"', 'reste-zones', reste)).toBe(true);
+		expect(avant('reste-zones', 'Abandonner la prise', reste)).toBe(true);
+		expect(html(data())).toContain('Encore 2 zones à voir avant de valider.');
+		expect(html({ ...data(), peutFaire: false })).not.toContain('Valider la prise');
+
+		const pret = html(data({ zones: [1, 2] }));
+		expect(pret).not.toContain('reste-zones');
+		expect(pret).not.toContain('aria-disabled');
+		expect(pret).toMatch(/action="\?\/valider"[\s\S]*?<button type="submit"[^>]*>(<!---->)?Valider la prise/);
+		expect(avant('aria-label="Zones de l’engin"', 'id="titre-valider"', pret)).toBe(true);
+		expect(avant('id="titre-valider"', 'Abandonner la prise', pret)).toBe(true);
 	});
 
 	it('avant de commencer : les zones se lisent, le premier geste part sans prise ; plus de bouton « Commencer »', () => {
@@ -104,7 +116,9 @@ describe('/engins/[id]/prise', () => {
 		expect(page).toContain('Tout est complet');
 		expect(page).toContain('Le premier geste commence la prise');
 		expect(page).not.toContain('Commencer la prise');
-		expect(page).not.toContain('Valider la prise');
+		// Le bandeau est déjà là : il dit ce qu'il reste à voir.
+		expect(page).toContain('Encore 2 zones à voir avant de valider.');
+		expect(page).not.toContain('action="?/valider"');
 		expect(page).not.toContain('Participants :');
 		expect(page).not.toContain('Abandonner');
 	});

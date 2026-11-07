@@ -1,5 +1,5 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
 import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
@@ -23,6 +23,21 @@ describe('accueil, météo et vigilance', () => {
 		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C, averses, rafales 45 km\/h<\/span> <a class="source/);
 		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
+	});
+
+	describe('pas de soleil la nuit, même si le relevé date d’avant le coucher', () => {
+		afterEach(() => vi.useRealTimers());
+		// Le relevé (une fois par heure) dit encore « de jour » ; le centre fictif voit le soleil se coucher vers 21 h 25 le 10 août.
+		const clair = { meteo: { ambiance: 'clair', texte: '24 °C, ciel clair', nuit: false }, vigilance: null };
+		it.each([
+			['2026-08-10T19:00Z', true],
+			['2026-08-10T19:45Z', false]
+		])('%s : soleil %s', (heure, soleil) => {
+			vi.useFakeTimers({ now: new Date(heure), toFake: ['Date'] });
+			const html = page({ ...base, meteo: clair });
+			expect(html.includes('class="soleil'), 'décor').toBe(soleil);
+			expect(html.includes('en lunettes de soleil') || /<circle cx="132" cy="30" r="13"/.test(html), 'Gyro').toBe(soleil);
+		});
 	});
 
 	it('affichage Sobre : la ligne reste, sans ambiance', () => {
@@ -261,9 +276,9 @@ describe('accueil', () => {
 	});
 
 	it('chef de garde : les remplacements à valider « À décider »', () => {
-		const aDecider = [{ texte: 'Remplacement à valider · Alice Test · nuit du lundi 9 novembre', lien: '/remplacements/3' }];
+		const aDecider = [{ texte: 'Remplacement à valider, Alice Test, nuit du lundi 9 novembre', lien: '/remplacements/3' }];
 		const html = page({ casquettes: [{ id: 'equipe:1', nom: 'Chef de garde · Équipe 1', icone: 'casque', compte: 1 }, astreinte], choisie: 'equipe:1', contenu: { type: 'equipe', aDecider } });
-		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider · Alice Test/);
+		expect(html).toMatch(/href="\/remplacements\/3"[^>]*>[\s\S]*?Remplacement à valider, Alice Test/);
 	});
 
 	it('rôle : ce qu’il permet, en phrases', () => {
@@ -273,9 +288,9 @@ describe('accueil', () => {
 	});
 
 	it('rôle ou comité qui gère une ressource : ses demandes de réservation « À décider », en tête', () => {
-		const aDecider = [{ texte: 'Bancs · 4 · du 12 au 14 nov. · Alice Test', lien: '/reservations/a-valider' }];
+		const aDecider = [{ texte: 'Bancs, 4, du 12 au 14 nov., Alice Test', lien: '/reservations/a-valider' }];
 		const amicale = page({ casquettes: [astreinte, { id: 'comite:2', nom: 'Amicale', icone: 'groupe', compte: 1 }], choisie: 'comite:2', contenu: { type: 'comite', membres: [], aDecider } });
-		expect(amicale).toMatch(/<h2[^>]*>À décider[\s\S]*?href="\/reservations\/a-valider"[\s\S]*?Bancs · 4 · du 12 au 14 nov\. · Alice Test[\s\S]*?Membres/);
+		expect(amicale).toMatch(/<h2[^>]*>À décider[\s\S]*?href="\/reservations\/a-valider"[\s\S]*?Bancs, 4, du 12 au 14 nov\., Alice Test[\s\S]*?Membres/);
 		const engins = page({ casquettes: [astreinte, { id: 'role:6', nom: 'Référent engins', icone: 'camion', compte: 0 }], choisie: 'role:6', contenu: { type: 'role', permet: [], aDecider: [] } });
 		expect(engins).not.toContain('À décider');
 	});

@@ -28,7 +28,7 @@ const page = (e = ete(), autres: Record<string, unknown> = {}) => render(Page as
 describe('Été : le parcours du chef', () => {
 	it('le résumé en tête et les quatre étapes, l’étape en cours marquée', () => {
 		const html = page();
-		expect(html).toContain('Proposé · 1 semaine · FPT non armé sur 1 plage · 1 agent en vacances · 1 sans réponse');
+		expect(html).toContain('Proposé, 1 semaine, FPT non armé sur 1 plage, 1 agent en vacances, 1 sans réponse');
 		expect(html).toMatch(/Étape 3 sur 4/);
 		expect(html).toMatch(/<a href="\?annee=2027&amp;etape=repartition"[^>]*aria-current="step"/);
 	});
@@ -125,6 +125,6 @@ describe('Été : le parcours du chef', () => {
 		expect(html).toMatch(/Retirer<span class="masque[^"]*"> Alice Test<\/span>/);
 		expect(html).toMatch(/Peuvent combler le manque[\s\S]*?Hugo Test[\s\S]*?Autres agents[\s\S]*?Gina Test/);
 		expect(html).toMatch(/Ajouter<span class="masque[^"]*"> Hugo Test<\/span>/);
-		expect(html).toContain('· en vacances');
+		expect(html).toContain(', en vacances');
 	});
 });

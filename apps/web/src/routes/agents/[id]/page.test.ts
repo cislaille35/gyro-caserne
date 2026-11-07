@@ -335,7 +335,7 @@ describe('page fiche agent : aptitudes', () => {
 			{ aptitudeId: 4, nom: 'COD1', controlee: true, obtenueLe: '2020-01-01', expireLe: '2026-01-01', valide: false }
 		];
 		const page = html({ data: { ...data, aptitudes }, form: null });
-		expect(bloc(page, 'Aptitudes')[0]).toContain('CA2 · COD1 (expirée)');
+		expect(bloc(page, 'Aptitudes')[0]).toContain('CA2, COD1 (expirée)');
 		expect(page).toContain('Pas valable aujourd’hui');
 		expect(page).toContain('expire le 01/01/2026');
 		expect(page).toContain('Enregistrer l’aptitude');

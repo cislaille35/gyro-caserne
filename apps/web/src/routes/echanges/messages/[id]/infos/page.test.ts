@@ -37,7 +37,7 @@ describe('infos d’un groupe', () => {
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/7"[^>]*aria-label="Retour à la conversation"/);
 		expect(page).toMatch(/<h1[^>]*>Départ de Thomas<\/h1>/);
 		const t = texte(page);
-		expect(t).toContain('Groupe · 4 membres · créé par Romain');
+		expect(t).toContain('Groupe, 4 membres, créé par Romain');
 		expect(t).toContain('Seuls les membres lisent ce groupe.');
 		expect(page).toMatch(/<a[^>]*href="\?renommer"[^>]*>Renommer<\/a>/);
 	});

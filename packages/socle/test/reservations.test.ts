@@ -355,7 +355,7 @@ describe('notifications des réservations', () => {
 	it('une demande de matériel sonne chez qui la gère, une fois, jamais chez le demandeur', async () => {
 		const { base, alice, romain, bancs, envois } = await avecTelephones();
 		await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-14', quantite: 4 }, maintenant);
-		expect(await envois()).toEqual([{ personneId: romain.id, titre: 'Demande de réservation · Bancs', texte: 'Alice Test · 4 · du 12 au 14 nov.', url: '/reservations/a-valider', tag: 'reservations-a-valider' }]);
+		expect(await envois()).toEqual([{ personneId: romain.id, titre: 'Demande de réservation · Bancs', texte: 'Alice Test, 4, du 12 au 14 nov.', url: '/reservations/a-valider', tag: 'reservations-a-valider' }]);
 	});
 
 	it('VL : acceptée d’office, rien ; en attente, le référent engins', async () => {
@@ -363,7 +363,7 @@ describe('notifications des réservations', () => {
 		await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00' }, maintenant);
 		expect(await envois()).toEqual([]);
 		await reserver(base, romain, vl, { debut: '2026-11-07T11:00', fin: '2026-11-07T13:30' }, maintenant);
-		expect(await envois()).toMatchObject([{ personneId: remi.id, titre: 'Demande de réservation · VL', texte: 'Romain Test · 7 nov., 11 h – 13 h 30' }]);
+		expect(await envois()).toMatchObject([{ personneId: remi.id, titre: 'Demande de réservation · VL', texte: 'Romain Test, 7 nov., 11 h – 13 h 30' }]);
 	});
 
 	it('accord, refus et annulation par qui gère : un avis et un envoi au demandeur ; annulation par le demandeur : rien', async () => {

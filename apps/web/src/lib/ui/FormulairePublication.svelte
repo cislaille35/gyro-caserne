@@ -397,10 +397,6 @@
 	.mention {
 		display: block;
 	}
-	.case input {
-		width: 24px;
-		height: 24px;
-	}
 	.aide {
 		color: var(--doux);
 		font-size: 0.875rem;

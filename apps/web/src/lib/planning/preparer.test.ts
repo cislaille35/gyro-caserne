@@ -47,12 +47,12 @@ describe('préparer l’année', () => {
 	const equipes = [1, 2, 3, 4].map((id) => ({ id, nom: `Équipe ${id}`, couleur: '#000' }));
 
 	it('le résumé de la proposition, en une ligne', () => {
-		expect(resumeProposition(proposition() as never, equipes)).toBe('52 semaines · Noël : Équipe 2 · Nouvel An : Équipe 4 · 11 manœuvres reprises · Équipe 3 incomplète');
+		expect(resumeProposition(proposition() as never, equipes)).toBe('52 semaines, Noël : Équipe 2, Nouvel An : Équipe 4, 11 manœuvres reprises, Équipe 3 incomplète');
 	});
 
 	it('le résumé rappelle les vacances à saisir ; aucune manœuvre, toutes les équipes armées', () => {
 		const r = resumeProposition(proposition({ vacances: 0, manoeuvres: [], equipes: [] }) as never, equipes);
-		expect(r).toBe('52 semaines · Noël : Équipe 2 · Nouvel An : Équipe 4 · Aucune manœuvre reprise · Aucune période de vacances saisie');
+		expect(r).toBe('52 semaines, Noël : Équipe 2, Nouvel An : Équipe 4, Aucune manœuvre reprise, Aucune période de vacances saisie');
 	});
 
 	it('l’état d’une équipe, en toutes lettres', () => {

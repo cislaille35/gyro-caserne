@@ -74,7 +74,7 @@
 				<summary>{pluriel(p.manoeuvres.length, 'manœuvre reprise', 'manœuvres reprises')}</summary>
 				<ul role="list" class="lignes">
 					{#each p.manoeuvres as m (`${m.debut}-${m.theme}`)}
-						<li><span><strong>{m.theme}</strong>, {m.lieu}</span><span class="doux">{momentLong(m.debut)} · {m.convoques === 'tous' ? 'Tout le centre' : m.convoques.map(nom).join(', ')}{m.petitDejeuner ? ' · Petit-déjeuner' : ''}</span></li>
+						<li><span><strong>{m.theme}</strong>, {m.lieu}</span><span class="doux">{momentLong(m.debut)}, {m.convoques === 'tous' ? 'tout le centre' : m.convoques.map(nom).join(', ')}{m.petitDejeuner ? ', petit-déjeuner' : ''}</span></li>
 					{/each}
 				</ul>
 			</details>

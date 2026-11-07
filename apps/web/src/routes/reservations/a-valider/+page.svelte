@@ -43,7 +43,7 @@
 									<p><strong>Déjà réservée sur ce créneau :</strong></p>
 									<ul role="list">
 										{#each conflits as c (c.id)}
-											<li>{c.demandeur} · {periodeCourte(c.forme, c.debut, c.fin)}{c.debut <= data.maintenant ? ' · en cours' : ''}{#if c.telephone} · <a href="tel:{c.telephone}">{c.telephone}</a>{/if}</li>
+											<li>{c.demandeur}, {periodeCourte(c.forme, c.debut, c.fin)}{c.debut <= data.maintenant ? ', en cours' : ''}{#if c.telephone}, <a href="tel:{c.telephone}">{c.telephone}</a>{/if}</li>
 										{/each}
 									</ul>
 									<p>Garder cette demande annule l’autre réservation ; son demandeur est prévenu.</p>

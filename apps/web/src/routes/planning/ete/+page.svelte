@@ -259,7 +259,8 @@
 			<li>
 				<span>
 					{x.prenom} {x.nom}
-					<span class="doux">· {equipe(x.equipeId).nom}{x.postes.length ? ` · ${x.postes.map((y) => LIBELLES_POSTE[y]).join(', ')}` : ''}{x.vacances ? ' · en vacances' : ''}</span>
+					<span class="doux">· {equipe(x.equipeId).nom}{x.vacances ? ', en vacances' : ''}</span>
+					{#if x.postes.length}<span class="doux postes">{x.postes.map((y) => LIBELLES_POSTE[y]).join(', ')}</span>{/if}
 				</span>
 				<form method="POST" action={action('ajuster', { plage: debut })} use:enhance={garder}>
 					<input type="hidden" name="debut" value={debut} /><input type="hidden" name="personne" value={x.id} /><input type="hidden" name="present" value="oui" />
@@ -698,6 +699,11 @@
 		gap: 12px;
 		min-height: var(--cible);
 		padding: 4px 0;
+	}
+	/* Les postes d'un candidat : une seconde ligne, ils sont déjà séparés par des virgules. */
+	.postes {
+		display: block;
+		font-size: 0.875rem;
 	}
 	.liste li + li {
 		border-top: 1px solid var(--trait-doux);

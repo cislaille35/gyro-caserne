@@ -113,16 +113,16 @@
 		flex-direction: column;
 		padding-left: 32px;
 	}
+	.case input[type='radio'] {
+		width: 22px;
+		height: 22px;
+		flex: none;
+	}
 	.case {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		min-height: var(--cible);
-	}
-	.case input {
-		width: 22px;
-		height: 22px;
-		flex: none;
 	}
 	.echec {
 		padding: 10px 14px;

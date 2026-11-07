@@ -77,6 +77,20 @@ describe('été : proposer, ajuster, publier', () => {
 		await expect(plageAPreparer(base, a(p.alice), 2027, maintenant, reglage, LUN)).rejects.toThrow(RefusDroit);
 	});
 
+	it('ouvrir l’été marque lus les avis qui y mènent, pour qui l’ouvre seulement', async () => {
+		const { base, chef, p, chefId } = await jeu();
+		const avis = (personneId: number, quoi: 'vacances_changees' | 'rappel', url: string) => ({ personneId, quoi, texte: 'x', url, creeLe: '2026-11-01T10:00' });
+		await base.insert(avisEte).values([avis(chefId, 'vacances_changees', '/planning/ete?annee=2027'), avis(chefId, 'rappel', '/moi/vacances'), avis(p.alice, 'vacances_changees', '/planning/ete?annee=2027')]);
+		await eteAPreparer(base, chef, 2027, maintenant, reglage);
+		const lus = (await base.select().from(avisEte).orderBy(avisEte.id)).map((x) => [x.personneId, x.url, x.lueLe !== null]);
+		expect(lus).toEqual([
+			[chefId, '/planning/ete?annee=2027', true],
+			// Le rappel de donner ses vacances reste : il mène à « Mes vacances ».
+			[chefId, '/moi/vacances', false],
+			[p.alice, '/planning/ete?annee=2027', false]
+		]);
+	});
+
 	it('propose : toutes les plages armées, renforts répartis équitablement ; le tableau le montre', async () => {
 		const { base, chef, p, chefId } = await jeu();
 		expect((await eteAPreparer(base, chef, 2027, maintenant, reglage)).proposee).toBe(false);

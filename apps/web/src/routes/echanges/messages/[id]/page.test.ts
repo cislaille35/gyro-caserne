@@ -135,7 +135,7 @@ describe('une conversation', () => {
 		expect(page.indexOf('<aside')).toBeGreaterThan(page.indexOf('role="log"'));
 		expect(aside).toMatch(/<aside[^>]*class="infos[^"]*"[^>]*aria-labelledby="t-infos"/);
 		expect(aside).toMatch(/<h2[^>]*id="t-infos"[^>]*>Infos du groupe<\/h2>/);
-		expect(texte(aside)).toContain('Groupe · 3 membres · créé par Romain');
+		expect(texte(aside)).toContain('Groupe, 3 membres, créé par Romain');
 		expect(texte(aside)).toContain('Seuls les membres lisent ce groupe.');
 		expect(aside).toMatch(/href="\/echanges\/messages\/7\/infos\?renommer"[^>]*>Renommer/);
 		expect(aside).toMatch(/href="\/echanges\/messages\/nouveau\/groupe\?ajouter=7"/);

@@ -17,7 +17,7 @@ describe('calendrier d’une ressource', () => {
 		expect(page).toMatch(/<h2[^>]*>Du 5 au 11 nov\.<\/h2>/);
 		expect(page).toMatch(/href="\?jour=2026-10-29"[^>]*>[\s\S]*?Sept jours plus tôt/);
 		expect(page).toMatch(/href="\?jour=2026-11-12"[^>]*>[\s\S]*?Sept jours plus tard/);
-		expect(page).toMatch(/<h3[^>]*>vendredi 6 nov\.<\/h3>[\s\S]*?Reste 3 sur 12[\s\S]*?5 · Alice Test[\s\S]*?Acceptée[\s\S]*?4 · Bruno Test \(vous\)[\s\S]*?En attente/);
+		expect(page).toMatch(/<h3[^>]*>vendredi 6 nov\.<\/h3>[\s\S]*?Reste 3 sur 12[\s\S]*?5, Alice Test[\s\S]*?Acceptée[\s\S]*?4, Bruno Test \(vous\)[\s\S]*?En attente/);
 		expect(page).toMatch(/<h3[^>]*>lundi 9 nov\.<\/h3>[\s\S]*?Libre, 12 sur 12/);
 		expect(page).toMatch(/<h2[^>]*>novembre 2026<\/h2>/);
 		expect(page).toMatch(/<table[\s\S]*?<th[^>]*scope="col"[^>]*><abbr[^>]*title="lundi"[^>]*>lun\.<\/abbr><\/th>/);
@@ -30,13 +30,13 @@ describe('calendrier d’une ressource', () => {
 	it('créneau : l’horaire de chaque réservation, le jour où elle tombe', () => {
 		const page = html({ ressource: vl, reservations: [res({ ressourceId: 1, forme: 'creneau', ressource: 'VL', quantite: 1, debut: '2026-11-07T09:00', fin: '2026-11-07T12:00', demandeur: 'Mme Durand' })] });
 		expect(page).toContain('Gérée par Référent engins. Un créneau libre est à vous tout de suite');
-		expect(page).toMatch(/<h3[^>]*>samedi 7 nov\.<\/h3>[\s\S]*?9 h – 12 h · Mme Durand/);
+		expect(page).toMatch(/<h3[^>]*>samedi 7 nov\.<\/h3>[\s\S]*?9 h – 12 h, Mme Durand/);
 		expect(page).not.toContain('Reste');
 	});
 
 	it('le compte de la réserve citoyenne : le nom saisi, sans « (vous) » ; une demande restée sans réponse le dit', () => {
 		const page = html({ aujourdhui: '2026-11-06', ressource: vl, reservations: [res({ ressourceId: 1, forme: 'creneau', ressource: 'VL', quantite: 1, debut: '2026-11-05T09:00', fin: '2026-11-05T12:00', etat: 'attente', demandeur: 'M. Roux', nomDemandeur: 'M. Roux', mienne: true })] });
-		expect(page).toContain('9 h – 12 h · M. Roux');
+		expect(page).toContain('9 h – 12 h, M. Roux');
 		expect(page).not.toContain('M. Roux (vous)');
 		expect(page).toMatch(/<h3[^>]*>jeudi 5 nov\.<\/h3>[\s\S]*?Sans réponse/);
 	});

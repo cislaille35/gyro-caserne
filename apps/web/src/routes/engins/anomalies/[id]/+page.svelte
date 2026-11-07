@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import Panneau from '#lib/planning/Panneau.svelte';
 	import centre from '$centre';
 	import { etapesDu, libelleEtape, LIBELLES_MOTIF, type EtapeAnomalie, type EtapeHistorique, type VueAnomalie } from '@gyro-caserne/socle';
 	import { dateCourte, heureCourte, texteEcart, texteEtape, tonEtape } from '#lib/engins/textes.ts';
@@ -24,13 +27,40 @@
 	const reparee = $derived(a.historique.some((h) => h.quoi === 'reparee'));
 	// Un seul envoi à la fois : les boutons attendent la réponse.
 	let envoi = $state(false);
+	// Le message de réussite est gardé : la navigation qui ferme un panneau efface `form`.
+	let reussite = $state('');
 	const soumettre: SubmitFunction = () => {
 		envoi = true;
-		return async ({ update }) => {
-			await update();
+		reussite = '';
+		// Le panneau d'où part l'envoi : après la réponse, le geste n'est souvent plus permis.
+		const ouvert = panneau;
+		return async ({ update, result }) => {
+			// Rester sur la page (pas de navigation vers l'adresse de l'envoi) : le défilement et le focus ne sautent pas.
+			await update({ navigate: false });
 			envoi = false;
+			if (result.type === 'success' && ouvert) {
+				reussite = String(result.data?.succes ?? '');
+				await goto(sans, { replaceState: true, reset: false });
+				document.getElementById('titre-suivi')?.focus();
+			}
 		};
 	};
+
+	// Mettre en attente, réparée, clore : un panneau chacun, ouvert par l'adresse (`?panneau=`) ou rouvert par un refus.
+	const PANNEAUX = ['attente', 'reparee', 'clore'] as const;
+	type Cle = (typeof PANNEAUX)[number];
+	const TITRES: Record<Cle, string> = { attente: 'Mettre en attente', reparee: libelleEtape('reparee', r), clore: 'Clore sans réparation' };
+	const adresse = (cle: Cle | null) => {
+		const p = new URLSearchParams(page.url.search);
+		if (cle) p.set('panneau', cle);
+		else p.delete('panneau');
+		return `?${p}`;
+	};
+	const sans = $derived(adresse(null));
+	const panneau = $derived.by((): Cle | null => {
+		const demande = form?.message && PANNEAUX.find((c) => c === form?.quoi) ? (form.quoi as Cle) : PANNEAUX.find((c) => c === page.url.searchParams.get('panneau'));
+		return demande && peut(demande) ? demande : null;
+	});
 	const avancer = $derived(a.gestes.filter((g) => g !== 'indisponible' && g !== 'remettre'));
 	const moment = (le: string) => `${dateCourte(le)}, ${heureCourte(le)}`;
 	const TEXTES: Record<EtapeHistorique['quoi'], string> = {
@@ -57,9 +87,11 @@
 <div class="page">
 	<EnTetePage titre={a.libelle} phrase={[e.nom, a.zone].filter(Boolean).join(' · ')} retour={{ href: `/engins/anomalies?engin=${e.id}`, libelle: 'Anomalies' }} />
 
-	<div role="status" class="masque">{form?.succes ?? ''}</div>
+	<div role="status" class="masque">{form?.succes ?? reussite}</div>
 	{#if data.signalee}<p class="bandeau ok">Signalement envoyé. Le référent engins et les chefs sont prévenus.</p>{/if}
 	{#if form?.message && form.quoi === null}<p class="echec" role="alert">{form.message}</p>{/if}
+	<!-- Refus d'un geste devenu interdit entre-temps (un collègue l'a close) : son panneau ne s'ouvre plus, le message reste lu. -->
+	{#if form?.message && !panneau && PANNEAUX.some((c) => c === form?.quoi)}<p class="echec" role="alert">{form.message}</p>{/if}
 
 	{#if e.etat === 'indisponible'}
 		<p class="bandeau danger"><strong>{e.nom} est indisponible.</strong> {a.bloquante ? 'Décidé depuis cette anomalie.' : 'Décidé depuis une autre anomalie.'}</p>
@@ -71,7 +103,7 @@
 		<div class="principal">
 			<section class="panneau" aria-labelledby="titre-suivi">
 				<div class="tete">
-					<h2 id="titre-suivi">Suivi</h2>
+					<h2 id="titre-suivi" tabindex="-1">Suivi</h2>
 					<Pastille ton={tonEtape({ etape: a.etape, closeLe: a.close?.le })}>{texteEtape({ etape: a.etape, motif: a.motif, closeLe: a.close?.le })}</Pastille>
 				</div>
 				<ol class="etapes">
@@ -104,55 +136,9 @@
 					</div>{/if}
 					{@render message('prendre')}
 					{@render message('verifiee')}
-					{#if peut('attente')}
-						<details open={form?.quoi === 'attente' && !!form.message}>
-							<summary>Mettre en attente…</summary>
-							<form method="POST" use:enhance={soumettre} class="formulaire">
-								<input type="hidden" name="quoi" value="attente" />
-								<fieldset>
-									<legend>Motif</legend>
-									{#each Object.entries(LIBELLES_MOTIF) as [valeur, libelle], i (valeur)}
-										<label class="choix"><input type="radio" name="motif" value={valeur} checked={i === 0} /> {libelle}</label>
-									{/each}
-								</fieldset>
-								<div class="champ">
-									<label for="texte-attente">Précision <span class="doux">(facultative : garage, date de retour prévue…)</span></label>
-									<input id="texte-attente" name="texte" type="text" maxlength="300" />
-								</div>
-								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Mettre en attente</Bouton></div>
-							</form>
-							{@render message('attente')}
-						</details>
-					{/if}
-					{#if peut('reparee')}
-						<details open={form?.quoi === 'reparee' && !!form.message}>
-							<summary>{libelleEtape('reparee', r)}…</summary>
-							<form method="POST" use:enhance={soumettre} class="formulaire">
-								<input type="hidden" name="quoi" value="reparee" />
-								<div class="champ">
-									<label for="texte-reparee">Ce qui a été fait <span class="doux">(facultatif)</span></label>
-									<textarea id="texte-reparee" name="texte" maxlength="300" rows="2"></textarea>
-								</div>
-								<p class="doux">{r.verifiee ? 'Une autre personne vérifiera ensuite.' : 'L’anomalie sera close.'}{e.etat === 'indisponible' ? ' L’engin reste indisponible jusqu’à sa remise en service.' : ''}</p>
-								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Enregistrer la réparation</Bouton></div>
-							</form>
-							{@render message('reparee')}
-						</details>
-					{/if}
-					{#if peut('clore')}
-						<details open={form?.quoi === 'clore' && !!form.message}>
-							<summary>Clore sans réparation…</summary>
-							<form method="POST" use:enhance={soumettre} class="formulaire">
-								<input type="hidden" name="quoi" value="clore" />
-								<div class="champ">
-									<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
-									<input id="texte-clore" name="texte" type="text" maxlength="300" />
-								</div>
-								<div><Bouton type="submit" variante="secondaire" desactive={envoi}>Clore</Bouton></div>
-							</form>
-							{@render message('clore')}
-						</details>
-					{/if}
+					{#if PANNEAUX.some(peut)}<div class="gestes">
+						{#each PANNEAUX.filter(peut) as cle (cle)}<a class="lien-secondaire" href={adresse(cle)} data-sveltekit-noscroll data-sveltekit-reset="false">{TITRES[cle]}…</a>{/each}
+					</div>{/if}
 				{:else if !a.close}
 					<p class="doux">{a.prisePar ? `Prise en charge par ${a.prisePar}.` : 'En attente d’une prise en charge.'}</p>
 				{/if}
@@ -213,6 +199,41 @@
 		</div>
 	</div>
 </div>
+
+{#if panneau}
+	<Panneau titre={TITRES[panneau]} fermer={sans}>
+		<form method="POST" action={sans} use:enhance={soumettre} class="formulaire">
+			<input type="hidden" name="quoi" value={panneau} />
+			{#if panneau === 'attente'}
+				<fieldset>
+					<legend>Motif</legend>
+					{#each Object.entries(LIBELLES_MOTIF) as [valeur, libelle], i (valeur)}
+						<label class="choix"><input type="radio" name="motif" value={valeur} checked={i === 0} /> {libelle}</label>
+					{/each}
+				</fieldset>
+				<div class="champ">
+					<label for="texte-attente">Précision <span class="doux">(facultative : garage, date de retour prévue…)</span></label>
+					<input id="texte-attente" name="texte" type="text" maxlength="300" />
+				</div>
+				<div><Bouton type="submit" desactive={envoi}>Mettre en attente</Bouton></div>
+			{:else if panneau === 'reparee'}
+				<div class="champ">
+					<label for="texte-reparee">Ce qui a été fait <span class="doux">(facultatif)</span></label>
+					<textarea id="texte-reparee" name="texte" maxlength="300" rows="3"></textarea>
+				</div>
+				<p class="doux">{r.verifiee ? 'Une autre personne vérifiera ensuite.' : 'L’anomalie sera close.'}{e.etat === 'indisponible' ? ' L’engin reste indisponible jusqu’à sa remise en service.' : ''}</p>
+				<div><Bouton type="submit" desactive={envoi}>Enregistrer la réparation</Bouton></div>
+			{:else}
+				<div class="champ">
+					<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
+					<input id="texte-clore" name="texte" type="text" maxlength="300" />
+				</div>
+				<div><Bouton type="submit" desactive={envoi}>Clore</Bouton></div>
+			{/if}
+			{@render message(panneau)}
+		</form>
+	</Panneau>
+{/if}
 
 <style>
 	.page,
@@ -326,22 +347,10 @@
 		flex-wrap: wrap;
 		gap: 10px;
 	}
-	details {
-		border-top: 1px solid var(--trait-doux);
-		padding-top: 10px;
-	}
-	summary {
-		min-height: var(--cible);
-		display: flex;
-		align-items: center;
-		font-weight: 700;
-		cursor: pointer;
-	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
-		padding-top: 8px;
 	}
 	fieldset {
 		margin: 0;

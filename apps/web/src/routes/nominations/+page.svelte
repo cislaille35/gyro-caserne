@@ -68,10 +68,16 @@
 		}
 	};
 
-	const ouvrirNommer = (e: MouseEvent, role: number) => {
+	const ouvrirNommer = async (e: MouseEvent, role: number) => {
 		e.preventDefault();
 		retirer = null;
 		vue = form;
+		// Fermé par Échap, le volet n'est retiré qu'à l'événement « close », qui arrive un peu après :
+		// un appui entre les deux le recrée à neuf, et l'ancien, détaché, ne referme plus rien.
+		if (nommer === role) {
+			nommer = null;
+			await tick();
+		}
 		nommer = role;
 	};
 	const fermerNommer = (role: number) => {
@@ -210,7 +216,7 @@
 						open
 						aria-labelledby="titre-nommer-{id}"
 						onclose={(e) => {
-							if (!e.currentTarget.open) fermerNommer(id);
+							if (!e.currentTarget.open && e.currentTarget.isConnected) fermerNommer(id);
 						}}
 						{@attach enFenetre}
 					>
