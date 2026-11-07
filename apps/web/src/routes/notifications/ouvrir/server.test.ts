@@ -25,7 +25,7 @@ describe('/notifications/ouvrir', () => {
 
 	it('refuse toute adresse hors de l’appli : retour à la cloche', async () => {
 		const { base, alice, avis } = await avecAvis();
-		for (const vers of ['https://exemple.fr/piege', '//exemple.fr', '/\\exemple.fr', 'javascript:alert(1)', 'planning', '']) {
+		for (const vers of ['https://exemple.fr/piege', '//exemple.fr', '/\\exemple.fr', 'javascript:alert(1)', 'planning', '', '/.//exemple.fr', '/%2e//exemple.fr', '/..//exemple.fr', '/a/..//exemple.fr', '/./\\exemple.fr']) {
 			await expect(ouvrir(locaux(base, alice), `?genre=ete&id=${avis.id}&vers=${encodeURIComponent(vers)}`), vers).rejects.toMatchObject({ status: 303, location: '/notifications' });
 		}
 		await expect(ouvrir(locaux(base, alice), `?genre=ete&id=${avis.id}`)).rejects.toMatchObject({ status: 303, location: '/notifications' });
@@ -34,6 +34,7 @@ describe('/notifications/ouvrir', () => {
 	it('genre ou identifiant illisible : rien n’est marqué, la page s’ouvre quand même ; sans connexion : la connexion', async () => {
 		const { base, alice, avis, nonLues } = await avecAvis();
 		await expect(ouvrir(locaux(base, alice), `?genre=inconnu&id=${avis.id}&vers=%2Fplanning`)).rejects.toMatchObject({ status: 303, location: '/planning' });
+		for (const id of ['abc', '0', '12345678901234567890']) await expect(ouvrir(locaux(base, alice), `?genre=ete&id=${id}&vers=%2Fplanning`)).rejects.toMatchObject({ status: 303, location: '/planning' });
 		await expect(ouvrir(locaux(base, alice), '?genre=ete&id=abc&vers=%2Fplanning')).rejects.toMatchObject({ status: 303, location: '/planning' });
 		expect(await nonLues()).toBe(1);
 		await expect(ouvrir(locaux(base, null), `?genre=ete&id=${avis.id}&vers=%2Fplanning`)).rejects.toMatchObject({ status: 303, location: '/connexion' });

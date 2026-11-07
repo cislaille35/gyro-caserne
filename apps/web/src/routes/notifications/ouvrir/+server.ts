@@ -9,7 +9,7 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ locals, url }) => {
 	const acteur = exigerActeur(locals);
 	const id = url.searchParams.get('id') ?? '';
-	if (/^[1-9]\d{0,15}$/.test(id)) {
+	if (/^[1-9]\d{0,14}$/.test(id)) {
 		try {
 			await marquerLue(locals.base, acteur, url.searchParams.get('genre') ?? '', Number(id), maintenantParis());
 		} catch (erreur) {
@@ -19,8 +19,9 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	redirect(303, interne(url.searchParams.get('vers') ?? '', url.origin));
 };
 
+// Le chemin est vérifié une fois relu : « /.//site » devient « //site », un autre site pour le navigateur.
 function interne(vers: string, origine: string): string {
-	if (!vers.startsWith('/')) return '/notifications';
 	const cible = new URL(vers, origine);
-	return cible.origin === origine ? `${cible.pathname}${cible.search}${cible.hash}` : '/notifications';
+	const chemin = `${cible.pathname}${cible.search}${cible.hash}`;
+	return vers.startsWith('/') && cible.origin === origine && !chemin.startsWith('//') ? chemin : '/notifications';
 }
