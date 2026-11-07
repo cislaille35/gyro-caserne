@@ -10,7 +10,7 @@
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
 	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
-	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import Retour from '#lib/ui/Retour.svelte';
 	import Panneau from '#lib/planning/Panneau.svelte';
 	import Pastille from '#lib/ui/Pastille.svelte';
 
@@ -40,7 +40,7 @@
 	const etatZone = (z: ZoneFiche) => {
 		const n = ecartsDe(z.elements);
 		const signales = z.elements.filter((x) => { const o = ouverteSur(x.ref); return o && !s?.retrouves.includes(o.id); }).length;
-		const etat = vue(z.ref) ? (n ? `Complète sauf ${pluriel(n, 'écart')}` : 'Complète') : n ? `À finir · ${pluriel(n, 'écart')}` : z.elements.length ? `${z.elements.length} à voir` : 'À voir';
+		const etat = vue(z.ref) ? (n ? `Complet sauf ${pluriel(n, 'écart')}` : 'Tout est complet') : n ? `À finir · ${pluriel(n, 'écart')}` : z.elements.length ? `${z.elements.length} à voir` : 'À voir';
 		return signales ? `${etat} · ${pluriel(signales, 'signalé')}` : etat;
 	};
 	// Signalés sur des éléments absents de la fiche : ils ne se voient dans aucune zone.
@@ -145,7 +145,33 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Prise de garde · {e.nom}" phrase="{texteReleve(data.releve)} · fiche {e.type}" retour={{ href: '/engins/prise', libelle: 'Prise de garde' }} />
+	<Retour href="/engins/prise" libelle="Prise de garde" />
+
+	<!-- La plaque de l'engin : son nom en grand sur l'à-plat rouge, la relève, les zones vues ; dessous, qui fait la prise. -->
+	<section class="plaque" aria-labelledby="titre-engin">
+		<div class="aplat">
+			<div class="titres">
+				<h1 id="titre-engin" tabindex="-1"><span class="masque">{'Prise de garde : '}</span>{e.nom}</h1>
+				<p>{texteReleve(data.releve)}</p>
+			</div>
+			{#if data.zones.length}
+				<p class="compteur"><span class="nombre">{vues}<span aria-hidden="true">{' / '}</span><span class="masque">{' sur '}</span>{data.zones.length}</span> {data.zones.length > 1 ? 'zones vues' : 'zone vue'}</p>
+			{/if}
+		</div>
+		{#if p && p.etat !== 'validee'}
+			<div class="bande">
+				{#if data.peutFaire}
+					<a class="participants" href="?participants" data-sveltekit-noscroll>
+						<span><span>Participants :</span> <strong>{resumeParticipants}</strong></span>
+						<span class="modifier">Modifier<span class="masque">{' '}les participants</span></span>
+					</a>
+				{:else}
+					<p class="participants"><span><span>Participants :</span> <strong>{resumeParticipants}</strong></span></p>
+				{/if}
+				<p class="doux">Commencée par <strong>{p.commenceePar}</strong> à {heureCourte(p.commenceeLe)}{#if p.modifieeLe.slice(0, 16) !== p.commenceeLe.slice(0, 16) || p.modifieePar !== p.commenceePar}, modifiée par <strong>{p.modifieePar}</strong> à {heureCourte(p.modifieeLe)}{/if}.</p>
+			</div>
+		{/if}
+	</section>
 
 	<div role="status" class="masque">{form?.succes ?? ''}</div>
 
@@ -153,27 +179,12 @@
 		<section class="panneau fait" aria-labelledby="titre-fait">
 			<h2 id="titre-fait">{validee ? 'Prise validée, merci.' : 'Prise faite'}</h2>
 			<p><Pastille ton="ok">{etatPrise({ etat: 'validee', valideeLe: p.valideeLe, equipe: data.releve.equipe?.nom ?? null, par: p.modifieePar })}</Pastille></p>
-			<p>{pluriel(p.saisie.participants.length, 'participant')} · {pluriel(Object.keys(p.saisie.ecarts).length, 'écart')} · {pluriel(p.saisie.retrouves.length, 'élément retrouvé', 'éléments retrouvés')}</p>
+			<p>{pluriel(p.saisie.participants.length, 'participant')}, {pluriel(Object.keys(p.saisie.ecarts).length, 'écart')}, {pluriel(p.saisie.retrouves.length, 'élément retrouvé', 'éléments retrouvés')}</p>
 			<a class="lien-secondaire" href="/engins/{e.id}">Voir l’engin et l’historique des prises</a>
 		</section>
 	{:else}
 		{#if p}
-			<section class="suivi" aria-label="Où en est la prise">
-				<p>Commencée par <strong>{p.commenceePar}</strong> à {heureCourte(p.commenceeLe)}{#if p.modifieeLe.slice(0, 16) !== p.commenceeLe.slice(0, 16) || p.modifieePar !== p.commenceePar}, modifiée par <strong>{p.modifieePar}</strong> à {heureCourte(p.modifieeLe)}{/if}.</p>
-				<div class="jauge">
-					<span>{vues} {vues > 1 ? 'zones vues' : 'zone vue'} sur {data.zones.length}</span>
-					<progress max={data.zones.length || 1} value={vues} aria-label="Zones vues">{vues} sur {data.zones.length}</progress>
-				</div>
-				{#if data.peutFaire}
-					<a class="rangee-participants" href="?participants" data-sveltekit-noscroll>
-						<span><strong>Participants :</strong> {resumeParticipants}</span>
-						<span class="doux">Modifier<span class="masque">{' '}les participants</span></span>
-					</a>
-				{:else}
-					<p><strong>Participants :</strong> {resumeParticipants}</p>
-				{/if}
-				{#if !panneauParticipants}{@render message('participants')}{/if}
-			</section>
+			{#if !panneauParticipants}{@render message('participants')}{/if}
 		{:else}
 			<section class="panneau" aria-label="Avant de commencer">
 				{#if data.peutFaire}
@@ -236,6 +247,7 @@
 							<li>
 								<a
 									href="?zone={zone.ref}#titre-zone"
+									class={vue(zone.ref) ? 'vue' : undefined}
 									aria-current={zone.ref === z.ref ? 'true' : undefined}
 									data-sveltekit-preload-data="off"
 									data-sveltekit-noscroll
@@ -246,8 +258,8 @@
 										montrerZone();
 									}}
 								>
-									<span class="nom-zone">{zone.nom}</span>
-									<span class="etat-zone">{#if vue(zone.ref)}{@render marque()}{/if}{etatZone(zone)}</span>
+									<span class="nom-zone">{#if vue(zone.ref)}{@render marque()}{/if}{zone.nom}</span>
+									<span class="etat-zone">{etatZone(zone)}</span>
 								</a>
 							</li>
 						{/each}
@@ -255,18 +267,18 @@
 				</nav>
 
 				<section class="contenu" aria-labelledby="titre-zone">
-					<h2 id="titre-zone" tabindex="-1">{z.nom}</h2>
+					<h2 id="titre-zone" class="titre-groupe" tabindex="-1">{z.nom}{#if z.elements.length}{' '}<span class="compte">{z.elements.length}<span class="masque">{z.elements.length > 1 ? ' éléments' : ' élément'}</span></span>{/if}</h2>
 					{#if p && zoneFaite && data.peutFaire}
 						<form method="POST" action="?/geste" use:enhance={envoi} class="zone-faite">
 							<input type="hidden" name="prise" value={p.id} />
 							<input type="hidden" name="quoi" value="zone" />
 							<input type="hidden" name="zone" value={zoneFaite.ref} />
 							<input type="hidden" name="cible" value="zone:{zoneFaite.ref}" />
-							<p class="ok">{@render marque()} {zoneFaite.nom} : complète.</p>
+							<p class="ok">{@render marque()} {zoneFaite.nom} : tout est complet.</p>
 							<button type="submit" class="petit" name="vue" value="0">Annuler<span class="masque">{' '}: {zoneFaite.nom} à revoir</span></button>
 						</form>
 					{/if}
-					<ul role="list" class="elements">
+					{#if z.elements.length}<ul role="list" class="lignes elements">
 						{#each z.elements as el (el.ref)}
 							{@const o = ouverteSur(el.ref)}
 							{@const ecart = s?.ecarts[String(el.ref)]}
@@ -349,8 +361,7 @@
 								{@render message(`element:${el.ref}`)}
 							</li>
 						{/each}
-					</ul>
-					{#if z.elements.length === 0}<p class="doux">Aucun élément dans cette zone.</p>{/if}
+					</ul>{:else}<p class="doux">Aucun élément dans cette zone.</p>{/if}
 
 					{#if data.peutFaire}
 						<!-- Après la liste : on ne valide pas une check-list sans l'avoir sous les yeux. -->
@@ -421,27 +432,24 @@
 <style>
 	.page,
 	.panneau,
-	.suivi,
 	.contenu {
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
 	}
 	p,
-	h2,
+	h2:not(.titre-groupe),
 	ul,
 	fieldset {
 		margin: 0;
 	}
-	h2 {
+	h2:not(.titre-groupe) {
 		font: 700 1.25rem var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
 	}
-	.panneau,
-	.suivi,
-	.contenu {
+	.panneau {
 		gap: 12px;
 		padding: 16px;
 		background: var(--surface);
@@ -449,19 +457,83 @@
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
-	.fait {
-		border-left: 6px solid var(--statut-ok-trait);
+	.contenu {
+		gap: 12px;
 	}
-	.jauge {
+	/* La plaque de l'engin : un à-plat rouge, tout y est écrit en blanc (contraste vérifié par les jetons). */
+	.plaque {
+		border: 1px solid transparent;
+		border-radius: var(--rayon-grand);
+		overflow: hidden;
+		background: var(--surface);
+		box-shadow: var(--ombre-carte);
+	}
+	.aplat {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 8px 16px;
+		padding: 14px 18px;
+		background: var(--rouge);
+		color: var(--sur-rouge);
+	}
+	.titres {
+		flex: 1 1 12rem;
+		min-width: 0;
+	}
+	h1 {
+		margin: 0;
+		font: 700 3.25rem/0.9 var(--police-titre);
+		overflow-wrap: anywhere;
+	}
+	h1:focus {
+		outline: none;
+	}
+	.aplat p {
+		margin-top: 6px;
+		font-size: 0.875rem;
+	}
+	.compteur {
+		text-align: right;
+		font-size: 0.8125rem;
+	}
+	.compteur .nombre {
+		display: block;
+		font: 700 2.125rem/1 var(--police-titre);
+	}
+	/* La bande claire sous la plaque : qui fait la prise, « Modifier », et où elle en est. */
+	.bande {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		font-weight: 700;
+		gap: 2px;
+		padding: 4px 6px 10px 18px;
+		font-size: 0.9375rem;
 	}
-	progress {
-		width: 100%;
-		height: 10px;
-		accent-color: var(--statut-ok-texte);
+	.participants {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0 12px;
+		min-height: var(--cible);
+		color: var(--encre);
+		text-decoration: none;
+	}
+	a.participants:focus-visible {
+		outline-offset: -3px;
+	}
+	.modifier {
+		padding: 0 10px;
+		font-weight: 600;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.bande .doux {
+		font-size: 0.875rem;
+	}
+	.fait {
+		border-left: 6px solid var(--statut-ok-trait);
 	}
 	ul {
 		padding: 0;
@@ -479,7 +551,7 @@
 	/* Les zones passent à la ligne : on les voit toutes d'un coup, quels que soient leur nombre et leurs noms. */
 	.selecteur ul {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 8px;
 	}
 	.selecteur a {
@@ -488,10 +560,10 @@
 		justify-content: center;
 		gap: 2px;
 		height: 100%;
-		min-height: var(--cible);
-		padding: 8px 12px;
+		min-height: 64px;
+		padding: 10px 12px;
 		border: 1px solid var(--trait);
-		border-radius: var(--rayon-grand);
+		border-radius: 12px;
 		background: var(--surface);
 		color: var(--encre);
 		text-decoration: none;
@@ -500,15 +572,25 @@
 		border-color: var(--encre);
 	}
 	.nom-zone {
-		font: 700 1.0625rem/1.2 var(--police-titre);
+		font: 700 1.125rem/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
+	.nom-zone :global(svg) {
+		margin-right: 6px;
+		vertical-align: -2px;
+	}
 	.etat-zone {
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
+	}
+	/* Une zone vue : fond vert, la coche et « Tout est complet » écrits, jamais la couleur seule. */
+	.selecteur a.vue {
+		border-color: var(--statut-ok-trait);
+		background: var(--statut-ok-fond);
+	}
+	.selecteur a.vue .nom-zone,
+	.selecteur a.vue .etat-zone {
+		color: var(--statut-ok-texte);
 	}
 	/* La zone à l'écran : fond plein et marque pour les lecteurs d'écran, pas une teinte seule. */
 	.selecteur a[aria-current='true'] {
@@ -516,7 +598,8 @@
 		background: var(--encre);
 		color: var(--surface);
 	}
-	.selecteur a[aria-current='true'] .etat-zone {
+	.selecteur a[aria-current='true'] .etat-zone,
+	.selecteur a[aria-current='true'] .nom-zone {
 		color: inherit;
 	}
 	.contenu {
@@ -528,9 +611,10 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 4px 12px;
-		padding: 4px 12px;
+		padding: 0 6px 0 14px;
+		min-height: var(--cible);
 		border: 1px solid var(--statut-ok-trait);
-		border-radius: var(--rayon-grand);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-ok-fond);
 	}
 	.elements li,
@@ -540,7 +624,12 @@
 		gap: 8px;
 		padding: 4px 0;
 	}
-	.elements li + li,
+	.elements li {
+		padding: 3px 6px 3px 14px;
+	}
+	.elements li:has(details[open], .encadre) {
+		padding-bottom: 12px;
+	}
 	.ouvertes li + li {
 		border-top: 1px solid var(--trait-doux);
 	}
@@ -562,10 +651,12 @@
 	.quantite {
 		flex: none;
 		min-width: 2.5em;
-		padding: 0 8px;
-		border: 1px solid var(--trait);
+		padding: 1px 9px;
 		border-radius: 999px;
+		background: var(--statut-neutre-fond);
+		color: var(--statut-neutre-texte);
 		text-align: center;
+		font-size: 0.875rem;
 		font-weight: 700;
 	}
 	.encadre {
@@ -620,27 +711,9 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
-		padding-top: 12px;
-		border-top: 1px solid var(--trait-doux);
-	}
-	.rangee-participants {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: 4px 12px;
-		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		color: var(--encre);
-		text-decoration: none;
 	}
 	.valider-participants a {
 		color: inherit;
-	}
-	.rangee-participants:hover {
-		background: var(--fond);
 	}
 	.pastilles {
 		display: flex;

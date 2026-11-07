@@ -71,8 +71,8 @@ describe('/engins/[id]/prise', () => {
 		expect(page).toMatch(/href="\?zone=2#titre-zone"[^>]*aria-current="true"/);
 		expect(page).toContain('Lances');
 		expect(page).not.toContain('Radio : essai');
-		expect(page).toMatch(/name="zone" value="1"[\s\S]*?Cabine : complète[\s\S]*?name="vue" value="0"[\s\S]*?Annuler/);
-		expect(page).toMatch(/href="\?zone=1#titre-zone"[\s\S]*?Complète/);
+		expect(page).toMatch(/name="zone" value="1"[\s\S]*?Cabine : tout est complet[\s\S]*?name="vue" value="0"[\s\S]*?Annuler/);
+		expect(page).toMatch(/href="\?zone=1#titre-zone"[^>]*class="vue[\s\S]*?Tout est complet/);
 	});
 
 	it('une zone déjà complète se revoit : « Complet », et le geste s’annule', () => {
@@ -123,7 +123,7 @@ describe('/engins/[id]/prise', () => {
 				expect(page).toContain('Radio : essai');
 				expect(page).not.toContain('<form');
 				expect(page).not.toContain('<summary');
-				expect(page).not.toContain('Tout est complet');
+				expect(page).not.toMatch(/<button[^>]*>Tout est complet/);
 				expect(page).not.toContain('<dialog');
 				expect(page).not.toContain('Modifier');
 				expect(page).toContain('Abîmé');
@@ -165,13 +165,13 @@ describe('/engins/[id]/prise', () => {
 	it('« Annuler » vient après le titre de la zone, où se pose le focus', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html(data({ zones: [1] }), { cible: 'zone:1', zone: null, zoneFaite: 1, succes: 'Zone complète.' });
-		expect(page).toMatch(/id="titre-zone"[\s\S]*?Cabine : complète[\s\S]*?Annuler[\s\S]*?Lances/);
+		expect(page).toMatch(/id="titre-zone"[\s\S]*?Cabine : tout est complet[\s\S]*?Annuler[\s\S]*?Lances/);
 	});
 
 	it('les participants : une rangée en tête (« vous + 2 »), rappelés à la validation ; pas de liste à plat', () => {
 		adresse.url = new URL('http://x/engins/1/prise');
 		const page = html(data());
-		expect(page).toMatch(/href="\?participants"[\s\S]*?Participants :<\/strong> vous \+ 2/);
+		expect(page).toMatch(/href="\?participants"[\s\S]*?Participants :<\/span> <strong>vous \+ 2<\/strong>/);
 		expect(html(data({ zones: [1, 2] }))).toMatch(/La prise sera au nom de : <strong>Mila Clément, vous, Élodie Chef-de-Garde<\/strong>/);
 		expect(page).not.toContain('name="participant"');
 	});
@@ -184,5 +184,37 @@ describe('/engins/[id]/prise', () => {
 		expect(page).not.toMatch(/value="3" checked/);
 		expect(page).not.toMatch(/<label class="pastille-choix" hidden/);
 		expect(html(data(), { cible: 'participants', message: 'Un des participants n’est plus agent du centre.' })).toMatch(/<dialog[\s\S]*?role="alert">Un des participants/);
+	});
+
+	it('la plaque de l’engin : son nom en titre, la relève, le compte des zones vues ; participants et « Modifier » dessous', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const page = html(data({ zones: [1] }));
+		expect(page).toMatch(/<section class="plaque[^"]*"[\s\S]*?<div class="aplat[^"]*">[\s\S]*?<h1[^>]*><span class="masque">Prise de garde : <\/span>FPT<\/h1>[\s\S]*?Relève du ven\. 30 oct\., équipe 4[\s\S]*?class="compteur[^"]*"><span class="nombre[^"]*">1<span aria-hidden="true"> \/ <\/span><span class="masque"> sur <\/span>2<\/span> zones vues/);
+		expect(page).toMatch(/<\/div>\s*(<!--[^>]*-->)?<div class="bande[^"]*">[\s\S]*?Participants :[\s\S]*?Modifier[\s\S]*?Commencée par/);
+		// Avant le premier geste : la plaque, sans participants.
+		const lu = html(lecture());
+		expect(lu).toMatch(/class="compteur[^"]*"><span class="nombre[^"]*">0<span aria-hidden="true"> \/ /);
+		expect(lu).not.toContain('class="bande"');
+	});
+
+	it('les zones en tuiles : vue en vert avec la coche et « Tout est complet », sauf ses écarts écrits', () => {
+		adresse.url = new URL('http://x/engins/1/prise?zone=2');
+		const page = html(data({ zones: [1, 2], ecarts: { '20': { genre: 'manquant', manque: 1, note: '', photo: null } } }));
+		expect(page).toMatch(/href="\?zone=1#titre-zone" class="vue[^"]*"[^>]*>[\s\S]*?<svg[\s\S]*?Tout est complet/);
+		expect(page).toMatch(/href="\?zone=2#titre-zone" class="vue[^"]*" aria-current="true"[^>]*>[\s\S]*?Complet sauf 1 écart/);
+	});
+
+	it('la zone choisie : titre en majuscules espacées avec son nombre d’éléments, la liste dans une seule carte', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const page = html(data());
+		expect(page).toMatch(/<h2 id="titre-zone" class="titre-groupe[^"]*" tabindex="-1">Cabine(<!--[^>]*-->)? <span class="compte">1<span class="masque"> élément<\/span><\/span>(<!--[^>]*-->)?<\/h2>/);
+		expect(page).toMatch(/<ul role="list" class="lignes elements[^"]*">/);
+	});
+
+	it('la prise faite : le bilan en virgules, pas en points', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const d = data();
+		const page = html({ ...d, prise: { ...d.prise, etat: 'validee', valideeLe: '2026-10-30T19:00' } });
+		expect(page).toContain('3 participants, 0 écart, 0 élément retrouvé');
 	});
 });
