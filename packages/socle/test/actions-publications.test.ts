@@ -2,10 +2,10 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
-import { epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication } from '../src/actions/publications.ts';
+import { effacerVieillesPublications, epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication } from '../src/actions/publications.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, personne, photoPublication, priseConnaissance, profil, publication, reponseEvenement, responsabilite, visiteMur, voteSondage } from '../src/schema.ts';
+import { affectationEquipe, attribution, commentaire, comite, equipe, jaime, journal, manoeuvre, notification, personne, photoPublication, priseConnaissance, profil, publication, reponseEvenement, responsabilite, visiteMur, voteSondage } from '../src/schema.ts';
 import { photo as photoOctets } from '../src/schema-photos.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -424,6 +424,7 @@ describe('lireMur', () => {
 				lieu: 'Caserne',
 				convoques: 'tous',
 				convoque: true,
+				moment: 'avenir',
 				reponse: 'present',
 				compte: { present: 2, absent: 0, incertain: 1 },
 				presents: [
@@ -441,6 +442,9 @@ describe('lireMur', () => {
 		expect(vueChef.jaimeParMoi).toBe(false);
 		expect(vueChef.sondage!.vote).toBeNull();
 		expect(vueChef.evenement!.reponse).toBe('incertain');
+		// Pendant l'événement (3 h, sans heure de fin), puis après : on ne peut plus y répondre.
+		const moment = async (quand: string) => (await lireMur(base, acteur(agent), 'vie', {}, quand)).publications[0]!.evenement!.moment;
+		expect([await moment('2026-11-02T19:00'), await moment('2026-11-02T21:59'), await moment('2026-11-02T22:00')]).toEqual(['enCours', 'enCours', 'passe']);
 	});
 
 	it('résultats du sondage : seulement à qui a voté, à l’auteur et aux modérateurs', async () => {
@@ -729,5 +733,108 @@ describe('remplissagePhotos', () => {
 		expect(await remplissagePhotos(base.photos)).toEqual({ octets: 400 * MO - 1, limite: 500 * MO, alerte: false });
 		await ajouter(base, 1);
 		expect(await remplissagePhotos(base.photos)).toEqual({ octets: 400 * MO, limite: 500 * MO, alerte: true });
+	});
+});
+
+describe('conservation des publications (tâche de nuit)', () => {
+	const vieux = '2024-09-01T10:00';
+	const avant = '2024-11-07';
+
+	// Une publication et tout ce qui en dépend : photo, commentaire, j'aime, réponse, vote, prise de connaissance, notifications.
+	async function avecTout(base: Awaited<ReturnType<typeof jeu>>['base'], auteur: number, autre: number, quand: string, debut = '2024-09-10T19:00') {
+		// Publiée maintenant (le chef n'a son rôle que depuis 2026), puis vieillie.
+		const id = await publier(base, base.photos, acteur(auteur), 'centre', { type: 'evenement', texte: 'Manœuvre', evenement: { debut: '2026-12-01T19:00', lieu: 'Caserne', convoques: 'tous' }, photos: [jpeg()] }, maintenant);
+		await base.update(publication).set({ creeLe: quand, debut }).where(eq(publication.id, id));
+		const [c] = await base.insert(commentaire).values({ publicationId: id, auteur: `personne:${autre}`, texte: 'Présent', creeLe: quand }).returning();
+		await base.insert(jaime).values({ publicationId: id, personneId: autre });
+		await base.insert(reponseEvenement).values({ publicationId: id, personneId: autre, reponse: 'present' });
+		await base.insert(voteSondage).values({ publicationId: id, personneId: autre, reponse: 0 });
+		await base.insert(priseConnaissance).values({ publicationId: id, personneId: autre, le: quand });
+		await base.insert(notification).values([
+			{ personneId: autre, publicationId: id, creeLe: quand },
+			{ personneId: auteur, publicationId: id, commentaireId: c!.id, creeLe: quand }
+		]);
+		return id;
+	}
+	const de = async (id: number) => ({
+		publication: (await base_.select().from(publication).where(eq(publication.id, id))).length,
+		photos: (await base_.select().from(photoPublication).where(eq(photoPublication.publicationId, id))).length,
+		commentaires: (await base_.select().from(commentaire).where(eq(commentaire.publicationId, id))).length,
+		jaime: (await base_.select().from(jaime).where(eq(jaime.publicationId, id))).length,
+		reponses: (await base_.select().from(reponseEvenement).where(eq(reponseEvenement.publicationId, id))).length,
+		votes: (await base_.select().from(voteSondage).where(eq(voteSondage.publicationId, id))).length,
+		prises: (await base_.select().from(priseConnaissance).where(eq(priseConnaissance.publicationId, id))).length,
+		notifications: (await base_.select().from(notification).where(eq(notification.publicationId, id))).length
+	});
+	let base_: Awaited<ReturnType<typeof jeu>>['base'];
+	const tout = { publication: 1, photos: 1, commentaires: 1, jaime: 1, reponses: 1, votes: 1, prises: 1, notifications: 2 };
+	const rien = { publication: 0, photos: 0, commentaires: 0, jaime: 0, reponses: 0, votes: 0, prises: 0, notifications: 0 };
+
+	it('efface les publications d’avant la limite, avec tout ce qui en dépend et leurs photos ; l’épinglée et les récentes restent, et rien d’autre n’est touché', async () => {
+		const { base, chef, agent } = await jeu();
+		base_ = base;
+		const ancienne = await avecTout(base, chef, agent, vieux);
+		const epinglee = await avecTout(base, chef, agent, vieux);
+		await epingler(base, acteur(chef), epinglee, true, maintenant);
+		const limite = await avecTout(base, chef, agent, `${avant}T00:00`, '2024-11-10T19:00');
+		const recente = await avecTout(base, chef, agent, maintenant, '2026-11-10T19:00');
+		// La manœuvre du planning annoncée par l'ancienne publication reste, sans sa publication (elle n'est pas réannoncée).
+		await base.insert(manoeuvre).values({ debut: '2024-09-10T19:00', theme: 'Sport', lieu: 'Caserne', convoques: '"tous"', publicationId: ancienne, annonceeLe: vieux });
+		await base.insert(visiteMur).values({ personneId: agent, mur: 'centre', vueLe: vieux });
+		const photosAvant = (await base.photos.select().from(photoOctets)).length;
+		const journalAvant = (await base.select().from(journal)).length;
+		const [photoAncienne] = await base.select().from(photoPublication).where(eq(photoPublication.publicationId, ancienne));
+
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(1);
+
+		expect(await de(ancienne)).toEqual(rien);
+		for (const id of [epinglee, limite, recente]) expect(await de(id), `publication ${id}`).toEqual(tout);
+		const octets = await base.photos.select({ id: photoOctets.id }).from(photoOctets);
+		expect(octets).toHaveLength(photosAvant - 1);
+		expect(octets.map((o) => o.id)).not.toContain(photoAncienne!.photoId);
+		// Aucune ligne orpheline : chaque dépendance pointe vers une publication qui existe.
+		const restantes = new Set((await base.select({ id: publication.id }).from(publication)).map((p) => p.id));
+		const references = [
+			...(await base.select({ id: photoPublication.publicationId }).from(photoPublication)),
+			...(await base.select({ id: commentaire.publicationId }).from(commentaire)),
+			...(await base.select({ id: jaime.publicationId }).from(jaime)),
+			...(await base.select({ id: reponseEvenement.publicationId }).from(reponseEvenement)),
+			...(await base.select({ id: voteSondage.publicationId }).from(voteSondage)),
+			...(await base.select({ id: priseConnaissance.publicationId }).from(priseConnaissance)),
+			...(await base.select({ id: notification.publicationId }).from(notification))
+		];
+		expect(references.filter((r) => !restantes.has(r.id))).toEqual([]);
+		expect(await base.select({ publicationId: manoeuvre.publicationId, annonceeLe: manoeuvre.annonceeLe }).from(manoeuvre)).toEqual([{ publicationId: null, annonceeLe: vieux }]);
+		expect(await base.select().from(visiteMur)).toHaveLength(1);
+		expect(await base.select().from(journal)).toHaveLength(journalAvant);
+		// Désépinglée, elle part la nuit suivante.
+		await epingler(base, acteur(chef), epinglee, false, maintenant);
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(1);
+		expect(await de(epinglee)).toEqual(rien);
+	});
+
+	it('un événement publié avant la limite, mais daté après, est gardé ; rien à effacer : une requête', async () => {
+		const { base, chef } = await jeu();
+		const [{ id }] = await base.insert(publication).values({ mur: 'centre', auteur: `personne:${chef}`, type: 'evenement', texte: 'Sainte-Barbe', creeLe: vieux, debut: '2024-12-04T12:00', lieu: 'Caserne', convoques: '"tous"' }).returning({ id: publication.id });
+		const requetes = base.requetes;
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(0);
+		expect(base.requetes - requetes).toBe(1);
+		expect(await base.select({ id: publication.id }).from(publication)).toEqual([{ id }]);
+	});
+
+	it('par lots de 100, 5 au plus par nuit : le reste part la nuit suivante', async () => {
+		const { base, chef } = await jeu();
+		await base.insert(publication).values(Array.from({ length: 601 }, (_, i) => ({ mur: 'centre', auteur: `personne:${chef}`, type: 'message' as const, texte: `Vieux ${i}`, creeLe: vieux })));
+		const requetes = base.requetes;
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(500);
+		// Sans photos : une requête par lot.
+		expect(base.requetes - requetes).toBe(5);
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(101);
+		expect(await base.select().from(publication)).toHaveLength(0);
+	});
+
+	it('refuse une date mal formée', async () => {
+		const { base } = await jeu();
+		await expect(effacerVieillesPublications(base, base.photos, '2024-13-01')).rejects.toThrow(DonneeInvalide);
 	});
 });

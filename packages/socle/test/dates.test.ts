@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajouterJours, enCours, formatDeDate, heureDeParis, veille } from '../src/dates.ts';
+import { ajouterJours, enCours, finEvenement, formatDeDate, heureDeParis, momentEvenement, veille } from '../src/dates.ts';
 import { rangDuJour } from '../src/planning/calendrier.ts';
 
 describe('enCours', () => {
@@ -115,5 +115,15 @@ describe('heureDeParis', () => {
 		expect(heureDeParis(new Date('2026-01-15T09:30:00Z'))).toBe('2026-01-15T10:30');
 		expect(heureDeParis(new Date('2026-07-15T09:30:00Z'))).toBe('2026-07-15T11:30');
 		expect(heureDeParis(new Date('2026-12-31T23:15:00Z'))).toBe('2027-01-01T00:15');
+	});
+});
+
+describe('momentEvenement (sans heure de fin, un événement dure 3 h)', () => {
+	it('à venir avant son début, en cours jusqu’à 3 h après, passé ensuite', () => {
+		expect(finEvenement('2026-10-28T22:00')).toBe('2026-10-29T01:00');
+		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T13:59')).toBe('avenir');
+		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T14:00')).toBe('enCours');
+		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T16:59')).toBe('enCours');
+		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T17:00')).toBe('passe');
 	});
 });

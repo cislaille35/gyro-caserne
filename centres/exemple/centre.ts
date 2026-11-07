@@ -26,6 +26,7 @@ export default defineCentre({
 		semaine: { debut: '18:00', fin: '06:00' }
 	}
 	// Messages gardés 12 mois, puis effacés ; pour une autre durée : conservationMessagesMois: 24
+	// Publications des murs (et leurs photos) gardées 24 mois, puis effacées, sauf épinglées ; pour une autre durée : conservationPublicationsMois: 36
 	// Suivi des anomalies : étape « en attente » oui, « vérifiée » non, libellés d'origine ; pour changer :
 	// anomalies: { verifiee: true, libelles: { reparee: 'Remise en état' } }
 });

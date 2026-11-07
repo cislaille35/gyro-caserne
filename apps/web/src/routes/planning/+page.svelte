@@ -149,7 +149,10 @@
 							<li>
 								<Rangee titre={manoeuvre.theme} sous="Manœuvre, {momentLong(manoeuvre.debut)}, {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ', petit-déjeuner' : ''}">
 									{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
-									{#if manoeuvre.publicationId}
+									<!-- Commencée, on n'y répond plus et on n'échange plus sa place (le serveur refuse). -->
+									{#if manoeuvre.enCours}
+										<span class="en-cours"><Pastille ton="ok">En cours</Pastille></span>
+									{:else if manoeuvre.publicationId}
 										<form method="POST" action="?/repondre&{new URLSearchParams({ annee: String(p.annee), vue: data.vue, semaine: data.semaine ?? '', mois: String(data.mois) })}" use:enhance={garderFocus}>
 											<input type="hidden" name="id" value={manoeuvre.publicationId} />
 											<p id="reponse-manoeuvre" class="masque">Votre réponse : {manoeuvre.theme}</p>
@@ -162,7 +165,7 @@
 									{:else}
 										<span class="note">Annoncée deux semaines avant : vous pourrez répondre ici.</span>
 									{/if}
-									{#if manoeuvre.convocation !== 'tous'}
+									{#if manoeuvre.convocation !== 'tous' && !manoeuvre.enCours}
 										<a class="echanger" href="/remplacements/manoeuvre?mienne={manoeuvre.id}&depuis=planning">Je ne peux pas : échanger ma place<span class="masque">{` à « ${manoeuvre.theme} »`}</span></a>
 									{/if}
 								</Rangee>
@@ -186,6 +189,10 @@
 </div>
 
 <style>
+	.en-cours {
+		display: block;
+		margin-top: 4px;
+	}
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.boutons {
 		display: grid;

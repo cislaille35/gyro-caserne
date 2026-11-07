@@ -1,4 +1,4 @@
-// La pastille sur l'icône de l'appli (API Badging) : le chiffre de la cloche. Posée par le service worker à chaque notification
+// La pastille sur l'icône de l'appli (API Badging) : le chiffre de la cloche plus les messages non lus. Posée par le service worker à chaque notification
 // reçue, et par l'appli ouverte. Seuls Chrome et Edge (appli installée) et Safari (iPhone, écran d'accueil) la montrent ;
 // Android n'en montre souvent qu'un point. Ailleurs, rien, sans erreur.
 type AvecPastille = { setAppBadge?: (n: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
@@ -12,3 +12,6 @@ export async function poserPastille(nav: AvecPastille, n: unknown): Promise<void
 		// Refusée (autorisation des notifications retirée) : la cloche de l'appli reste juste.
 	}
 }
+
+// Appli ouverte : la cloche et la pastille d'Échanges, déjà lues par le layout (aucune requête de plus) ; déconnecté, rien.
+export const chiffreIcone = (connecte: boolean, cloche: number, nonLus: number) => (connecte ? cloche + nonLus : 0);

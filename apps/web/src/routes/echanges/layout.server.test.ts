@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { attribution, comite, lireMur, personne, profil, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
+import { attribution, comite, lireMur, personne, profil, publication, publier, repondreEvenement, responsabilite } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { locaux, preparer } from './de-test.ts';
 import { load } from './+layout.server';
@@ -118,10 +118,20 @@ describe('liste des murs', () => {
 		await repondreEvenement(base, alice, repas, 'present', maintenantParis());
 		const { aVenir } = await charger(locaux(base, alice));
 		expect(aVenir).toEqual([
-			{ id: repas, cle: 'centre', nomMur: 'Le centre', titre: 'Repas', debut: '2099-01-01T12:00' },
-			{ id: manoeuvre, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2099-01-02T19:00' },
-			{ id: sport, cle: 'centre', nomMur: 'Le centre', titre: 'Sport', debut: '2099-01-03T19:00' }
+			{ id: repas, cle: 'centre', nomMur: 'Le centre', titre: 'Repas', debut: '2099-01-01T12:00', enCours: false },
+			{ id: manoeuvre, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2099-01-02T19:00', enCours: false },
+			{ id: sport, cle: 'centre', nomMur: 'Le centre', titre: 'Sport', debut: '2099-01-03T19:00', enCours: false }
 		]);
+	});
+
+	it('un événement commencé reste dans « À venir », en cours, 3 h ; il ne demande plus de réponse', async () => {
+		const { base, chef, alice } = await preparer();
+		// Commencé il y a une heure (inséré tel quel : on ne publie pas un événement passé).
+		const debut = new Date(new Date(`${maintenantParis().slice(0, 16)}:00Z`).getTime() - 3_600_000).toISOString().slice(0, 16);
+		const [{ id }] = await base.insert(publication).values({ mur: 'centre', auteur: `personne:${chef.id}`, type: 'evenement', texte: 'Exercice', creeLe: debut, debut, lieu: 'Caserne', convoques: '"tous"' }).returning({ id: publication.id });
+		const { aVenir, aujourdhui } = await charger(locaux(base, alice));
+		expect(aVenir).toEqual([{ id, cle: 'centre', nomMur: 'Le centre', titre: 'Exercice', debut, enCours: true }]);
+		expect(aujourdhui.evenement).toBeNull();
 	});
 
 	it('se recharge à chaque changement d’adresse : la pastille d’un mur visité disparaît', async () => {

@@ -212,7 +212,7 @@
 							{#each data.aVenir as e (e.id)}
 								<li>
 									<a class="venir" href="/echanges/{e.cle}/{e.id}">
-										<strong>{jourCourt(e.debut)}, {heure(e.debut)}</strong>
+										<strong>{#if e.enCours}En cours, depuis {heure(e.debut)}{:else}{jourCourt(e.debut)}, {heure(e.debut)}{/if}</strong>
 										<span class="doux">{e.titre}{e.cle === 'centre' ? '' : ` (${e.nomMur})`}</span>
 									</a>
 								</li>

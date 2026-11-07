@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -23,7 +23,7 @@ export const CRON_NUIT = '30 3 * * *';
 export const CRON_REVEIL = '*/5 * * * *';
 
 // Le worker de SvelteKit, plus le gestionnaire planifié.
-export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; position: { latitude: number; longitude: number }; departement?: string }) {
+export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; conservationPublicationsMois: number; position: { latitude: number; longitude: number }; departement?: string }) {
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -53,7 +53,17 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 			const notifications = aujourdhuiParis(new Date(quand.getTime() - CONSERVATION_NOTIFICATIONS_JOURS * 86_400_000));
 			// Les réservations sont gardées un an après leur fin.
 			const reservations = limiteDeConservation(quand, 12);
-			ctx.waitUntil(Promise.all([effacerAnciens(base, creerBasePhotos(env.PHOTOS), avant), effacerVieillesNotifications(base, notifications), effacerVieillesReservations(base, reservations)]));
+			// Les publications des murs et leurs photos, sauf épinglées.
+			const publications = limiteDeConservation(quand, centre.conservationPublicationsMois);
+			const photos = creerBasePhotos(env.PHOTOS);
+			ctx.waitUntil(
+				Promise.all([
+					effacerAnciens(base, photos, avant),
+					effacerVieillesPublications(base, photos, publications),
+					effacerVieillesNotifications(base, notifications),
+					effacerVieillesReservations(base, reservations)
+				])
+			);
 		}
 	};
 }

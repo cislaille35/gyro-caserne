@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
 import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
+import { nombreAFaire } from '#lib/a-faire.ts';
 
 const astreinte = { id: 'astreinte', nom: 'Mon astreinte', icone: 'casque', compte: 0 };
 const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile', compte: 2 };
@@ -316,8 +317,8 @@ describe('accueil', () => {
 		const complet = {
 			annonces: [item(1, 'Note de service')],
 			evenements: [
-				{ ...item(2, 'Manœuvre'), debut: '2026-10-29T19:00', demain: true, reponse: null },
-				{ ...item(3, 'Repas'), debut: '2026-11-05T12:00', demain: false, reponse: 'absent' }
+				{ ...item(2, 'Manœuvre'), debut: '2026-10-29T19:00', demain: true, enCours: false, reponse: null },
+				{ ...item(3, 'Repas'), debut: '2026-11-05T12:00', demain: false, enCours: false, reponse: 'absent' }
 			],
 			sondages: [item(4, 'Repas ?', 'vie', 'Vie du centre'), item(3, 'Repas')],
 			epinglees: [item(1, 'Note de service'), item(5, 'Consignes hiver')],
@@ -356,6 +357,17 @@ describe('accueil', () => {
 			expect(h).toMatch(/<a[^>]*href="\/echanges\/centre\/3"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Sondage ouvert : votez sur la publication<span class="masque[^"]*"> : Repas<\/span>/);
 			const sondages = h.slice(h.indexOf('Sondages ouverts'));
 			expect(sondages).not.toContain('/echanges/centre/3');
+		});
+
+		it('événement en cours : « En cours » écrit, plus de réponse ; il n’attend plus rien de la personne', () => {
+			const enCours = { ...item(6, 'Exercice incendie'), debut: '2026-10-28T14:00', demain: false, enCours: true, reponse: null };
+			const avec = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, aNePasManquer: { ...complet, evenements: [enCours, ...complet.evenements] } });
+			const ligne = avec.slice(avec.indexOf('Exercice incendie'), avec.indexOf('/echanges/centre/2'));
+			expect(ligne).toContain('En cours');
+			expect(ligne).not.toContain('name="reponse"');
+			expect(avec.match(/action="[^"]*\/repondre"/g)).toHaveLength(2);
+			expect(html()).not.toContain('En cours');
+			expect(nombreAFaire({ ...complet, remplacements: [], evenements: [enCours, ...complet.evenements] } as never)).toBe(nombreAFaire({ ...complet, remplacements: [] } as never));
 		});
 
 		it('sondage et nouveautés : des liens', () => {

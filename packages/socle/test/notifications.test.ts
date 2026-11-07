@@ -7,7 +7,7 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { commenter } from '../src/actions/interactions.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
 import { lireMur, lirePublication, publier, supprimerPublication } from '../src/actions/publications.ts';
-import { creerGroupe, envoyer, nombreSignalements } from '../src/messagerie.ts';
+import { creerGroupe, envoyer, nombreSignalements, nonLusTotal } from '../src/messagerie.ts';
 import { nombreAValider } from '../src/reservations.ts';
 import { avis as avisDEte } from '../src/planning/avis.ts';
 import { avisAnomalies } from '../src/anomalies-avis.ts';
@@ -425,6 +425,39 @@ describe('abonnements et file d’envoi', () => {
 		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
 		expect(pastilles).toEqual({ [chef]: 4, [alice]: 2, [bruno]: 0, [chloe]: 2 });
 		for (const id of [chef, alice, bruno, chloe]) expect(pastilles[id], `personne ${id}`).toBe(await cloche(id));
+	});
+
+	it('prendreEnvois : la pastille compte aussi les messages non lus, comme la pastille d’Échanges (conversations coupées comprises), dans la même requête', async () => {
+		const { base, alice, bruno, chloe } = await jeu();
+		// Chloé : un message perso de Bruno, et deux dans un groupe qu'elle a coupé. Alice : un dans le groupe. Bruno : ses propres messages ne comptent pas.
+		await envoyer(base, base.photos, acteur(bruno), { personne: chloe }, { texte: 'Salut' }, maintenant);
+		const groupe = await creerGroupe(base, acteur(bruno), { nom: 'Pot', membres: [alice, chloe] }, maintenant);
+		await couper(base, acteur(chloe), `conversation:${groupe}`, true, maintenant);
+		for (const texte of ['Un', 'Deux']) await notifierMessage(base, (await envoyer(base, base.photos, acteur(bruno), { conversation: groupe }, { texte }, maintenant)).message, maintenant);
+		// Un envoi à Chloé et à Bruno aussi (une publication), pour lire leur pastille.
+		await notifierPublication(base, await publier(base, base.photos, acteur(alice), 'vie', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		const avant = base.requetes;
+		const lot = await prendreEnvois(base, 40, heure('10:00'), maintenant);
+		expect(base.requetes - avant).toBe(1);
+		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
+		for (const id of [alice, bruno, chloe]) {
+			const e = await enTeteDe(base, acteur(id), aujourdhui, maintenant);
+			expect(pastilles[id], `personne ${id}`).toBe(e.nonLues + (await nonLusTotal(base, acteur(id), aujourdhui)));
+		}
+		expect(await nonLusTotal(base, acteur(chloe), aujourdhui)).toBe(3);
+		expect(await nonLusTotal(base, acteur(alice), aujourdhui)).toBe(2);
+		expect(await nonLusTotal(base, acteur(bruno), aujourdhui)).toBe(0);
+	});
+
+	it('prendreEnvois : sans accès à la messagerie (statut ou profil), ses messages ne comptent pas dans la pastille, comme sur Échanges', async () => {
+		const { base, bruno, chloe } = await jeu();
+		await envoyer(base, base.photos, acteur(bruno), { personne: chloe }, { texte: 'Salut' }, maintenant);
+		await notifierPublication(base, await publier(base, base.photos, acteur(bruno), 'vie', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		await base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, chloe));
+		const lot = await prendreEnvois(base, 40, heure('10:00'), maintenant);
+		const deChloe = lot.envois.find((e) => e.personneId === chloe);
+		expect(await nonLusTotal(base, acteur(chloe), aujourdhui)).toBe(0);
+		expect(deChloe?.pastille ?? 0).toBe((await enTeteDe(base, acteur(chloe), aujourdhui, maintenant)).nonLues);
 	});
 
 	it('avis d’été et d’anomalie (leur page ne les marque pas lus) : l’envoi porte la ligne de la cloche de sa personne ; ailleurs, rien', async () => {

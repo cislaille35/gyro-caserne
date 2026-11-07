@@ -8,10 +8,11 @@ export function regrouper(a: ANePasManquer) {
 	return { ...a, evenements, sondages, epinglees: a.epinglees.filter((e) => !listees.some((i) => i.id === e.id)) };
 }
 
-// Ce qui attend un geste de la personne (la cloche) : annonces à prendre en compte, événements sans réponse ou avec un sondage ouvert, sondages ouverts.
+// Ce qui attend un geste de la personne (la cloche) : annonces à prendre en compte, événements à venir sans réponse ou avec
+// un sondage ouvert, sondages ouverts. Un événement en cours n'attend plus de réponse.
 export function aFaire(a: ANePasManquer) {
 	const { annonces, evenements, sondages } = regrouper(a);
-	return { annonces, evenements: evenements.filter((e) => e.reponse === null || e.sondage), sondages };
+	return { annonces, evenements: evenements.filter((e) => (e.reponse === null && !e.enCours) || e.sondage), sondages };
 }
 
 export const nombreAFaire = (a: ANePasManquer) => {

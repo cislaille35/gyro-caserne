@@ -13,7 +13,7 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 1. Sur GitHub, créer une copie du dépôt (bouton « Fork »), puis la cloner.
 2. Choisir l'identifiant du centre : minuscules, chiffres et tirets (par exemple `bruz`).
 3. Copier `centres/exemple` en `centres/<id>`, puis dans ce dossier :
-   - `centre.ts` : la description du centre, avec `id: '<id>'` ;
+   - `centre.ts` : la description du centre, avec `id: '<id>'`. Conservation, réglable en mois (nombre entier, 1 au moins) : `conservationMessagesMois` (messages, 12 par défaut) et `conservationPublicationsMois` (publications des murs et leurs photos, 24 par défaut ; une publication épinglée est gardée) ; l'effacement se fait chaque nuit ;
    - `wrangler.jsonc` : `name` devient `gyro-caserne-<id>`.
 4. Vérifier : `pnpm install && pnpm check && pnpm test`. Une erreur dans la description est signalée avec la liste des corrections à faire.
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.

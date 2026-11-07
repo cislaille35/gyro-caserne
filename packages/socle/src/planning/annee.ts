@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { ajouterJours, enCours, exigerDate, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, enCours, exigerDate, exigerDateHeure, momentEvenement } from '../dates.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
@@ -372,7 +372,8 @@ export type PlanningAgent =
 			prochaine: {
 				astreinte: { debut: string; fin: string; equipeId: number; groupe: string | null; enCours: boolean; periodes: Periode[] } | null;
 				// `reponse` : la mienne, si la manœuvre est déjà annoncée.
-				manoeuvre: (ManoeuvreVue & { reponse: ReponseEvenement | null }) | null;
+				// `enCours` : commencée, pas finie (3 h après le début) ; on ne peut plus y répondre ni échanger sa place.
+				manoeuvre: (ManoeuvreVue & { reponse: ReponseEvenement | null; enCours: boolean }) | null;
 				fete: { fete: Fete; date: string } | null;
 			};
 	  };
@@ -410,7 +411,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const prochaineSemaine = toutes.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
-	const prochaineManoeuvre = vues.find((m) => m.debut >= maintenant.slice(0, 16) && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
+	const prochaineManoeuvre = vues.find((m) => momentEvenement(m.debut, maintenant) !== 'passe' && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
 	const [reponse] = prochaineManoeuvre?.publicationId
 		? await base.select({ reponse: reponseEvenement.reponse }).from(reponseEvenement).where(and(eq(reponseEvenement.publicationId, prochaineManoeuvre.publicationId), eq(reponseEvenement.personneId, moi)))
 		: [];
@@ -445,7 +446,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 			astreinte: prochaineSemaine
 				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, groupe: prochaineSemaine.groupe, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16), periodes: prochaineSemaine.periodes }
 				: null,
-			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null } : null,
+			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null, enCours: momentEvenement(prochaineManoeuvre.debut, maintenant) === 'enCours' } : null,
 			fete
 		}
 	};

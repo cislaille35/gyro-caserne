@@ -119,6 +119,7 @@
 					<strong class="texte titre-evenement">{p.texte}</strong>
 					<span class="doux">{heure(e.debut)} · {e.lieu}</span>
 					<span class="doux petit">Convoqués : {convoques}{e.convoque ? ' (vous l’êtes)' : ''}</span>
+					{#if e.moment === 'enCours' && !p.annulee}<span><Pastille ton="ok">En cours</Pastille></span>{/if}
 				</span>
 			</div>
 			<p class="presents">
@@ -127,7 +128,8 @@
 				{/if}
 				<span class="doux">{pluriel(e.compte.present, 'présent')}, {pluriel(e.compte.absent, 'absent')}, {pluriel(e.compte.incertain, 'incertain')}</span>
 			</p>
-			{#if agir && e.convoque && !p.annulee}
+			<!-- Commencé, on n'y répond plus (le serveur refuse). -->
+			{#if agir && e.convoque && !p.annulee && e.moment === 'avenir'}
 				<form method="POST" action="?/repondre" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={p.id} />
 					<div role="group" aria-label="Votre réponse" class="segments reponses">

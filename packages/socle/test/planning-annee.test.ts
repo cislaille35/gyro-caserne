@@ -235,6 +235,19 @@ describe('le planning vu par l’agent', () => {
 		expect(apres.prochaine.manoeuvre).toMatchObject({ publicationId: id, reponse: 'absent' });
 	});
 
+	it('la manœuvre commencée reste la prochaine, « en cours », jusqu’à 3 h après son début', async () => {
+		const { base, chef, alice } = await publiee();
+		await publierAnnee(base, chef, 2026, maintenant);
+		const a = async (quand: string) => {
+			const p = await planningDe(base, alice, 2026, quand, reglage);
+			if (!p.publiee) throw new Error('attendu publié');
+			return p.prochaine.manoeuvre;
+		};
+		expect(await a('2026-11-15T08:29')).toMatchObject({ theme: 'Sport + SAP', enCours: false });
+		expect(await a('2026-11-15T11:29')).toMatchObject({ theme: 'Sport + SAP', enCours: true });
+		expect(await a('2026-11-15T11:30')).toMatchObject({ theme: 'Sainte Barbe', enCours: false });
+	});
+
 	it('une astreinte en cours est la prochaine ; la garde de fête de son équipe est annoncée', async () => {
 		const { base, chef, bruno, ids } = await publiee();
 		await changerSemaines(base, chef, 2026, { '2026-12-18': ids[1]! }, maintenant, reglage);

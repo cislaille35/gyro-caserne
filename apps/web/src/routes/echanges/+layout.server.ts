@@ -39,7 +39,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const comites = miens.filter((t) => t.type === 'comite');
 	const calmes = comites.filter((t) => t.nouveautes === 0);
 	const replies = calmes.length > 2 ? calmes : [];
-	const evenement = evenements.find((e) => e.reponse === null);
+	// « Vous n'avez pas répondu » : un événement pas encore commencé (on n'y répond plus ensuite).
+	const evenement = evenements.find((e) => e.reponse === null && !e.enCours);
 
 	return {
 		// Les filtres « Murs » | « Messages » ne s'affichent qu'à qui a la messagerie.
@@ -62,7 +63,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 			anniversaires,
 			evenement: evenement ? { id: evenement.id, cle: evenement.cle, titre: evenement.titre, debut: evenement.debut } : null
 		},
-		// Les 3 prochains événements où la personne est convoquée, pour la colonne de droite d'un mur.
-		aVenir: evenements.slice(0, 3).map((e) => ({ id: e.id, cle: e.cle, nomMur: e.nomMur, titre: e.titre, debut: e.debut }))
+		// Les 3 prochains événements où la personne est convoquée, en cours compris, pour la colonne de droite d'un mur.
+		aVenir: evenements.slice(0, 3).map((e) => ({ id: e.id, cle: e.cle, nomMur: e.nomMur, titre: e.titre, debut: e.debut, enCours: e.enCours }))
 	};
 };

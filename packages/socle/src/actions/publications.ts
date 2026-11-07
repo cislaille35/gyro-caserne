@@ -1,6 +1,6 @@
-import { and, asc, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Base, BasePhotos } from '../base.ts';
-import { ajouterJours, exigerDate, exigerDateHeure } from '../dates.ts';
+import { ajouterJours, exigerDate, exigerDateHeure, momentEvenement } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -47,7 +47,8 @@ export type PublicationVue = {
 	jaime: number;
 	commentaires: number;
 	jaimeParMoi: boolean;
-	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number>; presents: { prenom: string; nom: string; couleur: string | null }[] } | null;
+	// `moment` : à venir, en cours (3 h après le début) ou passé ; on ne répond plus dès le début.
+	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; moment: 'avenir' | 'enCours' | 'passe'; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number>; presents: { prenom: string; nom: string; couleur: string | null }[] } | null;
 	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs ; donnés à tous une fois le sondage fermé, jamais avant l'ouverture.
 	sondage: { question: string; reponses: string[]; ouverture: string | null; cloture: string | null; etat: EtatSondage; resultats: number[] | null; vote: number | null } | null;
 	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait. `faites` sur `attendues` : parmi les membres naturels du mur, sans l'auteur.
@@ -178,6 +179,33 @@ export async function supprimerPublication(base: Base, basePhotos: BasePhotos, a
 		journalPublication(base, acteur, 'supprimer_publication', id, maintenant, { mur: cle })
 	]);
 	await effacerPhotos(basePhotos, photos.map((p) => p.photoId));
+}
+
+// Conservation (tâche de nuit) : efface les publications créées avant `avant` (AAAA-MM-JJ), sauf épinglées ou événement daté
+// après la limite (il part quand sa date la passe). Commentaires, j'aime, réponses, votes, prises de connaissance, photos et notifications partent avec (suppression en
+// cascade ; une manœuvre du planning garde sa ligne, sans publication) ; puis les octets des photos, dans leur base. Le journal
+// reste. Par lots de 100 (deux requêtes chacun), 5 au plus par nuit : le reste part la nuit suivante. Rend le nombre effacé.
+const LOT_CONSERVATION = 100;
+const LOTS_PAR_NUIT = 5;
+export async function effacerVieillesPublications(base: Base, basePhotos: BasePhotos, avant: string): Promise<number> {
+	exigerDate(avant);
+	const lot = base
+		.select({ id: publication.id })
+		.from(publication)
+		.where(and(lt(publication.creeLe, avant), eq(publication.epinglee, 0), or(isNull(publication.debut), lt(publication.debut, avant))))
+		.orderBy(asc(publication.id))
+		.limit(LOT_CONSERVATION);
+	let effacees = 0;
+	for (let i = 0; i < LOTS_PAR_NUIT; i++) {
+		const [photos, parties] = await base.batch([
+			base.select({ id: photoPublication.photoId }).from(photoPublication).where(inArray(photoPublication.publicationId, lot)),
+			base.delete(publication).where(inArray(publication.id, lot)).returning({ id: publication.id })
+		]);
+		await effacerPhotos(basePhotos, photos.map((p) => p.id));
+		effacees += parties.length;
+		if (parties.length < LOT_CONSERVATION) break;
+	}
+	return effacees;
 }
 
 export async function epingler(base: Base, acteur: Acteur, id: number, oui: boolean, maintenant: string): Promise<void> {
@@ -396,6 +424,7 @@ async function vuesDe(
 							lieu: p.lieu ?? '',
 							convoques,
 							convoque: estConvoque(appartenances, cle, convocation, moi),
+							moment: momentEvenement(p.debut, maintenant),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
 							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>,
 							presents: presents

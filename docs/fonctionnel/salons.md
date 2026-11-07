@@ -32,7 +32,7 @@ Rangée en sections, dans un ordre fixe (voir la [spec du lot 2](../superpowers/
 
 Chaque mur a sa **couleur** et son **icône** : rouge et maison pour Le centre, turquoise et ballon pour Vie du centre, la couleur et le numéro de l'équipe, l'icône du comité (choisie dans Réglages › Comités, sinon tirée de son thème). Son nom est toujours écrit : la couleur ne porte jamais seule l'information. Chaque ligne montre la dernière publication, son heure et le nombre de nouveautés.
 
-**À l'ordinateur**, sur un mur : la liste à gauche, le mur au milieu, et à droite « Aujourd'hui au centre » et **« À venir »** (les 3 prochains événements où la personne est convoquée). Sur un écran moins large (1024 à 1279 px), cette colonne passe sous le mur, pour qu'on la lise et l'atteigne au clavier dans le même ordre.
+**À l'ordinateur**, sur un mur : la liste à gauche, le mur au milieu, et à droite « Aujourd'hui au centre » et **« À venir »** (les 3 prochains événements où la personne est convoquée ; celui qui a commencé y reste, « En cours, depuis 19 h », jusqu'à sa fin). Sur un écran moins large (1024 à 1279 px), cette colonne passe sous le mur, pour qu'on la lise et l'atteigne au clavier dans le même ordre.
 
 ## Qui voit
 
@@ -44,7 +44,7 @@ Elle se prépare sur sa propre page (« Écrire », ou « Publier dans … » de
 
 - **Message** (par défaut) ;
 - **Annonce** : peut demander une **prise de connaissance**, réservée aux modérateurs du mur ;
-- **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement ;
+- **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement. Un événement n'a pas d'heure de fin : il dure **3 h**. Pendant ce temps, il est marqué « En cours » (écrit, pas seulement en couleur) et les boutons de réponse disparaissent ;
 - **Bravo** : une réussite (examen, compétition).
 
 Chaque publication montre le **visage** de son auteur (ses initiales sur la couleur de son équipe, gris s'il n'en a pas ou s'il est parti) et son rôle (« Chef de centre », « Adjoint », « Chef de garde »). Chaque type a sa carte : l'annonce à confirmer, bordée d'ambre, avec « 12 sur 38 ont confirmé » (le nombre est visible de tous, les noms restent réservés à l'auteur et aux modérateurs) ; l'événement, avec une tuile calendrier, les présents et trois boutons qui portent chacun un signe et un mot ; le bravo, doré, avec des confettis et Gyro en tenue de victoire (« J'aime » y devient « Applaudir »).
@@ -66,7 +66,7 @@ Sur une annonce, l'auteur (modérateur) coche « Demander une prise de connaissa
 En tête de l'accueil, quelle que soit la casquette :
 
 1. les **annonces à prendre en compte**, avec le bouton « Pris connaissance » ;
-2. les **événements à venir** où la personne est convoquée, avec les boutons de réponse ; la veille, l'événement est marqué « Demain » ;
+2. les **événements à venir ou en cours** où la personne est convoquée, avec les boutons de réponse ; la veille, l'événement est marqué « Demain ». Commencé, il reste jusqu'à sa fin (3 h après le début), marqué « En cours », sans boutons : il n'attend plus rien de la personne ;
 3. les **sondages ouverts** auxquels elle n'a pas répondu (pas avant leur ouverture, plus après leur clôture) ;
 4. les **publications épinglées** récentes de ses murs ;
 5. une ligne par mur avec des nouveautés depuis sa dernière visite (« Amicale : 3 nouveautés »).
@@ -84,12 +84,20 @@ La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le 
 - **Privées** : servies seulement à qui peut lire le mur, jamais par une adresse publique.
 - Supprimer une publication supprime ses photos.
 
+## Conservation
+
+- Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent.
+- Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement daté après la limite est gardé jusqu'à ce que sa date la passe.
+- Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part. Le journal des gestes (qui a publié, supprimé…) reste.
+- Pourquoi : voir [0023](../decisions/0023-conservation-des-publications.md).
+
+Exemple : le 7 novembre 2026, la nuit efface ce qui a été publié avant le 7 novembre 2024, sauf les consignes épinglées sur « Le centre ».
+
 ## Ce que la fonction ne fait pas (pour l'instant)
 
 - Messages privés : voir [Messagerie](messagerie.md).
 - Notifications sur le téléphone, mentions (@nom), recherche, fichiers autres que des photos.
 - Ouvrir un mur à d'autres personnes (un référent qui publie dans « Le centre », des extérieurs).
-- Durée de conservation : les murs gardent tout.
 
 ## Exemple
 

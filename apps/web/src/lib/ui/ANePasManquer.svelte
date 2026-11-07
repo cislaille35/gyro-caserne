@@ -61,16 +61,20 @@
 			<li>
 				<Rangee href={lien(e)} titre={e.titre} sous="{debut(e.debut)} · {e.nomMur}">
 					{#snippet tete()}<TuileDate iso={e.debut} />{/snippet}
-					{#if e.demain}<span class="demain"><Pastille ton="alerte">Demain</Pastille></span>{/if}
-					<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
-						<input type="hidden" name="id" value={e.id} />
-						<p id="reponse-{e.id}" class="masque">Votre réponse{` : ${e.titre}`}</p>
-						<div role="group" aria-labelledby="reponse-{e.id}" class="segments boutons">
-							{#each REPONSES as [valeur, libelle] (valeur)}
-								<button type="submit" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
-							{/each}
-						</div>
-					</form>
+					{#if e.enCours}<span class="demain"><Pastille ton="ok">En cours</Pastille></span>
+					{:else if e.demain}<span class="demain"><Pastille ton="alerte">Demain</Pastille></span>{/if}
+					<!-- Commencé, on n'y répond plus (le serveur refuse). -->
+					{#if !e.enCours}
+						<form method="POST" action={action('repondre')} use:enhance={garderFocus}>
+							<input type="hidden" name="id" value={e.id} />
+							<p id="reponse-{e.id}" class="masque">Votre réponse{` : ${e.titre}`}</p>
+							<div role="group" aria-labelledby="reponse-{e.id}" class="segments boutons">
+								{#each REPONSES as [valeur, libelle] (valeur)}
+									<button type="submit" name="reponse" value={valeur} aria-pressed={e.reponse === valeur}>{libelle}</button>
+								{/each}
+							</div>
+						</form>
+					{/if}
 					{#if e.sondage}<a class="lien" href={lien(e)}
 							><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d={DESSINS.sondage} /></svg>Sondage ouvert : votez sur la publication<span class="masque">{` : ${e.titre}`}</span></a>{/if}
 					{@render echec(e.id)}

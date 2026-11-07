@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { poserPastille } from './pastille.ts';
+import { chiffreIcone, poserPastille } from './pastille.ts';
 
 const navigateur = () => ({ setAppBadge: vi.fn(async () => {}), clearAppBadge: vi.fn(async () => {}) });
 
@@ -25,5 +25,14 @@ describe('poserPastille (le chiffre sur l’icône de l’appli)', () => {
 
 	it('refusée par le navigateur (autorisation retirée) : l’erreur est avalée', async () => {
 		await expect(poserPastille({ setAppBadge: async () => Promise.reject(new DOMException('refus', 'NotAllowedError')), clearAppBadge: async () => {} }, 2)).resolves.toBeUndefined();
+	});
+});
+
+describe('chiffreIcone (appli ouverte)', () => {
+	it('la cloche plus les messages non lus (pastille d’Échanges) ; déconnecté, rien', () => {
+		expect(chiffreIcone(true, 2, 3)).toBe(5);
+		expect(chiffreIcone(true, 0, 1)).toBe(1);
+		expect(chiffreIcone(true, 0, 0)).toBe(0);
+		expect(chiffreIcone(false, 2, 3)).toBe(0);
 	});
 });
