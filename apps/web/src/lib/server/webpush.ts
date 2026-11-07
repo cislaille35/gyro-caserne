@@ -89,11 +89,13 @@ export async function jetonVapid(audience: string, cles: ClesVapid, maintenant =
 
 // La requête à envoyer au service push. `jetons` : un jeton par service push, calculé une fois par lot.
 // Le sujet (Topic) remplace, chez le service push, une notification pas encore remise de la même conversation ou publication.
+// `sujet` faux : sans Topic (un envoi repris ne doit pas remplacer un envoi plus récent).
 export async function requetePush(
 	abonnement: { endpoint: string; p256dh: string; auth: string },
 	donnees: { titre: string; texte: string; url: string; tag: string },
 	cles: ClesVapid,
-	jetons: Map<string, string>
+	jetons: Map<string, string>,
+	sujet = true
 ): Promise<{ url: string; init: RequestInit }> {
 	if (!abonnement.endpoint.startsWith('https://')) throw new Error('Adresse push invalide');
 	const audience = new URL(abonnement.endpoint).origin;
@@ -103,13 +105,13 @@ export async function requetePush(
 		jetons.set(audience, jeton);
 	}
 	const corps = await chiffrer(JSON.stringify(donnees), abonnement.p256dh, abonnement.auth);
-	const headers = {
+	const headers: Record<string, string> = {
 		'Content-Encoding': 'aes128gcm',
 		'Content-Type': 'application/octet-stream',
 		TTL: '86400',
 		Urgency: 'normal',
-		Topic: donnees.tag.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 32),
 		Authorization: `vapid t=${jeton}, k=${cles.publique}`
 	};
+	if (sujet) headers.Topic = donnees.tag.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 32);
 	return { url: abonnement.endpoint, init: { method: 'POST', headers, body: corps } };
 }
