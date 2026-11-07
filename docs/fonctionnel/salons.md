@@ -84,12 +84,20 @@ La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le 
 - **Privées** : servies seulement à qui peut lire le mur, jamais par une adresse publique.
 - Supprimer une publication supprime ses photos.
 
+## Conservation
+
+- Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent.
+- Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement encore à venir est gardé aussi.
+- Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part. Le journal des gestes (qui a publié, supprimé…) reste.
+- Pourquoi : voir [0023](../decisions/0023-conservation-des-publications.md).
+
+Exemple : le 7 novembre 2026, la nuit efface ce qui a été publié avant le 7 novembre 2024, sauf les consignes épinglées sur « Le centre ».
+
 ## Ce que la fonction ne fait pas (pour l'instant)
 
 - Messages privés : voir [Messagerie](messagerie.md).
 - Notifications sur le téléphone, mentions (@nom), recherche, fichiers autres que des photos.
 - Ouvrir un mur à d'autres personnes (un référent qui publie dans « Le centre », des extérieurs).
-- Durée de conservation : les murs gardent tout.
 
 ## Exemple
 
