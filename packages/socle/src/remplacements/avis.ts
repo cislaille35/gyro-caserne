@@ -28,6 +28,6 @@ export function avis(base: Base, ids: number[], demandeId: number | SQL, quoi: A
 				.from(personne)
 				.where(qui)
 		),
-		mettreEnFile(base, ids, 'remplacements', { titre: TITRES_AVIS[quoi], texte, url, tag: `remplacement:${typeof demandeId === 'number' ? demandeId : 'nouvelle'}:${quoi}` }, maintenant, si, 'remplacement')
+		mettreEnFile(base, ids, 'remplacements', { titre: TITRES_AVIS[quoi], texte, url, tag: `remplacement:${typeof demandeId === 'number' ? demandeId : 'nouvelle'}:${quoi}` }, maintenant, si)
 	] as const;
 }

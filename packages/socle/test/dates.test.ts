@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajouterJours, enCours, formatDeDate, veille } from '../src/dates.ts';
+import { ajouterJours, enCours, formatDeDate, heureDeParis, veille } from '../src/dates.ts';
 import { rangDuJour } from '../src/planning/calendrier.ts';
 
 describe('enCours', () => {
@@ -109,3 +109,11 @@ describe('formatDeDate', () => {
 function o2(): Intl.DateTimeFormatOptions {
 	return { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
 }
+
+describe('heureDeParis', () => {
+	it('l’heure de Paris d’un instant : hiver (+1 h), été (+2 h), passage de minuit', () => {
+		expect(heureDeParis(new Date('2026-01-15T09:30:00Z'))).toBe('2026-01-15T10:30');
+		expect(heureDeParis(new Date('2026-07-15T09:30:00Z'))).toBe('2026-07-15T11:30');
+		expect(heureDeParis(new Date('2026-12-31T23:15:00Z'))).toBe('2027-01-01T00:15');
+	});
+});

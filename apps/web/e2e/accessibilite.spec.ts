@@ -39,7 +39,7 @@ for (const theme of ['auto', 'sombre']) {
 				});
 			}
 
-			test('aide à l’installation : encart iPhone sur l’accueil et bouton de Chrome, sans violation ; « Plus tard » l’écarte', async ({ browser }) => {
+			test('aide à l’installation sur iPhone : encart sur l’accueil sans violation ; « Plus tard » l’écarte, le focus va au titre', async ({ browser }) => {
 				const iphone = await browser.newContext({ storageState: ETAT_CONNECTE, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' });
 				await iphone.addCookies([{ name: 'theme', value: theme, url: ADRESSE }]);
 				const page = await iphone.newPage();
@@ -49,21 +49,37 @@ for (const theme of ['auto', 'sombre']) {
 				await sansViolation(page);
 				await encart.getByRole('button', { name: 'Plus tard' }).click();
 				await expect(encart).toBeHidden();
+				await expect(page.getByRole('heading', { level: 1 })).toBeFocused();
+				// Après le montage (l'encart n'est jamais rendu côté serveur), il reste écarté.
 				await page.reload();
-				await expect(page.getByRole('heading', { name: /^Bonjour/ })).toBeVisible();
+				await page.waitForLoadState('networkidle');
+				await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 				await expect(encart).toBeHidden();
 				await iphone.close();
 			});
 
-			test('bouton « Installer Gyro Caserne » quand le navigateur propose l’installation, sans violation', async ({ page }) => {
+			test('bouton « Installer Gyro Caserne » quand le navigateur propose l’installation, sans violation ; il ouvre la fenêtre du navigateur', async ({ page }) => {
+				const inviter = (outcome: string) =>
+					page.evaluate((issue) => {
+						const e = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: async () => void ((window as unknown as { ouverte: number }).ouverte = 1), userChoice: Promise.resolve({ outcome: issue }) });
+						window.dispatchEvent(e);
+						return e.defaultPrevented;
+					}, outcome);
 				await page.goto('/moi/installer');
 				await expect(page.getByRole('heading', { name: 'Installer depuis le navigateur' })).toBeVisible();
-				await page.evaluate(() => {
-					const e = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: async () => {}, userChoice: Promise.resolve({ outcome: 'dismissed' }) });
-					window.dispatchEvent(e);
-				});
-				await expect(page.getByRole('button', { name: 'Installer Gyro Caserne' })).toBeVisible();
+				// Le bandeau du navigateur est évité : notre bouton le remplace.
+				expect(await inviter('dismissed')).toBe(true);
+				const bouton = page.getByRole('button', { name: 'Installer Gyro Caserne' });
+				await expect(bouton).toBeVisible();
 				await sansViolation(page);
+				// Refusée : l'invitation a servi, le menu du navigateur reste proposé.
+				await bouton.click();
+				expect(await page.evaluate(() => (window as unknown as { ouverte?: number }).ouverte)).toBe(1);
+				await expect(page.getByRole('heading', { name: 'Installer depuis le navigateur' })).toBeVisible();
+				// Acceptée : l'appli est installée.
+				await inviter('accepted');
+				await bouton.click();
+				await expect(page.getByRole('heading', { name: 'L’appli est installée' })).toBeVisible();
 			});
 
 			test('prise de garde : le premier geste commence la prise, panneau des participants, sans violation', async ({ page }) => {

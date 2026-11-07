@@ -10,6 +10,7 @@ import { lireMur, lirePublication, publier, supprimerPublication } from '../src/
 import { creerGroupe, envoyer, nombreSignalements } from '../src/messagerie.ts';
 import { nombreAValider } from '../src/reservations.ts';
 import { avis as avisDEte } from '../src/planning/avis.ts';
+import { avisAnomalies } from '../src/anomalies-avis.ts';
 import {
 	abonner,
 	couper,
@@ -28,7 +29,7 @@ import {
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
-import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, envoiPush, equipe, notification, personne, profil, reservation, responsabilite, ressource, signalementMessage } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, demandeRemplacement, envoiPush, equipe, notification, personne, profil, reservation, responsabilite, ressource, signalementMessage } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-31T10:00';
@@ -401,13 +402,15 @@ describe('abonnements et file d’envoi', () => {
 	});
 
 	it('prendreEnvois : chaque envoi porte la pastille de sa personne, le nombre de sa cloche, compté pour tout le lot dans la même requête', async () => {
-		const { base, chef, alice, bruno, chloe } = await jeu();
-		// Le chef : un message signalé à traiter et une réservation à trancher. Alice : un avis d'été. Bruno : tout lu.
+		const { base, e2, chef, alice, bruno, chloe } = await jeu();
+		// Le chef : un message signalé à traiter, une réservation à trancher, un remplacement à valider. Alice : un avis d'été. Bruno : tout lu.
 		await base.insert(signalementMessage).values({ par: alice, le: maintenant, auteur: bruno, envoyeLe: maintenant, texteCopie: 'x' });
 		const [chefCentre] = await base.select().from(responsabilite).where(eq(responsabilite.systeme, 'chef_centre'));
 		const [salle] = await base.insert(ressource).values({ nom: 'Salle', forme: 'creneau', icone: 'cle', gereeParResponsabiliteId: chefCentre!.id, creeLe: maintenant }).returning();
 		await base.insert(reservation).values({ ressourceId: salle!.id, personneId: alice, debut: '2026-11-02T10:00', fin: '2026-11-02T12:00', etat: 'attente', creeLe: maintenant });
 		await base.insert(avisEte).values({ personneId: alice, quoi: 'rappel', texte: 'Donnez vos vacances', url: '/moi/vacances', creeLe: maintenant });
+		// Un remplacement à valider : l'équipe 2 n'a pas de chef de garde, c'est au chef de centre.
+		await base.insert(demandeRemplacement).values({ genre: 'remplacement', demandeurId: bruno, remplacantId: chloe, equipeId: e2.id, periodes: '[]', debut: '2026-11-02T08:00', etat: 'a_valider', creeLe: maintenant });
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Un' }, maintenant), maintenant);
 		await notifierPublication(base, await publier(base, base.photos, acteur(alice), 'vie', { type: 'message', texte: 'Deux' }, maintenant), maintenant);
 		await toutMarquerLu(base, acteur(bruno), maintenant);
@@ -420,26 +423,30 @@ describe('abonnements et file d’envoi', () => {
 			return e.nonLues + e.remplacementsAValider + (await nombreSignalements(base, acteur(id), aujourdhui)) + (await nombreAValider(base, acteur(id), aujourdhui));
 		};
 		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
-		expect(pastilles).toEqual({ [chef]: 3, [alice]: 2, [bruno]: 0, [chloe]: 2 });
+		expect(pastilles).toEqual({ [chef]: 4, [alice]: 2, [bruno]: 0, [chloe]: 2 });
 		for (const id of [chef, alice, bruno, chloe]) expect(pastilles[id], `personne ${id}`).toBe(await cloche(id));
 	});
 
-	it('la notification d’une ligne de la cloche porte de quoi la marquer lue (genre et ligne de la personne) ; sans ligne, rien', async () => {
+	it('avis d’été et d’anomalie (leur page ne les marque pas lus) : l’envoi porte la ligne de la cloche de sa personne ; ailleurs, rien', async () => {
 		const { base, chef, alice, bruno, file, vider } = await jeu();
-		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
-		const lignes = await base.select().from(notification);
-		const ligneDe = (id: number) => lignes.find((l) => l.personneId === id)!.id;
-		expect((await file()).find((e) => e.a === 'Alice')).toMatchObject({ lue: { genre: 'publication', id: ligneDe(alice) } });
-		expect((await file()).find((e) => e.a === 'Bruno')).toMatchObject({ lue: { genre: 'publication', id: ligneDe(bruno) } });
-		await vider();
+		const lignes = async (t: typeof avisEte | typeof avisAnomalie) => (await base.select({ id: t.id, personneId: t.personneId }).from(t).orderBy(t.id)).map((l) => l.id);
 		await base.batch(avisDEte(base, [alice, bruno], 'rappel', 'Donnez vos vacances', '/moi/vacances', maintenant) as never);
-		const avis = await base.select().from(avisEte);
-		expect((await file()).map((e) => e.lue)).toEqual([alice, bruno].map((id) => ({ genre: 'ete', id: avis.find((a) => a.personneId === id)!.id })));
+		const [deAlice, deBruno] = await lignes(avisEte);
+		expect((await file()).map((e) => [e.a, e.lue])).toEqual([['Alice', { genre: 'ete', id: deAlice }], ['Bruno', { genre: 'ete', id: deBruno }]]);
+		// Deux avis à la même personne dans un même batch : chaque envoi porte le sien.
 		await vider();
+		await base.batch([...avisDEte(base, [alice], 'rappel', 'Un', '/moi/vacances', maintenant), ...avisDEte(base, [alice], 'repartition', 'Deux', '/planning', maintenant)] as never);
+		const [, , un, deux] = await lignes(avisEte);
+		expect((await file()).map((e) => [e.texte, e.lue.id])).toEqual([['Un', un], ['Deux', deux]]);
+		await vider();
+		await base.batch(avisAnomalies(base, [alice], { titre: 'FPT · Phare', texte: 'Signalée', url: '/engins/anomalies/1' }, maintenant) as never);
+		expect((await file()).map((e) => e.lue)).toEqual([{ genre: 'anomalie', id: (await lignes(avisAnomalie))[0] }]);
+		// Une publication (sa page la marque lue) ou un message (sans ligne de cloche) : l'adresse directe.
+		await vider();
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const envoi = await envoyer(base, base.photos, acteur(alice), { personne: bruno }, { texte: 'Salut' }, maintenant);
 		await notifierMessage(base, envoi.message, maintenant);
-		expect(await file()).toMatchObject([{ a: 'Bruno' }]);
-		expect((await file())[0].lue).toBeUndefined();
+		expect((await file()).every((e) => e.lue === undefined)).toBe(true);
 	});
 
 	it(`coupé ${ESSAIS_MAX} fois : l’envoi est abandonné, retiré de la file`, async () => {

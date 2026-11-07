@@ -59,7 +59,8 @@ describe('aLeDroitAuCentreSql', () => {
 		const chefDEquipe = await nouvelle('d@x.fr', null);
 		await attribuer(chefDEquipe, chefEquipe.id, equipe1, '2026-01-01');
 		const suspendu = await nouvelle('e@x.fr', agent.id, 'suspendu');
-		for (const [droit, id] of [['VOIR_PLANNING', parProfil], ['VOIR_PLANNING', chef], ['GERER_ACCES', chef], ['GERER_ACCES', fini], ['VALIDER_REMPLACEMENT', chefDEquipe], ['VOIR_PLANNING', suspendu]] as const) {
+		await base.insert(profilDroit).values({ profilId: agent.id, droit: 'GERER_PLANNING', perimetreType: 'equipe', perimetreId: 1 });
+		for (const [droit, id] of [['VOIR_PLANNING', parProfil], ['VOIR_PLANNING', chef], ['GERER_ACCES', chef], ['GERER_ACCES', fini], ['VALIDER_REMPLACEMENT', chefDEquipe], ['VOIR_PLANNING', suspendu], ['GERER_PLANNING', parProfil]] as const) {
 			const [ligne] = await base.select({ oui: sql<number>`${aLeDroitAuCentreSql(sql`"personne"."id"`, droit, aujourdhui)}` }).from(personne).where(eq(personne.id, id));
 			expect(ligne!.oui === 1, `${droit} ${id}`).toBe(await aLeDroit(base, personneActeur(id), droit, centre, aujourdhui));
 		}

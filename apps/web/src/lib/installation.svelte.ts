@@ -28,6 +28,10 @@ export async function installer(): Promise<void> {
 	const invite = etat.invite;
 	if (!invite) return;
 	etat.invite = null;
-	await invite.prompt();
-	if ((await invite.userChoice).outcome === 'accepted') etat.installee = true;
+	try {
+		await invite.prompt();
+		if ((await invite.userChoice).outcome === 'accepted') etat.installee = true;
+	} catch {
+		// Invitation déjà servie : le menu du navigateur reste possible (Moi → Installer l'appli le dit).
+	}
 }

@@ -4,7 +4,7 @@ import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
 import { aLaMessagerie, signalementsPour } from './messagerie.ts';
-import { aTrancherPar } from './reservations.ts';
+import { aTrancherPar } from './reservations-gestion.ts';
 import { agentsDuJour, estConvoque, type Convocation, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { texteDemande } from './remplacements/tranches.ts';
@@ -94,8 +94,9 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 
 // `ids` : une liste, ou une sous-requête d'identifiants de personnes. Lieu « reservations » : seul « tout » le coupe.
 // `si` : une condition de plus, vérifiée au moment de l'écriture. `ligne` : le genre de la ligne de cloche écrite juste avant
-// dans le même batch ; chaque envoi porte celle de sa personne (sa plus récente), pour que la toucher la marque lue.
-export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: keyof typeof TABLES) {
+// dans le même batch, quand la page d'arrivée ne la marque pas lue (avis d'été, anomalies) ; chaque envoi porte celle de sa
+// personne (sa plus récente), pour que la toucher la marque lue. Les autres pages marquent déjà lu ce qu'elles montrent.
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: 'ete' | 'anomalie') {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
@@ -133,7 +134,7 @@ export async function notifierPublication(base: Base, id: number, maintenant: st
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: `${nomDuMur(p.mur, equipes, comites)} · ${nomComplet(auteurs[0], p.auteur)}`, texte: extrait(p.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
-	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant, undefined, 'publication')]);
+	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
 }
 
 // Une publication du planning (manœuvre annoncée, changée, annulée ou relancée) : ses convoqués du jour seulement,
@@ -153,7 +154,7 @@ export async function notifierConvoques(base: Base, id: number, maintenant: stri
 		.map((x) => x.id);
 	if (ids.length === 0) return;
 	const donnees = { titre: message.titre, texte: extrait(message.texte), url: `/echanges/${p.mur}/${id}`, tag: `publication:${id}` };
-	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant, undefined, 'publication')]);
+	await base.batch([ecrireFil(base, ids, id, null, maintenant), mettreEnFile(base, ids, `mur:${p.mur}`, donnees, maintenant)]);
 }
 
 // Un commentaire : l'auteur de la publication, s'il lit encore le mur et n'a pas commenté lui-même. Une lecture, une écriture.
@@ -177,7 +178,7 @@ export async function notifierCommentaire(base: Base, id: number, maintenant: st
 	const lecteur = agentsDuJour([agents, affectations, tenues], aujourdhui).find((x) => x.id === destinataire);
 	if (!lecteur || !(lecteur.a.tous || estMembre(lecteur.a, c.mur))) return;
 	const donnees = { titre: `${nomComplet(auteurs[0], c.auteur)} a commenté votre publication`, texte: extrait(c.texte), url: `/echanges/${c.mur}/${c.publicationId}`, tag: `commentaires:${c.publicationId}` };
-	await base.batch([ecrireFil(base, [destinataire], c.publicationId, id, maintenant), mettreEnFile(base, [destinataire], `mur:${c.mur}`, donnees, maintenant, undefined, 'commentaire')]);
+	await base.batch([ecrireFil(base, [destinataire], c.publicationId, id, maintenant), mettreEnFile(base, [destinataire], `mur:${c.mur}`, donnees, maintenant)]);
 }
 
 // Un message : les autres membres qui ont la messagerie, au téléphone seulement (les messages ont leur pastille). Une lecture, une écriture.

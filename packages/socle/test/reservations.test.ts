@@ -376,12 +376,10 @@ describe('notifications des réservations', () => {
 		await refuser(base, romain, b, 'Déjà prêtés', maintenant);
 		await annuler(base, romain, a, 'Bancs cassés', maintenant);
 		await annuler(base, alice, c, null, maintenant);
-		const [avis1, avis2, avis3] = (await base.select().from(avisReservation)).map((x) => x.id);
-		// Chaque envoi porte l'avis de la cloche qu'il annonce : touché au téléphone, il le marque lu.
 		expect(await envois()).toEqual([
-			{ personneId: alice.id, titre: 'Bancs : demande acceptée', texte: '12 nov.', url: '/reservations/miennes', tag: `reservation:${a}`, lue: { genre: 'reservation', id: avis1 } },
-			{ personneId: alice.id, titre: 'Bancs : demande refusée', texte: '13 nov. · Déjà prêtés', url: '/reservations/miennes', tag: `reservation:${b}`, lue: { genre: 'reservation', id: avis2 } },
-			{ personneId: alice.id, titre: 'Bancs : réservation annulée', texte: '12 nov. · Bancs cassés', url: '/reservations/miennes', tag: `reservation:${a}`, lue: { genre: 'reservation', id: avis3 } }
+			{ personneId: alice.id, titre: 'Bancs : demande acceptée', texte: '12 nov.', url: '/reservations/miennes', tag: `reservation:${a}` },
+			{ personneId: alice.id, titre: 'Bancs : demande refusée', texte: '13 nov. · Déjà prêtés', url: '/reservations/miennes', tag: `reservation:${b}` },
+			{ personneId: alice.id, titre: 'Bancs : réservation annulée', texte: '12 nov. · Bancs cassés', url: '/reservations/miennes', tag: `reservation:${a}` }
 		]);
 		expect((await base.select().from(avisReservation)).map((x) => [x.personneId, x.reservationId, x.quoi])).toEqual([
 			[alice.id, a, 'acceptee'],

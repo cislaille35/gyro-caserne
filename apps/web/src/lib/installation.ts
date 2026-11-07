@@ -14,8 +14,9 @@ export const estInstallee = (pleinEcran: boolean, nav: { standalone?: boolean })
 // L'encart de l'accueil : discret, écarté quelques jours par « Plus tard ».
 export function choixEncart(p: Plateforme, plusTardLe: string | null, maintenant: Date): 'iphone' | 'bouton' | 'rien' {
 	if (p.installee) return 'rien';
-	const ecarte = plusTardLe === null ? NaN : Date.parse(plusTardLe);
-	if (maintenant.getTime() - ecarte < PLUS_TARD_JOURS * 864e5) return 'rien';
+	// Une date dans le futur (horloge déréglée) ne cache rien.
+	const ecoule = maintenant.getTime() - (plusTardLe === null ? NaN : Date.parse(plusTardLe));
+	if (ecoule >= 0 && ecoule < PLUS_TARD_JOURS * 864e5) return 'rien';
 	return p.ios ? 'iphone' : p.invite ? 'bouton' : 'rien';
 }
 

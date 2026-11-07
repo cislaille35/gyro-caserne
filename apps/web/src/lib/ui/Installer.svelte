@@ -24,10 +24,22 @@
 	});
 	const choix = $derived(!monte ? null : mode === 'encart' ? choixEncart(appareil(), plusTard, new Date()) : choixPage(appareil()));
 
+	// L'encart disparaît avec le bouton qui a le focus : le focus va au titre de la page, pas au début du document.
+	function focusAuTitre() {
+		const titre = document.querySelector<HTMLElement>('main h1, h1');
+		if (!titre) return;
+		if (!titre.hasAttribute('tabindex')) titre.setAttribute('tabindex', '-1');
+		titre.focus();
+	}
 	function ecarter() {
 		const maintenant = new Date();
 		noterPlusTard(stockage(), maintenant);
 		plusTard = maintenant.toISOString();
+		focusAuTitre();
+	}
+	async function installerIci() {
+		await installer();
+		if (mode === 'encart') focusAuTitre();
 	}
 
 	const PARTAGER = 'M12 3v12 M8 7l4-4 4 4 M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2';
@@ -49,7 +61,7 @@
 				<h2 id={id}>Ajoutez Gyro à votre écran d’accueil</h2>
 				<p>Sur iPhone, les notifications et le nombre sur l’icône n’arrivent que si l’appli est installée.</p>
 				<ol class="etapes">
-					<li>{@render geste(PARTAGER)}<span>Dans Safari, touchez <strong>Partager</strong>.</span></li>
+					<li>{@render geste(PARTAGER)}<span>Touchez <strong>Partager</strong> dans la barre du navigateur.</span></li>
 					<li>{@render geste(AJOUTER)}<span>Choisissez <strong>Sur l’écran d’accueil</strong>, puis <strong>Ajouter</strong>.</span></li>
 				</ol>
 				{#if mode === 'page'}<p class="doux">Ouvrez ensuite Gyro Caserne depuis son icône, puis activez les notifications dans Moi → Notifications.</p>{/if}
@@ -61,11 +73,11 @@
 				<p>Gyro Caserne est sur cet appareil : ouvrez-la depuis son icône.</p>
 			{:else}
 				<h2 id={id}>Installer depuis le navigateur</h2>
-				<p>Dans le menu du navigateur, choisissez <strong>Installer l’appli</strong> ou <strong>Ajouter à l’écran d’accueil</strong>. Sur iPhone, ouvrez l’appli dans Safari.</p>
+				<p>Dans le menu du navigateur, choisissez <strong>Installer l’appli</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</p>
 			{/if}
 			{#if choix === 'bouton' || mode === 'encart'}
 				<div class="actions">
-					{#if choix === 'bouton'}<Bouton onclick={() => void installer()}>Installer Gyro Caserne</Bouton>{/if}
+					{#if choix === 'bouton'}<Bouton onclick={() => void installerIci()}>Installer Gyro Caserne</Bouton>{/if}
 					{#if mode === 'encart'}<Bouton variante="secondaire" onclick={ecarter}>Plus tard</Bouton>{/if}
 				</div>
 			{/if}

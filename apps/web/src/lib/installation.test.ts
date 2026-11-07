@@ -38,13 +38,14 @@ describe('choixEncart (l’accueil)', () => {
 		expect(choixEncart({ installee: true, ios: false, invite: true }, null, maintenant)).toBe('rien');
 	});
 
-	it(`« Plus tard » : rien pendant ${PLUS_TARD_JOURS} jours, puis l’encart revient ; une date illisible ne bloque rien`, () => {
+	it(`« Plus tard » : rien pendant ${PLUS_TARD_JOURS} jours, puis l’encart revient ; une date illisible ou dans le futur ne bloque rien`, () => {
 		const ios = { installee: false, ios: true, invite: false };
 		const il = (jours: number) => new Date(maintenant.getTime() - jours * 864e5).toISOString();
 		expect(choixEncart(ios, il(1), maintenant)).toBe('rien');
 		expect(choixEncart(ios, il(PLUS_TARD_JOURS - 0.01), maintenant)).toBe('rien');
 		expect(choixEncart(ios, il(PLUS_TARD_JOURS), maintenant)).toBe('iphone');
 		expect(choixEncart(ios, 'nimporte', maintenant)).toBe('iphone');
+		expect(choixEncart(ios, il(-1), maintenant)).toBe('iphone');
 	});
 });
 
