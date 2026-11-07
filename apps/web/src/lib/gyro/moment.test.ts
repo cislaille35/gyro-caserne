@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { tenueDuMoment } from './moment.ts';
+import { tenueDuMoment as tenue } from './moment.ts';
+
+// Le centre fictif (près de Rennes) : le soleil s'y couche environ 15 minutes après Paris.
+const ICI = { latitude: 48.1, longitude: -1.7 };
+const tenueDuMoment = (date: Date, ambiance?: Parameters<typeof tenue>[1]) => tenue(date, ambiance, ICI);
 
 // Dates en UTC, résultat attendu à l'heure de Paris.
 const cas: [string, string][] = [
@@ -58,5 +62,21 @@ describe('tenueDuMoment', () => {
 		expect(tenueDuMoment(new Date('2026-12-25T10:00Z'), 'pluie')).toBe('noel');
 		expect(tenueDuMoment(new Date('2026-10-26T22:30Z'), 'pluie')).toBe('nuit');
 		expect(tenueDuMoment(new Date('2026-05-12T06:30Z'), 'pluie')).toBe('ptitdej');
+	});
+
+	it('pas de soleil une fois le soleil couché : ni l’été, ni la chaleur', () => {
+		// 10 août, coucher vers 21 h 25 au centre.
+		expect(tenueDuMoment(new Date('2026-08-10T19:00Z'))).toBe('ete'); // 21 h
+		expect(tenueDuMoment(new Date('2026-08-10T19:45Z'))).toBe('normal'); // 21 h 45
+		expect(tenueDuMoment(new Date('2026-08-10T19:45Z'), 'chaleur')).toBe('normal');
+		// 21 juin, coucher vers 22 h 13 au centre.
+		expect(tenueDuMoment(new Date('2026-06-21T20:00Z'))).toBe('ete'); // 22 h
+		expect(tenueDuMoment(new Date('2026-06-21T20:25Z'))).toBe('normal'); // 22 h 25
+		// Chaleur un soir de septembre, après le coucher (vers 20 h 30) : la tenue de saison.
+		expect(tenueDuMoment(new Date('2026-09-05T17:00Z'), 'chaleur')).toBe('ete'); // 19 h
+		expect(tenueDuMoment(new Date('2026-09-05T19:30Z'), 'chaleur')).toBe('normal'); // 21 h 30
+		// L'hiver, le soleil se couche tôt, mais aucune tenue de l'hiver n'en montre.
+		expect(tenueDuMoment(new Date('2026-12-15T17:30Z'))).toBe('calendriers');
+		expect(tenueDuMoment(new Date('2027-01-20T17:30Z'), 'neige')).toBe('galette');
 	});
 });

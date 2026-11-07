@@ -23,7 +23,11 @@ test.describe('chef : préparer l’année', () => {
 		await expect(page.getByText('Étape 1 sur 4')).toBeVisible();
 		// Les deux tailles d'écran jouent ce test : l'une a pu ouvrir l'été avant l'autre.
 		const ouvrir = page.getByRole('button', { name: 'Ouvrir la saisie des vacances' });
-		if (await ouvrir.count()) await ouvrir.click();
+		// On attend la fin de l'envoi : la page qu'il relit écraserait sinon une navigation partie entre-temps.
+		if (await ouvrir.count()) {
+			await ouvrir.click();
+			await expect(ouvrir).toHaveCount(0);
+		}
 		await page.getByRole('link', { name: 'Modifier la période' }).click();
 		await expect(page.getByRole('dialog', { name: 'Période de l’été' })).toBeVisible();
 		await sansViolation(page);

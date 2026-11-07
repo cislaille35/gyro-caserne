@@ -5,6 +5,8 @@
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
 	import MeteoAnim from '#lib/meteo/MeteoAnim.svelte';
+	import { soleilCouche } from '#lib/gyro/soleil.ts';
+	import centre from '$centre';
 	import { gyroSelonNiveau, lireAffichageContexte } from '#lib/gyro/niveau.ts';
 	import { nombreAFaire } from '#lib/a-faire.ts';
 	import { aujourdhuiParis } from '#lib/aujourdhui.ts';
@@ -106,7 +108,7 @@
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={data.meteo.meteo?.nuit} />{/if}
+		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={soleilCouche(new Date(), centre.position)} />{/if}
 		<div class="devant">
 			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyroAccueil : undefined} />
 		</div>

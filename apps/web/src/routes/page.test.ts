@@ -1,5 +1,5 @@
 import { render } from 'svelte/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
 import { HUMEURS, humeurDuJour } from '#lib/gyro/humeurs.ts';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
@@ -23,6 +23,21 @@ describe('accueil, météo et vigilance', () => {
 		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C, averses, rafales 45 km\/h<\/span> <a class="source/);
 		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
+	});
+
+	describe('pas de soleil la nuit, même si le relevé date d’avant le coucher', () => {
+		afterEach(() => vi.useRealTimers());
+		// Le relevé (une fois par heure) dit encore « de jour » ; le centre fictif voit le soleil se coucher vers 21 h 25 le 10 août.
+		const clair = { meteo: { ambiance: 'clair', texte: '24 °C, ciel clair', nuit: false }, vigilance: null };
+		it.each([
+			['2026-08-10T19:00Z', true],
+			['2026-08-10T19:45Z', false]
+		])('%s : soleil %s', (heure, soleil) => {
+			vi.useFakeTimers({ now: new Date(heure), toFake: ['Date'] });
+			const html = page({ ...base, meteo: clair });
+			expect(html.includes('class="soleil'), 'décor').toBe(soleil);
+			expect(html.includes('en lunettes de soleil') || /<circle cx="132" cy="30" r="13"/.test(html), 'Gyro').toBe(soleil);
+		});
 	});
 
 	it('affichage Sobre : la ligne reste, sans ambiance', () => {

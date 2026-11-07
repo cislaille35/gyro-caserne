@@ -1,4 +1,5 @@
 <script lang="ts">
+	import centre from '$centre';
 	import Gyro from './Gyro.svelte';
 	import { gyroSelonNiveau, lireAffichageContexte } from './niveau.ts';
 	import { tenueDuMoment } from './moment.ts';
@@ -23,5 +24,5 @@
 </script>
 
 {#if reglage.visible}
-	<Gyro tenue={tenue ?? tenueDuMoment(new Date())} {taille} anime={reglage.anime && enMouvement} {decoratif} />
+	<Gyro tenue={tenue ?? tenueDuMoment(new Date(), null, centre.position)} {taille} anime={reglage.anime && enMouvement} {decoratif} />
 {/if}
