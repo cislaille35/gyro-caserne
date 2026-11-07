@@ -62,9 +62,9 @@
 		{:else if liste.length === 0}
 			<Vide titre={VIDES[data.onglet].titre} texte={VIDES[data.onglet].texte} />
 		{:else}
-			<ul role="list">
+			<ul role="list" class="lignes">
 				{#each liste as v (v.id)}
-					<li><CarteDemande {v} niveau={2} /></li>
+					<li><CarteDemande {v} niveau={2} ligne /></li>
 				{/each}
 			</ul>
 		{/if}
@@ -87,13 +87,6 @@
 	}
 	p {
 		margin: 0;
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: grid;
-		gap: 10px;
 	}
 	.compte {
 		min-width: 1.5em;
@@ -156,11 +149,7 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 64rem;
-		}
-		ul {
-			grid-template-columns: 1fr 1fr;
-			align-items: start;
+			max-width: 48rem;
 		}
 	}
 </style>

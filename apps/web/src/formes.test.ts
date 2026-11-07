@@ -75,7 +75,6 @@ describe('formes', () => {
 	it('les cartes : sans bord fin, l’ombre douce et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
 		const cartes: [string, string][] = [
 			['lib/ui/Carte.svelte', 'section'],
-			['lib/ui/Rangee.svelte', '.rangee'],
 			['lib/ui/Groupe.svelte', '.groupe'],
 			['lib/ui/Publication.svelte', '.publication'],
 			['routes/echanges/+layout.svelte', '.centre'],
@@ -88,6 +87,45 @@ describe('formes', () => {
 			expect(regle, f).toMatch(/box-shadow: var\(--ombre-carte\);/);
 			expect(regle, f).toMatch(/border-radius: var\(--rayon-grand\);/);
 		}
+	});
+
+	it('une carte par groupe de lignes : les lignes séparées par un trait fin, sans carte chacune', () => {
+		const css = readFileSync(join(racine, 'app.css'), 'utf8');
+		const carte = css.match(/\n\.lignes \{([^}]*)\}/)![1];
+		expect(carte).toMatch(/border: 1px solid transparent;/);
+		expect(carte).toMatch(/box-shadow: var\(--ombre-carte\);/);
+		expect(carte).toMatch(/border-radius: var\(--rayon-grand\);/);
+		expect(carte).toMatch(/background: var\(--surface\);/);
+		expect(css).toMatch(/\.lignes > li \+ li \{\s*border-top: 1px solid var\(--trait-doux\);/);
+		// Le titre du groupe au-dessus de la carte, en condensé, majuscules espacées, gris.
+		expect(css).toMatch(/\.titre-groupe \{[^}]*font: 700 0\.875rem\/1\.2 var\(--police-titre\);[^}]*letter-spacing: 0\.1em;[^}]*text-transform: uppercase;[^}]*color: var\(--doux\);/);
+		// Une ligne n'est plus une carte.
+		const ligne = source('lib/ui/Rangee.svelte').match(/\n\t\.rangee \{([^}]*)\}/)![1];
+		expect(ligne).not.toMatch(/box-shadow|border-radius|border:/);
+		// Les listes faites à la main suivent la même forme.
+		const aLaMain: [string, RegExp][] = [
+			['routes/notifications/+page.svelte', /<ul class="lignes" role="list">/],
+			['routes/remplacements/+page.svelte', /<ul role="list" class="lignes">/],
+			['routes/echanges/+layout.svelte', /<ul class="lignes">\s*\{#each s\.groupes/],
+			['routes/reservations/miennes/+page.svelte', /<ul role="list" class="lignes">/],
+			['routes/reservations/a-valider/+page.svelte', /<ul role="list" class="lignes">/],
+			['lib/messagerie/ListeConversations.svelte', /<ul class="lignes"/]
+		];
+		for (const [f, motif] of aLaMain) expect(source(f), f).toMatch(motif);
+	});
+
+	it('la ligne entière est cliquable, son repère du clavier visible sur toute la ligne, cible de 44 px au moins', () => {
+		const s = source('lib/ui/Rangee.svelte');
+		expect(s).toMatch(/\n\t\.rangee \{[^}]*min-height: var\(--cible\);/);
+		expect(s).toMatch(/a\.rangee:focus-visible \{\s*outline-offset: -3px;/);
+		// Avec des gestes, le titre s'étend à la ligne ; son repère entoure la ligne ; les gestes restent au-dessus.
+		expect(s).toMatch(/\.etire::after \{[^}]*position: absolute;[^}]*inset: 0;/);
+		expect(s).toMatch(/\.etire:focus-visible::after \{[^}]*outline: 3px solid var\(--focus\);[^}]*outline-offset: -3px;/);
+		expect(s).toMatch(/\.inclus \{[^}]*position: relative;[^}]*z-index: 1;/);
+	});
+
+	it('« Gérer » du chef : trois cases de gestes courts', () => {
+		expect(source('routes/+page.svelte')).toMatch(/<ul role="list" class="lignes grille-gestes">/);
 	});
 
 	it('le repère du clavier reste visible : dans les liens de la bande de la plaque (rognée) et sur « ma semaine »', () => {

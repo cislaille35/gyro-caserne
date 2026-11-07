@@ -33,8 +33,8 @@
 		<Vide titre="Aucune demande en attente." texte="Les demandes de réservation à trancher arriveront ici, et dans votre cloche." action={{ href: '/reservations', libelle: 'Voir les réservations' }} />
 	{:else}
 		<section aria-labelledby="t-demandes">
-			<h2 id="t-demandes" class="rubrique">Demandes <span class="doux">({data.demandes.length})</span></h2>
-			<ul role="list">
+			<h2 id="t-demandes" class="titre-groupe">Demandes <span class="compte">{data.demandes.length}</span></h2>
+			<ul role="list" class="lignes">
 				{#each data.demandes as { demande: r, conflits } (r.id)}
 					<li>
 						<CarteReservation {r} aujourdhui={data.maintenant.slice(0, 10)} demandeur>
@@ -73,8 +73,8 @@
 
 	{#if data.acceptees.length > 0}
 		<section aria-labelledby="t-acceptees">
-			<h2 id="t-acceptees" class="rubrique">Acceptées à venir</h2>
-			<ul role="list">
+			<h2 id="t-acceptees" class="titre-groupe">Acceptées à venir</h2>
+			<ul role="list" class="lignes">
 				{#each data.acceptees as r (r.id)}
 					<li>
 						<CarteReservation {r} aujourdhui={data.maintenant.slice(0, 10)} demandeur>
@@ -100,7 +100,7 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 8px;
 	}
 	.page {
 		gap: 20px;
@@ -109,8 +109,6 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
-		display: grid;
-		gap: 10px;
 	}
 	p {
 		margin: 0;
@@ -205,10 +203,6 @@
 	@media (min-width: 1024px) {
 		.page {
 			max-width: 56rem;
-		}
-		section > ul {
-			grid-template-columns: 1fr 1fr;
-			align-items: start;
 		}
 	}
 </style>

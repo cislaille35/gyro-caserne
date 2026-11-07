@@ -25,15 +25,12 @@
 </article>
 
 <style>
+	/* Une ligne de la carte de sa liste (`ul.lignes`). */
 	.carte {
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
 		padding: 14px 16px;
-		background: var(--surface);
-		border: 1px solid transparent;
-		box-shadow: var(--ombre-carte);
-		border-radius: var(--rayon-grand);
 		overflow-wrap: anywhere;
 	}
 	.haut {

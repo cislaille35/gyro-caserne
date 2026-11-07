@@ -1,26 +1,25 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	// Une liste de rangées (les enfants sont des <li>), avec une rubrique h2 facultative, son compteur, et un pied sous la liste.
+	// Un groupe de lignes (les enfants sont des <li>) dans une seule carte, avec son titre h2 au-dessus et son compteur, s'il y en a.
 	// `ancre` : le titre reçoit cet id et peut prendre le focus par programme.
-	let { titre, compte, ancre, pied, children }: { titre?: string; compte?: number; ancre?: string; pied?: Snippet; children: Snippet } = $props();
+	let { titre, compte, ancre, children }: { titre?: string; compte?: number; ancre?: string; children: Snippet } = $props();
 	const idAuto = $props.id();
 	const idTitre = $derived(ancre ?? idAuto);
 </script>
 
 {#snippet liste()}
-	<ul role="list">{@render children()}</ul>
+	<ul role="list" class="lignes">{@render children()}</ul>
 {/snippet}
 
 {#if titre}
 	<section aria-labelledby={idTitre}>
 		{#if ancre}
-			<h2 id={idTitre} class="rubrique" tabindex="-1">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
+			<h2 id={idTitre} class="titre-groupe" tabindex="-1">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
 		{:else}
-			<h2 id={idTitre} class="rubrique">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
+			<h2 id={idTitre} class="titre-groupe">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
 		{/if}
 		{@render liste()}
-		{#if pied}{@render pied()}{/if}
 	</section>
 {:else}
 	{@render liste()}
@@ -30,34 +29,9 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-	}
-	h2 {
-		display: flex;
-		align-items: center;
 		gap: 8px;
 	}
 	h2:focus {
 		outline: none;
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-	.compte {
-		min-width: 24px;
-		height: 24px;
-		padding: 0 7px;
-		border-radius: 12px;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: var(--statut-neutre-fond);
-		color: var(--encre);
-		font: 700 0.8125rem var(--police);
 	}
 </style>

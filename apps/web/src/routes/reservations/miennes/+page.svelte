@@ -28,8 +28,8 @@
 
 	{#if data.aVenir.length > 0}
 		<section aria-labelledby="t-a-venir">
-			<h2 id="t-a-venir" class="rubrique">À venir</h2>
-			<ul role="list">
+			<h2 id="t-a-venir" class="titre-groupe">À venir</h2>
+			<ul role="list" class="lignes">
 				{#each data.aVenir as r (r.id)}
 					<li>
 						<CarteReservation {r} aujourdhui={data.aujourdhui}>
@@ -58,8 +58,8 @@
 
 	{#if data.passees.length > 0}
 		<section aria-labelledby="t-passees">
-			<h2 id="t-passees" class="rubrique">Passées</h2>
-			<ul role="list">
+			<h2 id="t-passees" class="titre-groupe">Passées</h2>
+			<ul role="list" class="lignes">
 				{#each data.passees as r (r.id)}
 					<li><CarteReservation {r} aujourdhui={data.aujourdhui} /></li>
 				{/each}
@@ -75,17 +75,10 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 8px;
 	}
 	.page {
 		gap: 20px;
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: grid;
-		gap: 10px;
 	}
 	p {
 		margin: 0;
@@ -145,9 +138,6 @@
 	@media (min-width: 1024px) {
 		.page {
 			max-width: 48rem;
-		}
-		ul {
-			grid-template-columns: 1fr 1fr;
 		}
 	}
 </style>

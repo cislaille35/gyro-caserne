@@ -14,7 +14,7 @@
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
-	import { DESSINS, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
+	import { DESSINS, ICONES_ROLES, type IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
 
 	let { data, form } = $props();
 
@@ -36,12 +36,11 @@
 		].join(' ').trim()
 	);
 	const rangee = $derived(data.casquettes.length >= 2);
-	const casquette = $derived(data.casquettes.find((c) => c.id === data.choisie));
 
-	const gerer: { href: string; titre: string; texte: string; icone: NomIcone }[] = $derived([
-		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', icone: 'casque' },
-		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', icone: 'etoile' as const }] : []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Les rôles et les comités', icone: 'outil' as const }] : [])
+	const gerer: { href: string; titre: string; icone: NomIcone }[] = $derived([
+		{ href: '/agents', titre: 'Agents', icone: 'casque' },
+		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', icone: 'etoile' as const }] : []),
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', icone: 'outil' as const }] : [])
 	]);
 	// Ce qui attend une décision passe avant tout le reste, sur toutes les casquettes.
 	const enTete = $derived(data.contenu.type === 'astreinte' ? [] : data.contenu.aDecider);
@@ -77,8 +76,8 @@
 		{#each liste.slice(0, VISIBLES) as element, i (i)}
 			<li><Rangee href={element.lien} titre={element.texte} alerte /></li>
 		{/each}
-		{#snippet pied()}
-			{#if liste.length > VISIBLES}
+		{#if liste.length > VISIBLES}
+			<li>
 				<details class="autres">
 					<summary>Voir {liste.length - VISIBLES > 1 ? `les ${liste.length - VISIBLES} autres` : 'l’autre'}</summary>
 					<ul role="list">
@@ -87,8 +86,8 @@
 						{/each}
 					</ul>
 				</details>
-			{/if}
-		{/snippet}
+			</li>
+		{/if}
 	</ListeRangees>
 {/snippet}
 
@@ -131,11 +130,20 @@
 							<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Rien à décider pour le moment." sous="Les équipes ont leur chef et chaque rôle son titulaire." /></li>
 						</ListeRangees>
 					{/if}
-					<ListeRangees titre="Gérer">
-						{#each gerer as l (l.href)}
-							<li><Rangee href={l.href} titre={l.titre} sous={l.texte} icone={l.icone} /></li>
-						{/each}
-					</ListeRangees>
+					<!-- Des liens courts : trois cases de gestes, dans une seule carte. -->
+					<section class="gerer" aria-labelledby="t-gerer">
+						<h2 id="t-gerer" class="titre-groupe">Gérer</h2>
+						<ul role="list" class="lignes grille-gestes">
+							{#each gerer as l (l.href)}
+								<li>
+									<a href={l.href}
+										><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[l.icone]} /></svg
+										>{l.titre}</a
+									>
+								</li>
+							{/each}
+						</ul>
+					</section>
 				{:else if data.contenu.type === 'equipe'}
 					<ListeRangees titre="À décider">
 						<li><Rangee icone="croix" dessin={DESSINS.ok} titre="Aucun remplacement à valider." sous="Quand une aptitude contrôlée manque à un remplaçant de votre équipe, c’est ici." /></li>
@@ -143,9 +151,9 @@
 				{:else if data.contenu.type === 'role'}
 					<ListeRangees titre="Ce que ce rôle permet">
 						{#each data.contenu.permet as permis (permis)}
-							<li><Rangee titre={permis} icone={casquette?.icone ?? 'etoile'} /></li>
+							<li><Rangee titre={permis} /></li>
 						{:else}
-							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." icone={casquette?.icone ?? 'etoile'} /></li>
+							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." /></li>
 						{/each}
 					</ListeRangees>
 				{:else if data.contenu.type === 'comite'}
@@ -157,7 +165,7 @@
 								</Rangee>
 							</li>
 						{:else}
-							<li><Rangee titre="Aucun membre pour le moment." icone="groupe" /></li>
+							<li><Rangee titre="Aucun membre pour le moment." /></li>
 						{/each}
 					</ListeRangees>
 				{/if}
@@ -269,16 +277,24 @@
 		flex-direction: column;
 		gap: 24px;
 	}
+	/* « Voir les autres » : une ligne de la carte, centrée. */
 	.autres summary {
 		min-height: var(--cible);
-		display: inline-flex;
+		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 8px;
-		padding: 0 4px;
+		padding: 0 14px;
 		color: var(--encre);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
+	}
+	.autres summary:focus-visible {
+		outline-offset: -3px;
+	}
+	.autres summary:hover {
+		text-decoration: underline;
 	}
 	.autres summary::-webkit-details-marker {
 		display: none;
@@ -289,21 +305,55 @@
 		height: 8px;
 		border-right: 2px solid currentColor;
 		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-	}
-	.autres[open] summary::before {
 		transform: rotate(45deg);
 	}
-	.autres[open] summary {
-		margin-bottom: 10px;
+	.autres[open] summary::before {
+		transform: rotate(-135deg);
 	}
 	.autres ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+	.autres li {
+		border-top: 1px solid var(--trait-doux);
+	}
+	.gerer {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 8px;
+	}
+	/* « Gérer » : une case par geste, côte à côte. */
+	.grille-gestes {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
+	}
+	.grille-gestes > li + li {
+		border-top: 0;
+		border-left: 1px solid var(--trait-doux);
+	}
+	.grille-gestes a {
+		min-height: 76px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 8px 4px;
+		color: var(--encre);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		text-align: center;
+		text-decoration: none;
+		overflow-wrap: anywhere;
+	}
+	.grille-gestes a:hover {
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		text-decoration: underline;
+	}
+	.grille-gestes a:focus-visible {
+		outline-offset: -3px;
 	}
 	@media (min-width: 1024px) {
 		.colonnes {

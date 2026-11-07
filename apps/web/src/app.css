@@ -261,6 +261,54 @@ body {
 	margin: 0;
 	font: 700 1.25rem/1.2 var(--police-titre);
 }
+/* Un groupe de lignes : son titre au-dessus, en condensé, majuscules espacées, gris ; puis une seule carte. */
+.titre-groupe {
+	margin: 0 0 0 4px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font: 700 0.875rem/1.2 var(--police-titre);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--doux);
+}
+/* Le compteur du groupe : un nombre écrit, en encre pleine. */
+.titre-groupe .compte {
+	min-width: 22px;
+	height: 22px;
+	padding: 0 7px;
+	border-radius: 11px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--encre);
+	color: var(--fond);
+	font: 700 0.8125rem var(--police);
+	letter-spacing: 0;
+}
+/* La carte du groupe ; ses lignes séparées par un trait fin. */
+.lignes {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid transparent;
+	box-shadow: var(--ombre-carte);
+	border-radius: var(--rayon-grand);
+	background: var(--surface);
+	overflow: hidden;
+}
+.lignes > li + li {
+	border-top: 1px solid var(--trait-doux);
+}
+/* Le repère du clavier suit l'arrondi de la carte sur la première et la dernière ligne. */
+.lignes > li:first-child > * {
+	border-top-left-radius: var(--rayon-grand);
+	border-top-right-radius: var(--rayon-grand);
+}
+.lignes > li:last-child > * {
+	border-bottom-left-radius: var(--rayon-grand);
+	border-bottom-right-radius: var(--rayon-grand);
+}
 /* Lien secondaire arrondi (« Fichier », « Comité », « Tout afficher ») : un contour, pas la couleur de l'action principale. */
 .lien-secondaire {
 	min-height: 48px;

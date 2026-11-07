@@ -95,7 +95,7 @@
 {/snippet}
 
 {#snippet titre(id: string, texte: string)}
-	<svelte:element this={actif ? 'p' : 'h2'} {id} class="rubrique">{texte}</svelte:element>
+	<svelte:element this={actif ? 'p' : 'h2'} {id} class="titre-groupe">{texte}</svelte:element>
 {/snippet}
 
 {#if surMessages}
@@ -137,7 +137,7 @@
 						<section class="section" aria-labelledby="t-centre">
 							{@render titre('t-centre', 'Le centre')}
 							{#if actif}
-								<ul>{@render tuile(c)}</ul>
+								<ul class="lignes">{@render tuile(c)}</ul>
 							{:else}
 								<a class="centre" href="/echanges/centre">
 									<span class="bandeau">
@@ -170,7 +170,7 @@
 					{#if s.groupes.length > 0}
 						<section class="section" aria-labelledby="t-groupes">
 							{@render titre('t-groupes', 'Mes groupes')}
-							<ul>
+							<ul class="lignes">
 								{#each s.groupes as t (t.cle)}{@render tuile(t)}{/each}
 							</ul>
 							{#if s.autres.length > 0}
@@ -267,7 +267,7 @@
 	.section {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 8px;
 	}
 	.rubrique {
 		margin: 0;
@@ -277,9 +277,6 @@
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
 	}
 	.doux {
 		color: var(--doux);
@@ -375,6 +372,8 @@
 		background: var(--surface);
 	}
 	.a-venir ul {
+		display: flex;
+		flex-direction: column;
 		gap: 2px;
 	}
 	.venir {
@@ -455,32 +454,34 @@
 		text-decoration: underline;
 	}
 
-	/* Une tuile de mur */
+	/* Un mur : une ligne de la carte du groupe, toute la ligne est le lien. */
 	.tuile {
 		min-height: 56px;
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 12px;
-		border: 1px solid transparent;
-		box-shadow: var(--ombre-carte);
-		border-radius: var(--rayon-grand);
-		background: var(--surface);
+		padding: 12px 14px;
 		color: var(--encre);
 		text-decoration: none;
 	}
 	.tuile:hover {
-		border-color: var(--trait);
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--encre) 8%, transparent);
+		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
 	}
+	.tuile:focus-visible {
+		outline-offset: -3px;
+	}
+	/* Le mur affiché : fond, liseré et nom en gras, pas la couleur seule. */
 	.tuile[aria-current='page'] {
+		background: var(--statut-neutre-fond);
 		box-shadow: inset 4px 0 0 var(--accent);
-		border-color: var(--trait);
+	}
+	.tuile[aria-current='page'] .nom {
+		font-weight: 800;
 	}
 	.breve {
+		min-height: var(--cible);
 		padding: 8px 12px;
 		gap: 10px;
-		border-radius: var(--rayon-grand);
 	}
 	.corps {
 		flex: 1;
@@ -541,6 +542,10 @@
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
+		overflow: hidden;
+	}
+	.repli summary:focus-visible {
+		outline-offset: -3px;
 	}
 	.repli summary {
 		min-height: 48px;
@@ -567,8 +572,9 @@
 	.repli[open] summary::before {
 		transform: rotate(45deg);
 	}
-	.repli ul {
-		padding: 0 10px 10px;
+	/* Dans le bloc replié : les lignes sous un trait fin, sans carte de plus. */
+	.repli li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.repli summary::before {
@@ -601,13 +607,6 @@
 		.sur-un-mur .colonnes,
 		.sur-un-mur .colonne {
 			gap: 14px;
-		}
-		.sur-un-mur ul {
-			gap: 6px;
-		}
-		.sur-un-mur .murs .rubrique {
-			font-size: 1rem;
-			color: var(--doux);
 		}
 		/* Entre 1024 et 1279 px : « Aujourd'hui » sous le mur, dans l'ordre du clavier. */
 		.avec-journee .murs {

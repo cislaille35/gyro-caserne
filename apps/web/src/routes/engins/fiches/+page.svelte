@@ -21,7 +21,7 @@
 	<div class="colonnes">
 		<ListeRangees titre="Les fiches" compte={data.fiches.length}>
 			{#each data.fiches as f (f.typeId)}
-				<li><Rangee href="/engins/fiches/{f.typeId}" titre="Fiche {f.type}" sous={compteFiche(f.zones)} icone="livre" valeur="version {f.version.numero}" /></li>
+				<li><Rangee href="/engins/fiches/{f.typeId}" titre="Fiche {f.type}" sous={compteFiche(f.zones)} valeur="version {f.version.numero}" /></li>
 			{/each}
 		</ListeRangees>
 
@@ -35,7 +35,7 @@
 				</form>
 			</section>
 			<ListeRangees titre="En une fois">
-				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Exporter ou importer toutes les fiches dans Excel ou LibreOffice" icone="outil" /></li>
+				<li><Rangee href="/engins/fiches/fichier" titre="Fichier des fiches" sous="Exporter ou importer toutes les fiches dans Excel ou LibreOffice" /></li>
 			</ListeRangees>
 		</div>
 	</div>
