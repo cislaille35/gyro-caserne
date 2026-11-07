@@ -181,8 +181,8 @@ export async function supprimerPublication(base: Base, basePhotos: BasePhotos, a
 	await effacerPhotos(basePhotos, photos.map((p) => p.photoId));
 }
 
-// Conservation (tâche de nuit) : efface les publications créées avant `avant` (AAAA-MM-JJ), sauf épinglées ou événement encore
-// à venir. Commentaires, j'aime, réponses, votes, prises de connaissance, photos et notifications partent avec (suppression en
+// Conservation (tâche de nuit) : efface les publications créées avant `avant` (AAAA-MM-JJ), sauf épinglées ou événement daté
+// après la limite (il part quand sa date la passe). Commentaires, j'aime, réponses, votes, prises de connaissance, photos et notifications partent avec (suppression en
 // cascade ; une manœuvre du planning garde sa ligne, sans publication) ; puis les octets des photos, dans leur base. Le journal
 // reste. Par lots de 100 (deux requêtes chacun), 5 au plus par nuit : le reste part la nuit suivante. Rend le nombre effacé.
 const LOT_CONSERVATION = 100;

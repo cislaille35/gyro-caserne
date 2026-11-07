@@ -813,7 +813,7 @@ describe('conservation des publications (tâche de nuit)', () => {
 		expect(await de(epinglee)).toEqual(rien);
 	});
 
-	it('un événement ancien encore à venir est gardé ; rien à effacer : une requête', async () => {
+	it('un événement publié avant la limite, mais daté après, est gardé ; rien à effacer : une requête', async () => {
 		const { base, chef } = await jeu();
 		const [{ id }] = await base.insert(publication).values({ mur: 'centre', auteur: `personne:${chef}`, type: 'evenement', texte: 'Sainte-Barbe', creeLe: vieux, debut: '2024-12-04T12:00', lieu: 'Caserne', convoques: '"tous"' }).returning({ id: publication.id });
 		const requetes = base.requetes;
@@ -822,12 +822,14 @@ describe('conservation des publications (tâche de nuit)', () => {
 		expect(await base.select({ id: publication.id }).from(publication)).toEqual([{ id }]);
 	});
 
-	it('par lots : beaucoup d’anciennes, toutes effacées en quelques requêtes', async () => {
+	it('par lots de 100, 5 au plus par nuit : le reste part la nuit suivante', async () => {
 		const { base, chef } = await jeu();
-		await base.insert(publication).values(Array.from({ length: 250 }, (_, i) => ({ mur: 'centre', auteur: `personne:${chef}`, type: 'message' as const, texte: `Vieux ${i}`, creeLe: vieux })));
+		await base.insert(publication).values(Array.from({ length: 601 }, (_, i) => ({ mur: 'centre', auteur: `personne:${chef}`, type: 'message' as const, texte: `Vieux ${i}`, creeLe: vieux })));
 		const requetes = base.requetes;
-		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(250);
-		expect(base.requetes - requetes).toBeLessThanOrEqual(6);
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(500);
+		// Sans photos : une requête par lot.
+		expect(base.requetes - requetes).toBe(5);
+		expect(await effacerVieillesPublications(base, base.photos, avant)).toBe(101);
 		expect(await base.select().from(publication)).toHaveLength(0);
 	});
 

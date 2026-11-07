@@ -73,7 +73,7 @@ export async function effacerPhotos(basePhotos: BasePhotos, ids: number[]): Prom
 	const paquets = [];
 	for (let i = 0; i < ids.length; i += 100) paquets.push(basePhotos.delete(octetsPhoto).where(inArray(octetsPhoto.id, ids.slice(i, i + 100))));
 	const [premier, ...autres] = paquets;
-	if (premier) await basePhotos.batch([premier, ...autres]).catch(() => {});
+	if (premier) await basePhotos.batch([premier, ...autres]).catch((e) => console.warn('Octets de photos non effacés', ids.length, e));
 }
 
 // Les octets d'une photo, une fois l'accès vérifié dans la base principale.

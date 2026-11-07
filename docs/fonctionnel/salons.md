@@ -87,7 +87,7 @@ La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le 
 ## Conservation
 
 - Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent.
-- Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement encore à venir est gardé aussi.
+- Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement daté après la limite est gardé jusqu'à ce que sa date la passe.
 - Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part. Le journal des gestes (qui a publié, supprimé…) reste.
 - Pourquoi : voir [0023](../decisions/0023-conservation-des-publications.md).
 
