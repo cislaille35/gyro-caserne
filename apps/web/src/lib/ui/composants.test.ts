@@ -425,6 +425,15 @@ describe('EnTetePage', () => {
 	it('une action secondaire à côté', () => {
 		expect(net(EnTetePage, { titre: 'Agents', secondaire: contenu })).toContain('<span>Contenu</span>');
 	});
+	it('pas de phrase qui répète le titre ou l’évidence sous les en-têtes (audit C8) : seulement une info, un nombre, une date, un état', () => {
+		const racine = new URL('../../routes/', import.meta.url);
+		const enTetes = (p: string) => [...readFileSync(new URL(p, racine), 'utf8').matchAll(/<EnTetePage\b[\s\S]*?\/?>/g)].map((m) => m[0]);
+		for (const p of ['agents/+layout.svelte', 'caserne/+page.svelte', 'moi/+page.svelte', 'moi/agenda/+page.svelte', 'reservations/miennes/+page.svelte', 'reservations/materiel/+page.svelte', 'engins/+page.svelte', 'engins/anomalies/+page.svelte', 'remplacements/+page.svelte', 'reglages/+page.svelte'])
+			for (const t of enTetes(p)) expect(t, p).not.toMatch(/\sphrase[=\s>]/);
+		const sources = ['affichage/+page.svelte', 'reservations/a-valider/+page.svelte', 'engins/fiches/+page.svelte', 'engins/fiches/[id]/+page.svelte', 'nominations/+page.svelte', 'planning/+page.svelte', 'moi/vacances/+page.svelte', 'engins/prise/+page.svelte'].map((p) => readFileSync(new URL(p, racine), 'utf8')).join('\n');
+		for (const t of ['Le thème et la présence de Gyro', 'Les demandes de réservation des ressources que vous gérez', 'ce que l’équipe vérifie, zone par zone', 'Ce que l’équipe vérifie à la prise de garde', 'Qui tient quel rôle', 'Les astreintes et les manœuvres de l’année', 'Vos vacances d’été, pour le planning', 'Choisissez un engin'])
+			expect(sources).not.toContain(t);
+	});
 });
 
 describe('Rangee', () => {

@@ -18,7 +18,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Mes réservations" phrase="Vos demandes et réservations, à venir et passées." retour={{ href: '/reservations', libelle: 'Réservations' }} />
+	<EnTetePage titre="Mes réservations" retour={{ href: '/reservations', libelle: 'Réservations' }} />
 	<p class="reussite" class:masque={!succes} role="status">{succes}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 

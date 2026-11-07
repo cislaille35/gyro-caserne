@@ -47,7 +47,6 @@
 <div class="page">
 	<EnTetePage
 		titre="Anomalies"
-		phrase={filtre ? `${filtre.nom} : ce qui est signalé et où en est la réparation.` : 'Ce qui est signalé sur les engins, et où en est la réparation.'}
 		retour={filtre ? { href: `/engins/${filtre.id}`, libelle: filtre.nom } : { href: '/engins', libelle: 'Engins' }}
 		action={data.peutSignaler ? { href: signaler, libelle: 'Signaler un problème', dessin: DESSINS.plus } : undefined}
 	/>

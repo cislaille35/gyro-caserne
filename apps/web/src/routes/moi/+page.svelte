@@ -31,7 +31,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Moi" phrase="Votre compte et vos réglages." />
+	<EnTetePage titre="Moi" />
 
 	<section class="carte" aria-label="Mon identité" style:--teinte={id?.equipe?.couleur ?? null}>
 		{#if id}

@@ -59,7 +59,7 @@
 				? `${phraseAstreinte(carte, m).titre}.`
 				: mode === 'moi'
 					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
-					: 'Les astreintes et les manœuvres de l’année.'
+					: undefined
 	);
 
 	const donnees = $derived(p.publiee ? { annee: p.annee, feries: p.feries, vacances: p.vacances, manoeuvres: p.manoeuvres, remplacements: p.remplacements } : null);

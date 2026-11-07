@@ -49,7 +49,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Fiche {f.type}" phrase="Ce que l’équipe vérifie à la prise de garde, zone par zone. Les modifications valent pour la prochaine prise." retour={{ href: '/engins/fiches', libelle: 'Fiches' }} />
+	<EnTetePage titre="Fiche {f.type}" phrase="Les modifications valent pour la prochaine prise." retour={{ href: '/engins/fiches', libelle: 'Fiches' }} />
 
 	<p class="version">
 		<strong>Version {f.version.numero}</strong>, du {dateCourte(f.version.creeLe)} ({f.version.auteur}) · {compteFiche(f.zones)}.

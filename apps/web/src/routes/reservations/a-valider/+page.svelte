@@ -25,7 +25,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="À valider" phrase="Les demandes de réservation des ressources que vous gérez. Le demandeur est prévenu de votre réponse." retour={{ href: '/reservations', libelle: 'Réservations' }} />
+	<EnTetePage titre="À valider" phrase="Le demandeur est prévenu de votre réponse." retour={{ href: '/reservations', libelle: 'Réservations' }} />
 	<p class="reussite" class:masque={!form?.succes} role="status">{form?.succes ?? ''}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 

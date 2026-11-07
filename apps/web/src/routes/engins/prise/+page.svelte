@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Prise de garde" phrase="{texteReleve(data.releve)}. Choisissez un engin : sa fiche, zone par zone." retour={{ href: '/engins', libelle: 'Engins' }} />
+	<EnTetePage titre="Prise de garde" phrase="{texteReleve(data.releve)}." retour={{ href: '/engins', libelle: 'Engins' }} />
 
 	{#if data.engins.length === 0}
 		<Vide titre="Aucun engin à vérifier." texte="Les engins du centre apparaîtront ici à chaque relève." />

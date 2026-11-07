@@ -101,7 +101,7 @@
 <div class="page" class:a-cote={enfant}>
 	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents">
 		{#if data.gestion}
-			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
+			<EnTetePage titre="Agents" action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
 				{#snippet secondaire()}
 					<a class="lien-secondaire" href="/agents/fichier"
 						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -121,7 +121,7 @@
 				</div>
 			</form>
 		{:else}
-			<EnTetePage titre="Agents" phrase="L’effectif du centre, par équipe." />
+			<EnTetePage titre="Agents" />
 		{/if}
 
 		{#if data.groupes.length > 0}

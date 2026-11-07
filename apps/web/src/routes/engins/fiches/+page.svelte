@@ -16,7 +16,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Fiches de prise de garde" phrase="Une fiche par type d’engin : ce que l’équipe vérifie, zone par zone. Une prise passée garde la fiche de son époque." retour={{ href: '/engins', libelle: 'Engins' }} />
+	<EnTetePage titre="Fiches de prise de garde" phrase="Une fiche par type d’engin. Une prise passée garde la fiche de son époque." retour={{ href: '/engins', libelle: 'Engins' }} />
 
 	<div class="colonnes">
 		<ListeRangees titre="Les fiches" compte={data.fiches.length}>

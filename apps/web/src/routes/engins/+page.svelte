@@ -34,7 +34,6 @@
 <div class="page">
 	<EnTetePage
 		titre="Engins"
-		phrase="Les engins du centre, leur état et leur fiche de prise de garde."
 		retour={{ href: '/caserne', libelle: 'Caserne' }}
 		action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin', dessin: DESSINS.plus } : undefined}
 	/>
