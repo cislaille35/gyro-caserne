@@ -24,7 +24,7 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
 
 ## Git et livraison
 
-- `main` est protégée : on n'y pousse jamais directement, tout passe par une PR.
+- `main` est protégée (règle posée dans GitHub) : on n'y pousse jamais directement, tout passe par une PR.
 - Une branche par sujet : `fonction/…`, `correctif/…`, `doc/…`, `technique/…`.
 - Commits en français, clairs.
 - Fin de développement :
@@ -32,7 +32,7 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
   2. **PR** : sa description est le compte rendu (voir plus bas) ;
   3. le porteur valide ou refuse ;
   4. Claude fusionne la PR en **un seul commit** (squash) et le confirme.
-- Déploiement (à mettre en place) : chaque fusion sur `main` part en **préprod**. La **production** ne part que d'un **tag** `vX.Y.Z` sur `main`, posé par Claude après accord du porteur.
+- Déploiement (`.github/workflows/deployer.yml`) : chaque fusion sur `main` part en **préprod**. La **production** ne part que d'un **tag** `vX.Y.Z` sur `main`, posé par Claude après accord du porteur.
 
 ## Terminé, c'est
 
@@ -81,11 +81,11 @@ Une tâche longue dure plus de 5 min. Le porteur sait où elle en est, et un blo
 3. **Garde-fou** : une surveillance automatique alerte Claude si rien n'avance depuis 10 min ou si l'heure limite est passée. Claude prévient alors le porteur : diagnostic et proposition (attendre, relancer, arrêter).
 4. **Notification** sur le téléphone du porteur (notifications Claude Code) quand une tâche longue finit ou se bloque.
 
-La machine de développement est petite (2 Go de mémoire) et peut redémarrer. Donc :
+La machine de développement est petite (8 Go de mémoire, partagés entre plusieurs sessions) et peut redémarrer. Donc :
 
 - **commit et push à chaque étape verte** : un redémarrage ne coûte que l'étape en cours ;
 - **commande lourde** (types, compilation, installation) : toujours en cage mémoire et avec une limite de temps, pour qu'elle échoue seule au lieu de tout bloquer ;
-- **PR ouverte en brouillon dès le premier push** : la CI y fait la vérification rapide ; la complète (types, accessibilité) part quand la PR passe « prête » ou à la demande, **une fois par lot** (minutes GitHub comptées). En local, on garde les tests rapides et les types ; les tests dans le navigateur (Playwright) ne tournent qu'en CI, jamais sur la machine de développement.
+- **PR ouverte en brouillon dès le premier push** : la CI y fait la vérification rapide ; la complète (types, accessibilité) part quand la PR passe « prête » ou à la demande, **une fois par lot**. En local, on garde les tests rapides et les types ; les tests dans le navigateur (Playwright) ne tournent qu'en CI, jamais sur la machine de développement.
 - **Aller vite** : un plan court (une page de tâches) ; des captures des seuls écrans principaux du lot (téléphone en clair, ordinateur en sombre) ; un seul lot à la fois quand deux lots touchent les mêmes écrans ou la base.
 
 ## Compte rendu

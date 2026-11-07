@@ -13,3 +13,4 @@
   - **Gyro** : `tenueDuMoment(date, ambiance)` ; la météo passe après les fêtes, la nuit et le p'tit-déj, avant les calendriers et la saison. Orage → la tenue « orage », brouillard → « brouillard » (tenues existantes).
 - **Pourquoi** : gratuit, aucune dépendance, une lecture de plus sur l'Accueil, un seul déclencheur planifié comme avant.
 - **Validé par** : spec validée par le porteur ; décisions de mise en œuvre à valider (PR #39).
+- **Remplacée en partie** par la [révision du 6 novembre 2026 de 0012](0012-notifications-file-d-envoi.md#révision-du-6-novembre-2026--envoi-immédiat-réveil-toutes-les-cinq-minutes) : plus de tâche de chaque minute ; les relevés sont regardés à chaque réveil, toutes les cinq minutes.

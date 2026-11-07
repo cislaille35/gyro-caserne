@@ -8,3 +8,4 @@
 - **Choix** : SvelteKit + Cloudflare Workers, D1 et R2, en monorepo pnpm + Turborepo. Base via Drizzle, connexion via Better Auth, e-mails via Resend (remplacé par Brevo, voir 0007). Tests Vitest et Playwright, CI GitHub Actions.
 - **Pourquoi** : gratuit pour chaque centre sans mise en veille, et déjà éprouvé par le MVP.
 - **Validé par** : le porteur du projet, le 24/10/2026.
+- **Remplacée en partie** par [0010](0010-photos-dans-leur-base.md) : pas de R2, les photos sont dans une seconde base D1.
