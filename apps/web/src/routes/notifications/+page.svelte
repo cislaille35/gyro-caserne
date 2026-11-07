@@ -24,6 +24,9 @@
 	const QUOI_RESERVATION = { acceptee: 'demande acceptée', refusee: 'demande refusée', annulee: 'réservation annulée' } as const;
 	const moment = (l: LigneFil) => (l.creeLe.slice(0, 10) === data.aujourdhui ? heure(l.creeLe) : jourEtHeure(l.creeLe));
 
+	// Une ligne non lue passe par /notifications/ouvrir, qui la marque lue puis mène à sa page : sa page ne le fait pas toujours.
+	const lien = (l: LigneFil, vers: string) => (l.lue ? vers : `/notifications/ouvrir?${new URLSearchParams({ genre: l.type, id: String(l.id), vers })}`);
+
 	const nom = (p: { prenom: string; nom: string }) => `${p.prenom} ${p.nom}`.trim() || 'Un ancien agent';
 	const photo = (s: Signalement, id: number) => `/notifications/signalements/${s.id}/photo/${id}`;
 
@@ -142,7 +145,7 @@
 			{#each g.lignes as l (`${l.type}-${l.id}`)}
 				<li>
 					{#if l.type === 'reservation'}
-						<a class="ligne" class:non-lue={!l.lue} href="/reservations/miennes#reservation-{l.reservationId}">
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/reservations/miennes#reservation-${l.reservationId}`)}>
 							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 6h16v14H4z M4 10h16 M8 3v5 M16 3v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.ressource} : {QUOI_RESERVATION[l.quoi]}</span>
@@ -152,7 +155,7 @@
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
 					{:else if l.type === 'remplacement'}
-						<a class="ligne" class:non-lue={!l.lue} href="/remplacements/{l.demandeId}">
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/remplacements/${l.demandeId}`)}>
 							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 8h13l-3-3 M20 16H7l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
@@ -162,7 +165,7 @@
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
 					{:else if l.type === 'ete'}
-						<a class="ligne" class:non-lue={!l.lue} href={l.url}>
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, l.url)}>
 							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8 M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
@@ -172,7 +175,7 @@
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
 					{:else if l.type === 'anomalie'}
-						<a class="ligne" class:non-lue={!l.lue} href={l.url}>
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, l.url)}>
 							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
@@ -182,7 +185,7 @@
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
 					{:else}
-						<a class="ligne" class:non-lue={!l.lue} href="/echanges/{l.cle}/{l.publicationId}">
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/echanges/${l.cle}/${l.publicationId}`)}>
 							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{`${l.auteur.prenom} ${l.auteur.nom}`.trim()}{l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`}</span>
@@ -252,10 +255,7 @@
 	.ligne:hover .quoi {
 		text-decoration: underline;
 	}
-	/* Non lue : liseré, titre en gras et point, jamais la couleur seule. */
-	.non-lue {
-		box-shadow: inset 4px 0 0 var(--accent);
-	}
+	/* Non lue : titre en gras, point, et « Non lu » écrit pour les lecteurs d'écran ; jamais la couleur seule. */
 	.non-lue .quoi {
 		font-weight: 700;
 	}
