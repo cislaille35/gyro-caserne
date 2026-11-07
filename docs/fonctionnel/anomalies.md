@@ -25,7 +25,7 @@ Les étapes sont fixes. Le centre active ou non les étapes « en attente » et 
 3. **En attente**, avec un motif visible dans la liste : pièce commandée, au garage, prestataire. La date de départ et la date de retour sont notées.
 4. **Réparée** : sur place ou au retour du garage, avec ce qui a été fait.
 5. **Vérifiée** par une autre personne que celle qui a réparé, seulement si le centre active cette étape.
-6. **Close** : d'elle-même à « Réparée » (ou à « Vérifiée » si l'étape est active) ; sans réparation, par qui a le droit `TRAITER_ANOMALIE`. Pour un engin indisponible, l'appli demande : **« Remettre l'engin en service ? »** La réponse est une décision à part, car une autre anomalie peut rester bloquante.
+6. **Close** : d'elle-même à « Réparée » (ou à « Vérifiée » si l'étape est active) ; sans réparation, par qui a le droit `TRAITER_ANOMALIE`. Pour un engin indisponible, l'appli rappelle : « Remettre <engin> en service est une décision à part. », avec le bouton **« Remettre en service »** : une autre anomalie peut rester bloquante.
 
 On peut **rouvrir** une anomalie close. L'auteur et la personne qui l'a prise en charge sont prévenus à chaque changement d'étape.
 

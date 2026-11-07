@@ -70,7 +70,7 @@ Sur l'accueil, quelle que soit la casquette :
 3. les **annonces à prendre en compte** (90 derniers jours), avec le bouton « Pris connaissance » ;
 4. les **sondages ouverts** auxquels elle n'a pas répondu (pas avant leur ouverture, plus après leur clôture) ;
 5. les **publications épinglées** récentes (30 jours) de ses murs ;
-6. une ligne par mur avec des nouveautés depuis sa dernière visite (« Amicale : 3 nouveautés »).
+6. une ligne par mur avec des nouveautés depuis sa dernière visite (« Amicale », « 3 nouveautés »).
 
 Sous « Bonjour », une phrase compte ce qui attend un geste (« 2 publications vous attendent ») : annonces, événements sans réponse, sondages. La cloche ne les reprend pas ; elle signale les nouvelles publications et les commentaires (voir [Notifications](notifications.md)).
 
