@@ -746,10 +746,10 @@
 		background: var(--encre);
 		color: var(--surface);
 	}
-	.pastille-choix input {
-		width: 20px;
-		height: 20px;
-		accent-color: var(--rouge);
+	/* Cochée, la pastille passe à l'encre : la case s'y détache en clair. */
+	.pastille-choix:has(input:checked) input {
+		--case-plein: var(--surface);
+		--case-coche: var(--encre);
 	}
 	input[type='search'] {
 		min-height: var(--cible);
@@ -821,11 +821,6 @@
 		align-items: center;
 		gap: 8px;
 		min-height: var(--cible);
-	}
-	.choix input {
-		width: 22px;
-		height: 22px;
-		accent-color: var(--rouge);
 	}
 	.champ {
 		display: flex;

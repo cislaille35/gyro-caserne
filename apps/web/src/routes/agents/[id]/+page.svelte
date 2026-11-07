@@ -585,11 +585,6 @@
 		min-height: var(--cible);
 		font-weight: 600;
 	}
-	input[type='checkbox'] {
-		width: 1.5rem;
-		height: 1.5rem;
-		accent-color: var(--accent);
-	}
 	.erreur {
 		color: var(--accent);
 		font-weight: 600;

@@ -119,11 +119,6 @@
 		gap: 10px;
 		min-height: var(--cible);
 	}
-	.case input {
-		width: 22px;
-		height: 22px;
-		flex: none;
-	}
 	.echec {
 		padding: 10px 14px;
 		border-radius: var(--rayon-petit);

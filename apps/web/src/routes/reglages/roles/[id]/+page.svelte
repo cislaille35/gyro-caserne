@@ -248,11 +248,6 @@
 		gap: 10px;
 		min-height: var(--cible);
 	}
-	.case input {
-		width: 24px;
-		height: 24px;
-		flex: none;
-	}
 	.secondaire {
 		min-height: var(--cible);
 		padding: 0 20px;

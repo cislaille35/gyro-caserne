@@ -126,10 +126,6 @@
 		gap: 10px;
 		min-height: var(--cible);
 	}
-	.case input {
-		width: 24px;
-		height: 24px;
-	}
 	.avertissement {
 		font-weight: 600;
 	}

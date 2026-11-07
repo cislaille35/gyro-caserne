@@ -1073,6 +1073,34 @@ test.describe('nominations', () => {
 	});
 });
 
+test.describe('cases à cocher', () => {
+	test.use({ storageState: ETAT_SUPER, colorScheme: 'dark' });
+	test('dessinées partout pareil, sur une ligne de 44 px, grisées en tirets', async ({ page }) => {
+		const chemins = [`/reglages/roles/${await idReglage(page, 'roles', 'Chef de centre')}`, `/reglages/roles/${await idRole(page, 'Référent engins')}`, '/profil', '/reglages/aptitudes'];
+		let grisees = 0;
+		for (const chemin of chemins) {
+			await page.goto(chemin);
+			await page.waitForLoadState('networkidle');
+			await toutOuvrir(page);
+			const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
+				liste.map((c) => {
+					const style = getComputedStyle(c);
+					const ligne = (c.closest('label') ?? c).getBoundingClientRect();
+					return { appearance: style.appearance, largeur: c.getBoundingClientRect().width, ligne: ligne.height, grisee: (c as HTMLInputElement).disabled, bord: style.borderTopStyle };
+				})
+			);
+			expect(cases.length, chemin).toBeGreaterThan(0);
+			for (const c of cases) {
+				expect(c, chemin).toMatchObject({ appearance: 'none', largeur: 24, bord: c.grisee ? 'dashed' : 'solid' });
+				expect(c.ligne, chemin).toBeGreaterThanOrEqual(44);
+				if (c.grisee) grisees++;
+			}
+		}
+		// Le rôle système a ses cases d'administration grisées.
+		expect(grisees).toBeGreaterThan(0);
+	});
+});
+
 test.describe('réglages', () => {
 	test('un agent ordinaire n’ouvre pas les réglages : 403', async ({ browser }) => {
 		const contexte = await browser.newContext({ storageState: ETAT_CONNECTE });

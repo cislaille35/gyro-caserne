@@ -240,6 +240,57 @@ body {
 	}
 }
 
+/* Les cases à cocher : dessinées, pareilles partout et dans les deux thèmes (la case native d'iOS est un carré noir en sombre).
+   Cochée : pleine, à l'encre, avec la coche. Grisée : fond pâle, bord en tirets, coche grise. La ligne qui la porte fait 44 px au moins.
+   Sans poids (:where) : un écran peut la recolorer (--case-plein, --case-coche) là où elle est posée sur l'encre. */
+:where(input[type='checkbox']:not([role='switch'])) {
+	--case-plein: var(--encre);
+	--case-coche: var(--surface);
+	appearance: none;
+	flex: none;
+	display: inline-grid;
+	place-content: center;
+	width: 24px;
+	height: 24px;
+	margin: 0;
+	border: 2px solid var(--doux);
+	border-radius: 6px;
+	background: var(--surface);
+	vertical-align: middle;
+	cursor: pointer;
+}
+:where(input[type='checkbox']:not([role='switch']))::before {
+	content: '';
+	width: 12px;
+	height: 7px;
+	margin-top: -3px;
+	border: solid var(--case-coche);
+	border-width: 0 0 3px 3px;
+	transform: rotate(-45deg);
+	visibility: hidden;
+}
+:where(input[type='checkbox']:not([role='switch'])):checked {
+	border-color: var(--case-plein);
+	background: var(--case-plein);
+}
+:where(input[type='checkbox']:not([role='switch'])):checked::before {
+	visibility: visible;
+}
+:where(input[type='checkbox']:not([role='switch'])):disabled {
+	--case-plein: var(--segment-fond);
+	--case-coche: var(--doux);
+	border-style: dashed;
+	border-color: var(--doux);
+	background: var(--segment-fond);
+	cursor: not-allowed;
+}
+/* En mode contrasté, la case du système. */
+@media (forced-colors: active) {
+	:where(input[type='checkbox']:not([role='switch'])) {
+		appearance: auto;
+	}
+}
+
 /* Classes communes à tous les écrans. */
 /* Texte lu par les lecteurs d'écran, invisible à l'écran. */
 .masque {
