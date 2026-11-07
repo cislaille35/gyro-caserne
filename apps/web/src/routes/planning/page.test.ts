@@ -196,6 +196,13 @@ describe('onglet Planning', () => {
 		for (const semaine of html.split('<tbody').slice(1)) expect((semaine.split('</tbody>')[0]!.match(/<td/g) ?? []).length).toBe(7);
 	});
 
+	it('Mois : aujourd’hui en carré d’encre, dit aussi aux lecteurs d’écran ; les autres jours sans marque', () => {
+		const html = page({ vue: 'mois', maintenant: '2026-11-12T10:00' });
+		expect(html).toMatch(/<td class="[^"]*aujourdhui[^"]*"><a[^>]*aria-current="date"[^>]*>\s*<span class="jour[^"]*" aria-hidden="true">12<\/span>\s*<span class="masque">Jeudi 12 novembre, aujourd’hui/i);
+		expect((html.match(/aria-current="date"/g) ?? []).length).toBe(1);
+		expect((html.match(/aujourd’hui/g) ?? []).length).toBe(1);
+	});
+
 	it('Mois de décembre : le signe « Fête » le 25 et le 31, même quand la relève tombe à Noël', () => {
 		const html = page({ vue: 'mois', mois: 12 });
 		expect(html).toContain('vendredi 25 décembre, Férié, Fête, vacances</span>');
