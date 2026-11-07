@@ -113,6 +113,11 @@
 		flex-direction: column;
 		padding-left: 32px;
 	}
+	.case input[type='radio'] {
+		width: 22px;
+		height: 22px;
+		flex: none;
+	}
 	.case {
 		display: flex;
 		align-items: center;

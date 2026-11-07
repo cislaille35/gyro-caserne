@@ -73,6 +73,12 @@ describe('/engins/anomalies/[id] : les gestes en panneaux', () => {
 		expect(ouvert).toContain('clôturent sans réparation');
 	});
 
+	it('refus d’un geste devenu interdit (close entre-temps) : pas de panneau, le message reste lu', () => {
+		const html = page('', { quoi: 'clore', message: 'Cette anomalie est déjà close.' }, anomalie({ gestes: [] }));
+		expect(html).not.toContain('<dialog');
+		expect(html).toMatch(/<p class="echec" role="alert">Cette anomalie est déjà close\.<\/p>/);
+	});
+
 	it('un geste interdit ne s’ouvre pas par l’adresse', () => {
 		expect(page('?panneau=clore', null, anomalie({ gestes: ['reparee'] }))).not.toContain('<dialog');
 		expect(page('?panneau=inconnu')).not.toContain('<dialog');

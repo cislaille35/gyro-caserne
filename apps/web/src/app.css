@@ -289,6 +289,9 @@ body {
 	:where(input[type='checkbox']:not([role='switch'])) {
 		appearance: auto;
 	}
+	:where(input[type='checkbox']:not([role='switch']))::before {
+		content: none;
+	}
 }
 
 /* Classes communes à tous les écrans. */

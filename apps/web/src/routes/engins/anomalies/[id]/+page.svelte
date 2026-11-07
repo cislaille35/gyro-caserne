@@ -32,10 +32,13 @@
 	const soumettre: SubmitFunction = () => {
 		envoi = true;
 		reussite = '';
+		// Le panneau d'où part l'envoi : après la réponse, le geste n'est souvent plus permis.
+		const ouvert = panneau;
 		return async ({ update, result }) => {
-			await update();
+			// Rester sur la page (pas de navigation vers l'adresse de l'envoi) : le défilement et le focus ne sautent pas.
+			await update({ navigate: false });
 			envoi = false;
-			if (result.type === 'success' && panneau) {
+			if (result.type === 'success' && ouvert) {
 				reussite = String(result.data?.succes ?? '');
 				await goto(sans, { replaceState: true, reset: false });
 				document.getElementById('titre-suivi')?.focus();
@@ -87,6 +90,8 @@
 	<div role="status" class="masque">{form?.succes ?? reussite}</div>
 	{#if data.signalee}<p class="bandeau ok">Signalement envoyé. Le référent engins et les chefs sont prévenus.</p>{/if}
 	{#if form?.message && form.quoi === null}<p class="echec" role="alert">{form.message}</p>{/if}
+	<!-- Refus d'un geste devenu interdit entre-temps (un collègue l'a close) : son panneau ne s'ouvre plus, le message reste lu. -->
+	{#if form?.message && !panneau && PANNEAUX.some((c) => c === form?.quoi)}<p class="echec" role="alert">{form.message}</p>{/if}
 
 	{#if e.etat === 'indisponible'}
 		<p class="bandeau danger"><strong>{e.nom} est indisponible.</strong> {a.bloquante ? 'Décidé depuis cette anomalie.' : 'Décidé depuis une autre anomalie.'}</p>

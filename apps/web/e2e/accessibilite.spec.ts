@@ -1100,6 +1100,7 @@ test.describe('anomalie', () => {
 		await reparee.getByLabel(/^Ce qui a été fait/).fill('Vis resserrée');
 		await reparee.getByRole('button', { name: 'Enregistrer la réparation' }).click();
 		await expect(reparee).toHaveCount(0);
+		await expect(page.locator('#titre-suivi')).toBeFocused();
 		await expect(page.getByRole('status').filter({ hasText: 'Réparation enregistrée.' })).toHaveCount(1);
 		await expect(page.getByText('Vis resserrée')).toBeVisible();
 		await expect(page).not.toHaveURL(/panneau/);
