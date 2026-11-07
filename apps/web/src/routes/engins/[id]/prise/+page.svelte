@@ -178,9 +178,10 @@
 	<div role="status" class="masque">{form?.succes ?? ''}</div>
 
 	{#if p?.etat === 'validee'}
+		{@const etat = etatPrise({ etat: 'validee', valideeLe: p.valideeLe, equipe: data.releve.equipe?.nom ?? null, par: p.modifieePar })}
 		<section class="panneau fait" aria-labelledby="titre-fait">
 			<h2 id="titre-fait">{validee ? 'Prise validée, merci.' : 'Prise faite'}</h2>
-			<p><Pastille ton="ok">{etatPrise({ etat: 'validee', valideeLe: p.valideeLe, equipe: data.releve.equipe?.nom ?? null, par: p.modifieePar }).texte}</Pastille></p>
+			<p><Pastille ton={etat.ton}>{etat.texte}</Pastille></p>
 			<p>{pluriel(p.saisie.participants.length, 'participant')}, {pluriel(Object.keys(p.saisie.ecarts).length, 'écart')}, {pluriel(p.saisie.retrouves.length, 'élément retrouvé', 'éléments retrouvés')}</p>
 			<a class="lien-secondaire" href="/engins/{e.id}">Voir l’engin et l’historique des prises</a>
 		</section>

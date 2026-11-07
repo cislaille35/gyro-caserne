@@ -95,7 +95,7 @@ describe('page d’un rôle', () => {
 		const raison = 'Ce rôle fait partie du système : ses droits sont fixés, il ne se modifie pas.';
 		const page = html({ peutPouvoir: true, modele: null, raison, role: role({ systeme: 'chef_equipe', modele: null }) });
 		expect(page).not.toContain('Seuls le chef de centre, son adjoint et le super administrateur');
-		expect(page).toMatch(/<p id="admin-aide" class="aide[^"]*">Ce rôle fait partie du système/);
+		expect(page).toMatch(/<p id="admin-aide" class="aide[^"]*">Ces cases ne se modifient pas sur ce rôle\./);
 		expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-aide"/);
 	});
 

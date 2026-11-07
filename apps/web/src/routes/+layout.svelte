@@ -46,8 +46,9 @@
 	});
 	afterNavigate(({ from, to }) => {
 		suivi?.apresNavigation(from?.url.pathname, to?.url.pathname);
-		// La cloche vient de la racine, que SvelteKit ne recharge pas d'une page à l'autre : relue après une page qui a pu la faire baisser.
-		if (from && data.cloche > 0 && marqueDesLues(to?.route.id ?? null)) void invalidate('app:cloche');
+		// La cloche vient de la racine, que SvelteKit ne recharge pas d'une page à l'autre : relue en arrivant sur une page qui a pu
+		// la faire baisser. Au premier chargement aussi (notification push) : la racine a pu compter avant la lecture.
+		if (data.cloche > 0 && from?.url.pathname !== to?.url.pathname && marqueDesLues(to?.route.id ?? null)) void invalidate('app:cloche');
 	});
 </script>
 

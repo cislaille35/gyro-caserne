@@ -109,7 +109,7 @@
 			<legend class="cache">Administration de l’appli</legend>
 			<!-- Grisées pour l'une de deux raisons : le rôle est figé, ou la personne ne gère pas le pouvoir. -->
 			{#if !peutAdmin}
-				<p id="admin-aide" class="aide">{data.raison ?? 'Seuls le chef de centre, son adjoint et le super administrateur cochent ou décochent ces cases.'}</p>
+				<p id="admin-aide" class="aide">{lectureSeule ? 'Ces cases ne se modifient pas sur ce rôle.' : 'Seuls le chef de centre, son adjoint et le super administrateur cochent ou décochent ces cases.'}</p>
 			{:else}
 				<input type="hidden" name="administration" value="oui" />
 			{/if}

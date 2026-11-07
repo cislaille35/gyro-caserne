@@ -3,6 +3,7 @@
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
+	import { MEMOIRE_VUE } from '#lib/planning/memoire.ts';
 	import VueAnnee from '#lib/planning/VueAnnee.svelte';
 	import VueMois from '#lib/planning/VueMois.svelte';
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
@@ -36,7 +37,6 @@
 		['absent', 'Absent'],
 		['incertain', 'Incertain']
 	] as const;
-	const MEMOIRE = 'planning-vue';
 	const lien = (params: Record<string, string | number>) => `?${new URLSearchParams(Object.entries({ annee: p.annee, ...params }).map(([k, v]) => [k, String(v)]))}`;
 
 	const mode = $derived(p.publiee && (p.monEquipe !== null || p.semaines.some((s) => s.mienne)) ? ('moi' as const) : ('equipes' as const));
@@ -88,7 +88,7 @@
 
 	// La dernière vue choisie est retenue sur l'appareil, pour l'onglet Planning (lue par le serveur).
 	const retenir = (vue: string) => {
-		document.cookie = `${MEMOIRE}=${vue}; path=/planning; max-age=31536000; samesite=lax`;
+		document.cookie = `${MEMOIRE_VUE}=${vue}; path=/planning; max-age=31536000; samesite=lax`;
 	};
 </script>
 

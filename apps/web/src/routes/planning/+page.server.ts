@@ -3,6 +3,7 @@ import { DonneeInvalide, planningDe, RefusDroit, remplacementsDe } from '@gyro-c
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { gestes } from '#lib/server/gestes-mur.ts';
 import { anneeDe, connecte, ouRefus } from '#lib/server/planning.ts';
+import { MEMOIRE_VUE } from '#lib/planning/memoire.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const VUES = ['semaine', 'mois', 'annee', 'equipes'] as const;
@@ -11,7 +12,6 @@ type Vue = (typeof VUES)[number];
 // La vue est dans l'adresse (?vue=, ?semaine=, ?mois=) : flèches et puces marchent sans JavaScript.
 // Sans ?vue (l'onglet Planning), la dernière vue choisie sur l'appareil, retenue dans un cookie.
 // Sinon, la Semaine ; « Équipes » pour qui n'a pas d'équipe.
-const MEMOIRE_VUE = 'planning-vue';
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const { acteur, base } = connecte(locals);
 	const maintenant = maintenantParis().slice(0, 16);
