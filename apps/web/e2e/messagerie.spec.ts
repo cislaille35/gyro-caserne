@@ -88,12 +88,17 @@ test('le brouillon est gardé, à la clé de la personne, puis effacé après l�
 	await expect(champ).toHaveValue('');
 });
 
+// La conversation sert aussi aux autres tests (et au téléphone) : le message long finit par une ligne propre à ce passage,
+// pour attendre son arrivée à lui. Sinon le clic sur « ↓ » tombe pendant l'envoi, qui interrompt le défilement.
 test('en lisant plus haut, le bouton « ↓ » ramène en bas', async ({ page }) => {
-	const long = Array.from({ length: 60 }, (_, i) => `Ligne ${i + 1}`).join('\n');
-	await ouvrirConversation(page, `Long ${Date.now().toString(36)}`);
-	await page.getByRole('textbox', { name: 'Votre message' }).fill(long);
+	const marque = `Long ${Date.now().toString(36)}`;
+	const long = [...Array.from({ length: 59 }, (_, i) => `Ligne ${i + 1}`), `Fin ${marque}`].join('\n');
+	await ouvrirConversation(page, marque);
+	const champ = page.getByRole('textbox', { name: 'Votre message' });
+	await champ.fill(long);
 	await page.getByRole('button', { name: 'Envoyer' }).click();
-	await expect(page.getByRole('log').getByText('Ligne 60')).toBeVisible();
+	await expect(page.getByRole('log').getByText(`Fin ${marque}`)).toBeVisible();
+	await expect(champ).toHaveValue('');
 	const bas = page.getByRole('button', { name: /Aller aux derniers messages|aller en bas/ });
 	await expect(bas).toBeHidden();
 	await page.evaluate(() => window.scrollTo(0, 0));
