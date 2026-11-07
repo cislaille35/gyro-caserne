@@ -1050,6 +1050,27 @@ test.describe('nominations', () => {
 		await expect(page.locator('section.role h2')).toHaveText(['Référent pharmacie']);
 		await page.context().close();
 	});
+
+	test('/nominations : « Nommer » rouvre le volet même juste après Échap', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		await page.goto('/nominations');
+		await page.waitForLoadState('networkidle');
+		const ouvrir = carteRole(page, 'Référent technique').getByRole('button', { name: 'Nommer', exact: true });
+		const volet = page.getByRole('dialog', { name: 'Nommer : Référent technique' });
+		await ouvrir.click();
+		await volet.getByLabel('Fin', { exact: true }).evaluate((champ: HTMLInputElement) => (champ.value = '2099-12-31'));
+		// Le navigateur annonce la fermeture d'une fenêtre un peu plus tard (événement « close ») : un appui aussitôt après ne doit pas se perdre.
+		await page.evaluate(() => {
+			const fenetre = document.querySelector<HTMLDialogElement>('dialog[open]')!;
+			fenetre.close();
+			document.getElementById(fenetre.id.replace('volet-', 'nommer-'))!.click();
+		});
+		await expect(volet).toBeVisible();
+		await expect(volet.getByLabel('Agent', { exact: true })).toBeFocused();
+		// Rouvert, il repart à neuf.
+		await expect(volet.getByLabel('Fin', { exact: true })).toHaveValue('');
+		await page.context().close();
+	});
 });
 
 test.describe('réglages', () => {
