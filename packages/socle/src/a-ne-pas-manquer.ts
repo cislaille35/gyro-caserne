@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { nomActeur } from './actions/personnes.ts';
 import type { Base } from './base.ts';
-import { ajouterJours, exigerDate, exigerDateHeure } from './dates.ts';
+import { ajouterJours, debutMinimumEvenement, exigerDate, exigerDateHeure, momentEvenement } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES, type ReponseEvenement } from './listes.ts';
 import { estConvoque, estMembre, mursEtAppartenances, type CleMur, type Mur } from './murs.ts';
@@ -12,7 +12,8 @@ import { personne, priseConnaissance, profil, publication, reponseEvenement, vis
 export type ItemANePasManquer = { id: number; cle: CleMur; nomMur: string; titre: string };
 export type ANePasManquer = {
 	annonces: ItemANePasManquer[];
-	evenements: (ItemANePasManquer & { debut: string; demain: boolean; reponse: ReponseEvenement | null })[];
+	// `enCours` : commencé, pas fini (3 h après le début) ; on ne peut plus y répondre.
+	evenements: (ItemANePasManquer & { debut: string; demain: boolean; enCours: boolean; reponse: ReponseEvenement | null })[];
 	sondages: ItemANePasManquer[];
 	epinglees: ItemANePasManquer[];
 	nouveautes: { cle: CleMur; nom: string; nombre: number }[];
@@ -62,7 +63,7 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.select({ ...champs, debut: publication.debut, convoques: publication.convoques, reponse: reponseEvenement.reponse })
 			.from(publication)
 			.leftJoin(reponseEvenement, and(eq(reponseEvenement.publicationId, publication.id), eq(reponseEvenement.personneId, moi)))
-			.where(and(surSesMurs, gt(publication.debut, maintenant), isNull(publication.annuleeLe)))
+			.where(and(surSesMurs, gt(publication.debut, debutMinimumEvenement(maintenant)), isNull(publication.annuleeLe)))
 			.orderBy(asc(publication.debut), asc(publication.id)),
 		base
 			.select(champs)
@@ -93,7 +94,10 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 		annonces: annonces.map(item),
 		evenements: evenements
 			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi))
-			.map((p) => ({ ...item(p), debut: p.debut!, demain: p.debut!.slice(0, 10) === demain, reponse: p.reponse })),
+			.map((p) => {
+				const enCours = momentEvenement(p.debut!, maintenant) === 'enCours';
+				return { ...item(p), debut: p.debut!, demain: !enCours && p.debut!.slice(0, 10) === demain, enCours, reponse: p.reponse };
+			}),
 		sondages: sondages.map(item),
 		epinglees: epinglees.filter((p) => parCle.has(p.mur)).map(item),
 		remplacements: remplacements.map((r) => ({

@@ -25,7 +25,7 @@ const publiee = {
 	fetes: { noel: 3, nouvelAn: 4 },
 	monEquipe: 1,
 	remplacements: [{ debut: '2026-11-09T18:00', fin: '2026-11-10T06:00', titulaire: 'Alice Martin', remplacant: 'Bruno Petit', moi: null }],
-	prochaine: { astreinte: { debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipeId: 1, enCours: false, periodes: sem('2026-11-06').periodes }, manoeuvre: { ...manoeuvre, reponse: 'present' }, fete: null }
+	prochaine: { astreinte: { debut: '2026-11-06T18:00', fin: '2026-11-13T06:00', equipeId: 1, enCours: false, periodes: sem('2026-11-06').periodes }, manoeuvre: { ...manoeuvre, reponse: 'present', enCours: false }, fete: null }
 };
 const vides = { miennes: [], pourMoi: [], aValider: [] };
 const page = (data: Record<string, unknown>) =>
@@ -238,8 +238,17 @@ describe('onglet Planning', () => {
 
 	it('À venir : « Je ne peux pas : échanger ma place » sur une manœuvre d’équipe, pas sur une manœuvre de tout le centre', () => {
 		expect(page({})).toContain('href="/remplacements/manoeuvre?mienne=1&amp;depuis=planning"');
-		const tous = { ...publiee, prochaine: { ...publiee.prochaine, manoeuvre: { ...manoeuvre, convocation: 'tous', reponse: null } } };
+		const tous = { ...publiee, prochaine: { ...publiee.prochaine, manoeuvre: { ...manoeuvre, convocation: 'tous', reponse: null, enCours: false } } };
 		expect(page({ planning: tous })).not.toContain('échanger ma place');
+	});
+
+	it('À venir : une manœuvre commencée reste, « En cours » écrit, sans réponse ni échange', () => {
+		const enCours = page({ planning: { ...publiee, prochaine: { ...publiee.prochaine, manoeuvre: { ...manoeuvre, reponse: 'present', enCours: true } } } });
+		expect(enCours).toMatch(/>En cours</);
+		expect(enCours).not.toContain('?/repondre');
+		expect(enCours).not.toContain('échanger ma place');
+		expect(page({})).toContain('?/repondre');
+		expect(page({})).not.toMatch(/>En cours</);
 	});
 
 	it('garde de fête : la date dite avec l’année quand ce n’est pas l’année en cours', () => {

@@ -74,7 +74,7 @@ describe('page d’un mur', () => {
 			publications: [
 				pub({
 					type: 'evenement',
-					evenement: { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] },
+					evenement: { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, moment: 'avenir' as const, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] },
 					sondage: { question: 'Petit déjeuner ?', reponses: ['Oui', 'Non'], ouverture: null, cloture: null, etat: 'ouvert', resultats: [3, 1], vote: 0 },
 					photos: [7, 8],
 					jaime: 2,
@@ -93,7 +93,7 @@ describe('page d’un mur', () => {
 	});
 
 	it('une manœuvre annulée par le planning : « Annulée », plus de réponse ; signée « Planning du centre »', () => {
-		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] };
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: [2], convoque: true, moment: 'avenir' as const, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] };
 		const auteur = { prenom: 'Planning', nom: 'du centre', couleur: null, role: null, ecrireA: null };
 		const ouverte = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement })] });
 		expect(ouverte).toContain('Planning du centre');
@@ -190,7 +190,7 @@ describe('gestes sur une publication', () => {
 	});
 
 	it('réponse à l’événement : trois boutons à bascule, pour les convoqués seulement ; comptes en texte', () => {
-		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, reponse: 'incertain' as const, compte: { present: 2, absent: 0, incertain: 1 }, presents: [] };
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, moment: 'avenir' as const, reponse: 'incertain' as const, compte: { present: 2, absent: 0, incertain: 1 }, presents: [] };
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toContain('action="?/repondre"');
 		for (const [valeur, libelle, appuye] of [['present', 'Présent', false], ['absent', 'Absent', false], ['incertain', 'Incertain', true]])
@@ -201,6 +201,17 @@ describe('gestes sur une publication', () => {
 		expect(page.match(/aria-pressed="true"/g)).toHaveLength(1);
 		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, reponse: null } }))).not.toContain('aria-pressed="true"');
 		expect(agir(pub({ type: 'evenement', evenement: { ...evenement, convoque: false } }))).not.toContain('?/repondre');
+	});
+
+	it('événement commencé : « En cours » écrit pendant 3 h, plus de réponse ; fini : ni l’un ni l’autre', () => {
+		const evenement = { debut: '2026-11-05T19:30', lieu: 'Caserne', convoques: 'tous' as const, convoque: true, moment: 'enCours' as const, reponse: null, compte: { present: 2, absent: 0, incertain: 1 }, presents: [] };
+		const enCours = agir(pub({ type: 'evenement', evenement }));
+		expect(enCours).toMatch(/>En cours</);
+		expect(enCours).not.toContain('?/repondre');
+		expect(enCours).toContain('2 présents, 0 absent, 1 incertain');
+		const passe = agir(pub({ type: 'evenement', evenement: { ...evenement, moment: 'passe' } }));
+		expect(passe).not.toMatch(/>En cours</);
+		expect(passe).not.toContain('?/repondre');
 	});
 
 	it('sondage : les choix, puis les résultats en nombre et en pourcentage (jamais la couleur seule)', () => {
@@ -270,7 +281,7 @@ describe('cartes par type', () => {
 			{ prenom: 'Tom', nom: 'Agent', couleur: '#d4a017' },
 			{ prenom: 'Rémi', nom: 'Roux', couleur: null }
 		];
-		const evenement = { debut: '2026-11-05T19:00', lieu: 'Plateforme du centre', convoques: 'tous' as const, convoque: true, reponse: null, compte: { present: 14, absent: 3, incertain: 2 }, presents };
+		const evenement = { debut: '2026-11-05T19:00', lieu: 'Plateforme du centre', convoques: 'tous' as const, convoque: true, moment: 'avenir' as const, reponse: null, compte: { present: 14, absent: 3, incertain: 2 }, presents };
 		const page = agir(pub({ type: 'evenement', evenement }));
 		expect(page).toMatch(/role="img"[^>]*aria-label="jeudi 5 novembre"/);
 		expect(page).toContain('19 h · Plateforme du centre');

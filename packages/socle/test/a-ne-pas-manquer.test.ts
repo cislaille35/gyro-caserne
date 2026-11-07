@@ -106,21 +106,25 @@ describe('à ne pas manquer', () => {
 		expect([duChef.annonces.length, duChef.evenements.length, duChef.sondages.length, duChef.epinglees.length]).toEqual([0, 0, 0, 1]);
 	});
 
-	it('événements à venir où l’on est convoqué, « demain » la veille, avec sa réponse', async () => {
+	it('événements à venir ou en cours (3 h après le début) où l’on est convoqué, « demain » la veille, avec sa réponse', async () => {
 		const { base, chef, agent, affecter, e1, e2 } = await jeu();
 		await affecter(agent, e1.id);
 		const demain = await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-29T08:00'), maintenant);
 		const plusTard = await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-05T19:00', [e1.id]), maintenant);
 		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-11-03T19:00', [e2.id]), maintenant);
-		// Passé dans l'heure : plus à venir.
-		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-28T14:00'), '2026-10-28T08:00');
+		// Commencé à 14 h : en cours jusqu'à 17 h (3 h, sans heure de fin), avant les suivants. Fini à 14 h 30 : plus listé.
+		const enCours = await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-28T14:00'), '2026-10-28T08:00');
+		await publier(base, base.photos, acteur(chef), 'centre', evenement('2026-10-28T11:30'), '2026-10-28T08:00');
 		await repondreEvenement(base, acteur(agent), plusTard, 'present', maintenant);
 
 		const { evenements } = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
 		expect(evenements).toEqual([
-			{ id: demain, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2026-10-29T08:00', demain: true, reponse: null },
-			{ id: plusTard, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2026-11-05T19:00', demain: false, reponse: 'present' }
+			{ id: enCours, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2026-10-28T14:00', demain: false, enCours: true, reponse: null },
+			{ id: demain, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2026-10-29T08:00', demain: true, enCours: false, reponse: null },
+			{ id: plusTard, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre', debut: '2026-11-05T19:00', demain: false, enCours: false, reponse: 'present' }
 		]);
+		// À 17 h, il est fini.
+		expect(ids((await aNePasManquer(base, acteur(agent), aujourdhui, '2026-10-28T17:00')).evenements)).toEqual([demain, plusTard]);
 	});
 
 	it('sondages pas encore ouverts ou fermés : non listés ; même règle qu’etatSondage (sans dates, une seule date)', async () => {

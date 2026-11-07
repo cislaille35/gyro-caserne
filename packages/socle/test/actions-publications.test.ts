@@ -424,6 +424,7 @@ describe('lireMur', () => {
 				lieu: 'Caserne',
 				convoques: 'tous',
 				convoque: true,
+				moment: 'avenir',
 				reponse: 'present',
 				compte: { present: 2, absent: 0, incertain: 1 },
 				presents: [
@@ -441,6 +442,9 @@ describe('lireMur', () => {
 		expect(vueChef.jaimeParMoi).toBe(false);
 		expect(vueChef.sondage!.vote).toBeNull();
 		expect(vueChef.evenement!.reponse).toBe('incertain');
+		// Pendant l'événement (3 h, sans heure de fin), puis après : on ne peut plus y répondre.
+		const moment = async (quand: string) => (await lireMur(base, acteur(agent), 'vie', {}, quand)).publications[0]!.evenement!.moment;
+		expect([await moment('2026-11-02T19:00'), await moment('2026-11-02T21:59'), await moment('2026-11-02T22:00')]).toEqual(['enCours', 'enCours', 'passe']);
 	});
 
 	it('résultats du sondage : seulement à qui a voté, à l’auteur et aux modérateurs', async () => {

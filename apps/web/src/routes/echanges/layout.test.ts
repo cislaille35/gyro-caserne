@@ -36,8 +36,8 @@ const aujourdhui = { anniversaires: [{ prenom: 'Thomas', nom: 'Aubry' }], evenem
 const contenu = createRawSnippet(() => ({ render: () => '<h1>Vie du centre</h1>' }));
 
 const aVenir = [
-	{ id: 7, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00' },
-	{ id: 9, cle: 'comite:2', nomMur: 'Amicale', titre: 'Repas de Sainte-Barbe', debut: '2026-11-28T12:30' }
+	{ id: 7, cle: 'centre', nomMur: 'Le centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00', enCours: false },
+	{ id: 9, cle: 'comite:2', nomMur: 'Amicale', titre: 'Repas de Sainte-Barbe', debut: '2026-11-28T12:30', enCours: false }
 ];
 
 function html(data: object = {}, niveau = 'vivant') {
@@ -187,6 +187,14 @@ describe('liste des murs', () => {
 		expect(texte(colonne)).toContain('Sam. 28 nov., 12 h 30 Repas de Sainte-Barbe (Amicale)');
 		// L'événement sans réponse est déjà dans « À venir » : pas en double.
 		expect(texte(colonne)).not.toContain('vous n’avez pas répondu');
+	});
+
+	it('À venir : un événement commencé dit « En cours » en toutes lettres', () => {
+		etat.page.params = { mur: 'vie' };
+		const colonne = (h: string) => h.slice(h.indexOf('id="t-a-venir"'));
+		const enCours = colonne(html({ aVenir: [{ ...aVenir[0], debut: '2026-11-05T19:00', enCours: true }, aVenir[1]] }));
+		expect(texte(enCours)).toContain('En cours, depuis 19 h Manœuvre désincarcération');
+		expect(texte(colonne(html()))).not.toContain('En cours');
 	});
 
 	it('sur un mur, rien aujourd’hui ni à venir : pas de colonne', () => {
