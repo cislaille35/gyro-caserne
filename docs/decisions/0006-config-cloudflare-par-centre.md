@@ -12,3 +12,4 @@
   - sur le compte du CIS Laillé : `gyro-caserne-exemple` (préprod et démonstration, données fictives) et `gyro-caserne-laille` (production). Deux adresses, deux bases, rien de mélangé.
 - **Pourquoi** : le code commun ne connaît aucun centre, et un centre se met à jour en un clic. La démo ne risque jamais de toucher les vraies données.
 - **Validé par** : le porteur du projet, le 25/10/2026.
+- **Remplacée en partie** par [0010](0010-photos-dans-leur-base.md) : pas de stockage R2, une seconde base D1 pour les photos.

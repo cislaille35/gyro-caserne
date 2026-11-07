@@ -10,4 +10,4 @@
   - **Chef de garde** : seul le libellé change (migration 0014) ; l'identifiant interne reste `chef_equipe`.
 - **Pourquoi** : peu de données, une seule règle d'astreinte partagée par tous les écrans, aucune dépendance ajoutée, gratuit.
 - **Décisions à valider** : voir le compte rendu de la PR #37.
-- **Validé par** : à valider par le porteur (PR #37).
+- **Validé par** : le porteur du projet, à la fusion de la PR #37 (02/11/2026).

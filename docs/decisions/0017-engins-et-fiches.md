@@ -10,4 +10,4 @@
   - **Engin** : situation au centre, prêté au centre (avec le centre qui prête) ou parti (sorti de la liste, historique gardé) ; état disponible ou indisponible, décidé au lot C.
   - **Fichier des fiches** : une feuille par type, écrit et lu dans le navigateur comme les autres fichiers, aperçu au serveur, application d'un seul batch.
 - **Pourquoi** : le plus simple qui garde l'historique et prépare la prise de garde et les anomalies sans refaire les tables ; aucune dépendance ajoutée.
-- **Validé par** : à valider par le porteur (PR #40).
+- **Validé par** : le porteur du projet, à la fusion de la PR #40 (02/11/2026).

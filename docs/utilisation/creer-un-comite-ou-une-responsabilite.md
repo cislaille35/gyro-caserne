@@ -5,23 +5,23 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 ## Un comité
 
 1. Ouvrez l'onglet « Caserne », puis « Réglages » (adresse `/reglages`).
-2. Appuyez sur « + Nouveau comité ».
-3. Saisissez son nom et son thème (par exemple « sport »).
+2. Appuyez sur « + Comité », en haut.
+3. Saisissez son nom et son thème (par exemple « sport »), et choisissez l'icône de son mur.
 4. Appuyez sur « Créer le comité ». La page du comité s'ouvre.
 
 ## Un rôle (responsabilité)
 
 1. Ouvrez l'onglet « Caserne », puis « Réglages ».
-2. Appuyez sur « + Nouveau rôle ».
+2. Appuyez sur « + Nouveau rôle », en haut.
 3. Choisissez un modèle : Référent matériel, Référent pharmacie, Vierge… Le rôle en reprend les droits.
-4. Vérifiez le nom, la portée (tout le centre, une équipe ou un comité), qui l'attribue, et choisissez une icône.
+4. Vérifiez le nom, la nature, la portée (tout le centre, une équipe ou un comité), qui l'attribue, et choisissez une icône.
 5. Appuyez sur « Créer le rôle ». La page du rôle s'ouvre.
 
 ## Régler les droits d'un rôle
 
 1. Dans « Réglages », touchez le rôle (rangé dans « Chef de centre et adjoint », « Chefs de garde », « Référents » ou « Comités »).
 2. Touchez un domaine (Planning et gardes, Engins et anomalies…) et choisissez un niveau. La barre du bas dit combien de domaines sont modifiés et pas encore enregistrés.
-3. Si le rôle s'écarte de son modèle, il porte « Personnalisé ». Pour remettre un domaine comme le modèle, appuyez sur « Revenir au modèle » ; pour tout le rôle, « Tout revenir ».
+3. Si le rôle s'écarte de son modèle, il porte « Personnalisé ». Pour remettre un domaine comme le modèle, appuyez sur « ↺ Revenir au modèle » ; pour tout le rôle, « ↺ Tout revenir ».
 4. Appuyez sur « Enregistrer ». Rien n'est gardé avant.
 
 Les cases « Administration de l'appli » ne se cochent que par le chef de centre, son adjoint ou le super administrateur. Le « Détail droit par droit », en bas de page, sert aux cas particuliers. Les rôles système (chef de centre, adjoint, chef de garde) se lisent sans se modifier.

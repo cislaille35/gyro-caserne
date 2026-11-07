@@ -2,7 +2,7 @@
 
 Pour qui gère les fiches des agents.
 
-1. Agents → la fiche de l'agent → « Aptitudes ».
+1. Caserne → Agents → la fiche de l'agent → bloc « Aptitudes ».
 2. Choisissez l'aptitude, sa date d'obtention et, si elle en a une, sa date d'expiration.
 3. Appuyez sur « Enregistrer l'aptitude ». « Retirer » l'enlève.
 

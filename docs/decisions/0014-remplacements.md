@@ -11,4 +11,5 @@
   - **Aptitudes** : liste du centre (`GERER_LISTES`), aptitudes datées des agents (`GERER_ACCES`), une colonne par aptitude dans le fichier de l'effectif.
 - **Pourquoi** : peu de données, une seule règle de disponibilité partagée par la demande, l'acceptation et l'écran, gratuit.
 - **Décisions à valider** : voir le compte rendu de la PR #30.
-- **Validé par** : à valider par le porteur (PR #30).
+- **Validé par** : le porteur du projet, à la fusion de la PR #30 (01/11/2026).
+- **Remplacée en partie** par la [révision du 6 novembre 2026 de 0012](0012-notifications-file-d-envoi.md#révision-du-6-novembre-2026--envoi-immédiat-réveil-toutes-les-cinq-minutes) : plus de tâche de chaque minute, un réveil toutes les cinq minutes ; l'expiration et la relance passent un réveil sur deux (toutes les dix minutes).

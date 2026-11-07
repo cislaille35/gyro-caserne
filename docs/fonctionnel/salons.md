@@ -22,7 +22,7 @@ Diffuser l'information du centre et organiser les événements, avec **peu de mu
 
 ## La page Échanges
 
-Rangée en sections, dans un ordre fixe (voir la [spec du lot 2](../superpowers/specs/2026-10-29-echanges-chaleureux-design.md)) :
+En haut, deux onglets : **« Murs »** et **« Messages »** (la [messagerie](messagerie.md), avec le nombre de messages non lus). Les murs sont rangés en sections, dans un ordre fixe (voir la [spec du lot 2](../superpowers/specs/2026-10-29-echanges-chaleureux-design.md)) :
 
 1. **En-tête** : Gyro et le nombre de nouveautés depuis la dernière visite ; le bouton **« Écrire »** ouvre le formulaire de publication.
 2. **« Aujourd'hui au centre »** : les anniversaires du jour (« Souhaiter » prépare un message dans Vie du centre) et le prochain événement où la personne est convoquée sans avoir répondu.
@@ -51,7 +51,7 @@ Chaque publication montre le **visage** de son auteur (ses initiales sur la coul
 
 En option, un **sondage** : une question, 2 à 6 réponses, une seule par personne, une date d'**ouverture** (maintenant, par défaut) et de **clôture** (préremplie dans 7 jours ; pour un événement, à son début, sans dépasser un an après l'ouverture). La clôture tombe après l'ouverture, moins d'un an après, et pour un événement au plus tard à son début. Avant l'ouverture, il s'affiche « Ouvre le … » et refuse les votes. Pendant qu'il est ouvert, les résultats s'affichent **une fois qu'on a voté**, pour ne pas orienter le vote ; l'auteur et les modérateurs les voient toujours, et ils ne sont même pas envoyés au téléphone de qui n'a pas voté. On peut changer son vote. Fermé, il refuse les votes et montre les résultats **à tous**. Les dates ne se changent pas après la publication. Un sondage publié avant les dates reste ouvert. Voir [Comment créer un sondage ?](../utilisation/comment-creer-un-sondage.md).
 
-Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
+Autour de chaque publication : « J'aime », commentaires (l'auteur ou un modérateur peut les fermer), épingle (modérateurs, dix publications épinglées au plus par mur). L'auteur modifie ou supprime ; un modérateur supprime. La suppression est inscrite au journal, sans le contenu.
 
 ### Selon la présence de Gyro
 
@@ -63,15 +63,16 @@ Sur une annonce, l'auteur (modérateur) coche « Demander une prise de connaissa
 
 ## « À ne pas manquer » sur l'accueil
 
-En tête de l'accueil, quelle que soit la casquette :
+Sur l'accueil, quelle que soit la casquette :
 
-1. les **annonces à prendre en compte**, avec le bouton « Pris connaissance » ;
+1. les **demandes de remplacement** reçues qui attendent une réponse (« Accepter ou refuser ») ;
 2. les **événements à venir ou en cours** où la personne est convoquée, avec les boutons de réponse ; la veille, l'événement est marqué « Demain ». Commencé, il reste jusqu'à sa fin (3 h après le début), marqué « En cours », sans boutons : il n'attend plus rien de la personne ;
-3. les **sondages ouverts** auxquels elle n'a pas répondu (pas avant leur ouverture, plus après leur clôture) ;
-4. les **publications épinglées** récentes de ses murs ;
-5. une ligne par mur avec des nouveautés depuis sa dernière visite (« Amicale : 3 nouveautés »).
+3. les **annonces à prendre en compte** (90 derniers jours), avec le bouton « Pris connaissance » ;
+4. les **sondages ouverts** auxquels elle n'a pas répondu (pas avant leur ouverture, plus après leur clôture) ;
+5. les **publications épinglées** récentes (30 jours) de ses murs ;
+6. une ligne par mur avec des nouveautés depuis sa dernière visite (« Amicale », « 3 nouveautés »).
 
-La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le téléphone viendront dans un lot à part.
+Sous « Bonjour », une phrase compte ce qui attend un geste (« 2 publications vous attendent ») : annonces, événements sans réponse, sondages. La cloche ne les reprend pas ; elle signale les nouvelles publications et les commentaires (voir [Notifications](notifications.md)).
 
 ## Anniversaires
 
@@ -86,7 +87,7 @@ La cloche « Notifications » reprend 1 à 3 en liste. Les notifications sur le 
 
 ## Conservation
 
-- Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent.
+- Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent. Les **épinglées** restent ; un événement reste 24 mois après sa date.
 - Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement daté après la limite est gardé jusqu'à ce que sa date la passe.
 - Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part. Le journal des gestes (qui a publié, supprimé…) reste.
 - Pourquoi : voir [0023](../decisions/0023-conservation-des-publications.md).
@@ -96,7 +97,7 @@ Exemple : le 7 novembre 2026, la nuit efface ce qui a été publié avant le 7 n
 ## Ce que la fonction ne fait pas (pour l'instant)
 
 - Messages privés : voir [Messagerie](messagerie.md).
-- Notifications sur le téléphone, mentions (@nom), recherche, fichiers autres que des photos.
+- Mentions (@nom), recherche, fichiers autres que des photos.
 - Ouvrir un mur à d'autres personnes (un référent qui publie dans « Le centre », des extérieurs).
 
 ## Exemple

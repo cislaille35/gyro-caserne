@@ -1,5 +1,7 @@
 # Disponibilités et absences
 
+> Pas encore livré : cette page décrit la cible. Aujourd'hui, seules existent les vacances d'été (Moi → « Mes vacances », voir [Planning d'été](planning-d-ete.md)) et les [remplacements](remplacements-et-echanges.md). Le droit « Voir les motifs d'absence » se donne déjà dans les rôles, mais n'ouvre encore rien.
+
 ## À quoi ça sert
 
 Savoir qui sera vraiment là pendant l'astreinte, pour que la composition des gardes soit juste et que les chefs voient les manques à l'avance.
@@ -17,7 +19,7 @@ Savoir qui sera vraiment là pendant l'astreinte, pour que la composition des ga
 ## Les règles
 
 - Une absence retire l'agent de la composition sur la tranche concernée. Un renfort l'y ajoute.
-- Les chefs de garde sont prévenus quand une absence rend un engin surveillé incapable de partir : voir Composition des gardes.
+- Les chefs de garde sont prévenus quand une absence rend un engin surveillé incapable de partir : voir [Composition des gardes](composition-des-gardes.md).
 - Partout, l'écran affiche : **« Indicatif pour l'organisation du centre. La disponibilité qui fait foi reste celle déclarée au CTA. »**
 
 ## Ce que la fonction ne fait pas

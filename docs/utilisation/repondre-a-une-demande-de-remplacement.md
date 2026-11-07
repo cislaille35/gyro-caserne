@@ -6,4 +6,4 @@
 
 S'il vous manque une aptitude contrôlée du collègue (CA, conduite), l'appli vous le dit avant : votre chef de garde devra valider.
 
-Une fois conclu, mettez à jour votre disponibilité dans l'appli du SDIS. Empêché ensuite ? « Mes demandes » → « Me désister » : le collègue redevient responsable et il est prévenu.
+Une fois conclu, mettez à jour votre disponibilité dans l'appli du SDIS. Empêché ensuite ? Remplacements → « Mes demandes » → « Me désister » : le collègue redevient responsable et il est prévenu.

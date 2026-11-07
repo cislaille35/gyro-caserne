@@ -1,6 +1,6 @@
 # Composition des gardes
 
-> Déjà livré : les règles d'armement par engin (Réglages → « Armement des engins ») et le calcul « FPT armé » du [planning d'été](planning-d-ete.md). Le reste de cette page est à venir.
+> Déjà livré : les règles d'armement par engin (Réglages → « Armement des engins », droit `GERER_LISTES`) et le calcul « FPT armé » du [planning d'été](planning-d-ete.md) : seul le FPT est calculé, car s'il est armé, les autres le sont. Le reste de cette page est à venir.
 
 ## À quoi ça sert
 
@@ -8,10 +8,10 @@ Savoir, pour chaque moment de l'astreinte, **quels engins peuvent partir** avec 
 
 ## Les notions
 
-- **Places d'un type d'engin** (liste ouverte, réglée par le centre) : chaque place demande une aptitude.
-  - VSAV : 1 chef d'agrès (CA1), 1 conducteur (COD1), 1 équipier (SAP).
-  - FPT : 1 CA2, 1 conducteur (COD1), 1 chef d’équipe (CE), 3 équipiers (INC).
-- **Équivalences d'aptitudes**, réglées par le centre : une aptitude peut en couvrir d'autres. Par exemple, un CA2 peut tenir une place de CA1 ou de CE.
+- **Postes d'un engin** (réglés par le centre) : CA tout engins, CA 1 agrès, CE, conducteur, agent. Au départ :
+  - VSAV et VTU : 1 CA 1 agrès, 1 CE (qui conduit), 1 agent.
+  - FPT : 1 CA tout engins, 2 CE, 1 conducteur, 2 agents.
+- **Niveaux** : le centre relie ses aptitudes à cinq niveaux (Chef d'agrès tout engins, Chef d'agrès 1 agrès, Chef d'équipe, Conducteur COD2, Conducteur COD1). Un agent plus qualifié tient un poste en dessous : un CA tout engins tient aussi CA 1 agrès ou CE ; un CA 1 agrès, CE ; un COD2, conducteur. Tout agent tient « agent ».
 - **Agents disponibles** à un moment donné : l'équipe d'astreinte, moins les absents, plus les remplaçants et les renforts. Seuls les agents au statut « opérationnel » comptent, et uniquement avec leurs aptitudes **valides à cette date**.
 
 ## La règle : un engin à la fois
@@ -30,7 +30,7 @@ Un engin indisponible (anomalie bloquante, réparation, prêt) n'est pas testé.
 ## Les règles
 
 - Par défaut, tous les engins du centre sont surveillés. Le centre peut en retirer un.
-- Les places et les équivalences se règlent avec le droit `GERER_LISTES`.
+- Les postes et les niveaux se règlent avec le droit `GERER_LISTES`.
 - Le calcul suit les tranches horaires : un agent absent de 6h à 18h ne compte pas sur ce créneau.
 
 ## Ce que la fonction ne fait pas
@@ -40,4 +40,4 @@ Un engin indisponible (anomalie bloquante, réparation, prêt) n'est pas testé.
 
 ## Exemple
 
-Pour la nuit de mardi, l'équipe 2 compte 9 agents disponibles, mais le seul COD1 est absent. Résultat : VSAV ✗, FPT ✗ (« il manque un conducteur »), VTU ✓ (le VTU accepte un COD2). Le chef de l'équipe 2 est prévenu, et il cherche un renfort conducteur.
+Pour la nuit de mardi, l'équipe 2 compte 9 agents disponibles, mais son seul conducteur est absent. Résultat : FPT ✗ (« il manque un conducteur »), VSAV ✓ et VTU ✓ (leur CE conduit). Le chef de l'équipe 2 est prévenu, et il cherche un renfort conducteur.

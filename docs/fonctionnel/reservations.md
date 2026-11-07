@@ -8,11 +8,11 @@ Réserver la VL du centre ou le matériel de l'amicale (tables, bancs…) dans l
 
 | | Matériel de l'amicale | VL |
 |---|---|---|
-| Qui la déclare | Les membres de l'amicale (Réservations → Gérer le matériel) | Existe d'office, renommable |
-| Qui la gère | Les membres du comité Amicale | Le référent engins |
+| Qui la déclare | Qui tient un rôle dans un comité, pour ce comité (Réservations → Gérer le matériel) ; au départ, le matériel de l'amicale | Existe d'office, renommable |
+| Qui la gère | Les membres du comité qui l'a déclaré | Le référent engins |
 | Forme | Un type d'objet avec un **stock** (« Bancs : 12 ») | Une ressource unique |
 | Une demande | Une **quantité**, sur des **jours** (du… au…, inclus) | Un **créneau** (début, fin) |
-| Validation | **Toujours** par l'amicale | **Acceptée d'office** si le créneau est libre ; sinon **en attente**, le référent engins tranche |
+| Validation | **Toujours** par son comité | **Acceptée d'office** si le créneau est libre ; sinon **en attente**, le référent engins tranche |
 | Qui réserve | Tous les agents | Les agents et la réserve citoyenne |
 
 C'est la ressource qui dit qui la gère (un rôle ou un comité) : le référent engins ne voit pas les demandes de bancs. Le super administrateur gère tout. La VL fait foi dans l'appli ; le lien avec l'application opérationnelle viendra plus tard.

@@ -1,6 +1,6 @@
 # Comment installer l'appli sur mon téléphone ?
 
-Installée, Gyro Caserne s'ouvre d'un geste depuis l'écran d'accueil, en plein écran, avec le nombre de notifications non lues sur son icône. Sur iPhone, c'est obligatoire pour recevoir les notifications.
+Installée, Gyro Caserne s'ouvre d'un geste depuis l'écran d'accueil, en plein écran, avec sur son icône le nombre de notifications et de messages non lus. Sur iPhone, c'est obligatoire pour recevoir les notifications.
 
 ## Sur iPhone
 

@@ -10,4 +10,4 @@
   - **État des équipes** : signalé seulement (décision du porteur), au 1er janvier, sans déplacer d'agent.
   - **Année en brouillon** : ses manœuvres ne s'échangent pas entre agents : elles restent invisibles jusqu'à la publication.
 - **Pourquoi** : le plus simple qui donne un brouillon juste sans rien écraser. Pas de migration.
-- **Validé par** : cadrage validé par le porteur ; les choix de détail sont à valider (PR #43).
+- **Validé par** : le porteur du projet, à la fusion de la PR #43 (04/11/2026).
