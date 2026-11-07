@@ -16,10 +16,11 @@
 - **Seuls les membres lisent une conversation**, y compris le chef de centre et le super administrateur. Pas d'exception.
 - **Historique** : un nouveau membre voit tout l'historique du groupe. Un membre retiré, ou qui quitte, perd tout l'accès, historique compris.
 - Un groupe garde toujours un animateur : si le dernier part, le plus ancien membre le devient. Sans aucun membre, le groupe est effacé.
-- Un agent suspendu disparaît de l'annuaire et ne peut plus rien lire. Un agent qui passe au statut « parti » quitte automatiquement tous ses groupes. Une conversation à deux avec lui reste lisible, en lecture seule.
+- Un agent suspendu disparaît de l'annuaire et ne peut plus rien lire. Un agent qui passe au statut « parti » quitte automatiquement tous ses groupes. Une conversation à deux avec un agent parti ou suspendu reste lisible, en lecture seule.
 - **Coches** : ✓ envoyé, ✓✓ lu (à deux : par l'autre ; dans un groupe : par tous les membres présents à l'envoi). Chacun peut les couper dans « Mon profil » : il ne montre plus ses lectures et ne voit plus celles des autres. Il n'y a pas de liste « lu par ».
 - **Gestes sur un message** : répondre, réagir (👍 ❤️ 😂 😮 😢 👏, une réaction par personne), copier, modifier son message dans les 15 minutes, le supprimer, signaler celui d'un autre.
 - **Signaler un message** : il part vers ceux qui ont le droit `MODERER_MESSAGERIE` (le chef de centre et son adjoint, et le super administrateur), avec **uniquement** le message signalé, pas le reste de la conversation. Ils le voient dans la cloche, avec l'auteur, la date et qui a signalé. Ils peuvent **retirer le message** pour tous (« Message retiré par la modération ») ou **classer** le signalement. Le signalement garde une copie du message (texte et photos) jusqu'à son classement, au cas où l'auteur le supprime.
+- **Prévenir** : chaque nouveau message envoie une notification au téléphone des autres membres (pas de ligne dans la cloche) ; le haut-parleur de la conversation la coupe. L'onglet « Messages » d'Échanges et l'icône de l'appli comptent les messages non lus. Voir [Notifications](notifications.md).
 - **Conservation** : les messages sont effacés après une durée réglable par le centre, 12 mois par défaut. L'effacement a lieu chaque nuit.
 - Les extérieurs (réserve citoyenne) n'ont pas accès à la messagerie.
 
@@ -27,7 +28,6 @@
 
 - Pas d'appels vocaux ni vidéo, pas de messages vocaux ni éphémères.
 - Pas de mentions @, pas de recherche dans les messages.
-- Pas encore de notification sur le téléphone : la pastille d'Échanges compte les messages non lus.
 - Pas d'information officielle : celle-ci passe par les murs.
 
 ## Exemples

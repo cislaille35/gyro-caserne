@@ -2,7 +2,7 @@
 
 Réservé au chef de centre, à son adjoint et au super administrateur. Pour un seul agent, passez plutôt par sa fiche.
 
-1. Ouvrez l'onglet « Caserne », puis « Agents » (adresse `/agents`), et appuyez sur « Fichier de l'effectif ».
+1. Ouvrez l'onglet « Caserne », puis « Agents » (adresse `/agents`), et appuyez sur « Fichier », en haut de la liste. La page « Fichier de l'effectif » s'ouvre.
 2. Téléchargez le fichier de départ :
    - « Télécharger le modèle vierge » pour le premier chargement (créez d'abord à l'écran le chef de centre et l'adjoint) ;
    - « Exporter l'effectif » pour une mise à jour.

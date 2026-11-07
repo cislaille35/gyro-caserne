@@ -8,16 +8,18 @@ Savoir, sans ouvrir l'appli, qu'il se passe quelque chose qui vous concerne ; et
 
 Tout ce qui concerne l'agent, et seulement cela, jamais à l'auteur lui-même :
 
-- **une publication** sur un mur qu'il lit. Le périmètre du mur fait foi : une publication du mur de l'équipe 2 ne va qu'à l'équipe 2. Le chef de centre et son adjoint, qui lisent tous les murs, reçoivent tout ;
+- **une publication** sur un mur qu'il lit. Le périmètre du mur fait foi : une publication du mur de l'équipe 2 ne va qu'à l'équipe 2. Le chef de centre et son adjoint, qui lisent tous les murs, reçoivent tout. Une manœuvre du planning annoncée sur « Le centre » ne va qu'à ses convoqués ;
 - **un commentaire** sous une de ses publications ;
 - **un message** dans une de ses conversations (au téléphone seulement : les messages ont déjà leur pastille sur Échanges) ;
-- **une réservation** : une demande à trancher chez qui gère la ressource, l'accord, le refus ou l'annulation chez le demandeur (voir [Réservations](reservations.md)).
+- **une réservation** : une demande à trancher chez qui gère la ressource, l'accord, le refus ou l'annulation chez le demandeur (voir [Réservations](reservations.md)) ;
+- **un avis** de remplacement, de l'été ou d'anomalie (voir [Remplacements](remplacements-et-echanges.md), [Planning d'été](planning-d-ete.md), [Anomalies](anomalies.md)) ;
+- **la vigilance rouge**, à tous les agents, quand le département y passe (voir [Météo et vigilance](meteo-et-vigilance.md)).
 
 Seul qui peut lire la publication ou la conversation **au moment de l'envoi** est prévenu.
 
 ## Au téléphone
 
-- Moi → Notifications → « Activer sur ce téléphone ». Plusieurs appareils par agent.
+- Moi → Notifications → « Activer sur ce téléphone ». Dix appareils au plus par agent : au-delà, le plus ancien laisse sa place.
 - Sur iPhone, il faut d'abord ajouter l'appli à l'écran d'accueil (exigence d'Apple) : l'écran l'explique, étapes à l'appui (voir « Installer l'appli » plus bas).
 - La notification dit le lieu et l'auteur (« Équipe 2 · Élodie Martin », « Message de Romain », « Départ de Thomas · Manon ») et le début du texte. Pas de photo.
 - La toucher ouvre sa page et marque lue sa ligne de la cloche, quelle qu'elle soit. Publications, commentaires, réservations et remplacements : leur page les marque déjà lues. Avis de l'été (dont le rappel des vacances) et anomalies, que leur page ne marque pas : la notification passe par la même adresse que la cloche (`/notifications/ouvrir`). Sans ligne de cloche (un message, une demande de réservation à trancher, une vigilance rouge) : sa page, directement.
@@ -42,21 +44,21 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 ## Couper
 
 - **Un mur ou une conversation** : le haut-parleur dans son en-tête (barré quand c'est coupé). Une seule cloche à l'écran : celle de l'appli. Une coupure vaut pour tout ce qui vient de ce lieu, commentaires sous ses propres publications compris.
-- **Tout** : l'interrupteur « Tout couper » de Moi → Notifications, qui liste aussi ce qui est coupé, avec « Réactiver ».
+- **Tout** : l'interrupteur « Tout couper au téléphone » de Moi → Notifications, qui liste aussi ce qui est coupé, avec « Réactiver ».
 - Couper ne retire que le son du téléphone : la cloche de l'appli montre toujours tout. Aucune notification n'est impossible à couper.
 
 ## La cloche
 
 - Un fil : une ligne par publication, commentaire, réponse à une réservation, avis de remplacement, de l'été ou d'anomalie, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
 - Le chiffre compte les **non lues**. Toucher une ligne de la cloche la marque lue, quelle qu'elle soit, puis ouvre sa page. Ouvrir un mur marque lues ses publications ; ouvrir une publication la marque lue avec ses commentaires. Ouvrir une demande de remplacement marque lus ses avis ; ouvrir l'été (chef) marque lus les avis qui y mènent (« vacances changées »), pas le rappel de donner ses vacances, qui mène à « Mes vacances ». Le chiffre baisse dès la page ouverte. Une ligne non lue se reconnaît à son titre en gras et à son point ; les lecteurs d'écran disent « Non lu ». « Tout marquer comme lu » en haut du fil.
-- Pour qui gère une ressource, les demandes de réservation à trancher restent en tête et comptent tant que personne n'a tranché (elles sonnent une fois au téléphone).
+- En tête, **« À trancher »** : les remplacements à valider (une aptitude contrôlée manque au remplaçant) pour qui valide, et les demandes de réservation pour qui gère la ressource. Ils comptent tant que personne n'a tranché (une demande de réservation sonne une fois au téléphone).
 - Pour qui modère, les messages signalés restent en tête et comptent tant qu'ils ne sont pas traités (sans notification au téléphone). Le super administrateur ne voit qu'eux.
 - « À ne pas manquer » (répondre à un sondage, à un événement) reste sur l'Accueil.
 
 ## Les règles
 
 - Les notifications de plus de 30 jours sont effacées chaque nuit.
-- Au départ d'un agent, ses appareils et ses notifications sont effacés. Se déconnecter désabonne l'appareil : un téléphone partagé ne reçoit plus les notifications du compte qui l'a quitté.
+- Au départ d'un agent, ses appareils, ses notifications et ses coupures sont effacés. Se déconnecter désabonne l'appareil : un téléphone partagé ne reçoit plus les notifications du compte qui l'a quitté.
 - Pas d'heures calmes dans l'appli : le mode « Ne pas déranger » du téléphone s'en charge. Pas d'alerte opérationnelle : c'est le rôle du CTA-CODIS.
 
 ## Ce que la fonction ne fait pas (encore)

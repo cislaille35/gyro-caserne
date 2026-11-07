@@ -1,5 +1,7 @@
 # Stocks
 
+> **Pas encore livré** : cette page décrit la cible. Seuls existent les droits `GERER_STOCK` (rôle « Référent pharmacie », chef de centre et adjoint) et `SIGNALER_BESOIN_STOCK` (profil Agent) ; il n’y a pas encore d’écran de stock.
+
 ## À quoi ça sert
 
 Savoir **ce qui manque et ce qui périme** au centre (pharmacie, consommables), pour que le référent prépare sa commande sans rien oublier.

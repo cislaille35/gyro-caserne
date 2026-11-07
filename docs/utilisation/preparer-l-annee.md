@@ -8,7 +8,7 @@ Ouvert au chef de centre et à son adjoint (droit « Gérer le planning »). À 
    2. **Fêtes** : l'équipe de Noël et du Nouvel An. Hors de son tour, « Proposer un échange de semaines » propose l'échange qui corrige le tour : « Accepter l'échange » ou « Non merci ». Notez une fois les années passées.
    3. **Manœuvres** : « Ajouter une manœuvre » ou touchez une manœuvre ; le formulaire s'ouvre dans un panneau.
    4. **Repères** : les fériés (calculés) et les vacances scolaires (nom, du, au).
-   5. **Vérifier et publier** : touchez une semaine de la grille pour changer son équipe, relisez le récapitulatif, puis « Publier l'année ». Avant, les agents ne voient rien.
+   5. **Vérifier et publier** : touchez une semaine de la grille pour changer son équipe, relisez le récapitulatif, puis « Publier l'année 2027 ». Avant, les agents ne voient rien.
 
 **Pour aller plus vite** : tant que l'année n'a pas de roulement, appuyez sur « Partir d'une proposition ». Voyez l'état des équipes (signalé seulement), les fêtes, les manœuvres reprises et le résumé, puis « Accepter et écrire le brouillon » ou « Non merci ». Rien n'est publié : retouchez les étapes, puis publiez. Une année déjà préparée n'est jamais écrasée. Détail : [Comment préparer l'année à partir de la précédente ?](partir-d-une-proposition.md).
 

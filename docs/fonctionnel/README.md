@@ -21,18 +21,22 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Notifications | [notifications.md](notifications.md) |
 | Fêtes de Gyro et actualisation | [fetes-et-actualisation.md](fetes-et-actualisation.md) |
 | Météo et vigilance | [meteo-et-vigilance.md](meteo-et-vigilance.md) |
+| Affichage | [affichage.md](affichage.md) |
 
 ## Ce qui est livré
 
 - **Fiche agent** : la liste des agents par équipe, avec recherche et filtres pour la gestion ; la fiche en blocs ; l'ajout, le départ ; le fichier de l'effectif (import, export).
 - **Accès et attributions** : connexion, profils, rôles et comités (page « Réglages »), nominations depuis la fiche ou la page « Nominations ».
-- **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil et le choix de l'affichage.
+- **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil, le choix de l'affichage, l'aide à l'installation et la pastille sur l'icône.
 - **Réservations** (Caserne → Réservations) : la VL et le matériel de l'amicale, calendrier, demandes à valider, notifications.
-- **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; « Mon année » et « Toutes les équipes » ; abonnement d'agenda ; manœuvres annoncées toutes seules sur « Le centre ».
+- **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; les vues « Semaine », « Mois », « Année » et « Équipes », la plaque d'astreinte de l'accueil ; abonnement d'agenda (avec les remplacements) ; manœuvres annoncées toutes seules sur « Le centre ».
 - **Planning d'été** : vacances des agents (Moi → Mes vacances), proposition qui arme le FPT, tableau de l'été à ajuster puis publier ; règles d'armement réglables ; fichier du planning (exporter l'année, importer avec aperçu) ; le rôle « Chef d'équipe » devient « Chef de garde ».
 - **Engins et fiches** (Caserne → Engins, lot A de la prise de garde) : les engins du centre (au centre, prêté par un autre centre, parti) et leur état ; une fiche de prise de garde par type d'engin (VSAV, FPT, VTU au départ), rangée par zone, avec quantité attendue, versionnée ; l'éditeur de fiche et le fichier des fiches (export, import avec aperçu). La prise de garde au téléphone (lot B) : brouillon partagé, écarts avec photo, participants, historique, retard signalé au chef de garde. Les anomalies (lot C) : suivi par étapes, signalement direct avec photo, indisponibilité décidée et remise en service, bandeau d'avertissement, cloche, « À décider ».
+- **Remplacements et échanges** : demander un remplaçant, échanger avec un collègue ou une place à une manœuvre, validation par le chef de garde.
+- **Messagerie** (Échanges → Messages) : conversations à deux et groupes, notifications au téléphone.
+- **Notifications** : la cloche et le téléphone, réglables dans Moi → Notifications.
 - **Fêtes de Gyro et actualisation** : l'icône aux couleurs des équipes ; tirer pour actualiser ; anniversaire, première réservation et année publiée fêtés une fois.
-- **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » en tête de l'accueil et la cloche.
+- **Murs** (onglet « Échanges ») : Le centre, Vie du centre, un mur par équipe et par comité ; publications (message, annonce, événement, bravo), sondages, commentaires, « J'aime », photos, prise de connaissance, anniversaires ; « À ne pas manquer » sur l'accueil ; un événement reste affiché, « En cours », jusqu'à sa fin ; publications gardées 24 mois, sauf épinglées.
 - **Météo et vigilance** : le temps au centre sous « Bonjour » (Open-Meteo), une ambiance discrète et Gyro habillé selon le temps ; bandeau de vigilance Météo-France dès l'orange et alerte au rouge, avec la clé `VIGILANCE_CLE`.
 
-Les autres fonctions ne sont pas encore livrées : leurs pages décrivent la cible. La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).
+Pas encore livrées, leurs pages décrivent la cible : **Stocks**, **Disponibilités et absences** (hors vacances d'été), et une partie d'**Astreinte et rotation** et de **Composition des gardes** (encarts en tête de page). La référence reste le MVP [`cis-laille`](https://github.com/cislaille35/cis-laille).

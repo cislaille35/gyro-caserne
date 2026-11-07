@@ -10,35 +10,28 @@ Vérifier qu'un engin est complet et prêt avant la garde, garder la trace de qu
 ## Les notions
 
 - **Type d'engin** (liste ouverte) : VSAV, FPT, VTU, CCFM… Il porte **la fiche**.
-- **Engin** : un véhicule réel (nom, immatriculation, type). Il a une **situation** et un **statut** :
-  - situation : au centre, prêté à…, emprunté à…, en réparation, réformé. Les prises en compte et les retours sont datés, avec qui a l'engin et où il se trouve ;
-  - statut : disponible ou indisponible. Un point bloquant le rend indisponible.
-- **Fiche** : liée à un type d'engin, et **versionnée**. Elle a trois blocs :
-  1. **inventaire par zone** (cabine, coffres, toit, extérieur…) : des éléments avec leur quantité attendue et le type de réponse attendu (présent, quantité, date de péremption, pression…) ;
-  2. **actions de remise en état** : plein fait, nettoyage intérieur et extérieur, extincteurs plombés…
-  3. **remarques** : matériel en trop, cassé, autre.
+- **Engin** : un véhicule réel (nom, immatriculation facultative, type). Il a une **situation** et un **état** :
+  - situation : **au centre**, **prêté au centre** par un autre centre (« Prêté par CIS Exemple-Nord ») ou **parti** (sorti de la liste à la date du jour ; son historique reste, et le remettre au centre l'y fait revenir) ;
+  - état : **Disponible**, **Avertissement** (disponible, avec au moins une anomalie ouverte) ou **Indisponible**, par décision (voir [anomalies.md](anomalies.md)).
+- **Fiche** : liée à un type d'engin, et **versionnée**. C'est un **inventaire par zone** (cabine, coffres, toit, extérieur…) : des éléments, avec leur quantité attendue s'ils se comptent. Pas encore : actions de remise en état (plein, nettoyage…), réponses autres que présent ou quantité (péremption, pression), remarques libres.
 
 ## Le déroulé
 
 1. L'agent choisit l'engin. L'appli ouvre la fiche de son type, dans sa version en vigueur.
-2. **Zone par zone**, il coche « Complet » en un geste. S'il choisit « Incomplet », il coche les éléments manquants ou défectueux, avec le nombre trouvé et une note.
-3. Il coche les actions de remise en état faites, et ajoute ses remarques.
-4. Il peut signaler un défaut comme **bloquant** : l'engin passe alors indisponible.
-5. Il valide. Chaque élément manquant ou défectueux crée une anomalie, sauf si une anomalie est déjà ouverte pour cet élément sur cet engin.
-6. Si un élément signalé à une prise précédente est retrouvé, l'appli propose de clore l'anomalie liée.
+2. **Zone par zone**, il lit la liste et touche « Tout est complet ». Pour un élément manquant, abîmé ou à remplacer, il touche « Écart » sur sa ligne (nombre manquant, note et photo facultatives).
+3. Il valide. Chaque écart crée une anomalie, sauf si une anomalie est déjà ouverte pour cet élément sur cet engin. L'engin reste disponible : l'indisponibilité est une décision à part.
+4. Si un élément signalé à une prise précédente est retrouvé, l'appli propose de clore l'anomalie liée.
 
-Il y a une seule prise en cours par engin, et le brouillon est gardé sur le serveur : on peut reprendre sur un autre téléphone.
+Il y a une seule prise par engin et par relève, et le brouillon est gardé sur le serveur : on peut reprendre sur un autre téléphone. Le détail est plus bas, « Ce que fait le lot B ».
 
 ## Modifier les fiches
 
-- **Qui** : toute personne qui a le droit `GERER_FICHES` : le chef de centre, son adjoint, les chefs de garde et le référent engins. Les mêmes ajoutent et modifient les engins.
+- **Qui** : toute personne qui a le droit `GERER_FICHES` : le chef de centre, son adjoint, les chefs de garde et le référent engins. Les mêmes ajoutent et modifient les engins (« Ajouter un engin » en haut de Caserne → Engins).
 - **Comment** : Caserne → Engins → Fiches de prise de garde. Zone par zone : ajouter, renommer, déplacer, retirer une zone ou un élément ; un élément peut changer de zone. Un élément qui se compte garde sa **quantité attendue** ; les autres sont seulement présents ou manquants. Un nouveau type d'engin (CCF…) arrive avec une fiche vide.
 - Les prises passées gardent la version de leur époque. Tant qu'une version n'a servi à aucune prise, on la corrige sur place ; dès qu'elle a servi, la modification suivante crée la version d'après. Chaque élément garde sa référence d'une version à l'autre : une anomalie le suit.
 - Un engin de remplacement du même type reprend la fiche automatiquement. S'il est équipé autrement, le référent ajuste la fiche, ce qui crée une nouvelle version.
-- **Pour aller vite**, un import crée toujours un **brouillon** que le référent relit avant de l'enregistrer comme nouvelle version :
-  1. **import et export Excel**, dès la première version : une feuille par type d'engin, une ligne par élément (Réf., Zone, Élément, Quantité). L'aperçu dit, fiche par fiche, ce qui est ajouté, retiré, modifié ; rien n'est écrit avant « Valider », et rien du tout s'il reste une erreur ;
-  2. **import depuis un lien Microsoft Forms**, juste après : un complément, car l'adresse utilisée n'est pas une API officielle ;
-  3. **depuis une photo**, plus tard et en option : il faut une clé d'IA, payée par le centre.
+- **Pour aller vite**, Caserne → Engins → **Fichier des fiches** (Excel ou LibreOffice) : « Exporter les fiches », les modifier, puis importer le fichier. Une feuille par type d'engin, une ligne par élément (Réf., Zone, Élément, Quantité) ; une ligne sans Réf. est un nouvel élément, une ligne retirée retire l'élément. L'aperçu dit, fiche par fiche, ce qui est ajouté, retiré, modifié, et si la fiche deviendra une nouvelle version ; rien n'est écrit avant « Valider », et rien du tout s'il reste une erreur.
+- Pas encore : l'import depuis un lien Microsoft Forms (l'adresse utilisée n'est pas une API officielle) ni depuis une photo (il faudrait une clé d'IA, payée par le centre).
 
 ## Ce que la fonction ne fait pas
 
@@ -47,19 +40,17 @@ Il y a une seule prise en cours par engin, et le brouillon est gardé sur le ser
 
 ## Exemple
 
-Le VSAV 1 part en réparation. Le centre reçoit en prêt le VSAV 23 d'un autre CIS : « emprunté à CIS Bruz, du 3 au 17 novembre ». À la prise de garde, l'agent choisit le VSAV 23 et l'appli ouvre la fiche VSAV. Il manque un masque FFP2 dans la cellule : il coche « Incomplet », puis l'élément, et une anomalie est créée sur le VSAV 23. Au retour du VSAV 1, le VSAV 23 est marqué « rendu », avec la date.
+Le VSAV 1 part en réparation. Le centre reçoit en prêt le VSAV 23 d'un autre CIS : il l'ajoute, « Prêté par CIS Bruz ». À la prise de garde, l'agent choisit le VSAV 23 et l'appli ouvre la fiche VSAV. Il manque un masque FFP2 dans la cellule : il touche « Écart » sur sa ligne, et à la validation une anomalie est créée sur le VSAV 23. Au retour du VSAV 1, le VSAV 23 passe « parti » : il sort de la liste à la date du jour, son historique reste.
 
 ## Rythme
 
-**Chaque centre choisit son rythme** : à chaque prise d'astreinte, chaque jour, ou selon une autre périodicité, avec la possibilité de le régler par type d'engin. L'appli signale un engin dont la prise est en retard.
+Une prise par engin **à chaque relève**, c'est-à-dire à chaque prise d'astreinte du centre (à Laillé, le vendredi à 18 h). L'appli signale un engin dont la prise est en retard. Pas encore de rythme réglable (chaque jour, par type d'engin…).
 
 ## Qui fait la prise
 
-C'est **un réglage du centre** :
-- **l'équipe d'astreinte**, c'est-à-dire ses agents et ses remplaçants de la semaine. C'est le choix de Laillé et le réglage par défaut ;
-- **ou tout agent** du centre.
+**Tout agent** qui a le droit « Faire la prise de garde » (profil Agent). Le lien de l'Accueil, lui, n'apparaît qu'aux agents d'astreinte dans la semaine de la relève. Pas encore de réglage qui la réserverait à l'équipe d'astreinte.
 
-La prise enregistre l'agent qui l'a faite et l'équipe d'astreinte du moment.
+La prise est au nom de ses participants (celui qui valide en fait partie) et de l'équipe d'astreinte du moment.
 
 ## Ce que fait le lot B (prise de garde)
 
