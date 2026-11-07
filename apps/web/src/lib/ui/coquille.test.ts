@@ -3,7 +3,7 @@ import { createRawSnippet } from 'svelte';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Coquille from './Coquille.svelte';
-import { dansUneConversation, entreesNavigation, rubriqueDe } from './navigation.ts';
+import { dansUneConversation, entreesNavigation, marqueDesLues, rubriqueDe } from './navigation.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<p>Bonjour</p>' }));
 
@@ -22,6 +22,11 @@ describe('Coquille', () => {
 		}
 		// Une page d'erreur garde sa navigation : sans elle, plus de sortie.
 		expect(dansUneConversation('/echanges/messages/[id]', { message: 'Introuvable' })).toBe(false);
+	});
+
+	it('les pages dont l’ouverture marque des notifications lues : la cloche est relue après elles seulement', () => {
+		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/engins/anomalies/[id]']) expect(marqueDesLues(route), route).toBe(true);
+		for (const route of ['/', '/planning', '/notifications', '/echanges/messages/[id]', '/engins/[id]', null]) expect(marqueDesLues(route), String(route)).toBe(false);
 	});
 
 	it('une conversation : la coquille le sait, et le lien « Aller au contenu » reste', () => {

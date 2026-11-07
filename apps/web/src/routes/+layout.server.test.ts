@@ -16,7 +16,7 @@ vi.mock('@gyro-caserne/socle', async (importer) => {
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const appeler = (acteur: unknown, base: unknown = null) => (load as any)({ locals: { acteur, base, affichage: { niveau: 1, theme: 'clair' } } });
+const appeler = (acteur: unknown, base: unknown = null, depends: (cle: string) => void = () => {}) => (load as any)({ depends, locals: { acteur, base, affichage: { niveau: 1, theme: 'clair' } } });
 const super_ = { type: 'super', email: 'a@b.fr' } as const;
 
 describe('load du layout', () => {
@@ -92,6 +92,12 @@ describe('load du layout', () => {
 		// Le super administrateur et le visiteur : ni nombre, ni visage.
 		expect(await appeler(super_, base)).toMatchObject({ cloche: 0, visage: null });
 		expect(await appeler(null, base)).toMatchObject({ cloche: 0, visage: null });
+	});
+
+	it('la cloche dépend de « app:cloche » : relue seule après une page qui marque des notifications lues', async () => {
+		const depends = vi.fn();
+		await appeler(null, null, depends);
+		expect(depends).toHaveBeenCalledWith('app:cloche');
 	});
 
 	it('la cloche : les messages signalés, pour qui modère la messagerie (chef de centre, super administrateur) seulement', async () => {
