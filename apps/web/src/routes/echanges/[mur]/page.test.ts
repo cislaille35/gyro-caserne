@@ -132,6 +132,14 @@ describe('page d’un mur', () => {
 		expect(equipe).toContain('#d4a017');
 	});
 
+	it('un comité : pas de phrase qui répète son nom ; sans membre, la bande le dit', () => {
+		const comite = html({ mur: { ...mur, cle: 'comite:1', nom: 'Comité du centre', type: 'comite' }, audience: 0 });
+		expect(comite).toMatch(/<h1[^>]*>Comité du centre<\/h1>/);
+		expect(comite).not.toContain('class="phrase"');
+		expect(comite).toContain('Aucun membre pour l’instant : visible par le chef et l’adjoint');
+		expect(comite).not.toContain('0 membres');
+	});
+
 	it('l’auteur : visage, nom et rôle ; le super administrateur s’affiche sans planter', () => {
 		const chef = html({ publications: [pub({ auteur: { prenom: 'Claire', nom: 'Chef', couleur: '#0f4c8a', role: 'Chef de centre', ecrireA: null } })] });
 		expect(chef).toMatch(/aria-hidden="true"[^>]*>CC</);
