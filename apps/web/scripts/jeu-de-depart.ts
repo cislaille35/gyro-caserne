@@ -5,8 +5,8 @@
 // Avec --comptes-de-test=<boîte> (centre exemple seulement) : un compte par profil, boîte+rôle, et des publications fictives.
 // Avec les fictifs ou les comptes de test : un été fictif à préparer (relançable) ; proposé seulement si l'année a son roulement.
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { affectationEquipe, chargerAnomaliesFictives, chargerComptesDeTest, chargerEnginsFictifs, chargerEteFictif, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, chargerRemplacementsFictifs, creerBaseD1, creerBasePhotos, equipe, personne, profil } from '@gyro-caserne/socle';
-import { eq } from 'drizzle-orm';
+import { affectationEquipe, attribution, chargerAnomaliesFictives, chargerHabillementFictif, chargerComptesDeTest, chargerEnginsFictifs, chargerEteFictif, chargerJeuDeDepart, chargerMaterielFictif, chargerPlanningFictif, chargerRemplacementsFictifs, creerBaseD1, creerBasePhotos, equipe, personne, profil, responsabilite } from '@gyro-caserne/socle';
+import { and, eq, inArray } from 'drizzle-orm';
 import { getPlatformProxy } from 'wrangler';
 import { maintenantParis } from '../src/lib/aujourdhui.ts';
 import { configEnLigne } from './config-en-ligne.ts';
@@ -72,6 +72,15 @@ try {
 			await chargerEnginsFictifs(base, maintenantParis());
 			// Une anomalie en cours de suivi : le treuil du VTU, au garage.
 			await chargerAnomaliesFictives(base, maintenantParis());
+			// L'habillement : Chloé Durand, référente fictive, suit quelques demandes à différentes étapes.
+			const gens = Object.fromEntries((await base.select({ id: personne.id, email: personne.email }).from(personne).where(inArray(personne.email, FICTIFS.map((f) => f.email)))).map((p) => [p.email, p.id]));
+			const [role] = await base.select({ id: responsabilite.id }).from(responsabilite).where(eq(responsabilite.nom, 'Référent habillement'));
+			const referente = gens['chloe.durand@exemple.fr'];
+			if (role && referente) {
+				const [tenue] = await base.select({ id: attribution.id }).from(attribution).where(and(eq(attribution.personneId, referente), eq(attribution.responsabiliteId, role.id)));
+				if (!tenue) await base.insert(attribution).values({ personneId: referente, responsabiliteId: role.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:jeu-de-depart', saisieLe: maintenantParis() });
+				await chargerHabillementFictif(base, maintenantParis(), referente, [gens['alice.martin@exemple.fr'], gens['bruno.petit@exemple.fr'], gens['david.leroy@exemple.fr']].filter((id): id is number => id !== undefined));
+			}
 			// Un planning fictif : l'année en cours et la suivante publiées, quelques manœuvres.
 			await chargerPlanningFictif(base, description, maintenantParis());
 			// Des aptitudes et une demande de remplacement ouverte.

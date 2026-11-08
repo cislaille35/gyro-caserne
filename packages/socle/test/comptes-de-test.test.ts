@@ -3,12 +3,13 @@ import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { acteurDe } from '../src/connexion.ts';
 import { chargerComptesDeTest, COMPTES_DE_TEST } from '../src/comptes-de-test.ts';
+import { aLeDroit } from '../src/droits.ts';
 import { DonneeInvalide } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { mursDe } from '../src/murs.ts';
 import { ajouterPersonne } from '../src/actions/personnes.ts';
 import { nombreAValider } from '../src/reservations.ts';
-import { equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
+import { demandeHabillement, equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -71,6 +72,16 @@ describe('chargerComptesDeTest', () => {
 		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
 		expect(await base.select().from(ressource)).toHaveLength(4);
 		expect(await base.select().from(reservation)).toHaveLength(1);
+	});
+
+	it('un référent habillement fictif et des demandes de l’agent et du membre à différentes étapes, sans doublon au second chargement', async () => {
+		const base = await jeu();
+		const referent = await acteurDe(base, 'caserne+habillement@exemple.fr', []);
+		expect(await aLeDroit(base, referent!, 'GERER_HABILLEMENT', { type: 'centre' }, aujourdhui)).toBe(true);
+		const etapes = async () => (await base.select({ etape: demandeHabillement.etape }).from(demandeHabillement).orderBy(demandeHabillement.id)).map((d) => d.etape);
+		expect(await etapes()).toEqual(['demandee', 'question', 'traitee', 'livree']);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await etapes()).toHaveLength(4);
 	});
 
 	it('ne fait rien la deuxième fois', async () => {

@@ -162,6 +162,13 @@
       "when": 1794129566897,
       "tag": "0022_droit_habillement",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1794131106486,
+      "tag": "0023_habillement",
+      "breakpoints": true
     }
   ]
 }

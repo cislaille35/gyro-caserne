@@ -10,6 +10,7 @@ import { ajouterJours, exigerDateHeure } from './dates.ts';
 import type { Acteur, Perimetre } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
 import { chargerEnginsFictifs } from './engins.ts';
+import { chargerHabillementFictif } from './habillement.ts';
 import { chargerMaterielFictif, reserver } from './reservations.ts';
 import { chargerAptitudesFictives } from './remplacements/fictif.ts';
 import { attribution, comite, equipe, personne, profil, publication, reservation, responsabilite, ressource } from './schema.ts';
@@ -26,6 +27,7 @@ export const COMPTES_DE_TEST: Compte[] = [
 	{ role: 'membre', prenom: 'Manon', nom: 'Membre', profil: 'Agent', equipe: 3, responsabilite: 'Membre de comité', comite: 'Amicale' },
 	{ role: 'referent', prenom: 'Rémi', nom: 'Référent', profil: 'Agent', equipe: 2, responsabilite: 'Référent technique' },
 	{ role: 'engins', prenom: 'Erwan', nom: 'Engins', profil: 'Agent', equipe: 3, responsabilite: 'Référent engins' },
+	{ role: 'habillement', prenom: 'Hélène', nom: 'Habillement', profil: 'Agent', equipe: 4, responsabilite: 'Référent habillement' },
 	{ role: 'exterieur', prenom: 'Estelle', nom: 'Extérieure', profil: 'Réserve citoyenne' }
 ];
 
@@ -131,6 +133,8 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	// Réservations : le matériel de l'amicale, et une demande de l'agent qui attend l'amicale.
 	await chargerMaterielFictif(base, maintenant);
 	await chargerEnginsFictifs(base, maintenant);
+	// Des demandes d'habillement de l'agent et du membre, suivies par le référent habillement.
+	await chargerHabillementFictif(base, maintenant, ids.habillement!, [ids.agent!, ids.membre!]);
 	// Des aptitudes, pour essayer les remplacements.
 	await chargerAptitudesFictives(base, maintenant);
 	const [bancs] = await base.select({ id: ressource.id }).from(ressource).where(and(eq(ressource.nom, 'Bancs'), isNull(ressource.retireeLe)));

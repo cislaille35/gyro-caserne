@@ -110,6 +110,14 @@ export type MotifAttente = (typeof MOTIFS_ATTENTE)[number];
 export const SUIVIS_ANOMALIE = ['prise_en_charge', 'en_attente', 'reparee', 'verifiee', 'close', 'indisponible', 'remise_en_service'] as const;
 export type SuiviAnomalie = (typeof SUIVIS_ANOMALIE)[number];
 
+// Habillement : les étapes d'une demande de tenue (les trois dernières la finissent), l'issue choisie, et les lignes de son fil.
+export const ETAPES_HABILLEMENT = ['demandee', 'prise', 'question', 'traitee', 'livree', 'refusee', 'annulee'] as const;
+export type EtapeHabillement = (typeof ETAPES_HABILLEMENT)[number];
+export const ISSUES_HABILLEMENT = ['stock', 'commande'] as const;
+export type IssueHabillement = (typeof ISSUES_HABILLEMENT)[number];
+export const FIL_HABILLEMENT = ['prise', 'reprise', 'question', 'reponse', 'precision', 'stock', 'commande', 'refus', 'livraison', 'annulation'] as const;
+export type FilHabillement = (typeof FIL_HABILLEMENT)[number];
+
 export const RESPONSABILITES_SYSTEME = ['chef_centre', 'chef_centre_adjoint', 'chef_equipe'] as const;
 export type ResponsabiliteSysteme = (typeof RESPONSABILITES_SYSTEME)[number];
 
