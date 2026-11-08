@@ -204,8 +204,9 @@ describe('direction B', () => {
 
 	it('un seul style de champ, posé par app.css', () => {
 		expect(source('app.css')).toMatch(/:where\(textarea, select, input:not\(\[type='checkbox'\], \[type='radio'\], \[type='file'\]\)\) \{[^}]*border: 1px solid var\(--doux\);/);
-		const ecrit = ecrans.filter((f) => /(?:^|\n)\s*(?:input|textarea|select)[^{}\n]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre)\)/.test(style(f)));
+		const ecrit = ecrans.filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
 		expect(ecrit).toEqual([]);
+		expect(style('lib/ui/FormulairePublication.svelte')).not.toMatch(/\.saisie \{[^}]*border:/);
 	});
 
 	it('une seule couleur de bouton radio, posée par app.css', () => {
@@ -219,5 +220,26 @@ describe('direction B', () => {
 
 	it('un champ fichier est dessiné : aucun champ natif visible hors « ChampPhoto »', () => {
 		expect(ecrans.filter((f) => !['lib/ui/ChampPhoto.svelte', 'lib/messagerie/Saisie.svelte'].includes(f) && /type="file"/.test(source(f)))).toEqual([]);
+	});
+
+	it('un fichier à importer : pas de nom ni de « Retirer », la page reprend la main sur le champ', () => {
+		const s = source('lib/ui/ChampPhoto.svelte');
+		expect(s).toMatch(/const lire = \(\) => \{\s*if \(icone === 'fichier'\) return;/);
+		expect(s).toMatch(/\.js \.zone:has\(input:disabled\) \{[^}]*opacity:/);
+	});
+
+	it('« Géré par » garde un comité après une action', () => {
+		expect(source('routes/reservations/materiel/+page.svelte')).toMatch(/<Choix id="ajouter-comite"[^>]*valeur=\{valeur\('comite'\) \|\| String\(data\.comites\[0\]!\.id\)\}/);
+	});
+
+	it('« Aujourd’hui au centre » : des initiales lisibles et « Souhaiter » qui a l’air d’une action', () => {
+		const s = style('routes/echanges/+layout.svelte');
+		expect(s).toMatch(/background: var\(--statut-neutre-fond\);\s*color: var\(--statut-neutre-texte\);/);
+		expect(s).toMatch(/\.souhaiter \{[^}]*border: 1px solid var\(--trait\);/);
+	});
+
+	it('une option choisie ne saute pas : son bord plus épais est repris sur le retrait', () => {
+		const fautifs = ecrans.filter((f) => /border: 2px solid var\(--encre\);\s*padding: var\(--espace-8\) var\(--espace-12\);/.test(style(f)));
+		expect(fautifs).toEqual([]);
 	});
 });

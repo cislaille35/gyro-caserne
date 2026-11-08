@@ -106,7 +106,7 @@
 	}
 	.semaine[aria-current='true'] {
 		border: 2px solid var(--encre);
-		padding: var(--espace-8) var(--espace-12);
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 	}
 	.du {
 		font-weight: 700;
@@ -181,7 +181,7 @@
 	}
 	.jour:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: var(--espace-8) var(--espace-12);
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 		background: color-mix(in srgb, var(--rouge) 8%, var(--surface));
 	}
 	.jour:has(input:focus-visible) {

@@ -24,7 +24,9 @@
 	let js = $state(false);
 	let choisi = $state('');
 	const decrit = $derived([aide && `${id}-aide`, erreur && `${id}-erreur`].filter(Boolean).join(' ') || undefined);
+	// Un fichier à importer : l'écran montre lui-même la suite (aperçu, erreur) et vide le champ.
 	const lire = () => {
+		if (icone === 'fichier') return;
 		const fichiers = champ?.files ?? [];
 		choisi = fichiers.length > 1 ? `${fichiers.length} photos` : (fichiers[0]?.name ?? '');
 	};
@@ -102,6 +104,12 @@
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
+	}
+	.js .zone:has(input:disabled) {
+		opacity: 0.6;
+	}
+	.js .zone:has(input:disabled) input {
+		cursor: not-allowed;
 	}
 	.js .zone:hover {
 		border-color: var(--encre);

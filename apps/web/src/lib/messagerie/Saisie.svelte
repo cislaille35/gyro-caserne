@@ -331,10 +331,9 @@
 		flex: 1;
 		min-width: 0;
 		min-height: var(--cible);
-		max-height: calc(5 * 1.5em + 22px);
+		max-height: calc(5 * 1.5em + 26px);
 		box-sizing: border-box;
 		padding: var(--espace-12) var(--espace-16);
-		border: 1px solid var(--statut-neutre-trait);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;

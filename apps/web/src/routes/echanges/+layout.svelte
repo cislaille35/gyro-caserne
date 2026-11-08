@@ -314,13 +314,14 @@
 		align-items: center;
 		justify-content: center;
 		background: var(--statut-neutre-fond);
-		color: var(--surface);
+		color: var(--statut-neutre-texte);
 		font-weight: 700;
 	}
 	.souhaiter {
 		flex: none;
 		min-height: 44px;
 		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;

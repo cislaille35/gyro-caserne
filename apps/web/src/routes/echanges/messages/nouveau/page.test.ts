@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const personne = (id: number, prenom: string, nom: string, sous: string, couleur: string | null = '#1565c0', surnom: string | null = null) => ({ id, prenom, nom, surnom, couleur, sous, lien: `/echanges/messages/a/${id}` });
 const elodie = { ...personne(4, 'Élodie', 'Chef-de-Garde', 'Chef de garde', '#d4a017'), lien: '/echanges/messages/12' };
@@ -43,7 +44,7 @@ describe('nouveau message', () => {
 		expect(texte(t)).toContain('Groupe avec l’équipe 1 9 membres, ajoutés d’un coup');
 		expect(texte(t)).toContain('Groupe avec l’Amicale 1 membre du comité');
 		// L'équipe a son numéro sur sa teinte, le comité son icône.
-		expect(t).not.toContain('--icone-');
+		expect(t).toContain(`d="${ICONES_ROLES.coeur}"`);
 	});
 
 	it('un comité dont le nom commence par une consonne, sans élision', () => {

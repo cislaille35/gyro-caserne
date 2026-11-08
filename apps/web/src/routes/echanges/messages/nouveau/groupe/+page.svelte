@@ -185,8 +185,6 @@
 		flex: 1;
 		min-height: var(--cible);
 		padding: 0 var(--espace-16) 0 var(--espace-48);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;

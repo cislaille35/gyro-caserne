@@ -287,8 +287,6 @@
 		box-sizing: border-box;
 		width: 100%;
 		padding: 0 var(--espace-12);
-		border: 1px solid var(--statut-neutre-trait);
-		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 400 var(--texte-16) var(--police);

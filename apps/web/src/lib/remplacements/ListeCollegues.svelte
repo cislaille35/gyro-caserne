@@ -126,7 +126,7 @@
 	}
 	.rangee:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: var(--espace-8) var(--espace-12);
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 	}
 	.rangee:has(input:focus-visible) {
 		outline: 3px solid var(--focus);
@@ -165,8 +165,6 @@
 		min-width: 0;
 		min-height: var(--cible);
 		padding: 0 var(--espace-16);
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		font: 400 var(--texte-16) var(--police);

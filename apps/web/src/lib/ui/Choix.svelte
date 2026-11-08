@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
+	import { valeurConnue } from './choix.ts';
 
 	let {
 		id,
@@ -36,7 +37,11 @@
 		if (!monte) {
 			monte = true;
 			if (liste.value !== voulue) valeur = liste.value;
-		} else if (liste.value !== voulue) liste.value = voulue;
+		} else {
+			const montree = valeurConnue(voulue, options, liste.value);
+			if (liste.value !== montree) liste.value = montree;
+			if (valeur !== montree) valeur = montree;
+		}
 	});
 	onMount(() => {
 		const formulaire = liste.form;

@@ -83,7 +83,7 @@
 					{#if data.comites.length === 1}
 						<input type="hidden" name="comite" value={data.comites[0]!.id} />
 					{:else}
-						<Choix id="ajouter-comite" name="comite" libelle="Géré par" valeur={valeur('comite')} options={data.comites.map((c) => ({ valeur: String(c.id), libelle: c.nom }))} />
+						<Choix id="ajouter-comite" name="comite" libelle="Géré par" valeur={valeur('comite') || String(data.comites[0]!.id)} options={data.comites.map((c) => ({ valeur: String(c.id), libelle: c.nom }))} />
 					{/if}
 					<ChoixIcone valeur={(valeur('icone') || 'groupe') as never} />
 					<Bouton type="submit">Ajouter</Bouton>

@@ -91,7 +91,7 @@
 	}
 	label:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: var(--espace-8) var(--espace-12);
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 	}
 	.doux {
 		font-size: var(--texte-15);

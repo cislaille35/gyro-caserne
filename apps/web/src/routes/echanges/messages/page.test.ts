@@ -1,5 +1,6 @@
 import { render } from 'svelte/server';
 import { describe, expect, it, vi } from 'vitest';
+import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 // L'heure s'affiche pour un message du jour : on fige l'horloge au jour des données.
 vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-29T12:00:00') });
@@ -70,7 +71,7 @@ describe('liste des messages', () => {
 		// À deux, l'autre n'est pas nommé une seconde fois devant son message.
 		expect(t).toContain('Élodie Chef-de-Garde 9 h 40 Tu peux prendre ma place ?');
 		// Le groupe a son icône sur sa teinte ; la personne, ses initiales.
-		expect(page).not.toContain('--icone-');
+		expect(page).toContain(`d="${ICONES_ROLES.coeur}"`);
 		expect(t).toContain('ÉC');
 	});
 
