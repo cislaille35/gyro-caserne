@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { VueMessage } from '@gyro-caserne/socle';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -108,6 +109,12 @@ describe('gestes au doigt', () => {
 		expect(glissementRepond(30, 100)).toBe(true);
 		expect(glissementRepond(30, 1000)).toBe(false);
 		expect(glissementRepond(8, 10)).toBe(false);
+	});
+
+	it('un geste annulé par le système ne répond pas, et un second doigt ne relance pas le geste', () => {
+		const source = readFileSync(new URL('./toucher.ts', import.meta.url), 'utf8');
+		expect(source).toContain("['pointercancel', annuler]");
+		expect(source).toMatch(/const bas = [^\n]*\n[^\n]*doigt = [^\n]*\n\s*if \(!doigt \|\| !o\.menu \|\| debut\) return;/);
 	});
 });
 

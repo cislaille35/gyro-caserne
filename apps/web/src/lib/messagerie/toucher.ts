@@ -28,7 +28,7 @@ export function toucher(noeud: HTMLElement, depart: Toucher) {
 	};
 	const bas = (e: PointerEvent) => {
 		doigt = e.pointerType === 'touch';
-		if (!doigt || !o.menu) return;
+		if (!doigt || !o.menu || debut) return;
 		debut = { x: e.clientX, y: e.clientY, pointeur: e.pointerId, quand: e.timeStamp };
 		glisse = false;
 		ecart = 0;
@@ -60,6 +60,13 @@ export function toucher(noeud: HTMLElement, depart: Toucher) {
 		glisse = false;
 		remettre();
 	};
+	// Le système reprend la main (bord de l'écran, appel) : ce n'est pas une intention de répondre.
+	const annuler = () => {
+		clearTimeout(minuteur);
+		debut = null;
+		glisse = false;
+		remettre();
+	};
 	const menuContextuel = (e: Event) => {
 		if (doigt) e.preventDefault();
 	};
@@ -74,7 +81,7 @@ export function toucher(noeud: HTMLElement, depart: Toucher) {
 		['pointerdown', bas as EventListener],
 		['pointermove', bouge as EventListener],
 		['pointerup', haut],
-		['pointercancel', haut],
+		['pointercancel', annuler],
 		['contextmenu', menuContextuel],
 		['click', clic, true]
 	];
