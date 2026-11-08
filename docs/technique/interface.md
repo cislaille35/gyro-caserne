@@ -148,7 +148,7 @@ Dans `src/lib/ui/` :
 - `Groupe` : bloc repliable (fermé par défaut, `bind:ouvert`) ; le titre (`niveauTitre` 2 ou 3) est un bouton `aria-expanded`, le contenu est `hidden` quand il est fermé (ses champs restent dans le formulaire).
 - `Pastille` : petit badge de texte, `ton` `ok`, `info`, `alerte`, `danger` ou `neutre`.
 - `BarreActions` : barre collée en bas de l'écran (au-dessus de la navigation au téléphone) ; `message` est lu dans sa zone `role="status"`, toujours présente.
-- `Visage` : rond décoratif avec les initiales d'une personne, à la couleur de son équipe (texte selon `encreSur`, gris sans équipe), tailles fixes de 30 à 88 px ; le nom doit être écrit à côté. (`Initiales`, l'ancien rond, n'est plus utilisé que par son test.)
+- `Visage` : rond décoratif avec les initiales d'une personne, à la couleur de son équipe (texte selon `encreSur`, gris sans équipe), tailles fixes de 30 à 88 px ; le nom doit être écrit à côté.
 - `Installer` : l'aide à l'installation (voir `/moi/installer`).
 - `IconeRole` : tuile colorée d'un rôle (décorative pour les lecteurs d'écran, le nom est écrit à côté) ; dans une liste, seulement là où elle distingue quelque chose ; les tracés sont dans `icones-roles.ts` (`ICONES_ROLES`), une couleur par icône.
 - `Publication` : une publication (auteur, type en `Pastille`, texte jamais interprété, événement, sondage, photos, « J'aime » et réponses en boutons `aria-pressed`, « Pris connaissance », gestes selon `droits`). Un événement commencé porte « En cours » jusqu'à sa fin (3 h) et n'a plus de réponses.
