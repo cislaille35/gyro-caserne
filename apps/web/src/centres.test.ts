@@ -97,7 +97,7 @@ describe('version d’essai', () => {
 	it('téléverse une version sans la déployer', () => {
 		expect(flux).toContain('wrangler versions upload');
 		expect(flux).toContain('--preview-alias refonte');
-		expect(flux).not.toMatch(/wrangler deploy|pnpm deployer|base-en-ligne/);
+		expect(flux).not.toMatch(/wrangler (versions )?deploy|deployer|base-en-ligne/);
 	});
 
 	it('envoie ses liens de connexion vers sa propre adresse', () => {
