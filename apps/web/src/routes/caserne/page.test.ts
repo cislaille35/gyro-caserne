@@ -1,4 +1,6 @@
 import { render } from 'svelte/server';
+import { eq } from 'drizzle-orm';
+import { personne, profil } from '@gyro-caserne/socle';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
 import { load } from './+page.server';
@@ -20,7 +22,7 @@ describe('/caserne', () => {
 		const { base, chef, alice } = await preparer();
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const charger = (acteur: unknown) => (load as any)({ locals: { base, acteur } });
-		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null, engins: 0, anomalies: 0 });
+		expect(await charger(alice)).toEqual({ agents: 3, aPourvoir: null, engins: 0, anomalies: 0, comites: true });
 		const pourLeChef = await charger(chef);
 		expect(pourLeChef.agents).toBe(3);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,10 +59,27 @@ describe('/caserne', () => {
 		expect(page).toMatch(/href="\/reservations"[\s\S]*?Réservations[\s\S]*?La VL et le matériel de l’amicale/);
 	});
 
-	it('« Comités » annoncé sans fausses données', () => {
-		const page = html({ peutNominations: false, peutReglages: false });
-		expect(page).toContain('Comités');
-		expect(page).toContain('Les pages des comités arrivent bientôt.');
+	it('« Comités et référents » pour les agents, pas pour le compte de la réserve citoyenne ; plus de groupe « Bientôt »', async () => {
+		expect(html({ comites: false })).not.toContain('href="/comites"');
+		const { base } = await preparer();
+		const [ext] = await base.select().from(profil).where(eq(profil.typePersonne, 'exterieur'));
+		const [p] = await base.insert(personne).values({ email: 'reserve@exemple.fr', prenom: 'Réserve', nom: 'Citoyenne', profilId: ext!.id }).returning();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		expect((await (load as any)({ locals: { base, acteur: { type: 'personne', id: p!.id } } })).comites).toBe(false);
+		const page = html({ peutNominations: false, peutReglages: false, comites: true });
+		expect(page).toMatch(/href="\/comites"[\s\S]*?Comités et référents[\s\S]*?Qui fait quoi au centre/);
+		expect(page).not.toContain('Bientôt');
+		expect(page).not.toContain('arrivent bientôt');
+	});
+
+	it('deux groupes : l’organisation, puis le matériel', () => {
+		const page = html({ peutNominations: true, peutReglages: true, engins: 3, anomalies: 1, comites: true });
+		const organisation = page.indexOf('>Organisation<');
+		const materiel = page.indexOf('>Matériel<');
+		expect(organisation).toBeGreaterThan(-1);
+		expect(materiel).toBeGreaterThan(organisation);
+		for (const href of ['/agents', '/comites', '/nominations', '/reglages']) expect(page.indexOf(`href="${href}"`)).toBeLessThan(materiel);
+		for (const href of ['/engins', '/engins/anomalies', '/reservations']) expect(page.indexOf(`href="${href}"`)).toBeGreaterThan(materiel);
 	});
 
 	it('« Engins » pour qui les voit, avec le nombre d’engins au centre', async () => {

@@ -21,6 +21,7 @@ export { MODELES, type Modele } from './modeles.ts';
 export { listerProfils, modifierDroitsProfil } from './actions/profils.ts';
 export { accueilDe, aDecider, casquettesDe, type Accueil, type ADecider, type Casquette, type ContenuCasquette } from './casquettes.ts';
 export { apercusDesMurs, type Apercu as ApercuMur } from './apercus.ts';
+export { ouvreQuiFaitQuoi, quiFaitQuoi, type QuiFaitQuoi, type RoleTenu } from './qui-fait-quoi.ts';
 export { audiences, equipesConvoquees, exigerMur, mursDe, type CleMur, type Convocation, type Mur } from './murs.ts';
 export { TAILLE_PHOTO_MAX, type Photo } from './commun.ts';
 export { effacerPhotosOrphelines } from './photos-orphelines.ts';

@@ -23,6 +23,7 @@
 	const s = $derived(data.sections);
 	const tuile = $derived([s.centre, ...s.groupes, ...s.autres, ...s.supervision].find((t) => t?.cle === data.mur.cle) ?? { icone: null, couleur: null, numero: null });
 	const teinte = $derived(teinteDuMur(data.mur.type, tuile));
+	const phrase = $derived(phraseDuMur(data.mur.type));
 	// Gyro du bravo s'anime une fois, sur le premier bravo seulement.
 	const premierBravo = $derived([...data.epinglees, ...data.publications].find((p) => p.type === 'bravo')?.id);
 </script>
@@ -37,7 +38,7 @@
 		<span class="embleme"><PastilleMur icone={tuile.icone} couleur={tuile.couleur} numero={tuile.numero} /></span>
 		<div class="titres">
 			<h1 id="titre-mur" tabindex="-1">{data.mur.nom}</h1>
-			<p class="phrase">{phraseDuMur(data.mur.type, data.mur.nom)}</p>
+			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 		</div>
 		{#if data.mur.lectureSeule}<Pastille ton="neutre">Lecture seule</Pastille>{/if}
 		{#if data.coupe !== null && data.coupe !== undefined}<CouperNotifications coupe={data.coupe} nom={data.mur.nom} />{/if}

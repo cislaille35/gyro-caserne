@@ -25,6 +25,7 @@ import { load as listeAgents } from './agents/+layout.server';
 import { actions as actionsFiche, load as fiche } from './agents/[id]/+page.server';
 import { load as nominations } from './nominations/+page.server';
 import { load as caserne } from './caserne/+page.server';
+import { load as comites } from './comites/+page.server';
 import { load as moi } from './moi/+page.server';
 import { load as reglages } from './reglages/+layout.server';
 import { load as pageReglages } from './reglages/+page.server';
@@ -174,6 +175,23 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			expect(data.aPourvoir).toBeGreaterThan(0);
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/comites : les comités et les rôles, pour le chef et pour un agent', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const [amicale] = await base.select().from(comite).where(eq(comite.nom, 'Amicale'));
+		const [membre] = await base.select().from(responsabilite).where(eq(responsabilite.nom, 'Membre de comité'));
+		const agents = await base.select().from(personne);
+		for (const p of agents.slice(0, 40)) await base.insert(attribution).values({ personneId: p.id, responsabiliteId: membre!.id, perimetreType: 'comite', perimetreId: amicale!.id, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+		for (const acteur of [locals.acteur, { type: 'personne' as const, id: agent.id }]) {
+			const ici = { ...locals, acteur };
+			const n = await compter(async () => {
+				await (racine as any)({ depends: () => {}, locals: ici });
+				const data = await (comites as any)({ locals: ici });
+				expect(data.comites.find((c: { nom: string }) => c.nom === 'Amicale').membres).toHaveLength(40);
+			});
+			expect(n).toBeLessThanOrEqual(BUDGET);
+		}
 	});
 
 	it('/planning/ete : tout un été proposé pour 150 agents ; proposer, ajuster, publier ; Mes vacances, armement', async () => {

@@ -16,6 +16,7 @@ Format d'une page :
 - [Comment déclarer le départ d'un agent ?](declarer-un-depart.md)
 - [Comment importer l'effectif ?](importer-l-effectif.md)
 - [Comment modifier mon profil ?](modifier-mon-profil.md)
+- [À qui m'adresser ?](a-qui-m-adresser.md)
 - [Comment créer un comité ou un rôle ?](creer-un-comite-ou-une-responsabilite.md)
 - [Comment nommer quelqu'un à une responsabilité ?](nommer-a-une-responsabilite.md)
 - [Comment publier sur un mur ?](publier-sur-un-mur.md)

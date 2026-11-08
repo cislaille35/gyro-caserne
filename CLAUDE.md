@@ -54,6 +54,23 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
 - Accessible dès le départ : RGAA (niveau AA des WCAG), utilisable au clavier, jamais une information portée par la seule couleur, « réduire les animations » respecté. Vérifié par des tests automatiques.
 - Ni humour ni animation sur les écrans d'urgence.
 
+## Interface
+
+Pour ne pas retomber dans les travers corrigés par la refonte. Détail : [`docs/technique/interface.md`](docs/technique/interface.md).
+
+- Une carte par groupe de lignes (`ListeRangees`), jamais une carte par ligne.
+- Cartes arrondies sans bord fin : l'ombre douce en clair, la surface en sombre.
+- Pas de bande de couleur à gauche pour dire qu'une ligne est nouvelle ou à traiter : un mot, un point, une pastille ou du gras.
+- La pilule est réservée aux états (pastilles, compteurs, interrupteurs) ; boutons et liens d'action en rectangles arrondis.
+- Un choix entre quelques options : un bloc segmenté (`.segments`), pas des boutons épars.
+- Une tuile d'icône seulement si elle distingue quelque chose (type, rôle, comité, ressource) ; sinon un visage, une date ou rien.
+- Gyro seulement sur l'accueil, la connexion, les écrans vides et les réussites.
+- Sous un titre, une phrase seulement si elle apprend quelque chose ; jamais une qui répète le titre.
+- Au plus deux infos reliées par « · » ; au-delà, des virgules ou une ligne de plus.
+- Humour varié : pas deux fois la même blague (le café…), et jamais dans l'urgence.
+- Couleurs par jetons (`app.css`), jamais en dur ; sur une couleur d'équipe, le texte noir ou blanc choisi par `encreSur`.
+- Les composants communs d'abord (`Rangee`, `Champ`, `ChoixRadio`, `ChampPhoto`, `Bouton`, cases à cocher de `app.css`) : pas de contrôle natif ou refait à la main dans un écran.
+
 ## Données et sécurité
 
 - Aucune donnée réelle dans le dépôt : jeux de test fictifs uniquement.
