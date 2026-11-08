@@ -40,6 +40,10 @@ export function estDroitPouvoir(d: Droit): boolean {
 	return (DROITS_POUVOIR as readonly Droit[]).includes(d);
 }
 
+// Droits de pouvoir qui ne valent que sur tout le centre : l'appli ne les lit jamais sur une équipe ou un comité.
+// Nommer (ATTRIBUER_RESPONSABILITE) n'en est pas : le rapporteur nomme dans son comité.
+export const DROITS_DU_CENTRE = ['GERER_ACCES', 'GERER_LISTES', 'GERER_COMITES'] as const satisfies readonly Droit[];
+
 export const TYPES_PERIMETRE = ['centre', 'equipe', 'comite', 'salon', 'ressource'] as const;
 export type TypePerimetre = (typeof TYPES_PERIMETRE)[number];
 

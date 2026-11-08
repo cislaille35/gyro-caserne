@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { NOMS_ICONES, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
-import { DROITS, estDroitPouvoir, NATURES_RESPONSABILITE, type Droit, type TypePerimetre } from '../listes.ts';
+import { DROITS, DROITS_DU_CENTRE, estDroitPouvoir, NATURES_RESPONSABILITE, type Droit, type TypePerimetre } from '../listes.ts';
 import { MODELES } from '../modeles.ts';
 import { attribution, comite, responsabilite, responsabiliteDroit } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
@@ -59,6 +59,12 @@ function exigerPortee(portee: unknown): Portee {
 function exigerIcone(icone: unknown): NomIcone {
 	if (!(NOMS_ICONES as readonly unknown[]).includes(icone)) throw new DonneeInvalide('Icône inconnue');
 	return icone as NomIcone;
+}
+
+// Un droit du centre sur une responsabilité d'équipe ou de comité serait sans effet : refusé.
+const duCentre = (d: Droit) => (DROITS_DU_CENTRE as readonly Droit[]).includes(d);
+function exigerPorteeDesDroits(portee: Portee, droits: Droit[]) {
+	if (portee !== 'centre' && droits.some(duCentre)) throw new DonneeInvalide('Droit réservé au centre');
 }
 
 export function exigerDroits(droits: unknown): Droit[] {
@@ -155,6 +161,7 @@ export async function creerResponsabilite(
 	const nom = texte(donnees.nom);
 	const nature = exigerNature(donnees.nature);
 	const portee = exigerPortee(donnees.portee);
+	exigerPorteeDesDroits(portee, droits);
 	const modele = donnees.modele === undefined ? null : MODELES.find((m) => m.id === donnees.modele);
 	if (modele === undefined) throw new DonneeInvalide('Modèle inconnu');
 	// Sans icône choisie, celle du modèle.
@@ -229,6 +236,8 @@ export async function modifierResponsabilite(
 	const avant = actuels.map((l) => l.droit);
 	const apres = champs.droits === undefined ? avant : exigerDroits(champs.droits);
 	const ajoutes = apres.filter((d) => !avant.includes(d));
+	// Seul ce qui change est vérifié : un rôle ancien qui a déjà un tel droit se modifie pour le reste.
+	exigerPorteeDesDroits(portee, portee !== ligne.typePerimetre ? apres : ajoutes);
 	if (champs.droits !== undefined) {
 		const retires = actuels.filter((l) => !apres.includes(l.droit));
 		if ([...ajoutes, ...retires.map((l) => l.droit)].some(estDroitPouvoir) && !(await geresLePouvoir(base, acteur, aujourdhui))) {
