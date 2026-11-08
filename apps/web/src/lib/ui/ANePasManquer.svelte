@@ -116,6 +116,7 @@
 <style>
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.boutons {
+		width: 100%;
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}

@@ -459,7 +459,8 @@
 
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 44rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

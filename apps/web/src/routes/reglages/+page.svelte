@@ -51,7 +51,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-20);
-		max-width: 44rem;
+		max-width: var(--largeur-liste);
 	}
 	.mesure {
 		display: inline-flex;

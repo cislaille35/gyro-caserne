@@ -83,7 +83,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-20);
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	.carte {
 		display: flex;

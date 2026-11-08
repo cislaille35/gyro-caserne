@@ -127,7 +127,8 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 52rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

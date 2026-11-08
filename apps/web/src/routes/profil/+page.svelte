@@ -79,7 +79,8 @@
 		gap: var(--espace-16);
 	}
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	/* Zones d'annonce vides : présentes pour les lecteurs d'écran, sans creuser d'espace. */
 	.page > [role]:empty {

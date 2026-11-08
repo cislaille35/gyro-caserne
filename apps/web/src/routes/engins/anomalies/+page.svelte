@@ -141,5 +141,8 @@
 			align-items: start;
 			gap: var(--espace-32);
 		}
+		.colonnes:has(> :only-child) {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>

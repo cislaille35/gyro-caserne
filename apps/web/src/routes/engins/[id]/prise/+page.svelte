@@ -873,7 +873,7 @@
 	/* À l'ordinateur : les zones à gauche, leur contenu à droite. */
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 64rem;
+			max-width: var(--largeur-page);
 		}
 		.parcours {
 			display: grid;

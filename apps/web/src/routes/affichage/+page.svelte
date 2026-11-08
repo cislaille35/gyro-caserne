@@ -48,7 +48,8 @@
 		gap: var(--espace-20);
 	}
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	[role='status'] p {
 		margin: 0;

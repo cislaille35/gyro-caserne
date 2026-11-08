@@ -195,6 +195,7 @@
 	}
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.boutons {
+		width: 100%;
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
@@ -205,7 +206,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-		max-width: 76rem;
+		max-width: var(--largeur-page);
 	}
 	.colonnes,
 	.calendrier {

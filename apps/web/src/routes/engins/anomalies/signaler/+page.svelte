@@ -74,7 +74,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-24);
-		max-width: 640px;
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	.panneau {
 		display: flex;

@@ -399,4 +399,46 @@ describe('direction B', () => {
 		expect(source('routes/engins/[id]/prise/+page.svelte')).toMatch(/<details class="geste"[^>]*name="ecart"/);
 		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="geste" open=\{pour\(`element:/);
 	});
+
+	// Ordinateur (lot 6).
+	it('trois largeurs de page, en jetons', () => {
+		const css = source('app.css');
+		for (const j of ['--largeur-lecture: 40rem;', '--largeur-liste: 56rem;', '--largeur-page: 76rem;']) expect(css).toContain(j);
+		const ecrites = ecrans.filter((f) => f !== 'routes/connexion/+page.svelte').flatMap((f) => [...style(f).matchAll(/\.(?:page|formulaire|messages) \{[^}]*max-width: (?!var\(--largeur-)[^;]*;/g)].map(() => f));
+		expect(ecrites).toEqual([]);
+	});
+
+	it('une page étroite est centrée : pas de vide d’un seul côté', () => {
+		for (const f of ['routes/moi/+page.svelte', 'routes/profil/+page.svelte', 'routes/notifications/+page.svelte', 'routes/engins/anomalies/signaler/+page.svelte']) expect(style(f), f).toMatch(/\.page \{[^}]*max-width: var\(--largeur-[a-z]+\);[^}]*margin-inline: auto;/);
+	});
+
+	it('pas de colonne fantôme : seul, le contenu prend la place', () => {
+		for (const f of ['routes/engins/+page.svelte', 'routes/engins/anomalies/+page.svelte']) expect(style(f), f).toMatch(/\.colonnes:has\(> :only-child\) \{\s*grid-template-columns: minmax\(0, 1fr\);/);
+	});
+
+	it('un bloc de choix ne s’étire pas sur tout l’écran à l’ordinateur', () => {
+		expect(source('app.css')).toMatch(/@media \(min-width: 1024px\) \{\s*\.segments \{\s*width: fit-content;/);
+	});
+
+	it('sur un mur à l’ordinateur, le fil a la place de se lire', () => {
+		expect(style('routes/echanges/+layout.svelte')).toMatch(/grid-template-columns: 13rem minmax\(0, 1fr\) 15rem;/);
+	});
+
+	it('à côté d’une fiche, une longue liste défile seule : la page ne s’allonge pas pour elle', () => {
+		expect(style('routes/reglages/+layout.svelte')).toMatch(/\.cote \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
+		expect(style('routes/agents/+layout.svelte')).toMatch(/\.a-cote \.liste \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
+	});
+
+	it('une page dans une colonne flexible garde sa largeur : pas de marge automatique', () => {
+		for (const f of ['routes/reglages/+page.svelte', 'routes/reglages/aptitudes/+page.svelte', 'routes/reglages/armement/+page.svelte']) expect(style(f), f).not.toMatch(/margin-inline: auto/);
+	});
+
+	it('un bloc de choix ne déborde pas d’une colonne étroite ; trois réponses restent à parts égales', () => {
+		expect(source('app.css')).toMatch(/min-width: min\(20rem, 100%\);/);
+		for (const [f, c] of [['lib/ui/Publication.svelte', 'reponses'], ['lib/ui/ANePasManquer.svelte', 'boutons'], ['routes/planning/+page.svelte', 'boutons']]) expect(style(f), f).toMatch(new RegExp(`\\.${c} \\{[^}]*width: 100%;`));
+	});
+
+	it('la ligne affichée se montre dans une liste qui défile seule', () => {
+		for (const f of ['routes/reglages/+layout.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toContain('montrerCourante(');
+	});
 });

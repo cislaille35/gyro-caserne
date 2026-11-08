@@ -112,7 +112,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-		max-width: 44rem;
+		max-width: var(--largeur-liste);
 	}
 	p {
 		margin: 0;

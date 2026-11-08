@@ -30,7 +30,7 @@
 <style>
 	/* À l'ordinateur, le formulaire garde une largeur de lecture. */
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
 		margin: 0 auto;
 	}
 	.entete {

@@ -284,7 +284,7 @@
 		font-size: var(--texte-15);
 	}
 	.page {
-		max-width: 60rem;
+		max-width: var(--largeur-page);
 	}
 	/* Les zones d'annonce vides ne creusent pas d'écart. */
 	.resultat:empty {
