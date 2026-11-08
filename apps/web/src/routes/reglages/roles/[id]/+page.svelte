@@ -54,7 +54,6 @@
 	const adminPermis = $derived(portePasCentre ? admin.filter((d) => !estDroitDuCentre(d)) : admin);
 	// Le détail s'enregistre seul, avec la portée déjà enregistrée : il suit celle-ci, pas celle de l'écran.
 	const detailPasCentre = $derived(role.portee !== 'centre');
-	const decritAdmin = $derived([!peutAdmin && 'admin-aide', portePasCentre && 'admin-centre'].filter(Boolean).join(' ') || undefined);
 
 	const departNiveaux = $derived(niveauxDe(actuels));
 	const departAdmin = $derived(adminDe(actuels));
@@ -117,7 +116,7 @@
 	<Domaines droits={actuels} modele={data.modele?.droits ?? null} bind:choix {lectureSeule} formRevenir="revenir" />
 
 	<Groupe titre="Administration de l’appli" resume={adminPermis.length === 0 ? 'Aucun pouvoir' : adminPermis.map((d) => ADMINISTRATION.find((a) => a.droit === d)?.libelle).join(', ')}>
-		<fieldset class="admin" aria-describedby={decritAdmin}>
+		<fieldset class="admin" aria-describedby={peutAdmin ? undefined : 'admin-aide'}>
 			<legend class="cache">Administration de l’appli</legend>
 			<!-- Grisées pour l'une de deux raisons : le rôle est figé, ou la personne ne gère pas le pouvoir. -->
 			{#if !peutAdmin}
@@ -127,13 +126,15 @@
 			{/if}
 			{#if portePasCentre}<p id="admin-centre" class="aide">{RESERVE_AU_CENTRE}</p>{/if}
 			{#each ADMINISTRATION as a (a.droit)}
+				{@const reserve = portePasCentre && estDroitDuCentre(a.droit)}
 				<label class="case"
 					><input
 						type="checkbox"
 						name="admin"
 						value={a.droit}
 						checked={adminPermis.includes(a.droit)}
-						disabled={!peutAdmin || (portePasCentre && estDroitDuCentre(a.droit))}
+						disabled={!peutAdmin || reserve}
+						aria-describedby={reserve ? 'admin-centre' : undefined}
 						onchange={(e) => (admin = e.currentTarget.checked ? [...admin, a.droit] : admin.filter((d) => d !== a.droit))}
 					/>
 					{a.libelle}</label
@@ -179,14 +180,14 @@
 	{:else}
 		<form method="POST" action="?/detail" class="formulaire-detail">
 			{#each [{ titre: 'Droits métier', liste: data.droitsMetier, pouvoir: false }, { titre: 'Droits d’administration', liste: data.droitsPouvoir, pouvoir: true }] as bloc (bloc.titre)}
-				<fieldset aria-describedby={bloc.pouvoir && detailPasCentre ? 'detail-centre' : undefined}>
+				<fieldset>
 					<legend>{bloc.titre}</legend>
 					{#if bloc.pouvoir && detailPasCentre}<p id="detail-centre" class="aide">{RESERVE_AU_CENTRE}</p>{/if}
 					{#each bloc.liste as d (d)}
 						{@const verrouille = role.droits.some((x) => x.droit === d && x.verrouille)}
 						{@const reserve = detailPasCentre && estDroitDuCentre(d)}
 						<label class="case"
-							><input type="checkbox" name="droits" value={d} checked={actuels.includes(d) && !reserve} disabled={verrouille || reserve || (bloc.pouvoir && !data.peutPouvoir)} />
+							><input type="checkbox" name="droits" value={d} checked={actuels.includes(d) && !reserve} disabled={verrouille || reserve || (bloc.pouvoir && !data.peutPouvoir)} aria-describedby={reserve ? 'detail-centre' : undefined} />
 							{LIBELLES_DROIT[d]}</label
 						>
 					{/each}

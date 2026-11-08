@@ -93,8 +93,14 @@ describe('page d’un rôle', () => {
 				expect(grisee(page, nom, 'ATTRIBUER_RESPONSABILITE')).toBe(false);
 			}
 			expect(page.match(new RegExp(PHRASE, 'g'))).toHaveLength(2);
-			expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-centre"/);
 			expect(page).toMatch(/<p id="admin-centre"[^>]*>Réservé à un rôle du centre/);
+			expect(page).toMatch(/<p id="detail-centre"[^>]*>Réservé à un rôle du centre/);
+			// La phrase est reliée à chaque case qu'elle concerne, et à elles seules.
+			for (const d of RESERVES) {
+				expect(page).toMatch(new RegExp(`name="admin" value="${d}"[^>]*aria-describedby="admin-centre"`));
+				expect(page).toMatch(new RegExp(`name="droits" value="${d}"[^>]*aria-describedby="detail-centre"`));
+			}
+			expect(page).not.toMatch(/value="ATTRIBUER_RESPONSABILITE"[^>]*aria-describedby/);
 		});
 
 		it('portée « centre » : rien de grisé, pas de phrase', () => {
@@ -103,11 +109,20 @@ describe('page d’un rôle', () => {
 			expect(page).not.toContain(PHRASE);
 		});
 
-		it('sans le pouvoir, sur une équipe : les deux raisons sont dites et reliées aux cases', () => {
+		it('sans le pouvoir, sur une équipe : les deux raisons sont dites et reliées', () => {
 			const page = html({ role: role({ portee: 'equipe', titulaires: 0 }) });
 			expect(page).toContain('Seuls le chef de centre, son adjoint et le super administrateur');
 			expect(page).toContain(PHRASE);
-			expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-aide admin-centre"/);
+			expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-aide"/);
+			expect(page).toMatch(/name="admin" value="GERER_ACCES"[^>]*aria-describedby="admin-centre"/);
+		});
+
+		it('un rôle d’équipe tenu : portée fixe, sans liste, cases grisées quand même', () => {
+			const page = html({ peutPouvoir: true, role: role({ portee: 'equipe', titulaires: 2 }) });
+			expect(page).not.toContain('id="role-portee"');
+			expect(page).toContain('Elle ne change pas tant que le rôle est tenu.');
+			expect(grisee(page, 'admin', 'GERER_ACCES')).toBe(true);
+			expect(page).toContain(PHRASE);
 		});
 
 		it('un rôle ancien d’équipe qui porte ces droits : cases décochées, ce que l’envoi retirera, et le compte le dit', () => {

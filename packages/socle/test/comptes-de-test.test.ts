@@ -190,7 +190,7 @@ describe('chargerComptesDeTest', () => {
 		expect(await base.select().from(demandeHabillement)).toHaveLength(demandes.length);
 	});
 
-	it('des demandes déjà suivies par le chef : à la relance, le référent arrive, sans doublon, et le chef les garde', async () => {
+	it('des demandes déjà suivies par le chef : à la relance, pas de doublon, et le chef les garde', async () => {
 		const base = await jeu();
 		const idDe = async (role: string) => (await base.select({ id: personne.id }).from(personne).where(eq(personne.email, `caserne+${role}@exemple.fr`)))[0]!.id;
 		const chef = await idDe('chef');
