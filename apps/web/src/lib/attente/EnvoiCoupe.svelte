@@ -40,8 +40,8 @@
 		max-width: 32rem;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-alerte-fond);
@@ -54,7 +54,7 @@
 	button {
 		flex: none;
 		min-height: var(--cible);
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border: 0;
 		background: none;
 		color: inherit;

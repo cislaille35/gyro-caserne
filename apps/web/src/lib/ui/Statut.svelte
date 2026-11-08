@@ -23,10 +23,10 @@
 <style>
 	.statut {
 		display: inline-block;
-		padding: 2px 10px;
+		padding: 2px var(--espace-12);
 		border: 1px solid;
 		border-radius: 999px;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 </style>

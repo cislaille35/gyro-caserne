@@ -8,12 +8,12 @@
 	.equipe {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		font-weight: 600;
 	}
 	.pastille {
 		width: 12px;
 		height: 12px;
-		border-radius: 6px;
+		border-radius: var(--rayon-petit);
 	}
 </style>

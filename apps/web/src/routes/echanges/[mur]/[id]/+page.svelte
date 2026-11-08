@@ -124,7 +124,7 @@
 
 <style>
 	.retour {
-		margin: 0 0 8px;
+		margin: 0 0 var(--espace-8);
 	}
 	.retour a {
 		display: inline-flex;
@@ -134,18 +134,18 @@
 		font-weight: 600;
 	}
 	h1 {
-		margin: 0 0 16px;
-		font: 700 1.75rem var(--police-titre);
+		margin: 0 0 var(--espace-16);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	h2 {
 		margin: 0;
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.bloc {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		margin-top: 20px;
+		gap: var(--espace-12);
+		margin-top: var(--espace-20);
 	}
 	p,
 	dl,
@@ -157,16 +157,16 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.commentaires li {
-		padding: 10px 12px;
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.auteur {
 		font-weight: 700;
@@ -181,18 +181,18 @@
 	.petit {
 		align-self: flex-start;
 		min-height: var(--cible);
-		padding: 0 14px;
-		border: 2px solid var(--trait);
+		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		background: transparent;
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -201,12 +201,10 @@
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	summary {
 		min-height: var(--cible);
@@ -217,7 +215,7 @@
 	}
 	.categories {
 		display: grid;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	dt {
 		font-weight: 700;

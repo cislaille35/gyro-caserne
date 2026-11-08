@@ -31,33 +31,33 @@
 		justify-content: center;
 		border-radius: 50%;
 		font-weight: 700;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		line-height: 1;
 	}
 	.grand {
 		width: 52px;
 		height: 52px;
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 	}
 	.t48 {
 		width: 48px;
 		height: 48px;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 	}
 	.t44 {
 		width: 44px;
 		height: 44px;
-		font-size: 1rem;
+		font-size: var(--texte-16);
 	}
 	.t88 {
 		width: 88px;
 		height: 88px;
-		font-size: 1.75rem;
+		font-size: var(--texte-24);
 	}
 	.petit {
 		width: 30px;
 		height: 30px;
-		font-size: 0.6875rem;
+		font-size: var(--texte-12);
 		border: 2px solid var(--surface);
 	}
 </style>

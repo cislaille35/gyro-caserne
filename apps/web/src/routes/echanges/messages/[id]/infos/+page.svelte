@@ -131,7 +131,7 @@
 
 	{#if groupe}
 		<section class="tete" bind:this={tete}>
-			<span class="icone" aria-hidden="true" style:background="var(--icone-{icone}-fond)" style:color="var(--icone-{icone}-texte)"
+			<span class="icone" aria-hidden="true"
 				><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[icone]} /></svg></span
 			>
 			<h1>{infos.nom}</h1>
@@ -266,12 +266,12 @@
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.barre-haut {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		margin-left: -8px;
 	}
 	.retour {
@@ -298,11 +298,11 @@
 		border-radius: var(--rayon-grand);
 	}
 	.tete {
-		padding: 20px 16px;
+		padding: var(--espace-20) var(--espace-16);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		text-align: center;
 	}
 	.icone {
@@ -315,17 +315,17 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 1.75rem/1.15 var(--police-titre);
+		font: 700 var(--texte-24)/1.15 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	.resume {
 		margin: 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.pilule {
 		min-height: var(--cible);
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--statut-neutre-trait);
 		border-radius: var(--rayon-bouton);
 		display: inline-flex;
@@ -338,31 +338,31 @@
 		background: var(--fond);
 	}
 	.prive {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.renommer {
 		width: 100%;
 		max-width: 24rem;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 		text-align: left;
 	}
 
 	.carte {
-		padding: 4px 0;
+		padding: var(--espace-4) 0;
 		overflow: visible;
 	}
 	.carte h2 {
 		margin: 0;
-		padding: 12px 16px 6px;
+		padding: var(--espace-12) var(--espace-16) var(--espace-6);
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
@@ -375,10 +375,10 @@
 	.ligne {
 		position: relative;
 		min-height: 60px;
-		padding: 6px 8px 6px 16px;
+		padding: var(--espace-6) var(--espace-8) var(--espace-6) var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.ajouter,
 	.lien {
@@ -399,7 +399,7 @@
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 1.625rem;
+		font-size: var(--texte-24);
 		line-height: 1;
 	}
 	.textes {
@@ -414,15 +414,15 @@
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.animateur {
 		flex: none;
-		padding: 3px 8px;
+		padding: 3px var(--espace-8);
 		border-radius: 999px;
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 	.actions {
@@ -459,10 +459,10 @@
 
 	.quitter {
 		min-height: 56px;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--statut-danger-texte);
 		font-weight: 600;
 		text-decoration: none;
@@ -471,17 +471,17 @@
 		background: var(--fond);
 	}
 	.confirmer-ici {
-		padding: 8px 16px 12px;
+		padding: var(--espace-8) var(--espace-16) var(--espace-12);
 	}
 	.confirmer-ici h2 {
-		padding: 4px 0 8px;
+		padding: var(--espace-4) 0 var(--espace-8);
 		color: var(--encre);
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 		letter-spacing: 0;
 		text-transform: none;
 	}
 	.confirmer-ici p {
-		margin: 0 0 16px;
+		margin: 0 0 var(--espace-16);
 		color: var(--doux);
 	}
 
@@ -491,7 +491,7 @@
 	dl .ligne {
 		justify-content: space-between;
 		min-height: 52px;
-		padding-right: 16px;
+		padding-right: var(--espace-16);
 		border-top: 1px solid var(--trait-doux);
 	}
 	dl .ligne:first-child {
@@ -510,7 +510,7 @@
 	}
 	.lien {
 		justify-content: space-between;
-		padding-right: 16px;
+		padding-right: var(--espace-16);
 		border-top: 1px solid var(--trait-doux);
 		font-weight: 600;
 	}
@@ -521,12 +521,12 @@
 	.choix {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.choix a,
 	.choix button {
 		min-height: var(--cible);
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
@@ -542,16 +542,16 @@
 	}
 	.principal,
 	.danger {
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
 
 	.confirmation {
 		max-width: min(24rem, calc(100vw - 32px));
-		padding: 20px;
+		padding: var(--espace-20);
 		border: 0;
-		border-radius: 20px;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 	}
@@ -559,17 +559,17 @@
 		background: color-mix(in srgb, #000 45%, transparent);
 	}
 	.confirmation h2 {
-		margin: 0 0 8px;
-		font: 700 1.25rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.confirmation p {
-		margin: 0 0 16px;
+		margin: 0 0 var(--espace-16);
 		color: var(--doux);
 	}
 
 	.erreur {
 		margin: 0;
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-danger-trait);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-danger-fond);

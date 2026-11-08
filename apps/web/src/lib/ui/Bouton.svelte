@@ -15,25 +15,25 @@
 <style>
 	button {
 		min-height: var(--cible);
-		padding: 0 20px;
+		padding: 0 var(--espace-20);
 		border-radius: var(--rayon-bouton);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	/* Bordure visible : le rouge seul ne se détache pas du fond sombre. */
+	/* Un à-plat, sans contour : le bord transparent reste pour le mode contrasté. */
 	.principal {
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 	}
 	button:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
 	}
 	.secondaire {
-		background: transparent;
+		background: var(--surface);
 		color: var(--encre);
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		font-weight: 600;
 	}
 </style>

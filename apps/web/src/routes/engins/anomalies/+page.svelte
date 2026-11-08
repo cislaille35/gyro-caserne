@@ -91,7 +91,7 @@
 	.principal {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
@@ -106,18 +106,18 @@
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: flex-end;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.filtres {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.filtres a {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		color: var(--encre);
@@ -137,7 +137,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

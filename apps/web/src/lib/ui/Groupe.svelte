@@ -58,8 +58,8 @@
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: none;
 		background: none;
 		color: var(--encre);
@@ -76,10 +76,10 @@
 		flex-direction: column;
 	}
 	.titre {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.resume {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		color: var(--doux);
 	}
 	.resume.alerte {

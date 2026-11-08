@@ -54,8 +54,8 @@
 			overflow-y: auto;
 			display: flex;
 			flex-direction: column;
-			gap: 12px;
-			padding: 16px 12px 16px 16px;
+			gap: var(--espace-12);
+			padding: var(--espace-16) var(--espace-12) var(--espace-16) var(--espace-16);
 			border-right: 1px solid var(--trait-doux);
 			background: color-mix(in srgb, var(--surface) 50%, var(--fond));
 		}
@@ -69,18 +69,18 @@
 		.entete {
 			display: flex;
 			align-items: center;
-			gap: 8px;
+			gap: var(--espace-8);
 		}
 		.titre {
 			flex: 1;
 			margin: 0;
-			font: 700 1.625rem/1.1 var(--police-titre);
+			font: 700 var(--texte-24)/1.1 var(--police-titre);
 		}
 		.crayon {
 			flex: none;
 			width: var(--cible);
 			height: var(--cible);
-			border-radius: 14px;
+			border-radius: var(--rayon-grand);
 			display: flex;
 			align-items: center;
 			justify-content: center;

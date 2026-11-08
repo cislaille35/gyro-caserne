@@ -114,11 +114,11 @@
 		flex-direction: column;
 	}
 	.proposition {
-		gap: 20px;
-		margin-top: 8px;
+		gap: var(--espace-20);
+		margin-top: var(--espace-8);
 	}
 	section {
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	h3,
 	p,
@@ -126,7 +126,7 @@
 		margin: 0;
 	}
 	h3 {
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	ul {
 		padding: 0;
@@ -142,21 +142,21 @@
 	.equipes {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.equipes li {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 6px 12px;
-		padding: 8px 12px;
+		gap: var(--espace-6) var(--espace-12);
+		padding: var(--espace-8) var(--espace-12);
 		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-petit);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}
 	.encadre {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-alerte-fond);
@@ -165,17 +165,17 @@
 	}
 	.repli {
 		border: 1px solid var(--trait-doux);
-		border-radius: 14px;
-		padding: 0 12px;
+		border-radius: var(--rayon-grand);
+		padding: 0 var(--espace-12);
 	}
 	.repli[open] {
-		padding-bottom: 12px;
+		padding-bottom: var(--espace-12);
 	}
 	.repli summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
@@ -197,23 +197,23 @@
 	.lignes {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.lignes li {
 		display: flex;
 		flex-direction: column;
 	}
 	.resume {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--trait);
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 16px;
-		margin-top: 4px;
+		gap: var(--espace-8) var(--espace-16);
+		margin-top: var(--espace-4);
 	}
 	.non {
 		min-height: var(--cible);

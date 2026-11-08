@@ -70,7 +70,7 @@ describe('liste des messages', () => {
 		// À deux, l'autre n'est pas nommé une seconde fois devant son message.
 		expect(t).toContain('Élodie Chef-de-Garde 9 h 40 Tu peux prendre ma place ?');
 		// Le groupe a son icône sur sa teinte ; la personne, ses initiales.
-		expect(page).toContain('var(--icone-coeur-fond)');
+		expect(page).not.toContain('--icone-');
 		expect(t).toContain('ÉC');
 	});
 

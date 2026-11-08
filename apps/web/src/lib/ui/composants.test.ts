@@ -125,8 +125,8 @@ describe('PastilleMur', () => {
 	it('un comité : son icône sur sa teinte, décorative', () => {
 		const page = html(PastilleMur, { ...vide, icone: 'coeur' });
 		expect(page).toContain('aria-hidden="true"');
-		expect(page).toContain('var(--icone-coeur-fond)');
-		expect(page).toContain('var(--icone-coeur-texte)');
+		expect(page).not.toContain('--icone-');
+		expect(page).not.toContain('--icone-');
 		expect(page).toContain(`d="${ICONES_ROLES.coeur}"`);
 		expect(page).toContain('width: 48px');
 	});
@@ -307,11 +307,11 @@ describe('BarreActions', () => {
 });
 
 describe('IconeRole', () => {
-	it.each(Object.keys(ICONES_ROLES))('%s : tuile décorative avec son tracé et sa couleur', (icone) => {
+	it.each(Object.keys(ICONES_ROLES))('%s : icône décorative, avec son tracé, sans teinte', (icone) => {
 		const page = html(IconeRole, { icone });
 		expect(page).toMatch(/<span[^>]*aria-hidden="true"/);
 		expect(page).toContain(`d="${ICONES_ROLES[icone as keyof typeof ICONES_ROLES]}"`);
-		expect(page).toContain(`--icone-${icone}-fond`);
+		expect(page).not.toContain('--icone-');
 	});
 	it('a les onze icônes des rôles', () => {
 		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil', 'veste']);
@@ -450,7 +450,7 @@ describe('Rangee', () => {
 		expect(page).toMatch(/<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise à faire · 1 anomalie ouverte<\/span>/);
 	});
 	it('une tuile seulement sur demande : elle porte un sens (type, rôle)', () => {
-		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain('var(--icone-casque-fond)');
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).not.toContain('--icone-');
 		expect(net(Rangee, { href: '/agents', titre: 'Agents' })).not.toContain('tuile');
 	});
 	it('sans lien : ni chevron ni lien', () => {
@@ -473,7 +473,7 @@ describe('Rangee', () => {
 	});
 	it('alerte avec une tuile : le signe d’alerte reste, à droite', () => {
 		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
-		expect(page).toContain('var(--icone-camion-fond)');
+		expect(page).not.toContain('--icone-');
 		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
 	});
 	it('alerte avec une tête : le signe d’alerte passe à droite', () => {

@@ -67,7 +67,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -75,9 +75,9 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 		max-width: 36rem;
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -92,17 +92,17 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	legend {
 		padding: 0;
-		margin-bottom: 10px;
-		font: 700 1.125rem var(--police-titre);
+		margin-bottom: var(--espace-12);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.periode {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	@media (min-width: 560px) {
 		.periode {
@@ -113,7 +113,7 @@
 		display: none;
 	}
 	.dispo {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 1px solid var(--statut-neutre-trait);
 		font-weight: 600;
@@ -136,22 +136,20 @@
 	.champ-mot {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	label {
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 		resize: vertical;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

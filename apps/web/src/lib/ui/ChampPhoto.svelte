@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { DESSINS } from './icones-roles.ts';
 
-	// Choisir une ou des photos : le champ natif reste (clavier, lecteur d'écran), invisible par-dessus un bouton écrit.
+	// Choisir une ou des photos, ou un fichier à importer : le champ natif reste (clavier, lecteur d'écran), invisible par-dessus un bouton écrit.
 	// Sans JavaScript, le champ natif s'affiche : il dit lui-même ce qui est choisi.
 	let {
 		id,
@@ -15,8 +15,11 @@
 		capture,
 		multiple = false,
 		erreur,
+		desactive = false,
+		onchange,
+		icone = 'photo',
 		champ = $bindable()
-	}: { id: string; name: string; libelle: string; precision?: string; aide?: string; appel?: string; accept?: string; capture?: 'environment'; multiple?: boolean; erreur?: string; champ?: HTMLInputElement } = $props();
+	}: { desactive?: boolean; onchange?: () => void; icone?: 'photo' | 'fichier'; id: string; name?: string; libelle: string; precision?: string; aide?: string; appel?: string; accept?: string; capture?: 'environment'; multiple?: boolean; erreur?: string; champ?: HTMLInputElement } = $props();
 
 	let js = $state(false);
 	let choisi = $state('');
@@ -39,8 +42,8 @@
 	{#if aide}<p id="{id}-aide" class="aide">{aide}</p>{/if}
 	<div class="ligne">
 		<span class="zone">
-			{#if js}<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.photo} /></svg><span class="texte">{choisi || appel}</span>{/if}
-			<input bind:this={champ} {id} {name} type="file" {accept} {capture} {multiple} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit} onchange={lire} />
+			{#if js}<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={icone === 'fichier' ? DESSINS.fichier : DESSINS.photo} /></svg><span class="texte">{choisi || appel}</span>{/if}
+			<input bind:this={champ} {id} {name} type="file" {accept} {capture} {multiple} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit} disabled={desactive} onchange={() => { lire(); onchange?.(); }} />
 		</span>
 		{#if choisi}<button type="button" class="retirer" onclick={retirer}>Retirer<span class="masque">{` : ${choisi}`}</span></button>{/if}
 	</div>
@@ -54,7 +57,7 @@
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.titre {
 		font-weight: 700;
@@ -65,18 +68,18 @@
 	}
 	.aide {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.erreur {
 		color: var(--accent);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.ligne {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 8px;
+		gap: var(--espace-4) var(--espace-8);
 	}
 	.zone {
 		min-width: 0;
@@ -92,8 +95,8 @@
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 16px 0 12px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-16) 0 var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -130,11 +133,11 @@
 	}
 	.retirer {
 		min-height: var(--cible);
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border: 0;
 		background: none;
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		text-decoration: underline;
 		cursor: pointer;
 	}

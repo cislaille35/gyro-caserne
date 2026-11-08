@@ -92,14 +92,14 @@
 		margin: 0;
 		padding: 0;
 		display: grid;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.carte {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: 72px;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -121,19 +121,19 @@
 		font-weight: 700;
 	}
 	.donne {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		color: var(--doux);
 	}
 	.chevron {
-		font-size: 1.25rem;
+		font-size: var(--texte-20);
 		color: var(--doux);
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 36rem;
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -143,7 +143,7 @@
 		align-self: flex-start;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

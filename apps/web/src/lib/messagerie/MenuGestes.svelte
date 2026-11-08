@@ -77,7 +77,7 @@
 		/* Jamais caché sous l'en-tête ou la saisie. */
 		scroll-margin: 80px 0 140px;
 		min-width: 14rem;
-		padding: 6px;
+		padding: var(--espace-6);
 		display: flex;
 		flex-direction: column;
 		border: 1px solid var(--trait);
@@ -89,8 +89,8 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 2px;
-		padding-bottom: 6px;
-		margin-bottom: 4px;
+		padding-bottom: var(--espace-6);
+		margin-bottom: var(--espace-4);
 		border-bottom: 1px solid var(--trait-doux);
 	}
 	.reaction {
@@ -99,7 +99,7 @@
 		border: 0;
 		border-radius: 50%;
 		background: none;
-		font-size: 1.375rem;
+		font-size: var(--texte-20);
 		cursor: pointer;
 	}
 	.reaction[aria-checked='true'] {
@@ -108,7 +108,7 @@
 	}
 	.geste {
 		min-height: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		border: 0;
 		border-radius: var(--rayon-petit);
 		background: none;

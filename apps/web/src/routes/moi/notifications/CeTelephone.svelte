@@ -52,7 +52,7 @@
 	.telephone {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	p,
 	ol {
@@ -62,7 +62,7 @@
 		padding-left: 1.4rem;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.doux {
 		color: var(--doux);

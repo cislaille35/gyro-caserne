@@ -83,42 +83,42 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 		min-width: 0;
 	}
 	legend {
 		float: left;
 		padding: 0;
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	p {
 		margin: 0;
 		clear: both;
 	}
 	.ou {
-		margin-top: 8px;
+		margin-top: var(--espace-8);
 		font-weight: 700;
 	}
 	.aide,
 	.sous,
 	.vide {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 		display: grid;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.rangee {
 		clear: both;
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 8px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-8) var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -126,7 +126,7 @@
 	}
 	.rangee:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: 7px 13px;
+		padding: var(--espace-8) var(--espace-12);
 	}
 	.rangee:has(input:focus-visible) {
 		outline: 3px solid var(--focus);
@@ -148,28 +148,28 @@
 		font-weight: 700;
 	}
 	.manque {
-		margin-top: 4px;
-		padding: 4px 10px;
-		border-radius: 10px;
+		margin-top: var(--espace-4);
+		padding: var(--espace-4) var(--espace-12);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 		border: 1px solid var(--statut-alerte-trait);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.recherche {
 		display: flex;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.recherche input {
 		flex: 1;
 		min-width: 0;
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 2px solid var(--doux);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	.loupe {
 		flex: none;

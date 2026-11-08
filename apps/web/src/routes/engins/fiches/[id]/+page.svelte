@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import { tick } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { Fiche } from '@gyro-caserne/socle';
@@ -87,12 +88,7 @@
 											<input type="hidden" name="cible" value="element:{e.ref}" />
 											<Champ id="libelle-{e.ref}" name="libelle" libelle="Élément" requis maxlength={120} valeur={e.libelle} />
 											<Champ id="quantite-{e.ref}" name="quantite" type="number" libelle="Quantité attendue" aide="Vide : seulement présent ou manquant." valeur={e.quantite === null ? '' : String(e.quantite)} />
-											<div class="champ">
-												<label for="zone-{e.ref}">Zone</label>
-												<select id="zone-{e.ref}" name="zone">
-													{#each f.zones as autre (autre.ref)}<option value={String(autre.ref)} selected={autre.ref === z.ref}>{autre.nom}</option>{/each}
-												</select>
-											</div>
+											<Choix id="zone-{e.ref}" name="zone" libelle="Zone" valeur={String(z.ref)} options={f.zones.map((autre) => ({ valeur: String(autre.ref), libelle: autre.nom }))} />
 											<div><Bouton type="submit">Enregistrer<span class="masque">{' '}{e.libelle}</span></Bouton></div>
 										</form>
 									</details>
@@ -166,13 +162,13 @@
 	.zone {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.zones {
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.zone {
-		padding: 4px 14px 14px;
+		padding: var(--espace-4) var(--espace-16) var(--espace-16);
 	}
 	.zone:focus-visible,
 	.confirmer:focus-visible {
@@ -185,7 +181,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux,
 	.version {
@@ -201,8 +197,8 @@
 	li {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 10px 0;
+		gap: var(--espace-6);
+		padding: var(--espace-12) 0;
 	}
 	li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -211,7 +207,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 10px;
+		gap: var(--espace-8) var(--espace-12);
 	}
 	.libelle {
 		flex: 1 1 60%;
@@ -221,7 +217,7 @@
 	.quantite {
 		flex: none;
 		min-width: 2.5em;
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
 		text-align: center;
@@ -231,20 +227,20 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.rond,
 	.petit {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		min-height: var(--cible);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		text-decoration: none;
 		cursor: pointer;
 	}
@@ -253,7 +249,7 @@
 		padding: 0;
 	}
 	.petit {
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 	}
 	.rond:disabled,
 	.petit:disabled {
@@ -267,7 +263,7 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		font-weight: 600;
@@ -290,51 +286,34 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 12px 0 4px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) 0 var(--espace-4);
 	}
 	.ajout {
-		padding: 14px;
+		padding: var(--espace-16);
 		border: 1px dashed var(--trait);
 		border-radius: var(--rayon-petit);
-	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 600;
-	}
-	select {
-		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
-		background: var(--surface);
-		color: var(--encre);
-		font: inherit;
 	}
 	.outils {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding-top: 12px;
+		gap: var(--espace-12);
+		padding-top: var(--espace-12);
 		border-top: 1px solid var(--trait-doux);
 	}
 	.confirmer {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--accent);
 		border-radius: var(--rayon-petit);
 	}
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -342,7 +321,7 @@
 	}
 	.succes,
 	.note {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		font-weight: 600;
 	}
@@ -355,7 +334,7 @@
 		border: 1px solid var(--trait);
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

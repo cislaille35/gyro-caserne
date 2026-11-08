@@ -28,11 +28,11 @@
 	.compte {
 		min-width: 22px;
 		height: 22px;
-		padding: 0 6px;
-		border-radius: 11px;
+		padding: 0 var(--espace-6);
+		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 		display: inline-flex;
 		align-items: center;

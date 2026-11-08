@@ -154,7 +154,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 28px;
+		gap: var(--espace-32);
 	}
 	.detail {
 		order: -1;
@@ -165,17 +165,17 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.liste {
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.colonnes,
 	.pile {
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.masquee,
 	.masque-detail {
@@ -183,33 +183,33 @@
 	}
 	@media (max-width: 639px) {
 		.etat :global(span) {
-			padding: 1px 8px;
-			font-size: 0.8125rem;
+			padding: 1px var(--espace-8);
+			font-size: var(--texte-14);
 		}
 	}
 	.filtres {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
 	.puces {
 		display: flex;
-		gap: 8px;
+		gap: var(--espace-8);
 		margin: -4px -16px;
-		padding: 4px 16px;
+		padding: var(--espace-4) var(--espace-16);
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
 	.puce {
 		flex: none;
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		white-space: nowrap;
 		cursor: pointer;
 	}
@@ -232,9 +232,9 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: 64px;
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.agent + .agent {
 		border-top: 1px solid var(--trait-doux);
@@ -248,13 +248,13 @@
 	}
 	.nom {
 		font-weight: 600;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		line-height: 1.3;
 		color: var(--encre);
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		overflow-wrap: anywhere;
 	}
 	/* Toute la ligne ouvre la fiche. */
@@ -290,7 +290,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		gap: 4px;
+		gap: var(--espace-4);
 		white-space: nowrap;
 	}
 	.chevron {
@@ -303,8 +303,8 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: 36px;
-		margin-right: 12px;
-		padding: 0 14px;
+		margin-right: var(--espace-12);
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		color: var(--encre);
@@ -347,7 +347,7 @@
 		}
 		.page:not(.a-cote) .agent {
 			flex-wrap: wrap;
-			gap: 2px 12px;
+			gap: 2px var(--espace-12);
 		}
 		.page:not(.a-cote) .identite {
 			flex-basis: calc(100% - 52px);
@@ -368,7 +368,7 @@
 			flex-direction: row;
 			flex-wrap: wrap;
 			align-items: center;
-			gap: 10px 16px;
+			gap: var(--espace-12) var(--espace-16);
 		}
 		.page:not(.a-cote) .filtres > :global(.recherche) {
 			flex: 0 1 26rem;
@@ -376,7 +376,7 @@
 		.page:not(.a-cote) .puces {
 			flex: 1 1 auto;
 			margin: -4px 0;
-			padding: 4px;
+			padding: var(--espace-4);
 		}
 		/* La liste est à côté : pas de retour. */
 		.retour {

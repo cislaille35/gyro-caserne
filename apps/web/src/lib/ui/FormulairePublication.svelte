@@ -239,14 +239,14 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 	}
 	fieldset {
 		margin: 0;
 		min-width: 0;
 	}
 	legend {
-		padding: 0 0 8px;
+		padding: 0 0 var(--espace-8);
 		font-weight: 700;
 	}
 	label,
@@ -261,12 +261,12 @@
 	.visible {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 10px 12px;
-		border-radius: 12px;
+		gap: var(--espace-8);
+		padding: var(--espace-12) var(--espace-12);
+		border-radius: var(--rayon-bouton);
 		background: var(--visible-fond);
 		color: var(--visible-encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.visible svg {
 		flex: none;
@@ -276,7 +276,7 @@
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.champ > label {
 		font-weight: 700;
@@ -286,16 +286,15 @@
 		min-height: var(--cible);
 		box-sizing: border-box;
 		width: 100%;
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	textarea {
-		padding: 12px;
-		border-radius: 14px;
+		padding: var(--espace-12);
 		resize: vertical;
 	}
 	[aria-invalid='true'] {
@@ -304,13 +303,13 @@
 	.groupe {
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
-		padding: 0 14px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.groupe > legend {
-		padding: 0 6px;
+		padding: 0 var(--espace-6);
 	}
 	.groupe[hidden] {
 		display: none;
@@ -329,10 +328,10 @@
 	}
 	summary {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		cursor: pointer;
 		list-style: none;
 	}
@@ -347,15 +346,15 @@
 		content: '−';
 	}
 	.contenu-sondage {
-		padding: 0 14px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.reponses {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.titre-reponses {
 		font-weight: 600;
@@ -370,24 +369,24 @@
 		border: 0;
 		background: none;
 		color: var(--statut-info-texte);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	/* Côte à côte s'il y a la place, l'une sous l'autre au téléphone. */
 	.dates {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.dates .saisie {
-		padding: 0 8px;
-		font-size: 0.9375rem;
+		padding: 0 var(--espace-8);
+		font-size: var(--texte-15);
 	}
 
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 		font-weight: 400;
 	}
@@ -399,15 +398,15 @@
 	}
 	.aide {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.erreur {
 		color: var(--accent);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -415,10 +414,10 @@
 	.publier {
 		min-height: 52px;
 		border-radius: var(--rayon-bouton);
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.publier:hover {

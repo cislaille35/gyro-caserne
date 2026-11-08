@@ -68,7 +68,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 44rem;
 	}
 	p {
@@ -78,7 +78,7 @@
 		color: var(--doux);
 	}
 	.carte {
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -88,35 +88,35 @@
 	.groupe {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.rubrique,
 	h3 {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		margin: 0;
 	}
 	h3 {
-		font: 700 1.0625rem var(--police-titre);
+		font: 700 var(--texte-16) var(--police-titre);
 	}
 	.compte {
 		min-width: 24px;
 		height: 24px;
-		padding: 0 7px;
-		border-radius: 12px;
+		padding: 0 var(--espace-8);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--statut-neutre-fond);
 		color: var(--encre);
-		font: 700 0.8125rem var(--police);
+		font: 700 var(--texte-14) var(--police);
 	}
 	/* Des noms à lire, sans geste : ils tiennent sur plusieurs colonnes dès que la place le permet. */
 	ul {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-		gap: 8px 12px;
+		gap: var(--espace-8) var(--espace-12);
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -124,12 +124,12 @@
 	li {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	.sdis {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-info-fond);
 		color: var(--statut-info-texte);
@@ -137,7 +137,7 @@
 	}
 	.reussite,
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}

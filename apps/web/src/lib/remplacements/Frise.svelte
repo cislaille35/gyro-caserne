@@ -27,8 +27,8 @@
 		position: relative;
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding-bottom: 14px;
+		gap: var(--espace-12);
+		padding-bottom: var(--espace-16);
 	}
 	li:last-child {
 		padding-bottom: 0;
@@ -51,10 +51,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		background: var(--surface);
 		font-weight: 700;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.libelle {
 		padding-top: 2px;
@@ -89,8 +89,8 @@
 		li {
 			flex: 1;
 			flex-direction: column;
-			gap: 6px;
-			padding: 0 8px 0 0;
+			gap: var(--espace-6);
+			padding: 0 var(--espace-8) 0 0;
 		}
 		li:not(:last-child)::before {
 			left: 32px;

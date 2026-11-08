@@ -81,17 +81,17 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	form {
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	@media (min-width: 1024px) {
 		.colonnes {
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

@@ -17,22 +17,22 @@
 		bottom: calc(3.5rem + env(safe-area-inset-bottom));
 		z-index: 5;
 		margin: 0 -1rem;
-		padding: 12px 16px 16px;
+		padding: var(--espace-12) var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border-top: 1px solid var(--trait-doux);
 	}
 	.message {
 		margin: 0;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		color: var(--statut-alerte-texte);
 	}
 	.message:not(:empty) {
-		margin-bottom: 8px;
+		margin-bottom: var(--espace-8);
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	@media (min-width: 1024px) {
 		.barre {

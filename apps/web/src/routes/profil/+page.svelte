@@ -76,7 +76,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.page {
 		max-width: 40rem;
@@ -93,7 +93,7 @@
 	}
 	.succes,
 	.echec {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-ok-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-ok-fond);
@@ -112,7 +112,7 @@
 	label {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 		font-weight: 600;
 	}
@@ -122,8 +122,8 @@
 		gap: 2px;
 	}
 	.aide {
-		margin-left: calc(1.5rem + 12px);
+		margin-left: calc(1.5rem + var(--espace-12));
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 </style>

@@ -54,11 +54,11 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.echec,
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

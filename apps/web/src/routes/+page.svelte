@@ -194,13 +194,13 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 	}
 	/* L'ambiance passe derrière l'en-tête, déborde un peu sur les côtés, sans gêner la lecture. */
 	.ciel {
 		position: relative;
 		margin: -12px -16px 0;
-		padding: 12px 16px 0;
+		padding: var(--espace-12) var(--espace-16) 0;
 		border-radius: var(--rayon-grand);
 		overflow: hidden;
 	}
@@ -209,9 +209,9 @@
 		z-index: 1;
 	}
 	.meteo {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.source {
 		white-space: nowrap;
@@ -219,14 +219,14 @@
 	.meteo a {
 		margin-left: 0.5ch;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.vigilance-discrete {
 		display: flex;
-		gap: 8px;
+		gap: var(--espace-8);
 		align-items: center;
-		margin: 6px 0 0;
-		font-size: 0.9375rem;
+		margin: var(--espace-6) 0 0;
+		font-size: var(--texte-15);
 		font-weight: 500;
 	}
 	.vigilance-discrete a {
@@ -245,7 +245,7 @@
 		background: var(--statut-ok-trait);
 	}
 	.vigilance-discrete.niveau-2 {
-		font-size: 1rem;
+		font-size: var(--texte-16);
 		font-weight: 600;
 	}
 	.vigilance-discrete.niveau-2 a {
@@ -259,9 +259,9 @@
 	}
 	.vigilance {
 		display: flex;
-		gap: 12px;
+		gap: var(--espace-12);
 		align-items: flex-start;
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
 		border-left-width: 6px;
 		border-radius: var(--rayon-grand);
@@ -283,14 +283,14 @@
 	}
 	.vigilance a {
 		display: inline-block;
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 		color: inherit;
 	}
 	.colonnes,
 	.colonne {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* « Voir les autres » : une ligne de la carte, centrée. */
 	.autres summary {
@@ -298,8 +298,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
-		padding: 0 14px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-16);
 		color: var(--encre);
 		font-weight: 600;
 		cursor: pointer;
@@ -336,7 +336,7 @@
 	.gerer {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* « Gérer » : une case par geste, côte à côte. */
 	.grille-gestes {
@@ -354,10 +354,10 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 8px 4px;
+		gap: var(--espace-6);
+		padding: var(--espace-8) var(--espace-4);
 		color: var(--encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
@@ -375,7 +375,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 		.colonnes.seule {
 			grid-template-columns: minmax(0, 1fr);

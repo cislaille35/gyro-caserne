@@ -306,7 +306,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 60rem;
 	}
 	p,
@@ -316,17 +316,17 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	h2:focus {
 		outline: none;
 	}
 	h3 {
-		font: 700 1.0625rem var(--police-titre);
+		font: 700 var(--texte-16) var(--police-titre);
 	}
 	h4 {
-		margin: 8px 0 0;
-		font-size: 0.9375rem;
+		margin: var(--espace-8) 0 0;
+		font-size: var(--texte-15);
 		color: var(--doux);
 	}
 	.doux {
@@ -337,7 +337,7 @@
 	.etapes {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.etapes ol {
 		margin: 0;
@@ -345,15 +345,15 @@
 		list-style: none;
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.ou {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--doux);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.barre {
 		flex: 1;
@@ -374,10 +374,10 @@
 		align-items: center;
 		justify-content: center;
 		gap: 2px;
-		padding: 6px 2px;
-		border-radius: 14px;
+		padding: var(--espace-6) 2px;
+		border-radius: var(--rayon-grand);
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
@@ -390,10 +390,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.etapes a.faite .numero {
 		border-color: var(--encre);
@@ -412,10 +412,10 @@
 	.etape {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.carte {
-		padding: 14px 16px;
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -426,7 +426,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px 16px;
+		gap: var(--espace-8) var(--espace-16);
 	}
 	.phrase {
 		font-weight: 700;
@@ -436,7 +436,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -460,11 +460,11 @@
 	}
 	.rangees summary {
 		min-height: var(--cible);
-		padding: 10px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		cursor: pointer;
 		list-style: none;
 	}
@@ -474,7 +474,7 @@
 	.rangees summary::after {
 		content: '›';
 		margin-left: auto;
-		font-size: 1.25rem;
+		font-size: var(--texte-20);
 		color: var(--doux);
 		transition: transform 0.15s;
 	}
@@ -486,7 +486,7 @@
 	}
 	.compte {
 		min-width: 2rem;
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border-radius: 999px;
 		background: var(--fond);
 		border: 1px solid var(--trait-doux);
@@ -495,29 +495,29 @@
 	}
 	.noms {
 		margin: 0;
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 		list-style: none;
 		overflow-wrap: anywhere;
 	}
 	.noms li + li {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.contenu {
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 	}
 	.relance {
-		padding: 0 16px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 12px;
+		gap: var(--espace-8) var(--espace-12);
 	}
 	.entete-liste {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.menu {
 		position: relative;
@@ -526,7 +526,7 @@
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		font-weight: 600;
@@ -536,8 +536,8 @@
 		display: flex;
 		align-items: center;
 		min-height: var(--cible);
-		margin-top: 6px;
-		padding: 0 14px;
+		margin-top: var(--espace-6);
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
@@ -549,20 +549,20 @@
 	}
 	.plages {
 		margin: 0;
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 		list-style: none;
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.plages a {
 		min-height: var(--cible);
-		padding: 6px 12px;
+		padding: var(--espace-6) var(--espace-12);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 4px 12px;
+		gap: var(--espace-4) var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		color: var(--encre);
@@ -575,7 +575,7 @@
 		font-weight: 700;
 	}
 	.etat {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		color: var(--doux);
 	}
 	.non-arme .etat {
@@ -584,7 +584,7 @@
 	}
 	.encadre,
 	.alerte {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 	}
@@ -596,11 +596,11 @@
 	}
 	.alerte summary {
 		min-height: var(--cible);
-		padding: 6px 16px;
+		padding: var(--espace-6) var(--espace-16);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		cursor: pointer;
 		list-style: none;
 	}
@@ -609,7 +609,7 @@
 	}
 	.alerte summary::after {
 		content: '›';
-		font-size: 1.25rem;
+		font-size: var(--texte-20);
 		color: var(--doux);
 		transition: transform 0.15s;
 	}
@@ -618,22 +618,22 @@
 	}
 	.alerte ul {
 		margin: 0;
-		padding: 0 16px 12px 36px;
+		padding: 0 var(--espace-16) var(--espace-12) var(--espace-32);
 	}
 	.recap {
-		margin: 6px 0 0;
-		padding-left: 20px;
+		margin: var(--espace-6) 0 0;
+		padding-left: var(--espace-20);
 	}
 	.suite {
 		display: flex;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.suite a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -652,12 +652,12 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.formulaire label {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 		font-weight: 600;
 	}
 	input[type='date'] {
@@ -665,30 +665,28 @@
 		font: inherit;
 		color: var(--texte);
 		background: var(--fond);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		padding: 0 10px;
+		padding: 0 var(--espace-12);
 	}
 	.arme,
 	.manque {
 		font-weight: 700;
 	}
 	.manque {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--accent);
 		border-radius: var(--rayon-petit);
 	}
 	.sous-titre {
-		margin-top: 16px;
+		margin-top: var(--espace-16);
 	}
 	.poste {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		color: var(--doux);
 	}
 	.liste {
-		margin: 0 0 12px;
+		margin: 0 0 var(--espace-12);
 		padding: 0;
 		list-style: none;
 	}
@@ -696,29 +694,29 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
-		padding: 4px 0;
+		padding: var(--espace-4) 0;
 	}
 	/* Les postes d'un candidat : une seconde ligne, ils sont déjà séparés par des virgules. */
 	.postes {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.liste li + li {
 		border-top: 1px solid var(--trait-doux);
 	}
 	.etiquette {
-		margin-left: 6px;
-		padding: 0 6px;
+		margin-left: var(--espace-6);
+		padding: 0 var(--espace-6);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.geste {
 		min-height: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		font: inherit;
 		font-weight: 600;
 		color: var(--texte);
@@ -733,7 +731,7 @@
 		position: absolute;
 	}
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
@@ -741,7 +739,7 @@
 		font-weight: 600;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -755,7 +753,7 @@
 	}
 	@media (min-width: 640px) {
 		.etapes a {
-			font-size: 0.875rem;
+			font-size: var(--texte-14);
 		}
 	}
 	@media (min-width: 720px) {

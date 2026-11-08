@@ -25,8 +25,8 @@
 	.erreur {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16);
 		background: var(--statut-alerte-fond);
 		border: 1px solid var(--statut-alerte-trait);
 		border-radius: var(--rayon-grand);
@@ -37,12 +37,12 @@
 		margin: 0;
 	}
 	h1 {
-		font: 700 1.5rem/1.2 var(--police-titre);
+		font: 700 var(--texte-24)/1.2 var(--police-titre);
 	}
 	.sorties {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	a {
 		display: inline-flex;

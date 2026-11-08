@@ -87,7 +87,7 @@
 	.principal {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
@@ -103,7 +103,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

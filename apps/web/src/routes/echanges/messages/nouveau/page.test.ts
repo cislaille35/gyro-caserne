@@ -43,7 +43,7 @@ describe('nouveau message', () => {
 		expect(texte(t)).toContain('Groupe avec l’équipe 1 9 membres, ajoutés d’un coup');
 		expect(texte(t)).toContain('Groupe avec l’Amicale 1 membre du comité');
 		// L'équipe a son numéro sur sa teinte, le comité son icône.
-		expect(t).toContain('var(--icone-coeur-fond)');
+		expect(t).not.toContain('--icone-');
 	});
 
 	it('un comité dont le nom commence par une consonne, sans élision', () => {

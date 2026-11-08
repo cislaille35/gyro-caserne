@@ -6,8 +6,8 @@
 	let { icone, couleur, numero, taille = 48 }: Pick<ApercuMur, 'icone' | 'couleur' | 'numero'> & { taille?: 48 | 28 } = $props();
 
 	const trace = $derived(icone === 'maison' ? ICONE_MAISON : icone ? ICONES_ROLES[icone] : null);
-	const fond = $derived(icone === 'maison' ? 'var(--rouge)' : icone ? `var(--icone-${icone}-fond)` : couleur ? `color-mix(in srgb, ${couleur} 22%, var(--surface))` : 'var(--statut-neutre-fond)');
-	const encre = $derived(icone === 'maison' ? 'var(--sur-rouge)' : icone ? `var(--icone-${icone}-texte)` : 'var(--encre)');
+	const fond = $derived(icone === 'maison' ? 'var(--rouge)' : icone ? 'transparent' : couleur ? `color-mix(in srgb, ${couleur} 22%, var(--surface))` : 'var(--statut-neutre-fond)');
+	const encre = $derived(icone === 'maison' ? 'var(--sur-rouge)' : 'var(--encre)');
 </script>
 
 <span
@@ -33,13 +33,13 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 		box-shadow: inset 0 -4px 0 var(--bord);
-		font: 700 1.375rem/1 var(--police-titre);
+		font: 700 var(--texte-20)/1 var(--police-titre);
 	}
 	.petite {
-		border-radius: 8px;
+		border-radius: var(--rayon-petit);
 		box-shadow: inset 0 -3px 0 var(--bord);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 </style>

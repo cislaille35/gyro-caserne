@@ -63,10 +63,10 @@
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.fiche {
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	h2,
 	dl,
@@ -74,11 +74,11 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.panneau {
-		gap: 12px;
-		padding: 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -87,22 +87,22 @@
 	dl {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	dt {
 		font-weight: 700;
 	}
 	ul {
 		margin: 0;
-		padding: 4px 14px;
+		padding: var(--espace-4) var(--espace-16);
 		list-style: none;
 	}
 	li {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: space-between;
-		gap: 4px 12px;
-		padding: 10px 0;
+		gap: var(--espace-4) var(--espace-12);
+		padding: var(--espace-12) 0;
 	}
 	li + li {
 		border-top: 1px solid var(--trait-doux);

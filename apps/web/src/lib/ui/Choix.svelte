@@ -69,26 +69,24 @@
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	label {
 		font-weight: 600;
 	}
 	select {
 		min-height: var(--cible);
-		padding: 0 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: 0 var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	select[aria-invalid='true'] {
 		border-color: var(--accent);
 	}
 	p {
 		margin: 0;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.aide {
 		color: var(--doux);

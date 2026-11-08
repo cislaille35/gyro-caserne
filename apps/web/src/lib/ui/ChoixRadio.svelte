@@ -35,16 +35,16 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	legend {
-		padding: 0 0 8px;
+		padding: 0 0 var(--espace-8);
 		font-weight: 700;
 	}
 	.options {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.pastilles {
 		flex-direction: row;
@@ -56,22 +56,22 @@
 	}
 	.option {
 		min-height: var(--cible);
-		padding: 8px 14px;
+		padding: var(--espace-8) var(--espace-16);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		cursor: pointer;
 	}
 	.pastilles .option {
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 	}
 	.tuiles .option {
 		min-height: 64px;
-		padding: 10px 12px;
+		padding: var(--espace-12) var(--espace-12);
 	}
 	/* Choisi : cadre épais et rond rempli, pas la couleur seule. */
 	.option:has(input:checked) {
@@ -87,7 +87,6 @@
 		margin: 0;
 		width: 20px;
 		height: 20px;
-		accent-color: var(--encre);
 	}
 	.textes {
 		min-width: 0;
@@ -99,7 +98,7 @@
 		overflow-wrap: anywhere;
 	}
 	.sous {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.tuiles .sous {
 		color: var(--doux);
@@ -108,6 +107,6 @@
 		margin: 0;
 		color: var(--accent);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 </style>

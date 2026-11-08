@@ -50,7 +50,7 @@ describe('page Réglages', () => {
 		expect(page.match(/aria-expanded=/g)).toHaveLength(1);
 		expect(page).toMatch(/aria-expanded="false"[\s\S]*Archivés/);
 		expect(groupe(page, 'Référents')).toMatch(/Référents(<!--[^>]*-->)* <span class="compte[^"]*">3</);
-		expect(ligne(page, 7)).toContain('--icone-camion-fond');
+		expect(ligne(page, 7)).not.toContain('--icone-');
 		expect(groupe(page, 'Chef de centre et adjoint')).toContain('Chef de centre');
 		expect(groupe(page, 'Chefs de garde')).toContain('Chef de garde');
 	});
@@ -62,7 +62,7 @@ describe('page Réglages', () => {
 		expect(engins).toContain('2 titulaires');
 		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);
 		// Même règle d'icône que l'accueil : le chef de centre, sans icône ni modèle, prend celle de son thème.
-		expect(ligne(page, 1)).toContain('--icone-etoile-fond');
+		expect(ligne(page, 1)).not.toContain('--icone-');
 		const pharmacie = page.slice(page.indexOf('href="/reglages/roles/4"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/4"')));
 		expect(pharmacie).not.toContain('Personnalisé');
 	});

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { LIBELLES_NIVEAU, LIBELLES_POSTE, NIVEAUX, POSTES, type Poste, type Postes } from '@gyro-caserne/socle';
@@ -74,13 +75,7 @@
 			<p class="doux">Quelle aptitude du centre donne chaque niveau. Un CA tout engins tient aussi les postes CA 1 agrès et CE ; un CA 1 agrès, le poste CE ; un COD2, le poste de conducteur COD1.</p>
 			<div class="niveaux">
 				{#each NIVEAUX as n (n)}
-					<label class="choix">
-						<span>{LIBELLES_NIVEAU[n]}</span>
-						<select name="niveau-{n}">
-							<option value="" selected={r.niveaux[n] === null}>Aucune</option>
-							{#each data.aptitudes as a (a.id)}<option value={a.id} selected={r.niveaux[n] === a.id}>{a.nom}</option>{/each}
-						</select>
-					</label>
+					<Choix id="niveau-{n}" name="niveau-{n}" libelle={LIBELLES_NIVEAU[n]} valeur={r.niveaux[n] === null ? '' : String(r.niveaux[n])} options={[{ valeur: '', libelle: 'Aucune' }, ...data.aptitudes.map((a) => ({ valeur: String(a.id), libelle: a.nom }))]} />
 				{/each}
 			</div>
 			<div><Bouton type="submit" variante="secondaire">Enregistrer la correspondance</Bouton></div>
@@ -116,7 +111,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 44rem;
 	}
 	p {
@@ -138,8 +133,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		padding: 12px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.rangees li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -151,14 +146,14 @@
 		gap: 2px;
 	}
 	.titre {
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.lien-bouton {
 		flex: none;
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -167,7 +162,7 @@
 		text-decoration: none;
 	}
 	.repli {
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -183,37 +178,19 @@
 	.repli form {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding-bottom: 16px;
+		gap: var(--espace-12);
+		padding-bottom: var(--espace-16);
 	}
 	.niveaux {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 8px;
-	}
-	.choix {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		min-height: var(--cible);
-		font-weight: 600;
-	}
-	select {
-		min-height: var(--cible);
-		min-width: 8rem;
-		font: inherit;
-		color: var(--texte);
-		background: var(--fond);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		padding: 0 10px;
+		gap: var(--espace-8);
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.compteurs {
 		margin: 0;
@@ -224,9 +201,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
-		padding: 6px 0;
+		padding: var(--espace-6) 0;
 	}
 	.compteurs li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -237,7 +214,7 @@
 	.reglage {
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.pas {
 		width: var(--cible);
@@ -246,7 +223,7 @@
 		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);
-		font: 700 1.25rem/1 var(--police-titre);
+		font: 700 var(--texte-20)/1 var(--police-titre);
 		cursor: pointer;
 	}
 	.pas[aria-disabled='true'] {
@@ -257,10 +234,10 @@
 		min-width: 2rem;
 		text-align: center;
 		font-weight: 700;
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 	}
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
@@ -268,7 +245,7 @@
 		font-weight: 600;
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -283,7 +260,7 @@
 	@media (min-width: 720px) {
 		.niveaux {
 			grid-template-columns: 1fr 1fr;
-			column-gap: 24px;
+			column-gap: var(--espace-24);
 		}
 	}
 </style>

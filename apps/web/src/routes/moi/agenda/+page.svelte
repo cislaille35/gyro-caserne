@@ -95,7 +95,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 40rem;
 	}
 	h2,
@@ -103,7 +103,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	ul,
 	ol {
@@ -111,13 +111,13 @@
 		padding-left: 1.4em;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -127,19 +127,19 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.principal {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 22px 0 18px;
-		border: 2px solid var(--encre);
+		gap: var(--espace-8);
+		padding: 0 var(--espace-20) 0 var(--espace-16);
+		border: 1px solid transparent;
 		border-radius: var(--rayon-petit);
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		text-decoration: none;
 	}
 	.principal:hover {
@@ -150,17 +150,15 @@
 	}
 	input {
 		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: 0 var(--espace-12);
 		background: var(--fond);
 		color: var(--encre);
-		font: 400 0.9375rem var(--police);
+		font: 400 var(--texte-15) var(--police);
 		text-overflow: ellipsis;
 	}
 	details {
 		border-top: 1px solid var(--trait-doux);
-		padding-top: 4px;
+		padding-top: var(--espace-4);
 	}
 	/* Le signe « + » / « – » dit que la rubrique s'ouvre (il remplace le triangle, que la mise en page masque). */
 	summary {
@@ -168,8 +166,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		font: 700 1.125rem var(--police-titre);
+		gap: var(--espace-12);
+		font: 700 var(--texte-18) var(--police-titre);
 		cursor: pointer;
 		list-style: none;
 	}
@@ -186,13 +184,13 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		font: 600 1.25rem var(--police);
+		font: 600 var(--texte-20) var(--police);
 	}
 	details[open] summary::after {
 		content: '–' / '';
 	}
 	details ol {
-		padding-bottom: 8px;
+		padding-bottom: var(--espace-8);
 	}
 	.doux {
 		color: var(--doux);
@@ -202,7 +200,7 @@
 		font-weight: 600;
 	}
 	.succes {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--ok);
 		border-radius: var(--rayon-petit);
 		font-weight: 600;

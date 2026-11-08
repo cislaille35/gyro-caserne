@@ -69,7 +69,7 @@
 	.formulaires {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -77,8 +77,8 @@
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -89,7 +89,7 @@
 	}
 	.deux {
 		display: grid;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	@media (min-width: 560px) {
 		.deux {
@@ -102,16 +102,16 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	legend {
-		margin-bottom: 6px;
+		margin-bottom: var(--espace-6);
 		font-weight: 600;
 	}
 	.equipes {
 		display: flex;
 		flex-direction: column;
-		padding-left: 32px;
+		padding-left: var(--espace-32);
 	}
 	.case input[type='radio'] {
 		width: 22px;
@@ -121,11 +121,11 @@
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

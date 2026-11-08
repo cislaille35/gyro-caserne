@@ -89,8 +89,8 @@
 	.installer {
 		display: flex;
 		align-items: flex-start;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -98,13 +98,13 @@
 	}
 	img {
 		flex: none;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 	}
 	.corps {
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	h2,
 	p,
@@ -112,22 +112,22 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem/1.2 var(--police-titre);
+		font: 700 var(--texte-20)/1.2 var(--police-titre);
 	}
 	.encart h2 {
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 	}
 	.etapes {
 		padding: 0;
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.etapes li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.geste {
 		flex: none;
@@ -144,7 +144,7 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.doux {
 		color: var(--doux);

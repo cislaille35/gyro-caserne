@@ -114,7 +114,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 60rem;
 	}
 	p,
@@ -122,13 +122,13 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -137,7 +137,7 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	fieldset {
 		margin: 0;
@@ -150,14 +150,14 @@
 		padding: 0;
 		list-style: none;
 		display: grid;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.rangee {
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 8px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-8) var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -165,7 +165,7 @@
 	}
 	.rangee:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: 7px 13px;
+		padding: var(--espace-8) var(--espace-12);
 	}
 	.rangee:has(input:focus-visible) {
 		outline: 3px solid var(--focus);
@@ -189,15 +189,15 @@
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.resume {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
 		justify-content: space-between;
-		gap: 4px 12px;
-		padding: 10px 14px;
+		gap: var(--espace-4) var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-neutre-fond);
 	}
@@ -208,36 +208,34 @@
 	.recap {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 14px 16px;
+		gap: var(--espace-6);
+		padding: var(--espace-16) var(--espace-16);
 		border-left: 6px solid var(--rouge);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-neutre-fond);
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 	}
 	.libelle {
 		font-weight: 600;
 	}
 	textarea {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 		resize: vertical;
 	}
 	.boutons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.bouton {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 22px;
+		padding: 0 var(--espace-20);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 700;
@@ -245,7 +243,7 @@
 		cursor: pointer;
 	}
 	.principal {
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
@@ -255,7 +253,7 @@
 		color: var(--encre);
 	}
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 		background: var(--statut-danger-fond);

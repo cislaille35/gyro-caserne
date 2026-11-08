@@ -114,7 +114,7 @@
 	.liste {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.archives {
@@ -126,7 +126,7 @@
 		border-top: 1px solid var(--trait-doux);
 	}
 	.dissous {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		color: var(--doux);
 	}
 </style>
