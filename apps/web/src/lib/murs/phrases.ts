@@ -23,3 +23,6 @@ export function phraseDuMur(type: Mur['type']): string | null {
 	if (type === 'equipe') return 'Votre équipe d’astreinte';
 	return null;
 }
+
+// « Le mur de l’Amicale », « Le mur du comité du centre » : le lien vers le mur d'un comité.
+export const murDuComite = (nom: string) => `Le mur ${groupe('comite', nom)}`;

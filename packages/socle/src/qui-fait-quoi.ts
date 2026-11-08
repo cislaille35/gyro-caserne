@@ -10,7 +10,7 @@ import { comite, equipe, responsabilite, ressource } from './schema.ts';
 
 export type RoleTenu = { id: number; nom: string; icone: NomIcone; titulaires: string[] };
 export type QuiFaitQuoi = {
-	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: { id: number; nom: string; roles: string[] }[]; ressources: { id: number; nom: string; icone: string; lien: boolean }[] }[];
+	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: { id: number; nom: string; roles: string[] }[]; ressources: { id: number; nom: string; icone: NomIcone; lien: boolean }[] }[];
 	commandement: RoleTenu[];
 	equipes: { id: number; nom: string; systeme: string | null; parEquipe: { equipe: string; titulaires: string[] }[] }[];
 	referents: RoleTenu[];
@@ -71,7 +71,7 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 				// Lien vers sa page pour qui peut la voir (reservations.ts) : qui la gère (le comité, le super administrateur) ou peut la réserver.
 				ressources: materiel
 					.filter((r) => r.comiteId === c.id)
-					.map((r) => ({ id: r.id, nom: r.nom, icone: r.icone, lien: acteur.type === 'super' || membre || accorde(droits, 'RESERVER', { type: 'ressource', id: r.id }) }))
+					.map((r) => ({ id: r.id, nom: r.nom, icone: r.icone as NomIcone, lien: acteur.type === 'super' || membre || accorde(droits, 'RESERVER', { type: 'ressource', id: r.id }) }))
 			};
 		}),
 		commandement: roles.filter((r) => r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint').map(roleTenu),

@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	// Un groupe de lignes (les enfants sont des <li>) dans une seule carte, avec son titre h2 au-dessus et son compteur, s'il y en a.
+	// Un groupe de lignes (les enfants sont des <li>) dans une seule carte, avec son titre au-dessus (h2, ou h3 sous une section) et son compteur, s'il y en a.
 	// `ancre` : le titre reçoit cet id et peut prendre le focus par programme.
-	let { titre, compte, ancre, children }: { titre?: string; compte?: number; ancre?: string; children: Snippet } = $props();
+	let { titre, compte, ancre, niveau = 2, children }: { titre?: string; compte?: number; ancre?: string; niveau?: 2 | 3; children: Snippet } = $props();
 	const idAuto = $props.id();
 	const idTitre = $derived(ancre ?? idAuto);
 </script>
@@ -14,11 +14,7 @@
 
 {#if titre}
 	<section aria-labelledby={idTitre}>
-		{#if ancre}
-			<h2 id={idTitre} class="titre-groupe" tabindex="-1">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
-		{:else}
-			<h2 id={idTitre} class="titre-groupe">{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</h2>
-		{/if}
+		<svelte:element this={`h${niveau}`} id={idTitre} class="titre-groupe" tabindex={ancre ? -1 : undefined}>{titre}{#if compte}{' '}<span class="compte">{compte}</span>{/if}</svelte:element>
 		{@render liste()}
 	</section>
 {:else}
@@ -31,7 +27,7 @@
 		flex-direction: column;
 		gap: 8px;
 	}
-	h2:focus {
+	.titre-groupe:focus {
 		outline: none;
 	}
 </style>

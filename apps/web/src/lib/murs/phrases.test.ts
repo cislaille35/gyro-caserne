@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { phraseAudience, phraseDuMur } from './phrases.ts';
+import { murDuComite, phraseAudience, phraseDuMur } from './phrases.ts';
 
 describe('phraseAudience', () => {
 	it('Le centre et Vie du centre : tous les agents, avec le nombre', () => {
@@ -30,5 +30,13 @@ describe('phraseDuMur', () => {
 	});
 	it('un comité : rien, la phrase répéterait son nom', () => {
 		expect(phraseDuMur('comite')).toBeNull();
+	});
+});
+
+describe('murDuComite', () => {
+	it('le nom du lien vers le mur d’un comité', () => {
+		expect(murDuComite('Amicale')).toBe('Le mur de l’Amicale');
+		expect(murDuComite('Comité du centre')).toBe('Le mur du comité du centre');
+		expect(murDuComite('Sport')).toBe('Le mur du comité Sport');
 	});
 });
