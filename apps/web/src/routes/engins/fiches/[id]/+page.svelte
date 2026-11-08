@@ -72,7 +72,7 @@
 								<div class="element">
 									<span class="libelle">{e.libelle}</span>
 									{#if e.quantite !== null}<span class="quantite">{e.quantite}<span class="masque">{' '}attendus</span></span>{/if}
-									<details class="repli" open={pour(`element:${e.ref}`)?.message !== undefined}>
+									<details class="geste" open={pour(`element:${e.ref}`)?.message !== undefined}>
 										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 									<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 										<input type="hidden" name="element" value={e.ref} />

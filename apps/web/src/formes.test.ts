@@ -373,7 +373,7 @@ describe('direction B', () => {
 		expect(source('app.css')).toMatch(/\.repli > summary::before \{[^}]*border-right: 2px solid currentColor;/);
 		const propres = ecrans.flatMap((f) => [...style(f).matchAll(/[^\n{}]*summary::(?:before|after)[^{]*\{/g)].map((m) => `${f} | ${m[0].trim()}`));
 		expect(propres).toEqual([]);
-		const sansForme = ecrans.flatMap((f) => [...source(f).matchAll(/<details(?![^>]*class="[^"]*\b(?:repli|plus|aptitude|menu)\b)[^>]*>/g)].map((m) => `${f} | ${m[0]}`));
+		const sansForme = ecrans.flatMap((f) => [...source(f).matchAll(/<details(?![^>]*class="[^"]*\b(?:repli|plus|aptitude|menu|geste)\b)[^>]*>/g)].map((m) => `${f} | ${m[0]}`));
 		expect(sansForme).toEqual([]);
 	});
 
@@ -389,5 +389,14 @@ describe('direction B', () => {
 		expect(trace('caserne')).not.toBe(trace('accueil'));
 		expect(trace('caserne')).not.toMatch(/M9 21v-6h6v6/);
 		expect(style('lib/ui/Coquille.svelte')).not.toMatch(/0 0 0 4px var\(--entete-texte\)/);
+	});
+
+	it('en mode contrasté, la page en cours reste visible sur « Moi » et la cloche', () => {
+		expect(style('lib/ui/Coquille.svelte')).toMatch(/@media \(forced-colors: active\) \{\s*header a\.moi\[aria-current='page'\][\s\S]*?outline: 2px solid/);
+	});
+
+	it('un geste de ligne (« Écart », « Modifier ») n’a pas de chevron : c’est un lien, pas un bloc', () => {
+		expect(source('routes/engins/[id]/prise/+page.svelte')).toMatch(/<details class="geste"[^>]*name="ecart"/);
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="geste" open=\{pour\(`element:/);
 	});
 });

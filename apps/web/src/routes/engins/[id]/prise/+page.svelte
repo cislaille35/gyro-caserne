@@ -277,7 +277,7 @@
 									{#if el.quantite !== null}<span class="quantite"><span aria-hidden="true">{'× '}</span>{el.quantite}<span class="masque">{' '}attendus</span></span>{/if}
 									<!-- Retrouvé, l'élément peut avoir un nouvel écart. -->
 									{#if data.peutFaire && (!o || s?.retrouves.includes(o.id))}
-										<details class="repli" name="ecart" open={pour(`element:${el.ref}`)?.message !== undefined}>
+										<details class="geste" name="ecart" open={pour(`element:${el.ref}`)?.message !== undefined}>
 											<summary>{ecart ? 'Modifier' : 'Écart'}<span class="masque">{' '}: {el.libelle}</span></summary>
 											<form method="POST" action="?/geste" enctype="multipart/form-data" use:enhance={envoi} class="formulaire">
 												<input type="hidden" name="prise" value={p?.id ?? ''} />

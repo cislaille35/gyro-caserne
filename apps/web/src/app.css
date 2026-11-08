@@ -385,7 +385,7 @@ body {
 	border-top: 1px solid var(--trait-doux) !important;
 }
 /* Un bloc qui se déplie : un seul chevron, qui tourne d'un quart de tour. */
-.repli > summary {
+:where(.repli > summary) {
 	min-height: var(--cible);
 	display: flex;
 	align-items: center;
@@ -394,7 +394,8 @@ body {
 	list-style: none;
 	cursor: pointer;
 }
-.repli > summary::-webkit-details-marker {
+.repli > summary::-webkit-details-marker,
+.geste > summary::-webkit-details-marker {
 	display: none;
 }
 .repli > summary::before {
@@ -409,6 +410,11 @@ body {
 }
 .repli[open] > summary::before {
 	transform: rotate(45deg);
+}
+/* Un geste de ligne qui déplie un petit formulaire : un lien, sans chevron. */
+.geste > summary {
+	list-style: none;
+	cursor: pointer;
 }
 /* Ce qui est rare, rangé : un bouton écrit qui déplie ses gestes, avec ou sans JavaScript. */
 .plus > summary {

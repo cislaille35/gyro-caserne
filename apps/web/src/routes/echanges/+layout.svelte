@@ -568,8 +568,6 @@
 	.repli li {
 		border-top: 1px solid var(--trait-doux);
 	}
-	@media (prefers-reduced-motion: reduce) {
-	}
 
 	/* Téléphone : la liste seule, ou le mur seul. */
 	.sur-un-mur .murs,

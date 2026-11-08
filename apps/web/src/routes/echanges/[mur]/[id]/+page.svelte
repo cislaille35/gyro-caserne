@@ -54,7 +54,7 @@
 	<title>Publication de {nom(p.auteur)} · {data.mur.nom} · Gyro Caserne</title>
 </svelte:head>
 
-<Retour href="/echanges/{data.mur.cle}" libelle={data.mur.nom} />
+<div class="vers-mur"><Retour href="/echanges/{data.mur.cle}" libelle={data.mur.nom} /></div>
 <h1>Publication de {nom(p.auteur)}</h1>
 
 <div class="annonce" role="status">{annonceSucces}</div>
@@ -124,6 +124,10 @@
 {/if}
 
 <style>
+	.vers-mur {
+		display: flex;
+		margin-bottom: var(--espace-8);
+	}
 	h1 {
 		margin: 0 0 var(--espace-16);
 		font: 700 var(--texte-24) var(--police-titre);

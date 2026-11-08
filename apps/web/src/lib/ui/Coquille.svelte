@@ -193,6 +193,15 @@
 	header a.rond[aria-current='page'] {
 		box-shadow: 0 4px 0 -1px var(--entete-texte);
 	}
+	/* Le mode contrasté retire les ombres. */
+	@media (forced-colors: active) {
+		header a.moi[aria-current='page'] :global(.visage),
+		header a.moi[aria-current='page'] .rond,
+		header a.rond[aria-current='page'] {
+			outline: 2px solid CanvasText;
+			outline-offset: 2px;
+		}
+	}
 	.appli {
 		font: 700 var(--texte-20)/1.1 var(--police-titre);
 		letter-spacing: 0.02em;

@@ -252,6 +252,4 @@
 		font-size: var(--texte-14);
 		font-weight: 600;
 	}
-	@media (prefers-reduced-motion: reduce) {
-	}
 </style>

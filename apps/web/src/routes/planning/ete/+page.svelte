@@ -583,7 +583,6 @@
 		padding: var(--espace-6) var(--espace-16);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--espace-12);
 		cursor: pointer;
 		list-style: none;
@@ -732,7 +731,5 @@
 		.plages {
 			grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
 		}
-	}
-	@media (prefers-reduced-motion: reduce) {
 	}
 </style>
