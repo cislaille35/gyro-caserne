@@ -131,7 +131,6 @@
 		flex-direction: column;
 		gap: var(--espace-4);
 		padding: var(--espace-12) var(--espace-16);
-		border-left: 8px solid var(--equipe);
 		border-radius: var(--rayon-grand);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}
@@ -205,7 +204,8 @@
 		border-top: 1px solid var(--trait-doux);
 	}
 	.jours > li:target {
-		box-shadow: inset 4px 0 0 var(--focus);
+		outline: 2px solid var(--focus);
+		outline-offset: -2px;
 	}
 	.aujourdhui {
 		background: var(--statut-neutre-fond);

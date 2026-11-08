@@ -268,7 +268,6 @@
 		align-items: flex-start;
 		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
-		border-left-width: 6px;
 		border-radius: var(--rayon-grand);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);

@@ -115,7 +115,6 @@
 	}
 	.conversation[aria-current='page'] {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--accent);
 	}
 	.groupe {
 		flex: none;

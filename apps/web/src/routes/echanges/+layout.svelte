@@ -481,7 +481,6 @@
 	/* Le mur affiché : fond, liseré et nom en gras, pas la couleur seule. */
 	.tuile[aria-current='page'] {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--accent);
 	}
 	.tuile[aria-current='page'] .nom {
 		font-weight: 800;

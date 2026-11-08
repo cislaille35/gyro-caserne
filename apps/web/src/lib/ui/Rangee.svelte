@@ -5,7 +5,7 @@
 
 	// Une ligne d'un groupe (dans la carte de `ListeRangees`) : tête (tuile qui porte un sens, visage, date), titre, sous-ligne, valeur ou `droite` ;
 	// avec `href`, toute la ligne est un lien, avec chevron. Avec `children` (des gestes sous le texte), le lien du titre s'étend à la ligne
-	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a une tête) ;
+	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte, à droite ;
 	// `discret`, pour ce qui n'existe pas encore. `sous` en liste : une ligne par info, quand elles sont trop nombreuses pour une seule.
 	let {
 		titre,
@@ -50,16 +50,14 @@
 		{@render tete()}
 	{:else if icone}
 		<IconeRole {icone} {dessin} taille={40} />
-	{:else if alerte}
-		{@render signe(false)}
 	{/if}
 	<div class="corps">
 		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
 		{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}
 		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>
-	<!-- Avec une icône en tête, le signe d'alerte passe à droite : jamais la couleur seule. -->
-	{#if alerte && (tete || icone)}{@render signe(true)}{/if}
+	<!-- Le signe d'alerte à droite, pour que les textes d'une liste restent alignés : jamais la couleur seule. -->
+	{#if alerte}{@render signe(true)}{/if}
 	{#if droite}
 		<span class="droite">{@render droite()}</span>
 	{:else if valeur}
@@ -107,7 +105,6 @@
 	/* La page affichée : fond, liseré et titre en gras, pas la couleur seule. */
 	a.rangee[aria-current='page'] {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--encre);
 	}
 	a.rangee[aria-current='page'] .titre {
 		font-weight: 800;

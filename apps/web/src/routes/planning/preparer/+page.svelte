@@ -540,7 +540,6 @@
 		gap: var(--espace-12);
 		padding: var(--espace-6) var(--espace-8) var(--espace-6) var(--espace-16);
 		border: 1px solid var(--trait-doux);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-grand);
 		background: var(--fond);
 	}
@@ -576,11 +575,19 @@
 		grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
 		gap: var(--espace-6);
 	}
+	.apercu strong::before {
+		content: '';
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: var(--espace-6);
+		border-radius: 2px;
+		background: var(--equipe);
+	}
 	.apercu li {
 		display: flex;
 		flex-direction: column;
 		padding: var(--espace-6) var(--espace-12);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-petit);
 		background: color-mix(in srgb, var(--equipe) 12%, var(--surface));
 		font-size: var(--texte-14);
@@ -607,7 +614,6 @@
 		flex-direction: column;
 		gap: var(--espace-8);
 		padding: var(--espace-12) var(--espace-16);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-grand);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}
@@ -814,7 +820,6 @@
 		gap: var(--espace-12);
 		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);

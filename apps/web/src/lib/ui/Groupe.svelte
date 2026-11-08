@@ -18,11 +18,12 @@
 	const id = $props.id();
 </script>
 
-<section class="groupe" style:border-left={couleur ? `6px solid ${couleur}` : undefined}>
+<section class="groupe">
 	<div class="ligne">
 		<svelte:element this={`h${niveauTitre}`} class="entete">
 			<button type="button" aria-expanded={ouvert ? 'true' : 'false'} aria-controls={id} onclick={() => (ouvert = !ouvert)}>
 				{#if icone}<IconeRole {icone} {dessin} taille={40} />{/if}
+				{#if couleur}<span class="carre" aria-hidden="true" style:background={couleur}></span>{/if}
 				<span class="textes">
 					<span class="titre">{titre}</span>
 					{#if resume}<span class="resume" class:alerte>{resume}</span>{/if}
@@ -30,7 +31,7 @@
 				<svg class="chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6" /></svg>
 			</button>
 		</svelte:element>
-		{#if action}{@render action()}{/if}
+		{#if action}<div class="geste">{@render action()}</div>{/if}
 	</div>
 	<div {id} class="contenu" hidden={!ouvert}>{@render children()}</div>
 </section>
@@ -43,12 +44,22 @@
 		border-radius: var(--rayon-grand);
 		overflow: hidden;
 	}
+	.geste {
+		padding: 0 var(--espace-16) var(--espace-8);
+	}
+	.carre {
+		flex: none;
+		width: 12px;
+		height: 12px;
+		border-radius: 2px;
+	}
 	.ligne {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 	}
 	.entete {
-		flex: 1;
+		flex: 1 1 11rem;
 		min-width: 0;
 		margin: 0;
 		font: inherit;

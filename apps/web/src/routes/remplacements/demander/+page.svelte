@@ -251,7 +251,6 @@
 		flex-direction: column;
 		gap: var(--espace-6);
 		padding: var(--espace-16) var(--espace-16);
-		border-left: 6px solid var(--rouge);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-neutre-fond);
 		font-size: var(--texte-16);

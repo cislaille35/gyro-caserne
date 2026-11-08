@@ -140,7 +140,7 @@
 
 	<p role="status" class="resultat">{resultat}</p>
 
-	<div class="roles">
+	<div class="roles pile">
 		{#each visibles as r (r.responsabiliteId)}
 			{@const id = r.responsabiliteId}
 			{@const cible = `attribuer-${id}`}
@@ -292,11 +292,6 @@
 	}
 	.role > div[role='status']:empty {
 		margin-top: -10px;
-	}
-	.roles {
-		display: flex;
-		flex-direction: column;
-		gap: var(--espace-12);
 	}
 	.role {
 		display: flex;

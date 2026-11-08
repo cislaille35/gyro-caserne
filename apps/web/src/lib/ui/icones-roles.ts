@@ -1,5 +1,8 @@
 // Tracés des icônes de rôle (grille 24 × 24, trait de 1,8).
 export const ICONES_ROLES = {
+	banc: 'M3 9h18M3 13h18M6 13v6M18 13v6',
+	table: 'M3 9h18M6 9v10M18 9v10',
+	tente: 'M12 4 3 19h18zM12 4v15M12 12l-4 7M12 12l4 7',
 	etoile: 'M12 3l2.6 5.6 6 .6-4.5 4 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.5-4 6-.6z',
 	casque: 'M4 15a8 8 0 0 1 16 0M2 15h20M12 7V4M8 15v2h8v-2',
 	camion: 'M3 16V8h11v8M14 11h4l3 3v2h-7M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0',

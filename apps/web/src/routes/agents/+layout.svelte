@@ -283,7 +283,6 @@
 	/* L'agent affiché : fond, liseré et nom en gras, pas la couleur seule. */
 	.courant {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--encre);
 	}
 	.courant .nom {
 		font-weight: 800;

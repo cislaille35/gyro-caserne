@@ -543,9 +543,6 @@
 	.bande .doux {
 		font-size: var(--texte-14);
 	}
-	.fait {
-		border-left: 6px solid var(--statut-ok-trait);
-	}
 	ul {
 		padding: 0;
 		list-style: none;
@@ -683,7 +680,6 @@
 		gap: var(--espace-8) var(--espace-12);
 		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--statut-alerte-trait);
-		border-left-width: 4px;
 		border-radius: var(--rayon-petit);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);

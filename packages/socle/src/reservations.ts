@@ -587,9 +587,9 @@ export async function chargerMaterielFictif(base: Base, maintenant: string): Pro
 	if (!amicale) return;
 	const existants = (await base.select({ nom: ressource.nom }).from(ressource)).map((r) => r.nom);
 	const objets = [
-		{ nom: 'Bancs', stock: 12, icone: 'groupe' },
-		{ nom: 'Tables', stock: 6, icone: 'outil' },
-		{ nom: 'Barnum', stock: 1, icone: 'etoile' }
+		{ nom: 'Bancs', stock: 12, icone: 'banc' },
+		{ nom: 'Tables', stock: 6, icone: 'table' },
+		{ nom: 'Barnum', stock: 1, icone: 'tente' }
 	].filter((o) => !existants.includes(o.nom));
 	if (objets.length === 0) return;
 	await base.insert(ressource).values(objets.map((o) => ({ ...o, forme: 'jours' as const, ouverteReserve: 0, gereeParComiteId: amicale.id, creeLe: maintenant })));
