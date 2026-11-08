@@ -175,6 +175,17 @@ describe('page d’un rôle', () => {
 		expect(await droitsDe(pharma.id)).toEqual(['FAIRE_PRISE_DE_GARDE']);
 	});
 
+	it('les droits sans effet : jamais proposés, gardés tels quels s’ils sont déjà là', async () => {
+		const { base, chef, resp, droitsDe } = await preparer();
+		const engins = await resp('Référent engins');
+		const data = await charger(load, locaux(base, chef), { id: String(engins.id) });
+		expect(data.droitsMetier).not.toContain('VOIR_MOTIFS_ABSENCE');
+		expect(data.droitsMetier).not.toContain('VOIR_ANNUAIRE');
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: engins.id, droit: 'VOIR_MOTIFS_ABSENCE' });
+		await agir('detail', locaux(base, chef), engins.id, [['droits', 'GERER_STOCK']]);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE']);
+	});
+
 	it('archive avec confirmation seulement, jamais un rôle système', async () => {
 		const { base, referent, resp } = await preparer();
 		const engins = await resp('Référent engins');

@@ -6,7 +6,7 @@ import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { ajouterRessource, refuser, reserver } from '../src/reservations.ts';
-import { anneePlanning, attribution, comite, equipe, grade, personne, profil, responsabilite, ressource } from '../src/schema.ts';
+import { anneePlanning, attribution, comite, equipe, grade, personne, profil, responsabilite, responsabiliteDroit, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 import { periodeParDefaut, reglerEte } from '../src/planning/ete.ts';
 import { eteAPreparer, proposerEte, publierEte } from '../src/planning/repartition.ts';
@@ -241,6 +241,22 @@ describe('accueilDe', () => {
 			permet: ['Gérer les comités.', 'Gérer les responsabilités.'],
 			aDecider: []
 		});
+	});
+
+	it('rôle : rien n’est dit des droits sans effet (motifs d’absence, annuaire)', async () => {
+		const { base, role, nouvelle, nommer } = await jeu();
+		const id = await nouvelle('Bruno');
+		const permet = async (r: number) => ((await accueilDe(base, acteur(id), `role:${r}`, aujourdhui, `${aujourdhui}T00:00`, centreExemple.astreinte)).contenu as { permet: string[] }).permet;
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: role('Référent engins'), droit: 'VOIR_MOTIFS_ABSENCE' });
+		await nommer(id, role('Référent engins'), { type: 'centre' });
+		expect(await permet(role('Référent engins'))).toEqual(['Gérer les engins et les anomalies.']);
+		const [seul] = await base.insert(responsabilite).values({ nom: 'Lecteur', nature: 'mission', typePerimetre: 'centre' }).returning();
+		await base.insert(responsabiliteDroit).values([
+			{ responsabiliteId: seul!.id, droit: 'VOIR_MOTIFS_ABSENCE' },
+			{ responsabiliteId: seul!.id, droit: 'VOIR_ANNUAIRE' }
+		]);
+		await nommer(id, seul!.id, { type: 'centre' });
+		expect(await permet(seul!.id)).toEqual([]);
 	});
 
 	it('comité : membres en cours avec leur rôle, sans les partis', async () => {

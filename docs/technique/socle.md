@@ -43,6 +43,8 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
 - Un **droit** (`GERER_ACCES`, `VOIR_PLANNING`…) est toujours accordé sur un **périmètre** : le centre, une équipe, un comité…
   Le centre couvre tous les périmètres ; sinon, il faut le même périmètre.
 - **Droits de pouvoir** (`DROITS_POUVOIR`, `estDroitPouvoir`) : `GERER_ACCES`, `ATTRIBUER_RESPONSABILITE`, `GERER_LISTES`, `GERER_COMITES`. Tous les autres sont des droits métier.
+- **Droits du centre** (`DROITS_DU_CENTRE`) : `GERER_ACCES`, `GERER_LISTES`, `GERER_COMITES`, lus seulement sur le centre. `creerResponsabilite` et `modifierResponsabilite` refusent (`DonneeInvalide('Droit réservé au centre')`) de les donner à une responsabilité d'équipe ou de comité : à la création, quand ils sont ajoutés, ou quand la portée change. Une responsabilité ancienne qui en porte déjà un sur une équipe reste modifiable pour le reste, sans correction silencieuse. Un profil ne donne aucun droit de pouvoir (`modifierDroitsProfil`). `ATTRIBUER_RESPONSABILITE` vaut sur toute portée (le rapporteur nomme dans son comité).
+- **Droits sans effet** (`DROITS_SANS_EFFET`, `estSansEffet`) : `VOIR_MOTIFS_ABSENCE`, `VOIR_ANNUAIRE`. Gardés dans `DROITS` pour les lignes existantes, ils ne servent nulle part : l'appli ne les montre ni ne les propose (paquets, détail droit par droit, « Ce que ce rôle permet ») ; le détail droit par droit garde ceux déjà là.
 - Une personne tient ses droits de deux sources :
   - son **profil** ;
   - ses **attributions en cours**, chacune sur le type de périmètre de sa responsabilité.

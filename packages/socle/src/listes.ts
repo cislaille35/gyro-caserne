@@ -44,6 +44,10 @@ export function estDroitPouvoir(d: Droit): boolean {
 // Nommer (ATTRIBUER_RESPONSABILITE) n'en est pas : le rapporteur nomme dans son comité.
 export const DROITS_DU_CENTRE = ['GERER_ACCES', 'GERER_LISTES', 'GERER_COMITES'] as const satisfies readonly Droit[];
 
+// Droits qui ne servent nulle part : gardés dans DROITS pour les lignes existantes (sans effet), jamais montrés ni proposés.
+export const DROITS_SANS_EFFET = ['VOIR_MOTIFS_ABSENCE', 'VOIR_ANNUAIRE'] as const satisfies readonly Droit[];
+export const estSansEffet = (d: Droit) => (DROITS_SANS_EFFET as readonly Droit[]).includes(d);
+
 export const TYPES_PERIMETRE = ['centre', 'equipe', 'comite', 'salon', 'ressource'] as const;
 export type TypePerimetre = (typeof TYPES_PERIMETRE)[number];
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { untrack } from 'svelte';
-	import { estDroitPouvoir, iconeDuRole, type Droit } from '@gyro-caserne/socle';
+	import { estDroitPouvoir, estSansEffet, iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { LIBELLES_DROIT } from '#lib/droits.ts';
 	import { ADMINISTRATION, appliquerNiveaux, DOMAINES, estPersonnalise, niveauxDe, type DomaineId } from '#lib/paquets.ts';
 	import BarreActions from '#lib/ui/BarreActions.svelte';
@@ -161,7 +161,7 @@
 	{@render retour('detail')}
 	{#if lectureSeule}
 		<ul class="detail">
-			{#each actuels as d (d)}<li>{LIBELLES_DROIT[d]}</li>{:else}<li>Aucun droit en plus de ceux de tout agent.</li>{/each}
+			{#each actuels.filter((d) => !estSansEffet(d)) as d (d)}<li>{LIBELLES_DROIT[d]}</li>{:else}<li>Aucun droit en plus de ceux de tout agent.</li>{/each}
 		</ul>
 	{:else}
 		<form method="POST" action="?/detail" class="formulaire-detail">

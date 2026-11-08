@@ -4,6 +4,7 @@ import {
 	DonneeInvalide,
 	DROITS,
 	estDroitPouvoir,
+	estSansEffet,
 	iconeDuRole,
 	listerResponsabilites,
 	MODELES,
@@ -46,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		modele: modele && { id: modele.id, nom: modele.nom, droits: modele.droits },
 		comitesChoix: await comitesChoix(base),
 		raison: raison(role),
-		droitsMetier: DROITS.filter((d) => !estDroitPouvoir(d)),
+		droitsMetier: DROITS.filter((d) => !estDroitPouvoir(d) && !estSansEffet(d)),
 		droitsPouvoir: DROITS.filter(estDroitPouvoir)
 	};
 };
@@ -152,8 +153,8 @@ export const actions: Actions = {
 		const cible = 'detail';
 		if (role.systeme !== null) return manque(cible, SYSTEME);
 		const envoyes = formulaire.getAll('droits').filter((d): d is string => typeof d === 'string');
-		// Une case désactivée n'est pas envoyée : on garde les droits verrouillés, et ceux de pouvoir si l'acteur ne le gère pas.
-		const gardes = role.droits.filter((d) => d.verrouille || (!pouvoir && estDroitPouvoir(d.droit as Droit))).map((d) => d.droit);
+		// Une case désactivée ou absente n'est pas envoyée : on garde les droits verrouillés, ceux de pouvoir si l'acteur ne le gère pas, et les droits sans effet.
+		const gardes = role.droits.filter((d) => d.verrouille || estSansEffet(d.droit as Droit) || (!pouvoir && estDroitPouvoir(d.droit as Droit))).map((d) => d.droit);
 		try {
 			await modifierResponsabilite(base, acteur, role.id, { droits: [...new Set([...envoyes, ...gardes])] as Droit[] }, aujourdhui);
 		} catch (erreur) {

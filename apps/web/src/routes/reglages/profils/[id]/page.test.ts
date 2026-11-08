@@ -21,4 +21,8 @@ describe('page d’un profil', () => {
 	it('annonce le succès', () => {
 		expect(html({ data, form: { cible: 'profil', succes: 'Le profil « Agent » est enregistré.' } })).toMatch(/role="status"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le profil « Agent »/);
 	});
+	it('ne parle pas des droits sans effet (annuaire, motifs d’absence)', () => {
+		const page = html({ data: { profil: { ...data.profil, droits: ['VOIR_PLANNING', 'VOIR_ANNUAIRE', 'VOIR_MOTIFS_ABSENCE'] } } });
+		expect(page).not.toMatch(/annuaire|motifs d’absence/);
+	});
 });

@@ -36,7 +36,7 @@ const comites = [
 	{ id: 2, nom: 'Amicale', theme: 'amicale', dissousLe: null, estCentre: false, membresEnCours: 0, rapporteurs: [] },
 	{ id: 3, nom: 'Sport', theme: 'sport', dissousLe: '2026-05-01', estCentre: false, membresEnCours: 0, rapporteurs: [] }
 ];
-const profils = [{ id: 1, nom: 'Agent', typePersonne: 'agent', droits: ['VOIR_PLANNING', 'VOIR_MOTIFS_ABSENCE'] }];
+const profils = [{ id: 1, nom: 'Agent', typePersonne: 'agent', droits: ['VOIR_PLANNING', 'VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'] }];
 const data = { peutPouvoir: true, responsabilites, comites, profils, comitesChoix: [] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
@@ -77,7 +77,8 @@ describe('page Réglages', () => {
 
 	it('profils avec leurs niveaux ; archivés et dissous à part', () => {
 		const page = html(Page, { data });
-		expect(groupe(page, 'Profils')).toMatch(/href="\/reglages\/profils\/1"[\s\S]*Planning et gardes : Voir les absences/);
+		expect(groupe(page, 'Profils')).toMatch(/href="\/reglages\/profils\/1"[\s\S]*Planning et gardes : Valider les remplacements/);
+		expect(page).not.toMatch(/motifs d’absence|Voir les absences/);
 		const archives = groupe(page, 'Archivés');
 		expect(archives).toContain('Ancien rôle');
 		expect(archives).toContain('Sport, comité dissous');

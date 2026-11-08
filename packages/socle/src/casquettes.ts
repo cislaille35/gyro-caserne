@@ -245,8 +245,7 @@ async function lireADecider(base: Base, aujourdhui: string, reglage?: Reglage): 
 const DOMAINES: [Droit, string][][] = [
 	[
 		['GERER_PLANNING', 'Gérer le planning.'],
-		['VALIDER_REMPLACEMENT', 'Valider les remplacements.'],
-		['VOIR_MOTIFS_ABSENCE', 'Voir les motifs d’absence.']
+		['VALIDER_REMPLACEMENT', 'Valider les remplacements.']
 	],
 	[
 		['TRAITER_ANOMALIE', 'Gérer les engins et les anomalies.'],
