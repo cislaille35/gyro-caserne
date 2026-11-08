@@ -23,7 +23,7 @@
 	const p = $derived(data.planning);
 	const m = $derived(data.maintenant);
 	const CALENDRIER = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
-	const action = $derived(p.peutPreparer ? { href: `/planning/preparer?annee=${p.annee}`, libelle: 'Préparer l’année', dessin: CALENDRIER } : undefined);
+	const action = $derived(p.peutPreparer ? { href: `/planning/preparer?annee=${p.annee}`, libelle: 'Préparer l’année', discrete: true, dessin: CALENDRIER } : undefined);
 	const equipe = (id: number) => (p.publiee ? p.equipes.find((e) => e.id === id) : undefined) ?? { id, nom: 'Équipe archivée', couleur: '#8a949e' };
 	const FETES = { noel: 'de Noël', nouvel_an: 'du Nouvel An' } as const;
 	const VUES = [

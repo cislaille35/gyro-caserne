@@ -152,7 +152,7 @@
 						<p>{e.etat === 'indisponible' ? `${e.nom} est déjà indisponible. Cette anomalie le bloquera aussi jusqu’à sa remise en service.` : `${e.nom} reste disponible tant que vous ne décidez pas du contraire.`}</p>
 						<form method="POST" use:enhance={soumettre}>
 							<input type="hidden" name="quoi" value="indisponible" />
-							<Bouton type="submit" desactive={envoi}>{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
+							<Bouton type="submit" variante="grave" desactive={envoi}>{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
 						</form>
 						{@render message('indisponible')}
 					{/if}
@@ -224,7 +224,7 @@
 					<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
 					<input id="texte-clore" name="texte" type="text" maxlength="300" />
 				</div>
-				<div><Bouton type="submit" desactive={envoi}>Clore</Bouton></div>
+				<div><Bouton type="submit" variante="grave" desactive={envoi}>Clore</Bouton></div>
 			{/if}
 			{@render message(panneau)}
 		</form>

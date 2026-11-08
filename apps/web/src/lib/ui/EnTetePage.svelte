@@ -19,7 +19,7 @@
 		tete?: Snippet;
 		retour?: { href: string; libelle: string };
 		secondaire?: Snippet;
-		action?: { href: string; libelle: string; dessin?: string };
+		action?: { href: string; libelle: string; dessin?: string; discrete?: boolean };
 	} = $props();
 </script>
 
@@ -36,7 +36,7 @@
 			<div class="actions">
 				{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
 				{#if action}
-					<a class="action" href={action.href}>
+					<a class="action" class:discrete={action.discrete} href={action.href}>
 						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
 							><path d={action.dessin ?? DESSINS.plus} /></svg
 						>
@@ -118,6 +118,19 @@
 		.action:hover {
 			background: var(--rouge-survol);
 			color: var(--sur-rouge);
+		}
+	}
+	/* Une action rare : le rouge reste à ce qu'on fait tous les jours. */
+	.action.discrete {
+		border: 1px solid var(--trait);
+		background: var(--surface);
+		color: var(--encre);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.action.discrete:hover {
+			background: var(--surface);
+			color: var(--encre);
+			border-color: var(--encre);
 		}
 	}
 	/* Le libellé se voit à toutes les tailles : le bouton dit ce qu'il fait. */

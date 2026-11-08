@@ -72,6 +72,8 @@
 								<div class="element">
 									<span class="libelle">{e.libelle}</span>
 									{#if e.quantite !== null}<span class="quantite">{e.quantite}<span class="masque">{' '}attendus</span></span>{/if}
+									<details open={pour(`element:${e.ref}`)?.message !== undefined}>
+										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 									<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 										<input type="hidden" name="element" value={e.ref} />
 										<input type="hidden" name="zone" value={z.ref} />
@@ -80,8 +82,6 @@
 										<button type="submit" class="rond" name="quoi" value="descendre_element" data-geste="descendre:{e.ref}" disabled={j === z.elements.length - 1}>{@render fleche(BAS)}<span class="masque">Descendre {e.libelle}</span></button>
 										<button type="submit" class="petit" name="quoi" value="retirer_element" data-geste="retirer:{e.ref}">Retirer<span class="masque">{' '}{e.libelle}</span></button>
 									</form>
-									<details open={pour(`element:${e.ref}`)?.message !== undefined}>
-										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 										<form method="POST" action="?/geste" use:enhance class="formulaire">
 											<input type="hidden" name="quoi" value="modifier_element" />
 											<input type="hidden" name="element" value={e.ref} />
@@ -98,6 +98,8 @@
 						{/each}
 					</ol>
 
+					<details class="plus" open={pour(`ajout:${z.ref}`) !== undefined}>
+						<summary>Ajouter un élément<span class="masque">{' '}à {z.nom}</span></summary>
 					<form method="POST" action="?/geste" use:enhance class="formulaire ajout">
 						<input type="hidden" name="quoi" value="ajouter_element" />
 						<input type="hidden" name="zone" value={z.ref} />
@@ -106,8 +108,11 @@
 						<Champ id="ajout-quantite-{z.ref}" name="quantite" type="number" libelle="Quantité attendue (facultative)" valeur={pour(`ajout:${z.ref}`)?.valeurs?.quantite ?? ''} />
 						<div><Bouton type="submit" variante="secondaire">Ajouter l’élément</Bouton></div>
 					</form>
+					</details>
 					{@render message(`ajout:${z.ref}`)}
 
+					<details class="plus" open={pour(`zone:${z.ref}`)?.message !== undefined || data.retirerZone === z.ref}>
+						<summary>Gérer la zone<span class="masque">{' '}{z.nom}</span></summary>
 					<div class="outils">
 						<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 							<input type="hidden" name="zone" value={z.ref} />
@@ -130,7 +135,7 @@
 								<input type="hidden" name="zone" value={z.ref} />
 								<p><strong>Retirer « {z.nom} »{z.elements.length ? ` et ses ${pluriel(z.elements.length, 'élément')}` : ''} ?</strong> Les prises passées les gardent.</p>
 								<div class="gestes">
-									<Bouton type="submit">Oui, retirer<span class="masque">{' '}la zone {z.nom}</span></Bouton>
+									<Bouton type="submit" variante="grave">Oui, retirer<span class="masque">{' '}la zone {z.nom}</span></Bouton>
 									<a class="petit" href="?">Annuler</a>
 								</div>
 								<input type="hidden" name="quoi" value="retirer_zone" />
@@ -140,6 +145,7 @@
 						{/if}
 						{@render message(`zone:${z.ref}`)}
 					</div>
+					</details>
 				</div>
 			</Groupe>
 		{/each}

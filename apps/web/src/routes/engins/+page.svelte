@@ -35,7 +35,7 @@
 	<EnTetePage
 		titre="Engins"
 		retour={{ href: '/caserne', libelle: 'Caserne' }}
-		action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin', dessin: DESSINS.plus } : undefined}
+		action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin', dessin: DESSINS.plus, discrete: true } : undefined}
 	/>
 
 	<div class="colonnes">

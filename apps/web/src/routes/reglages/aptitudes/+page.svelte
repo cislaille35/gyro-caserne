@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Pastille from '#lib/ui/Pastille.svelte';
 	import { enhance } from '$app/forms';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
@@ -19,22 +20,29 @@
 	<div role="status" class="masque">{form?.succes ?? ''}</div>
 	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
 
-	<ul class="liste" role="list">
+	<ul class="pile" role="list">
 		{#each data.aptitudes as a (a.id)}
 			{@const cible = `aptitude:${a.id}`}
-			<li class="rangee">
-				<form method="POST" action="?/enregistrer" use:enhance class="compacte">
-					<input type="hidden" name="id" value={a.id} />
-					<label class="masque" for="nom-{a.id}">Nom de l’aptitude {a.nom}</label>
-					<input id="nom-{a.id}" class="nom" name="nom" required maxlength="20" value={pour(cible)?.valeurs?.nom ?? a.nom} aria-invalid={erreurNom(cible) ? 'true' : undefined} aria-describedby={erreurNom(cible) ? `erreur-${a.id}` : undefined} />
-					<label class="case"><input type="checkbox" name="controlee" value="oui" checked={a.controlee} /> Contrôlée<span class="masque"> en remplacement : {a.nom}</span></label>
-					<span class="gestes">
-						<button type="submit" class="petit">Enregistrer<span class="masque"> {a.nom}</span></button>
-						<button type="submit" class="petit" formaction="?/retirer">Retirer<span class="masque"> {a.nom}</span></button>
-					</span>
-				</form>
-				{#if erreurNom(cible)}<p id="erreur-{a.id}" class="echec" role="alert">{erreurNom(cible)}</p>{/if}
-				{#if pour(cible)?.message}<p class="echec" role="alert">{pour(cible)?.message}</p>{/if}
+			<li>
+				<details class="aptitude" open={erreurNom(cible) !== undefined || pour(cible)?.message !== undefined}>
+					<summary>
+						<strong>{a.nom}</strong>
+						{#if a.controlee}<Pastille ton="info">Contrôlée</Pastille>{/if}
+						<span class="modifier">Modifier<span class="masque"> {a.nom}</span></span>
+					</summary>
+					<form method="POST" action="?/enregistrer" use:enhance class="compacte">
+						<input type="hidden" name="id" value={a.id} />
+						<label class="masque" for="nom-{a.id}">Nom de l’aptitude {a.nom}</label>
+						<input id="nom-{a.id}" class="nom" name="nom" required maxlength="20" value={pour(cible)?.valeurs?.nom ?? a.nom} aria-invalid={erreurNom(cible) ? 'true' : undefined} aria-describedby={erreurNom(cible) ? `erreur-${a.id}` : undefined} />
+						<label class="case"><input type="checkbox" name="controlee" value="oui" checked={a.controlee} /> Contrôlée<span class="masque"> en remplacement : {a.nom}</span></label>
+						<span class="gestes">
+							<button type="submit" class="petit">Enregistrer<span class="masque"> {a.nom}</span></button>
+							<button type="submit" class="petit retirer" formaction="?/retirer">Retirer<span class="masque"> {a.nom}</span></button>
+						</span>
+					</form>
+					{#if erreurNom(cible)}<p id="erreur-{a.id}" class="echec" role="alert">{erreurNom(cible)}</p>{/if}
+					{#if pour(cible)?.message}<p class="echec" role="alert">{pour(cible)?.message}</p>{/if}
+				</details>
 			</li>
 		{/each}
 	</ul>
@@ -51,6 +59,35 @@
 </div>
 
 <style>
+	.aptitude summary {
+		min-height: var(--cible);
+		display: flex;
+		align-items: center;
+		gap: var(--espace-8);
+		padding: var(--espace-8) var(--espace-16);
+		list-style: none;
+		cursor: pointer;
+	}
+	.aptitude summary::-webkit-details-marker {
+		display: none;
+	}
+	.aptitude summary:focus-visible {
+		outline-offset: -3px;
+	}
+	.modifier {
+		margin-left: auto;
+		color: var(--doux);
+		font-size: var(--texte-14);
+		text-decoration: underline;
+	}
+	.aptitude[open] .compacte,
+	.aptitude[open] .echec {
+		margin: 0 var(--espace-16) var(--espace-12);
+	}
+	.retirer {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
 	.page {
 		display: flex;
 		flex-direction: column;
@@ -63,23 +100,6 @@
 	}
 	h2 {
 		font: 700 var(--texte-20) var(--police-titre);
-	}
-	.liste {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: flex;
-		flex-direction: column;
-		background: var(--surface);
-		border: 1px solid transparent;
-		box-shadow: var(--ombre-carte);
-		border-radius: var(--rayon-grand);
-	}
-	.rangee {
-		padding: var(--espace-12) var(--espace-16);
-	}
-	.rangee + .rangee {
-		border-top: 1px solid var(--trait-doux);
 	}
 	.compacte {
 		display: flex;

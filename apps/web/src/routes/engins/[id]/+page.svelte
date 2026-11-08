@@ -64,10 +64,13 @@
 				<a class="bouton" href="/engins/anomalies?engin={e.id}">Anomalies de l’engin</a>
 			</div>
 			{#if data.gere}
-				<div class="gestes">
+				<details class="plus">
+					<summary>Gérer l’engin</summary>
+					<div class="gestes">
 					<a class="bouton" href="/engins/{e.id}/modifier">Modifier l’engin</a>
 					<a class="bouton" href="/engins/fiches/{e.typeId}">Modifier la fiche {e.type}</a>
-				</div>
+					</div>
+				</details>
 			{/if}
 		</section>
 

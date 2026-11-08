@@ -401,7 +401,7 @@
 				<form method="POST" action="?/abandonner" use:enhance class="formulaire">
 					<input type="hidden" name="prise" value={p.id} />
 					<p>Le brouillon et ses photos seront effacés.</p>
-					<div><Bouton type="submit" variante="secondaire">Oui, abandonner</Bouton></div>
+					<div><Bouton type="submit" variante="grave">Oui, abandonner</Bouton></div>
 				</form>
 				{@render message('abandonner')}
 			</details>

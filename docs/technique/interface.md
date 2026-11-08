@@ -137,7 +137,7 @@ Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-message
 
 Dans `src/lib/ui/` :
 
-- `Bouton` : `principal` (à-plat rouge, sans contour ni halo) ou `secondaire` (contour fin, comme `.lien-secondaire`), 44 px de haut au moins, rectangle arrondi (`--rayon-bouton`) ; `onclick` facultatif pour un bouton hors formulaire.
+- `Bouton` : `principal` (à-plat rouge, sans contour ni halo, pour l'action courante de l'écran), `secondaire` (contour fin, comme `.lien-secondaire`) ou `grave` (contour et texte d'alerte, pour ce qui est difficile à défaire, avec un libellé sans ambiguïté), 44 px de haut au moins, rectangle arrondi (`--rayon-bouton`) ; `onclick` facultatif pour un bouton hors formulaire.
 - `.segments` (classe de `app.css`, pas un composant) : bloc de choix arrondi, un fond (`--segment-fond`), l'option choisie en encre pleine et en gras ; options en liens (`aria-current`) ou en boutons à bascule (`aria-pressed`, avec la coche). Vues du Planning, casquettes, « Murs » | « Messages », onglets des remplacements, réponses Présent / Absent / Incertain (accueil, publication, manœuvre du Planning).
 - `Champ` : libellé toujours visible, message d'erreur relié au champ ; `lignes` : une zone de texte de cette hauteur (demande d'habillement, réponses).
 - `ChoixRadio` : choix unique en boutons radio natifs, sans liste déroulante ; `pastilles`, `tuiles` (précision en dessous) ou `rangees`. Utilisé par Publier, Signaler, l'écart de prise de garde, Affichage, les formulaires d'engin et de manœuvre, le motif d'une anomalie.
@@ -154,6 +154,8 @@ Dans `src/lib/ui/` :
 - `Tableau` : défile dans sa boîte sur petit écran, avec une légende.
 - `Vide` : message « rien à afficher », avec Gyro.
 - `Casquettes` : la rangée de casquettes de l'accueil.
+- `.plus` (classe de `app.css`, sur un `<details>`) : ce qui est rare, rangé sous un bouton écrit (« Plus » d'une publication, « Gérer la zone », « Gérer l'engin »), avec ou sans JavaScript.
+- `EnTetePage` : `action` en rouge pour ce qu'on fait souvent, `discrete: true` pour une action rare (« Préparer l'année », « Ajouter un engin »).
 - `.pile` (classe de `app.css`) : des sections qui se suivent (zones, domaines, rôles, jours) forment une seule carte, séparées par un trait fin.
 - `Groupe` : bloc repliable (fermé par défaut, `bind:ouvert`), `couleur` en carré à côté du titre ; le titre (`niveauTitre` 2 ou 3) est un bouton `aria-expanded`, le contenu est `hidden` quand il est fermé (ses champs restent dans le formulaire).
 - `Pastille` : petit badge de texte, `ton` `ok`, `info`, `alerte`, `danger` ou `neutre`.

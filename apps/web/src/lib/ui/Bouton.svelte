@@ -7,7 +7,7 @@
 		desactive = false,
 		onclick,
 		children
-	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire'; desactive?: boolean; onclick?: () => void; children: Snippet } = $props();
+	}: { type?: 'button' | 'submit'; variante?: 'principal' | 'secondaire' | 'grave'; desactive?: boolean; onclick?: () => void; children: Snippet } = $props();
 </script>
 
 <button {type} class={variante} disabled={desactive} {onclick}>{@render children()}</button>
@@ -29,6 +29,13 @@
 	button:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+	/* Une action difficile à défaire : un contour et un texte d'alerte, et un libellé sans ambiguïté. */
+	.grave {
+		background: var(--surface);
+		color: var(--accent);
+		border: 1px solid var(--accent);
+		font-weight: 600;
 	}
 	.secondaire {
 		background: var(--surface);

@@ -384,6 +384,41 @@ body {
 .pile > * + * {
 	border-top: 1px solid var(--trait-doux) !important;
 }
+/* Ce qui est rare, rangé : un bouton écrit qui déplie ses gestes, avec ou sans JavaScript. */
+.plus > summary {
+	min-height: var(--cible);
+	width: fit-content;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--espace-8);
+	padding: 0 var(--espace-16);
+	border: 1px solid var(--trait);
+	border-radius: var(--rayon-bouton);
+	background: var(--surface);
+	color: var(--encre);
+	font-weight: 600;
+	list-style: none;
+	cursor: pointer;
+}
+.plus > summary::-webkit-details-marker {
+	display: none;
+}
+.plus > summary::after {
+	content: '';
+	width: 7px;
+	height: 7px;
+	margin-top: -3px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+}
+.plus[open] > summary {
+	margin-bottom: var(--espace-12);
+}
+.plus[open] > summary::after {
+	margin-top: 3px;
+	transform: rotate(225deg);
+}
 /* Lien secondaire arrondi (« Fichier », « Comité », « Tout afficher ») : un contour, pas la couleur de l'action principale. */
 .lien-secondaire {
 	min-height: 48px;

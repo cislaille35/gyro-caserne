@@ -326,4 +326,33 @@ describe('direction B', () => {
 	it('les cases d’équipes d’une manœuvre restent un groupe nommé', () => {
 		expect(source('lib/planning/FormulaireManoeuvre.svelte')).toMatch(/<fieldset class="equipes">\s*<legend class="masque">/);
 	});
+
+	// Hiérarchie des actions (lot 4).
+	it('une action grave se distingue : variante du bouton, avec un mot sans ambiguïté', () => {
+		expect(source('lib/ui/Bouton.svelte')).toMatch(/\.grave \{[^}]*color: var\(--accent\);[^}]*border: 1px solid var\(--accent\);/);
+		for (const [f, motif] of [
+			['routes/reglages/comites/[id]/+page.svelte', /<Bouton type="submit" variante="grave">Dissoudre le comité<\/Bouton>/],
+			['lib/ui/Publication.svelte', /<Bouton type="submit" variante="grave">Confirmer la suppression<\/Bouton>/],
+			['routes/engins/anomalies/[id]/+page.svelte', /<Bouton type="submit" variante="grave"[^>]*>\{e\.etat === 'indisponible'/]
+		] as const) expect(source(f), f).toMatch(motif);
+	});
+
+	it('une action rare d’en-tête n’est pas rouge', () => {
+		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.action\.discrete \{[^}]*background: var\(--surface\);[^}]*color: var\(--encre\);/);
+		for (const f of ['routes/planning/+page.svelte', 'routes/reglages/+page.svelte', 'routes/engins/+page.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toMatch(/discrete: true/);
+	});
+
+	it('ce qui est rare se range sous « Plus », utilisable sans JavaScript', () => {
+		expect(source('app.css')).toMatch(/\.plus > summary \{[^}]*min-height: var\(--cible\);/);
+		const p = source('lib/ui/Publication.svelte');
+		expect(p).toMatch(/<details class="plus[^"]*">\s*<summary>Plus<span class="masque">/);
+		const plus = p.slice(p.indexOf('<details class="plus'));
+		for (const geste of ['Voir le suivi', 'Répondre en privé', 'fermerCommentaires', 'epingler', 'Modifier', 'Supprimer']) expect(plus, geste).toContain(geste);
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="plus"[^>]*>\s*<summary>Gérer la zone/);
+		expect(source('routes/engins/[id]/+page.svelte')).toMatch(/<details class="plus">\s*<summary>Gérer l’engin/);
+	});
+
+	it('une aptitude ne montre pas tous ses boutons d’un coup : ses gestes s’ouvrent', () => {
+		expect(source('routes/reglages/aptitudes/+page.svelte')).toMatch(/<details[^>]*>\s*<summary[^>]*>[\s\S]*?Modifier/);
+	});
 });

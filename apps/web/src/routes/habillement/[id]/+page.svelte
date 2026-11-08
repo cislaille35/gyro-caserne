@@ -175,7 +175,7 @@
 				<div><Bouton type="submit" desactive={envoi}>Enregistrer</Bouton></div>
 			{:else if panneau === 'annuler'}
 				<p>Le référent habillement en sera prévenu s’il la suit déjà. Une demande annulée ne se rouvre pas.</p>
-				<div><Bouton type="submit" desactive={envoi}>Oui, annuler ma demande</Bouton></div>
+				<div><Bouton type="submit" variante="grave" desactive={envoi}>Oui, annuler ma demande</Bouton></div>
 				{@render erreur('annuler')}
 			{:else}
 				<ChoixRadio id="recuperation" name="recuperation" legende="Où la récupérer ?" options={RECUPERATIONS} bind:valeur={recuperation} disposition="rangees" requis />
