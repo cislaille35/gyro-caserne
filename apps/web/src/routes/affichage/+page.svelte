@@ -50,7 +50,6 @@
 	.page {
 		max-width: 40rem;
 	}
-	/* Chaque choix est une rangée ; la choisie a un contour épais, en plus du bouton radio coché. */
 	[role='status'] p {
 		margin: 0;
 		padding: var(--espace-12) var(--espace-16);

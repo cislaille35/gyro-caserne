@@ -478,7 +478,7 @@
 	.tuile:focus-visible {
 		outline-offset: -3px;
 	}
-	/* Le mur affiché : fond, liseré et nom en gras, pas la couleur seule. */
+	/* Le mur affiché : fond et nom en gras, pas la couleur seule. */
 	.tuile[aria-current='page'] {
 		background: var(--statut-neutre-fond);
 	}

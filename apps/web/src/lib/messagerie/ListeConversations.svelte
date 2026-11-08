@@ -116,6 +116,9 @@
 	.conversation[aria-current='page'] {
 		background: var(--statut-neutre-fond);
 	}
+	.conversation[aria-current='page'] .nom {
+		font-weight: 700;
+	}
 	.groupe {
 		flex: none;
 		border-radius: 50%;

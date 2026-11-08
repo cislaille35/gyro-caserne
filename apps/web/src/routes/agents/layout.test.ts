@@ -109,7 +109,7 @@ describe('/agents : les colonnes', () => {
 	const hors = (cle: string, titre: string) => ({ cle, titre, equipe: null, personnes: [{ id: 90 + titre.length, prenom: 'Test', nom: titre, grade: null, roles: [] }] });
 	const colonnes = (mise: string) => {
 		const bloc = mise.slice(mise.indexOf('class="colonnes'));
-		return { equipes: bloc.slice(0, bloc.indexOf('class="pile')), pile: bloc.slice(bloc.indexOf('class="pile')) };
+		return { equipes: bloc.slice(0, bloc.indexOf('class="hors-equipes')), pile: bloc.slice(bloc.indexOf('class="hors-equipes')) };
 	};
 
 	it('de 2 à 6 équipes : une colonne chacune, dans l’ordre ; les autres groupes ensemble dans une dernière colonne', () => {
@@ -123,7 +123,7 @@ describe('/agents : les colonnes', () => {
 	});
 
 	it('sans autre groupe : pas de colonne vide', () => {
-		expect(html(Layout, { data: { gestion: false, groupes: [equipe(1)] }, children: enfants })).not.toContain('class="pile');
+		expect(html(Layout, { data: { gestion: false, groupes: [equipe(1)] }, children: enfants })).not.toContain('class="hors-equipes');
 	});
 
 	it('une fiche ouverte : la liste passe à côté d’elle', () => {

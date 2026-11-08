@@ -275,7 +275,7 @@ describe('Groupe', () => {
 	it('action facultative à côté du titre, hors du bouton', () => {
 		const action = createRawSnippet(() => ({ render: () => '<a href="/nominations">Nommer</a>' }));
 		const page = html(Groupe, { ...base, action });
-		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
+		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<div class="geste[^"]*">(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
 		expect(page.match(/<button[\s\S]*?<\/button>/)![0]).not.toContain('Nommer');
 	});
 

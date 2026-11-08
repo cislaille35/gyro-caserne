@@ -346,12 +346,6 @@
 		flex-direction: column;
 		gap: var(--espace-12);
 	}
-	.choix {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--espace-8);
-		min-height: var(--cible);
-	}
 	.champ {
 		display: flex;
 		flex-direction: column;

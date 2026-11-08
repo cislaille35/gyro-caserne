@@ -41,11 +41,13 @@
 			</div>
 			<Champ id="theme" name="theme" libelle="Thème" requis maxlength={100} aide="Par exemple « Feux de forêt » ou « Sport + SAP »." valeur={saisi('theme', m?.theme ?? '')} />
 			<Champ id="lieu" name="lieu" libelle="Lieu" requis maxlength={200} valeur={saisi('lieu', m?.lieu ?? 'Caserne')} />
-			<ChoixRadio id="pour" legende="Équipes convoquées" name="pour" disposition="rangees" bind:valeur={pour} options={[{ valeur: 'tous', libelle: 'Tout le centre' }, { valeur: 'equipes', libelle: 'Certaines équipes' }]} />				<div class="equipes">
+			<ChoixRadio id="pour" legende="Équipes convoquées" name="pour" disposition="rangees" bind:valeur={pour} options={[{ valeur: 'tous', libelle: 'Tout le centre' }, { valeur: 'equipes', libelle: 'Certaines équipes' }]} />
+			<fieldset class="equipes">
+				<legend class="masque">Les équipes convoquées</legend>
 					{#each equipes as e (e.id)}
 						<label class="case"><input type="checkbox" name="equipes" value={e.id} checked={cochee(e.id)} onchange={(ev) => ev.currentTarget.checked && (pour = 'equipes')} /> {e.nom}</label>
 					{/each}
-				</div>
+				</fieldset>
 			<label class="case"><input type="checkbox" name="petitDejeuner" value="oui" checked={petitDejeuner} /> Petit-déjeuner (un sondage demande qui en prend, jusqu’au vendredi d’avant)</label>
 			<Bouton type="submit">{m ? 'Enregistrer' : 'Ajouter la manœuvre'}</Bouton>
 		</form>
@@ -91,6 +93,11 @@
 		.deux {
 			grid-template-columns: 1fr 1fr;
 		}
+	}
+	fieldset.equipes {
+		margin: 0;
+		border: 0;
+		min-width: 0;
 	}
 	.equipes {
 		display: flex;

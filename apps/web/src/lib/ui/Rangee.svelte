@@ -102,7 +102,7 @@
 	a.rangee:focus-visible {
 		outline-offset: -3px;
 	}
-	/* La page affichée : fond, liseré et titre en gras, pas la couleur seule. */
+	/* La page affichée : fond et titre en gras, pas la couleur seule. */
 	a.rangee[aria-current='page'] {
 		background: var(--statut-neutre-fond);
 	}

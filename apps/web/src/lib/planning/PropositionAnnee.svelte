@@ -152,6 +152,9 @@
 		border-radius: 2px;
 		background: var(--equipe);
 	}
+	.equipes li > span {
+		margin-right: auto;
+	}
 	.equipes li {
 		display: flex;
 		flex-wrap: wrap;

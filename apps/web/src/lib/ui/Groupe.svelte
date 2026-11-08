@@ -47,6 +47,9 @@
 	.geste {
 		padding: 0 var(--espace-16) var(--espace-8);
 	}
+	.geste:empty {
+		display: none;
+	}
 	.carre {
 		flex: none;
 		width: 12px;

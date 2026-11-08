@@ -140,7 +140,7 @@
 	}
 	/* Jour passé : sur le fond de la page, sans baisser le contraste. */
 	.jour.passe {
-		background: transparent;
+		color: var(--doux);
 	}
 	.entete-jour {
 		display: flex;

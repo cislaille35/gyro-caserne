@@ -313,4 +313,17 @@ describe('direction B', () => {
 		expect(s).toMatch(/\.ligne \{[^}]*flex-wrap: wrap;/);
 		expect(s).toMatch(/\.entete \{[^}]*flex: 1 1 11rem;/);
 	});
+
+	it('dans une pile, le repère du clavier reste entier et chaque état garde son signe', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.repli summary:focus-visible \{\s*outline-offset: -3px;/);
+		expect(style('lib/messagerie/ListeConversations.svelte')).toMatch(/\.conversation\[aria-current='page'\] \.nom \{\s*font-weight: 700;/);
+		expect(style('routes/reservations/[id]/+page.svelte')).toMatch(/\.jour\.passe \{\s*color: var\(--doux\);/);
+		expect(style('lib/engins/FormulaireEngin.svelte')).toMatch(/\.echec \{[^}]*border: 2px solid var\(--accent\);/);
+		// « .pile » est la carte commune : aucun écran n'en fait autre chose.
+		expect(style('routes/agents/+layout.svelte')).not.toMatch(/\.pile\b/);
+	});
+
+	it('les cases d’équipes d’une manœuvre restent un groupe nommé', () => {
+		expect(source('lib/planning/FormulaireManoeuvre.svelte')).toMatch(/<fieldset class="equipes">\s*<legend class="masque">/);
+	});
 });

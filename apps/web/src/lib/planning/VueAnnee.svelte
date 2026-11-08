@@ -126,6 +126,10 @@
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
+	/* La carte coupe ce qui dépasse : le repère du clavier reste à l'intérieur. */
+	.repli summary:focus-visible {
+		outline-offset: -3px;
+	}
 	.repli summary {
 		min-height: 52px;
 		padding: var(--espace-6) var(--espace-16);
