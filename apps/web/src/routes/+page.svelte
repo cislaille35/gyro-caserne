@@ -46,7 +46,9 @@
 	const gerer: { href: string; titre: string; icone: NomIcone }[] = $derived([
 		{ href: '/agents', titre: 'Agents', icone: 'casque' },
 		...(data.peutNominations ? [{ href: '/nominations', titre: 'Nominations', icone: 'etoile' as const }] : []),
-		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', icone: 'outil' as const }] : [])
+		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', icone: 'outil' as const }] : []),
+		// Sans référent habillement nommé, le chef et l'adjoint traitent les demandes.
+		...(data.contenu.type === 'centre' && data.contenu.habillement ? [{ href: '/habillement/toutes', titre: 'Habillement', icone: 'veste' as const }] : [])
 	]);
 	// Ce qui attend une décision passe avant tout le reste, sur toutes les casquettes.
 	const enTete = $derived(data.contenu.type === 'astreinte' ? [] : data.contenu.aDecider);
@@ -164,6 +166,11 @@
 							<li><Rangee titre="Ce rôle n’ajoute rien à ce que fait tout agent." /></li>
 						{/each}
 					</ListeRangees>
+					{#if data.contenu.liens?.length}
+						<ListeRangees titre="Raccourcis">
+							{#each data.contenu.liens as l (l.lien)}<li><Rangee href={l.lien} titre={l.texte} /></li>{/each}
+						</ListeRangees>
+					{/if}
 				{:else if data.contenu.type === 'comite'}
 					<ListeRangees titre="Membres" compte={data.contenu.membres.length}>
 						{#each data.contenu.membres as membre (membre.personneId)}

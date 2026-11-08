@@ -8,6 +8,7 @@ import type { Reglage } from './planning/calendrier.ts';
 import { vueEte } from './planning/ete.ts';
 import { plagesARevoir } from './planning/repartition.ts';
 import { anomaliesADecider, traiteLesAnomalies } from './anomalies.ts';
+import { gestionnaires, habillementADecider, lectureATraiter, lecturesGestionnaires } from './habillement.ts';
 import { prisesEnRetard } from './prises.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { remplacementsAValider } from './remplacements/lectures.ts';
@@ -17,10 +18,10 @@ import { anneePlanning, attribution, comite, equipe, ete, personne, plageEte, pr
 export type Casquette = { id: string; nom: string; icone: NomIcone; compte: number };
 export type ADecider = { texte: string; lien: string };
 export type ContenuCasquette =
-	| { type: 'centre'; aDecider: ADecider[] }
+	| { type: 'centre'; aDecider: ADecider[]; habillement?: true }
 	| { type: 'astreinte' }
 	| { type: 'equipe'; aDecider: ADecider[] }
-	| { type: 'role'; permet: string[]; aDecider: ADecider[] }
+	| { type: 'role'; permet: string[]; aDecider: ADecider[]; liens?: ADecider[] }
 	| { type: 'comite'; membres: { personneId: number; prenom: string; nom: string; role: string }[]; aDecider: ADecider[] };
 export type Accueil = { casquettes: Casquette[]; choisie: string; contenu: ContenuCasquette };
 
@@ -47,15 +48,17 @@ export function tenuesValides<L extends { type: string; portee: string }>(lignes
 	return lignes.filter((l) => l.type === l.portee);
 }
 
-// Les casquettes tenues, sans leur compte : une seule requête.
-async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<Omit<Casquette, 'compte'>[]> {
+// Les casquettes tenues, sans leur compte, et l'habillement à traiter (lu dans le même batch : pas de requête de plus). Une seule requête.
+async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ liste: Omit<Casquette, 'compte'>[]; habillement: Map<string, ADecider[]>; sansReferent: boolean }> {
 	const centre = { id: 'centre', nom: 'Le centre', icone: 'etoile' as const };
-	if (acteur.type === 'super') return [centre];
+	if (acteur.type === 'super') return { liste: [centre], habillement: new Map(), sansReferent: false };
 
-	const [lignes, equipes, comites] = await base.batch([
+	const [lignes, equipes, comites, aTraiter, ...gerent] = await base.batch([
 		requeteTenues(base, acteur.id, aujourdhui),
 		base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.active, 1)).orderBy(asc(equipe.ordreRotation)),
-		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom))
+		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom)),
+		lectureATraiter(base),
+		...lecturesGestionnaires(base)
 	]);
 	const valides = tenuesValides(lignes);
 	const tient = (garde: (l: (typeof valides)[number]) => boolean) => valides.some(garde);
@@ -63,7 +66,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 	const referents = new Map<number, { nom: string; icone: NomIcone }>();
 	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, { nom: l.nom, icone: iconeDuRole(l) });
 
-	return [
+	const liste: Omit<Casquette, 'compte'>[] = [
 		...(tient((l) => l.systeme === 'chef_centre' || l.systeme === 'chef_centre_adjoint') ? [centre] : []),
 		...equipes
 			.filter((e) => tient((l) => l.systeme === 'chef_equipe' && l.perimetreId === e.id))
@@ -72,13 +75,22 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<O
 		...[...referents].map(([id, r]) => ({ id: `role:${id}`, ...r })).sort(parNom),
 		...comites.filter((c) => tient((l) => l.type === 'comite' && l.perimetreId === c.id)).map((c) => ({ id: `comite:${c.id}`, nom: c.nom, icone: 'groupe' as const }))
 	];
+
+	// L'habillement : dans la casquette de chaque rôle de référent habillement tenu ; à défaut, dans « Le centre » (le chef et l'adjoint
+	// reçoivent les nouvelles s'il n'y a aucun référent, et toujours celles qu'ils ont prises eux-mêmes).
+	const g = gestionnaires(gerent as Parameters<typeof gestionnaires>[0], aujourdhui);
+	const habillement = new Map<string, ADecider[]>();
+	const miens = [...new Set(g.roles.filter((r) => r.personneId === acteur.id).map((r) => `role:${r.roleId}`))].filter((cle) => liste.some((c) => c.id === cle));
+	for (const cle of miens) habillement.set(cle, habillementADecider(aTraiter, acteur.id, true));
+	if (liste.some((c) => c.id === 'centre') && g.chefs.includes(acteur.id) && !miens.length) habillement.set('centre', habillementADecider(aTraiter, acteur.id, g.referents.length === 0));
+	return { liste, habillement, sansReferent: g.referents.length === 0 };
 }
 
 // Les casquettes et ce qui est à décider : pour « Le centre », l'organisation ; pour un rôle ou un comité qui gère une ressource,
 // les demandes de réservation en attente. Chaque lecture une seule fois.
 // Les remplacements à valider vont à la casquette Chef de garde de leur équipe, sinon à « Le centre ».
-async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string, reglage?: Reglage): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]> }> {
-	const liste = await tenues(base, acteur, aujourdhui);
+async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: string, reglage?: Reglage): Promise<{ casquettes: Casquette[]; aDecider: ADecider[] | null; reservations: Map<string, ADecider[]>; sansReferent: boolean }> {
+	const { liste, habillement, sansReferent } = await tenues(base, acteur, aujourdhui);
 	const chef = liste.some((c) => c.id === 'centre' || c.id.startsWith('equipe:'));
 	const roles = liste.filter((c) => c.id.startsWith('role:')).map((c) => Number(c.id.slice(5)));
 	const [organisation, reservations, remplacements, retard, anomalies] = await Promise.all([
@@ -89,7 +101,8 @@ async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: 
 		// Les anomalies, pour ceux qui les traitent : « Le centre », le chef de garde de l'équipe d'astreinte, le référent engins.
 		reglage && (chef || roles.length) && (await traiteLesAnomalies(base, acteur, aujourdhui)) ? anomaliesADecider(base, maintenant, reglage, roles) : null
 	]);
-	const versCentre: ADecider[] = [];
+	const versCentre: ADecider[] = [...(habillement.get('centre') ?? [])];
+	for (const [cle, items] of habillement) if (cle !== 'centre' && items.length) reservations.set(cle, [...(reservations.get(cle) ?? []), ...items]);
 	if (anomalies && anomalies.items.length) {
 		if (liste.some((c) => c.id === 'centre')) versCentre.push(...anomalies.items);
 		for (const cle of [`equipe:${anomalies.equipeId}`, ...anomalies.roles.map((r) => `role:${r}`)])
@@ -109,7 +122,7 @@ async function lire(base: Base, acteur: Acteur, aujourdhui: string, maintenant: 
 		else versCentre.push(item);
 	}
 	const aDecider = organisation === null ? null : [...versCentre, ...organisation];
-	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : (reservations.get(c.id)?.length ?? 0) })), aDecider, reservations };
+	return { casquettes: liste.map((c) => ({ ...c, compte: c.id === 'centre' ? aDecider!.length : (reservations.get(c.id)?.length ?? 0) })), aDecider, reservations, sansReferent };
 }
 
 // Les demandes de réservation en attente des ressources gérées par les rôles et comités tenus ; aucune lecture s'il n'y en a pas.
@@ -167,9 +180,9 @@ export async function aDecider(base: Base, acteur: Acteur, aujourdhui: string, r
 
 // L'accueil : la casquette demandée si elle est tenue, sinon celle où quelque chose attend, sinon la principale (la première).
 export async function accueilDe(base: Base, acteur: Acteur, demandee: string | null, aujourdhui: string, maintenant: string, reglage: Reglage): Promise<Accueil> {
-	const { casquettes, aDecider, reservations } = await lire(base, acteur, aujourdhui, maintenant, reglage);
+	const { casquettes, aDecider, reservations, sansReferent } = await lire(base, acteur, aujourdhui, maintenant, reglage);
 	const choisie = (casquettes.find((c) => c.id === demandee) ?? casquettes.find((c) => c.compte > 0) ?? casquettes[0]!).id;
-	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui) };
+	return { casquettes, choisie, contenu: await contenu(base, choisie, aDecider, reservations.get(choisie) ?? [], aujourdhui, sansReferent && acteur.type === 'personne') };
 }
 
 async function lireADecider(base: Base, aujourdhui: string, reglage?: Reglage): Promise<ADecider[]> {
@@ -240,6 +253,7 @@ const DOMAINES: [Droit, string][][] = [
 		['GERER_FICHES', 'Gérer les engins et les anomalies.']
 	],
 	[['GERER_STOCK', 'Gérer le stock et la pharmacie.']],
+	[['GERER_HABILLEMENT', 'Gérer les demandes d’habillement.']],
 	[
 		['GERER_RESERVATIONS', 'Gérer les réservations.'],
 		['RESERVER', 'Réserver.']
@@ -253,8 +267,9 @@ const DOMAINES: [Droit, string][][] = [
 ];
 
 // Le contenu d'une casquette déjà vérifiée comme tenue.
-async function contenu(base: Base, id: string, aDecider: ADecider[] | null, reservations: ADecider[], aujourdhui: string): Promise<ContenuCasquette> {
-	if (id === 'centre') return { type: 'centre', aDecider: aDecider! };
+// `habillement` : aucun référent habillement nommé ; « Le centre » mène alors à toutes les demandes.
+async function contenu(base: Base, id: string, aDecider: ADecider[] | null, reservations: ADecider[], aujourdhui: string, habillement: boolean): Promise<ContenuCasquette> {
+	if (id === 'centre') return { type: 'centre', aDecider: aDecider!, ...(habillement ? { habillement: true as const } : {}) };
 	if (id === 'astreinte') return { type: 'astreinte' };
 	const [type, numero] = id.split(':') as ['equipe' | 'role' | 'comite', string];
 	if (type === 'equipe') return { type: 'equipe', aDecider: reservations };
@@ -262,7 +277,9 @@ async function contenu(base: Base, id: string, aDecider: ADecider[] | null, rese
 	if (type === 'role') {
 		const droits = (await base.select({ droit: responsabiliteDroit.droit }).from(responsabiliteDroit).where(eq(responsabiliteDroit.responsabiliteId, Number(numero)))).map((d) => d.droit);
 		const permet = DOMAINES.flatMap((niveaux) => niveaux.find(([droit]) => droits.includes(droit))?.[1] ?? []);
-		return { type: 'role', permet, aDecider: reservations };
+		// Un rôle qui gère l'habillement mène à toutes les demandes.
+		const liens = droits.includes('GERER_HABILLEMENT') ? [{ texte: 'Toutes les demandes d’habillement', lien: '/habillement/toutes' }] : [];
+		return { type: 'role', permet, aDecider: reservations, ...(liens.length ? { liens } : {}) };
 	}
 
 	const lignes = await base

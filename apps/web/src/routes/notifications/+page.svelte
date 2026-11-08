@@ -7,6 +7,7 @@
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
@@ -174,9 +175,9 @@
 							</span>
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
-					{:else if l.type === 'anomalie'}
+					{:else if l.type === 'anomalie' || l.type === 'habillement'}
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, l.url)}>
-							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={l.type === 'habillement' ? ICONES_ROLES.veste : ICONES_ROLES.outil} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
 								<span class="extrait">{l.texte}</span>

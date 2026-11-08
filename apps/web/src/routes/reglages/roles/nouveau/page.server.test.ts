@@ -21,7 +21,7 @@ describe('nouveau rôle', () => {
 		const { base, referent, chef } = await preparer();
 		const data = await charger(load, locaux(base, referent));
 		expect(data.choisi).toBeNull();
-		expect(data.modeles.map((m: { id: string }) => m.id)).toEqual(['referent_materiel', 'referent_pharmacie', 'referent_technique', 'membre_comite', 'rapporteur_comite', 'vierge']);
+		expect(data.modeles.map((m: { id: string }) => m.id)).toEqual(['referent_materiel', 'referent_pharmacie', 'referent_habillement', 'referent_technique', 'membre_comite', 'rapporteur_comite', 'vierge']);
 		expect(data.modeles.filter((m: { reserve: boolean }) => m.reserve).map((m: { id: string }) => m.id)).toEqual(['referent_technique', 'rapporteur_comite']);
 		expect((await charger(load, locaux(base, chef))).modeles.some((m: { reserve: boolean }) => m.reserve)).toBe(false);
 	});

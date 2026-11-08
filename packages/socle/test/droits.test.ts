@@ -213,7 +213,7 @@ describe('droitsDe', () => {
 	it('donne tous les droits sur le centre au super administrateur', async () => {
 		const { base } = await jeuDeDonnees();
 		const droits = await droitsDe(base, { type: 'super', email: 'a@b.fr' }, aujourdhui);
-		expect(droits).toHaveLength(28);
+		expect(droits).toHaveLength(29);
 		expect(droits.every((d) => d.perimetre.type === 'centre')).toBe(true);
 	});
 });

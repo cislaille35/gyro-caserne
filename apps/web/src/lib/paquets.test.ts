@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { DROITS, MODELES, type Droit } from '@gyro-caserne/socle';
 import { ADMINISTRATION, appliquerNiveaux, DOMAINES, estPersonnalise, niveauxDe } from './paquets.ts';
 
-const CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE'];
+const CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'GERER_HABILLEMENT', 'MODERER_MESSAGERIE'];
 const AGENT: Droit[] = ['VOIR_PLANNING', 'VOIR_ANNUAIRE', 'VOIR_ENGINS', 'VOIR_ANOMALIES', 'SIGNALER_ANOMALIE', 'SIGNALER_BESOIN_STOCK', 'DEMANDER_REMPLACEMENT', 'DECLARER_DISPONIBILITE', 'UTILISER_MESSAGERIE', 'FAIRE_PRISE_DE_GARDE', 'PRENDRE_EN_CHARGE_ANOMALIE'];
-const RIEN = { planning: 0, engins: 0, stock: 0, reservations: 0, messagerie: 0 };
+const RIEN = { planning: 0, engins: 0, stock: 0, habillement: 0, reservations: 0, messagerie: 0 };
 
 describe('DOMAINES', () => {
 	it('reprend le tableau de la spec, niveaux cumulatifs', () => {
@@ -22,6 +22,7 @@ describe('DOMAINES', () => {
 			],
 			['engins', 'Engins et anomalies', [['Rien de plus', []], ['Gérer', ['TRAITER_ANOMALIE', 'GERER_FICHES']]]],
 			['stock', 'Stock et pharmacie', [['Rien de plus', []], ['Gérer', ['GERER_STOCK']]]],
+			['habillement', 'Habillement', [['Rien de plus', []], ['Gérer', ['GERER_HABILLEMENT']]]],
 			['reservations', 'Réservations', [['Rien', []], ['Réserver', ['RESERVER']], ['Gérer', ['RESERVER', 'GERER_RESERVATIONS']]]],
 			['messagerie', 'Messagerie', [['Rien de plus', []], ['Modérer', ['MODERER_MESSAGERIE']]]]
 		]);
@@ -41,10 +42,11 @@ describe('niveauxDe', () => {
 		expect(niveauxDe(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'])).toEqual({ ...RIEN, planning: 2 });
 		expect(niveauxDe(['TRAITER_ANOMALIE', 'GERER_FICHES'])).toEqual({ ...RIEN, engins: 1 });
 		expect(niveauxDe(['GERER_STOCK'])).toEqual({ ...RIEN, stock: 1 });
+		expect(niveauxDe(['GERER_HABILLEMENT'])).toEqual({ ...RIEN, habillement: 1 });
 		expect(niveauxDe(['GERER_LISTES', 'GERER_COMITES'])).toEqual(RIEN);
 		expect(niveauxDe(['ATTRIBUER_RESPONSABILITE'])).toEqual(RIEN);
 		expect(niveauxDe([])).toEqual(RIEN);
-		expect(niveauxDe(CHEF_CENTRE)).toEqual({ planning: 'sur_mesure', engins: 1, stock: 1, reservations: 0, messagerie: 1 });
+		expect(niveauxDe(CHEF_CENTRE)).toEqual({ planning: 'sur_mesure', engins: 1, stock: 1, habillement: 1, reservations: 0, messagerie: 1 });
 		expect(niveauxDe(AGENT)).toEqual(RIEN);
 	});
 

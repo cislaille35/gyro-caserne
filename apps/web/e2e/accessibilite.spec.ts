@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/comites', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/comites', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1', '/habillement']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -110,6 +110,29 @@ for (const theme of ['auto', 'sombre']) {
 				await expect(page.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
 				await page.evaluate(() => document.querySelectorAll('details').forEach((d) => (d.open = true)));
 				await sansViolation(page);
+			});
+
+			test('demander une tenue puis son suivi, sans violation', async ({ page }) => {
+				await page.goto('/habillement');
+				await page.waitForLoadState('networkidle');
+				await page.getByLabel('Votre demande').fill(`Veste textile en L ${nouvelleMarque()}`);
+				await page.getByRole('button', { name: 'Envoyer la demande' }).click();
+				await expect(page).toHaveURL(/\/habillement\/\d+\?envoyee$/);
+				await expect(page.getByRole('heading', { level: 2, name: 'Suivi' })).toBeVisible();
+				await sansViolation(page);
+				await page.getByLabel('Ajouter une précision').fill('Plutôt longue');
+				await page.getByRole('button', { name: 'Envoyer', exact: true }).click();
+				await expect(page.getByText('Plutôt longue')).toBeVisible();
+				await sansViolation(page);
+			});
+
+			test('habillement, super administrateur : toutes les demandes et une demande, sans violation', async ({ browser }) => {
+				const gestion = await pageSuper(browser, theme);
+				await sansViolation(gestion, '/habillement/toutes');
+				await gestion.getByRole('link', { name: /Veste textile en L, la mienne est déchirée/ }).first().click();
+				await expect(gestion.getByRole('heading', { level: 2, name: 'Le fil' })).toBeVisible();
+				await sansViolation(gestion);
+				await gestion.context().close();
 			});
 
 			test('publier, sondage ouvert, sans violation', async ({ page }) => {
@@ -680,6 +703,16 @@ test.describe('échanges', () => {
 		await suivi.locator('summary', { hasText: 'Qui a pris connaissance' }).click();
 		await expect(suivi.getByText('Test Fictif', { exact: true })).toBeVisible();
 		await gestion.context().close();
+	});
+
+	test('habillement, référente fictive : sa casquette, puis une demande et le panneau « Traiter », sans violation', async ({ browser }) => {
+		const page = await pageAgent(browser, 'chloe.durand@exemple.fr');
+		await sansViolation(page, '/');
+		await expect(page.getByRole('heading', { name: 'Raccourcis' })).toBeVisible();
+		await page.goto('/habillement/1?panneau=traiter');
+		await expect(page.getByRole('dialog', { name: 'Traiter la demande' })).toBeVisible();
+		await sansViolation(page);
+		await page.context().close();
 	});
 
 	test('événement convoquant l’équipe 1 : un agent de l’équipe 1 répond depuis l’accueil, un agent de l’équipe 2 ne le voit pas', async ({ browser }) => {

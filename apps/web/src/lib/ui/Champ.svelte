@@ -9,7 +9,8 @@
 		aide,
 		autocomplete,
 		requis = false,
-		maxlength
+		maxlength,
+		lignes
 	}: {
 		id: string;
 		libelle: string;
@@ -21,6 +22,8 @@
 		autocomplete?: AutoFill;
 		requis?: boolean;
 		maxlength?: number;
+		// Plusieurs lignes : une zone de texte de cette hauteur.
+		lignes?: number;
 	} = $props();
 
 	const idAide = $derived(`${id}-aide`);
@@ -31,6 +34,9 @@
 <div class="champ">
 	<label for={id}>{libelle}</label>
 	{#if aide}<p id={idAide} class="aide">{aide}</p>{/if}
+	{#if lignes}
+		<textarea {id} {name} required={requis} {maxlength} rows={lignes} bind:value={valeur} aria-invalid={erreur ? 'true' : undefined} aria-describedby={decrit}></textarea>
+	{:else}
 	<input
 		{id}
 		{name}
@@ -42,6 +48,7 @@
 		aria-invalid={erreur ? 'true' : undefined}
 		aria-describedby={decrit}
 	/>
+	{/if}
 	{#if erreur}<p id={idErreur} class="erreur">{erreur}</p>{/if}
 </div>
 
@@ -54,7 +61,8 @@
 	label {
 		font-weight: 600;
 	}
-	input {
+	input,
+	textarea {
 		min-height: var(--cible);
 		padding: 0 14px;
 		border: 2px solid var(--doux);
@@ -63,7 +71,12 @@
 		color: var(--encre);
 		font: 400 1rem var(--police);
 	}
-	input[aria-invalid='true'] {
+	textarea {
+		padding: 10px 14px;
+		resize: vertical;
+		line-height: 1.4;
+	}
+	:is(input, textarea)[aria-invalid='true'] {
 		border-color: var(--accent);
 	}
 	p {

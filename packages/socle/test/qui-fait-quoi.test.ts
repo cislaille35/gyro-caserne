@@ -126,6 +126,7 @@ describe('quiFaitQuoi', () => {
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
 		expect(vue.referents.map((r) => [r.nom, r.titulaires])).toEqual([
 			['Référent engins', []],
+			['Référent habillement', []],
 			['Référent pharmacie', ['Alice Bernard']],
 			['Référent technique', []]
 		]);

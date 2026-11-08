@@ -38,6 +38,8 @@ Format d'une page :
 - [Comment marquer mes notifications comme lues ?](marquer-les-notifications-lues.md)
 - [Comment réserver la VL ou du matériel de l'amicale ?](reserver-la-vl-ou-du-materiel.md)
 - [Comment accepter ou refuser une demande de réservation ?](valider-une-reservation.md)
+- [Comment demander une tenue ?](demander-une-tenue.md)
+- [Comment traiter une demande d'habillement ?](traiter-une-demande-d-habillement.md)
 - [Comment me faire remplacer ?](me-faire-remplacer.md)
 - [Comment accepter ou refuser un remplacement ?](repondre-a-une-demande-de-remplacement.md)
 - [Comment valider un remplacement ?](valider-un-remplacement.md)

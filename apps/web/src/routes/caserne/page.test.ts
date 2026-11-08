@@ -39,6 +39,11 @@ describe('/caserne', () => {
 		expect(page).not.toContain('href="/reglages"');
 	});
 
+	it('« Habillement » pour un agent du centre ; pas pour le compte de la réserve citoyenne', () => {
+		expect(html({ comites: true })).toMatch(lien('/habillement', 'Habillement'));
+		expect(html({ comites: false })).not.toContain('href="/habillement"');
+	});
+
 	it('chef de centre : « Agents », « Nominations » et « Réglages »', () => {
 		const page = html({ peutNominations: true, peutReglages: true });
 		expect(page).toMatch(lien('/agents', 'Agents'));

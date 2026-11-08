@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { AVIS_ETE, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, ETAPES_ANOMALIE, ETATS_PRISE, GENRES_DEMANDE, GENRES_ECART, MOTIFS_ATTENTE, SUIVIS_ANOMALIE, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
+import { AVIS_ETE, ETAPES_HABILLEMENT, FIL_HABILLEMENT, ISSUES_HABILLEMENT, AVIS_REMPLACEMENT, AVIS_RESERVATION, checkDans, ETATS_DEMANDE, ETATS_ENGIN, ETAPES_ANOMALIE, ETATS_PRISE, GENRES_DEMANDE, GENRES_ECART, MOTIFS_ATTENTE, SUIVIS_ANOMALIE, SITUATIONS_ENGIN, DROITS, ETATS_RESERVATION, FETES, FORMES_RESSOURCE, NATURES_RESPONSABILITE, REACTIONS, REPONSES_EVENEMENT, RESPONSABILITES_SYSTEME, STATUTS_OPERATIONNELS, SUPPRESSIONS_MESSAGE, TYPES_CONVERSATION, TYPES_PERIMETRE, TYPES_PERSONNE, TYPES_PHOTO, TYPES_PUBLICATION } from './listes.ts';
 
 export const profil = sqliteTable(
 	'profil',
@@ -928,6 +928,68 @@ export const avisAnomalie = sqliteTable(
 		lueLe: text('lue_le')
 	},
 	(t) => [index('avis_anomalie_personne').on(t.personneId, t.lueLe)]
+);
+
+// Habillement : une demande de tenue, en texte libre. `prisePar` : le référent qui s'en occupe ; `livraison` : où la récupérer ;
+// `finLe` : refusée, livrée ou annulée (la conservation compte de là).
+export const demandeHabillement = sqliteTable(
+	'demande_habillement',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		demandeurId: integer('demandeur_id')
+			.notNull()
+			.references(() => personne.id),
+		texte: text('texte').notNull(),
+		etape: text('etape', { enum: ETAPES_HABILLEMENT }).notNull().default('demandee'),
+		issue: text('issue', { enum: ISSUES_HABILLEMENT }),
+		prisePar: integer('prise_par').references(() => personne.id),
+		livraison: text('livraison'),
+		creeLe: text('cree_le').notNull(),
+		majLe: text('maj_le').notNull(),
+		finLe: text('fin_le')
+	},
+	(t) => [
+		index('demande_habillement_demandeur').on(t.demandeurId),
+		index('demande_habillement_etape').on(t.etape),
+		index('demande_habillement_fin').on(t.finLe),
+		check('demande_habillement_etape', checkDans('etape', ETAPES_HABILLEMENT)),
+		check('demande_habillement_issue', sql`${sql.identifier('issue')} IS NULL OR ${checkDans('issue', ISSUES_HABILLEMENT)}`)
+	]
+);
+
+// Le fil d'une demande : questions, réponses et précisions, changements d'étape, reprises ; dans l'ordre.
+export const filHabillement = sqliteTable(
+	'fil_habillement',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		demandeId: integer('demande_id')
+			.notNull()
+			.references(() => demandeHabillement.id),
+		quoi: text('quoi', { enum: FIL_HABILLEMENT }).notNull(),
+		texte: text('texte'),
+		par: integer('par')
+			.notNull()
+			.references(() => personne.id),
+		le: text('le').notNull(),
+		// Propre à chaque envoi : reconnaît sa ligne (deux gestes au même instant : un seul s'écrit).
+		jeton: text('jeton')
+	},
+	(t) => [index('fil_habillement_demande').on(t.demandeId), check('fil_habillement_quoi', checkDans('quoi', FIL_HABILLEMENT))]
+);
+
+// La cloche de l'habillement : nouvelle demande, question, réponse, changement d'étape.
+export const avisHabillement = sqliteTable(
+	'avis_habillement',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		titre: text('titre').notNull(),
+		texte: text('texte').notNull(),
+		url: text('url').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [index('avis_habillement_personne').on(t.personneId, t.lueLe)]
 );
 
 // Tables de connexion (Better Auth), dans la même base.

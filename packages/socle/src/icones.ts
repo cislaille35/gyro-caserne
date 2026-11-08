@@ -1,7 +1,7 @@
 import { MODELES } from './modeles.ts';
 
 // Icônes des rôles : les tracés sont dans l'appli (icones-roles.ts), mêmes noms.
-export const NOMS_ICONES = ['etoile', 'casque', 'camion', 'croix', 'cle', 'ballon', 'livre', 'groupe', 'coeur', 'outil'] as const;
+export const NOMS_ICONES = ['etoile', 'casque', 'camion', 'croix', 'cle', 'ballon', 'livre', 'groupe', 'coeur', 'outil', 'veste'] as const;
 export type NomIcone = (typeof NOMS_ICONES)[number];
 
 // Une seule règle partout : l'icône choisie, sinon celle du modèle, sinon d'après le nom, sinon celle du thème (la portée).
@@ -13,6 +13,7 @@ export function iconeDuRole(r: { nom: string; icone: string | null; modele: stri
 	if (n.includes('engin')) return 'camion';
 	if (n.includes('pharmacie')) return 'croix';
 	if (n.includes('technique')) return 'cle';
+	if (n.includes('habillement')) return 'veste';
 	if (r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint') return 'etoile';
 	return r.portee === 'equipe' ? 'casque' : r.portee === 'comite' ? 'groupe' : 'outil';
 }

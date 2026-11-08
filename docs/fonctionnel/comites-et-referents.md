@@ -15,7 +15,7 @@ Savoir à qui s'adresser : qui est dans quel comité, qui est référent de quoi
 **Référents et rôles**, rangés comme dans Réglages :
 - « Chef de centre et adjoint » ;
 - « Chefs de garde », une ligne par équipe active ;
-- « Référents » (pharmacie, engins, technique…), chacun avec son icône.
+- « Référents » (pharmacie, engins, habillement, technique…), chacun avec son icône.
 
 Chaque rôle montre ses titulaires du jour, ou « Personne pour l'instant ». Les droits techniques ne sont pas affichés.
 

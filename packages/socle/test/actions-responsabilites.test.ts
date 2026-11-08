@@ -374,8 +374,10 @@ describe('modèles et icônes', () => {
 		expect(await base.select().from(responsabilite)).toHaveLength(avant);
 	});
 
-	it('les responsabilités du jeu de départ n’ont ni modèle ni icône', async () => {
+	it('les responsabilités du jeu de départ n’ont ni icône ni modèle, sauf le référent habillement (son modèle)', async () => {
 		const { base, chef } = await jeu();
-		expect((await listerResponsabilites(base, chef, aujourdhui)).every((r) => r.modele === null && r.icone === null)).toBe(true);
+		const liste = await listerResponsabilites(base, chef, aujourdhui);
+		expect(liste.every((r) => r.icone === null)).toBe(true);
+		expect(liste.filter((r) => r.modele !== null).map((r) => [r.nom, r.modele])).toEqual([['Référent habillement', 'referent_habillement']]);
 	});
 });

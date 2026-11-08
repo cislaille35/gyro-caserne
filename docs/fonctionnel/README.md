@@ -17,6 +17,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Anomalies | [anomalies.md](anomalies.md) |
 | Stocks | [stocks.md](stocks.md) |
 | Réservations | [reservations.md](reservations.md) |
+| Habillement | [habillement.md](habillement.md) |
 | Murs (salons) | [salons.md](salons.md) |
 | Messagerie | [messagerie.md](messagerie.md) |
 | Notifications | [notifications.md](notifications.md) |
@@ -34,6 +35,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 - **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; les vues « Semaine », « Mois », « Année » et « Équipes », la plaque d'astreinte de l'accueil ; abonnement d'agenda (avec les remplacements) ; manœuvres annoncées toutes seules sur « Le centre ».
 - **Planning d'été** : vacances des agents (Moi → Mes vacances), proposition qui arme le FPT, tableau de l'été à ajuster puis publier ; règles d'armement réglables ; fichier du planning (exporter l'année, importer avec aperçu) ; le rôle « Chef d'équipe » devient « Chef de garde ».
 - **Engins et fiches** (Caserne → Engins, lot A de la prise de garde) : les engins du centre (au centre, prêté par un autre centre, parti) et leur état ; une fiche de prise de garde par type d'engin (VSAV, FPT, VTU au départ), rangée par zone, avec quantité attendue, versionnée ; l'éditeur de fiche et le fichier des fiches (export, import avec aperçu). La prise de garde au téléphone (lot B) : brouillon partagé, écarts avec photo, participants, historique, retard signalé au chef de garde. Les anomalies (lot C) : suivi par étapes, signalement direct avec photo, indisponibilité décidée et remise en service, bandeau d'avertissement, cloche, « À décider ».
+- **Habillement** (Caserne → Habillement) : demandes de tenue en texte libre, suivies jusqu'à la livraison par le référent habillement (ou le chef et l'adjoint), avec fil, cloche et « À décider ».
 - **Remplacements et échanges** : demander un remplaçant, échanger avec un collègue ou une place à une manœuvre, validation par le chef de garde.
 - **Messagerie** (Échanges → Messages) : conversations à deux et groupes, notifications au téléphone.
 - **Notifications** : la cloche et le téléphone, réglables dans Moi → Notifications.

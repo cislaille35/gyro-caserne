@@ -25,7 +25,7 @@ describe('Coquille', () => {
 	});
 
 	it('les pages dont l’ouverture marque des notifications lues : la cloche est relue après elles seulement', () => {
-		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes']) expect(marqueDesLues(route), route).toBe(true);
+		for (const route of ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes', '/habillement/[id]']) expect(marqueDesLues(route), route).toBe(true);
 		for (const route of ['/', '/planning', '/notifications', '/echanges/messages/[id]', '/engins/[id]', '/reservations', null]) expect(marqueDesLues(route), String(route)).toBe(false);
 	});
 
@@ -160,6 +160,7 @@ describe('rubriqueDe', () => {
 		expect(rubriqueDe('/')).toBe('/');
 		expect(rubriqueDe('/planning')).toBe('/planning');
 		expect(rubriqueDe('/agents')).toBe('/caserne');
+		expect(rubriqueDe('/habillement/3')).toBe('/caserne');
 		expect(rubriqueDe('/agents/12')).toBe('/caserne');
 		expect(rubriqueDe('/nominations')).toBe('/caserne');
 		expect(rubriqueDe('/comites')).toBe('/caserne');

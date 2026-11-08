@@ -111,6 +111,14 @@ describe('Champ', () => {
 		const refs = page.match(/aria-describedby="([^"]+)"/)![1].split(' ');
 		expect(refs).toHaveLength(2);
 	});
+
+	it('sur plusieurs lignes : une zone de texte, mêmes liens (libellé, aide, obligatoire, longueur)', () => {
+		const page = html(Champ, { ...base, lignes: 4, aide: 'Quelle pièce ?', requis: true, maxlength: 500 });
+		expect(page).not.toContain('<input');
+		expect(page).toMatch(/<textarea[^>]*id="email"[^>]*name="email"[^>]*required[^>]*maxlength="500"[^>]*rows="4"/);
+		const ref = page.match(/aria-describedby="([^"]+)"/)![1];
+		expect(page).toMatch(new RegExp(`id="${ref}"[^>]*>[^<]*Quelle pièce \\?`));
+	});
 });
 
 describe('PastilleMur', () => {
@@ -313,8 +321,8 @@ describe('IconeRole', () => {
 		expect(page).toContain(`d="${ICONES_ROLES[icone as keyof typeof ICONES_ROLES]}"`);
 		expect(page).toContain(`--icone-${icone}-fond`);
 	});
-	it('a les dix icônes des rôles', () => {
-		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil']);
+	it('a les onze icônes des rôles', () => {
+		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil', 'veste']);
 	});
 });
 

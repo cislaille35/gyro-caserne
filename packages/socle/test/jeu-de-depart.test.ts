@@ -70,7 +70,7 @@ describe('chargerJeuDeDepart', () => {
 		await chargerJeuDeDepart(base, centreExemple);
 		const [comiteCentre] = await base.select().from(comite).where(eq(comite.nom, 'Comité du centre'));
 		const idCentre = comiteCentre!.id;
-		const droitsChefCentre: [string, number][] = [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['MODERER_MESSAGERIE', 1]];
+		const droitsChefCentre: [string, number][] = [['GERER_LISTES', 1], ['GERER_ACCES', 1], ['GERER_COMITES', 1], ['GERER_PLANNING', 1], ['ATTRIBUER_RESPONSABILITE', 1], ['TRAITER_ANOMALIE', 1], ['GERER_FICHES', 1], ['GERER_STOCK', 1], ['GERER_HABILLEMENT', 1], ['MODERER_MESSAGERIE', 1]];
 		const attendu: [string, string, string | null, string, number | null, [string, number][]][] = [
 			['Chef de centre', 'fonction', 'chef_centre', 'centre', null, droitsChefCentre],
 			['Chef de centre adjoint', 'fonction', 'chef_centre_adjoint', 'centre', null, droitsChefCentre],
@@ -79,6 +79,7 @@ describe('chargerJeuDeDepart', () => {
 			['Rapporteur de comité', 'mission', null, 'comite', null, [['ATTRIBUER_RESPONSABILITE', 0]]],
 			['Référent engins', 'mission', null, 'centre', idCentre, [['TRAITER_ANOMALIE', 0], ['GERER_FICHES', 0]]],
 			['Référent pharmacie', 'mission', null, 'centre', idCentre, [['GERER_STOCK', 0]]],
+			['Référent habillement', 'mission', null, 'centre', idCentre, [['GERER_HABILLEMENT', 0]]],
 			['Référent technique', 'fonction', null, 'centre', null, [['GERER_LISTES', 0], ['GERER_COMITES', 0]]]
 		];
 		const responsabilites = await base.select().from(responsabilite).orderBy(responsabilite.id);
@@ -97,7 +98,7 @@ describe('chargerJeuDeDepart', () => {
 		expect(await base.select().from(equipe)).toHaveLength(4);
 		expect(await base.select().from(profil)).toHaveLength(2);
 		expect(await base.select().from(comite)).toHaveLength(2);
-		expect(await base.select().from(responsabilite)).toHaveLength(8);
+		expect(await base.select().from(responsabilite)).toHaveLength(9);
 		expect(await base.select().from(grade)).toHaveLength(11);
 		expect(await base.select().from(typeEngin)).toHaveLength(3);
 		expect(await base.select().from(ficheElement)).toHaveLength(72);

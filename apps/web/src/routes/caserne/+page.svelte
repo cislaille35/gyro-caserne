@@ -18,7 +18,9 @@
 	const materiel: Lien[] = $derived([
 		...(data.engins === null ? [] : [{ href: '/engins', titre: 'Engins', texte: 'Leur état et leur fiche de prise de garde', valeur: data.engins === undefined ? undefined : pluriel(data.engins, 'engin') }]),
 		...(data.anomalies === null || data.anomalies === undefined ? [] : [{ href: '/engins/anomalies', titre: 'Anomalies', texte: 'Ce qui est signalé sur les engins, jusqu’à la réparation', valeur: data.anomalies ? pluriel(data.anomalies, 'ouverte', 'ouvertes') : 'Aucune ouverte' }]),
-		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale' }
+		{ href: '/reservations', titre: 'Réservations', texte: 'La VL et le matériel de l’amicale' },
+		// Comme « Comités et référents » : pour les agents du centre, pas pour le compte de la réserve citoyenne.
+		...(data.comites ? [{ href: '/habillement', titre: 'Habillement', texte: 'Demander une tenue, suivre ses demandes' }] : [])
 	]);
 </script>
 
