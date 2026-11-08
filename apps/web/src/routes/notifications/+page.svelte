@@ -247,14 +247,18 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.ligne:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	.ligne:focus-visible {
 		outline-offset: -3px;
 	}
-	.ligne:hover .quoi {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover .quoi {
+			text-decoration: underline;
+		}
 	}
 	/* Non lue : titre en gras, point, et « Non lu » écrit pour les lecteurs d'écran ; jamais la couleur seule. */
 	.non-lue .quoi {
@@ -395,12 +399,16 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	a.danger:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		a.danger:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
-	a.secondaire:hover {
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		a.secondaire:hover {
+			color: var(--encre);
+		}
 	}
 	.confirmer-ici {
 		padding: var(--espace-12) var(--espace-16);

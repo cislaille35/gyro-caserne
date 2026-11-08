@@ -104,6 +104,10 @@ describe('gestes au doigt', () => {
 		expect(SEUIL_REPONSE).toBe(56);
 		expect(glissementRepond(55)).toBe(false);
 		expect(glissementRepond(56)).toBe(true);
+		// Un geste vif suffit, même court ; un petit mouvement rapide reste sans effet.
+		expect(glissementRepond(30, 100)).toBe(true);
+		expect(glissementRepond(30, 1000)).toBe(false);
+		expect(glissementRepond(8, 10)).toBe(false);
 	});
 });
 

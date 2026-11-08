@@ -101,8 +101,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.semaine:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.semaine:hover {
+			border-color: var(--encre);
+		}
 	}
 	.semaine[aria-current='true'] {
 		border: 2px solid var(--encre);
@@ -159,8 +161,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.raccourcis a:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.raccourcis a:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* Téléphone : une rangée par jour, large à toucher. Ordinateur : la bande de 7 jours côte à côte. Même contenu. */
 	.jours {

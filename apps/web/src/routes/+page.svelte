@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { arreterApres, DUREE_ACCUEIL } from '#lib/gyro/mouvement.ts';
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
@@ -28,6 +30,9 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
+	// Le décor météo bouge à l'arrivée, puis s'arrête, comme Gyro.
+	let meteoAnimee = $state(true);
+	onMount(() => arreterApres(DUREE_ACCUEIL, () => (meteoAnimee = false)));
 	const vigilance = $derived(data.meteo.vigilance);
 	const bandeau = $derived(vigilance?.etat === 'ok' && vigilance.niveau >= 3 ? vigilance : null);
 	const discrete = $derived(vigilance && !bandeau ? vigilance : null);
@@ -111,7 +116,7 @@
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={soleilCouche(new Date(), centre.position)} />{/if}
+		{#if ambiance && affichage.niveau === 'vivant'}<MeteoAnim {ambiance} anime={meteoAnimee} nuit={soleilCouche(new Date(), centre.position)} />{/if}
 		<div class="devant">
 			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyroAccueil : undefined} />
 		</div>
@@ -308,8 +313,10 @@
 	.autres summary:focus-visible {
 		outline-offset: -3px;
 	}
-	.autres summary:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.autres summary:hover {
+			text-decoration: underline;
+		}
 	}
 	.autres summary::-webkit-details-marker {
 		display: none;
@@ -363,9 +370,11 @@
 		text-decoration: none;
 		overflow-wrap: anywhere;
 	}
-	.grille-gestes a:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.grille-gestes a:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+			text-decoration: underline;
+		}
 	}
 	.grille-gestes a:focus-visible {
 		outline-offset: -3px;

@@ -438,8 +438,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	a.qui:hover h1 {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.qui:hover h1 {
+			text-decoration: underline;
+		}
 	}
 	.icone {
 		flex: none;
@@ -535,7 +537,7 @@
 		transition: none;
 	}
 	.rangee {
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.rangee :global(.menu) {
 		left: 0;
@@ -561,13 +563,19 @@
 	.gestes[hidden] {
 		display: none;
 	}
-	.rangee:hover .gestes,
 	.gestes:focus-visible,
 	.gestes[aria-expanded='true'] {
 		opacity: 1;
 	}
-	.gestes:hover {
-		background: var(--trait-doux);
+	@media (hover: hover) and (pointer: fine) {
+		.rangee:hover .gestes {
+			opacity: 1;
+		}
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.gestes:hover {
+			background: var(--trait-doux);
+		}
 	}
 	/* Au doigt, l'appui long ouvre le menu : le bouton n'apparaît qu'au clavier ou au lecteur d'écran. */
 	@media (hover: none) {

@@ -108,15 +108,19 @@
 		border-radius: 0;
 		background: none;
 	}
-	.ligne:has(.etire:hover) {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:has(.etire:hover) {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	a.etire {
 		color: inherit;
 		text-decoration: none;
 	}
-	a.etire:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.etire:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Le lien du titre couvre toute la demande ; son repère du clavier aussi. */
 	.etire::after {

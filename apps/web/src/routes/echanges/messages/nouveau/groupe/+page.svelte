@@ -154,8 +154,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.annuler:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.annuler:hover {
+			text-decoration: underline;
+		}
 	}
 	h1 {
 		grid-column: 2;
@@ -229,8 +231,10 @@
 		gap: var(--espace-12);
 		cursor: pointer;
 	}
-	.ligne:hover {
-		background: var(--surface);
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: var(--surface);
+		}
 	}
 	.ligne:has(input:focus-visible) {
 		outline: 3px solid var(--focus);

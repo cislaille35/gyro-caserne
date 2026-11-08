@@ -117,9 +117,11 @@
 		text-align: left;
 		cursor: pointer;
 	}
-	.reaction:hover,
-	.geste:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.reaction:hover,
+		.geste:hover {
+			background: var(--fond);
+		}
 	}
 	.danger {
 		color: var(--statut-danger-texte);

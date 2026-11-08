@@ -65,9 +65,11 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.crayon:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.crayon:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
 
 	/* À l'ordinateur : le crayon prend place à côté du titre, rien ne flotte. */

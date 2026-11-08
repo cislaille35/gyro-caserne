@@ -283,8 +283,10 @@
 		border-radius: 50%;
 		color: var(--encre);
 	}
-	.retour:hover {
-		background: var(--trait-doux);
+	@media (hover: hover) and (pointer: fine) {
+		.retour:hover {
+			background: var(--trait-doux);
+		}
 	}
 	.titre-barre {
 		font-weight: 600;
@@ -334,8 +336,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.pilule:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.pilule:hover {
+			background: var(--fond);
+		}
 	}
 	.prive {
 		margin: var(--espace-4) 0 0;
@@ -385,9 +389,11 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.ajouter:hover,
-	.lien:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.ajouter:hover,
+		.lien:hover {
+			background: var(--fond);
+		}
 	}
 	.plus {
 		flex: none;
@@ -444,10 +450,15 @@
 	.points[hidden] {
 		display: none;
 	}
-	.points:hover,
 	.points[aria-expanded='true'] {
 		background: var(--fond);
 		color: var(--encre);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.points:hover {
+			background: var(--fond);
+			color: var(--encre);
+		}
 	}
 	.actions :global(.menu) {
 		right: 0;
@@ -467,8 +478,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.quitter:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.quitter:hover {
+			background: var(--fond);
+		}
 	}
 	.confirmer-ici {
 		padding: var(--espace-8) var(--espace-16) var(--espace-12);

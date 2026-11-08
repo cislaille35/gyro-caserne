@@ -219,8 +219,10 @@
 		font-style: italic;
 		color: var(--doux);
 	}
-	.citation:hover .extrait {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.citation:hover .extrait {
+			text-decoration: underline;
+		}
 	}
 	.photos {
 		display: grid;

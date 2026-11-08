@@ -434,8 +434,10 @@
 		text-decoration: none;
 		cursor: pointer;
 	}
-	.pilule:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.pilule:hover {
+			border-color: var(--encre);
+		}
 	}
 	.bravo .pilule {
 		background: color-mix(in srgb, var(--surface) 70%, transparent);

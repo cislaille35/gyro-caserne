@@ -36,8 +36,10 @@
 		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.couper:hover {
-		border-color: currentColor;
+	@media (hover: hover) and (pointer: fine) {
+		.couper:hover {
+			border-color: currentColor;
+		}
 	}
 	.coupe {
 		background: var(--surface);

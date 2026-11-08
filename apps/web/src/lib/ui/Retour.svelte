@@ -22,8 +22,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.retour:hover {
-		color: var(--encre);
-		background: var(--surface);
+	@media (hover: hover) and (pointer: fine) {
+		.retour:hover {
+			color: var(--encre);
+			background: var(--surface);
+		}
 	}
 </style>

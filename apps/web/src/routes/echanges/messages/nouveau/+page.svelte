@@ -115,8 +115,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.annuler:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.annuler:hover {
+			text-decoration: underline;
+		}
 	}
 	h1 {
 		grid-column: 2;
@@ -181,9 +183,11 @@
 	.page > .ligne {
 		margin: 0 -8px;
 	}
-	.ligne:hover {
-		background: var(--surface);
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: var(--surface);
+			color: var(--encre);
+		}
 	}
 	.rond {
 		flex: none;

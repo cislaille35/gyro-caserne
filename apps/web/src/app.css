@@ -55,6 +55,12 @@
 	--rayon-petit: 6px;
 	--rayon-grand: 14px;
 	--rayon-bouton: 10px;
+	/* Le mouvement : une sortie franche, un tiroir pour les panneaux, des durées courtes. */
+	--courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);
+	--courbe-tiroir: cubic-bezier(0.32, 0.72, 0, 1);
+	--duree-appui: 160ms;
+	--duree-panneau: 240ms;
+	--duree-etat: 150ms;
 	/* Échelles : une valeur en dur dans un écran est refusée par formes.test.ts. */
 	--espace-4: 4px;
 	--espace-6: 6px;
@@ -196,6 +202,25 @@ body {
 	*::after {
 		animation: none !important;
 		transition: none !important;
+	}
+}
+
+/* Ce qui se touche répond à l'appui ; les fenêtres apparaissent sans sursaut. Rien de tout cela si le mouvement est réduit. */
+@media (prefers-reduced-motion: no-preference) {
+	:where(button:not(:disabled), .lien-secondaire, .segments a, a.action) {
+		transition: transform var(--duree-appui) var(--courbe-sortie);
+	}
+	:where(button:not(:disabled), .lien-secondaire, .segments a, a.action):active {
+		transform: scale(0.97);
+	}
+	dialog[open]:not(.panneau) {
+		transition:
+			opacity var(--duree-panneau) var(--courbe-sortie),
+			transform var(--duree-panneau) var(--courbe-sortie);
+		@starting-style {
+			opacity: 0;
+			transform: scale(0.97);
+		}
 	}
 }
 
@@ -353,8 +378,10 @@ body {
 .lien-secondaire:has(svg) {
 	padding-left: var(--espace-12);
 }
-.lien-secondaire:hover {
-	border-color: var(--encre);
+@media (hover: hover) and (pointer: fine) {
+	.lien-secondaire:hover {
+		border-color: var(--encre);
+	}
 }
 /* Bloc de choix (vues, casquettes, réponses) : un fond, l’option choisie en encre pleine et en gras.
    Les options sont des liens (aria-current) ou des boutons à bascule (aria-pressed, avec la coche). */
@@ -389,9 +416,11 @@ body {
 	white-space: nowrap;
 	cursor: pointer;
 }
-.segments :is(a, button):hover {
-	text-decoration: underline;
-	text-underline-offset: 3px;
+@media (hover: hover) and (pointer: fine) {
+	.segments :is(a, button):hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
 }
 .segments :is([aria-current='page'], [aria-current='true'], [aria-pressed='true']) {
 	background: var(--encre);

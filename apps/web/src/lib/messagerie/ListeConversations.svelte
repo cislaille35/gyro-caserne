@@ -98,9 +98,11 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.conversation:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.conversation:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+			color: var(--encre);
+		}
 	}
 	.conversation:focus-visible {
 		outline-offset: -3px;

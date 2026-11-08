@@ -2,7 +2,7 @@
 	import type { Ambiance } from '@gyro-caserne/socle';
 
 	// L'ambiance de l'Accueil selon le temps au centre : décorative, discrète, immobile si « réduire les animations ». Reprise du MVP.
-	let { ambiance, nuit = false }: { ambiance: Ambiance; nuit?: boolean } = $props();
+	let { ambiance, nuit = false, anime = true }: { ambiance: Ambiance; nuit?: boolean; anime?: boolean } = $props();
 
 	// Positions fixes (pas d'aléatoire : même rendu côté serveur et navigateur)
 	const gouttes = [6, 14, 23, 31, 40, 48, 57, 63, 71, 79, 86, 93];
@@ -10,7 +10,7 @@
 	const feuilles = [18, 42, 66, 30, 78];
 </script>
 
-<div class="meteo m-{ambiance}" aria-hidden="true">
+<div class="meteo m-{ambiance}" class:arrete={!anime} aria-hidden="true">
 	{#if ambiance === 'pluie' || ambiance === 'orage'}
 		{#each gouttes as x, i (i)}
 			<span class="goutte" style="left:{x}%; animation-delay:{(i * 0.37) % 1.6}s; animation-duration:{0.9 + (i % 3) * 0.2}s"></span>
@@ -202,6 +202,10 @@
 		to {
 			transform: translateX(6px) skewX(6deg);
 		}
+	}
+	/* Pas de mouvement sans fin (RGAA 13.8) : le décor s'arrête où il en est. */
+	.arrete :global(*) {
+		animation-play-state: paused;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.meteo * {

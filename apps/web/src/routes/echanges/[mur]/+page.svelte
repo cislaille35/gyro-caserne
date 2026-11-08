@@ -106,8 +106,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.retour:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.retour:hover {
+			text-decoration: underline;
+		}
 	}
 	.identite {
 		display: flex;
@@ -223,8 +225,10 @@
 		font-weight: 700;
 		text-decoration: none;
 	}
-	.aller-publier:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.aller-publier:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.aller-publier svg {
 		flex: none;

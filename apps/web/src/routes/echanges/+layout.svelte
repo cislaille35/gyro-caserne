@@ -333,8 +333,10 @@
 	.evenement {
 		min-height: 44px;
 	}
-	.evenement:hover strong {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.evenement:hover strong {
+			text-decoration: underline;
+		}
 	}
 	.calendrier {
 		flex: none;
@@ -384,8 +386,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.venir:hover strong {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.venir:hover strong {
+			text-decoration: underline;
+		}
 	}
 	.journee .ligne-jour {
 		flex-wrap: wrap;
@@ -450,8 +454,10 @@
 	.extrait {
 		font-size: var(--texte-15);
 	}
-	.centre:hover .extrait {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.centre:hover .extrait {
+			text-decoration: underline;
+		}
 	}
 
 	/* Un mur : une ligne de la carte du groupe, toute la ligne est le lien. */
@@ -464,8 +470,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.tuile:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.tuile:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	.tuile:focus-visible {
 		outline-offset: -3px;
@@ -567,7 +575,7 @@
 		border-right: 2px solid currentColor;
 		border-bottom: 2px solid currentColor;
 		transform: rotate(-45deg);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.repli[open] summary::before {
 		transform: rotate(45deg);

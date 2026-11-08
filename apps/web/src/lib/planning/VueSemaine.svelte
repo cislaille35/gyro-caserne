@@ -121,8 +121,10 @@
 		line-height: 1;
 		text-decoration: none;
 	}
-	.fleche:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.fleche:hover {
+			border-color: var(--encre);
+		}
 	}
 	.bande {
 		display: flex;

@@ -247,4 +247,34 @@ describe('direction B', () => {
 	it('l’interrupteur de la vue Année garde sa piste : ce n’est pas un champ', () => {
 		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.interrupteur input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
 	});
+
+	// Le mouvement (lot 2) : des jetons, un retour à l'appui commun, des panneaux qui viennent de quelque part.
+	it('des durées et des courbes en jetons, jamais écrites dans un écran', () => {
+		const css = source('app.css');
+		for (const jeton of ['--courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);', '--courbe-tiroir: cubic-bezier(0.32, 0.72, 0, 1);', '--duree-appui: 160ms;', '--duree-panneau: 240ms;', '--duree-etat: 150ms;']) expect(css).toContain(jeton);
+		expect(relever(/transition: *(?!none)[^;]*\d(?:ms|s)\b[^;]*;/g)).toEqual([]);
+	});
+
+	it('tout ce qui se touche répond à l’appui, sauf si le mouvement est réduit', () => {
+		expect(source('app.css')).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{[^@]*:where\(button:not\(:disabled\)[^)]*\)[^{]*:active \{\s*transform: scale\(0\.97\);/);
+	});
+
+	it('le panneau et les fenêtres s’ouvrent en glissant ou en apparaissant, sans mouvement si c’est réduit', () => {
+		const panneau = style('lib/planning/Panneau.svelte');
+		expect(panneau).toMatch(/prefers-reduced-motion: no-preference[\s\S]*\.panneau \{[^}]*transition: transform var\(--duree-panneau\) var\(--courbe-tiroir\);[\s\S]*@starting-style \{\s*transform: translateY\(100%\);/);
+		expect(source('app.css')).toMatch(/prefers-reduced-motion: no-preference[\s\S]*dialog\[open\]:not\(\.panneau\)[^{]*\{[^}]*transition:[^;]*var\(--duree-panneau\)[\s\S]*@starting-style \{\s*opacity: 0;\s*transform: scale\(0\.97\);/);
+	});
+
+	it('tirer pour actualiser suit le doigt : la hauteur n’est pas animée', () => {
+		expect(source('lib/animations/TirerPourActualiser.svelte')).not.toMatch(/transition: height/);
+	});
+
+	it('le survol est réservé aux appareils qui en ont un', () => {
+		// Sans les blocs déjà réservés, aucune règle de survol ne doit rester.
+		const dehors = ['app.css', ...ecrans].flatMap((f) => {
+			const sans = (f === 'app.css' ? source(f) : style(f)).replace(/@media \(hover: hover\) and \(pointer: fine\) \{(?:[^{}]*\{[^{}]*\})*\s*\}/g, '');
+			return [...sans.matchAll(/[^{}\n]*:hover[^{}]*\{/g)].map((m) => `${f} | ${m[0].trim()}`);
+		});
+		expect(dehors).toEqual([]);
+	});
 });

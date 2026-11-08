@@ -108,7 +108,7 @@
 		height: 16px;
 		border-radius: 50%;
 		background: var(--doux);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.interrupteur input:checked {
 		background: var(--encre);
@@ -144,7 +144,7 @@
 		border-right: 2px solid currentColor;
 		border-bottom: 2px solid currentColor;
 		transform: rotate(-45deg);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.repli[open] summary::before {
 		transform: rotate(45deg);

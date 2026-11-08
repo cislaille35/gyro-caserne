@@ -42,8 +42,10 @@
 	input::placeholder {
 		color: var(--doux);
 	}
-	input:hover {
-		border-color: var(--doux);
+	@media (hover: hover) and (pointer: fine) {
+		input:hover {
+			border-color: var(--doux);
+		}
 	}
 	.loupe {
 		position: absolute;
@@ -60,7 +62,9 @@
 		color: var(--doux);
 		cursor: pointer;
 	}
-	.loupe:hover {
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.loupe:hover {
+			color: var(--encre);
+		}
 	}
 </style>

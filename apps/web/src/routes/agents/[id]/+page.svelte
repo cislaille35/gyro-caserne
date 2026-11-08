@@ -540,12 +540,16 @@
 		background: var(--statut-danger-fond);
 		color: var(--accent);
 	}
-	.contact a:hover .rond {
-		background: var(--rouge);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.contact a:hover .rond {
+			background: var(--rouge);
+			color: var(--sur-rouge);
+		}
 	}
-	.contact a:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.contact a:hover {
+			text-decoration: underline;
+		}
 	}
 	p {
 		margin: 0;

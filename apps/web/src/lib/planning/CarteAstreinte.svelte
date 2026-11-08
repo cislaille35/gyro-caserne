@@ -183,8 +183,10 @@
 		text-decoration: none;
 		--focus: var(--sur-equipe);
 	}
-	.prise:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.prise:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Les gestes de l'Accueil, dans la bande claire sous la plaque. */
 	.gestes {
@@ -211,8 +213,10 @@
 	.gestes a + a {
 		border-left: 1px solid var(--trait-doux);
 	}
-	.gestes a:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.gestes a:hover {
+			text-decoration: underline;
+		}
 	}
 	.gestes svg,
 	.prise svg {

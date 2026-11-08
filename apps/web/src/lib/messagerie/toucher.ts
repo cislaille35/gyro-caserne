@@ -16,7 +16,7 @@ const calme = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 // propose aussi). « Réduire les animations » coupe le glissement.
 export function toucher(noeud: HTMLElement, depart: Toucher) {
 	let o = depart;
-	let debut: { x: number; y: number; pointeur: number } | null = null;
+	let debut: { x: number; y: number; pointeur: number; quand: number } | null = null;
 	let minuteur: ReturnType<typeof setTimeout> | undefined;
 	let glisse = false;
 	let ecart = 0;
@@ -29,7 +29,7 @@ export function toucher(noeud: HTMLElement, depart: Toucher) {
 	const bas = (e: PointerEvent) => {
 		doigt = e.pointerType === 'touch';
 		if (!doigt || !o.menu) return;
-		debut = { x: e.clientX, y: e.clientY, pointeur: e.pointerId };
+		debut = { x: e.clientX, y: e.clientY, pointeur: e.pointerId, quand: e.timeStamp };
 		glisse = false;
 		ecart = 0;
 		minuteur = setTimeout(() => {
@@ -53,9 +53,9 @@ export function toucher(noeud: HTMLElement, depart: Toucher) {
 			noeud.style.transform = `translateX(${ecart}px)`;
 		}
 	};
-	const haut = () => {
+	const haut = (e: Event) => {
 		clearTimeout(minuteur);
-		if (glisse && glissementRepond(ecart)) o.repondre(o.message);
+		if (glisse && debut && glissementRepond(ecart, e.timeStamp - debut.quand)) o.repondre(o.message);
 		debut = null;
 		glisse = false;
 		remettre();

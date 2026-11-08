@@ -124,8 +124,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.filtres a:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.filtres a:hover {
+			background: var(--fond);
+		}
 	}
 	.filtres a[aria-current='page'] {
 		border-color: var(--encre);

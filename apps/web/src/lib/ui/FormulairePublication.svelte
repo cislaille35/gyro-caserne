@@ -418,8 +418,10 @@
 		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.publier:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.publier:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.publier:disabled {
 		opacity: 0.6;

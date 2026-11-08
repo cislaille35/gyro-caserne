@@ -143,8 +143,10 @@
 		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.geste:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.geste:hover {
+			border-color: var(--encre);
+		}
 	}
 	.lien {
 		min-height: var(--cible);
@@ -157,8 +159,10 @@
 		font-size: var(--texte-15);
 		text-decoration: none;
 	}
-	.lien:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.lien:hover {
+			text-decoration: underline;
+		}
 	}
 	.echec {
 		margin: var(--espace-4) 0 0;

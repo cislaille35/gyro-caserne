@@ -579,8 +579,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.selecteur a:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.selecteur a:hover {
+			border-color: var(--encre);
+		}
 	}
 	.nom-zone {
 		font: 700 var(--texte-18)/1.1 var(--police-titre);
