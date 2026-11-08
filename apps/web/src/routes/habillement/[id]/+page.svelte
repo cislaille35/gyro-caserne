@@ -20,8 +20,8 @@
 	const peut = (quoi: QuoiGesteHabillement) => d.gestes.includes(quoi);
 	const etat = $derived(etatDemande(d));
 	const arretee = $derived(d.etape === 'refusee' || d.etape === 'annulee');
-	const rang = $derived(rangSuivi(d.etape));
-	const etapeDe = (i: number) => (d.etape === 'livree' || i < rang ? 'faite' : arretee ? 'a-venir' : i === rang ? 'en-cours' : 'a-venir');
+	const rang = $derived(rangSuivi(d));
+	const etapeDe = (i: number) => (i < rang ? 'faite' : arretee ? 'a-venir' : i === rang ? 'en-cours' : 'a-venir');
 	const LUS: Record<string, string> = { faite: 'faite', 'en-cours': 'en cours', 'a-venir': 'à venir' };
 	const moment = (le: string) => `${dateCourte(le)}, ${heureCourte(le)}`;
 	// La question en attente de l'agent : rappelée dans le suivi, avec un lien vers la réponse.
@@ -42,7 +42,8 @@
 			if (result.type === 'success') {
 				reussite = String(result.data?.succes ?? '');
 				message = '';
-				if (ouvert) await goto(sans, { replaceState: true, reset: false });
+				// Le panneau se ferme, le bandeau « Demande envoyée » part.
+				if (ouvert || data.envoyee) await goto(sans, { replaceState: true, reset: false });
 				document.getElementById('titre-suivi')?.focus();
 			}
 			formElement.querySelector('textarea')?.blur();
@@ -50,9 +51,11 @@
 	};
 
 	// Poser une question, traiter, livrer : un panneau chacun, ouvert par l'adresse (`?panneau=`) ou rouvert par un refus.
-	const PANNEAUX = ['question', 'traiter', 'livrer'] as const;
+	const PANNEAUX = ['question', 'traiter', 'livrer', 'annuler'] as const;
 	type Cle = (typeof PANNEAUX)[number];
-	const TITRES: Record<Cle, string> = { question: 'Poser une question', traiter: 'Traiter la demande', livrer: 'Livrer' };
+	const TITRES: Record<Cle, string> = { question: 'Poser une question', traiter: 'Traiter la demande', livrer: 'Livrer', annuler: 'Annuler la demande' };
+	// Les panneaux des gestes du référent ; « Annuler » est à part, pour l'agent.
+	const REFERENT = PANNEAUX.filter((c) => c !== 'annuler');
 	const adresse = (cle: Cle | null) => {
 		const p = new URLSearchParams(page.url.search);
 		p.delete('envoyee');
@@ -99,7 +102,7 @@
 					{#each ETAPES_SUIVI as libelle, i (libelle)}
 						<li class={etapeDe(i)} aria-current={etapeDe(i) === 'en-cours' ? 'step' : undefined}>
 							<span class="puce" aria-hidden="true">{#if etapeDe(i) === 'faite'}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7" /></svg>{/if}</span>
-							<span>{i === 2 && d.issue ? etatDemande({ etape: 'traitee', issue: d.issue }).texte : libelle}<span class="masque">{' '}: {LUS[etapeDe(i)]}</span></span>
+							<span>{i === 2 && d.etape === 'refusee' ? 'Refusée' : i === 2 && d.issue ? etatDemande({ etape: 'traitee', issue: d.issue }).texte : libelle}<span class="masque">{' '}: {LUS[etapeDe(i)]}</span></span>
 						</li>
 					{/each}
 				</ol>
@@ -110,7 +113,7 @@
 					<p class="question"><strong>{question.par} vous demande :</strong> {question.texte} <a href="#texte-repondre">Répondre</a></p>
 				{/if}
 
-				{#if peut('prendre') || peut('reprendre') || PANNEAUX.some(peut)}
+				{#if peut('prendre') || peut('reprendre') || REFERENT.some(peut)}
 					<div class="gestes">
 						{#if peut('prendre') || peut('reprendre')}
 							<form method="POST" use:enhance={soumettre}>
@@ -118,17 +121,13 @@
 								<Bouton type="submit" desactive={envoi}>{peut('prendre') ? 'Je la prends en compte' : 'Je la reprends'}</Bouton>
 							</form>
 						{/if}
-						{#each PANNEAUX.filter(peut) as cle (cle)}<a class="lien-secondaire" href={adresse(cle)} data-sveltekit-noscroll data-sveltekit-reset="false">{TITRES[cle]}…</a>{/each}
+						{#each REFERENT.filter(peut) as cle (cle)}<a class="lien-secondaire" href={adresse(cle)} data-sveltekit-noscroll data-sveltekit-reset="false">{TITRES[cle]}…</a>{/each}
 					</div>
 					{@render erreur('prendre')}
 					{@render erreur('reprendre')}
 				{/if}
 				{#if peut('annuler')}
-					<form method="POST" use:enhance={soumettre}>
-						<input type="hidden" name="quoi" value="annuler" />
-						<Bouton type="submit" variante="secondaire" desactive={envoi}>Annuler ma demande</Bouton>
-					</form>
-					{@render erreur('annuler')}
+					<div><a class="lien-secondaire" href={adresse('annuler')} data-sveltekit-noscroll data-sveltekit-reset="false">Annuler ma demande…</a></div>
 				{/if}
 			</div>
 		</Carte>
@@ -174,6 +173,10 @@
 				<ChoixRadio id="issue" name="issue" legende="Issue" options={ISSUES} bind:valeur={issue} disposition="rangees" requis />
 				<Champ id="texte-traiter" name="texte" lignes={2} maxlength={LIMITE_HABILLEMENT} requis={issue === 'refus'} libelle={issue === 'refus' ? 'Pourquoi ce refus ?' : 'Un mot pour l’agent (facultatif)'} erreur={form?.quoi === 'traiter' ? form.message : undefined} />
 				<div><Bouton type="submit" desactive={envoi}>Enregistrer</Bouton></div>
+			{:else if panneau === 'annuler'}
+				<p>Le référent habillement en sera prévenu s’il la suit déjà. Une demande annulée ne se rouvre pas.</p>
+				<div><Bouton type="submit" desactive={envoi}>Oui, annuler ma demande</Bouton></div>
+				{@render erreur('annuler')}
 			{:else}
 				<ChoixRadio id="recuperation" name="recuperation" legende="Où la récupérer ?" options={RECUPERATIONS} bind:valeur={recuperation} disposition="rangees" requis />
 				{#if recuperation === 'autre'}

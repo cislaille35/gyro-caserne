@@ -6,7 +6,7 @@ import { aLeDroit, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { STATUTS_AVEC_ACCES, type EtapeHabillement, type FilHabillement, type IssueHabillement } from './listes.ts';
 import { mettreEnFile } from './notifications.ts';
-import { attribution, avisHabillement, demandeHabillement, filHabillement, personne, profil, profilDroit, responsabilite, responsabiliteDroit } from './schema.ts';
+import { attribution, avisHabillement, demandeHabillement, filHabillement, personne, profil, responsabilite, responsabiliteDroit } from './schema.ts';
 
 // L'habillement : un agent demande une pièce de tenue en texte libre ; un référent habillement (GERER_HABILLEMENT sur le centre)
 // la prend en compte, pose des questions, la traite (en stock, commandée au SDIS, refusée) puis la livre. Pas d'inventaire.
@@ -26,15 +26,11 @@ export function extraitDemande(texte: string, max = 80): string {
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 const lien = (id: number) => `/habillement/${id}`;
 
-// Ceux qui gèrent l'habillement aujourd'hui : par leur profil, ou par un rôle en cours sur le centre. À placer dans un batch.
+// Ceux qui tiennent l'habillement par un rôle en cours sur le centre (référents nommés, chef de centre, adjoint). À placer dans un batch.
+// Un profil qui donnerait le droit permet d'agir, sans faire de son titulaire un référent nommé (ni avis, ni casquette).
 export function lecturesGestionnaires(base: Base) {
 	const avecAcces = inArray(personne.statut, [...STATUTS_AVEC_ACCES]);
 	return [
-		base
-			.select({ id: personne.id })
-			.from(personne)
-			.innerJoin(profilDroit, eq(profilDroit.profilId, personne.profilId))
-			.where(and(avecAcces, eq(profilDroit.droit, 'GERER_HABILLEMENT'), eq(profilDroit.perimetreType, 'centre'))),
 		base
 			.select({ id: attribution.personneId, roleId: attribution.responsabiliteId, type: attribution.perimetreType, portee: responsabilite.typePerimetre, systeme: responsabilite.systeme, debut: attribution.debut, fin: attribution.fin })
 			.from(attribution)
@@ -44,21 +40,25 @@ export function lecturesGestionnaires(base: Base) {
 			.where(and(avecAcces, isNull(responsabilite.archiveeLe)))
 	] as const;
 }
-type LignesGestionnaires = [{ id: number }[], { id: number; roleId: number; type: string; portee: string; systeme: string | null; debut: string; fin: string | null }[]];
+type LignesGestionnaires = [{ id: number; roleId: number; type: string; portee: string; systeme: string | null; debut: string; fin: string | null }[]];
 
-// Les référents (par un rôle hors système, ou leur profil) et les chefs (chef de centre, adjoint) ; `roles` : chaque rôle tenu qui porte le droit.
-export function gestionnaires([duProfil, tenues]: LignesGestionnaires, aujourdhui: string) {
+// Les référents (rôle hors système) et les chefs (chef de centre, adjoint) ; `roles` : chaque rôle de référent tenu.
+export function gestionnaires([tenues]: LignesGestionnaires, aujourdhui: string) {
 	const valides = tenues.filter((t) => t.type === 'centre' && t.portee === 'centre' && enCours(t.debut, t.fin, aujourdhui));
 	const chefs = valides.filter((t) => t.systeme === 'chef_centre' || t.systeme === 'chef_centre_adjoint').map((t) => t.id);
-	const referents = [...duProfil.map((p) => p.id), ...valides.filter((t) => t.systeme === null).map((t) => t.id)];
+	const referents = valides.filter((t) => t.systeme === null).map((t) => t.id);
 	return { referents: [...new Set(referents)], chefs: [...new Set(chefs)], roles: valides.filter((t) => t.systeme === null).map((t) => ({ personneId: t.id, roleId: t.roleId })) };
 }
 
-// Qui reçoit une nouvelle demande (ou une réponse que personne n'a encore prise) : les référents, sinon le chef et l'adjoint.
-const destinataires = (g: { referents: number[]; chefs: number[] }) => (g.referents.length ? g.referents : g.chefs);
+// Qui reçoit une nouvelle demande : les référents, sinon le chef et l'adjoint ; jamais son auteur (un référent qui demande pour lui-même,
+// seul référent : le chef et l'adjoint).
+function destinataires(g: { referents: number[]; chefs: number[] }, auteur: number): number[] {
+	const referents = g.referents.filter((id) => id !== auteur);
+	return referents.length ? referents : g.chefs.filter((id) => id !== auteur);
+}
 
 // Un agent du centre : une personne qui a accès, pas le compte partagé d'un extérieur. Le super administrateur ne demande pas.
-async function peutDemander(base: Base, acteur: Acteur): Promise<boolean> {
+export async function peutDemander(base: Base, acteur: Acteur): Promise<boolean> {
 	if (acteur.type !== 'personne') return false;
 	const [fiche] = await base.select({ statut: personne.statut, type: profil.typePersonne }).from(personne).leftJoin(profil, eq(profil.id, personne.profilId)).where(eq(personne.id, acteur.id));
 	return !!fiche && (STATUTS_AVEC_ACCES as readonly string[]).includes(fiche.statut) && fiche.type !== 'exterieur';
@@ -102,7 +102,7 @@ export async function demanderTenue(base: Base, acteur: Acteur, texte: string, m
 		base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, acteur.id)),
 		...lecturesGestionnaires(base)
 	]);
-	const ids = destinataires(gestionnaires(lignes as LignesGestionnaires, aujourdhui)).filter((id) => id !== acteur.id);
+	const ids = destinataires(gestionnaires(lignes as LignesGestionnaires, aujourdhui), acteur.id);
 	const ecritures = avis(base, ids, { titre: 'Nouvelle demande d’habillement', texte: `${nomDe(auteur)} : ${extraitDemande(t)}`, url: lien(cree!.id) }, maintenant);
 	// La cloche après coup : un échec n'annule pas la demande.
 	if (ecritures.length) await base.batch([ecritures[0]!, ecritures[1]!]).catch(() => {});
@@ -187,20 +187,26 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 	const nom = nomDe(moiMeme);
 	const AVIS: Record<FilHabillement, { titre: string; texte: string } | null> = {
 		prise: { titre: 'Demande prise en compte', texte: `${nom} s’en occupe : ${ex}` },
-		reprise: null,
+		reprise: { titre: 'Demande reprise', texte: `${nom} l’a reprise : ${ex}` },
 		question: { titre: 'Question sur votre demande', texte: `${nom} : ${texte}` },
 		reponse: { titre: 'Réponse à votre question', texte: `${nom} : ${texte}` },
 		precision: { titre: 'Précision sur une demande', texte: `${nom} : ${texte}` },
-		stock: { titre: 'Demande traitée', texte: `Sortie du stock du centre : ${ex}` },
-		commande: { titre: 'Demande traitée', texte: `Commandée au SDIS : ${ex}` },
+		stock: { titre: 'Demande traitée', texte: `Sortie du stock du centre : ${ex}${texte ? ` · ${texte}` : ''}` },
+		commande: { titre: 'Demande traitée', texte: `Commandée au SDIS : ${ex}${texte ? ` · ${texte}` : ''}` },
 		refus: { titre: 'Demande refusée', texte: `${nom} : ${texte}` },
 		livraison: { titre: 'Tenue livrée', texte: `${texte} : ${ex}` },
 		annulation: { titre: 'Demande annulée', texte: `${nom} : ${ex}` }
 	};
-	// L'agent apprend chaque étape et chaque question ; ses réponses, précisions et annulations vont à qui s'en occupe,
-	// sinon à ceux qui reçoivent les nouvelles demandes.
+	// L'agent apprend chaque étape et chaque question ; l'ancien suiveur, la reprise. Les réponses, précisions et annulations de l'agent
+	// vont à qui s'en occupe ; tant que personne ne la suit, ses précisions vont aux référents (jamais au chef : il ne reçoit que les
+	// réponses sur les demandes qu'il suit lui-même).
 	const deLAgent = quoi === 'reponse' || quoi === 'precision' || quoi === 'annulation';
-	const pourQui = !AVIS[quoi] ? [] : !deLAgent ? [a.demandeurId] : a.prisePar !== null ? [a.prisePar] : quoi === 'annulation' ? [] : destinataires(gestionnaires(lignes as LignesGestionnaires, aujourdhui));
+	const pourQui =
+		quoi === 'reprise' ? (a.prisePar !== null ? [a.prisePar] : [])
+		: !deLAgent ? [a.demandeurId]
+		: a.prisePar !== null ? [a.prisePar]
+		: quoi === 'annulation' ? []
+		: gestionnaires(lignes as LignesGestionnaires, aujourdhui).referents;
 	const prevenus = [...new Set(pourQui)].filter((x) => x !== moi);
 
 	const resultats = await base.batch([

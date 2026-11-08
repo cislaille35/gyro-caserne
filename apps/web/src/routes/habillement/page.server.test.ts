@@ -40,7 +40,7 @@ describe('/habillement', () => {
 		const { base, alice, referent, demander } = await jeu();
 		await idDe(demander(alice, 'Veste'));
 		expect((await (load as any)({ locals: locaux(base, referent) })).gere).toBe(true);
-		expect((await (load as any)({ locals: locaux(base, alice) })).gere).toBe(false);
+		expect(await (load as any)({ locals: locaux(base, alice) })).toMatchObject({ gere: false, peutDemander: true });
 		expect((await (toutes as any)({ locals: locaux(base, referent) })).enCours).toHaveLength(1);
 		await expect((toutes as any)({ locals: locaux(base, alice) })).rejects.toMatchObject({ status: 403 });
 	});

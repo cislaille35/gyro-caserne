@@ -250,9 +250,12 @@ describe('accueil', () => {
 			expect(colonnes(html)[1]).toContain('Rien à décider pour le moment.');
 		});
 
-		it('« Gérer » reste au chef', () => {
+		it('« Gérer » reste au chef ; « Habillement » s’y ajoute quand aucun référent habillement n’est nommé', () => {
 			const html = page({ casquettes: [centre, astreinte], choisie: 'centre', contenu: { type: 'centre', aDecider } });
 			expect(colonnes(html)[1]).toMatch(/Gérer[\s\S]*?href="\/agents"/);
+			expect(html).not.toContain('href="/habillement/toutes"');
+			const sans = page({ casquettes: [centre, astreinte], choisie: 'centre', contenu: { type: 'centre', aDecider, habillement: true } });
+			expect(colonnes(sans)[1]).toMatch(/Gérer[\s\S]*?href="\/habillement\/toutes"[^>]*>[\s\S]*?Habillement/);
 		});
 	});
 
@@ -286,6 +289,12 @@ describe('accueil', () => {
 		const role = { id: 'role:7', nom: 'Référent pharmacie', icone: 'croix', compte: 0 };
 		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: ['Gérer le stock et la pharmacie.'], aDecider: [] } })).toContain('Gérer le stock et la pharmacie.');
 		expect(page({ casquettes: [astreinte, role], choisie: 'role:7', contenu: { type: 'role', permet: [], aDecider: [] } })).toContain('Ce rôle n’ajoute rien à ce que fait tout agent.');
+	});
+
+	it('rôle de référent habillement : un raccourci vers toutes les demandes', () => {
+		const role = { id: 'role:8', nom: 'Référent habillement', icone: 'veste', compte: 0 };
+		const html = page({ casquettes: [astreinte, role], choisie: 'role:8', contenu: { type: 'role', permet: ['Gérer les demandes d’habillement.'], aDecider: [], liens: [{ texte: 'Toutes les demandes d’habillement', lien: '/habillement/toutes' }] } });
+		expect(html).toMatch(/Raccourcis[\s\S]*?href="\/habillement\/toutes"[\s\S]*?Toutes les demandes d’habillement/);
 	});
 
 	it('rôle ou comité qui gère une ressource : ses demandes de réservation « À décider », en tête', () => {

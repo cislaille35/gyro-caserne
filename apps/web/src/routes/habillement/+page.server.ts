@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { DonneeInvalide, demanderTenue, gereHabillement, mesDemandes } from '@gyro-caserne/socle';
+import { DonneeInvalide, demanderTenue, gereHabillement, mesDemandes, peutDemander } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { phraseHabillement } from '#lib/habillement.ts';
 import { champ } from '#lib/server/engins.ts';
@@ -10,8 +10,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const { acteur, base } = locals;
 	if (!acteur) redirect(303, '/connexion');
 	if (acteur.type === 'super') redirect(303, '/habillement/toutes');
-	const [miennes, gere] = await Promise.all([mesDemandes(base, acteur), gereHabillement(base, acteur, aujourdhuiParis())]);
-	return { ...miennes, gere };
+	const [miennes, gere, demande] = await Promise.all([mesDemandes(base, acteur), gereHabillement(base, acteur, aujourdhuiParis()), peutDemander(base, acteur)]);
+	return { ...miennes, gere, peutDemander: demande };
 };
 
 export const actions: Actions = {

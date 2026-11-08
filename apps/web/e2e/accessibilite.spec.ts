@@ -705,6 +705,16 @@ test.describe('échanges', () => {
 		await gestion.context().close();
 	});
 
+	test('habillement, référente fictive : sa casquette, puis une demande et le panneau « Traiter », sans violation', async ({ browser }) => {
+		const page = await pageAgent(browser, 'chloe.durand@exemple.fr');
+		await sansViolation(page, '/');
+		await expect(page.getByRole('heading', { name: 'Raccourcis' })).toBeVisible();
+		await page.goto('/habillement/1?panneau=traiter');
+		await expect(page.getByRole('dialog', { name: 'Traiter la demande' })).toBeVisible();
+		await sansViolation(page);
+		await page.context().close();
+	});
+
 	test('événement convoquant l’équipe 1 : un agent de l’équipe 1 répond depuis l’accueil, un agent de l’équipe 2 ne le voit pas', async ({ browser }) => {
 		const gestion = await pageSuper(browser);
 		const un = await nouvelAgent(gestion);

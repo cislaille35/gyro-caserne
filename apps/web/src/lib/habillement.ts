@@ -38,8 +38,23 @@ export const TEXTES_FIL: Record<FilHabillement, string> = {
 
 // Les étapes du suivi, dans l'ordre. Refusée ou annulée : la demande s'arrête là.
 export const ETAPES_SUIVI = ['Demandée', 'Prise en compte', 'Traitée', 'Livrée'] as const;
-export function rangSuivi(etape: EtapeHabillement): number {
-	return etape === 'demandee' ? 0 : etape === 'prise' || etape === 'question' ? 1 : etape === 'traitee' ? 2 : 3;
+// Les étapes avant ce rang sont faites. Refusée : elle a été traitée (par un refus) ; annulée : seulement ce qui s'est passé avant.
+export function rangSuivi(d: { etape: EtapeHabillement; prisePar: string | null }): number {
+	switch (d.etape) {
+		case 'demandee':
+			return 0;
+		case 'prise':
+		case 'question':
+			return 1;
+		case 'traitee':
+			return 2;
+		case 'refusee':
+			return 3;
+		case 'annulee':
+			return d.prisePar ? 2 : 1;
+		default:
+			return 4;
+	}
 }
 
 // Les infos de récupération proposées au référent ; « Autre » laisse écrire un mot.

@@ -8,7 +8,7 @@
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data }: { data: { enCours: DemandeListee[]; terminees: DemandeListee[] } } = $props();
+	let { data }: { data: { enCours: DemandeListee[]; terminees: DemandeListee[]; estPersonne?: boolean } } = $props();
 	// Le demandeur, puis qui la suit (ou la date de fin).
 	const sousLigne = (d: DemandeListee) => [d.demandeur, d.finLe ? `finie le ${dateCourte(d.finLe)}` : d.prisePar ? `suivie par ${d.prisePar}` : `le ${dateCourte(d.creeLe)}`].join(', ');
 </script>
@@ -26,7 +26,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Toutes les demandes" retour={{ href: '/habillement', libelle: 'Habillement' }} />
+	<EnTetePage titre="Toutes les demandes" retour={data.estPersonne === false ? { href: '/caserne', libelle: 'Caserne' } : { href: '/habillement', libelle: 'Habillement' }} />
 	{#if data.enCours.length === 0 && data.terminees.length === 0}
 		<Vide titre="Aucune demande" texte="Les demandes de tenue des agents arriveront ici, et dans votre casquette sur l’Accueil." />
 	{:else}

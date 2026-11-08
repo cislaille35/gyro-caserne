@@ -971,7 +971,7 @@ export const filHabillement = sqliteTable(
 			.notNull()
 			.references(() => personne.id),
 		le: text('le').notNull(),
-		// Propre à chaque geste : reconnaît sa ligne (deux envois du même geste ne s'écrivent qu'une fois).
+		// Propre à chaque envoi : reconnaît sa ligne (deux gestes au même instant : un seul s'écrit).
 		jeton: text('jeton')
 	},
 	(t) => [index('fil_habillement_demande').on(t.demandeId), check('fil_habillement_quoi', checkDans('quoi', FIL_HABILLEMENT))]

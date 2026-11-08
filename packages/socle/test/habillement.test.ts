@@ -58,6 +58,13 @@ describe('demander une tenue', () => {
 		expect(await j.avis(j.ids.remi)).toEqual([]);
 	});
 
+	it('le seul référent qui demande pour lui-même : le chef de centre est prévenu à sa place', async () => {
+		const j = await jeu();
+		await demanderTenue(j.base, j.remi, 'Veste', QUAND);
+		expect(await j.avis(j.ids.claire)).toHaveLength(1);
+		expect(await j.avis(j.ids.remi)).toEqual([]);
+	});
+
 	it('refusée : vide, trop longue, pour un extérieur ou le super administrateur', async () => {
 		const j = await jeu();
 		await expect(demanderTenue(j.base, j.alice, '   ', QUAND)).rejects.toThrow('Demande vide');
@@ -182,6 +189,20 @@ describe('le suivi', () => {
 		expect(await j.avis(j.ids.remi)).toHaveLength(2);
 	});
 
+	it('sans référent, une précision sur une demande que personne ne suit ne va pas au chef', async () => {
+		const j = await jeu({ referent: false });
+		const id = await demanderTenue(j.base, j.alice, 'Veste', QUAND);
+		await j.geste(j.ids.alice, id, { quoi: 'repondre', texte: 'Taille L' });
+		expect((await j.avis(j.ids.claire)).map((a) => a.titre)).toEqual(['Nouvelle demande d’habillement']);
+	});
+
+	it('le mot du référent accompagne l’avis « en stock » ou « commandée »', async () => {
+		const j = await jeu();
+		const id = await demanderTenue(j.base, j.alice, 'Gants', QUAND);
+		await j.geste(j.ids.remi, id, { quoi: 'traiter', issue: 'stock', texte: 'Je les pose demain' });
+		expect((await j.avis(j.ids.alice)).at(-1)).toMatchObject({ titre: 'Demande traitée', texte: 'Sortie du stock du centre : Gants · Je les pose demain' });
+	});
+
 	it('sans référent, le chef agit ; la réponse de l’agent va à lui seul s’il l’a prise', async () => {
 		const j = await jeu({ referent: false });
 		const id = await demanderTenue(j.base, j.alice, 'Veste', QUAND);
@@ -197,6 +218,8 @@ describe('le suivi', () => {
 		await j.geste(j.ids.remi, id, { quoi: 'prendre' });
 		await j.geste(j.ids.claire, id, { quoi: 'reprendre' });
 		expect((await j.demande(id)).prisePar).toBe(j.ids.claire);
+		// L'ancien référent apprend qu'on la lui a reprise.
+		expect((await j.avis(j.ids.remi)).at(-1)).toMatchObject({ titre: 'Demande reprise', texte: 'Claire Fictif l’a reprise : Veste' });
 		await expect(j.geste(j.ids.remi, id, { quoi: 'traiter', issue: 'stock', texte: '' })).rejects.toThrow('Geste impossible');
 		expect((await lireDemande(j.base, j.claire, id, PLUS_TARD)).fil.map((f) => [f.quoi, f.par])).toEqual([
 			['prise', 'Rémi Fictif'],
@@ -275,14 +298,17 @@ describe('À décider', () => {
 		const [r] = await j.base.select().from(responsabilite).where(eq(responsabilite.nom, 'Référent habillement'));
 		const duReferent = await accueilDe(j.base, j.remi, null, AUJOURDHUI, PLUS_TARD, reglage);
 		expect(duReferent.choisie).toBe(`role:${r!.id}`);
-		expect(duReferent.contenu).toMatchObject({ type: 'role', permet: ['Gérer les demandes d’habillement.'], aDecider: [{ lien: `/habillement/${id}` }] });
+		expect(duReferent.contenu).toMatchObject({ type: 'role', permet: ['Gérer les demandes d’habillement.'], aDecider: [{ lien: `/habillement/${id}` }], liens: [{ texte: 'Toutes les demandes d’habillement', lien: '/habillement/toutes' }] });
 		const duChef = await accueilDe(j.base, j.claire, 'centre', AUJOURDHUI, PLUS_TARD, reglage);
 		expect(duChef.contenu.type === 'centre' && duChef.contenu.aDecider.some((a) => a.lien.startsWith('/habillement'))).toBe(false);
+		expect(duChef.contenu).not.toHaveProperty('habillement');
 
 		const sans = await jeu({ referent: false });
 		const autre = await demanderTenue(sans.base, sans.alice, 'Veste', QUAND);
 		const chef = await accueilDe(sans.base, sans.claire, 'centre', AUJOURDHUI, PLUS_TARD, reglage);
 		expect(chef.contenu.type === 'centre' && chef.contenu.aDecider.filter((a) => a.lien.startsWith('/habillement'))).toEqual([{ texte: 'Demande d’habillement de Alice Fictif à prendre en compte', lien: `/habillement/${autre}` }]);
+		// Sans référent, le lien vers toutes les demandes est dans « Le centre ».
+		expect(chef.contenu).toMatchObject({ type: 'centre', habillement: true });
 	});
 
 	it('une demande reprise par le chef arrive dans « Le centre » une fois la réponse reçue', async () => {

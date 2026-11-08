@@ -14,25 +14,26 @@ Un agent demande une pièce de tenue en quelques secondes, en texte libre, et su
 3. **Traitée** : **En stock** (sortie du stock du centre), **Commandée au SDIS**, ou **Refusée** avec un mot obligatoire (fin de la demande).
 4. **Livrée**, avec l'endroit où la récupérer : « À récupérer au centre », « Dans votre casier » ou un mot libre. Fin de la demande.
 
-Le **fil**, sous la demande : questions, réponses, précisions et changements d'étape, dans l'ordre. L'agent peut ajouter une précision tant que la demande n'est ni livrée, ni refusée, ni annulée, et l'**annuler** tant qu'elle n'est ni commandée ni sortie du stock.
+Le **fil**, sous la demande : questions, réponses, précisions et changements d'étape, dans l'ordre. L'agent peut ajouter une précision tant que la demande n'est ni livrée, ni refusée, ni annulée, et l'**annuler** (avec confirmation) tant qu'elle n'est ni commandée ni sortie du stock.
 
 ## Qui voit, qui agit
 
 - **Demander** : tout agent du centre connecté, sans droit particulier (pas le compte de la réserve citoyenne, pas le super administrateur).
 - **Voir une demande** : l'agent qui l'a faite, les référents habillement, le chef de centre et l'adjoint.
 - **Agir** (prendre en compte, questionner, traiter, livrer) : qui a le droit **Gérer l'habillement** : le rôle « Référent habillement », et le chef de centre et l'adjoint (droit verrouillé), pour qu'une demande ne reste jamais bloquée. Le droit peut être donné à n'importe quel rôle (Réglages, domaine « Habillement »).
-- **Je la reprends** : un autre référent (ou le chef, l'adjoint) reprend d'un geste une demande suivie par un collègue absent ; la reprise est dans le fil.
+- **Je la reprends** : un autre référent (ou le chef, l'adjoint) reprend d'un geste une demande suivie par un collègue absent ; la reprise est dans le fil, et le collègue en est prévenu.
+- Un **référent nommé** tient un rôle qui porte le droit. Un droit donné par un profil permet d'agir, sans recevoir les demandes ni avoir de casquette.
 
 ## Notifications (cloche et téléphone)
 
-- **L'agent** : à chaque étape (prise en compte, traitée, refusée, livrée) et à chaque question. Ouvrir sa demande marque ces notifications lues.
-- **Les référents** : chaque nouvelle demande. Une réponse ou une précision de l'agent va au référent qui suit la demande ; tant que personne ne la suit, à tous les référents. Une annulation prévient celui qui la suivait.
+- **L'agent** : à chaque étape (prise en compte, traitée — avec le mot du référent s'il en a mis un —, refusée, livrée) et à chaque question. Ouvrir sa demande marque ces notifications lues.
+- **Les référents** : chaque nouvelle demande (un référent qui demande pour lui-même et seul : le chef et l'adjoint à sa place). Une réponse ou une précision de l'agent va au référent qui suit la demande ; tant que personne ne la suit, à tous les référents. Une annulation prévient celui qui la suivait.
 - **Le chef et l'adjoint** : rien, sauf si aucun référent n'est nommé. Ils reçoivent alors les nouvelles demandes, et les réponses sur celles qu'ils suivent eux-mêmes.
 
 ## Points d'entrée
 
 - **Caserne → Habillement** : faire une demande, mes demandes (en cours, puis terminées).
-- **Accueil, casquette « Référent habillement »** (ou « Le centre » s'il n'y a pas de référent) : dans « À décider », les demandes à prendre en compte et celles qu'on suit dont la réponse est arrivée ; lien « Toutes les demandes » depuis Habillement.
+- **Accueil, casquette « Référent habillement »** : dans « À décider », les demandes à prendre en compte et celles qu'on suit dont la réponse est arrivée ; un raccourci vers toutes les demandes. Sans référent nommé, la même chose dans « Le centre » du chef et de l'adjoint (« Habillement » dans « Gérer »). Les demandes commandées attendent leur livraison dans « Toutes les demandes », pas dans « À décider ».
 - **Comités et référents** : le référent habillement y apparaît avec ses titulaires.
 
 ## Ce que la fonction ne fait pas

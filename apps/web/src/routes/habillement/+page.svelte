@@ -12,7 +12,7 @@
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
-	let { data, form }: { data: { enCours: DemandeListee[]; terminees: DemandeListee[]; gere: boolean }; form: { texte?: string; message?: string } | null } = $props();
+	let { data, form }: { data: { enCours: DemandeListee[]; terminees: DemandeListee[]; gere: boolean; peutDemander: boolean }; form: { texte?: string; message?: string } | null } = $props();
 	let envoi = $state(false);
 	const quand = (d: DemandeListee) => (d.finLe ? `Finie le ${dateCourte(d.finLe)}` : `Demandée le ${dateCourte(d.creeLe)}`);
 </script>
@@ -36,6 +36,9 @@
 
 	<div class="colonnes">
 		<Carte titre="Faire une demande">
+			{#if !data.peutDemander}
+				<p>Les demandes de tenue sont réservées aux agents du centre.</p>
+			{:else}
 			<form
 				method="POST"
 				use:enhance={() => {
@@ -49,6 +52,7 @@
 				<Champ id="texte" name="texte" libelle="Votre demande" lignes={4} requis maxlength={LIMITE_HABILLEMENT} valeur={form?.texte ?? ''} aide="Quelle pièce, quelle taille, pourquoi ? (ex. : veste textile en L, la mienne est déchirée)" erreur={form?.message} />
 				<div><Bouton type="submit" desactive={envoi}>Envoyer la demande</Bouton></div>
 			</form>
+			{/if}
 		</Carte>
 
 		<div class="listes">

@@ -29,7 +29,7 @@ const demande = (url: string, d = vue(), form: unknown = null) => {
 
 describe('/habillement', () => {
 	it('le formulaire d’un seul champ, avec son aide ; mes demandes avec leur état écrit', () => {
-		const page = propre(render(Liste as any, { props: { data: { enCours: [ligne()], terminees: [ligne({ id: 4, etape: 'livree', finLe: '2026-11-01T10:00' })], gere: false }, form: null } }).body);
+		const page = propre(render(Liste as any, { props: { data: { enCours: [ligne()], terminees: [ligne({ id: 4, etape: 'livree', finLe: '2026-11-01T10:00' })], gere: false, peutDemander: true }, form: null } }).body);
 		expect(page.match(/<textarea/g)).toHaveLength(1);
 		expect(page).toContain('Quelle pièce, quelle taille, pourquoi ? (ex. : veste textile en L, la mienne est déchirée)');
 		expect(page).toMatch(/href="\/habillement\/3"[\s\S]*?Rangers, taille 43\.[\s\S]*?Question posée/);
@@ -38,9 +38,17 @@ describe('/habillement', () => {
 	});
 
 	it('vide : une phrase et Gyro ; qui gère a le lien vers toutes les demandes', () => {
-		const page = propre(render(Liste as any, { props: { data: { enCours: [], terminees: [], gere: true }, form: null } }).body);
+		const page = propre(render(Liste as any, { props: { data: { enCours: [], terminees: [], gere: true, peutDemander: true }, form: null } }).body);
 		expect(page).toContain('Vos demandes de tenue et leur suivi s’afficheront ici.');
 		expect(page).toContain('href="/habillement/toutes"');
+	});
+});
+
+describe('/habillement, compte de la réserve citoyenne', () => {
+	it('pas de formulaire : une phrase dit pourquoi', () => {
+		const page = propre(render(Liste as any, { props: { data: { enCours: [], terminees: [], gere: false, peutDemander: false }, form: null } }).body);
+		expect(page).not.toContain('<textarea');
+		expect(page).toContain('Les demandes de tenue sont réservées aux agents du centre.');
 	});
 });
 
@@ -77,6 +85,18 @@ describe('/habillement/[id]', () => {
 		expect(livree).toContain('Dans votre casier');
 		expect(livree).not.toContain('<form');
 		expect(livree).toMatch(/En stock/);
+	});
+
+	it('annulée avant toute prise en compte : seule « Demandée » est faite ; refusée : « Refusée » à la place de « Traitée »', () => {
+		const faites = (html: string) => [...html.matchAll(/<li class="faite"[\s\S]*?<span>([^<]+)<span class="masque">/g)].map((m) => m[1]);
+		expect(faites(demande('', vue({ etape: 'annulee', prisePar: null, finLe: '2026-11-08T11:00', fil: [], gestes: [] })))).toEqual(['Demandée']);
+		expect(faites(demande('', vue({ etape: 'annulee', finLe: '2026-11-08T11:00', gestes: [] })))).toEqual(['Demandée', 'Prise en compte']);
+		expect(faites(demande('', vue({ etape: 'refusee', finLe: '2026-11-08T11:00', gestes: [] })))).toEqual(['Demandée', 'Prise en compte', 'Refusée']);
+	});
+
+	it('annuler passe par un panneau de confirmation', () => {
+		expect(demande('')).toContain('href="?panneau=annuler"');
+		expect(demande('?panneau=annuler')).toMatch(/<dialog[\s\S]*?Annuler la demande[\s\S]*?Oui, annuler ma demande/);
 	});
 
 	it('un refus du serveur est lu (alerte), le panneau rouvert', () => {
