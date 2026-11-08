@@ -6,6 +6,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 |---|---|
 | Accès et attributions | [acces-et-attributions.md](acces-et-attributions.md) |
 | Fiche agent | [fiche-agent.md](fiche-agent.md) |
+| Comités et référents | [comites-et-referents.md](comites-et-referents.md) |
 | Astreinte et rotation | [astreinte-et-rotation.md](astreinte-et-rotation.md) |
 | Planning de l'année | [planning-de-l-annee.md](planning-de-l-annee.md) |
 | Planning d'été | [planning-d-ete.md](planning-d-ete.md) |
@@ -27,6 +28,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 
 - **Fiche agent** : la liste des agents par équipe, avec recherche et filtres pour la gestion ; la fiche en blocs ; l'ajout, le départ ; le fichier de l'effectif (import, export).
 - **Accès et attributions** : connexion, profils, rôles et comités (page « Réglages »), nominations depuis la fiche ou la page « Nominations ».
+- **Comités et référents** (Caserne) : qui est dans quel comité, avec son mur et son matériel, et qui tient chaque rôle du centre ; ouverte à tous les agents.
 - **L'appli autour** : les onglets « Accueil », « Planning », « Caserne », « Échanges », la cloche « Notifications », « Moi », les casquettes de l'accueil, le choix de l'affichage, l'aide à l'installation et la pastille sur l'icône.
 - **Réservations** (Caserne → Réservations) : la VL et le matériel de l'amicale, calendrier, demandes à valider, notifications.
 - **Planning de l'année** : préparer l'année (roulement, semaines, fêtes, manœuvres, vacances) et la publier ; les vues « Semaine », « Mois », « Année » et « Équipes », la plaque d'astreinte de l'accueil ; abonnement d'agenda (avec les remplacements) ; manœuvres annoncées toutes seules sur « Le centre ».
