@@ -28,7 +28,7 @@
 
 - `listes.ts` : `GERER_HABILLEMENT` après `GERER_STOCK`. Libellé dans `apps/web/src/lib/droits.ts`.
 - Jeu de départ : le droit, verrouillé, au chef de centre et à l'adjoint ; rôle « Référent habillement » (mission, centre, attribué par le comité du centre, modèle `referent_habillement`, droit `GERER_HABILLEMENT`).
-- `pnpm --filter @gyro-caserne/socle migrations` → 0022 : reconstruction de `profil_droit` et `responsabilite_droit` (nouvelle table, copie, suppression, renommage ; `PRAGMA defer_foreign_keys = on` pour D1), puis les mêmes ajouts que le jeu de départ pour les bases déjà remplies. SQL relu à la main.
+- `pnpm --filter @gyro-caserne/socle migrations` → 0022 : reconstruction de `profil_droit` et `responsabilite_droit` (nouvelle table, copie avec rowid, suppression, renommage ; sans `PRAGMA` : aucune table ne pointe vers ces deux-là, rien n'est violé sous les clés étrangères de D1), puis les mêmes ajouts que le jeu de départ pour les bases déjà remplies. SQL relu à la main.
 - Test `packages/socle/test/migration-0022.test.ts` : base à 0021 avec profils, rôles et droits variés ; toutes les lignes (rowid compris) identiques après ; schéma (colonnes, clés, `CHECK`, index) identique hormis la liste ; `GERER_HABILLEMENT` accepté, un droit inconnu refusé ; ajouts relançables.
 
 ### Tâche 2 : le socle des demandes (`packages/socle/src/habillement.ts`, migration 0023)
