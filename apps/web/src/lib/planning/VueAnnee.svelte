@@ -93,6 +93,8 @@
 		width: 44px;
 		height: 26px;
 		margin: 0;
+		border: 2px solid var(--doux);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		position: relative;
 		cursor: pointer;

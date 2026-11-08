@@ -204,7 +204,8 @@ describe('direction B', () => {
 
 	it('un seul style de champ, posé par app.css', () => {
 		expect(source('app.css')).toMatch(/:where\(textarea, select, input:not\(\[type='checkbox'\], \[type='radio'\], \[type='file'\]\)\) \{[^}]*border: 1px solid var\(--doux\);/);
-		const ecrit = ecrans.filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
+		// L'interrupteur de la vue Année est une case dessinée, pas un champ.
+		const ecrit = ecrans.filter((f) => f !== 'lib/planning/VueAnnee.svelte').filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
 		expect(ecrit).toEqual([]);
 		expect(style('lib/ui/FormulairePublication.svelte')).not.toMatch(/\.saisie \{[^}]*border:/);
 	});
@@ -241,5 +242,9 @@ describe('direction B', () => {
 	it('une option choisie ne saute pas : son bord plus épais est repris sur le retrait', () => {
 		const fautifs = ecrans.filter((f) => /border: 2px solid var\(--encre\);\s*padding: var\(--espace-8\) var\(--espace-12\);/.test(style(f)));
 		expect(fautifs).toEqual([]);
+	});
+
+	it('l’interrupteur de la vue Année garde sa piste : ce n’est pas un champ', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.interrupteur input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
 	});
 });
