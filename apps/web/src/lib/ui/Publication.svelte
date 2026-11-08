@@ -508,7 +508,7 @@
 		align-items: flex-start;
 		gap: var(--espace-8);
 	}
-	summary {
+	details:not(.plus) > summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;

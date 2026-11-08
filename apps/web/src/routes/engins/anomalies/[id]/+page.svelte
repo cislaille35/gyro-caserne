@@ -224,7 +224,7 @@
 					<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
 					<input id="texte-clore" name="texte" type="text" maxlength="300" />
 				</div>
-				<div><Bouton type="submit" variante="grave" desactive={envoi}>Clore</Bouton></div>
+				<div><Bouton type="submit" variante="grave" desactive={envoi}>Clore l’anomalie</Bouton></div>
 			{/if}
 			{@render message(panneau)}
 		</form>

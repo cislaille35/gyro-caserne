@@ -98,7 +98,7 @@
 						{/each}
 					</ol>
 
-					<details class="plus" open={pour(`ajout:${z.ref}`) !== undefined}>
+					<details class="plus" open={pour(`ajout:${z.ref}`) !== null}>
 						<summary>Ajouter un élément<span class="masque">{' '}à {z.nom}</span></summary>
 					<form method="POST" action="?/geste" use:enhance class="formulaire ajout">
 						<input type="hidden" name="quoi" value="ajouter_element" />

@@ -13,6 +13,6 @@ Ouvert à tout agent, sur les murs où il peut publier : « Vie du centre », le
 
 Si un champ est mal rempli, son message s'affiche dessous et le curseur s'y place : corrigez-le, puis appuyez de nouveau sur « Publier dans … ».
 
-Chef de centre, adjoint, chef de garde ou rapporteur : pour une annonce, cochez « Demander une prise de connaissance (annonce) ». Chacun verra le bouton « Pris connaissance » sur son accueil (« J’ai pris connaissance » sur le mur), et tous verront où on en est (« 12 sur 38 ont confirmé »). Sous la publication, « Voir le suivi » montre qui l’a fait et qui pas encore.
+Chef de centre, adjoint, chef de garde ou rapporteur : pour une annonce, cochez « Demander une prise de connaissance (annonce) ». Chacun verra le bouton « Pris connaissance » sur son accueil (« J’ai pris connaissance » sur le mur), et tous verront où on en est (« 12 sur 38 ont confirmé »). Sous la publication, « Plus » puis « Voir le suivi » montre qui l’a fait et qui pas encore.
 
 Les publications sont effacées au bout de 24 mois (durée réglée par le centre), sauf les épinglées.

@@ -8,4 +8,4 @@ Réservé au chef de centre, à son adjoint, aux chefs de garde et au référent
 4. Choisissez sa situation : **Au centre**, ou **Prêté au centre** avec le nom du centre qui le prête.
 5. Touchez **Ajouter l’engin**.
 
-Quand un engin quitte le centre (rendu, réformé), ouvrez-le, touchez **Modifier l’engin**, choisissez **Parti**, puis **Enregistrer** : il sort de la liste, son historique reste.
+Quand un engin quitte le centre (rendu, réformé), ouvrez-le, touchez **Gérer l’engin**, puis **Modifier l’engin**, choisissez **Parti**, puis **Enregistrer** : il sort de la liste, son historique reste.

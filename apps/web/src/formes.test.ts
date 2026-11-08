@@ -355,4 +355,8 @@ describe('direction B', () => {
 	it('une aptitude ne montre pas tous ses boutons d’un coup : ses gestes s’ouvrent', () => {
 		expect(source('routes/reglages/aptitudes/+page.svelte')).toMatch(/<details[^>]*>\s*<summary[^>]*>[\s\S]*?Modifier/);
 	});
+
+	it('l’ajout d’un élément reste replié tant qu’on n’y revient pas', () => {
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/open=\{pour\(`ajout:\$\{z\.ref\}`\) !== null\}/);
+	});
 });
