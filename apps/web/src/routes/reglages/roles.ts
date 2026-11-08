@@ -12,7 +12,8 @@ export const NOMS_ICONES: Record<IconeRole, string> = {
 	livre: 'Livre',
 	groupe: 'Groupe',
 	coeur: 'Cœur',
-	outil: 'Outil'
+	outil: 'Outil',
+	veste: 'Veste'
 };
 
 export const PORTEES = [

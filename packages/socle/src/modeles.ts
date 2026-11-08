@@ -7,6 +7,7 @@ export type Modele = { id: string; nom: string; nature: 'fonction' | 'mission'; 
 export const MODELES: Modele[] = [
 	{ id: 'referent_materiel', nom: 'Référent matériel', nature: 'mission', portee: 'centre', icone: 'camion', droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
 	{ id: 'referent_pharmacie', nom: 'Référent pharmacie', nature: 'mission', portee: 'centre', icone: 'croix', droits: ['GERER_STOCK'] },
+	{ id: 'referent_habillement', nom: 'Référent habillement', nature: 'mission', portee: 'centre', icone: 'veste', droits: ['GERER_HABILLEMENT'] },
 	{ id: 'referent_technique', nom: 'Référent technique', nature: 'fonction', portee: 'centre', icone: 'cle', droits: ['GERER_LISTES', 'GERER_COMITES'] },
 	{ id: 'membre_comite', nom: 'Membre de comité', nature: 'mission', portee: 'comite', icone: 'groupe', droits: [] },
 	{ id: 'rapporteur_comite', nom: 'Rapporteur de comité', nature: 'mission', portee: 'comite', icone: 'livre', droits: ['ATTRIBUER_RESPONSABILITE'] },

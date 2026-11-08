@@ -53,6 +53,8 @@
 	--icone-coeur-texte: #8a1f52;
 	--icone-outil-fond: #e6eef0;
 	--icone-outil-texte: #2f5560;
+	--icone-veste-fond: #e8ecf7;
+	--icone-veste-texte: #26386e;
 	/* Mes bulles de message : une teinte chaude. */
 	--bulle-moi: #fbe1e4;
 	/* En-tête anthracite, menu de l’ordinateur, blocs de choix, bande de marquage. */
@@ -130,6 +132,8 @@
 	--icone-coeur-texte: #f5a9cb;
 	--icone-outil-fond: #1c2c31;
 	--icone-outil-texte: #a9cdd6;
+	--icone-veste-fond: #1a2138;
+	--icone-veste-texte: #b5c4f0;
 	--bulle-moi: #4a2228;
 	--entete-fond: #0b1016;
 	--entete-texte: #ffffff;
@@ -195,6 +199,8 @@
 		--icone-coeur-texte: #f5a9cb;
 		--icone-outil-fond: #1c2c31;
 		--icone-outil-texte: #a9cdd6;
+		--icone-veste-fond: #1a2138;
+		--icone-veste-texte: #b5c4f0;
 		--bulle-moi: #4a2228;
 		--entete-fond: #0b1016;
 		--entete-texte: #ffffff;

@@ -15,7 +15,7 @@ export function entreesNavigation(connecte: boolean): EntreeNavigation[] {
 // Les pages rangées sous un onglet, ou sous « Moi », en plus de la sienne.
 const rangement: Record<string, string[]> = {
 	'/planning': ['/remplacements'],
-	'/caserne': ['/agents', '/comites', '/engins', '/nominations', '/reglages', '/reservations'],
+	'/caserne': ['/agents', '/comites', '/engins', '/nominations', '/reglages', '/reservations', '/habillement'],
 	'/moi': ['/profil', '/affichage']
 };
 
@@ -26,9 +26,9 @@ export function dansUneConversation(route: string | null, erreur: unknown): bool
 	return !erreur && (route === '/echanges/messages/[id]' || route === '/echanges/messages/a/[personne]');
 }
 
-// Les pages dont l'ouverture marque des notifications lues (mur, publication, remplacements, anomalie, mes réservations) :
+// Les pages dont l'ouverture marque des notifications lues (mur, publication, remplacements, anomalie, mes réservations, demande d'habillement) :
 // la cloche n'est relue qu'après elles, pour ne pas ajouter un appel au serveur à chaque page.
-const MARQUENT_LU = ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes'];
+const MARQUENT_LU = ['/echanges/[mur]', '/echanges/[mur]/[id]', '/remplacements', '/remplacements/[id]', '/planning/ete', '/engins/anomalies/[id]', '/reservations/miennes', '/habillement/[id]'];
 export function marqueDesLues(route: string | null): boolean {
 	return route !== null && MARQUENT_LU.includes(route);
 }

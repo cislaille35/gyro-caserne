@@ -66,7 +66,7 @@ async function tenues(base: Base, acteur: Acteur, aujourdhui: string): Promise<{
 	const referents = new Map<number, { nom: string; icone: NomIcone }>();
 	for (const l of valides) if (l.type === 'centre' && l.systeme === null) referents.set(l.responsabiliteId, { nom: l.nom, icone: iconeDuRole(l) });
 
-	const liste = [
+	const liste: Omit<Casquette, 'compte'>[] = [
 		...(tient((l) => l.systeme === 'chef_centre' || l.systeme === 'chef_centre_adjoint') ? [centre] : []),
 		...equipes
 			.filter((e) => tient((l) => l.systeme === 'chef_equipe' && l.perimetreId === e.id))

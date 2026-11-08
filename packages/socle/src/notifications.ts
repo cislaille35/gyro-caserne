@@ -21,9 +21,9 @@ const FIL_MAX = 50;
 
 // `lue` : la ligne de la cloche que la notification touchée marque lue (voir mettreEnFile) ; absente pour un message ou une vigilance.
 export type DonneesPush = { titre: string; texte: string; url: string; tag: string; lue?: { genre: string; id: number | null } };
-export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie;
-// Anomalies et habillement : une ligne toute faite (titre, texte, page).
-export type LigneAnomalie = { id: number; type: 'anomalie' | 'habillement'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
+export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie | LigneHabillement;
+export type LigneAnomalie = { id: number; type: 'anomalie'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
+export type LigneHabillement = Omit<LigneAnomalie, 'type'> & { type: 'habillement' };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export const TITRES_ETE: Record<AvisEte, string> = { rappel: 'Vos vacances d’été', repartition: 'Planning d’été', vacances_changees: 'Vacances changées', semaine: 'Planning' };
 export type LigneRemplacement = { id: number; type: 'remplacement'; demandeId: number; quoi: AvisRemplacement; titre: string; texte: string; creeLe: string; lue: boolean };

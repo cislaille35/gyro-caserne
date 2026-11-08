@@ -75,6 +75,13 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*>[\s\S]*?Non lu, [\s\S]*?VTU · Treuil HS[\s\S]*?Prise en charge par Rémi Fictif/);
 	});
 
+	it('un avis d’habillement : vers la demande, avec la veste, son titre et son texte', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 6, type: 'habillement', titre: 'Question sur votre demande', texte: 'Rémi Fictif : Quelle taille ?', url: '/habillement/2', creeLe: '2026-11-08T10:00', lue: false }] });
+		expect(page).toContain(`href="${ouvre('habillement', 6, '/habillement/2')}"`);
+		expect(page).toContain('M9 3l3 3 3-3 5 3-2 5h-2v10H8V11H6L4 6z');
+		expect(page).toMatch(/<a[^>]*>[\s\S]*?Non lu, [\s\S]*?Question sur votre demande[\s\S]*?Rémi Fictif : Quelle taille \?/);
+	});
+
 	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
 		const page = html({ aValider: 2 });
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);

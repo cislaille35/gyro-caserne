@@ -86,7 +86,7 @@ describe('page d’un rôle', () => {
 		expect(page).not.toMatch(/<form/);
 		expect(page).not.toContain('Revenir au modèle');
 		expect(page).not.toContain('Enregistrer');
-		expect(page.match(/<fieldset class="selecteur[^"]*" disabled/g)).toHaveLength(5);
+		expect(page.match(/<fieldset class="selecteur[^"]*" disabled/g)).toHaveLength(6);
 		expect(page).toMatch(/name="admin"[^>]*disabled/);
 		expect(page).toContain('Valider un remplacement');
 	});
@@ -124,7 +124,7 @@ describe('page d’un rôle', () => {
 
 	it('choix de l’icône dans la liste fixe, celle du modèle par défaut', () => {
 		const page = html({});
-		expect(page.match(/name="icone"/g)).toHaveLength(10);
+		expect(page.match(/name="icone"/g)).toHaveLength(11);
 		expect(page).toMatch(/<input type="radio" name="icone" value="camion" checked/);
 		expect(page).toContain('Camion');
 	});

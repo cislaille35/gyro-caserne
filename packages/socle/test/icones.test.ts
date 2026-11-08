@@ -13,6 +13,8 @@ describe('iconeDuRole', () => {
 		expect(iconeDuRole(role({ nom: 'Référent engins' }))).toBe('camion');
 		expect(iconeDuRole(role({ nom: 'Référent pharmacie' }))).toBe('croix');
 		expect(iconeDuRole(role({ nom: 'Référent technique' }))).toBe('cle');
+		expect(iconeDuRole(role({ nom: 'Référente habillement' }))).toBe('veste');
+		expect(iconeDuRole(role({ nom: 'Rôle', modele: 'referent_habillement' }))).toBe('veste');
 	});
 
 	it('sinon selon le thème, qui découle de la portée', () => {

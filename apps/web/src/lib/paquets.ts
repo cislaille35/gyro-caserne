@@ -1,6 +1,6 @@
 import { MODELES, type Droit } from '@gyro-caserne/socle';
 
-export type DomaineId = 'planning' | 'engins' | 'stock' | 'reservations' | 'messagerie';
+export type DomaineId = 'planning' | 'engins' | 'stock' | 'habillement' | 'reservations' | 'messagerie';
 export type Niveau = { libelle: string; droits: Droit[]; phrase: string };
 export type Domaine = { id: DomaineId; nom: string; niveaux: Niveau[] };
 
@@ -30,6 +30,14 @@ export const DOMAINES: Domaine[] = [
 		niveaux: [
 			{ libelle: 'Rien de plus', droits: [], phrase: 'Comme tout agent : il signale un besoin de stock.' },
 			{ libelle: 'Gérer', droits: ['GERER_STOCK'], phrase: 'Tient le stock et la pharmacie.' }
+		]
+	},
+	{
+		id: 'habillement',
+		nom: 'Habillement',
+		niveaux: [
+			{ libelle: 'Rien de plus', droits: [], phrase: 'Comme tout agent : il demande une tenue.' },
+			{ libelle: 'Gérer', droits: ['GERER_HABILLEMENT'], phrase: 'Traite les demandes de tenue.' }
 		]
 	},
 	{

@@ -118,12 +118,12 @@ export type GesteHabillement =
 	| { quoi: 'livrer'; texte: string }
 	| { quoi: 'annuler' };
 export type QuoiGesteHabillement = GesteHabillement['quoi'];
-export type EtatDemande = { etape: EtapeHabillement; demandeur: number; prisePar: number | null };
+export type EtatDemandeHabillement = { etape: EtapeHabillement; demandeur: number; prisePar: number | null };
 
 // Les gestes permis. L'agent : répondre ou préciser tant que la demande n'est pas finie, l'annuler tant qu'elle n'est ni commandée
 // ni sortie du stock. Qui gère : la prendre en compte (ou, d'emblée, poser une question ou la traiter), la reprendre à un collègue ;
 // celui qui l'a prise : poser une question, la traiter, puis la livrer.
-export function gestesHabillement(d: EtatDemande, qui: { moi: number | null; gere: boolean }): QuoiGesteHabillement[] {
+export function gestesHabillement(d: EtatDemandeHabillement, qui: { moi: number | null; gere: boolean }): QuoiGesteHabillement[] {
 	if (qui.moi === null || FINIES.includes(d.etape)) return [];
 	const gestes: QuoiGesteHabillement[] = [];
 	if (qui.gere) {
@@ -218,7 +218,7 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 
 export type DemandeListee = { id: number; texte: string; etape: EtapeHabillement; issue: IssueHabillement | null; demandeur: string; prisePar: string | null; creeLe: string; majLe: string; finLe: string | null };
 export type LigneFilDemande = { quoi: FilHabillement; texte: string | null; par: string; le: string; deLAgent: boolean };
-export type VueDemande = DemandeListee & { livraison: string | null; sienne: boolean; fil: LigneFilDemande[]; gestes: QuoiGesteHabillement[] };
+export type VueDemandeHabillement = DemandeListee & { livraison: string | null; sienne: boolean; fil: LigneFilDemande[]; gestes: QuoiGesteHabillement[] };
 
 const colonnes = {
 	id: demandeHabillement.id,
@@ -262,7 +262,7 @@ export async function toutesLesDemandes(base: Base, acteur: Acteur, aujourdhui: 
 
 // Une demande, son fil et les gestes permis : pour l'agent qui l'a faite et qui gère l'habillement ; inconnue pour les autres.
 // L'ouvrir marque lus ses avis. Une requête, plus les droits.
-export async function lireDemande(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<VueDemande> {
+export async function lireDemande(base: Base, acteur: Acteur, id: number, maintenant: string): Promise<VueDemandeHabillement> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = acteur.type === 'personne' ? acteur.id : null;
 	const gere = await gereHabillement(base, acteur, aujourdhui);

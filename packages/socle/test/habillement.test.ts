@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { accueilDe } from '../src/casquettes.ts';
 import type { Acteur } from '../src/droits.ts';
-import { chargerHabillementFictif, demanderTenue, effacerVieillesDemandes, gesteHabillement, gestesHabillement, habillementADecider, lireDemande, mesDemandes, toutesLesDemandes, type EtatDemande } from '../src/habillement.ts';
+import { chargerHabillementFictif, demanderTenue, effacerVieillesDemandes, gesteHabillement, gestesHabillement, habillementADecider, lireDemande, mesDemandes, toutesLesDemandes, type EtatDemandeHabillement } from '../src/habillement.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { enTeteDe, filDeNotifications, marquerLue } from '../src/notifications.ts';
 import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, personne, profil, responsabilite } from '../src/schema.ts';
@@ -76,7 +76,7 @@ describe('demander une tenue', () => {
 });
 
 describe('gestes permis (sans base)', () => {
-	const d = (etape: EtatDemande['etape'], prisePar: number | null = null): EtatDemande => ({ etape, demandeur: 1, prisePar });
+	const d = (etape: EtatDemandeHabillement['etape'], prisePar: number | null = null): EtatDemandeHabillement => ({ etape, demandeur: 1, prisePar });
 	const agent = { moi: 1, gere: false };
 	const referent = { moi: 2, gere: true };
 	const collegue = { moi: 3, gere: true };
