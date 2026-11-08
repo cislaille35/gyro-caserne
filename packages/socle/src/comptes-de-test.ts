@@ -72,8 +72,8 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	const infos = [...new Set(sautes.map((c) => c.equipe!))].map((numero) => {
 		const roles = sautes.filter((c) => c.equipe === numero).map((c) => `« ${c.role} »`);
 		return roles.length === 1
-			? `Équipe ${numero} absente ou inactive : compte ${roles[0]} non créé, ni ses données.`
-			: `Équipe ${numero} absente ou inactive : comptes ${roles.slice(0, -1).join(', ')} et ${roles.at(-1)} non créés, ni leurs données.`;
+			? `Équipe ${numero} absente ou inactive : compte ${roles[0]} sauté, avec ses données.`
+			: `Équipe ${numero} absente ou inactive : comptes ${roles.slice(0, -1).join(', ')} et ${roles.at(-1)} sautés, avec leurs données.`;
 	});
 
 	const ids: Record<string, number> = {};
@@ -139,7 +139,10 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	await chargerMaterielFictif(base, maintenant);
 	await chargerEnginsFictifs(base, maintenant);
 	// Des demandes d'habillement de l'agent et du membre, suivies par le référent habillement (sans lui, par le chef de centre, qui en a le droit).
-	await chargerHabillementFictif(base, maintenant, ids.habillement ?? ids.chef!, [ids.agent, ids.membre].filter((id) => id !== undefined));
+	// Un compte sauté mais créé lors d'un passage précédent garde ses demandes : il est retrouvé par son adresse, pour ne rien refaire en double.
+	const dejaLa = async (role: string) => ids[role] ?? (await base.select({ id: personne.id }).from(personne).where(eq(personne.email, adresse(role))))[0]?.id;
+	const demandeurs = [await dejaLa('agent'), await dejaLa('membre')].filter((id) => id !== undefined);
+	await chargerHabillementFictif(base, maintenant, (await dejaLa('habillement')) ?? ids.chef!, demandeurs);
 	// Des aptitudes, pour essayer les remplacements.
 	await chargerAptitudesFictives(base, maintenant);
 	if (!la('agent')) return infos;

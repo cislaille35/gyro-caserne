@@ -140,6 +140,12 @@ describe('droits de pouvoir hors du centre', () => {
 		expect(await droitsDe(chefEquipe.id)).not.toContain('GERER_ACCES');
 	});
 
+	it('sans le pouvoir, le refus du pouvoir passe d’abord', async () => {
+		const { base, referent, resp } = await jeu();
+		const membre = await resp('Membre de comité');
+		await expect(modifierResponsabilite(base, referent, membre.id, { droits: ['GERER_ACCES'] }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
 	it('nommer reste possible sur une équipe ou un comité (le rapporteur nomme dans son comité)', async () => {
 		const { base, chef } = await jeu();
 		await expect(creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'Adjoint de garde', portee: 'equipe', droits: ['ATTRIBUER_RESPONSABILITE'] }, aujourdhui)).resolves.toEqual(expect.any(Number));

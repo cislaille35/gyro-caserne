@@ -236,8 +236,6 @@ export async function modifierResponsabilite(
 	const avant = actuels.map((l) => l.droit);
 	const apres = champs.droits === undefined ? avant : exigerDroits(champs.droits);
 	const ajoutes = apres.filter((d) => !avant.includes(d));
-	// Seul ce qui change est vérifié : un rôle ancien qui a déjà un tel droit se modifie pour le reste.
-	exigerPorteeDesDroits(portee, portee !== ligne.typePerimetre ? apres : ajoutes);
 	if (champs.droits !== undefined) {
 		const retires = actuels.filter((l) => !apres.includes(l.droit));
 		if ([...ajoutes, ...retires.map((l) => l.droit)].some(estDroitPouvoir) && !(await geresLePouvoir(base, acteur, aujourdhui))) {
@@ -246,6 +244,8 @@ export async function modifierResponsabilite(
 		if (retires.some((l) => l.verrouille === 1)) throw new DonneeInvalide('Droit verrouillé : impossible de le retirer');
 		if (ajoutes.length > 0 || retires.length > 0) noms.push('droits');
 	}
+	// Après le contrôle du pouvoir. Seul ce qui change est vérifié : un rôle ancien qui a déjà un tel droit se modifie pour le reste.
+	exigerPorteeDesDroits(portee, portee !== ligne.typePerimetre ? apres : ajoutes);
 	if (noms.length === 0) return;
 
 	await base.batch([

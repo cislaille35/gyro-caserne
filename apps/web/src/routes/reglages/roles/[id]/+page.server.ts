@@ -152,7 +152,8 @@ export const actions: Actions = {
 		const formulaire = await request.formData();
 		const cible = 'detail';
 		if (role.systeme !== null) return manque(cible, SYSTEME);
-		const envoyes = formulaire.getAll('droits').filter((d): d is string => typeof d === 'string');
+		// Un droit sans effet n'est jamais ajouté, même envoyé à la main.
+		const envoyes = formulaire.getAll('droits').filter((d): d is string => typeof d === 'string' && !estSansEffet(d as Droit));
 		// Une case désactivée ou absente n'est pas envoyée : on garde les droits verrouillés, ceux de pouvoir si l'acteur ne le gère pas, et les droits sans effet.
 		const gardes = role.droits.filter((d) => d.verrouille || estSansEffet(d.droit as Droit) || (!pouvoir && estDroitPouvoir(d.droit as Droit))).map((d) => d.droit);
 		try {

@@ -184,6 +184,9 @@ describe('page d’un rôle', () => {
 		await base.insert(responsabiliteDroit).values({ responsabiliteId: engins.id, droit: 'VOIR_MOTIFS_ABSENCE' });
 		await agir('detail', locaux(base, chef), engins.id, [['droits', 'GERER_STOCK']]);
 		expect(await droitsDe(engins.id)).toEqual(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE']);
+		// Envoyé à la main, il n'est pas ajouté.
+		await agir('detail', locaux(base, chef), engins.id, [['droits', 'GERER_STOCK'], ['droits', 'VOIR_ANNUAIRE']]);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE']);
 	});
 
 	it('archive avec confirmation seulement, jamais un rôle système', async () => {

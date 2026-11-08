@@ -149,7 +149,7 @@ describe('chargerComptesDeTest', () => {
 		await chargerJeuDeDepart(base, centreExemple);
 		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 4));
 		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
-		expect(infos).toEqual(['Équipe 4 absente ou inactive : compte « habillement » non créé, ni ses données.']);
+		expect(infos).toEqual(['Équipe 4 absente ou inactive : compte « habillement » sauté, avec ses données.']);
 		const adresses = (await base.select({ email: personne.email }).from(personne)).map((p) => p.email);
 		expect(adresses).not.toContain('caserne+habillement@exemple.fr');
 		expect(adresses).toHaveLength(COMPTES_DE_TEST.length - 1);
@@ -165,12 +165,32 @@ describe('chargerComptesDeTest', () => {
 		expect(await acteurDe(base, 'caserne+habillement@exemple.fr', [])).not.toBeNull();
 	});
 
+	it('une équipe qui devient inactive puis revient : jamais de demande d’habillement en double', async () => {
+		const etapes = async (base: Awaited<ReturnType<typeof baseDeTest>>) => (await base.select({ id: demandeHabillement.id }).from(demandeHabillement)).length;
+		// Passe complète, puis l'équipe de l'agent devient inactive, puis revient.
+		const base = await jeu();
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 1));
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await etapes(base)).toBe(4);
+		await base.update(equipe).set({ active: 1 }).where(eq(equipe.ordreRotation, 1));
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await etapes(base)).toBe(4);
+		// Première passe sans l'équipe, puis elle revient.
+		const autre = await baseDeTest();
+		await chargerJeuDeDepart(autre, centreExemple);
+		await autre.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 1));
+		await chargerComptesDeTest(autre, autre.photos, 'caserne@exemple.fr', maintenant);
+		await autre.update(equipe).set({ active: 1 }).where(eq(equipe.ordreRotation, 1));
+		await chargerComptesDeTest(autre, autre.photos, 'caserne@exemple.fr', maintenant);
+		expect(await etapes(autre)).toBe(4);
+	});
+
 	it('une équipe absente : saute ses comptes et les publications et gestes qui en dépendent', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
 		await base.delete(equipe).where(eq(equipe.ordreRotation, 1));
 		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
-		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe » et « agent » non créés, ni leurs données.']);
+		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe » et « agent » sautés, avec leurs données.']);
 		expect(infos.join(' ')).not.toContain('@');
 		const pubs = await base.select({ mur: publication.mur, texte: publication.texte }).from(publication);
 		expect(pubs.some((p) => p.mur.startsWith('equipe:'))).toBe(false);

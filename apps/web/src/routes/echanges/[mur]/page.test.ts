@@ -130,6 +130,10 @@ describe('page d’un mur', () => {
 		const equipe = html({ mur: { ...mur, cle: 'equipe:1', nom: 'Équipe 1', type: 'equipe' }, audience: 9 });
 		expect(equipe).toContain('Visible par les 9 membres de l’équipe 1, le chef et l’adjoint');
 		expect(equipe).toContain('#d4a017');
+		// « Votre équipe » pour la sienne seulement ; le chef qui lit une autre équipe voit une phrase neutre.
+		expect(html({ mur: { ...mur, cle: 'equipe:1', nom: 'Équipe 1', type: 'equipe' }, sienne: true })).toContain('Votre équipe d’astreinte');
+		expect(equipe).toContain('Une équipe d’astreinte du centre');
+		expect(equipe).not.toContain('Votre équipe');
 	});
 
 	it('un comité : pas de phrase qui répète son nom ; sans membre, la bande le dit', () => {
