@@ -9,7 +9,7 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { mursDe } from '../src/murs.ts';
 import { ajouterPersonne } from '../src/actions/personnes.ts';
 import { nombreAValider } from '../src/reservations.ts';
-import { demandeHabillement, equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
+import { comite, demandeHabillement, equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -136,12 +136,48 @@ describe('chargerComptesDeTest', () => {
 		expect((await base.select().from(personne)).length).toBe(COMPTES_DE_TEST.length + 1);
 	});
 
-	it('n’écrit rien s’il manque une pièce du centre', async () => {
+	it('n’écrit rien s’il manque une pièce du centre (un comité)', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 1));
-		await expect(chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).rejects.toThrow('équipe 1 absente ou inactive');
+		await base.update(comite).set({ dissousLe: '2026-01-01' }).where(eq(comite.nom, 'Amicale'));
+		await expect(chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).rejects.toThrow('comité « Amicale » absent ou dissous');
 		expect(await base.select().from(personne)).toEqual([]);
+	});
+
+	it('une équipe inactive : saute ses comptes, le dit sans adresse, charge le reste dont l’habillement', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 4));
+		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(infos).toEqual(['Équipe 4 absente ou inactive : compte « habillement » non créé, ni ses données.']);
+		const adresses = (await base.select({ email: personne.email }).from(personne)).map((p) => p.email);
+		expect(adresses).not.toContain('caserne+habillement@exemple.fr');
+		expect(adresses).toHaveLength(COMPTES_DE_TEST.length - 1);
+		// Les demandes d'habillement sont là, suivies par le chef de centre (il a le droit de les traiter).
+		const [chef] = await base.select().from(personne).where(eq(personne.email, 'caserne+chef@exemple.fr'));
+		const demandes = await base.select({ etape: demandeHabillement.etape, prisePar: demandeHabillement.prisePar }).from(demandeHabillement).orderBy(demandeHabillement.id);
+		expect(demandes.map((d) => d.etape)).toEqual(['demandee', 'question', 'traitee', 'livree']);
+		expect(demandes.filter((d) => d.prisePar !== null).every((d) => d.prisePar === chef!.id)).toBe(true);
+		// Relançable, et l'équipe revenue, le compte manquant est créé.
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		await base.update(equipe).set({ active: 1 }).where(eq(equipe.ordreRotation, 4));
+		expect(await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).toEqual([]);
+		expect(await acteurDe(base, 'caserne+habillement@exemple.fr', [])).not.toBeNull();
+	});
+
+	it('une équipe absente : saute ses comptes et les publications et gestes qui en dépendent', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		await base.delete(equipe).where(eq(equipe.ordreRotation, 1));
+		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe » et « agent » non créés, ni leurs données.']);
+		expect(infos.join(' ')).not.toContain('@');
+		const pubs = await base.select({ mur: publication.mur, texte: publication.texte }).from(publication);
+		expect(pubs.some((p) => p.mur.startsWith('equipe:'))).toBe(false);
+		expect(pubs.some((p) => p.mur === 'vie')).toBe(false);
+		expect(pubs.filter((p) => p.mur === 'centre')).toHaveLength(3);
+		expect(await base.select().from(reservation)).toEqual([]);
+		expect(await base.select().from(demandeHabillement)).not.toEqual([]);
 	});
 
 	it('refuse une adresse de super administrateur', async () => {

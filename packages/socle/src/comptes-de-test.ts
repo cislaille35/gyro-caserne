@@ -35,7 +35,8 @@ export const COMPTES_DE_TEST: Compte[] = [
 const INSTALLATEUR: Acteur = { type: 'super', email: 'comptes-de-test' };
 
 // Relançable : ce qui existe déjà (compte, rôle, publication) est gardé, le reste est complété. Le jeu de départ doit être chargé.
-export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, boite: string, maintenant: string, adressesReservees: string[] = []): Promise<void> {
+// Une équipe absente ou inactive : ses comptes et ce qui en dépend sont sautés ; rend une ligne d'information par équipe, sans adresse.
+export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, boite: string, maintenant: string, adressesReservees: string[] = []): Promise<string[]> {
 	const morceaux = /^([^@+\s]+)@([^@\s]+\.[^@\s]+)$/.exec(boite.trim().toLowerCase());
 	if (!morceaux) throw new DonneeInvalide('Boîte invalide : une adresse simple, sans « + »');
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
@@ -47,17 +48,14 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	const responsabilites = await base.select({ id: responsabilite.id, nom: responsabilite.nom, type: responsabilite.typePerimetre, archiveeLe: responsabilite.archiveeLe }).from(responsabilite);
 	const comites = await base.select({ id: comite.id, nom: comite.nom, dissousLe: comite.dissousLe }).from(comite);
 	const manque = (quoi: string) => new DonneeInvalide(`Comptes de test impossibles : ${quoi}`);
-	const idEquipe = (numero: number) => {
-		const e = equipes.find((x) => x.numero === numero && x.active === 1);
-		if (!e) throw manque(`équipe ${numero} absente ou inactive`);
-		return e.id;
-	};
+	const idEquipe = (numero: number) => equipes.find((x) => x.numero === numero && x.active === 1)?.id ?? null;
 	const idComite = (nom: string) => {
 		const c = comites.find((x) => x.nom === nom && x.dissousLe === null);
 		if (!c) throw manque(`comité « ${nom} » absent ou dissous`);
 		return c.id;
 	};
-	const prevus = COMPTES_DE_TEST.map((c) => {
+	const sautes = COMPTES_DE_TEST.filter((c) => c.equipe !== undefined && idEquipe(c.equipe) === null);
+	const prevus = COMPTES_DE_TEST.filter((c) => !sautes.includes(c)).map((c) => {
 		const p = profils.find((x) => x.nom === c.profil);
 		if (!p) throw manque(`profil « ${c.profil} » absent`);
 		if (adressesReservees.map((a) => a.trim().toLowerCase()).includes(adresse(c.role))) throw manque(`${adresse(c.role)} est réservée au super administrateur`);
@@ -65,13 +63,18 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 		if (c.responsabilite) {
 			const r = responsabilites.find((x) => x.nom === c.responsabilite && x.archiveeLe === null);
 			if (!r) throw manque(`responsabilité « ${c.responsabilite} » absente ou archivée`);
-			const perimetre: Perimetre = r.type === 'centre' ? { type: 'centre' } : r.type === 'equipe' ? { type: 'equipe', id: idEquipe(c.equipe!) } : { type: 'comite', id: idComite(c.comite!) };
+			const perimetre: Perimetre = r.type === 'centre' ? { type: 'centre' } : r.type === 'equipe' ? { type: 'equipe', id: idEquipe(c.equipe!)! } : { type: 'comite', id: idComite(c.comite!) };
 			tenue = { id: r.id, perimetre };
 		}
-		return { ...c, profilId: p.id, equipeId: c.equipe === undefined ? undefined : idEquipe(c.equipe), tenue };
+		return { ...c, profilId: p.id, equipeId: c.equipe === undefined ? undefined : idEquipe(c.equipe)!, tenue };
 	});
 	const amicale = `comite:${idComite('Amicale')}`;
-	const equipe1 = `equipe:${idEquipe(1)}`;
+	const infos = [...new Set(sautes.map((c) => c.equipe!))].map((numero) => {
+		const roles = sautes.filter((c) => c.equipe === numero).map((c) => `« ${c.role} »`);
+		return roles.length === 1
+			? `Équipe ${numero} absente ou inactive : compte ${roles[0]} non créé, ni ses données.`
+			: `Équipe ${numero} absente ou inactive : comptes ${roles.slice(0, -1).join(', ')} et ${roles.at(-1)} non créés, ni leurs données.`;
+	});
 
 	const ids: Record<string, number> = {};
 	for (const c of prevus) {
@@ -90,6 +93,8 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	}
 
 	const qui = (role: string): Acteur => ({ type: 'personne', id: ids[role]! });
+	// Les publications et gestes d'un compte sauté ne sont pas faits.
+	const la = (...roles: string[]) => roles.every((r) => ids[r] !== undefined);
 	const dans = (jours: number, heure: string) => `${ajouterJours(aujourdhui, jours)}T${heure}`;
 	// Une publication déjà là (même mur, même auteur, même texte) n'est pas refaite, ni ses réactions : un événement passé n'en accepte plus.
 	const publierUneFois = async (role: string, mur: string, donnees: DonneesPublication) => {
@@ -111,33 +116,35 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 		evenement: { debut: dans(7, '19:00'), lieu: 'Plateforme du centre', convoques: 'tous' },
 		sondage: { question: 'Petit déjeuner avant ?', reponses: ['Oui', 'Non'], ouverture: maintenant, cloture: dans(7, '19:00') }
 	});
-	if (manoeuvre.nouvelle) {
+	if (manoeuvre.nouvelle && la('agent')) {
 		await repondreEvenement(base, qui('agent'), manoeuvre.id, 'present', maintenant);
 		await voter(base, qui('agent'), manoeuvre.id, 0, maintenant);
 	}
 	const bravo = await publierUneFois('chef', 'centre', { type: 'bravo', texte: 'Bravo à Manon pour la réussite de son module de chef d’agrès !' });
-	if (bravo.nouvelle) {
+	if (bravo.nouvelle && la('membre')) {
 		await aimer(base, qui('membre'), bravo.id, true, aujourdhui);
 		await commenter(base, qui('membre'), bravo.id, 'Merci à tous pour le soutien !', maintenant);
 	}
 
-	const sortie = await publierUneFois('agent', 'vie', { type: 'message', texte: 'Qui est partant pour un footing dimanche matin ?', sondage: { question: 'Dimanche 9 h ?', reponses: ['Partant', 'Pas cette fois'], ouverture: maintenant, cloture: `${ajouterJours(aujourdhui, 7)}${maintenant.slice(10, 16)}` } });
-	if (sortie.nouvelle) {
+	const sortie = !la('agent') ? null : await publierUneFois('agent', 'vie', { type: 'message', texte: 'Qui est partant pour un footing dimanche matin ?', sondage: { question: 'Dimanche 9 h ?', reponses: ['Partant', 'Pas cette fois'], ouverture: maintenant, cloture: `${ajouterJours(aujourdhui, 7)}${maintenant.slice(10, 16)}` } });
+	if (sortie?.nouvelle && la('rapporteur')) {
 		await voter(base, qui('rapporteur'), sortie.id, 0, maintenant);
 		await commenter(base, qui('rapporteur'), sortie.id, 'Je viens, rendez-vous devant le centre.', maintenant);
 	}
 
-	await publierUneFois('chef-equipe', equipe1, { type: 'message', texte: 'Semaine d’astreinte : pensez à mettre vos dispos à jour avant vendredi.' });
-	await publierUneFois('rapporteur', amicale, { type: 'evenement', texte: 'Repas de Sainte-Barbe, conjoints et enfants bienvenus.', evenement: { debut: dans(30, '12:00'), lieu: 'Salle des fêtes', convoques: 'tous' } });
+	if (la('chef-equipe')) await publierUneFois('chef-equipe', `equipe:${idEquipe(1)}`, { type: 'message', texte: 'Semaine d’astreinte : pensez à mettre vos dispos à jour avant vendredi.' });
+	if (la('rapporteur')) await publierUneFois('rapporteur', amicale, { type: 'evenement', texte: 'Repas de Sainte-Barbe, conjoints et enfants bienvenus.', evenement: { debut: dans(30, '12:00'), lieu: 'Salle des fêtes', convoques: 'tous' } });
 
 	// Réservations : le matériel de l'amicale, et une demande de l'agent qui attend l'amicale.
 	await chargerMaterielFictif(base, maintenant);
 	await chargerEnginsFictifs(base, maintenant);
-	// Des demandes d'habillement de l'agent et du membre, suivies par le référent habillement.
-	await chargerHabillementFictif(base, maintenant, ids.habillement!, [ids.agent!, ids.membre!]);
+	// Des demandes d'habillement de l'agent et du membre, suivies par le référent habillement (sans lui, par le chef de centre, qui en a le droit).
+	await chargerHabillementFictif(base, maintenant, ids.habillement ?? ids.chef!, [ids.agent, ids.membre].filter((id) => id !== undefined));
 	// Des aptitudes, pour essayer les remplacements.
 	await chargerAptitudesFictives(base, maintenant);
+	if (!la('agent')) return infos;
 	const [bancs] = await base.select({ id: ressource.id }).from(ressource).where(and(eq(ressource.nom, 'Bancs'), isNull(ressource.retireeLe)));
 	const [demande] = await base.select({ id: reservation.id }).from(reservation).where(eq(reservation.personneId, ids.agent!));
 	if (bancs && !demande) await reserver(base, qui('agent'), bancs.id, { debut: ajouterJours(aujourdhui, 10), fin: ajouterJours(aujourdhui, 11), quantite: 4, mot: 'Anniversaire de ma fille' }, maintenant);
+	return infos;
 }

@@ -87,7 +87,8 @@ try {
 			await chargerRemplacementsFictifs(base, maintenantParis(), description.astreinte);
 		}
 		// SUPER_ADMINS, si elle est donnée : aucune de ces adresses ne reçoit de fiche.
-		if (boite !== undefined) await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','));
+		// Une équipe absente ou inactive : ses comptes sont sautés, une ligne le dit (sans adresse).
+		if (boite !== undefined) for (const info of await chargerComptesDeTest(base, creerBasePhotos(env.PHOTOS), boite, maintenantParis(), (process.env.SUPER_ADMINS ?? '').split(','))) console.log(info);
 		// Un été fictif à préparer (vacances, proposition, plages à revoir), après les comptes de test : leurs CA tout engins y partent aussi.
 		if (avecFictifs || boite !== undefined) await chargerEteFictif(base, maintenantParis(), description.astreinte);
 		const lieu = enLigne ? 'en ligne' : 'locale';
