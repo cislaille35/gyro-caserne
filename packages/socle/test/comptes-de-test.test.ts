@@ -5,11 +5,12 @@ import { acteurDe } from '../src/connexion.ts';
 import { chargerComptesDeTest, COMPTES_DE_TEST } from '../src/comptes-de-test.ts';
 import { aLeDroit } from '../src/droits.ts';
 import { DonneeInvalide } from '../src/erreurs.ts';
+import { chargerHabillementFictif } from '../src/habillement.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { mursDe } from '../src/murs.ts';
 import { ajouterPersonne } from '../src/actions/personnes.ts';
 import { nombreAValider } from '../src/reservations.ts';
-import { comite, demandeHabillement, equipe, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
+import { affectationEquipe, attribution, comite, demandeHabillement, equipe, filHabillement, journal, personne, profil, publication, reservation, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-29T10:00';
@@ -147,22 +148,63 @@ describe('chargerComptesDeTest', () => {
 	it('une équipe inactive : saute ses comptes, le dit sans adresse, charge le reste dont l’habillement', async () => {
 		const base = await baseDeTest();
 		await chargerJeuDeDepart(base, centreExemple);
-		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 4));
+		await base.update(equipe).set({ active: 0 }).where(eq(equipe.ordreRotation, 1));
 		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
-		expect(infos).toEqual(['Équipe 4 absente ou inactive : compte « habillement » sauté, avec ses données.']);
+		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe », « agent » et « habillement » sautés, avec leurs données.']);
 		const adresses = (await base.select({ email: personne.email }).from(personne)).map((p) => p.email);
 		expect(adresses).not.toContain('caserne+habillement@exemple.fr');
-		expect(adresses).toHaveLength(COMPTES_DE_TEST.length - 1);
+		expect(adresses).toHaveLength(COMPTES_DE_TEST.length - 3);
 		// Les demandes d'habillement sont là, suivies par le chef de centre (il a le droit de les traiter).
 		const [chef] = await base.select().from(personne).where(eq(personne.email, 'caserne+chef@exemple.fr'));
 		const demandes = await base.select({ etape: demandeHabillement.etape, prisePar: demandeHabillement.prisePar }).from(demandeHabillement).orderBy(demandeHabillement.id);
 		expect(demandes.map((d) => d.etape)).toEqual(['demandee', 'question', 'traitee', 'livree']);
 		expect(demandes.filter((d) => d.prisePar !== null).every((d) => d.prisePar === chef!.id)).toBe(true);
-		// Relançable, et l'équipe revenue, le compte manquant est créé.
+		// Relançable, et l'équipe revenue, les comptes manquants sont créés.
 		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
-		await base.update(equipe).set({ active: 1 }).where(eq(equipe.ordreRotation, 4));
+		await base.update(equipe).set({ active: 1 }).where(eq(equipe.ordreRotation, 1));
 		expect(await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).toEqual([]);
 		expect(await acteurDe(base, 'caserne+habillement@exemple.fr', [])).not.toBeNull();
+	});
+
+	it('un centre à trois équipes : le référent habillement est créé en équipe 1, suit les demandes, sans doublon à la relance', async () => {
+		const base = await baseDeTest();
+		await chargerJeuDeDepart(base, centreExemple);
+		await base.delete(equipe).where(eq(equipe.ordreRotation, 4));
+		expect(await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant)).toEqual([]);
+		const lire = async () => {
+			const comptes = await base.select({ id: personne.id }).from(personne).where(eq(personne.email, 'caserne+habillement@exemple.fr'));
+			const tenues = await base.select({ id: attribution.id }).from(attribution).where(eq(attribution.personneId, comptes[0]!.id));
+			return { comptes, tenues };
+		};
+		const { comptes, tenues } = await lire();
+		expect(comptes).toHaveLength(1);
+		expect(tenues).toHaveLength(1);
+		const [equipe1] = await base.select({ id: equipe.id }).from(equipe).where(eq(equipe.ordreRotation, 1));
+		expect(await base.select({ equipeId: affectationEquipe.equipeId }).from(affectationEquipe).where(eq(affectationEquipe.personneId, comptes[0]!.id))).toEqual([{ equipeId: equipe1!.id }]);
+		const demandes = await base.select({ prisePar: demandeHabillement.prisePar }).from(demandeHabillement);
+		const suivies = demandes.filter((d) => d.prisePar !== null);
+		expect(suivies.length).toBeGreaterThan(0);
+		expect(suivies.every((d) => d.prisePar === comptes[0]!.id)).toBe(true);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await lire()).toEqual({ comptes, tenues });
+		expect(await base.select().from(demandeHabillement)).toHaveLength(demandes.length);
+	});
+
+	it('des demandes déjà suivies par le chef : à la relance, le référent arrive, sans doublon, et le chef les garde', async () => {
+		const base = await jeu();
+		const idDe = async (role: string) => (await base.select({ id: personne.id }).from(personne).where(eq(personne.email, `caserne+${role}@exemple.fr`)))[0]!.id;
+		const chef = await idDe('chef');
+		// L'état de la préprod : les demandes chargées quand le référent manquait.
+		await base.delete(filHabillement);
+		await base.delete(demandeHabillement);
+		await chargerHabillementFictif(base, maintenant, chef, [await idDe('agent'), await idDe('membre')]);
+		const lire = () => base.select({ id: demandeHabillement.id, prisePar: demandeHabillement.prisePar }).from(demandeHabillement).orderBy(demandeHabillement.id);
+		const avant = await lire();
+		const fil = await base.select().from(filHabillement);
+		await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
+		expect(await lire()).toEqual(avant);
+		expect(await base.select().from(filHabillement)).toEqual(fil);
+		expect(avant.filter((d) => d.prisePar !== null).every((d) => d.prisePar === chef)).toBe(true);
 	});
 
 	it('une équipe qui devient inactive puis revient : jamais de demande d’habillement en double', async () => {
@@ -190,7 +232,7 @@ describe('chargerComptesDeTest', () => {
 		await chargerJeuDeDepart(base, centreExemple);
 		await base.delete(equipe).where(eq(equipe.ordreRotation, 1));
 		const infos = await chargerComptesDeTest(base, base.photos, 'caserne@exemple.fr', maintenant);
-		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe » et « agent » sautés, avec leurs données.']);
+		expect(infos).toEqual(['Équipe 1 absente ou inactive : comptes « chef-equipe », « agent » et « habillement » sautés, avec leurs données.']);
 		expect(infos.join(' ')).not.toContain('@');
 		const pubs = await base.select({ mur: publication.mur, texte: publication.texte }).from(publication);
 		expect(pubs.some((p) => p.mur.startsWith('equipe:'))).toBe(false);
