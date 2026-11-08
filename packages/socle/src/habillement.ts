@@ -342,7 +342,8 @@ export async function chargerHabillementFictif(base: Base, maintenant: string, r
 	];
 	const deja = await base.select({ texte: demandeHabillement.texte, demandeur: demandeHabillement.demandeurId }).from(demandeHabillement);
 	for (const p of prevues) {
-		if (deja.some((d) => d.texte === p.texte && d.demandeur === p.demandeur)) continue;
+		// Déjà là pour l'un des demandeurs : la répartition change quand l'un d'eux manque, la demande n'est pas refaite.
+		if (deja.some((d) => d.texte === p.texte && demandeurs.includes(d.demandeur))) continue;
 		const [d] = await base
 			.insert(demandeHabillement)
 			.values({ demandeurId: p.demandeur, texte: p.texte, etape: p.etape, issue: p.issue ?? null, prisePar: p.fil.length ? referent : null, livraison: p.livraison ?? null, creeLe: maintenant, majLe: maintenant, finLe: FINIES.includes(p.etape) ? maintenant : null })

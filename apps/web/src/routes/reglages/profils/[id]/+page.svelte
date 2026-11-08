@@ -35,7 +35,7 @@
 	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
 </div>
 
-<p class="intro">Ce que ce profil donne à chaque personne qui l’a, domaine par domaine. Les droits de base (voir le planning, l’annuaire…) ne se règlent pas ici.</p>
+<p class="intro">Ce que ce profil donne à chaque personne qui l’a, domaine par domaine. Les droits de base (voir le planning, les engins…) ne se règlent pas ici.</p>
 
 <form method="POST" class="formulaire">
 	<Domaines droits={droits} bind:choix profil />

@@ -23,7 +23,7 @@
   - **Pourquoi 20** : mesuré en local dans workerd, un envoi coûte environ 0,5 ms de calcul (chiffrement), plus 1 ms pour le jeton VAPID : 20 envois ≈ 10 ms, 40 ≈ 22 ms. La requête de l'auteur reste légère ; les messages, commentaires et réservations (quelques appareils) partent en entier.
   - **Filet** : ce qui reste en file au-delà du lot immédiat (un envoi refusé n'est jamais renvoyé ; coupé, il est repris depuis le 7 novembre 2026). Réveil toutes les cinq minutes (`*/5 * * * *`), lot de 40 après les autres tâches du réveil (les annonces de 8 h partent donc tout de suite). Remplacements toutes les 10 minutes, météo et vigilance à chaque réveil, annonces à 8 h et 8 h 10 (l'heure prévue du réveil, même s'il part en retard ; une annonce faite n'est jamais refaite), ménage de nuit : inchangés.
 - **Conséquences** : 288 réveils par jour au lieu de 1 440. « Le centre » avec 100 appareils : 20 tout de suite, 40 dans les cinq minutes, le reste cinq minutes plus tard (avant : environ 3 minutes en tout). Si ce délai gêne : monter le lot immédiat à 40, ou passer aux Queues (option 3). Risque : si Cloudflare coupe la requête (1102) pendant l'envoi, le lot déjà retiré de la file est perdu (même risque qu'avant dans la tâche planifiée) ; corrigé le 7 novembre 2026 (voir plus bas).
-- **Validé par** : le porteur, le 6 novembre 2026 (envoi immédiat et filet de 5 minutes) ; la taille du lot immédiat (20) reste à valider (PR #51).
+- **Validé par** : le porteur, le 6 novembre 2026 (envoi immédiat et filet de 5 minutes) ; la taille du lot immédiat (20) : le porteur du projet, à la fusion de la PR #51 (06/11/2026).
 
 ## Révision du 7 novembre 2026 : aucun envoi perdu si la requête est coupée
 
@@ -49,7 +49,7 @@
   - **Pastille** : la charge porte `pastille`, le chiffre de la cloche de la personne (mêmes sources que l'en-tête des pages). Il est compté pour tout le lot dans la **même requête** que la réservation des envois (`prendreEnvois`) : aucune requête de plus. Le service worker le pose avec `navigator.setAppBadge` (ou l'efface à 0) ; l'appli ouverte fait de même avec la cloche.
   - **Notification touchée** : un avis d'été ou d'anomalie (leur page ne les marque pas lus) retrouve sa ligne de cloche à l'écriture (`mettreEnFile(…, ligne)`, la plus récente de la personne, écrite juste avant dans le même batch) ; l'adresse de la charge devient `/notifications/ouvrir?genre=…&id=…&vers=…`, qui la marque lue puis redirige (adresses externes refusées). Publications, commentaires, réservations et remplacements gardent l'adresse directe : leur page marque déjà lu ce qu'elle montre, sans requête de plus. Sans ligne (message, demande de réservation à trancher, vigilance rouge) : l'adresse directe.
 - **Coût** : un lot d'envois reste à 2 requêtes D1 (1 si la file est vide) ; un avis d'été ou d'anomalie touché coûte une requête de plus (marquer lu) et une redirection ; les autres, rien de plus. Calcul : quelques sous-requêtes SQL de plus par lot, côté base.
-- **Validé par** : le porteur, le 7 novembre 2026 (le fond) ; la mise en œuvre est à valider (PR #60).
+- **Validé par** : le porteur, le 7 novembre 2026 (le fond) ; la mise en œuvre : le porteur du projet, à la fusion de la PR #60 (07/11/2026).
 
 ## Révision du 7 novembre 2026 : la pastille compte aussi les messages
 

@@ -23,11 +23,11 @@ Les étapes sont fixes. Le centre active ou non les étapes « en attente » et 
 1. **Signalée** : depuis une prise de garde ou directement, avec une photo et une note.
 2. **Prise en charge** : un agent compétent se l'attribue (droit `PRENDRE_EN_CHARGE_ANOMALIE`). Par défaut, tout agent peut le faire ; le centre peut réserver ce droit à une responsabilité, par exemple référent engins.
 3. **En attente**, avec un motif visible dans la liste : pièce commandée, au garage, prestataire. La date de départ et la date de retour sont notées.
-4. **Réparée** : sur place ou au retour du garage, avec ce qui a été fait.
-5. **Vérifiée** par une autre personne que celle qui a réparé, seulement si le centre active cette étape.
-6. **Close** : d'elle-même à « Réparée » (ou à « Vérifiée » si l'étape est active) ; sans réparation, par qui a le droit `TRAITER_ANOMALIE`. Pour un engin indisponible, l'appli rappelle : « Remettre <engin> en service est une décision à part. », avec le bouton **« Remettre en service »** : une autre anomalie peut rester bloquante.
+4. **Réparée** : sur place ou au retour du garage, avec ce qui a été fait. Enregistrer la réparation **clôt l'anomalie** aussitôt : elle passe dans les closes, avec l'étape « Réparée ».
+5. **Vérifiée** par une autre personne que celle qui a réparé, seulement si le centre active cette étape. Elle est alors close à « Vérifiée », pas à « Réparée ».
+6. **Close** : ce n'est pas un geste de plus, sauf **sans réparation** (signalée deux fois, sans objet), par qui a le droit `TRAITER_ANOMALIE`. Pour un engin indisponible, l'appli rappelle : « Remettre <engin> en service est une décision à part. », avec le bouton **« Remettre en service »** : une autre anomalie peut rester bloquante.
 
-On peut **rouvrir** une anomalie close. L'auteur et la personne qui l'a prise en charge sont prévenus à chaque changement d'étape.
+Une anomalie close ne se rouvre pas : si le problème revient, on en signale une nouvelle. L'auteur et la personne qui l'a prise en charge sont prévenus à chaque changement d'étape.
 
 ## Les règles
 

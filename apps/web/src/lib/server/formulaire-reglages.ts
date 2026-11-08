@@ -83,7 +83,10 @@ const DONNEES: Record<string, { champ?: string; texte: string }> = {
 	'Icône inconnue': { champ: 'icone', texte: 'Choisissez une icône de la liste.' },
 	'Modèle inconnu': { texte: 'Ce modèle n’existe pas : choisissez-en un dans la liste.' },
 	'Profil inconnu': { texte: 'Ce profil n’existe pas.' },
-	'Un profil ne donne pas de droit de pouvoir': { texte: 'Un profil ne donne pas de droit d’administration.' }
+	'Un profil ne donne pas de droit de pouvoir': { texte: 'Un profil ne donne pas de droit d’administration.' },
+	'Droit réservé au centre': {
+		texte: '« Gérer les accès », « Gérer les comités » et « Gérer les responsabilités » valent pour tout le centre : ils ne se donnent qu’à un rôle de portée « Tout le centre ». Décochez-les ou changez la portée.'
+	}
 };
 
 const REFUS = [

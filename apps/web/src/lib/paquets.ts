@@ -1,4 +1,4 @@
-import { MODELES, type Droit } from '@gyro-caserne/socle';
+import { estSansEffet, MODELES, type Droit } from '@gyro-caserne/socle';
 
 export type DomaineId = 'planning' | 'engins' | 'stock' | 'habillement' | 'reservations' | 'messagerie';
 export type Niveau = { libelle: string; droits: Droit[]; phrase: string };
@@ -11,9 +11,8 @@ export const DOMAINES: Domaine[] = [
 		nom: 'Planning et gardes',
 		niveaux: [
 			{ libelle: 'Rien de plus', droits: [], phrase: 'Comme tout agent : il voit le planning et demande un remplacement.' },
-			{ libelle: 'Voir les absences', droits: ['VOIR_MOTIFS_ABSENCE'], phrase: 'Voit aussi les motifs d’absence.' },
-			{ libelle: 'Valider les remplacements', droits: ['VOIR_MOTIFS_ABSENCE', 'VALIDER_REMPLACEMENT'], phrase: 'Voit les motifs d’absence et valide les remplacements.' },
-			{ libelle: 'Gérer le planning', droits: ['VOIR_MOTIFS_ABSENCE', 'VALIDER_REMPLACEMENT', 'GERER_PLANNING'], phrase: 'Valide les remplacements et gère le planning.' }
+			{ libelle: 'Valider les remplacements', droits: ['VALIDER_REMPLACEMENT'], phrase: 'Valide aussi les remplacements.' },
+			{ libelle: 'Gérer le planning', droits: ['VALIDER_REMPLACEMENT', 'GERER_PLANNING'], phrase: 'Valide les remplacements et gère le planning.' }
 		]
 	},
 	{
@@ -93,7 +92,8 @@ export function appliquerNiveaux(droits: Droit[], choix: Partial<Record<DomaineI
 	return resultat;
 }
 
+// Les droits sans effet d'une ligne ancienne ne comptent pas.
 export function estPersonnalise(droits: Droit[], modele: string | null): boolean {
 	const m = MODELES.find((x) => x.id === modele);
-	return m !== undefined && !memes([...new Set(droits)], m.droits);
+	return m !== undefined && !memes([...new Set(droits.filter((d) => !estSansEffet(d)))], m.droits);
 }

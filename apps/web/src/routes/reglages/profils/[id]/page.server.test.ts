@@ -26,7 +26,7 @@ describe('page d’un profil', () => {
 		const { base, chef, profilAgent, droitsProfil } = await preparer();
 		const r = await envoyer(actions, 'default', locaux(base, chef), [['niveau-planning', '1'], ['niveau-reservations', '1'], ['niveau-stock', 'sur_mesure']], { id: String(profilAgent.id) });
 		expect(r).toMatchObject({ succes: expect.stringContaining('Agent') });
-		expect(await droitsProfil(profilAgent.id)).toEqual([...AGENT, 'VOIR_MOTIFS_ABSENCE'].sort());
+		expect(await droitsProfil(profilAgent.id)).toEqual([...AGENT, 'VALIDER_REMPLACEMENT'].sort());
 	});
 
 	it('Réserve citoyenne : réserve d’office, et rien d’autre', async () => {

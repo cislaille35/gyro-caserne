@@ -36,7 +36,7 @@ Chaque mur a sa **couleur** et son **icône** : rouge et maison pour Le centre, 
 
 ## Qui voit
 
-En tête de chaque mur, une bande à sa couleur dit à quoi il sert et **qui le voit** : « Visible par tous les agents du centre (38) », « Visible par les 9 membres de l'équipe 1, le chef et l'adjoint ». Le nombre compte les membres du mur, sans les superviseurs. Le formulaire de publication répète cette phrase sous le choix du mur.
+En tête de chaque mur, une bande à sa couleur dit à quoi il sert (sur le mur d'une équipe, « Votre équipe d'astreinte » pour ses membres et son chef de garde ; « Une équipe d'astreinte du centre » pour le chef de centre ou l'adjoint qui lit le mur d'une autre équipe) et **qui le voit** : « Visible par tous les agents du centre (38) », « Visible par les 9 membres de l'équipe 1, le chef et l'adjoint ». Le nombre compte les membres du mur, sans les superviseurs. Le formulaire de publication répète cette phrase sous le choix du mur.
 
 ## Une publication
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DROITS, MODELES, type Droit } from '@gyro-caserne/socle';
+import { DROITS, DROITS_SANS_EFFET, MODELES, type Droit } from '@gyro-caserne/socle';
 import { ADMINISTRATION, appliquerNiveaux, DOMAINES, estPersonnalise, niveauxDe } from './paquets.ts';
 
 const CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'GERER_HABILLEMENT', 'MODERER_MESSAGERIE'];
@@ -15,9 +15,8 @@ describe('DOMAINES', () => {
 				'Planning et gardes',
 				[
 					['Rien de plus', []],
-					['Voir les absences', ['VOIR_MOTIFS_ABSENCE']],
-					['Valider les remplacements', ['VOIR_MOTIFS_ABSENCE', 'VALIDER_REMPLACEMENT']],
-					['Gérer le planning', ['VOIR_MOTIFS_ABSENCE', 'VALIDER_REMPLACEMENT', 'GERER_PLANNING']]
+					['Valider les remplacements', ['VALIDER_REMPLACEMENT']],
+					['Gérer le planning', ['VALIDER_REMPLACEMENT', 'GERER_PLANNING']]
 				]
 			],
 			['engins', 'Engins et anomalies', [['Rien de plus', []], ['Gérer', ['TRAITER_ANOMALIE', 'GERER_FICHES']]]],
@@ -37,9 +36,21 @@ describe('DOMAINES', () => {
 	});
 });
 
+describe('droits sans effet', () => {
+	it('VOIR_MOTIFS_ABSENCE et VOIR_ANNUAIRE : ni dans les paquets, ni dans les cases, ni comptés pour « Personnalisé »', () => {
+		expect(DROITS_SANS_EFFET).toEqual(['VOIR_MOTIFS_ABSENCE', 'VOIR_ANNUAIRE']);
+		const montres = [...DOMAINES.flatMap((d) => d.niveaux.flatMap((n) => n.droits)), ...ADMINISTRATION.map((a) => a.droit)];
+		for (const d of DROITS_SANS_EFFET) expect(montres).not.toContain(d);
+		// Une ligne ancienne ne change ni le niveau lu ni la comparaison au modèle.
+		expect(niveauxDe(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE']).planning).toBe(1);
+		expect(estPersonnalise(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE', 'VOIR_ANNUAIRE'], 'referent_pharmacie')).toBe(false);
+		expect([...appliquerNiveaux(['VOIR_MOTIFS_ABSENCE'], { planning: 0 })]).toEqual(['VOIR_MOTIFS_ABSENCE']);
+	});
+});
+
 describe('niveauxDe', () => {
 	it('lit chaque rôle du jeu de départ', () => {
-		expect(niveauxDe(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'])).toEqual({ ...RIEN, planning: 2 });
+		expect(niveauxDe(['VALIDER_REMPLACEMENT', 'VOIR_MOTIFS_ABSENCE'])).toEqual({ ...RIEN, planning: 1 });
 		expect(niveauxDe(['TRAITER_ANOMALIE', 'GERER_FICHES'])).toEqual({ ...RIEN, engins: 1 });
 		expect(niveauxDe(['GERER_STOCK'])).toEqual({ ...RIEN, stock: 1 });
 		expect(niveauxDe(['GERER_HABILLEMENT'])).toEqual({ ...RIEN, habillement: 1 });
@@ -65,7 +76,7 @@ describe('appliquerNiveaux', () => {
 	});
 
 	it('met le domaine au niveau choisi', () => {
-		expect([...appliquerNiveaux(['GERER_PLANNING', 'LIRE_SALON'], { planning: 1 })].sort()).toEqual(['LIRE_SALON', 'VOIR_MOTIFS_ABSENCE']);
+		expect([...appliquerNiveaux(['GERER_PLANNING', 'LIRE_SALON'], { planning: 1 })].sort()).toEqual(['LIRE_SALON', 'VALIDER_REMPLACEMENT']);
 		expect(appliquerNiveaux(['TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK'], { engins: 0 })).toEqual(['GERER_STOCK']);
 	});
 

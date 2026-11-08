@@ -1,6 +1,6 @@
 # Disponibilités et absences
 
-> Pas encore livré : cette page décrit la cible. Aujourd'hui, seules existent les vacances d'été (Moi → « Mes vacances », voir [Planning d'été](planning-d-ete.md)) et les [remplacements](remplacements-et-echanges.md). Le droit « Voir les motifs d'absence » se donne déjà dans les rôles, mais n'ouvre encore rien.
+> Pas encore livré : cette page décrit la cible. Aujourd'hui, seules existent les vacances d'été (Moi → « Mes vacances », voir [Planning d'été](planning-d-ete.md)) et les [remplacements](remplacements-et-echanges.md). Le droit « Voir les motifs d'absence » existe, mais n'ouvre encore rien : il n'est plus montré dans Réglages (il reviendra avec cette fonction).
 
 ## À quoi ça sert
 

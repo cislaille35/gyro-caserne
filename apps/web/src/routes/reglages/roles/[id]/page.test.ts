@@ -45,7 +45,7 @@ describe('page d’un rôle', () => {
 		for (const nom of ['Planning et gardes', 'Engins et anomalies', 'Stock et pharmacie', 'Réservations', 'Messagerie', 'Administration de l’appli']) expect(page).toContain(`>${nom}<`);
 		expect(page).not.toContain('Salons');
 		expect(page).toMatch(/<input type="radio" name="niveau-engins" value="1" checked/);
-		expect(page.match(/name="niveau-planning"/g)).toHaveLength(4);
+		expect(page.match(/name="niveau-planning"/g)).toHaveLength(3);
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/enregistrer"/);
 	});
 
@@ -89,6 +89,15 @@ describe('page d’un rôle', () => {
 		expect(page.match(/<fieldset class="selecteur[^"]*" disabled/g)).toHaveLength(6);
 		expect(page).toMatch(/name="admin"[^>]*disabled/);
 		expect(page).toContain('Valider un remplacement');
+		// Les droits sans effet ne s'affichent pas, même tenus par le rôle.
+		expect(page).not.toContain('Voir les motifs d’absence');
+	});
+
+	it('les droits sans effet (motifs d’absence, annuaire) ne s’affichent nulle part sur la page', () => {
+		const droits = [droit('GERER_STOCK'), droit('VOIR_MOTIFS_ABSENCE'), droit('VOIR_ANNUAIRE')];
+		for (const page of [html({ role: role({ droits }) }), html({ raison: 'Ce rôle est archivé : il ne se modifie plus.', role: role({ droits, archiveeLe: '2026-01-01' }) })]) {
+			expect(page).not.toMatch(/motifs d’absence|annuaire|VOIR_MOTIFS_ABSENCE|VOIR_ANNUAIRE/);
+		}
 	});
 
 	it('rôle système vu par le chef ou l’adjoint : les cases grisées disent pourquoi, sans parler de leurs droits', () => {

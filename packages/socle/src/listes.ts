@@ -40,6 +40,15 @@ export function estDroitPouvoir(d: Droit): boolean {
 	return (DROITS_POUVOIR as readonly Droit[]).includes(d);
 }
 
+// Droits de pouvoir qui ne se donnent que sur tout le centre : les écrans les exigent sur le centre. (Le socle lit encore GERER_ACCES
+// sur une équipe, pour un rôle ancien qui l'aurait.)
+// Nommer (ATTRIBUER_RESPONSABILITE) n'en est pas : le rapporteur nomme dans son comité.
+export const DROITS_DU_CENTRE = ['GERER_ACCES', 'GERER_LISTES', 'GERER_COMITES'] as const satisfies readonly Droit[];
+
+// Droits qui ne servent nulle part : gardés dans DROITS pour les lignes existantes (sans effet), jamais montrés ni proposés.
+export const DROITS_SANS_EFFET = ['VOIR_MOTIFS_ABSENCE', 'VOIR_ANNUAIRE'] as const satisfies readonly Droit[];
+export const estSansEffet = (d: Droit) => (DROITS_SANS_EFFET as readonly Droit[]).includes(d);
+
 export const TYPES_PERIMETRE = ['centre', 'equipe', 'comite', 'salon', 'ressource'] as const;
 export type TypePerimetre = (typeof TYPES_PERIMETRE)[number];
 

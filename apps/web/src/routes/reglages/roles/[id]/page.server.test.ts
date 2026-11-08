@@ -81,8 +81,19 @@ describe('page d’un rôle', () => {
 		const rap = await resp('Rapporteur de comité');
 		await agir('enregistrer', locaux(base, chef), rap.id, [...fiche('Rapporteur de comité', 'comite_vise'), ['niveau-stock', '1']]);
 		expect(await droitsDe(rap.id)).toEqual(['ATTRIBUER_RESPONSABILITE', 'GERER_STOCK']);
-		await agir('enregistrer', locaux(base, chef), rap.id, [...fiche('Rapporteur de comité', 'comite_vise'), ['administration', 'oui'], ['admin', 'GERER_COMITES']]);
-		expect(await droitsDe(rap.id)).toEqual(['GERER_COMITES', 'GERER_STOCK']);
+		await agir('enregistrer', locaux(base, chef), rap.id, [...fiche('Rapporteur de comité', 'comite_vise'), ['administration', 'oui']]);
+		expect(await droitsDe(rap.id)).toEqual(['GERER_STOCK']);
+		const engins = await resp('Référent engins');
+		await agir('enregistrer', locaux(base, chef), engins.id, [...fiche('Référent engins'), ['administration', 'oui'], ['admin', 'GERER_COMITES']]);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_COMITES', 'GERER_FICHES', 'TRAITER_ANOMALIE']);
+	});
+
+	it('un droit du centre (gérer les accès…) sur un rôle de comité : refusé avec une phrase claire, rien d’écrit', async () => {
+		const { base, chef, resp, droitsDe } = await preparer();
+		const rap = await resp('Rapporteur de comité');
+		const r = await agir('enregistrer', locaux(base, chef), rap.id, [...fiche('Rapporteur de comité', 'comite_vise'), ['administration', 'oui'], ['admin', 'ATTRIBUER_RESPONSABILITE'], ['admin', 'GERER_ACCES']]);
+		expect(r).toMatchObject({ status: 400, data: { cible: 'role', message: expect.stringContaining('ne se donnent qu’à un rôle de portée « Tout le centre »') } });
+		expect(await droitsDe(rap.id)).toEqual(['ATTRIBUER_RESPONSABILITE']);
 	});
 
 	it('met l’erreur du nom sur le champ', async () => {
@@ -162,6 +173,20 @@ describe('page d’un rôle', () => {
 		const r = await agir('detail', locaux(base, referent), pharma.id, [['droits', 'FAIRE_PRISE_DE_GARDE']]);
 		expect(r).toMatchObject({ cible: 'detail', succes: expect.any(String) });
 		expect(await droitsDe(pharma.id)).toEqual(['FAIRE_PRISE_DE_GARDE']);
+	});
+
+	it('les droits sans effet : jamais proposés, gardés tels quels s’ils sont déjà là', async () => {
+		const { base, chef, resp, droitsDe } = await preparer();
+		const engins = await resp('Référent engins');
+		const data = await charger(load, locaux(base, chef), { id: String(engins.id) });
+		expect(data.droitsMetier).not.toContain('VOIR_MOTIFS_ABSENCE');
+		expect(data.droitsMetier).not.toContain('VOIR_ANNUAIRE');
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: engins.id, droit: 'VOIR_MOTIFS_ABSENCE' });
+		await agir('detail', locaux(base, chef), engins.id, [['droits', 'GERER_STOCK']]);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE']);
+		// Envoyé à la main, il n'est pas ajouté.
+		await agir('detail', locaux(base, chef), engins.id, [['droits', 'GERER_STOCK'], ['droits', 'VOIR_ANNUAIRE']]);
+		expect(await droitsDe(engins.id)).toEqual(['GERER_STOCK', 'VOIR_MOTIFS_ABSENCE']);
 	});
 
 	it('archive avec confirmation seulement, jamais un rôle système', async () => {

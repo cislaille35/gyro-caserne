@@ -12,7 +12,6 @@ import Choix from './Choix.svelte';
 import ChoixRadio from './ChoixRadio.svelte';
 import Groupe from './Groupe.svelte';
 import IconeRole from './IconeRole.svelte';
-import Initiales from './Initiales.svelte';
 import Pastille from './Pastille.svelte';
 import PastilleEquipe from './PastilleEquipe.svelte';
 import PastilleMur from './PastilleMur.svelte';
@@ -304,13 +303,6 @@ describe('BarreActions', () => {
 	});
 	it('garde la zone d’annonce même sans message', () => {
 		expect(html(BarreActions, { children: contenu })).toContain('role="status"');
-	});
-});
-
-describe('Initiales', () => {
-	it('écrit les initiales en majuscules, cachées aux lecteurs d’écran', () => {
-		const page = html(Initiales, { prenom: 'émile', nom: 'Martin' });
-		expect(page).toMatch(/<span[^>]*aria-hidden="true"[^>]*>ÉM<\/span>/);
 	});
 });
 

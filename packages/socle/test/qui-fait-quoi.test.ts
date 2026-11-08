@@ -52,8 +52,8 @@ describe('quiFaitQuoi', () => {
 		expect(vue.comites.map((c) => c.nom)).toEqual(['Amicale', 'Comité du centre']);
 		const [amicale, centre] = vue.comites;
 		expect(amicale!.membres).toEqual([
-			{ id: expect.any(Number), nom: 'Bruno Petit', roles: ['Rapporteur'] },
-			{ id: expect.any(Number), nom: 'Alice Bernard', roles: ['Membre'] }
+			{ id: expect.any(Number), nom: 'Bruno Petit', roles: ['Rapporteur'], ecrire: true },
+			{ id: expect.any(Number), nom: 'Alice Bernard', roles: ['Membre'], ecrire: false }
 		]);
 		expect(amicale!.icone).toBe('coeur');
 		expect(centre!.membres).toEqual([]);
@@ -124,7 +124,7 @@ describe('quiFaitQuoi', () => {
 		await nommer(await nouvelle('Hors', 'Type'), role('Référent engins'), { type: 'equipe', id: 1 });
 		await nommer(await nouvelle('Horsc', 'Comite'), role('Membre de comité'), { type: 'centre' });
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
-		expect(vue.referents.map((r) => [r.nom, r.titulaires])).toEqual([
+		expect(vue.referents.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([
 			['Référent engins', []],
 			['Référent habillement', []],
 			['Référent pharmacie', ['Alice Bernard']],
@@ -132,7 +132,7 @@ describe('quiFaitQuoi', () => {
 		]);
 		expect(vue.referents.find((r) => r.nom === 'Référent pharmacie')!.icone).toBe('croix');
 		expect(vue.comites.flatMap((c) => c.membres.map((m) => m.nom))).not.toContain('Horsc Comite');
-		expect(vue.commandement.map((r) => [r.nom, r.titulaires])).toEqual([
+		expect(vue.commandement.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([
 			['Chef de centre', ['Claire Martin']],
 			['Chef de centre adjoint', []]
 		]);
@@ -145,9 +145,30 @@ describe('quiFaitQuoi', () => {
 		expect(vue.equipes).toHaveLength(1);
 		const [chefs] = vue.equipes;
 		expect(chefs!.nom).toBe('Chef de garde');
-		expect(chefs!.parEquipe[0]).toEqual({ equipe: equipes[0]!.nom, titulaires: ['Bruno Petit'] });
+		expect(chefs!.parEquipe[0]).toEqual({ equipe: equipes[0]!.nom, titulaires: [{ id: expect.any(Number), nom: 'Bruno Petit', ecrire: true }] });
 		expect(chefs!.parEquipe.map((l) => l.equipe)).toEqual(equipes.slice(0, -1).map((e) => e.nom));
 		expect(chefs!.parEquipe[1]!.titulaires).toEqual([]);
+	});
+
+	it('« Écrire » : vers chaque titulaire ou membre qui a la messagerie, jamais vers soi ; rien sans la messagerie', async () => {
+		const { base, alice, bruno, chef, nouvelle, nommer, role } = await jeu();
+		// Une personne dont le profil ne donne pas la messagerie.
+		const [sans] = await base.insert(profil).values({ nom: 'Sans messagerie', typePersonne: 'agent' }).returning();
+		const denis = await nouvelle('Denis', 'Roux');
+		await base.update(personne).set({ profilId: sans!.id }).where(eq(personne.id, denis));
+		await nommer(denis, role('Référent pharmacie'), { type: 'centre' });
+		const ecrire = async (qui: Acteur) => {
+			const vue = await quiFaitQuoi(base, qui, aujourdhui);
+			return Object.fromEntries(
+				[...vue.commandement, ...vue.referents].flatMap((r) => r.titulaires).concat(vue.comites.flatMap((c) => c.membres), vue.equipes.flatMap((e) => e.parEquipe.flatMap((l) => l.titulaires))).map((t) => [t.nom, t.ecrire])
+			);
+		};
+		expect(await ecrire(acteur(alice))).toEqual({ 'Claire Martin': true, 'Alice Bernard': false, 'Denis Roux': false, 'Bruno Petit': true });
+		expect((await ecrire(acteur(bruno)))['Alice Bernard']).toBe(true);
+		// Sans la messagerie soi-même, ni pour le super administrateur : aucun « Écrire ».
+		expect(Object.values(await ecrire(acteur(denis)))).not.toContain(true);
+		expect(Object.values(await ecrire(superAdmin))).not.toContain(true);
+		expect((await ecrire(acteur(chef)))['Claire Martin']).toBe(false);
 	});
 
 	it('réservée aux agents qui ont accès et au super administrateur', async () => {

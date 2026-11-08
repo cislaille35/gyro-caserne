@@ -16,11 +16,11 @@ export function phraseAudience(type: Mur['type'], nom: string, audience: number)
 	return `Visible par ${membres} ${groupe(type, nom)}, le chef et l’adjoint`;
 }
 
-// À quoi sert un mur ; rien pour un comité, la phrase répéterait son nom.
-export function phraseDuMur(type: Mur['type']): string | null {
+// À quoi sert un mur ; rien pour un comité, la phrase répéterait son nom. `sienne` : le mur de l'équipe de l'acteur.
+export function phraseDuMur(type: Mur['type'], sienne = false): string | null {
 	if (type === 'centre') return 'Les infos officielles du chef et de l’adjoint';
 	if (type === 'vie') return 'Pour tout le monde : sorties, sport, photos';
-	if (type === 'equipe') return 'Votre équipe d’astreinte';
+	if (type === 'equipe') return sienne ? 'Votre équipe d’astreinte' : 'Une équipe d’astreinte du centre';
 	return null;
 }
 

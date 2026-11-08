@@ -120,6 +120,47 @@ describe('droits de pouvoir', () => {
 	});
 });
 
+describe('droits de pouvoir hors du centre', () => {
+	const HORS = new DonneeInvalide('Droit réservé au centre');
+
+	it('ni à la création ni en modification : GERER_ACCES, GERER_LISTES et GERER_COMITES ne se donnent qu’avec la portée « centre », rien n’est écrit', async () => {
+		const { base, chef, resp, droitsDe } = await jeu();
+		for (const droit of ['GERER_ACCES', 'GERER_LISTES', 'GERER_COMITES'] as const)
+			for (const portee of ['equipe', 'comite'] as const) {
+				const attributeur = portee === 'comite' ? { type: 'comite_vise' as const } : { type: 'chef_centre' as const };
+				await expect(creerResponsabilite(base, superAdmin, { ...nouvelleResp, nom: `Rôle ${droit} ${portee}`, portee, attributeur, droits: [droit] }, aujourdhui)).rejects.toThrow(HORS);
+			}
+		expect((await base.select().from(responsabilite)).map((r) => r.nom).filter((n) => n.startsWith('Rôle '))).toEqual([]);
+		// Un rôle d'équipe qui reçoit le droit, un rôle du centre qui passe à l'équipe en le gardant.
+		const chefEquipe = await resp('Chef de garde');
+		await expect(modifierResponsabilite(base, chef, chefEquipe.id, { droits: [...(await droitsDe(chefEquipe.id)), 'GERER_ACCES'] as never }, aujourdhui)).rejects.toThrow(HORS);
+		const id = await creerResponsabilite(base, chef, { ...nouvelleResp, droits: ['GERER_LISTES'] }, aujourdhui);
+		await expect(modifierResponsabilite(base, chef, id, { portee: 'equipe' }, aujourdhui)).rejects.toThrow(HORS);
+		expect(await resp('Référent sport')).toMatchObject({ typePerimetre: 'centre' });
+		expect(await droitsDe(chefEquipe.id)).not.toContain('GERER_ACCES');
+	});
+
+	it('sans le pouvoir, le refus du pouvoir passe d’abord', async () => {
+		const { base, referent, resp } = await jeu();
+		const membre = await resp('Membre de comité');
+		await expect(modifierResponsabilite(base, referent, membre.id, { droits: ['GERER_ACCES'] }, aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
+	});
+
+	it('nommer reste possible sur une équipe ou un comité (le rapporteur nomme dans son comité)', async () => {
+		const { base, chef } = await jeu();
+		await expect(creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'Adjoint de garde', portee: 'equipe', droits: ['ATTRIBUER_RESPONSABILITE'] }, aujourdhui)).resolves.toEqual(expect.any(Number));
+		await expect(creerResponsabilite(base, chef, { ...nouvelleResp, nom: 'Secrétaire', portee: 'comite', attributeur: { type: 'comite_vise' }, droits: ['ATTRIBUER_RESPONSABILITE'] }, aujourdhui)).resolves.toEqual(expect.any(Number));
+	});
+
+	it('un rôle qui l’a déjà sur une équipe (données anciennes) reste modifiable pour le reste, sans être corrigé en silence', async () => {
+		const { base, chef, resp, droitsDe } = await jeu();
+		const chefEquipe = await resp('Chef de garde');
+		await base.insert(responsabiliteDroit).values({ responsabiliteId: chefEquipe.id, droit: 'GERER_ACCES' });
+		await modifierResponsabilite(base, chef, chefEquipe.id, { nom: 'Chef d’agrès' }, aujourdhui);
+		expect(await droitsDe(chefEquipe.id)).toContain('GERER_ACCES');
+	});
+});
+
 describe('listerResponsabilites', () => {
 	it('décrit chaque responsabilité, ses titulaires en cours et si l’acteur peut la modifier', async () => {
 		const { base, referent, chef, comite_, donner } = await jeu();

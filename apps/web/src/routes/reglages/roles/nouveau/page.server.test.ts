@@ -56,6 +56,14 @@ describe('nouveau rôle', () => {
 		expect(await base.select().from(responsabilite)).toHaveLength(avant);
 	});
 
+	it('un modèle à droits du centre (référent technique) sur une équipe : refusé avec une phrase claire, rien d’écrit', async () => {
+		const { base, chef } = await preparer();
+		const avant = (await base.select().from(responsabilite)).length;
+		const r = await creer(locaux(base, chef), corps('referent_technique', [['nom', 'Technique de garde'], ['portee', 'equipe']]));
+		expect(r).toMatchObject({ status: 400, data: { message: expect.stringContaining('« Gérer les accès », « Gérer les comités » et « Gérer les responsabilités »') } });
+		expect(await base.select().from(responsabilite)).toHaveLength(avant);
+	});
+
 	it('refuse un modèle inconnu, un nom en double, qui attribue incohérent, avec la saisie', async () => {
 		const { base, referent } = await preparer();
 		expect(await creer(locaux(base, referent), corps('licorne'))).toMatchObject({ status: 400, data: { message: expect.stringContaining('modèle') } });
