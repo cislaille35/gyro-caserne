@@ -262,7 +262,7 @@
 <style>
 	/* À l'ordinateur, la page garde une largeur de lecture. */
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;

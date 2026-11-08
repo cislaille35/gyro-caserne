@@ -618,7 +618,7 @@
 	/* À partir de 1280 px : trois colonnes, la liste, le mur, puis « Aujourd'hui ». */
 	@media (min-width: 1280px) {
 		.sur-un-mur {
-			grid-template-columns: 16rem minmax(0, 1fr) 16rem;
+			grid-template-columns: 13rem minmax(0, 1fr) 15rem;
 			gap: 1.25rem;
 		}
 		.avec-journee .murs {

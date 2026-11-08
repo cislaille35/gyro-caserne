@@ -307,7 +307,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-		max-width: 60rem;
+		max-width: var(--largeur-page);
 	}
 	p,
 	h2,

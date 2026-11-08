@@ -205,7 +205,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-		max-width: 76rem;
+		max-width: var(--largeur-page);
 	}
 	.colonnes,
 	.calendrier {

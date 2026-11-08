@@ -132,7 +132,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-		max-width: 36rem;
+		max-width: var(--largeur-lecture);
 		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;

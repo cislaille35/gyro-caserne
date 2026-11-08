@@ -33,7 +33,7 @@
 
 <style>
 	.messages {
-		max-width: 44rem;
+		max-width: var(--largeur-liste);
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-12);

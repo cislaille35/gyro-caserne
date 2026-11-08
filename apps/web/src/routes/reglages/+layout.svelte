@@ -72,6 +72,8 @@
 			flex: 0 1 400px;
 			position: sticky;
 			top: 16px;
+			max-height: calc(100dvh - 32px);
+			overflow-y: auto;
 		}
 		.enfant .retour {
 			display: none;

@@ -340,6 +340,10 @@
 		/* Une fiche ouverte : la liste à gauche, sur une colonne. */
 		.a-cote .liste {
 			flex: 0 1 460px;
+			position: sticky;
+			top: 16px;
+			max-height: calc(100dvh - 32px);
+			overflow-y: auto;
 		}
 		.detail {
 			flex: 1 1 0;
