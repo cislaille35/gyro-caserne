@@ -476,7 +476,7 @@
 		margin-left: auto;
 		font-size: var(--texte-20);
 		color: var(--doux);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.rangees details[open] > summary::after {
 		transform: rotate(90deg);
@@ -611,7 +611,7 @@
 		content: '›';
 		font-size: var(--texte-20);
 		color: var(--doux);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.alerte[open] summary::after {
 		transform: rotate(90deg);

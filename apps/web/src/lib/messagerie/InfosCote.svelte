@@ -130,9 +130,11 @@
 		font-size: var(--texte-15);
 		text-decoration: none;
 	}
-	.pilule:hover {
-		background: var(--fond);
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.pilule:hover {
+			background: var(--fond);
+			color: var(--encre);
+		}
 	}
 	ul {
 		list-style: none;
@@ -182,9 +184,11 @@
 		color: var(--statut-danger-texte);
 		text-decoration: none;
 	}
-	.quitter:hover {
-		text-decoration: underline;
-		color: var(--statut-danger-texte);
+	@media (hover: hover) and (pointer: fine) {
+		.quitter:hover {
+			text-decoration: underline;
+			color: var(--statut-danger-texte);
+		}
 	}
 	dl {
 		margin: 0;

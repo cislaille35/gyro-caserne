@@ -336,8 +336,10 @@
 		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.nommer:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.nommer:hover {
+			border-color: var(--encre);
+		}
 	}
 	h2 {
 		font: 600 var(--texte-16)/1.3 var(--police);

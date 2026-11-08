@@ -103,7 +103,6 @@
 		overflow: hidden;
 		max-height: 120px;
 		margin: -0.5rem 0 0.5rem;
-		transition: height 0.2s ease;
 	}
 	.tirer.simple {
 		justify-content: center;

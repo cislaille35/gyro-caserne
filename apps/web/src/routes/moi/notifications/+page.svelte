@@ -127,7 +127,7 @@
 		height: 26px;
 		border-radius: 999px;
 		background: var(--doux);
-		transition: background 0.15s;
+		transition: background var(--duree-etat) var(--courbe-sortie);
 	}
 	.bouton-rond {
 		position: absolute;
@@ -138,7 +138,7 @@
 		border-radius: 50%;
 		background: var(--surface);
 		box-shadow: 0 1px 2px color-mix(in srgb, #000 30%, transparent);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	[aria-checked='true'] .glissiere {
 		background: var(--accent);
@@ -183,9 +183,11 @@
 		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.reactiver:hover,
-	[role='switch']:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.reactiver:hover,
+		[role='switch']:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.glissiere,

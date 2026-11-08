@@ -58,6 +58,28 @@
 </dialog>
 
 <style>
+	/* Le panneau glisse depuis son bord, le voile apparaît ; rien si le mouvement est réduit. */
+	@media (prefers-reduced-motion: no-preference) {
+		.panneau {
+			transition: transform var(--duree-panneau) var(--courbe-tiroir);
+			@starting-style {
+				transform: translateY(100%);
+			}
+		}
+		.voile {
+			transition: opacity var(--duree-panneau) var(--courbe-sortie);
+			@starting-style {
+				opacity: 0;
+			}
+		}
+		@media (min-width: 1024px) {
+			.panneau {
+				@starting-style {
+					transform: translateX(100%);
+				}
+			}
+		}
+	}
 	.voile {
 		position: fixed;
 		inset: 0;

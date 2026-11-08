@@ -162,16 +162,20 @@
 		font-weight: 700;
 		text-decoration: none;
 	}
-	.bouton:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton:hover {
+			background: var(--fond);
+		}
 	}
 	.bouton.principal {
 		border-color: var(--rouge);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.bouton.principal:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton.principal:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.prise {
 		display: flex;

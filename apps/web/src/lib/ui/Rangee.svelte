@@ -88,13 +88,17 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	a.rangee:hover,
-	.rangee:has(.etire:hover) {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		a.rangee:hover,
+		.rangee:has(.etire:hover) {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
-	a.rangee:hover .titre,
-	.etire:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.rangee:hover .titre,
+		.etire:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Le repère du clavier à l'intérieur de la ligne : la carte rogne ce qui dépasse. */
 	a.rangee:focus-visible {

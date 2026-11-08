@@ -142,8 +142,10 @@
 		font: 700 var(--texte-16) var(--police);
 		text-decoration: none;
 	}
-	.principal:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.principal:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	label {
 		font-weight: 600;

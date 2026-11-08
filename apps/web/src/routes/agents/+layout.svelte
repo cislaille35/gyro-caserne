@@ -213,8 +213,10 @@
 		white-space: nowrap;
 		cursor: pointer;
 	}
-	.puce:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.puce:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* Pressé : fond plein et gras, pas seulement une teinte. */
 	.puce[aria-pressed='true'] {
@@ -266,8 +268,10 @@
 		position: absolute;
 		inset: 0;
 	}
-	.agent:hover a.nom {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.agent:hover a.nom {
+			text-decoration: underline;
+		}
 	}
 	a.nom:focus-visible {
 		outline: none;
@@ -318,8 +322,10 @@
 		position: absolute;
 		inset: -4px;
 	}
-	.nommer:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.nommer:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (min-width: 1024px) {
 		.page {

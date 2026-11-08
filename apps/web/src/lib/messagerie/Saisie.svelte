@@ -347,8 +347,10 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.envoyer:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.envoyer:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.masque {
 		position: absolute;

@@ -686,9 +686,11 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.bouton-lien:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton-lien:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
 
 	/* La grille de l'année : une case par semaine, l'équipe écrite dedans. */
@@ -727,8 +729,10 @@
 		text-decoration: none;
 		line-height: 1.1;
 	}
-	.case:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.case:hover {
+			border-color: var(--encre);
+		}
 	}
 	.case .nom {
 		font-size: var(--texte-12);

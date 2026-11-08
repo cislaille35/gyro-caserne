@@ -89,7 +89,7 @@
 	.chevron {
 		flex: none;
 		color: var(--doux);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.chevron {

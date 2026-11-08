@@ -252,8 +252,10 @@
 		text-decoration: none;
 		font-variant-numeric: tabular-nums;
 	}
-	td a:hover .jour {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		td a:hover .jour {
+			text-decoration: underline;
+		}
 	}
 	.hors a {
 		color: var(--doux);

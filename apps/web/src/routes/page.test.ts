@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { render } from 'svelte/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Page from './+page.svelte';
@@ -24,6 +25,10 @@ describe('accueil, météo et vigilance', () => {
 		expect(html).toMatch(/Bonjour Alice[\s\S]*Temps au centre : <\/span><span class="source[^"]*">12 °C, averses, rafales 45 km\/h<\/span> <a class="source/);
 		expect(html).toMatch(/<a [^>]*href="https:\/\/open-meteo.com\/"[^>]*>Météo : Open-Meteo<\/a>/);
 		expect(html).toMatch(/class="meteo m-pluie[^"]*" aria-hidden="true"/);
+		// Au niveau Équilibré, plus de mouvement : le décor n'est pas là (RGAA 13.8).
+		expect(page({ ...base, meteo: pluie }, null, 'equilibre')).not.toContain('class="meteo m-');
+		// Au niveau Vivant, il s'arrête après 10 s, comme Gyro.
+		expect(readFileSync(new URL('./+page.svelte', import.meta.url), 'utf8')).toMatch(/onMount\(\(\) => arreterApres\(DUREE_ACCUEIL, \(\) => \(meteoAnimee = false\)\)\)/);
 	});
 
 	describe('pas de soleil la nuit, même si le relevé date d’avant le coucher', () => {

@@ -140,8 +140,10 @@
 		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.sortir:hover {
-		background: var(--statut-danger-fond);
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.sortir:hover {
+			background: var(--statut-danger-fond);
+			text-decoration: underline;
+		}
 	}
 </style>

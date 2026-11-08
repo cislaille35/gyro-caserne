@@ -114,9 +114,11 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.action:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.action:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
 	/* Le libellé se voit à toutes les tailles : le bouton dit ce qu'il fait. */
 	.libelle {

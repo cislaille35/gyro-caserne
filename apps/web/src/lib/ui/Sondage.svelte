@@ -115,8 +115,10 @@
 		font: 500 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.reponse:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.reponse:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.reponse[aria-pressed='true'] {

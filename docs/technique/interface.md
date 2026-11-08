@@ -19,6 +19,7 @@ Dans `apps/web/src/app.css`, en variables CSS. On ne met jamais une couleur en d
 | `--focus` | Repère du clavier (contour de 3 px) |
 | `--statut-<ok\|info\|alerte\|danger\|neutre>-<fond\|texte\|trait>` | Badges de statut, pastilles |
 | `--espace-<4…48>`, `--texte-<12…30>` | Échelles d'espacement et de taille de texte, seules valeurs admises dans un écran (`formes.test.ts`) ; au-delà de 48 px ou 30 px, une valeur écrite (gros compte à rebours) |
+| `--courbe-sortie`, `--courbe-tiroir`, `--duree-appui`, `--duree-panneau`, `--duree-etat` | Le mouvement : seules courbes et durées admises dans un écran (`formes.test.ts`) |
 | `--police`, `--police-titre` | Barlow, Barlow Condensed (servies par l'appli) |
 | `--rayon-petit`, `--rayon-grand` (14 px, cartes), `--rayon-bouton` (10 px), `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
 
@@ -36,6 +37,13 @@ Deux cookies, lus par le serveur (`src/lib/affichage.ts`) et posés sur `<html d
 
 Réglés sur l'appareil, à la page `/affichage`, même sans être connecté.
 
+## Mouvement
+
+- Ce qui se touche répond à l'appui (`scale(0.97)`, 160 ms) : règle commune d'`app.css`, sans poids. Les lignes entières (`Rangee`) n'ont que leur changement de fond.
+- `Panneau` glisse de son bord (240 ms) et les `<dialog>` apparaissent (240 ms), en `@starting-style`. La navigation entre les pages, les onglets et le clavier n'ont aucune animation.
+- Le survol (`:hover`) est sous `@media (hover: hover) and (pointer: fine)` : un doigt ne laisse pas de ligne allumée.
+- Rien de tout cela avec « réduire les animations ». Aucun écran d'urgence aujourd'hui ; un futur écran d'urgence n'aurait ni mouvement ni humour.
+
 ## Niveaux de vie
 
 | | Sobre | Équilibré | Vivant |
@@ -43,7 +51,7 @@ Réglés sur l'appareil, à la page `/affichage`, même sans être connecté.
 | Gyro | absent | immobile | animé |
 | Textes | neutres | simples | avec humour |
 
-`gyroSelonNiveau` (`src/lib/gyro/niveau.ts`) en décide. « Réduire les animations » du téléphone arrête tout mouvement décoratif (règle globale dans `app.css`) ; l'humour des textes reste.
+`gyroSelonNiveau` (`src/lib/gyro/niveau.ts`) en décide. « Réduire les animations » du téléphone arrête tout mouvement décoratif (règle globale dans `app.css`) ; l'humour des textes reste. Le décor météo de l'accueil (`MeteoAnim`) n'existe qu'au niveau Vivant et s'arrête après 10 s, comme Gyro (RGAA 13.8).
 
 Au niveau Vivant, l'accueil et Échanges ajoutent une phrase d'humeur (`lib/gyro/humeurs.ts`, `humeurDuJour`) : une par jour, jamais la même sur les deux écrans le même jour, aucune à côté d'un bandeau de vigilance.
 

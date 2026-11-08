@@ -232,8 +232,10 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.remplacements:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.remplacements:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (min-width: 1024px) {
 		.vues {

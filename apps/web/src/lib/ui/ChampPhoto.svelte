@@ -111,8 +111,10 @@
 	.js .zone:has(input:disabled) input {
 		cursor: not-allowed;
 	}
-	.js .zone:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.js .zone:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* Toute la zone est le champ ; c'est elle qui montre le focus. */
 	.js input {

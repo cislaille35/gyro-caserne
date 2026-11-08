@@ -14,3 +14,11 @@ describe('ambiance de l’Accueil', () => {
 		expect(render(MeteoAnim, { props: { ambiance: 'pluie', nuit: true } }).body).toContain('goutte');
 	});
 });
+
+describe('MeteoAnim : pas de mouvement sans fin', () => {
+	it('s’arrête quand on le lui dit', () => {
+		const arrete = render(MeteoAnim, { props: { ambiance: 'pluie', anime: false } }).body;
+		expect(arrete).toMatch(/class="meteo m-pluie[^"]*arrete/);
+		expect(render(MeteoAnim, { props: { ambiance: 'pluie' } }).body).not.toMatch(/arrete/);
+	});
+});
