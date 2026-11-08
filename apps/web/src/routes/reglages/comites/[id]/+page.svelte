@@ -71,7 +71,7 @@
 			<form method="POST" action="?/dissoudre" class="formulaire">
 				<p class="avertissement">{avertissement(c.membresEnCours)}</p>
 				<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
-				<Bouton type="submit" variante="secondaire">Dissoudre le comité</Bouton>
+				<Bouton type="submit" variante="grave">Dissoudre le comité</Bouton>
 			</form>
 		</details>
 	{/if}

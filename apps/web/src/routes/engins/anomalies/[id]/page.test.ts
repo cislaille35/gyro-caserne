@@ -49,7 +49,7 @@ describe('/engins/anomalies/[id] : les gestes en panneaux', () => {
 
 	it.each([
 		['reparee', 'Réparée', 'Enregistrer la réparation'],
-		['clore', 'Clore sans réparation', 'Clore'],
+		['clore', 'Clore sans réparation', 'Clore l’anomalie'],
 		['attente', 'Mettre en attente', 'Mettre en attente']
 	])('?panneau=%s : le panneau « %s » ouvert, son formulaire dedans', (cle, titre, bouton) => {
 		const ouvert = panneau(page(`?panneau=${cle}`));

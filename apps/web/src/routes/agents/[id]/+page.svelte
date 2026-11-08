@@ -409,7 +409,7 @@
 							Je confirme
 						</label>
 						{#if erreurs.confirmation}<p id="confirmation-erreur" class="erreur">{erreurs.confirmation}</p>{/if}
-						<Bouton type="submit">Déclarer le départ</Bouton>
+						<Bouton type="submit" variante="grave">Déclarer le départ</Bouton>
 					</form>
 				{/if}
 			</div>

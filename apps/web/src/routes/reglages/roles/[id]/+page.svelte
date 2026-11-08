@@ -205,7 +205,7 @@
 		<form method="POST" action="?/archiver" class="formulaire-detail">
 			<p class="avertissement">{avertissement(role.titulaires)}</p>
 			<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
-			<Bouton type="submit" variante="secondaire">Archiver le rôle</Bouton>
+			<Bouton type="submit" variante="grave">Archiver le rôle</Bouton>
 		</form>
 	</details>
 {/if}

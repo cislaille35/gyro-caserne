@@ -188,10 +188,8 @@
 				{:else if !p.commentairesFermes && !lectureSeule}
 					<a class="pilule" href="{lien}#commenter">Commenter</a>
 				{/if}
-				{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
 			{/if}
-			{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
-			<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>
+			{#if !agir || p.commentaires > 0 || p.commentairesFermes}<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>{/if}
 		</div>
 
 		{#if !seule && p.derniersCommentaires.length > 0}
@@ -206,8 +204,12 @@
 		{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}
 		{#if retour?.message}<p class="echec">{retour.message}</p>{/if}
 
-		{#if p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
+		{#if prive || (!seule && p.droits.supprimer && (p.priseDeConnaissance || p.evenement)) || p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
+			<details class="plus">
+				<summary>Plus<span class="masque"> : gestes sur la publication</span></summary>
 			<div class="gestes">
+				{#if !seule && p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
+				{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
 				{#if p.droits.fermer}
 					<form method="POST" action="?/fermerCommentaires" use:enhance={garderFocus}>
 						<input type="hidden" name="id" value={p.id} />
@@ -239,11 +241,12 @@
 						<form method="POST" action="?/supprimer" class="formulaire">
 							<input type="hidden" name="id" value={p.id} />
 							<p>La publication, ses photos et ses commentaires seront supprimés.</p>
-							<Bouton type="submit" variante="secondaire">Confirmer la suppression</Bouton>
+							<Bouton type="submit" variante="grave">Confirmer la suppression</Bouton>
 						</form>
 					</details>
 				{/if}
 			</div>
+			</details>
 		{/if}
 	</div>
 </article>
@@ -505,7 +508,7 @@
 		align-items: flex-start;
 		gap: var(--espace-8);
 	}
-	summary {
+	details:not(.plus) > summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;

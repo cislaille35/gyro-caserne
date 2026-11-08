@@ -8,7 +8,7 @@ Ouvert à tout agent qui a la messagerie (pas aux extérieurs). Seuls vous deux 
 4. Écrivez votre message dans la case « Message ». Pour ajouter des photos, appuyez sur « + » (4 au plus).
 5. Appuyez sur « Envoyer ». Sur ordinateur, Entrée envoie et Maj + Entrée va à la ligne.
 
-Si vous avez déjà écrit à ce collègue, la même conversation se rouvre. Vous pouvez aussi appuyer sur « Message » sur sa fiche, sur « Écrire » à côté de son nom dans Caserne → « Comités et référents », ou sur « Répondre en privé » sous une de ses publications.
+Si vous avez déjà écrit à ce collègue, la même conversation se rouvre. Vous pouvez aussi appuyer sur « Message » sur sa fiche, sur « Écrire » à côté de son nom dans Caserne → « Comités et référents », ou sur « Plus » puis « Répondre en privé » sous une de ses publications.
 
 Sous votre message, ✓ veut dire envoyé et ✓✓ lu. Pour ne plus montrer quand vous avez lu, décochez « Montrer quand j’ai lu les messages » dans « Mon profil ».
 
