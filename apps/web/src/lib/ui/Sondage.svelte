@@ -46,7 +46,7 @@
 			{/each}
 		</ul>
 		{#if ouvert && agir}
-			<details>
+			<details class="repli">
 				<summary>Changer mon vote</summary>
 				<form method="POST" action="?/voter" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={id} />

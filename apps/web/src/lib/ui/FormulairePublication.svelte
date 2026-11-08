@@ -178,7 +178,7 @@
 
 	<ChampPhoto bind:champ={champPhotos} id="publier-photos" name="photos" libelle="Photos" aide="4 au plus, en JPEG ou WebP. Elles sont réduites avant l’envoi." appel="Ajouter des photos" accept="image/jpeg,image/webp,image/*" multiple erreur={erreurPhoto} />
 
-	<details class="sondage" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
+	<details class="sondage repli" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
 		<summary>Sondage</summary>
 		<div class="contenu-sondage">
 			<Champ id="publier-question" name="question" libelle="Question" maxlength={200} valeur={valeurs.question ?? ''} erreur={erreurs.sondage} />
@@ -332,16 +332,6 @@
 		gap: var(--espace-6);
 		cursor: pointer;
 		list-style: none;
-	}
-	summary::-webkit-details-marker {
-		display: none;
-	}
-	summary::before {
-		content: '+';
-		font-weight: 700;
-	}
-	.sondage[open] summary::before {
-		content: '−';
 	}
 	.contenu-sondage {
 		padding: 0 var(--espace-16) var(--espace-16);

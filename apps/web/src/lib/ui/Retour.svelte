@@ -18,7 +18,7 @@
 		margin: -6px 0 -4px -6px;
 		padding: 0 var(--espace-12) 0 var(--espace-4);
 		border-radius: var(--rayon-bouton);
-		color: var(--doux);
+		color: var(--retour-couleur, var(--doux));
 		font-weight: 600;
 		text-decoration: none;
 	}

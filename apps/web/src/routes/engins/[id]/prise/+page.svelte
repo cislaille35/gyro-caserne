@@ -277,7 +277,7 @@
 									{#if el.quantite !== null}<span class="quantite"><span aria-hidden="true">{'× '}</span>{el.quantite}<span class="masque">{' '}attendus</span></span>{/if}
 									<!-- Retrouvé, l'élément peut avoir un nouvel écart. -->
 									{#if data.peutFaire && (!o || s?.retrouves.includes(o.id))}
-										<details name="ecart" open={pour(`element:${el.ref}`)?.message !== undefined}>
+										<details class="repli" name="ecart" open={pour(`element:${el.ref}`)?.message !== undefined}>
 											<summary>{ecart ? 'Modifier' : 'Écart'}<span class="masque">{' '}: {el.libelle}</span></summary>
 											<form method="POST" action="?/geste" enctype="multipart/form-data" use:enhance={envoi} class="formulaire">
 												<input type="hidden" name="prise" value={p?.id ?? ''} />
@@ -396,7 +396,7 @@
 		{/if}
 
 		{#if p && data.peutFaire}
-			<details class="abandon" open={pour('abandonner')?.message !== undefined}>
+			<details class="abandon repli" open={pour('abandonner')?.message !== undefined}>
 				<summary>Abandonner la prise…</summary>
 				<form method="POST" action="?/abandonner" use:enhance class="formulaire">
 					<input type="hidden" name="prise" value={p.id} />
@@ -818,9 +818,6 @@
 	/* Le repère du clavier reste dans la ligne : la carte rogne ce qui dépasse. */
 	summary:focus-visible {
 		outline-offset: -3px;
-	}
-	summary::-webkit-details-marker {
-		display: none;
 	}
 	details[open] {
 		flex-basis: 100%;

@@ -564,29 +564,11 @@
 		cursor: pointer;
 		list-style: none;
 	}
-	.repli summary::-webkit-details-marker {
-		display: none;
-	}
-	.repli summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	.repli[open] summary::before {
-		transform: rotate(45deg);
-	}
 	/* Dans le bloc replié : les lignes sous un trait fin, sans carte de plus. */
 	.repli li {
 		border-top: 1px solid var(--trait-doux);
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.repli summary::before {
-			transition: none;
-		}
 	}
 
 	/* Téléphone : la liste seule, ou le mur seul. */

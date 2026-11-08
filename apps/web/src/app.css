@@ -384,6 +384,32 @@ body {
 .pile > * + * {
 	border-top: 1px solid var(--trait-doux) !important;
 }
+/* Un bloc qui se déplie : un seul chevron, qui tourne d'un quart de tour. */
+.repli > summary {
+	min-height: var(--cible);
+	display: flex;
+	align-items: center;
+	gap: var(--espace-8);
+	font-weight: 600;
+	list-style: none;
+	cursor: pointer;
+}
+.repli > summary::-webkit-details-marker {
+	display: none;
+}
+.repli > summary::before {
+	content: '';
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(-45deg);
+	transition: transform var(--duree-etat) var(--courbe-sortie);
+}
+.repli[open] > summary::before {
+	transform: rotate(45deg);
+}
 /* Ce qui est rare, rangé : un bouton écrit qui déplie ses gestes, avec ou sans JavaScript. */
 .plus > summary {
 	min-height: var(--cible);

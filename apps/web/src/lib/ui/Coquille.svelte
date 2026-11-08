@@ -27,7 +27,7 @@
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
 		planning: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
-		caserne: 'M3 21V9l9-5 9 5v12 M9 21v-6h6v6',
+		caserne: 'M2 21h20 M4 21V10h11v11 M15 21V4h5v17 M7 21v-6h5v6',
 		echanges: DESSINS.echanges,
 		connexion: DESSINS.sortir,
 		affichage: DESSINS.affichage,
@@ -187,13 +187,11 @@
 	.moi {
 		border-radius: var(--rayon-bouton);
 	}
-	/* La page « Moi » ou la cloche : un anneau clair autour du carré, pas seulement une couleur. */
+	/* La page « Moi » ou la cloche : un trait clair dessous, pour ne pas ressembler au repère du clavier. */
 	header a.moi[aria-current='page'] :global(.visage),
 	header a.moi[aria-current='page'] .rond,
 	header a.rond[aria-current='page'] {
-		box-shadow:
-			0 0 0 2px var(--entete-fond),
-			0 0 0 4px var(--entete-texte);
+		box-shadow: 0 4px 0 -1px var(--entete-texte);
 	}
 	.appli {
 		font: 700 var(--texte-20)/1.1 var(--police-titre);

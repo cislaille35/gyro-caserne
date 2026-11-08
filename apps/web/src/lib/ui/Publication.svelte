@@ -225,7 +225,7 @@
 					</form>
 				{/if}
 				{#if !seule && p.droits.modifier}
-					<details>
+					<details class="repli">
 						<summary>Modifier</summary>
 						<form method="POST" action="?/modifier" class="formulaire">
 							<input type="hidden" name="id" value={p.id} />
@@ -236,7 +236,7 @@
 					</details>
 				{/if}
 				{#if !seule && p.droits.supprimer}
-					<details>
+					<details class="repli">
 						<summary>Supprimer</summary>
 						<form method="POST" action="?/supprimer" class="formulaire">
 							<input type="hidden" name="id" value={p.id} />

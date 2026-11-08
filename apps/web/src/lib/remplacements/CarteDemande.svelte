@@ -217,9 +217,6 @@
 		list-style: none;
 		display: inline-flex;
 	}
-	.plus summary::-webkit-details-marker {
-		display: none;
-	}
 	.plus form {
 		display: flex;
 		flex-direction: column;

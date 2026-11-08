@@ -18,7 +18,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Réglages du centre" action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle', discrete: true } : undefined}>
+	<EnTetePage titre="Réglages du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle', discrete: true } : undefined}>
 		{#snippet secondaire()}
 			{#if data.comites}
 				<a class="lien-secondaire" href="/reglages/comites/nouveau" aria-label="Nouveau comité"

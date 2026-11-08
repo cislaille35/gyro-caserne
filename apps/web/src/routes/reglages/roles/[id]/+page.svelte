@@ -170,7 +170,7 @@
 <!-- Sans JavaScript, « Revenir au modèle » et « Tout revenir » envoient ce formulaire. -->
 {#if !lectureSeule}<form id="revenir" method="POST" action="?/revenir"></form>{/if}
 
-<details class="pli" {...ouvert('detail')}>
+<details class="pli repli" {...ouvert('detail')}>
 	<summary>Détail droit par droit</summary>
 	{@render retour('detail')}
 	{#if lectureSeule}
@@ -199,7 +199,7 @@
 </details>
 
 {#if !lectureSeule}
-	<details class="pli" {...ouvert('archiver')}>
+	<details class="pli repli" {...ouvert('archiver')}>
 		<summary>Archiver le rôle</summary>
 		{@render retour('archiver')}
 		<form method="POST" action="?/archiver" class="formulaire-detail">

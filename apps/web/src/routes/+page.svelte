@@ -91,7 +91,7 @@
 		{/each}
 		{#if liste.length > VISIBLES}
 			<li>
-				<details class="autres">
+				<details class="autres repli">
 					<summary>Voir {liste.length - VISIBLES > 1 ? `les ${liste.length - VISIBLES} autres` : 'l’autre'}</summary>
 					<ul role="list">
 						{#each liste.slice(VISIBLES) as element, i (i)}
@@ -316,20 +316,6 @@
 		.autres summary:hover {
 			text-decoration: underline;
 		}
-	}
-	.autres summary::-webkit-details-marker {
-		display: none;
-	}
-	.autres summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(45deg);
-	}
-	.autres[open] summary::before {
-		transform: rotate(-135deg);
 	}
 	.autres ul {
 		margin: 0;

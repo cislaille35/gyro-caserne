@@ -44,7 +44,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Comités et référents">
+	<EnTetePage titre="Comités et référents" retour={{ href: '/caserne', libelle: 'Caserne' }}>
 		{#snippet secondaire()}
 			{#if gerer}<a class="lien-secondaire" href={gerer.href}>Gérer<span class="masque">{` ${gerer.quoi}`}</span></a>{/if}
 		{/snippet}
