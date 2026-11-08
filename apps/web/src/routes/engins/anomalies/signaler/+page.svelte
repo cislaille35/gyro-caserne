@@ -73,15 +73,15 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 		max-width: 640px;
 	}
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 		margin: 0;
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -90,7 +90,7 @@
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	label {
 		font-weight: 700;
@@ -98,9 +98,7 @@
 	input[type='text'],
 	textarea {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;

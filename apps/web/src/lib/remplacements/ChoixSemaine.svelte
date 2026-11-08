@@ -86,7 +86,7 @@
 	.semaines {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.semaine {
 		min-height: var(--cible);
@@ -94,7 +94,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -106,22 +106,22 @@
 	}
 	.semaine[aria-current='true'] {
 		border: 2px solid var(--encre);
-		padding: 9px 13px;
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 	}
 	.du {
 		font-weight: 700;
 	}
 	.libres {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.choisie {
 		align-self: flex-start;
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border-radius: 999px;
 		background: var(--encre);
 		color: var(--surface);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 	.bande {
@@ -130,14 +130,14 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-width: 0;
 	}
 	legend {
 		float: left;
 		padding: 0;
 		margin-bottom: 2px;
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.raccourcis {
 		clear: both;
@@ -145,13 +145,13 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px 8px;
+		gap: var(--espace-6) var(--espace-8);
 	}
 	.raccourcis a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -166,14 +166,14 @@
 	.jours {
 		clear: both;
 		display: grid;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.jour {
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 8px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-8) var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -181,7 +181,7 @@
 	}
 	.jour:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: 7px 13px;
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 		background: color-mix(in srgb, var(--rouge) 8%, var(--surface));
 	}
 	.jour:has(input:focus-visible) {
@@ -198,7 +198,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		gap: 2px 10px;
+		gap: 2px var(--espace-12);
 	}
 	.nom-jour {
 		font-weight: 700;
@@ -209,15 +209,15 @@
 		font-weight: 600;
 	}
 	.plage {
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
 	.raison {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-style: italic;
 	}
 	.doux {
@@ -233,17 +233,17 @@
 			flex-direction: column;
 			align-items: flex-start;
 			min-height: 128px;
-			padding: 12px;
+			padding: var(--espace-12);
 		}
 		.jour:has(input:checked) {
-			padding: 11px;
+			padding: var(--espace-12);
 		}
 		.texte {
 			flex-direction: column;
 			align-items: flex-start;
 		}
 		.nom-jour {
-			font-size: 1.125rem;
+			font-size: var(--texte-18);
 		}
 	}
 </style>

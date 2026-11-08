@@ -1,17 +1,18 @@
 @import '@fontsource/barlow/400.css';
 @import '@fontsource/barlow/500.css';
 @import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
 @import '@fontsource/barlow-condensed/600.css';
 @import '@fontsource/barlow-condensed/700.css';
 
 :root {
-	--fond: #f6f3ef;
+	--fond: #eef0f3;
 	--surface: #ffffff;
 	--encre: #1d2733;
 	--doux: #4a5562;
 	--gyro-socle: #1d2733;
 	--trait: #d5dbe1;
-	--trait-doux: #e3ddd5;
+	--trait-doux: #d9dee3;
 	--accent: #b3121f;
 	--rouge: #b3121f;
 	--sur-rouge: #ffffff;
@@ -33,28 +34,6 @@
 	--statut-danger-fond: #fbe7e8;
 	--statut-danger-texte: #8a0f19;
 	--statut-danger-trait: #e3a7ac;
-	--icone-etoile-fond: #fbe7e8;
-	--icone-etoile-texte: #8a0f19;
-	--icone-casque-fond: #fdeedd;
-	--icone-casque-texte: #9a4b00;
-	--icone-camion-fond: #e7f0fa;
-	--icone-camion-texte: #0f4c8a;
-	--icone-croix-fond: #e6f2e2;
-	--icone-croix-texte: #1f5a14;
-	--icone-cle-fond: #eceaf6;
-	--icone-cle-texte: #4b3f8a;
-	--icone-ballon-fond: #e3f2f1;
-	--icone-ballon-texte: #0f5e58;
-	--icone-livre-fond: #f3ede4;
-	--icone-livre-texte: #6b4a1f;
-	--icone-groupe-fond: #eef1f4;
-	--icone-groupe-texte: #4a5562;
-	--icone-coeur-fond: #fbeaf1;
-	--icone-coeur-texte: #8a1f52;
-	--icone-outil-fond: #e6eef0;
-	--icone-outil-texte: #2f5560;
-	--icone-veste-fond: #e8ecf7;
-	--icone-veste-texte: #26386e;
 	/* Mes bulles de message : une teinte chaude. */
 	--bulle-moi: #fbe1e4;
 	/* En-tête anthracite, menu de l’ordinateur, blocs de choix, bande de marquage. */
@@ -64,18 +43,36 @@
 	--entete-bouton: #2b3642;
 	--entete-focus: #7ab8ff;
 	--menu-fond: #ffffff;
-	--menu-actif: #efe9e1;
-	--segment-fond: #efe9e1;
+	--menu-actif: #e1e5ea;
+	--segment-fond: #e1e5ea;
 	--jaune: #f2c200;
 	--marquage: repeating-linear-gradient(-45deg, var(--jaune) 0 10px, var(--rouge) 10px 20px);
-	/* Les cartes : pas de bord, une ombre douce. */
-	--ombre-carte: 0 1px 2px rgb(29 39 51 / 6%), 0 6px 16px rgb(29 39 51 / 5%);
+	/* Les cartes sont plates : une surface sur le fond, sans ombre (décision 0026). */
+	--ombre-carte: 0 0 0 transparent;
 
 	--police: 'Barlow', system-ui, sans-serif;
 	--police-titre: 'Barlow Condensed', 'Arial Narrow', sans-serif;
 	--rayon-petit: 6px;
 	--rayon-grand: 14px;
 	--rayon-bouton: 10px;
+	/* Échelles : une valeur en dur dans un écran est refusée par formes.test.ts. */
+	--espace-4: 4px;
+	--espace-6: 6px;
+	--espace-8: 8px;
+	--espace-12: 12px;
+	--espace-16: 16px;
+	--espace-20: 20px;
+	--espace-24: 24px;
+	--espace-32: 32px;
+	--espace-48: 48px;
+	--texte-12: 0.75rem;
+	--texte-14: 0.875rem;
+	--texte-15: 0.9375rem;
+	--texte-16: 1rem;
+	--texte-18: 1.125rem;
+	--texte-20: 1.25rem;
+	--texte-24: 1.5rem;
+	--texte-30: 1.875rem;
 	--cible: 44px;
 	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
 	--hauteur-entete: 64px;
@@ -112,28 +109,6 @@
 	--statut-danger-fond: #3a1a1d;
 	--statut-danger-texte: #ffb3b9;
 	--statut-danger-trait: #7a2f36;
-	--icone-etoile-fond: #3a1a1d;
-	--icone-etoile-texte: #ffb3b9;
-	--icone-casque-fond: #3a2a12;
-	--icone-casque-texte: #f5c58a;
-	--icone-camion-fond: #14283d;
-	--icone-camion-texte: #a9d1ff;
-	--icone-croix-fond: #1b3314;
-	--icone-croix-texte: #a9dd8f;
-	--icone-cle-fond: #262142;
-	--icone-cle-texte: #c9bff5;
-	--icone-ballon-fond: #10302e;
-	--icone-ballon-texte: #8fdcd3;
-	--icone-livre-fond: #33291a;
-	--icone-livre-texte: #e3c79a;
-	--icone-groupe-fond: #252e39;
-	--icone-groupe-texte: #c3ccd5;
-	--icone-coeur-fond: #3a1a2a;
-	--icone-coeur-texte: #f5a9cb;
-	--icone-outil-fond: #1c2c31;
-	--icone-outil-texte: #a9cdd6;
-	--icone-veste-fond: #1a2138;
-	--icone-veste-texte: #b5c4f0;
 	--bulle-moi: #4a2228;
 	--entete-fond: #0b1016;
 	--entete-texte: #ffffff;
@@ -179,28 +154,6 @@
 		--statut-danger-fond: #3a1a1d;
 		--statut-danger-texte: #ffb3b9;
 		--statut-danger-trait: #7a2f36;
-		--icone-etoile-fond: #3a1a1d;
-		--icone-etoile-texte: #ffb3b9;
-		--icone-casque-fond: #3a2a12;
-		--icone-casque-texte: #f5c58a;
-		--icone-camion-fond: #14283d;
-		--icone-camion-texte: #a9d1ff;
-		--icone-croix-fond: #1b3314;
-		--icone-croix-texte: #a9dd8f;
-		--icone-cle-fond: #262142;
-		--icone-cle-texte: #c9bff5;
-		--icone-ballon-fond: #10302e;
-		--icone-ballon-texte: #8fdcd3;
-		--icone-livre-fond: #33291a;
-		--icone-livre-texte: #e3c79a;
-		--icone-groupe-fond: #252e39;
-		--icone-groupe-texte: #c3ccd5;
-		--icone-coeur-fond: #3a1a2a;
-		--icone-coeur-texte: #f5a9cb;
-		--icone-outil-fond: #1c2c31;
-		--icone-outil-texte: #a9cdd6;
-		--icone-veste-fond: #1a2138;
-		--icone-veste-texte: #b5c4f0;
 		--bulle-moi: #4a2228;
 		--entete-fond: #0b1016;
 		--entete-texte: #ffffff;
@@ -228,7 +181,7 @@ body {
 	background: var(--fond);
 	color: var(--encre);
 	font-family: var(--police);
-	font-size: 1rem;
+	font-size: var(--texte-16);
 	line-height: 1.5;
 }
 
@@ -246,6 +199,31 @@ body {
 	}
 }
 
+/* Un seul style de champ. Sans poids (:where) : un écran peut le poser ailleurs, sur l'encre par exemple.
+   Dates, heures et listes gardent le sélecteur du téléphone. */
+:where(textarea, select, input:not([type='checkbox'], [type='radio'], [type='file'])) {
+	min-height: var(--cible);
+	padding: 0 var(--espace-12);
+	border: 1px solid var(--doux);
+	border-radius: var(--rayon-petit);
+	background: var(--surface);
+	color: var(--encre);
+	font: 400 var(--texte-16) var(--police);
+}
+:where(textarea) {
+	padding-block: var(--espace-8);
+	line-height: 1.4;
+	resize: vertical;
+}
+/* Une seule couleur de bouton radio. */
+:where(input[type='radio']) {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	accent-color: var(--encre);
+}
+
 /* Les cases à cocher : dessinées, pareilles partout et dans les deux thèmes (la case native d'iOS est un carré noir en sombre).
    Cochée : pleine, à l'encre, avec la coche. Grisée : fond pâle, bord en tirets, coche grise. La ligne qui la porte fait 44 px au moins.
    Sans poids (:where) : un écran peut la recolorer (--case-plein, --case-coche) là où elle est posée sur l'encre. */
@@ -260,7 +238,7 @@ body {
 	height: 24px;
 	margin: 0;
 	border: 2px solid var(--doux);
-	border-radius: 6px;
+	border-radius: var(--rayon-petit);
 	background: var(--surface);
 	vertical-align: middle;
 	cursor: pointer;
@@ -319,32 +297,21 @@ body {
 /* Titre de rubrique, en condensé, comme dans Échanges. */
 .rubrique {
 	margin: 0;
-	font: 700 1.25rem/1.2 var(--police-titre);
+	font: 700 var(--texte-20)/1.2 var(--police-titre);
 }
-/* Un groupe de lignes : son titre au-dessus, en condensé, majuscules espacées, gris ; puis une seule carte. */
+/* Un groupe de lignes : un vrai titre au-dessus, en condensé, à l'encre ; puis une seule carte. */
 .titre-groupe {
-	margin: 0 0 0 4px;
+	margin: 0;
 	display: flex;
-	align-items: center;
-	gap: 8px;
-	font: 700 0.875rem/1.2 var(--police-titre);
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	color: var(--doux);
+	align-items: baseline;
+	gap: var(--espace-8);
+	font: 700 var(--texte-18)/1.2 var(--police-titre);
+	color: var(--encre);
 }
-/* Le compteur du groupe : un nombre écrit, en encre pleine. */
+/* Le compteur du groupe : un nombre écrit, discret. */
 .titre-groupe .compte {
-	min-width: 22px;
-	height: 22px;
-	padding: 0 7px;
-	border-radius: 11px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--encre);
-	color: var(--fond);
-	font: 700 0.8125rem var(--police);
-	letter-spacing: 0;
+	color: var(--doux);
+	font: 600 var(--texte-16) var(--police);
 }
 /* La carte du groupe ; ses lignes séparées par un trait fin. */
 .lignes {
@@ -374,8 +341,8 @@ body {
 	min-height: 48px;
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: 0 16px;
+	gap: var(--espace-6);
+	padding: 0 var(--espace-16);
 	border: 1px solid var(--trait);
 	border-radius: var(--rayon-bouton);
 	background: var(--surface);
@@ -384,7 +351,7 @@ body {
 	text-decoration: none;
 }
 .lien-secondaire:has(svg) {
-	padding-left: 12px;
+	padding-left: var(--espace-12);
 }
 .lien-secondaire:hover {
 	border-color: var(--encre);
@@ -393,10 +360,10 @@ body {
    Les options sont des liens (aria-current) ou des boutons à bascule (aria-pressed, avec la coche). */
 .segments {
 	display: flex;
-	gap: 4px;
-	padding: 5px;
+	gap: var(--espace-4);
+	padding: var(--espace-4);
 	margin: 0;
-	border-radius: 12px;
+	border-radius: var(--rayon-bouton);
 	background: var(--segment-fond);
 	overflow-x: auto;
 	list-style: none;
@@ -411,13 +378,13 @@ body {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 8px;
-	padding: 0 12px;
+	gap: var(--espace-8);
+	padding: 0 var(--espace-12);
 	border: 0;
-	border-radius: 9px;
+	border-radius: var(--rayon-bouton);
 	background: transparent;
 	color: var(--encre);
-	font: 600 0.9375rem var(--police);
+	font: 600 var(--texte-15) var(--police);
 	text-decoration: none;
 	white-space: nowrap;
 	cursor: pointer;

@@ -53,7 +53,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	/* Les actions passent sous le titre quand la place manque (téléphone, titre long). */
 	.ligne {
@@ -61,7 +61,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.actions {
 		margin-left: auto;
@@ -69,7 +69,7 @@
 		flex-wrap: wrap;
 		justify-content: flex-end;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* Gyro posé à droite du titre, sur la plaque qui suit. */
 	.tete {
@@ -83,7 +83,7 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	h1:focus {
@@ -92,12 +92,12 @@
 	.phrase {
 		margin: 2px 0 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.secondaire {
 		flex: none;
 		display: inline-flex;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.action {
 		flex: none;
@@ -107,13 +107,12 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 0 18px 0 14px;
+		gap: var(--espace-6);
+		padding: 0 var(--espace-16) 0 var(--espace-16);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
 		text-decoration: none;
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
 	}
 	.action:hover {
 		background: var(--rouge-survol);

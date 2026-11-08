@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const titulaire = (id: number, prenom: string, perimetre: { type: string; id: number | null; nom: string | null } = { type: 'comite', id: 2, nom: 'Amicale' }) => ({
 	id,
@@ -41,7 +42,7 @@ describe('/nominations : cartes', () => {
 		expect(page).not.toContain('principal');
 		expect(page.match(/class="nommer/g)).toHaveLength(data.roles.length);
 		expect(carte(page, 'Référent engins')).toContain('Tout le centre');
-		expect(carte(page, 'Référent engins')).toContain('--icone-camion-fond');
+		expect(carte(page, 'Référent engins')).toContain(`d="${ICONES_ROLES.camion}"`);
 		expect(carte(page, 'Membre de comité')).toContain('Amicale');
 		expect(carte(page, 'Chef de garde')).toContain('Équipe 1, Équipe 2');
 	});

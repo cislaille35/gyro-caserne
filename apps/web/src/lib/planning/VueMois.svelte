@@ -117,17 +117,17 @@
 	.vue {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.navigation {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	h2 {
 		flex: 1;
 		margin: 0;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 		text-align: center;
 	}
 	.fleche {
@@ -141,7 +141,7 @@
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 1.5rem;
+		font-size: var(--texte-24);
 		line-height: 1;
 		text-decoration: none;
 	}
@@ -154,12 +154,12 @@
 	thead th {
 		padding: 0 0 2px;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		text-transform: capitalize;
 	}
 	.carte {
-		padding: 4px 6px 6px;
+		padding: var(--espace-4) var(--espace-6) var(--espace-6);
 		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -177,8 +177,8 @@
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 2px 8px;
-		padding: 8px 8px 2px;
+		gap: 2px var(--espace-8);
+		padding: var(--espace-8) var(--espace-8) 2px;
 		line-height: 1.2;
 	}
 	/* Le carré de couleur, décoratif : le nom de l'équipe est écrit à côté, à l'encre. */
@@ -190,18 +190,18 @@
 		background: var(--equipe);
 	}
 	.equipe {
-		font: 700 0.9375rem var(--police-titre);
+		font: 700 var(--texte-15) var(--police-titre);
 		color: var(--encre);
 	}
 	.numero {
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 400;
 		color: var(--doux);
 		font-variant-numeric: tabular-nums;
 	}
 	.marque {
 		margin-left: auto;
-		font: 700 0.875rem var(--police-titre);
+		font: 700 var(--texte-14) var(--police-titre);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
@@ -218,13 +218,13 @@
 	}
 	.mienne th[scope='rowgroup'] {
 		border-top: 0;
-		border-radius: 12px 12px 0 0;
+		border-radius: var(--rayon-bouton) var(--rayon-bouton) 0 0;
 	}
 	.mienne td:first-child {
-		border-radius: 0 0 0 12px;
+		border-radius: 0 0 0 var(--rayon-bouton);
 	}
 	.mienne td:last-child {
-		border-radius: 0 0 12px 0;
+		border-radius: 0 0 var(--rayon-bouton) 0;
 	}
 	.mienne .carre {
 		display: none;
@@ -259,7 +259,7 @@
 		color: var(--doux);
 	}
 	.hors .jour {
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.mienne .aujourdhui .jour {
 		background: var(--sur-equipe);
@@ -272,7 +272,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 		background: var(--encre);
 		color: var(--surface);
 		font-weight: 700;
@@ -298,13 +298,13 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		font-size: 0.9375rem;
+		gap: var(--espace-4);
+		font-size: var(--texte-15);
 	}
 	.reperes li {
 		display: flex;
 		align-items: baseline;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--encre);
 	}
 	.reperes svg {

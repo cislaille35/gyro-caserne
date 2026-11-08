@@ -31,12 +31,12 @@
 	legend {
 		font-weight: 600;
 		padding: 0;
-		margin-bottom: 6px;
+		margin-bottom: var(--espace-6);
 	}
 	.tuiles {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.tuile {
 		position: relative;
@@ -46,7 +46,7 @@
 		width: 52px;
 		height: 52px;
 		border: 2px solid transparent;
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 		cursor: pointer;
 	}
 	.tuile input {
@@ -70,7 +70,7 @@
 		border-radius: 50%;
 		background: var(--encre);
 		color: var(--surface);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -87,7 +87,7 @@
 		clip-path: inset(50%);
 	}
 	.erreur {
-		margin: 6px 0 0;
+		margin: var(--espace-6) 0 0;
 		color: var(--accent);
 		font-weight: 600;
 	}

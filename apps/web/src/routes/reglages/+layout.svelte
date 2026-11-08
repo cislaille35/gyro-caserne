@@ -43,7 +43,7 @@
 <style>
 	.reglages {
 		display: flex;
-		gap: 24px;
+		gap: var(--espace-24);
 		align-items: flex-start;
 	}
 	.cote {
@@ -52,15 +52,15 @@
 	.creer {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
-		margin-bottom: 20px;
+		gap: var(--espace-8);
+		margin-bottom: var(--espace-20);
 	}
 	.principal {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.retour {
 		display: flex;

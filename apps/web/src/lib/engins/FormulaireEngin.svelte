@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import type { SituationEngin } from '@gyro-caserne/socle';
@@ -24,13 +25,7 @@
 <form method="POST" use:enhance class="formulaire">
 	<Champ id="nom" name="nom" libelle="Nom" aide="Comme sur l’engin : « VSAV 1 », « FPT »." requis maxlength={30} bind:valeur={nom} />
 
-	<div class="champ">
-		<label for="type">Type</label>
-		<p id="type-aide" class="aide">Le type porte la fiche de prise de garde.</p>
-		<select id="type" name="type" aria-describedby="type-aide" required>
-			{#each types as t (t.id)}<option value={String(t.id)} selected={String(t.id) === valeurs.typeId}>{t.nom}</option>{/each}
-		</select>
-	</div>
+	<Choix id="type" name="type" libelle="Type" aide="Le type porte la fiche de prise de garde." requis valeur={valeurs.typeId} options={types.map((t) => ({ valeur: String(t.id), libelle: t.nom }))} />
 
 	<Champ id="immatriculation" name="immatriculation" libelle="Immatriculation (facultative)" maxlength={12} bind:valeur={immatriculation} />
 
@@ -56,24 +51,23 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
-	.champ,
 	fieldset {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	fieldset {
 		margin: 0;
 		padding: 0;
 		border: 0;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	label,
 	legend {
@@ -81,16 +75,7 @@
 	}
 	legend {
 		padding: 0;
-		margin-bottom: 6px;
-	}
-	select {
-		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
-		background: var(--surface);
-		color: var(--encre);
-		font: inherit;
+		margin-bottom: var(--espace-6);
 	}
 	.aide {
 		margin: 0;
@@ -100,9 +85,9 @@
 	.choix {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
-		padding: 10px 12px;
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-petit);
 		cursor: pointer;
@@ -124,7 +109,7 @@
 	}
 	.echec {
 		margin: 0;
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

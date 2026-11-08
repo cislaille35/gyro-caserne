@@ -17,14 +17,14 @@
 	.nombre {
 		min-width: 20px;
 		height: 20px;
-		padding: 0 6px;
-		border-radius: 10px;
+		padding: 0 var(--espace-6);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 		line-height: 1;
 	}

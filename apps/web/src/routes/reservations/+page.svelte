@@ -49,14 +49,14 @@
 	.colonnes {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	@media (min-width: 1024px) {
 		.colonnes {
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 		/* « Réserver » à gauche, « Suivre » à droite. */
 		.colonnes > :global(:first-child) {

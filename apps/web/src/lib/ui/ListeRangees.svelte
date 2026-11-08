@@ -25,7 +25,7 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.titre-groupe:focus {
 		outline: none;

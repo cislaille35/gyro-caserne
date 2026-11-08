@@ -1,6 +1,6 @@
 # Interface
 
-Choix d'ensemble : [décision 0008](../decisions/0008-design-interface.md). Maquettes : [`docs/superpowers/specs/2026-10-26-design-ui/`](../superpowers/specs/2026-10-26-design-ui/).
+Choix d'ensemble : [décision 0008](../decisions/0008-design-interface.md), revue par la [décision 0026](../decisions/0026-refonte-ui-2.md). Maquettes : [`docs/superpowers/specs/2026-10-26-design-ui/`](../superpowers/specs/2026-10-26-design-ui/).
 
 ## Jetons
 
@@ -8,8 +8,8 @@ Dans `apps/web/src/app.css`, en variables CSS. On ne met jamais une couleur en d
 
 | Jeton | Rôle |
 |---|---|
-| `--fond`, `--surface`, `--trait`, `--trait-doux` | Fond de page (crème en clair), cartes, bordures, séparateurs |
-| `--ombre-carte` | L’ombre douce des cartes en clair ; invisible en sombre, où la surface plus claire que le fond suffit. Une carte n’a plus de bord fin : `border: 1px solid transparent` (le bord reste visible en mode contrasté) et `box-shadow: var(--ombre-carte)` |
+| `--fond`, `--surface`, `--trait`, `--trait-doux` | Fond de page (gris clair en clair), cartes, bordures, séparateurs |
+| `--ombre-carte` | Sans effet : les cartes sont plates. Une carte a `border: 1px solid transparent` (le bord reste visible en mode contrasté) |
 | `--entete-fond`, `--entete-texte`, `--entete-doux`, `--entete-bouton`, `--entete-focus` | L’en-tête anthracite (plus foncé que le fond en sombre), le nom du centre, la cloche et « Moi », le repère du clavier sur l’en-tête |
 | `--menu-fond`, `--menu-actif` | Le menu de l’ordinateur et son entrée active |
 | `--segment-fond` | Le fond des blocs de choix (classe `.segments`) |
@@ -18,7 +18,7 @@ Dans `apps/web/src/app.css`, en variables CSS. On ne met jamais une couleur en d
 | `--rouge`, `--sur-rouge`, `--accent` | Rouge pompier (boutons), texte posé dessus, repère de l'entrée active |
 | `--focus` | Repère du clavier (contour de 3 px) |
 | `--statut-<ok\|info\|alerte\|danger\|neutre>-<fond\|texte\|trait>` | Badges de statut, pastilles |
-| `--icone-<icône>-<fond\|texte>` | Tuile de chaque icône de rôle |
+| `--espace-<4…48>`, `--texte-<12…30>` | Échelles d'espacement et de taille de texte, seules valeurs admises dans un écran (`formes.test.ts`) ; au-delà de 48 px ou 30 px, une valeur écrite (gros compte à rebours) |
 | `--police`, `--police-titre` | Barlow, Barlow Condensed (servies par l'appli) |
 | `--rayon-petit`, `--rayon-grand` (14 px, cartes), `--rayon-bouton` (10 px), `--cible` | Rayons, taille minimale d'une cible tactile (44 px) |
 
@@ -129,14 +129,15 @@ Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-message
 
 Dans `src/lib/ui/` :
 
-- `Bouton` : `principal` ou `secondaire`, 44 px de haut au moins, rectangle arrondi (`--rayon-bouton`) ; `onclick` facultatif pour un bouton hors formulaire.
+- `Bouton` : `principal` (à-plat rouge, sans contour ni halo) ou `secondaire` (contour fin, comme `.lien-secondaire`), 44 px de haut au moins, rectangle arrondi (`--rayon-bouton`) ; `onclick` facultatif pour un bouton hors formulaire.
 - `.segments` (classe de `app.css`, pas un composant) : bloc de choix arrondi, un fond (`--segment-fond`), l'option choisie en encre pleine et en gras ; options en liens (`aria-current`) ou en boutons à bascule (`aria-pressed`, avec la coche). Vues du Planning, casquettes, « Murs » | « Messages », onglets des remplacements, réponses Présent / Absent / Incertain (accueil, publication, manœuvre du Planning).
 - `Champ` : libellé toujours visible, message d'erreur relié au champ ; `lignes` : une zone de texte de cette hauteur (demande d'habillement, réponses).
 - `ChoixRadio` : choix unique en boutons radio natifs, sans liste déroulante ; `pastilles`, `tuiles` (précision en dessous) ou `rangees`. Utilisé par Publier, Signaler et l'écart de prise de garde.
-- `ChampPhoto` : le champ fichier natif, invisible par-dessus un bouton écrit de 44 px qui montre le fichier choisi et « Retirer » ; sans JavaScript, le champ natif seul. Mêmes écrans.
+- Champs (`input`, `textarea`, `select`) et boutons radio : un seul style, posé par `app.css` sans poids (`:where`). Dates, heures et listes gardent le sélecteur du téléphone.
+- `ChampPhoto` : aussi pour un fichier à importer (`icone="fichier"`). Le champ fichier natif, invisible par-dessus un bouton écrit de 44 px qui montre le fichier choisi et « Retirer » ; sans JavaScript, le champ natif seul. Mêmes écrans.
 - `Choix` : liste déroulante (`<select>`), mêmes règles que `Champ` (libellé, aide, erreur reliés) ; `valeur` se lie avec `bind:`. La sélection n'est pas imposée au navigateur quand la page devient prête (choix de départ par `selected`) : un choix fait avant est gardé et repris dans `valeur`. Ensuite, une nouvelle `valeur` de la page s'applique, et la remise à zéro du formulaire revient au choix de départ.
-- `ListeRangees` : un groupe de lignes dans **une seule carte** (`ul.lignes`), les lignes séparées par un trait fin (`--trait-doux`) ; le titre au-dessus de la carte (h2, ou h3 avec `niveau={3}` sous une section ; `.titre-groupe` : Barlow Condensed, majuscules espacées, `--doux`) avec son compteur (`.compte`, nombre écrit en encre pleine) ; `ancre` rend le titre atteignable par programme. Sans titre, la carte seule.
-- `Rangee` : une ligne de cette carte, pas une carte. `sous` en liste : une sous-ligne par entrée (les engins : type et plaque, puis la prise). Avec `href`, toute la ligne est le lien, avec chevron (repère du clavier dans la ligne, `outline-offset: -3px`). Avec des gestes (`children` : réponses à une manœuvre, « Pris connaissance »…), le lien du titre s'étend à la ligne (`.etire`) et son repère l'entoure ; les gestes (`.inclus`) restent au-dessus et gardent leur propre clic. Sans `href`, ni lien ni chevron. Tête : une tuile (`icone`) seulement si elle porte un sens (type de publication, rôle, comité, ressource), sinon un visage, une date ou rien ; `alerte` met le signe d'alerte sur sa tuile ambre (en tête, ou à droite s'il y a une tête). Cible de 44 px au moins.
+- `ListeRangees` : un groupe de lignes dans **une seule carte** (`ul.lignes`), les lignes séparées par un trait fin (`--trait-doux`) ; le titre au-dessus de la carte (h2, ou h3 avec `niveau={3}` sous une section ; `.titre-groupe` : Barlow Condensed, à l'encre) avec son compteur (`.compte`, nombre écrit en `--doux`) ; `ancre` rend le titre atteignable par programme. Sans titre, la carte seule.
+- `Rangee` : une ligne de cette carte, pas une carte. `sous` en liste : une sous-ligne par entrée (les engins : type et plaque, puis la prise). Avec `href`, toute la ligne est le lien, avec chevron (repère du clavier dans la ligne, `outline-offset: -3px`). Avec des gestes (`children` : réponses à une manœuvre, « Pris connaissance »…), le lien du titre s'étend à la ligne (`.etire`) et son repère l'entoure ; les gestes (`.inclus`) restent au-dessus et gardent leur propre clic. Sans `href`, ni lien ni chevron. Tête : une tuile (`icone`) seulement si elle porte un sens (type de publication, rôle, comité, ressource), sinon un visage, une date ou rien ; `alerte` met le signe d'alerte, en `--statut-alerte-texte` (en tête, ou à droite s'il y a une tête). Cible de 44 px au moins.
 - `.lignes` et `.titre-groupe` (classes de `app.css`) : la même forme pour les listes faites à la main (notifications, murs d'Échanges, conversations, remplacements, réservations). Dans un bloc qui est déjà une carte (`Groupe`, `details`), les lignes gardent le trait fin, sans carte de plus.
 - « Gérer » de l'accueil du chef (`.grille-gestes`) : des liens courts en cases côte à côte (icône et nom), dans une seule carte.
 - `Carte` : section titrée ; avec `ancre`, le titre prend cet id et `tabindex="-1"`, pour y mettre le focus par programme.
@@ -150,7 +151,7 @@ Dans `src/lib/ui/` :
 - `BarreActions` : barre collée en bas de l'écran (au-dessus de la navigation au téléphone) ; `message` est lu dans sa zone `role="status"`, toujours présente.
 - `Visage` : rond décoratif avec les initiales d'une personne, à la couleur de son équipe (texte selon `encreSur`, gris sans équipe), tailles fixes de 30 à 88 px ; le nom doit être écrit à côté.
 - `Installer` : l'aide à l'installation (voir `/moi/installer`).
-- `IconeRole` : tuile colorée d'un rôle (décorative pour les lecteurs d'écran, le nom est écrit à côté) ; dans une liste, seulement là où elle distingue quelque chose ; les tracés sont dans `icones-roles.ts` (`ICONES_ROLES`), une couleur par icône.
+- `IconeRole` : l'icône d'un rôle, à l'encre, sans tuile (décorative pour les lecteurs d'écran, le nom est écrit à côté) ; dans une liste, seulement là où elle distingue quelque chose ; les tracés sont dans `icones-roles.ts` (`ICONES_ROLES`).
 - `Publication` : une publication (auteur, type en `Pastille`, texte jamais interprété, événement, sondage, photos, « J'aime » et réponses en boutons `aria-pressed`, « Pris connaissance », gestes selon `droits`). Un événement commencé porte « En cours » jusqu'à sa fin (3 h) et n'a plus de réponses.
 - `FormulairePublication` : le formulaire « Publier » ; avec JavaScript, seuls les champs du type choisi sont visibles et les photos sont réduites avant l'envoi.
 - `ANePasManquer` : la section de l'accueil, par groupes (h3) ; un événement avec sondage n'y figure qu'une fois (`lib/a-faire.ts`, `regrouper`) ; un événement en cours y reste avec « En cours », sans réponses.

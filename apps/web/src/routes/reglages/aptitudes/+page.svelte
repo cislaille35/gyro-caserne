@@ -54,7 +54,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 44rem;
 	}
 	p,
@@ -62,7 +62,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.liste {
 		margin: 0;
@@ -76,7 +76,7 @@
 		border-radius: var(--rayon-grand);
 	}
 	.rangee {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.rangee + .rangee {
 		border-top: 1px solid var(--trait-doux);
@@ -85,26 +85,26 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 14px;
+		gap: var(--espace-8) var(--espace-16);
 	}
 	.nom {
 		width: 7.5em;
 		min-height: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		border: 2px solid var(--doux);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
 		color: var(--encre);
-		font: 700 1rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 	}
 	.petit {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	.compacte .gestes {
@@ -113,8 +113,8 @@
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 14px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -123,22 +123,22 @@
 	.ligne {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.case {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		font-weight: 600;
 	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
@@ -146,7 +146,7 @@
 		font-weight: 600;
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
 	import { FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from '@gyro-caserne/socle';
 	import { tick } from 'svelte';
 	import { duAu, jourLong, momentLong } from '#lib/planning/dates.ts';
@@ -116,11 +117,7 @@
 	</Carte>
 
 	<Carte titre="Importer un fichier">
-		<div class="champ">
-			<label for="fichier-planning">Fichier du planning</label>
-			<p id="fichier-planning-aide" class="note">Un fichier .xlsx tiré de l’export. Rien n’est écrit avant votre validation.</p>
-			<input id="fichier-planning" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="fichier-planning-aide" disabled={occupe} bind:this={champ} onchange={importer} />
-		</div>
+		<ChampPhoto id="fichier-planning" libelle="Fichier du planning" aide="Un fichier .xlsx tiré de l’export. Rien n’est écrit avant votre validation." appel="Choisir un fichier" icone="fichier" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" desactive={occupe} bind:champ onchange={importer} />
 	</Carte>
 
 	<div role="alert">{#if erreur}<p class="echec">{erreur}</p>{/if}</div>
@@ -193,7 +190,7 @@
 	.fichier {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -204,25 +201,12 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 12px;
-	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 700;
-	}
-	input[type='file'] {
-		min-height: var(--cible);
-		max-width: 100%;
-		font: inherit;
+		gap: var(--espace-12);
+		margin-top: var(--espace-12);
 	}
 	.echec,
 	.alerte {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -233,19 +217,19 @@
 	.apercu {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	h3 {
-		margin: 0 0 8px;
-		font: 700 1.125rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	ul {
 		margin: 0;
-		padding-left: 20px;
+		padding-left: var(--espace-20);
 		overflow-wrap: anywhere;
 	}
 	li + li {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.resume {
 		font-weight: 700;

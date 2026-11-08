@@ -20,6 +20,7 @@ export const ICONE_MAISON = 'M3 11l9-7 9 7v9H3zM9 20v-6h6v6';
 
 // Tracés d'interface partagés entre écrans (même grille 24 × 24).
 export const DESSINS = {
+	fichier: 'M6 3h8l4 4v14H6z M14 3v4h4 M9 12h6 M9 16h6',
 	profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
 	sortir: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
 	annonce: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7',

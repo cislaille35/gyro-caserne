@@ -446,7 +446,7 @@
 	.contenu {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p,
 	h2:not(.titre-groupe),
@@ -455,21 +455,21 @@
 		margin: 0;
 	}
 	h2:not(.titre-groupe) {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
 	}
 	.panneau {
-		gap: 12px;
-		padding: 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
 	.contenu {
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	/* La plaque de l'engin : un à-plat rouge, tout y est écrit en blanc (contraste vérifié par les jetons). */
 	.plaque {
@@ -484,8 +484,8 @@
 		flex-wrap: wrap;
 		align-items: flex-end;
 		justify-content: space-between;
-		gap: 8px 16px;
-		padding: 14px 18px;
+		gap: var(--espace-8) var(--espace-16);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
@@ -502,12 +502,12 @@
 		outline: none;
 	}
 	.aplat p {
-		margin-top: 6px;
-		font-size: 0.875rem;
+		margin-top: var(--espace-6);
+		font-size: var(--texte-14);
 	}
 	.compteur {
 		text-align: right;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.compteur .nombre {
 		display: block;
@@ -518,15 +518,15 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding: 4px 6px 10px 18px;
-		font-size: 0.9375rem;
+		padding: var(--espace-4) var(--espace-6) var(--espace-12) var(--espace-16);
+		font-size: var(--texte-15);
 	}
 	.participants {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0 12px;
+		gap: 0 var(--espace-12);
 		min-height: var(--cible);
 		color: var(--encre);
 		text-decoration: none;
@@ -535,13 +535,13 @@
 		outline-offset: -3px;
 	}
 	.modifier {
-		padding: 0 10px;
+		padding: 0 var(--espace-12);
 		font-weight: 600;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 	}
 	.bande .doux {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.fait {
 		border-left: 6px solid var(--statut-ok-trait);
@@ -557,13 +557,13 @@
 	.parcours {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	/* Les zones passent à la ligne : on les voit toutes d'un coup, quels que soient leur nombre et leurs noms. */
 	.selecteur ul {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.selecteur a {
 		display: flex;
@@ -572,9 +572,9 @@
 		gap: 2px;
 		height: 100%;
 		min-height: 64px;
-		padding: 10px 12px;
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--trait);
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		text-decoration: none;
@@ -583,16 +583,16 @@
 		border-color: var(--encre);
 	}
 	.nom-zone {
-		font: 700 1.125rem/1.1 var(--police-titre);
+		font: 700 var(--texte-18)/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	.nom-zone :global(svg) {
-		margin-right: 6px;
+		margin-right: var(--espace-6);
 		vertical-align: -2px;
 	}
 	.etat-zone {
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	/* Une zone vue : fond vert, la coche et « Tout est complet » écrits, jamais la couleur seule. */
 	.selecteur a.vue {
@@ -621,8 +621,8 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 4px 12px;
-		padding: 0 6px 0 14px;
+		gap: var(--espace-4) var(--espace-12);
+		padding: 0 var(--espace-6) 0 var(--espace-16);
 		min-height: var(--cible);
 		border: 1px solid var(--statut-ok-trait);
 		border-radius: var(--rayon-bouton);
@@ -632,18 +632,18 @@
 	.ouvertes li {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 4px 0;
+		gap: var(--espace-8);
+		padding: var(--espace-4) 0;
 	}
 	.elements li {
-		padding: 3px 6px 3px 14px;
+		padding: 3px var(--espace-6) 3px var(--espace-16);
 	}
 	/* Dans la carte, l'encadré et le message gardent leur petit arrondi (pas celui de la carte). */
 	.elements > li > :is(.encadre, .echec) {
 		border-radius: var(--rayon-petit);
 	}
 	.elements li:has(details[open], .encadre) {
-		padding-bottom: 12px;
+		padding-bottom: var(--espace-12);
 	}
 	.ouvertes li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -652,7 +652,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0 10px;
+		gap: 0 var(--espace-12);
 		min-height: var(--cible);
 	}
 	.libelle {
@@ -666,20 +666,20 @@
 	.quantite {
 		flex: none;
 		min-width: 2.5em;
-		padding: 1px 9px;
+		padding: 1px var(--espace-8);
 		border-radius: 999px;
 		background: var(--statut-neutre-fond);
 		color: var(--statut-neutre-texte);
 		text-align: center;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 	.encadre {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 12px;
-		padding: 10px 12px;
+		gap: var(--espace-8) var(--espace-12);
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--statut-alerte-trait);
 		border-left-width: 4px;
 		border-radius: var(--rayon-petit);
@@ -698,20 +698,20 @@
 	}
 	.encadre .doux {
 		color: inherit;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.vignette img {
 		display: block;
 		width: 56px;
 		height: 56px;
 		object-fit: cover;
-		border-radius: 8px;
+		border-radius: var(--rayon-petit);
 		border: 1px solid var(--trait);
 	}
 	.ok {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		font-weight: 700;
 		color: var(--statut-ok-texte);
 	}
@@ -719,13 +719,13 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.pied-zone {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.valider-participants a {
 		color: inherit;
@@ -733,15 +733,15 @@
 	.pastilles {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 		width: 100%;
 	}
 	.pastille-choix {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		cursor: pointer;
@@ -752,7 +752,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.bandeau-valider p {
 		flex: 1 1 12rem;
@@ -760,12 +760,12 @@
 	}
 	.valider-bloque {
 		min-height: var(--cible);
-		padding: 0 20px;
+		padding: 0 var(--espace-20);
 		border: 2px dashed var(--doux);
 		border-radius: var(--rayon-bouton);
 		background: var(--segment-fond);
 		color: var(--doux);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: not-allowed;
 	}
 	.pastille-choix[hidden] {
@@ -783,9 +783,7 @@
 	}
 	input[type='search'] {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -795,12 +793,12 @@
 		align-items: center;
 		justify-content: center;
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 		list-style: none;
 	}
@@ -811,9 +809,9 @@
 		justify-content: center;
 		min-width: var(--cible);
 		min-height: var(--cible);
-		padding: 0 6px;
+		padding: 0 var(--espace-6);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		cursor: pointer;
@@ -832,30 +830,30 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 12px 0 4px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) 0 var(--espace-4);
 	}
 	fieldset {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px 16px;
+		gap: var(--espace-4) var(--espace-16);
 		padding: 0;
 		border: none;
 	}
 	legend {
-		margin-bottom: 4px;
+		margin-bottom: var(--espace-4);
 		font-weight: 700;
 	}
 	.choix {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		min-height: var(--cible);
 	}
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	label {
 		font-weight: 600;
@@ -863,9 +861,7 @@
 	input[type='number'],
 	textarea {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -874,7 +870,7 @@
 		max-width: 8rem;
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -888,7 +884,7 @@
 			display: grid;
 			grid-template-columns: 17rem minmax(0, 1fr);
 			align-items: start;
-			gap: 16px;
+			gap: var(--espace-16);
 		}
 		.selecteur ul {
 			grid-template-columns: 1fr;

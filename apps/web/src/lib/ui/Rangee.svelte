@@ -83,8 +83,8 @@
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		color: var(--encre);
 		text-decoration: none;
 	}
@@ -120,7 +120,7 @@
 	}
 	.titre {
 		font-weight: 600;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		line-height: 1.3;
 		color: inherit;
 		overflow-wrap: anywhere;
@@ -156,18 +156,18 @@
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		overflow-wrap: anywhere;
 	}
 	.droite {
 		flex: none;
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.valeur {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	.chevron {
@@ -180,17 +180,16 @@
 		flex: none;
 		width: 40px;
 		height: 40px;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 	}
 	.a-droite {
 		width: 32px;
 		height: 32px;
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 	}
 	/* Pas encore là : en retrait. */
 	.discret .titre {

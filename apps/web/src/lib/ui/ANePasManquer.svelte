@@ -120,27 +120,27 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.boutons button {
-		padding: 0 4px;
+		padding: 0 var(--espace-4);
 	}
 	form {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 6px;
-		margin-top: 6px;
+		gap: var(--espace-6);
+		margin-top: var(--espace-6);
 	}
 	.demain {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.geste {
 		min-height: var(--cible);
 		min-width: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	.geste:hover {
@@ -151,31 +151,31 @@
 		display: inline-flex;
 		align-items: center;
 		align-self: flex-start;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--statut-info-texte);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		text-decoration: none;
 	}
 	.lien:hover {
 		text-decoration: underline;
 	}
 	.echec {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		font-weight: 600;
 		color: var(--statut-danger-texte);
 	}
 	.compte {
 		min-width: 24px;
 		height: 24px;
-		padding: 0 7px;
-		border-radius: 12px;
+		padding: 0 var(--espace-8);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 </style>

@@ -101,10 +101,10 @@
 	.fiche {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.colonnes {
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	h2,
 	p,
@@ -113,7 +113,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
@@ -121,13 +121,13 @@
 	.tete {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -136,7 +136,7 @@
 	dl {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	dl div {
 		display: flex;
@@ -149,13 +149,13 @@
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.bouton {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		color: var(--encre);
@@ -177,18 +177,18 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px 10px;
+		gap: var(--espace-6) var(--espace-12);
 	}
 	.bandeau {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 14px 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16) var(--espace-16);
 		border: 1px solid;
 		border-radius: var(--rayon-grand);
 	}
 	.bandeau h2 {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 	}
 	.bandeau.alerte {
 		background: var(--statut-alerte-fond);
@@ -206,13 +206,13 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.bandeau li {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 8px;
+		gap: var(--espace-4) var(--espace-8);
 	}
 	.bandeau a {
 		color: inherit;
@@ -222,7 +222,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

@@ -108,14 +108,14 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	.navigation {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		margin-bottom: 12px;
+		gap: var(--espace-12);
+		margin-bottom: var(--espace-12);
 	}
 	.navigation h2 {
 		text-align: center;
@@ -130,10 +130,10 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.jour {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -146,30 +146,30 @@
 	.entete-jour {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	h3 {
 		margin: 0;
-		font: 700 1.0625rem var(--police-titre);
+		font: 700 var(--texte-16) var(--police-titre);
 	}
 	h3::first-letter {
 		text-transform: uppercase;
 	}
 	.jour p {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 	}
 	.reste {
 		font-weight: 600;
 	}
 	.pris {
-		margin-top: 8px;
-		gap: 6px;
+		margin-top: var(--espace-8);
+		gap: var(--espace-6);
 	}
 	.pris li {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 		overflow-wrap: anywhere;
 	}
 	.mois {
@@ -184,7 +184,7 @@
 	th {
 		font-weight: 600;
 		color: var(--doux);
-		padding: 4px;
+		padding: var(--espace-4);
 	}
 	th abbr {
 		text-decoration: none;
@@ -192,11 +192,11 @@
 	td {
 		vertical-align: top;
 		height: 112px;
-		padding: 6px 8px;
+		padding: var(--espace-6) var(--espace-8);
 		background: var(--surface);
 		border: 1px solid var(--trait-doux);
-		border-radius: 10px;
-		font-size: 0.8125rem;
+		border-radius: var(--rayon-bouton);
+		font-size: var(--texte-14);
 		line-height: 1.3;
 		overflow-wrap: anywhere;
 	}
@@ -212,14 +212,14 @@
 	}
 	.numero {
 		display: block;
-		font: 700 1rem var(--police-titre);
+		font: 700 var(--texte-16) var(--police-titre);
 	}
 	td .reste {
 		display: block;
 		color: var(--doux);
 	}
 	td ul {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		padding: 0;
 		list-style: none;
 		display: flex;
@@ -227,8 +227,8 @@
 		gap: 3px;
 	}
 	td li {
-		padding: 2px 6px;
-		border-radius: 6px;
+		padding: 2px var(--espace-6);
+		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
 	}

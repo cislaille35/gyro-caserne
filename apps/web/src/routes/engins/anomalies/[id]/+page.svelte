@@ -241,7 +241,7 @@
 	.principal {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	h2,
 	p,
@@ -250,7 +250,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
@@ -258,8 +258,8 @@
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -270,11 +270,11 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.bandeau {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid;
 		border-radius: var(--rayon-petit);
 	}
@@ -300,12 +300,12 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.etapes li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.puce {
 		display: inline-grid;
@@ -313,7 +313,7 @@
 		flex: none;
 		width: 22px;
 		height: 22px;
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		border-radius: 50%;
 	}
 	.faite .puce {
@@ -339,18 +339,18 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding-left: 12px;
+		padding-left: var(--espace-12);
 		border-left: 3px solid var(--trait-doux);
 	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	fieldset {
 		margin: 0;
@@ -358,22 +358,22 @@
 		border: 0;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px 18px;
+		gap: var(--espace-4) var(--espace-16);
 	}
 	legend {
 		font-weight: 700;
-		margin-bottom: 4px;
+		margin-bottom: var(--espace-4);
 	}
 	.choix {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		min-height: var(--cible);
 	}
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.champ label {
 		font-weight: 700;
@@ -384,9 +384,7 @@
 	input[type='text'],
 	textarea {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -394,7 +392,7 @@
 	dl {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	dl div {
 		display: flex;
@@ -420,7 +418,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

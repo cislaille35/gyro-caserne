@@ -41,7 +41,7 @@
 						{@const [prenom = '', ...nom] = c.nom.split(' ')}
 						<Visage prenom={c.personne?.prenom ?? prenom} nom={c.personne?.nom ?? nom.join(' ')} couleur={c.personne?.couleur ?? null} {taille} />
 					{:else}
-						<span class="groupe" aria-hidden="true" style:width="{taille}px" style:height="{taille}px" style:background="var(--icone-{icone(c)}-fond)" style:color="var(--icone-{icone(c)}-texte)">
+						<span class="groupe" aria-hidden="true" style:width="{taille}px" style:height="{taille}px" >
 							<svg width={taille / 2} height={taille / 2} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[icone(c)]} /></svg>
 						</span>
 					{/if}
@@ -79,9 +79,7 @@
 		flex: 1;
 		min-width: 0;
 		min-height: var(--cible);
-		padding: 0 16px 0 40px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
+		padding: 0 var(--espace-16) 0 var(--espace-48);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -93,10 +91,10 @@
 	/* Une conversation : une ligne de la carte, toute la ligne est le lien. */
 	.conversation {
 		min-height: 72px;
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--encre);
 		text-decoration: none;
 	}
@@ -110,8 +108,8 @@
 	/* À côté d'une conversation : des lignes plus serrées, l'ouverte marquée d'un fond et d'un trait. */
 	.breve .conversation {
 		min-height: 60px;
-		padding: 8px 12px;
-		gap: 10px;
+		padding: var(--espace-8) var(--espace-12);
+		gap: var(--espace-12);
 	}
 	.conversation[aria-current='page'] {
 		background: var(--statut-neutre-fond);
@@ -134,7 +132,7 @@
 	.ligne {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.nom,
 	.apercu {
@@ -145,23 +143,23 @@
 		text-overflow: ellipsis;
 	}
 	.nom {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		font-weight: 600;
 	}
 	.breve .nom {
-		font-size: 1rem;
+		font-size: var(--texte-16);
 	}
 	.heure {
 		flex: none;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.apercu {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.breve .apercu {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	/* Non lus : le nombre est écrit dans la pastille et dit en texte ; la couleur et le gras ne font que souligner. */
 	.non-lue .nom {
@@ -179,22 +177,22 @@
 		flex: none;
 		min-width: 22px;
 		height: 22px;
-		padding: 0 7px;
-		border-radius: 11px;
+		padding: 0 var(--espace-8);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 	}
 
 	.aucune,
 	.confidentialite {
-		margin: 8px 16px 0;
+		margin: var(--espace-8) var(--espace-16) 0;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		text-align: center;
 	}
 	.masque {

@@ -53,7 +53,7 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-width: 0;
 	}
 	.cache {
@@ -66,7 +66,7 @@
 	.options {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.option {
 		position: relative;
@@ -74,9 +74,9 @@
 		align-items: center;
 		justify-content: center;
 		min-height: var(--cible);
-		padding: 4px 10px;
+		padding: var(--espace-4) var(--espace-12);
 		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 		text-align: center;

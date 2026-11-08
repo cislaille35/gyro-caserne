@@ -23,7 +23,7 @@
 	.progression {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.ou {
 		margin: 0;
@@ -40,16 +40,16 @@
 		display: grid;
 		grid-auto-columns: 1fr;
 		grid-auto-flow: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	li > a,
 	li > span {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 		min-height: var(--cible);
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		line-height: 1.2;
 		text-decoration: none;

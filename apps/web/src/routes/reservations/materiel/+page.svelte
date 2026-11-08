@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import type { Ressource } from '@gyro-caserne/socle';
 	import { enhance } from '$app/forms';
 	import Bouton from '#lib/ui/Bouton.svelte';
@@ -82,12 +83,7 @@
 					{#if data.comites.length === 1}
 						<input type="hidden" name="comite" value={data.comites[0]!.id} />
 					{:else}
-						<div class="champ">
-							<label for="ajouter-comite">Géré par</label>
-							<select id="ajouter-comite" name="comite">
-								{#each data.comites as c (c.id)}<option value={c.id} selected={String(c.id) === valeur('comite')}>{c.nom}</option>{/each}
-							</select>
-						</div>
+						<Choix id="ajouter-comite" name="comite" libelle="Géré par" valeur={valeur('comite') || String(data.comites[0]!.id)} options={data.comites.map((c) => ({ valeur: String(c.id), libelle: c.nom }))} />
 					{/if}
 					<ChoixIcone valeur={(valeur('icone') || 'groupe') as never} />
 					<Bouton type="submit">Ajouter</Bouton>
@@ -103,18 +99,18 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.page,
 	.colonnes {
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
 		display: grid;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	p {
 		margin: 0;
@@ -122,8 +118,8 @@
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 14px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -132,17 +128,17 @@
 	.haut {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	h3 {
 		margin: 0;
-		font: 700 1.1875rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		margin-top: 10px;
+		gap: var(--espace-16);
+		margin-top: var(--espace-12);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -157,31 +153,14 @@
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.gestes details[open] {
 		flex-basis: 100%;
 	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 600;
-	}
-	select {
-		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
-		background: var(--surface);
-		color: var(--encre);
-		font: 400 1rem var(--police);
-	}
 	.reussite,
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}
@@ -198,22 +177,22 @@
 	.confirmer {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 12px 14px;
-		border-radius: 12px;
+		gap: var(--espace-8);
+		padding: var(--espace-12) var(--espace-16);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-danger-fond);
 		color: var(--statut-danger-texte);
 	}
 	.choix {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.bouton {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -235,7 +214,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

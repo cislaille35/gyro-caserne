@@ -82,14 +82,14 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 		max-width: 40rem;
 	}
 	.carte {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 18px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -106,12 +106,12 @@
 		overflow-wrap: anywhere;
 	}
 	.aptitudes {
-		margin-top: 4px !important;
-		font-size: 0.9375rem;
+		margin-top: var(--espace-4) !important;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	.nom {
-		font: 700 1.5rem/1.15 var(--police-titre);
+		font: 700 var(--texte-24)/1.15 var(--police-titre);
 	}
 	@media (display-mode: standalone) {
 		.installer {
@@ -125,19 +125,19 @@
 	form {
 		display: flex;
 		justify-content: center;
-		margin-top: 8px;
+		margin-top: var(--espace-8);
 	}
 	.sortir {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 16px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-16);
 		border: 0;
 		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.sortir:hover {

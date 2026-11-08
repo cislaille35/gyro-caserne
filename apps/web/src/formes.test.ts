@@ -97,8 +97,9 @@ describe('formes', () => {
 		expect(carte).toMatch(/border-radius: var\(--rayon-grand\);/);
 		expect(carte).toMatch(/background: var\(--surface\);/);
 		expect(css).toMatch(/\.lignes > li \+ li \{\s*border-top: 1px solid var\(--trait-doux\);/);
-		// Le titre du groupe au-dessus de la carte, en condensé, majuscules espacées, gris.
-		expect(css).toMatch(/\.titre-groupe \{[^}]*font: 700 0\.875rem\/1\.2 var\(--police-titre\);[^}]*letter-spacing: 0\.1em;[^}]*text-transform: uppercase;[^}]*color: var\(--doux\);/);
+		// Le titre du groupe au-dessus de la carte : un vrai titre, en condensé, à l'encre.
+		expect(css).toMatch(/\.titre-groupe \{[^}]*font: 700 var\(--texte-18\)\/1\.2 var\(--police-titre\);[^}]*color: var\(--encre\);/);
+		expect(css.match(/\.titre-groupe \{([^}]*)\}/)![1]).not.toMatch(/uppercase|letter-spacing/);
 		// Une ligne n'est plus une carte.
 		const ligne = source('lib/ui/Rangee.svelte').match(/\n\t\.rangee \{([^}]*)\}/)![1];
 		expect(ligne).not.toMatch(/box-shadow|border-radius|border:/);
@@ -144,5 +145,106 @@ describe('formes', () => {
 		expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.segments :is\(\[aria-current='page'\], \[aria-current='true'\], \[aria-pressed='true'\]\) \{\s*outline: 2px solid CanvasText;/);
 		// Quatre onglets des remplacements : à la ligne, aucun caché hors de l'écran.
 		expect(source('routes/remplacements/+page.svelte')).toMatch(/\.onglets \{\s*flex-wrap: wrap;/);
+	});
+});
+
+// La direction B (décision 0026) : ni halo ni dégradé, et des échelles en jetons plutôt que des valeurs en dur.
+describe('direction B', () => {
+	const HORS_ECHELLE = /^lib\/(gyro|meteo|animations)\//;
+	const ecrans = [...fichiers('lib'), ...fichiers('routes')].filter((f) => f.endsWith('.svelte') && !HORS_ECHELLE.test(f));
+	const style = (f: string) => {
+		const s = source(f);
+		return s.slice(Math.max(0, s.indexOf('<style')));
+	};
+	const relever = (motif: RegExp) => ['app.css', ...ecrans].flatMap((f) => [...(f === 'app.css' ? source(f) : style(f)).matchAll(motif)].map((m) => `${f} | ${m[0].trim()}`));
+
+	it('la graisse 700 de Barlow est servie : pas de faux gras', () => {
+		expect(source('app.css')).toContain("@import '@fontsource/barlow/700.css';");
+	});
+
+	it('aucun halo coloré sous un bouton', () => {
+		expect(relever(/box-shadow:[^;]*--rouge[^;]*;/g)).toEqual([]);
+	});
+
+	it('aucun dégradé, hors la bande de marquage et la colonne du menu', () => {
+		const dehors = relever(/(linear|radial)-gradient\([^;]*;/g).filter((l) => !l.startsWith('app.css |') && !l.startsWith('lib/ui/Coquille.svelte'));
+		expect(dehors).toEqual([]);
+	});
+
+	it('une icône sans tuile : ni fond ni teinte', () => {
+		const s = source('lib/ui/IconeRole.svelte');
+		expect(s).not.toMatch(/style:background/);
+		expect(s).not.toMatch(/--icone-/);
+	});
+
+	it('les espacements viennent de l’échelle', () => {
+		expect(relever(/(?:^|\n)\s*(?:gap|row-gap|column-gap|padding[a-z-]*|margin[a-z-]*):[^;]*(?<![-\d.])(?:[4-9]|[1-3]\d|4[0-8])px[^;]*;/g)).toEqual([]);
+	});
+
+	it('les tailles de texte viennent de l’échelle', () => {
+		expect(relever(/(?:font-size: *|font: *\d+ +)(?:0?\.\d+|1(?:\.\d+)?|2)rem/g)).toEqual([]);
+	});
+
+	it('les rayons viennent des jetons, sauf la pilule et les petits détails', () => {
+		expect(relever(/border-radius: *(?:[5-9]|[1-9]\d|[1-8]\d\d)px/g)).toEqual([]);
+	});
+
+	it('un seul bouton principal : à-plat rouge, sans contour', () => {
+		const principal = source('lib/ui/Bouton.svelte').match(/\.principal \{([^}]*)\}/)![1];
+		expect(principal).toMatch(/background: var\(--rouge\);/);
+		expect(principal).toMatch(/border: 1px solid transparent;/);
+		expect(relever(/border: 2px solid var\(--encre\);[^}]*background: var\(--rouge\)|background: var\(--rouge\);[^}]*border: 2px solid var\(--encre\)/g)).toEqual([]);
+	});
+
+	it('un seul bouton secondaire : le contour fin de « .lien-secondaire »', () => {
+		const secondaire = source('lib/ui/Bouton.svelte').match(/\.secondaire \{([^}]*)\}/)![1];
+		expect(secondaire).toMatch(/border: 1px solid var\(--trait\);/);
+		expect(relever(/border: 2px solid var\(--trait\);/g)).toEqual([]);
+	});
+
+	it('un seul style de champ, posé par app.css', () => {
+		expect(source('app.css')).toMatch(/:where\(textarea, select, input:not\(\[type='checkbox'\], \[type='radio'\], \[type='file'\]\)\) \{[^}]*border: 1px solid var\(--doux\);/);
+		// L'interrupteur de la vue Année est une case dessinée, pas un champ.
+		const ecrit = ecrans.filter((f) => f !== 'lib/planning/VueAnnee.svelte').filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
+		expect(ecrit).toEqual([]);
+		expect(style('lib/ui/FormulairePublication.svelte')).not.toMatch(/\.saisie \{[^}]*border:/);
+	});
+
+	it('une seule couleur de bouton radio, posée par app.css', () => {
+		expect(source('app.css')).toMatch(/:where\(input\[type='radio'\]\) \{[^}]*accent-color: var\(--encre\);/);
+		expect(relever(/accent-color: (?!var\(--encre\))[^;]*;/g)).toEqual([]);
+	});
+
+	it('une liste déroulante passe par « Choix »', () => {
+		expect(ecrans.filter((f) => f !== 'lib/ui/Choix.svelte' && /<select\b/.test(source(f)))).toEqual([]);
+	});
+
+	it('un champ fichier est dessiné : aucun champ natif visible hors « ChampPhoto »', () => {
+		expect(ecrans.filter((f) => !['lib/ui/ChampPhoto.svelte', 'lib/messagerie/Saisie.svelte'].includes(f) && /type="file"/.test(source(f)))).toEqual([]);
+	});
+
+	it('un fichier à importer : pas de nom ni de « Retirer », la page reprend la main sur le champ', () => {
+		const s = source('lib/ui/ChampPhoto.svelte');
+		expect(s).toMatch(/const lire = \(\) => \{\s*if \(icone === 'fichier'\) return;/);
+		expect(s).toMatch(/\.js \.zone:has\(input:disabled\) \{[^}]*opacity:/);
+	});
+
+	it('« Géré par » garde un comité après une action', () => {
+		expect(source('routes/reservations/materiel/+page.svelte')).toMatch(/<Choix id="ajouter-comite"[^>]*valeur=\{valeur\('comite'\) \|\| String\(data\.comites\[0\]!\.id\)\}/);
+	});
+
+	it('« Aujourd’hui au centre » : des initiales lisibles et « Souhaiter » qui a l’air d’une action', () => {
+		const s = style('routes/echanges/+layout.svelte');
+		expect(s).toMatch(/background: var\(--statut-neutre-fond\);\s*color: var\(--statut-neutre-texte\);/);
+		expect(s).toMatch(/\.souhaiter \{[^}]*border: 1px solid var\(--trait\);/);
+	});
+
+	it('une option choisie ne saute pas : son bord plus épais est repris sur le retrait', () => {
+		const fautifs = ecrans.filter((f) => /border: 2px solid var\(--encre\);\s*padding: var\(--espace-8\) var\(--espace-12\);/.test(style(f)));
+		expect(fautifs).toEqual([]);
+	});
+
+	it('l’interrupteur de la vue Année garde sa piste : ce n’est pas un champ', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.interrupteur input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
 	});
 });

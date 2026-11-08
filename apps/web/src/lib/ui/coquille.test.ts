@@ -129,8 +129,8 @@ describe('Coquille', () => {
 		expect(regle('header')).toMatch(/--focus: var\(--entete-focus\)/);
 		expect(regle('.appli')).toMatch(/var\(--police-titre\)/);
 		expect(regle('.centre')).toMatch(/color: var\(--entete-doux\)/);
-		expect(regle('.rond')).toMatch(/width: var\(--cible\)[\s\S]*border-radius: 12px[\s\S]*background: var\(--entete-bouton\)/);
-		expect(source).toMatch(/header :global\(\.visage\) \{[^}]*border-radius: 12px/);
+		expect(regle('.rond')).toMatch(/width: var\(--cible\)[\s\S]*border-radius: var\(--rayon-bouton\)[\s\S]*background: var\(--entete-bouton\)/);
+		expect(source).toMatch(/header :global\(\.visage\) \{[^}]*border-radius: var\(--rayon-bouton\)/);
 		expect(html('/')).toMatch(/<span class="appli[^"]*">Gyro Caserne<\/span>/);
 	});
 

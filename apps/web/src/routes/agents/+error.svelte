@@ -17,11 +17,11 @@
 	.erreur {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding: 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		background: var(--statut-alerte-fond);
 		border: 1px solid var(--statut-alerte-trait);
-		border-radius: 18px;
+		border-radius: var(--rayon-grand);
 		color: var(--statut-alerte-texte);
 	}
 	.signe {
@@ -33,7 +33,7 @@
 		margin: 0;
 	}
 	h2 {
-		margin-bottom: 4px;
-		font: 700 1.25rem/1.2 var(--police-titre);
+		margin-bottom: var(--espace-4);
+		font: 700 var(--texte-20)/1.2 var(--police-titre);
 	}
 </style>

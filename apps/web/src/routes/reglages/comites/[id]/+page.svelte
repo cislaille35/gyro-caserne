@@ -94,14 +94,14 @@
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
-		padding: 14px;
+		padding: var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.pli {
 		display: block;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 	}
 	summary {
 		min-height: 56px;
@@ -113,9 +113,9 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 		max-width: 36rem;
-		padding-bottom: 14px;
+		padding-bottom: var(--espace-16);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -123,7 +123,7 @@
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 	}
 	.avertissement {
@@ -131,7 +131,7 @@
 	}
 	.echec,
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

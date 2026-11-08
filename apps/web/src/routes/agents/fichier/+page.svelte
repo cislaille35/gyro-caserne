@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
 	import type { Apercu as TypeApercu, DonneesFichier } from '@gyro-caserne/socle';
 	import { onDestroy, tick } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -148,11 +149,7 @@
 	</Carte>
 
 	<Carte titre="Importer">
-		<div class="champ">
-			<label for="fichier-import">Importer un fichier</label>
-			<p id="fichier-import-aide" class="note">Un fichier .xlsx tiré du modèle ou d'un export. Rien n'est écrit avant votre validation.</p>
-			<input id="fichier-import" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="fichier-import-aide" disabled={occupe} bind:this={champ} onchange={importer} />
-		</div>
+		<ChampPhoto id="fichier-import" libelle="Importer un fichier" aide="Un fichier .xlsx tiré du modèle ou d'un export. Rien n'est écrit avant votre validation." appel="Choisir un fichier" icone="fichier" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" desactive={occupe} bind:champ onchange={importer} />
 	</Carte>
 
 	<div role="alert">{#if erreur}<p class="echec">{erreur}</p>{/if}</div>
@@ -176,7 +173,7 @@
 	.fichier {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -187,24 +184,11 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 12px;
-	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 700;
-	}
-	input[type='file'] {
-		min-height: var(--cible);
-		max-width: 100%;
-		font: inherit;
+		gap: var(--espace-12);
+		margin-top: var(--espace-12);
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -218,10 +202,10 @@
 		clip-path: inset(50%);
 	}
 	.progression {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	progress {
 		width: 100%;
-		margin: 8px 0;
+		margin: var(--espace-8) 0;
 	}
 </style>

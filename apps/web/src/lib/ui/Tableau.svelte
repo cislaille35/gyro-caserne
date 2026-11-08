@@ -34,7 +34,7 @@
 	}
 	table :global(th),
 	table :global(td) {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		text-align: left;
 		border-bottom: 1px solid var(--trait);
 	}

@@ -50,16 +50,16 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 		max-width: 44rem;
 	}
 	.mesure {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		color: inherit;
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		white-space: nowrap;
 	}
 	.barre {

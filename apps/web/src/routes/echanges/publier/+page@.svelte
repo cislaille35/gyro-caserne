@@ -37,8 +37,8 @@
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		gap: 8px;
-		margin-bottom: 16px;
+		gap: var(--espace-8);
+		margin-bottom: var(--espace-16);
 	}
 	.annuler {
 		min-height: var(--cible);
@@ -55,7 +55,7 @@
 		grid-column: 2;
 		margin: 0;
 		text-align: center;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.annonce {
 		position: absolute;

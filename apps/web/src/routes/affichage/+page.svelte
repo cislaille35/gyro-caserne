@@ -60,7 +60,7 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	.page {
 		max-width: 40rem;
@@ -71,41 +71,40 @@
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	legend {
 		padding: 0;
-		margin-bottom: 10px;
+		margin-bottom: var(--espace-12);
 	}
 	/* Chaque choix est une rangée ; la choisie a un contour épais, en plus du bouton radio coché. */
 	label {
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--trait-doux);
-		border-radius: 18px;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		cursor: pointer;
 	}
 	label:has(input:checked) {
 		border: 2px solid var(--encre);
-		padding: 9px 13px;
+		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
 	}
 	.doux {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	input[type='radio'] {
 		width: 1.5rem;
 		height: 1.5rem;
 		flex: none;
 		margin: 0;
-		accent-color: var(--accent);
 	}
 	[role='status'] p {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}
