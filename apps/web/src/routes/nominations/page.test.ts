@@ -103,7 +103,7 @@ describe('/nominations : panneau « Nommer »', () => {
 		expect(panneau).toContain('Bob Durand (Équipe 1)');
 		expect(panneau).toMatch(/<input type="hidden" name="perimetre" value="centre"/);
 		expect(panneau).toContain('À partir d’aujourd’hui');
-		expect(panneau).toMatch(/<details>(?:(?!<\/details>)[\s\S])*Changer les dates[\s\S]*name="debut"[^>]*value="2026-10-27"/);
+		expect(panneau).toMatch(/<details class="repli[^"]*">(?:(?!<\/details>)[\s\S])*Changer les dates[\s\S]*name="debut"[^>]*value="2026-10-27"/);
 		expect(panneau).toMatch(/name="fin"/);
 	});
 
@@ -131,7 +131,7 @@ describe('/nominations : panneau « Nommer »', () => {
 		const panneau = page.slice(page.indexOf('<dialog'), page.indexOf('</dialog>'));
 		expect(panneau).toContain('Cette personne tient déjà ce rôle sur cette période');
 		expect(panneau).toMatch(/role="alert"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le formulaire contient des erreurs\./);
-		expect(panneau).toContain('<details open');
+		expect(panneau).toMatch(/<details class="repli[^"]*" open/);
 		expect(panneau).toContain('value="2026-12-01"');
 		expect(carte(page, 'Référent engins')).toContain('<dialog');
 	});

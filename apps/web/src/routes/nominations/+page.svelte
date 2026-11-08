@@ -131,7 +131,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Nominations" phrase={phrase} />
+	<EnTetePage titre="Nominations" phrase={phrase} retour={{ href: '/caserne', libelle: 'Caserne' }} />
 
 	<!-- Sans JavaScript, ce formulaire porte la recherche et les boutons « Nommer » et « Retirer » (par l'adresse). -->
 	<form id="choix" method="GET" role="search" onsubmit={(e) => e.preventDefault()}>
@@ -243,7 +243,7 @@
 							{/if}
 							{#if r.perimetres.length === 1 && erreurs.perimetreId}<p class="echec">{erreurs.perimetreId}</p>{/if}
 							<p class="note">À partir d’aujourd’hui, sans date de fin.</p>
-							<details open={datesEnCause}>
+							<details class="repli" open={datesEnCause}>
 								<summary>Changer les dates</summary>
 								<div class="dates">
 									<Champ id="debut-{id}" name="debut" type="date" libelle="Début" requis valeur={saisie(cible, 'debut', data.aujourdhui)} erreur={erreurs.debut} />

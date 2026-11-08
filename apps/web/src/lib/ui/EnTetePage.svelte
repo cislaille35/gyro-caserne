@@ -26,7 +26,7 @@
 <header class="entete">
 	{#if retour}<Retour href={retour.href} libelle={retour.libelle} />{/if}
 	<div class="ligne">
-		<div class="titres">
+		<div class="titres" class:avec-tete={tete}>
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 			{#if complement}{@render complement()}{/if}
@@ -89,7 +89,17 @@
 	h1:focus {
 		outline: none;
 	}
+	/* Le bouton d'action reste à côté du titre ; la phrase passe dessous, sur toute la largeur. */
+	.titres:not(.avec-tete) {
+		display: contents;
+	}
+	.titres:not(.avec-tete) h1 {
+		flex: 1 1 8rem;
+		min-width: 0;
+	}
 	.phrase {
+		flex-basis: 100%;
+		order: 1;
 		margin: 2px 0 0;
 		color: var(--doux);
 		font-size: var(--texte-15);

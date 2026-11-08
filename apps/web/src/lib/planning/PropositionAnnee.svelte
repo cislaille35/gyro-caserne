@@ -190,20 +190,6 @@
 		cursor: pointer;
 		list-style: none;
 	}
-	.repli summary::-webkit-details-marker {
-		display: none;
-	}
-	.repli summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-	}
-	.repli[open] summary::before {
-		transform: rotate(45deg);
-	}
 	.lignes {
 		display: flex;
 		flex-direction: column;

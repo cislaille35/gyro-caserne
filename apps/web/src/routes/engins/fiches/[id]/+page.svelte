@@ -72,7 +72,7 @@
 								<div class="element">
 									<span class="libelle">{e.libelle}</span>
 									{#if e.quantite !== null}<span class="quantite">{e.quantite}<span class="masque">{' '}attendus</span></span>{/if}
-									<details open={pour(`element:${e.ref}`)?.message !== undefined}>
+									<details class="geste" open={pour(`element:${e.ref}`)?.message !== undefined}>
 										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 									<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 										<input type="hidden" name="element" value={e.ref} />
@@ -120,7 +120,7 @@
 							<button type="submit" class="petit" name="quoi" value="monter_zone" data-geste="monter-zone:{z.ref}" disabled={i === 0}>{@render fleche(HAUT)} Monter<span class="masque">{' '}la zone {z.nom}</span></button>
 							<button type="submit" class="petit" name="quoi" value="descendre_zone" data-geste="descendre-zone:{z.ref}" disabled={i === f.zones.length - 1}>{@render fleche(BAS)} Descendre<span class="masque">{' '}la zone {z.nom}</span></button>
 						</form>
-						<details open={pour(`zone:${z.ref}`)?.message !== undefined}>
+						<details class="repli" open={pour(`zone:${z.ref}`)?.message !== undefined}>
 							<summary>Renommer<span class="masque">{' '}la zone {z.nom}</span></summary>
 							<form method="POST" action="?/geste" use:enhance class="formulaire">
 								<input type="hidden" name="quoi" value="renommer_zone" />
@@ -272,9 +272,6 @@
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
-	}
-	summary::-webkit-details-marker {
-		display: none;
 	}
 	/* Ouvert, le formulaire prend toute la largeur sous l'élément. */
 	.element details[open] {

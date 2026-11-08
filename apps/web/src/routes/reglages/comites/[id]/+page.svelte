@@ -65,7 +65,7 @@
 	{#if c.estCentre}
 		<p class="aide">Le comité du centre ne se dissout pas.</p>
 	{:else}
-		<details class="pli" {...ouvert('dissoudre')}>
+		<details class="pli repli" {...ouvert('dissoudre')}>
 			<summary>Dissoudre le comité</summary>
 			{@render retour('dissoudre')}
 			<form method="POST" action="?/dissoudre" class="formulaire">

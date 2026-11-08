@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Retour from '#lib/ui/Retour.svelte';
 	import { phraseAudience, phraseDuMur } from '#lib/murs/phrases.ts';
 	import { teinteDuMur } from '#lib/murs/teinte.ts';
 	import CouperNotifications from '#lib/ui/CouperNotifications.svelte';
@@ -33,7 +34,7 @@
 </svelte:head>
 
 <header class="bande" class:centre={data.mur.type === 'centre'} style:--bande-fond={teinte.fond} style:--bande-encre={teinte.encre} style:--bande-trait={teinte.trait}>
-	<a class="retour" href="/echanges">‹ Tous les murs</a>
+	<Retour href="/echanges" libelle="Tous les murs" />
 	<div class="identite">
 		<span class="embleme"><PastilleMur icone={tuile.icone} couleur={tuile.couleur} numero={tuile.numero} /></span>
 		<div class="titres">
@@ -88,6 +89,7 @@
 <style>
 	/* La bande du mur, à sa couleur. Au téléphone, elle va d'un bord à l'autre. */
 	.bande {
+		--retour-couleur: currentColor;
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-12);
@@ -96,20 +98,6 @@
 		background: var(--bande-fond);
 		color: var(--bande-encre);
 		box-shadow: inset 0 -4px 0 var(--bande-trait);
-	}
-	.retour {
-		align-self: flex-start;
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		color: inherit;
-		font-weight: 600;
-		text-decoration: none;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.retour:hover {
-			text-decoration: underline;
-		}
 	}
 	.identite {
 		display: flex;
@@ -246,7 +234,7 @@
 		}
 	}
 	@media (min-width: 1024px) {
-		.retour {
+		.bande :global(.retour) {
 			display: none;
 		}
 		.bande {

@@ -359,4 +359,44 @@ describe('direction B', () => {
 	it('l’ajout d’un élément reste replié tant qu’on n’y revient pas', () => {
 		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/open=\{pour\(`ajout:\$\{z\.ref\}`\) !== null\}/);
 	});
+
+	// Navigation (lot 5).
+	it('une seule forme de retour : le composant, sur les murs aussi', () => {
+		for (const f of ['routes/echanges/[mur]/+page.svelte', 'routes/echanges/[mur]/[id]/+page.svelte']) {
+			expect(source(f), f).toContain('<Retour ');
+			expect(source(f), f).not.toMatch(/>‹ /);
+		}
+		for (const f of ['routes/agents/+layout.svelte', 'routes/nominations/+page.svelte', 'routes/comites/+page.svelte', 'routes/reglages/+page.svelte']) expect(source(f), f).toMatch(/retour=\{\{ href: '\/caserne', libelle: 'Caserne' \}\}/);
+	});
+
+	it('une seule forme de dépliage : le chevron de « .repli », posé par app.css', () => {
+		expect(source('app.css')).toMatch(/\.repli > summary::before \{[^}]*border-right: 2px solid currentColor;/);
+		const propres = ecrans.flatMap((f) => [...style(f).matchAll(/[^\n{}]*summary::(?:before|after)[^{]*\{/g)].map((m) => `${f} | ${m[0].trim()}`));
+		expect(propres).toEqual([]);
+		const sansForme = ecrans.flatMap((f) => [...source(f).matchAll(/<details(?![^>]*class="[^"]*\b(?:repli|plus|aptitude|menu|geste)\b)[^>]*>/g)].map((m) => `${f} | ${m[0]}`));
+		expect(sansForme).toEqual([]);
+	});
+
+	it('le bouton d’action reste à côté du titre : la phrase passe dessous', () => {
+		const s = style('lib/ui/EnTetePage.svelte');
+		expect(s).toMatch(/\.titres:not\(\.avec-tete\) \{\s*display: contents;/);
+		expect(s).toMatch(/\.phrase \{[^}]*flex-basis: 100%;[^}]*order: 1;/);
+	});
+
+	it('Accueil et Caserne ne se ressemblent pas ; la page en cours n’a pas l’air d’un repère du clavier', () => {
+		const c = source('lib/ui/Coquille.svelte');
+		const trace = (nom: string) => c.match(new RegExp(`${nom}: '([^']*)'`))![1];
+		expect(trace('caserne')).not.toBe(trace('accueil'));
+		expect(trace('caserne')).not.toMatch(/M9 21v-6h6v6/);
+		expect(style('lib/ui/Coquille.svelte')).not.toMatch(/0 0 0 4px var\(--entete-texte\)/);
+	});
+
+	it('en mode contrasté, la page en cours reste visible sur « Moi » et la cloche', () => {
+		expect(style('lib/ui/Coquille.svelte')).toMatch(/@media \(forced-colors: active\) \{\s*header a\.moi\[aria-current='page'\][\s\S]*?outline: 2px solid/);
+	});
+
+	it('un geste de ligne (« Écart », « Modifier ») n’a pas de chevron : c’est un lien, pas un bloc', () => {
+		expect(source('routes/engins/[id]/prise/+page.svelte')).toMatch(/<details class="geste"[^>]*name="ecart"/);
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="geste" open=\{pour\(`element:/);
+	});
 });

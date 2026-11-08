@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Retour from '#lib/ui/Retour.svelte';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
@@ -53,7 +54,7 @@
 	<title>Publication de {nom(p.auteur)} · {data.mur.nom} · Gyro Caserne</title>
 </svelte:head>
 
-<p class="retour"><a href="/echanges/{data.mur.cle}">‹ {data.mur.nom}</a></p>
+<div class="vers-mur"><Retour href="/echanges/{data.mur.cle}" libelle={data.mur.nom} /></div>
 <h1>Publication de {nom(p.auteur)}</h1>
 
 <div class="annonce" role="status">{annonceSucces}</div>
@@ -103,7 +104,7 @@
 		{#if prise}
 			<p>{bilan}</p>
 			{#if prise.faite.length > 0}
-				<details>
+				<details class="repli">
 					<summary>Qui a pris connaissance</summary>
 					<p>{noms(prise.faite)}</p>
 				</details>
@@ -123,15 +124,9 @@
 {/if}
 
 <style>
-	.retour {
-		margin: 0 0 var(--espace-8);
-	}
-	.retour a {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		color: var(--encre);
-		font-weight: 600;
+	.vers-mur {
+		display: flex;
+		margin-bottom: var(--espace-8);
 	}
 	h1 {
 		margin: 0 0 var(--espace-16);

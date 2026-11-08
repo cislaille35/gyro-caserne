@@ -140,21 +140,6 @@
 		cursor: pointer;
 		list-style: none;
 	}
-	.repli summary::-webkit-details-marker {
-		display: none;
-	}
-	.repli summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	.repli[open] summary::before {
-		transform: rotate(45deg);
-	}
 	h3 {
 		margin: 0;
 		font: 700 var(--texte-20) var(--police-titre);
@@ -266,11 +251,5 @@
 		color: var(--encre);
 		font-size: var(--texte-14);
 		font-weight: 600;
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.repli summary::before,
-		.interrupteur input::after {
-			transition: none;
-		}
 	}
 </style>

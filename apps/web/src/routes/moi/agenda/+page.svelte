@@ -54,7 +54,7 @@
 		<section class="carte" aria-labelledby="mode-emploi">
 			<h2 id="mode-emploi">Mode d’emploi</h2>
 			<p class="doux">Si le bouton n’ouvre pas votre agenda, suivez les étapes de votre application.</p>
-			<details open={data.appareil === 'android'}>
+			<details class="repli" open={data.appareil === 'android'}>
 				<summary>Google Agenda (Android)</summary>
 				<ol>
 					<li>Touchez « Copier le lien » ci-dessus.</li>
@@ -62,7 +62,7 @@
 					<li>Collez le lien, puis « Ajouter l’agenda ». Il apparaît aussi sur le téléphone.</li>
 				</ol>
 			</details>
-			<details open={data.appareil === 'iphone'}>
+			<details class="repli" open={data.appareil === 'iphone'}>
 				<summary>iPhone (Calendrier)</summary>
 				<ol>
 					<li>Touchez « Ajouter à mon agenda » ci-dessus.</li>
@@ -70,7 +70,7 @@
 					<li>Ou : Réglages, Calendrier, Comptes, Ajouter un compte, Autre, « Ajouter un calendrier avec abonnement », puis collez le lien.</li>
 				</ol>
 			</details>
-			<details>
+			<details class="repli">
 				<summary>Outlook</summary>
 				<ol>
 					<li>Touchez « Copier le lien » ci-dessus.</li>
@@ -167,29 +167,10 @@
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--espace-12);
 		font: 700 var(--texte-18) var(--police-titre);
 		cursor: pointer;
 		list-style: none;
-	}
-	summary::-webkit-details-marker {
-		display: none;
-	}
-	summary::after {
-		content: '+' / '';
-		flex: none;
-		width: 32px;
-		height: 32px;
-		border: 1px solid var(--trait);
-		border-radius: 50%;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		font: 600 var(--texte-20) var(--police);
-	}
-	details[open] summary::after {
-		content: '–' / '';
 	}
 	details ol {
 		padding-bottom: var(--espace-8);

@@ -109,7 +109,7 @@
 				{@render retour(['relancer'])}
 				<ul class="rangees" role="list">
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Ont répondu<span class="doux">{' '}· avec des vacances</span></span><span class="compte">{avecVacances.length}</span></summary>
 							{#if avecVacances.length}
 								<ul class="noms" role="list">
@@ -119,7 +119,7 @@
 						</details>
 					</li>
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Sans réponse</span><span class="compte">{sansReponse.length}</span></summary>
 							{#if sansReponse.length}
 								<ul class="noms" role="list">{#each sansReponse as r (r.id)}<li>{r.prenom} {r.nom}</li>{/each}</ul>
@@ -140,7 +140,7 @@
 						{/if}
 					</li>
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Disponibles tout l’été</span><span class="compte">{toutLete.length}</span></summary>
 							{#if toutLete.length}<ul class="noms" role="list">{#each toutLete as r (r.id)}<li>{r.prenom} {r.nom}</li>{/each}</ul>{:else}<p class="doux contenu">Personne pour l’instant.</p>{/if}
 						</details>
@@ -168,7 +168,7 @@
 				</div>
 				{#if e.conflits.length}
 					<!-- Replié, le nombre reste visible : l'alerte ne se fait pas oublier. -->
-					<details class="alerte">
+					<details class="alerte repli">
 						<summary><h3><span aria-hidden="true">⚠</span>{' '}{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3></summary>
 						<ul>{#each e.conflits as t (t)}<li>{t}</li>{/each}</ul>
 					</details>
@@ -177,7 +177,7 @@
 					{#each semaines as s (s.debut)}
 						{@const eq = equipe(s.equipeId)}
 						<li>
-							<details class="semaine" style:--equipe={eq.couleur}>
+							<details class="semaine repli" style:--equipe={eq.couleur}>
 								<summary>
 									<span class="titre-rangee">Semaine du {jourCourt(s.debut)}</span>
 									<PastilleEquipe nom={eq.nom} couleur={eq.couleur} />
@@ -468,19 +468,6 @@
 		cursor: pointer;
 		list-style: none;
 	}
-	.rangees summary::-webkit-details-marker {
-		display: none;
-	}
-	.rangees summary::after {
-		content: '›';
-		margin-left: auto;
-		font-size: var(--texte-20);
-		color: var(--doux);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	.rangees details[open] > summary::after {
-		transform: rotate(90deg);
-	}
 	.titre-rangee {
 		font-weight: 700;
 	}
@@ -596,22 +583,9 @@
 		padding: var(--espace-6) var(--espace-16);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: var(--espace-12);
 		cursor: pointer;
 		list-style: none;
-	}
-	.alerte summary::-webkit-details-marker {
-		display: none;
-	}
-	.alerte summary::after {
-		content: '›';
-		font-size: var(--texte-20);
-		color: var(--doux);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	.alerte[open] summary::after {
-		transform: rotate(90deg);
 	}
 	.alerte ul {
 		margin: 0;
@@ -756,12 +730,6 @@
 	@media (min-width: 720px) {
 		.plages {
 			grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.rangees summary::after,
-		.alerte summary::after {
-			transition: none;
 		}
 	}
 </style>

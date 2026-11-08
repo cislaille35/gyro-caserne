@@ -305,7 +305,7 @@
 					{@render liste('À venir', data.attributions.aVenir)}
 				{/if}
 				{#if data.attributions.passees.length > 0}
-					<details>
+					<details class="repli">
 						<summary>Passées ({data.attributions.passees.length})</summary>
 						<ul class="roles">
 							{#each data.attributions.passees as l (l.id)}

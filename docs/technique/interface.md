@@ -63,7 +63,7 @@ La tenue « bal » s'affiche les 13 et 14 juillet (les bals ont lieu le 13 ou le
 
 ## Coquille
 
-`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête anthracite (« Gyro Caserne » en Barlow Condensed, le nom du centre en gris clair) avec la cloche « Notifications » et « Moi » (le visage de l'agent, `Visage`, nommé « Moi » ; l'icône de profil pour le super administrateur) en carrés arrondis de 44 px, puis la bande de marquage (4 px, `--marquage`, `aria-hidden`, immobile), navigation en bas sur téléphone (onglet actif : gras et barre rouge en haut) et, à partir de 1024 px, l'en-tête et sa bande sur toute la largeur, le menu dessous à gauche (`--menu-fond`, entrée active sur `--menu-actif` et en gras), `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Sous 1024 px, une conversation ouverte (`dansUneConversation`, d'après la route, sauf page d'erreur) masque en-tête, bande et navigation : son propre en-tête ramène à la liste.
+`src/lib/ui/Coquille.svelte` : lien « Aller au contenu » (premier arrêt du clavier), en-tête anthracite (« Gyro Caserne » en Barlow Condensed, le nom du centre en gris clair) avec la cloche « Notifications » et « Moi » (le visage de l'agent, `Visage`, nommé « Moi » ; l'icône de profil pour le super administrateur) en carrés arrondis de 44 px (la page en cours : un trait clair dessous), puis la bande de marquage (4 px, `--marquage`, `aria-hidden`, immobile), navigation en bas sur téléphone (onglet actif : gras et barre rouge en haut) et, à partir de 1024 px, l'en-tête et sa bande sur toute la largeur, le menu dessous à gauche (`--menu-fond`, entrée active sur `--menu-actif` et en gras), `<main id="contenu">`. L'entrée active porte `aria-current="page"`. Sous 1024 px, une conversation ouverte (`dansUneConversation`, d'après la route, sauf page d'erreur) masque en-tête, bande et navigation : son propre en-tête ramène à la liste.
 
 Connecté, quatre onglets fixes (`navigation.ts`) : « Accueil », « Planning », « Caserne », « Échanges ». Les droits n'ajoutent pas d'onglet, seulement des liens dans les pages. `rubriqueDe` dit quel onglet (ou « Moi », ou la cloche) est actif : `/agents`, `/comites`, `/engins`, `/nominations`, `/reglages`, `/reservations` sont rangés sous « Caserne », `/remplacements` sous « Planning », `/profil`, `/affichage` et `/moi/notifications` sous « Moi ». `/connexion` n'a d'onglet que déconnecté ; `/agenda/<fichier>` est un fichier, pas une page.
 
@@ -154,8 +154,9 @@ Dans `src/lib/ui/` :
 - `Tableau` : défile dans sa boîte sur petit écran, avec une légende.
 - `Vide` : message « rien à afficher », avec Gyro.
 - `Casquettes` : la rangée de casquettes de l'accueil.
+- `.repli` (classe de `app.css`, sur un `<details>`) : un bloc qui se déplie, un seul chevron. Aucun écran ne dessine le sien (`formes.test.ts`).
 - `.plus` (classe de `app.css`, sur un `<details>`) : ce qui est rare, rangé sous un bouton écrit (« Plus » d'une publication, « Gérer la zone », « Gérer l'engin »), avec ou sans JavaScript.
-- `EnTetePage` : `action` en rouge pour ce qu'on fait souvent, `discrete: true` pour une action rare (« Préparer l'année », « Ajouter un engin »).
+- `EnTetePage` : le titre, le bouton d'action à côté, la phrase dessous sur toute la largeur ; `action` en rouge pour ce qu'on fait souvent, `discrete: true` pour une action rare (« Préparer l'année », « Ajouter un engin »).
 - `.pile` (classe de `app.css`) : des sections qui se suivent (zones, domaines, rôles, jours) forment une seule carte, séparées par un trait fin.
 - `Groupe` : bloc repliable (fermé par défaut, `bind:ouvert`), `couleur` en carré à côté du titre ; le titre (`niveauTitre` 2 ou 3) est un bouton `aria-expanded`, le contenu est `hidden` quand il est fermé (ses champs restent dans le formulaire).
 - `Pastille` : petit badge de texte, `ton` `ok`, `info`, `alerte`, `danger` ou `neutre`.

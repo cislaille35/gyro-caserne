@@ -54,7 +54,7 @@
 								</div>
 							{/if}
 							<div class="gestes">
-								<details>
+								<details class="repli">
 									<summary class="bouton secondaire">Modifier<span class="masque">{` ${r.nom}`}</span></summary>
 									<form method="POST" action="?/modifier" class="formulaire" use:enhance>
 										<input type="hidden" name="id" value={r.id} />
@@ -139,9 +139,6 @@
 	details summary {
 		list-style: none;
 		display: inline-flex;
-	}
-	details summary::-webkit-details-marker {
-		display: none;
 	}
 	.gestes {
 		display: flex;
