@@ -26,7 +26,10 @@ describe('phraseDuMur', () => {
 	it('une phrase par sorte de mur', () => {
 		expect(phraseDuMur('centre')).toBe('Les infos officielles du chef et de l’adjoint');
 		expect(phraseDuMur('vie')).toBe('Pour tout le monde : sorties, sport, photos');
-		expect(phraseDuMur('equipe')).toBe('Votre équipe d’astreinte');
+		expect(phraseDuMur('equipe', true)).toBe('Votre équipe d’astreinte');
+	});
+	it('le mur d’une autre équipe (le chef qui le lit) : une phrase neutre', () => {
+		expect(phraseDuMur('equipe', false)).toBe('Une équipe d’astreinte du centre');
 	});
 	it('un comité : rien, la phrase répéterait son nom', () => {
 		expect(phraseDuMur('comite')).toBeNull();

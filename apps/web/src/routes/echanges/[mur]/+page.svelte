@@ -23,7 +23,7 @@
 	const s = $derived(data.sections);
 	const tuile = $derived([s.centre, ...s.groupes, ...s.autres, ...s.supervision].find((t) => t?.cle === data.mur.cle) ?? { icone: null, couleur: null, numero: null });
 	const teinte = $derived(teinteDuMur(data.mur.type, tuile));
-	const phrase = $derived(phraseDuMur(data.mur.type));
+	const phrase = $derived(phraseDuMur(data.mur.type, data.sienne));
 	// Gyro du bravo s'anime une fois, sur le premier bravo seulement.
 	const premierBravo = $derived([...data.epinglees, ...data.publications].find((p) => p.type === 'bravo')?.id);
 </script>

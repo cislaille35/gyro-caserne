@@ -236,7 +236,7 @@ export async function lireMur(
 	cle: string,
 	page: { avant?: number; nombre?: number },
 	maintenant: string
-): Promise<{ mur: Mur; audience: number; epinglees: PublicationVue[]; publications: PublicationVue[]; suite: number | null }> {
+): Promise<{ mur: Mur; sienne: boolean; audience: number; epinglees: PublicationVue[]; publications: PublicationVue[]; suite: number | null }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const { avant, nombre = 20 } = page;
 	if (avant !== undefined && !(Number.isInteger(avant) && avant > 0)) throw new DonneeInvalide('Page invalide');
@@ -260,7 +260,10 @@ export async function lireMur(
 	const lignes = [...enTete, ...publications];
 	const { vues, audience } = await vuesDe(base, acteur, mur, appartenances, lignes, { maintenant, visite: true });
 	const vue = (p: (typeof lignes)[number]) => vues.find((v) => v.id === p.id)!;
-	return { mur, audience, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
+	// Un mur d'équipe est « le sien » pour un membre de l'équipe ou son chef de garde, pas pour le chef de centre qui les lit tous.
+	const equipeId = mur.type === 'equipe' ? Number(cle.slice('equipe:'.length)) : null;
+	const sienne = equipeId !== null && (appartenances.membreEquipe.has(equipeId) || appartenances.chefEquipe.has(equipeId));
+	return { mur, sienne, audience, epinglees: enTete.map(vue), publications: publications.map(vue), suite: suivantes.length > taille ? publications.at(-1)!.id : null };
 }
 
 // Une publication seule, avec tous ses commentaires (la visite du mur n'est pas marquée). Trois requêtes.

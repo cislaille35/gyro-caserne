@@ -575,6 +575,19 @@ describe('lireMur', () => {
 		expect((await lireMur(base, acteur(agent), 'centre', {}, maintenant)).audience).toBe(4);
 	});
 
+	it('« sienne » : le mur de l’équipe de l’acteur (membre ou chef de garde) ; pas pour le chef de centre ni un autre mur', async () => {
+		const { base, agent, chef, nouvelle, nommer, affecter, e1, e2 } = await jeu();
+		await affecter(agent, e1.id);
+		const chefEquipe = await nouvelle('Chefequipe');
+		await nommer(chefEquipe, 'Chef de garde', { type: 'equipe', id: e2.id });
+		const sienne = async (qui: Acteur, cle: string) => (await lireMur(base, qui, cle, {}, maintenant)).sienne;
+		expect(await sienne(acteur(agent), `equipe:${e1.id}`)).toBe(true);
+		expect(await sienne(acteur(chefEquipe), `equipe:${e2.id}`)).toBe(true);
+		expect(await sienne(acteur(chef), `equipe:${e1.id}`)).toBe(false);
+		expect(await sienne(superAdmin, `equipe:${e1.id}`)).toBe(false);
+		expect(await sienne(acteur(agent), 'vie')).toBe(false);
+	});
+
 	it('auteur : couleur de son équipe en cours et premier rôle tenu ; auteur parti sans couleur ni rôle', async () => {
 		const { base, agent, autre, chef, nouvelle, nommer, affecter, e1 } = await jeu();
 		const adjoint = await nouvelle('Adjoint');
