@@ -1,10 +1,14 @@
 <script lang="ts">
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { montrerCourante } from '#lib/ui/zone-defilante.ts';
 	import Retour from '#lib/ui/Retour.svelte';
 	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import ListeReglages from './ListeReglages.svelte';
 
 	let { data, children } = $props();
+	let cote = $state<HTMLElement>();
+	afterNavigate(() => montrerCourante(cote));
 
 	// Sur une page de réglage, la liste reste à côté sur ordinateur ; au téléphone, un lien y ramène.
 	const enfant = $derived(page.url.pathname !== '/reglages');
@@ -23,7 +27,7 @@
 
 <div class="reglages" class:enfant>
 	{#if enfant}
-		<nav class="cote" aria-label="Réglages du centre">
+		<nav class="cote" aria-label="Réglages du centre" bind:this={cote}>
 			<!-- Les créations restent à portée depuis une page de réglage, avec les mêmes droits que la page Réglages. -->
 			{#if data.responsabilites || data.comites}
 				<div class="creer">

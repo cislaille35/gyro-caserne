@@ -482,6 +482,9 @@
 	.tuile[aria-current='page'] {
 		background: var(--statut-neutre-fond);
 	}
+	.nom {
+		overflow-wrap: anywhere;
+	}
 	.tuile[aria-current='page'] .nom {
 		font-weight: 800;
 	}

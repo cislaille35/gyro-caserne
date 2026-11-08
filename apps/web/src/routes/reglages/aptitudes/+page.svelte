@@ -93,7 +93,6 @@
 		flex-direction: column;
 		gap: var(--espace-16);
 		max-width: var(--largeur-liste);
-		margin-inline: auto;
 	}
 	p,
 	h2 {

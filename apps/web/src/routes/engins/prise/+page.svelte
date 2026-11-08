@@ -49,7 +49,7 @@
 	@media (min-width: 1024px) {
 		.page {
 			max-width: var(--largeur-liste);
-		margin-inline: auto;
+			margin-inline: auto;
 		}
 	}
 </style>

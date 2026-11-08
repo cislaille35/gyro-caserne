@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { montrerCourante } from '#lib/ui/zone-defilante.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { emailCherche, rechercheListe } from '#lib/liste-agents.ts';
@@ -26,6 +28,9 @@
 		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef de garde` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Au téléphone, les équipes s'ouvrent à la demande. Le serveur ne connaît pas l'écran : tout part ouvert, ce qui reste lisible sans JavaScript.
 	let replier = $state(false);
+	let liste = $state<HTMLElement>();
+	afterNavigate(() => montrerCourante(liste));
+
 	onMount(() => {
 		const ecran = matchMedia('(max-width: 1023px)');
 		const suivre = () => (replier = ecran.matches);
@@ -99,7 +104,7 @@
 </svelte:head>
 
 <div class="page" class:a-cote={enfant}>
-	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents">
+	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents" bind:this={liste}>
 		{#if data.gestion}
 			<EnTetePage titre="Agents" retour={{ href: '/caserne', libelle: 'Caserne' }} action={{ href: '/agents/nouveau', libelle: 'Ajouter', discrete: true }}>
 				{#snippet secondaire()}

@@ -332,7 +332,7 @@ body {
 @media (min-width: 1024px) {
 	.segments {
 		width: fit-content;
-		min-width: 20rem;
+		min-width: min(20rem, 100%);
 		max-width: 100%;
 	}
 }

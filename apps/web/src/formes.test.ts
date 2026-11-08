@@ -428,4 +428,17 @@ describe('direction B', () => {
 		expect(style('routes/reglages/+layout.svelte')).toMatch(/\.cote \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
 		expect(style('routes/agents/+layout.svelte')).toMatch(/\.a-cote \.liste \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
 	});
+
+	it('une page dans une colonne flexible garde sa largeur : pas de marge automatique', () => {
+		for (const f of ['routes/reglages/+page.svelte', 'routes/reglages/aptitudes/+page.svelte', 'routes/reglages/armement/+page.svelte']) expect(style(f), f).not.toMatch(/margin-inline: auto/);
+	});
+
+	it('un bloc de choix ne déborde pas d’une colonne étroite ; trois réponses restent à parts égales', () => {
+		expect(source('app.css')).toMatch(/min-width: min\(20rem, 100%\);/);
+		for (const [f, c] of [['lib/ui/Publication.svelte', 'reponses'], ['lib/ui/ANePasManquer.svelte', 'boutons'], ['routes/planning/+page.svelte', 'boutons']]) expect(style(f), f).toMatch(new RegExp(`\\.${c} \\{[^}]*width: 100%;`));
+	});
+
+	it('la ligne affichée se montre dans une liste qui défile seule', () => {
+		for (const f of ['routes/reglages/+layout.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toContain('montrerCourante(');
+	});
 });
