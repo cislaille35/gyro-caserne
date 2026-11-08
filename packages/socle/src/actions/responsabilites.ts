@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { NOMS_ICONES, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
-import { DROITS, DROITS_DU_CENTRE, estDroitPouvoir, NATURES_RESPONSABILITE, type Droit, type TypePerimetre } from '../listes.ts';
+import { DROITS, estDroitDuCentre, estDroitPouvoir, NATURES_RESPONSABILITE, type Droit, type TypePerimetre } from '../listes.ts';
 import { MODELES } from '../modeles.ts';
 import { attribution, comite, responsabilite, responsabiliteDroit } from '../schema.ts';
 import { nomActeur } from './personnes.ts';
@@ -62,9 +62,8 @@ function exigerIcone(icone: unknown): NomIcone {
 }
 
 // Un droit du centre sur une responsabilité d'équipe ou de comité serait sans effet : refusé.
-const duCentre = (d: Droit) => (DROITS_DU_CENTRE as readonly Droit[]).includes(d);
 function exigerPorteeDesDroits(portee: Portee, droits: Droit[]) {
-	if (portee !== 'centre' && droits.some(duCentre)) throw new DonneeInvalide('Droit réservé au centre');
+	if (portee !== 'centre' && droits.some(estDroitDuCentre)) throw new DonneeInvalide('Droit réservé au centre');
 }
 
 export function exigerDroits(droits: unknown): Droit[] {

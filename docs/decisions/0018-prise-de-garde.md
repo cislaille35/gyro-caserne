@@ -12,4 +12,4 @@
   - **« Tout est complet » après la liste de la zone**, jamais fixé en bas d'écran (porteur, 05/11/2026) : c'est une check-list d'engin de secours, on ne valide pas sans la liste sous les yeux. Le geste reste annulable.
   - **Lien de l'accueil sur la vraie relève** (porteur, 05/11/2026) : de 2 h avant la relève à 24 h après, pas sur le début d'astreinte de l'agent, qui peut tomber un autre jour en semaine à plages. Montré à qui a une astreinte dans la semaine de cette relève.
 - **Pourquoi** : le plus simple qui tient le parcours au téléphone, le travail à plusieurs et l'historique, sans préparer plus que ce que le lot C demande.
-- **Validé par** : à valider par le porteur (PR #41) ; les trois points du 05/11/2026 validés par le porteur.
+- **Validé par** : le porteur du projet, à la fusion de la PR #41 (02/11/2026) ; les trois points du 05/11/2026 validés par le porteur.

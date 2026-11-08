@@ -24,7 +24,7 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 3. Si le rôle s'écarte de son modèle, il porte « Personnalisé ». Pour remettre un domaine comme le modèle, appuyez sur « ↺ Revenir au modèle » ; pour tout le rôle, « ↺ Tout revenir ».
 4. Appuyez sur « Enregistrer ». Rien n'est gardé avant.
 
-Les cases « Administration de l'appli » ne se cochent que par le chef de centre, son adjoint ou le super administrateur. Le « Détail droit par droit », en bas de page, sert aux cas particuliers. Les rôles système (chef de centre, adjoint, chef de garde) se lisent sans se modifier.
+Les cases « Administration de l'appli » ne se cochent que par le chef de centre, son adjoint ou le super administrateur. « Gérer les accès », « Gérer les comités » et « Gérer les responsabilités » sont grisées sur un rôle d'équipe ou de comité : elles sont réservées à un rôle du centre. Le « Détail droit par droit », en bas de page, sert aux cas particuliers. Les rôles système (chef de centre, adjoint, chef de garde) se lisent sans se modifier.
 
 ## Régler les droits d'un profil
 

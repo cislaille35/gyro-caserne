@@ -1276,6 +1276,42 @@ test.describe('réglages', () => {
 		await page.context().close();
 	});
 
+	test('la portée change à l’écran : les droits réservés au centre se grisent et se décochent, puis reviennent', async ({ browser }) => {
+		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
+		const role = `Référent portée ${nouvelleMarque()}`;
+		await page.goto('/reglages/roles/nouveau?modele=vierge');
+		await page.getByLabel('Nom', { exact: true }).fill(role);
+		await page.getByLabel('Portée').selectOption({ label: 'Tout le centre' });
+		await page.getByRole('button', { name: 'Créer le rôle' }).click();
+		await expect(page).toHaveURL(/\/reglages\/roles\/\d+$/);
+		await page.waitForLoadState('networkidle');
+		await toutOuvrir(page);
+
+		const admin = page.locator('fieldset.admin');
+		const acces = admin.getByLabel('Gérer les accès');
+		const nommer = admin.getByLabel('Nommer');
+		await acces.check();
+		await expect(admin.getByText('Réservé à un rôle du centre')).toHaveCount(0);
+
+		await page.getByLabel('Portée').selectOption({ label: 'Une équipe' });
+		await expect(acces).toBeDisabled();
+		await expect(acces).not.toBeChecked();
+		await expect(nommer).toBeEnabled();
+		await expect(admin.getByText('Réservé à un rôle du centre')).toBeVisible();
+
+		await page.getByLabel('Portée').selectOption({ label: 'Tout le centre' });
+		await expect(acces).toBeEnabled();
+		await expect(acces).toBeChecked();
+		await expect(admin.getByText('Réservé à un rôle du centre')).toHaveCount(0);
+
+		// Enregistré en équipe : la case retirée ne part pas, et le serveur accepte.
+		await page.getByLabel('Portée').selectOption({ label: 'Une équipe' });
+		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
+		await expect(page.locator('fieldset.admin').getByLabel('Gérer les accès')).toBeDisabled();
+		await page.context().close();
+	});
+
 	test('le super administrateur crée « Référent pharmacie » depuis son modèle, s’en écarte, revient au modèle et enregistre', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_SUPER })).newPage();
 		// Le jeu de départ a déjà un « Référent pharmacie » : les noms sont uniques.

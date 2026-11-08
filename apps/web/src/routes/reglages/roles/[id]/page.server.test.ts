@@ -157,6 +157,14 @@ describe('page d’un rôle', () => {
 		expect((await resp('Référent engins')).icone).toBe('ballon');
 	});
 
+	it('« Tout revenir » sur un rôle d’équipe : les droits du centre du modèle ne reviennent pas', async () => {
+		const { base, chef, droitsDe } = await preparer();
+		const id = await creerResponsabilite(base, chef, { nom: 'Technique équipe', nature: 'mission', portee: 'equipe', attributeur: { type: 'chef_centre' }, droits: ['GERER_STOCK'], modele: 'referent_technique' }, '2026-01-01');
+		const r = await agir('revenir', locaux(base, chef), id, [['domaine', 'tout']]);
+		expect(r).toMatchObject({ succes: 'Le rôle est revenu à son modèle.' });
+		expect(await droitsDe(id)).toEqual([]);
+	});
+
 	it('sans modèle, rien à revenir', async () => {
 		const { base, referent, resp } = await preparer();
 		const engins = await resp('Référent engins');

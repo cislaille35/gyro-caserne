@@ -3,6 +3,7 @@ import {
 	archiverResponsabilite,
 	DonneeInvalide,
 	DROITS,
+	estDroitDuCentre,
 	estDroitPouvoir,
 	estSansEffet,
 	iconeDuRole,
@@ -132,7 +133,9 @@ export const actions: Actions = {
 		const numeriques = Object.fromEntries(DOMAINES.flatMap((d) => (typeof duModele[d.id] === 'number' ? [[d.id, duModele[d.id]]] : []))) as Partial<Record<DomaineId, number>>;
 		if (domaine === 'tout') {
 			// Sans le pouvoir, les droits d'administration restent tels quels.
-			droits = [...sansPouvoir(appliquerNiveaux(actuels, numeriques)), ...pouvoirDe(pouvoir ? modele.droits : actuels)];
+			// Hors du centre, les droits du centre du modèle ne reviennent pas : ils seraient refusés.
+			const permis = role.portee === 'centre' ? modele.droits : modele.droits.filter((x) => !estDroitDuCentre(x));
+			droits = [...sansPouvoir(appliquerNiveaux(actuels, numeriques)), ...pouvoirDe(pouvoir ? permis : actuels)];
 		} else {
 			const d = DOMAINES.find((x) => x.id === domaine);
 			if (!d || numeriques[d.id] === undefined) return manque(cible, 'Domaine inconnu.');

@@ -27,7 +27,7 @@ export const COMPTES_DE_TEST: Compte[] = [
 	{ role: 'membre', prenom: 'Manon', nom: 'Membre', profil: 'Agent', equipe: 3, responsabilite: 'Membre de comité', comite: 'Amicale' },
 	{ role: 'referent', prenom: 'Rémi', nom: 'Référent', profil: 'Agent', equipe: 2, responsabilite: 'Référent technique' },
 	{ role: 'engins', prenom: 'Erwan', nom: 'Engins', profil: 'Agent', equipe: 3, responsabilite: 'Référent engins' },
-	{ role: 'habillement', prenom: 'Hélène', nom: 'Habillement', profil: 'Agent', equipe: 4, responsabilite: 'Référent habillement' },
+	{ role: 'habillement', prenom: 'Hélène', nom: 'Habillement', profil: 'Agent', equipe: 1, responsabilite: 'Référent habillement' },
 	{ role: 'exterieur', prenom: 'Estelle', nom: 'Extérieure', profil: 'Réserve citoyenne' }
 ];
 
@@ -140,6 +140,7 @@ export async function chargerComptesDeTest(base: Base, basePhotos: BasePhotos, b
 	await chargerEnginsFictifs(base, maintenant);
 	// Des demandes d'habillement de l'agent et du membre, suivies par le référent habillement (sans lui, par le chef de centre, qui en a le droit).
 	// Un compte sauté mais créé lors d'un passage précédent garde ses demandes : il est retrouvé par son adresse, pour ne rien refaire en double.
+	// Des demandes déjà là ne changent pas de main : celles suivies par le chef le restent.
 	const dejaLa = async (role: string) => ids[role] ?? (await base.select({ id: personne.id }).from(personne).where(eq(personne.email, adresse(role))))[0]?.id;
 	const demandeurs = [await dejaLa('agent'), await dejaLa('membre')].filter((id) => id !== undefined);
 	await chargerHabillementFictif(base, maintenant, (await dejaLa('habillement')) ?? ids.chef!, demandeurs);

@@ -1,6 +1,6 @@
 import { SQLiteSyncDialect } from 'drizzle-orm/sqlite-core';
 import { describe, expect, it } from 'vitest';
-import { checkDans, DROITS, STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS } from '../src/listes.ts';
+import { checkDans, DROITS, DROITS_DU_CENTRE, estDroitDuCentre, STATUTS_AVEC_ACCES, STATUTS_OPERATIONNELS } from '../src/listes.ts';
 
 describe('listes fermées', () => {
 	it('contient tous les droits de l’inventaire', () => {
@@ -45,5 +45,12 @@ describe('listes fermées', () => {
 		const { sql, params } = new SQLiteSyncDialect().sqlToQuery(checkDans('statut', ['a', 'b']));
 		expect(sql).toBe(`"statut" IN ('a', 'b')`);
 		expect(params).toEqual([]);
+	});
+});
+
+describe('estDroitDuCentre', () => {
+	it('les trois droits qui valent pour tout le centre, pas « Nommer »', () => {
+		expect(DROITS.filter(estDroitDuCentre).sort()).toEqual([...DROITS_DU_CENTRE].sort());
+		expect(estDroitDuCentre('ATTRIBUER_RESPONSABILITE')).toBe(false);
 	});
 });

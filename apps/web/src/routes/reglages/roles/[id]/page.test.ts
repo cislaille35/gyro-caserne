@@ -80,6 +80,71 @@ describe('page d’un rôle', () => {
 		expect(chef).not.toMatch(/name="admin"[^>]*disabled/);
 	});
 
+	describe('droits réservés à un rôle du centre', () => {
+		const PHRASE = 'Réservé à un rôle du centre';
+		const RESERVES = ['GERER_ACCES', 'GERER_COMITES', 'GERER_LISTES'];
+		const grisee = (page: string, nom: string, droit: string) => new RegExp(`<input type="checkbox" name="${nom}" value="${droit}"[^>]*disabled`).test(page);
+		const cochee = (page: string, nom: string, droit: string) => new RegExp(`<input type="checkbox" name="${nom}" value="${droit}"[^>]*checked`).test(page);
+
+		it.each(['equipe', 'comite'])('portée « %s » : les trois cases grisées, pas « Nommer », avec la phrase, dans les deux formulaires', (portee) => {
+			const page = html({ peutPouvoir: true, role: role({ portee, titulaires: 0 }) });
+			for (const nom of ['admin', 'droits']) {
+				for (const droit of RESERVES) expect(grisee(page, nom, droit)).toBe(true);
+				expect(grisee(page, nom, 'ATTRIBUER_RESPONSABILITE')).toBe(false);
+			}
+			expect(page.match(new RegExp(PHRASE, 'g'))).toHaveLength(2);
+			expect(page).toMatch(/<p id="admin-centre"[^>]*>Réservé à un rôle du centre/);
+			expect(page).toMatch(/<p id="detail-centre"[^>]*>Réservé à un rôle du centre/);
+			// La phrase est reliée à chaque case qu'elle concerne, et à elles seules.
+			for (const d of RESERVES) {
+				expect(page).toMatch(new RegExp(`name="admin" value="${d}"[^>]*aria-describedby="admin-centre"`));
+				expect(page).toMatch(new RegExp(`name="droits" value="${d}"[^>]*aria-describedby="detail-centre"`));
+			}
+			expect(page).not.toMatch(/value="ATTRIBUER_RESPONSABILITE"[^>]*aria-describedby/);
+		});
+
+		it('portée « centre » : rien de grisé, pas de phrase', () => {
+			const page = html({ peutPouvoir: true });
+			for (const nom of ['admin', 'droits']) for (const droit of RESERVES) expect(grisee(page, nom, droit)).toBe(false);
+			expect(page).not.toContain(PHRASE);
+		});
+
+		it('sans le pouvoir, sur une équipe : les deux raisons sont dites et reliées', () => {
+			const page = html({ role: role({ portee: 'equipe', titulaires: 0 }) });
+			expect(page).toContain('Seuls le chef de centre, son adjoint et le super administrateur');
+			expect(page).toContain(PHRASE);
+			expect(page).toMatch(/<fieldset class="admin[^"]*" aria-describedby="admin-aide"/);
+			expect(page).toMatch(/name="admin" value="GERER_ACCES"[^>]*aria-describedby="admin-centre"/);
+		});
+
+		it('un rôle d’équipe tenu : portée fixe, sans liste, cases grisées quand même', () => {
+			const page = html({ peutPouvoir: true, role: role({ portee: 'equipe', titulaires: 2 }) });
+			expect(page).not.toContain('id="role-portee"');
+			expect(page).toContain('Elle ne change pas tant que le rôle est tenu.');
+			expect(grisee(page, 'admin', 'GERER_ACCES')).toBe(true);
+			expect(page).toContain(PHRASE);
+		});
+
+		it('un rôle ancien d’équipe qui porte ces droits : cases décochées, ce que l’envoi retirera, et le compte le dit', () => {
+			const page = html({ peutPouvoir: true, role: role({ portee: 'equipe', titulaires: 0, droits: [droit('GERER_ACCES'), droit('ATTRIBUER_RESPONSABILITE')] }), modele: null });
+			for (const nom of ['admin', 'droits']) {
+				expect(cochee(page, nom, 'GERER_ACCES')).toBe(false);
+				expect(cochee(page, nom, 'ATTRIBUER_RESPONSABILITE')).toBe(true);
+			}
+			expect(page).toContain('1 domaine modifié, pas encore enregistré');
+			expect(page).not.toMatch(/class="resume[^"]*">[^<]*Gérer les accès/);
+		});
+
+		it('après un refus du serveur sans JavaScript : la portée envoyée grise les cases du formulaire, le détail suit la portée enregistrée', () => {
+			const page = html({ peutPouvoir: true, role: role({ titulaires: 0 }) }, { cible: 'role', message: 'Refusé', valeurs: { nom: 'X', portee: 'equipe', admin: ['GERER_ACCES', 'ATTRIBUER_RESPONSABILITE'] } });
+			expect(page).toMatch(/<option value="equipe" selected/);
+			expect(grisee(page, 'admin', 'GERER_ACCES')).toBe(true);
+			expect(cochee(page, 'admin', 'GERER_ACCES')).toBe(false);
+			expect(cochee(page, 'admin', 'ATTRIBUER_RESPONSABILITE')).toBe(true);
+			expect(grisee(page, 'droits', 'GERER_ACCES')).toBe(false);
+		});
+	});
+
 	it('rôle système : tout en lecture seule, sans formulaire ni « Revenir au modèle »', () => {
 		const page = html({ peutPouvoir: true, modele: null, raison: 'Ce rôle fait partie du système : ses droits sont fixés, il ne se modifie pas.', role: role({ systeme: 'chef_equipe', modele: null, droits: [droit('VALIDER_REMPLACEMENT', true), droit('VOIR_MOTIFS_ABSENCE', true)] }) });
 		expect(page).toContain('fait partie du système');

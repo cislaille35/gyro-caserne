@@ -44,6 +44,9 @@ export function estDroitPouvoir(d: Droit): boolean {
 // sur une équipe, pour un rôle ancien qui l'aurait.)
 // Nommer (ATTRIBUER_RESPONSABILITE) n'en est pas : le rapporteur nomme dans son comité.
 export const DROITS_DU_CENTRE = ['GERER_ACCES', 'GERER_LISTES', 'GERER_COMITES'] as const satisfies readonly Droit[];
+export function estDroitDuCentre(d: Droit): boolean {
+	return (DROITS_DU_CENTRE as readonly Droit[]).includes(d);
+}
 
 // Droits qui ne servent nulle part : gardés dans DROITS pour les lignes existantes (sans effet), jamais montrés ni proposés.
 export const DROITS_SANS_EFFET = ['VOIR_MOTIFS_ABSENCE', 'VOIR_ANNUAIRE'] as const satisfies readonly Droit[];
