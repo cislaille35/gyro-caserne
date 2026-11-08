@@ -544,9 +544,6 @@
 		color: var(--encre);
 		font-weight: 600;
 	}
-	.semaine summary {
-		border-left: 4px solid var(--equipe);
-	}
 	.plages {
 		margin: 0;
 		padding: 0 var(--espace-16) var(--espace-12);

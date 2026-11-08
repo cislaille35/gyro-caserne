@@ -36,7 +36,7 @@
 	});
 </script>
 
-<div class="domaines">
+<div class="domaines pile">
 	{#each DOMAINES as d (d.id)}
 		{@const modifie = choix[d.id] !== depart[d.id]}
 		<Groupe titre={d.nom} resume={libelle(d, choix[d.id]) + (modifie ? ' · modifié' : '')} bind:ouvert={ouverts[d.id]}>
@@ -62,11 +62,6 @@
 </div>
 
 <style>
-	.domaines {
-		display: grid;
-		gap: var(--espace-12);
-		align-items: start;
-	}
 	.domaine {
 		padding: var(--espace-12) var(--espace-16) var(--espace-16);
 		display: flex;
@@ -83,10 +78,5 @@
 		color: var(--encre);
 		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
-	}
-	@media (min-width: 1024px) {
-		.domaines {
-			grid-template-columns: 1fr 1fr;
-		}
 	}
 </style>

@@ -189,6 +189,7 @@
 			</div>
 		</div>
 
+		<div class="pile">
 		<Groupe titre="Identité et contact" icone="livre" dessin={DESSINS.profil} resume={resumes.identite} ouvert={blocOuvert === 'identite'}>
 			<div class="bloc">
 				{#if data.raison}
@@ -386,7 +387,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} couleur="var(--rouge)" ouvert={blocOuvert === 'depart'}>
+		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} ouvert={blocOuvert === 'depart'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -413,6 +414,7 @@
 				{/if}
 			</div>
 		</Groupe>
+		</div>
 	</div>
 {/key}
 

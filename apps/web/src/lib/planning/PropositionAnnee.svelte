@@ -144,6 +144,17 @@
 		flex-direction: column;
 		gap: var(--espace-6);
 	}
+	.equipes li::before {
+		content: '';
+		flex: none;
+		width: 10px;
+		height: 10px;
+		border-radius: 2px;
+		background: var(--equipe);
+	}
+	.equipes li > span {
+		margin-right: auto;
+	}
 	.equipes li {
 		display: flex;
 		flex-wrap: wrap;
@@ -151,7 +162,6 @@
 		justify-content: space-between;
 		gap: var(--espace-6) var(--espace-12);
 		padding: var(--espace-8) var(--espace-12);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-petit);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}

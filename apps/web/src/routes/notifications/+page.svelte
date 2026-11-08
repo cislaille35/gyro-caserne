@@ -334,7 +334,6 @@
 		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid var(--statut-danger-trait);
-		border-left-width: 4px;
 		border-radius: var(--rayon-grand);
 	}
 	.signalement p {

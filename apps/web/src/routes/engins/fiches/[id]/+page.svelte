@@ -61,7 +61,7 @@
 	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
 	{#if data.nouveau && f.zones.length === 0}<p class="note">Fiche créée. Commencez par ses zones : cabine, coffres, sacs…</p>{/if}
 
-	<div class="zones">
+	<div class="zones pile">
 		{#each f.zones as z, i (z.ref)}
 			<Groupe titre={z.nom} resume={pluriel(z.elements.length, 'élément')} ouvert={ouverte(z.ref, i)}>
 				<div class="zone" id="zone-{z.ref}" tabindex="-1" role="group" aria-label="Zone {z.nom}">
@@ -163,9 +163,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-16);
-	}
-	.zones {
-		gap: var(--espace-12);
 	}
 	.zone {
 		padding: var(--espace-4) var(--espace-16) var(--espace-16);

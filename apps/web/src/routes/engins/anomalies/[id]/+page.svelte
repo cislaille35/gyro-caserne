@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -205,12 +206,7 @@
 		<form method="POST" action={sans} use:enhance={soumettre} class="formulaire">
 			<input type="hidden" name="quoi" value={panneau} />
 			{#if panneau === 'attente'}
-				<fieldset>
-					<legend>Motif</legend>
-					{#each Object.entries(LIBELLES_MOTIF) as [valeur, libelle], i (valeur)}
-						<label class="choix"><input type="radio" name="motif" value={valeur} checked={i === 0} /> {libelle}</label>
-					{/each}
-				</fieldset>
+				<ChoixRadio id="motif" legende="Motif" name="motif" disposition="rangees" valeur={Object.keys(LIBELLES_MOTIF)[0]} options={Object.entries(LIBELLES_MOTIF).map(([valeur, libelle]) => ({ valeur, libelle }))} />
 				<div class="champ">
 					<label for="texte-attente">Précision <span class="doux">(facultative : garage, date de retour prévue…)</span></label>
 					<input id="texte-attente" name="texte" type="text" maxlength="300" />
@@ -339,8 +335,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding-left: var(--espace-12);
-		border-left: 3px solid var(--trait-doux);
 	}
 	.gestes {
 		display: flex;
@@ -351,24 +345,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-12);
-	}
-	fieldset {
-		margin: 0;
-		padding: 0;
-		border: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--espace-4) var(--espace-16);
-	}
-	legend {
-		font-weight: 700;
-		margin-bottom: var(--espace-4);
-	}
-	.choix {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--espace-8);
-		min-height: var(--cible);
 	}
 	.champ {
 		display: flex;

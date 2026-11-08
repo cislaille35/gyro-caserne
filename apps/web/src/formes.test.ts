@@ -277,4 +277,53 @@ describe('direction B', () => {
 		});
 		expect(dehors).toEqual([]);
 	});
+
+	// Cartes et listes (lot 3).
+	it('plus de bande de couleur à gauche, sauf pour une citation', () => {
+		const citations = ['lib/ui/Bulle.svelte', 'lib/messagerie/Saisie.svelte', 'lib/ui/Publication.svelte'];
+		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-left(?:-width)?: *[2-9]px[^;]*;|inset [2-9]px 0 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
+		expect(bandes).toEqual([]);
+		expect(source('lib/ui/Groupe.svelte')).not.toMatch(/border-left/);
+	});
+
+	it('des sections qui se suivent forment une seule carte', () => {
+		expect(source('app.css')).toMatch(/\n\.pile \{[^}]*border-radius: var\(--rayon-grand\);[^}]*background: var\(--surface\);/);
+		const piles: [string, RegExp][] = [
+			['routes/agents/[id]/+page.svelte', /<div class="pile">\s*<Groupe titre="Identité et contact"/],
+			['routes/reglages/Domaines.svelte', /<div class="domaines pile">/],
+			['lib/engins/ZonesFiche.svelte', /<div class="zones pile">/],
+			['routes/engins/fiches/[id]/+page.svelte', /<div class="zones pile">/],
+			['routes/nominations/+page.svelte', /<div class="roles pile">/],
+			['routes/reservations/[id]/+page.svelte', /<ul class="jours pile" role="list">/],
+			['routes/reservations/materiel/+page.svelte', /<ul class="pile" role="list">/],
+			['lib/planning/VueAnnee.svelte', /<div class="mois pile">/]
+		];
+		for (const [f, motif] of piles) expect(source(f), f).toMatch(motif);
+	});
+
+	it('un choix unique passe par « ChoixRadio » là où il n’a rien de particulier', () => {
+		for (const f of ['routes/affichage/+page.svelte', 'lib/engins/FormulaireEngin.svelte', 'lib/planning/FormulaireManoeuvre.svelte', 'routes/engins/anomalies/[id]/+page.svelte']) {
+			expect(source(f), f).not.toMatch(/type="radio"/);
+			expect(source(f), f).toContain('<ChoixRadio');
+		}
+	});
+
+	it('un groupe à l’étroit garde son titre lisible : l’action passe dessous', () => {
+		const s = style('lib/ui/Groupe.svelte');
+		expect(s).toMatch(/\.ligne \{[^}]*flex-wrap: wrap;/);
+		expect(s).toMatch(/\.entete \{[^}]*flex: 1 1 11rem;/);
+	});
+
+	it('dans une pile, le repère du clavier reste entier et chaque état garde son signe', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.repli summary:focus-visible \{\s*outline-offset: -3px;/);
+		expect(style('lib/messagerie/ListeConversations.svelte')).toMatch(/\.conversation\[aria-current='page'\] \.nom \{\s*font-weight: 700;/);
+		expect(style('routes/reservations/[id]/+page.svelte')).toMatch(/\.jour\.passe \{\s*color: var\(--doux\);/);
+		expect(style('lib/engins/FormulaireEngin.svelte')).toMatch(/\.echec \{[^}]*border: 2px solid var\(--accent\);/);
+		// « .pile » est la carte commune : aucun écran n'en fait autre chose.
+		expect(style('routes/agents/+layout.svelte')).not.toMatch(/\.pile\b/);
+	});
+
+	it('les cases d’équipes d’une manœuvre restent un groupe nommé', () => {
+		expect(source('lib/planning/FormulaireManoeuvre.svelte')).toMatch(/<fieldset class="equipes">\s*<legend class="masque">/);
+	});
 });

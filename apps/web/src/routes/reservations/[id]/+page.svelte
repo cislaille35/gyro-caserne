@@ -44,7 +44,7 @@
 			<h2 id="t-semaine" class="rubrique">{titreSemaine}</h2>
 			<a class="lien-secondaire" href="?jour={decaler(data.jour, 7)}" rel="nofollow"><span class="masque">Sept jours plus tard</span> <span aria-hidden="true">›</span></a>
 		</div>
-		<ul class="jours" role="list">
+		<ul class="jours pile" role="list">
 			{#each jours as jour (jour)}
 				{@const pris = ceJour(data.reservations, jour)}
 				{@const reste = restant(jour)}
@@ -123,7 +123,6 @@
 	.navigation h2::first-letter {
 		text-transform: uppercase;
 	}
-	.jours,
 	.pris {
 		margin: 0;
 		padding: 0;
@@ -141,7 +140,7 @@
 	}
 	/* Jour passé : sur le fond de la page, sans baisser le contraste. */
 	.jour.passe {
-		background: transparent;
+		color: var(--doux);
 	}
 	.entete-jour {
 		display: flex;

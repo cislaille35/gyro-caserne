@@ -361,6 +361,29 @@ body {
 	border-bottom-left-radius: var(--rayon-grand);
 	border-bottom-right-radius: var(--rayon-grand);
 }
+/* Des sections qui se suivent (zones, domaines, rôles, jours) : une seule carte, séparées par un trait fin.
+   Elles gardent leur contenu : la carte ne s'efface que chez elles, d'où le !important. */
+.pile {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	border: 1px solid transparent;
+	border-radius: var(--rayon-grand);
+	background: var(--surface);
+	overflow: hidden;
+}
+.pile > * {
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+.pile > * + * {
+	border-top: 1px solid var(--trait-doux) !important;
+}
 /* Lien secondaire arrondi (« Fichier », « Comité », « Tout afficher ») : un contour, pas la couleur de l'action principale. */
 .lien-secondaire {
 	min-height: 48px;

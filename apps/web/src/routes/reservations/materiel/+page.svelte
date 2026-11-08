@@ -30,7 +30,7 @@
 		{#if data.ressources.length > 0}
 			<section aria-labelledby="t-gere">
 				<h2 id="t-gere" class="rubrique">Ce que vous gérez</h2>
-				<ul role="list">
+				<ul class="pile" role="list">
 					{#each data.ressources as r (r.id)}
 						<li class="carte">
 							<div class="haut">
@@ -104,13 +104,6 @@
 	.page,
 	.colonnes {
 		gap: var(--espace-20);
-	}
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: grid;
-		gap: var(--espace-12);
 	}
 	p {
 		margin: 0;

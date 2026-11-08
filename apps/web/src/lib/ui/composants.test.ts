@@ -26,6 +26,7 @@ import Rangee from './Rangee.svelte';
 import CarteDemande from '../remplacements/CarteDemande.svelte';
 import Vide from './Vide.svelte';
 import Recherche from './Recherche.svelte';
+import { NOMS_ICONES } from '@gyro-caserne/socle';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
@@ -263,9 +264,9 @@ describe('Groupe', () => {
 		expect(html(Groupe, base)).not.toContain('class="tuile');
 	});
 
-	it('liseré de couleur et résumé en alerte, sur demande seulement', () => {
+	it('carré de couleur et résumé en alerte, sur demande seulement', () => {
 		const page = html(Groupe, { ...base, couleur: '#b3121f', alerte: true });
-		expect(page).toMatch(/<section[^>]*style="border-left: 6px solid #b3121f;?"/);
+		expect(page).toMatch(/<span class="carre[^"]*"[^>]*style="background: #b3121f;?"/);
 		expect(page).toMatch(/class="resume[^"]*alerte/);
 		expect(html(Groupe, base)).not.toContain('border-left');
 		expect(html(Groupe, base)).not.toMatch(/class="resume[^"]*alerte/);
@@ -274,7 +275,7 @@ describe('Groupe', () => {
 	it('action facultative à côté du titre, hors du bouton', () => {
 		const action = createRawSnippet(() => ({ render: () => '<a href="/nominations">Nommer</a>' }));
 		const page = html(Groupe, { ...base, action });
-		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
+		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<div class="geste[^"]*">(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
 		expect(page.match(/<button[\s\S]*?<\/button>/)![0]).not.toContain('Nommer');
 	});
 
@@ -311,8 +312,8 @@ describe('IconeRole', () => {
 		expect(page).toContain(`d="${ICONES_ROLES[icone as keyof typeof ICONES_ROLES]}"`);
 		expect(page).not.toContain('--icone-');
 	});
-	it('a les onze icônes des rôles', () => {
-		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil', 'veste']);
+	it('a toutes les icônes des rôles et du matériel', () => {
+		expect(Object.keys(ICONES_ROLES).sort()).toEqual([...NOMS_ICONES].sort());
 	});
 });
 
@@ -464,7 +465,7 @@ describe('Rangee', () => {
 		expect(page).toMatch(/<div class="inclus[^"]*"><span>Contenu<\/span><\/div>/);
 		expect(page).not.toContain('chevron');
 	});
-	it('alerte : le signe d’alerte en tête, jamais la couleur seule', () => {
+	it('alerte : le signe d’alerte à droite, jamais la couleur seule', () => {
 		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef de garde', alerte: true });
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);

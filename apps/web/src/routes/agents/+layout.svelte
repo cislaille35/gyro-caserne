@@ -129,7 +129,7 @@
 			<div class="colonnes">
 				{#each equipes as g (g.cle)}{@render groupe(g)}{/each}
 				{#if horsEquipes.length > 0}
-					<div class="pile">
+					<div class="hors-equipes">
 						{#each horsEquipes as g (g.cle)}{@render groupe(g)}{/each}
 					</div>
 				{/if}
@@ -171,7 +171,7 @@
 		gap: var(--espace-16);
 	}
 	.colonnes,
-	.pile {
+	.hors-equipes {
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
@@ -283,7 +283,6 @@
 	/* L'agent affiché : fond, liseré et nom en gras, pas la couleur seule. */
 	.courant {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--encre);
 	}
 	.courant .nom {
 		font-weight: 800;

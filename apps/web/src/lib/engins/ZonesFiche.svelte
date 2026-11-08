@@ -7,7 +7,7 @@
 	let { zones }: { zones: ZoneFiche[] } = $props();
 </script>
 
-<div class="zones">
+<div class="zones pile">
 	{#each zones as z (z.ref)}
 		<Groupe titre={z.nom} resume={pluriel(z.elements.length, 'élément')} niveauTitre={3}>
 			{#if z.elements.length === 0}
@@ -27,11 +27,6 @@
 </div>
 
 <style>
-	.zones {
-		display: flex;
-		flex-direction: column;
-		gap: var(--espace-12);
-	}
 	ul {
 		margin: 0;
 		padding: var(--espace-4) var(--espace-16) var(--espace-8);

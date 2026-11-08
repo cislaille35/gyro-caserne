@@ -35,6 +35,7 @@
 	{#if mode === 'moi'}
 		<label class="interrupteur"><input type="checkbox" role="switch" bind:checked={seules} /> Seulement mes semaines</label>
 	{/if}
+	<div class="mois pile">
 	{#each mois as m (m.numero)}
 		{@const liste = seules ? m.semaines.filter((s) => s.mienne) : m.semaines}
 		<details class="repli" open={m.numero === moisOuvert}>
@@ -71,6 +72,7 @@
 			</div>
 		</details>
 	{/each}
+	</div>
 </div>
 
 <style>
@@ -124,6 +126,10 @@
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 	}
+	/* La carte coupe ce qui dépasse : le repère du clavier reste à l'intérieur. */
+	.repli summary:focus-visible {
+		outline-offset: -3px;
+	}
 	.repli summary {
 		min-height: 52px;
 		padding: var(--espace-6) var(--espace-16);
@@ -176,9 +182,17 @@
 		flex-direction: column;
 		gap: var(--espace-6);
 	}
+	.equipe::before {
+		content: '';
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: var(--espace-6);
+		border-radius: 2px;
+		background: var(--equipe);
+	}
 	.semaine {
 		padding: var(--espace-6) var(--espace-12);
-		border-left: 6px solid var(--equipe);
 		border-radius: var(--rayon-petit);
 		background: var(--fond);
 	}
