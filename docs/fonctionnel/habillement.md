@@ -27,7 +27,7 @@ Le **fil**, sous la demande : questions, réponses, précisions et changements d
 ## Notifications (cloche et téléphone)
 
 - **L'agent** : à chaque étape (prise en compte, traitée — avec le mot du référent s'il en a mis un —, refusée, livrée) et à chaque question. Ouvrir sa demande marque ces notifications lues.
-- **Les référents** : chaque nouvelle demande (un référent qui demande pour lui-même et seul : le chef et l'adjoint à sa place). Une réponse ou une précision de l'agent va au référent qui suit la demande ; tant que personne ne la suit, à tous les référents. Une annulation prévient celui qui la suivait.
+- **Les référents** : chaque nouvelle demande (si le seul référent demande pour lui-même, le chef et l'adjoint sont prévenus à sa place). Une réponse ou une précision de l'agent va au référent qui suit la demande ; tant que personne ne la suit, à tous les référents. Une annulation prévient celui qui la suivait.
 - **Le chef et l'adjoint** : rien, sauf si aucun référent n'est nommé. Ils reçoivent alors les nouvelles demandes, et les réponses sur celles qu'ils suivent eux-mêmes.
 
 ## Points d'entrée
