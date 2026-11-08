@@ -53,6 +53,8 @@ describe('/habillement/[id]', () => {
 		expect(page).toContain('Annuler ma demande');
 		expect(page).not.toContain('<dialog');
 		expect(page).toContain('Suivie par Bruno Petit.');
+		// La question en attente est rappelée dans le suivi, avec un lien vers la réponse.
+		expect(page).toMatch(/Bruno Petit vous demande :<\/strong> Montantes ou basses \? <a href="#texte-repondre">Répondre<\/a>/);
 	});
 
 	it('le référent : prendre en compte, puis les panneaux (question, traiter, livrer) ouverts par l’adresse', () => {

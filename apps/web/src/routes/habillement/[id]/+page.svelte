@@ -24,6 +24,8 @@
 	const etapeDe = (i: number) => (d.etape === 'livree' || i < rang ? 'faite' : arretee ? 'a-venir' : i === rang ? 'en-cours' : 'a-venir');
 	const LUS: Record<string, string> = { faite: 'faite', 'en-cours': 'en cours', 'a-venir': 'à venir' };
 	const moment = (le: string) => `${dateCourte(le)}, ${heureCourte(le)}`;
+	// La question en attente de l'agent : rappelée dans le suivi, avec un lien vers la réponse.
+	const question = $derived(d.etape === 'question' ? d.fil.findLast((f) => f.quoi === 'question') : undefined);
 	const gestionnaire = $derived(d.gestes.some((g) => g !== 'repondre' && g !== 'annuler') || !d.sienne);
 
 	// Un seul envoi à la fois ; le message de réussite est gardé (la navigation qui ferme un panneau efface `form`).
@@ -104,6 +106,9 @@
 				{#if arretee}<p><strong>{etat.texte}</strong> le {dateCourte(d.finLe ?? d.majLe)}.</p>{/if}
 				{#if d.livraison}<p><strong>{d.livraison}</strong></p>{/if}
 				<p class="doux">{d.prisePar ? `Suivie par ${d.prisePar}.` : arretee ? '' : 'En attente d’un référent habillement.'}</p>
+				{#if question && peut('repondre')}
+					<p class="question"><strong>{question.par} vous demande :</strong> {question.texte} <a href="#texte-repondre">Répondre</a></p>
+				{/if}
 
 				{#if peut('prendre') || peut('reprendre') || PANNEAUX.some(peut)}
 					<div class="gestes">
@@ -248,17 +253,35 @@
 	.a-venir {
 		color: var(--doux);
 	}
+	.fil {
+		gap: 0;
+	}
 	.fil li {
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding: 10px 12px;
-		border-radius: var(--rayon-petit);
-		background: var(--fond);
+		padding: 10px 0;
+	}
+	.fil li:first-child {
+		padding-top: 0;
+	}
+	.fil li + li {
+		border-top: 1px solid var(--trait-doux);
 	}
 	.texte {
 		white-space: pre-line;
 		overflow-wrap: anywhere;
+	}
+	.question {
+		padding: 12px 14px;
+		border: 1px solid var(--statut-alerte-trait);
+		border-radius: var(--rayon-petit);
+		background: var(--statut-alerte-fond);
+		color: var(--statut-alerte-texte);
+	}
+	.question a {
+		color: inherit;
+		font-weight: 700;
 	}
 	.gestes {
 		display: flex;
