@@ -55,7 +55,7 @@ describe('ceQueJePeuxAttribuer', () => {
 		await dissoudreComite(base, superAdmin, (await base.select().from(comite).where(eq(comite.nom, 'Bureau')))[0]!.id, aujourdhui);
 
 		const liste = await ceQueJePeuxAttribuer(base, superAdmin, aujourdhui);
-		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre' }, { nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent technique' }]));
+		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre' }, { nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent habillement' }, { nom: 'Référent technique' }]));
 		const parNom = (nom: string) => liste.find((l) => l.nom === nom)!;
 		expect(parNom('Chef de centre')).toMatchObject({ responsabiliteId: r('Chef de centre'), portee: 'centre', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }] });
 		expect(parNom('Chef de garde').perimetres.map((p) => p.nom)).toEqual(['Équipe 1', 'Équipe 2', 'Équipe 4']);
@@ -70,7 +70,7 @@ describe('ceQueJePeuxAttribuer', () => {
 	it('le chef de centre : tout sauf le chef de centre', async () => {
 		const { base, chef } = await jeu();
 		const liste = await ceQueJePeuxAttribuer(base, chef, aujourdhui);
-		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent pharmacie' }, { nom: 'Référent technique' }]));
+		expect(noms(liste)).toEqual(noms([{ nom: 'Chef de centre adjoint' }, { nom: 'Chef de garde' }, { nom: 'Membre de comité' }, { nom: 'Rapporteur de comité' }, { nom: 'Référent engins' }, { nom: 'Référent habillement' }, { nom: 'Référent pharmacie' }, { nom: 'Référent technique' }]));
 	});
 
 	it('l’adjoint : ni le chef de centre ni un adjoint', async () => {

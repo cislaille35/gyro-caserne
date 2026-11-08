@@ -37,7 +37,7 @@ const GRADES = [
 
 export const NOM_COMITE_CENTRE = 'Comité du centre';
 
-const DROITS_CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'MODERER_MESSAGERIE'];
+const DROITS_CHEF_CENTRE: Droit[] = ['GERER_LISTES', 'GERER_ACCES', 'GERER_COMITES', 'GERER_PLANNING', 'ATTRIBUER_RESPONSABILITE', 'TRAITER_ANOMALIE', 'GERER_FICHES', 'GERER_STOCK', 'GERER_HABILLEMENT', 'MODERER_MESSAGERIE'];
 
 const RESPONSABILITES: {
 	nom: string;
@@ -47,6 +47,7 @@ const RESPONSABILITES: {
 	parComiteCentre: boolean;
 	verrouilles: boolean;
 	droits: Droit[];
+	modele?: string;
 }[] = [
 	{
 		nom: 'Chef de centre',
@@ -64,6 +65,8 @@ const RESPONSABILITES: {
 	{ nom: 'Rapporteur de comité', nature: 'mission', typePerimetre: 'comite', parComiteCentre: false, verrouilles: false, droits: ['ATTRIBUER_RESPONSABILITE'] },
 	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
 	{ nom: 'Référent pharmacie', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_STOCK'] },
+	// La migration 0022 l'ajoute aux bases déjà remplies.
+	{ nom: 'Référent habillement', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_HABILLEMENT'], modele: 'referent_habillement' },
 	// Attribué par le chef de centre. La migration 0001 l'ajoute aux bases déjà remplies.
 	{ nom: 'Référent technique', nature: 'fonction', typePerimetre: 'centre', parComiteCentre: false, verrouilles: false, droits: ['GERER_LISTES', 'GERER_COMITES'] }
 ];
@@ -98,6 +101,7 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 				nature: r.nature,
 				typePerimetre: r.typePerimetre,
 				systeme: r.systeme ?? null,
+				modele: r.modele ?? null,
 				comiteAttributeurId: r.parComiteCentre ? idComiteCentre : null
 			}))
 		),

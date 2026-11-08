@@ -171,6 +171,7 @@ describe('aDecider', () => {
 			{ texte: 'Équipe 2 sans chef de garde', lien: '/nominations' },
 			{ texte: 'Équipe 3 sans chef de garde', lien: '/nominations' },
 			{ texte: 'Équipe 4 sans chef de garde', lien: '/nominations' },
+			{ texte: 'Référent habillement : aucun titulaire', lien: '/nominations' },
 			{ texte: 'Référent pharmacie : aucun titulaire', lien: '/nominations' },
 			{ texte: '2 fiches à compléter (grade ou date d’entrée manquants)', lien: '/agents?filtre=a-completer' }
 		]);
