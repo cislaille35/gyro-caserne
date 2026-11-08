@@ -20,10 +20,7 @@ const vue = {
 				{ id: 5, nom: 'Bruno Petit', roles: ['Rapporteur'] },
 				{ id: 4, nom: 'Alice Bernard', roles: ['Membre', 'Trésorière'] }
 			],
-			ressources: [
-				{ id: 7, nom: 'Barnum', icone: 'outil', lien: true },
-				{ id: 8, nom: 'Plancha', icone: 'outil', lien: false }
-			]
+			ressources: [{ id: 7, nom: 'Barnum', icone: 'outil' }]
 		},
 		{ id: 1, nom: 'Comité du centre', icone: 'etoile', mur: false, membres: [], ressources: [] }
 	],
@@ -71,16 +68,17 @@ describe('/comites', () => {
 		const page = html({});
 		expect(page).toMatch(/Bruno Petit[\s\S]*?Rapporteur[\s\S]*?Alice Bernard[\s\S]*?Membre, Trésorière/);
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Le mur de l’Amicale/);
-		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum/);
-		// Le matériel qu'on ne peut pas réserver : le nom, sans lien.
-		expect(page).toContain('Plancha');
-		expect(page).not.toContain('href="/reservations/8"');
+		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum[\s\S]*?Calendrier des réservations/);
 	});
 
 	it('pas de lien vers un mur qu’on ne lit pas ; un comité vide le dit', () => {
 		const page = html({});
 		expect(page).not.toContain('href="/echanges/comite:1"');
 		expect(page).toContain('Aucun membre pour l’instant');
+	});
+
+	it('sans comité en cours : la section le dit', () => {
+		expect(html({ comites: [] })).toMatch(/<h2[^>]*>Comités<\/h2>[\s\S]*?Aucun comité pour l’instant/);
 	});
 
 	it('chaque rôle et ses titulaires ; « Personne pour l’instant » s’il est vide ; les chefs de garde par équipe', () => {

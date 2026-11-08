@@ -4,13 +4,14 @@ import { tenuesValides } from './casquettes.ts';
 import { exigerDate } from './dates.ts';
 import { accorde, droitsDe, type Acteur } from './droits.ts';
 import { RefusDroit } from './erreurs.ts';
-import { iconeDuComite, iconeDuRole, type NomIcone } from './icones.ts';
+import { iconeDuComite, iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
 import { agentsDuJour, lecturesAgents } from './murs.ts';
-import { comite, equipe, responsabilite, ressource } from './schema.ts';
+import { STATUTS_AVEC_ACCES } from './listes.ts';
+import { comite, equipe, personne, profil, responsabilite, ressource } from './schema.ts';
 
 export type RoleTenu = { id: number; nom: string; icone: NomIcone; titulaires: string[] };
 export type QuiFaitQuoi = {
-	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: { id: number; nom: string; roles: string[] }[]; ressources: { id: number; nom: string; icone: NomIcone; lien: boolean }[] }[];
+	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: { id: number; nom: string; roles: string[] }[]; ressources: { id: number; nom: string; icone: NomIcone }[] }[];
 	commandement: RoleTenu[];
 	equipes: { id: number; nom: string; systeme: string | null; parEquipe: { equipe: string; titulaires: string[] }[] }[];
 	referents: RoleTenu[];
@@ -20,7 +21,7 @@ export type QuiFaitQuoi = {
 const roleCourt = (nom: string) => nom.replace(/\s+(de|du) comité$/i, '') || nom;
 
 // Caserne → Comités et référents : qui tient quoi aujourd'hui, sans les droits. Pour les agents qui ont accès et le super administrateur.
-// Les titulaires sont les agents qui ont accès (ni partis, ni suspendus, ni extérieurs), comme les membres des murs. Une seule requête (un batch).
+// Les titulaires sont les agents qui ont accès (ni partis, ni suspendus, ni extérieurs), comme les membres des murs. Un batch, plus les droits de l'acteur (déjà lus par le layout).
 export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string): Promise<QuiFaitQuoi> {
 	exigerDate(aujourdhui);
 	const [personnes, affectations, tenues, comites, roles, equipes, materiel] = await base.batch([
@@ -68,10 +69,10 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 				icone: iconeDuComite(c),
 				mur: tous || membre,
 				membres,
-				// Lien vers sa page pour qui peut la voir (reservations.ts) : qui la gère (le comité, le super administrateur) ou peut la réserver.
+				// Le matériel que l'acteur voit dans Réservations (reservations.ts) : il le gère (membre du comité, super administrateur) ou peut le réserver.
 				ressources: materiel
-					.filter((r) => r.comiteId === c.id)
-					.map((r) => ({ id: r.id, nom: r.nom, icone: r.icone as NomIcone, lien: acteur.type === 'super' || membre || accorde(droits, 'RESERVER', { type: 'ressource', id: r.id }) }))
+					.filter((r) => r.comiteId === c.id && (acteur.type === 'super' || membre || accorde(droits, 'RESERVER', { type: 'ressource', id: r.id })))
+					.map((r) => ({ id: r.id, nom: r.nom, icone: ((NOMS_ICONES as readonly string[]).includes(r.icone) ? r.icone : 'outil') as NomIcone }))
 			};
 		}),
 		commandement: roles.filter((r) => r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint').map(roleTenu),
@@ -85,4 +86,11 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 			})),
 		referents: roles.filter((r) => r.portee === 'centre' && r.systeme === null).map(roleTenu)
 	};
+}
+
+// Le lien de Caserne : la même règle d'entrée que quiFaitQuoi, en une requête.
+export async function ouvreQuiFaitQuoi(base: Base, acteur: Acteur): Promise<boolean> {
+	if (acteur.type === 'super') return true;
+	const [fiche] = await base.select({ statut: personne.statut, type: profil.typePersonne }).from(personne).leftJoin(profil, eq(profil.id, personne.profilId)).where(eq(personne.id, acteur.id));
+	return !!fiche && (STATUTS_AVEC_ACCES as readonly string[]).includes(fiche.statut) && fiche.type !== 'exterieur';
 }

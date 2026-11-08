@@ -64,7 +64,7 @@ Pour ne pas retomber dans les travers corrigés par la refonte. Détail : [`docs
 - La pilule est réservée aux états (pastilles, compteurs, interrupteurs) ; boutons et liens d'action en rectangles arrondis.
 - Un choix entre quelques options : un bloc segmenté (`.segments`), pas des boutons épars.
 - Une tuile d'icône seulement si elle distingue quelque chose (type, rôle, comité, ressource) ; sinon un visage, une date ou rien.
-- Gyro seulement sur l'accueil, les écrans vides et les réussites.
+- Gyro seulement sur l'accueil, la connexion, les écrans vides et les réussites.
 - Sous un titre, une phrase seulement si elle apprend quelque chose ; jamais une qui répète le titre.
 - Au plus deux infos reliées par « · » ; au-delà, des virgules ou une ligne de plus.
 - Humour varié : pas deux fois la même blague (le café…), et jamais dans l'urgence.

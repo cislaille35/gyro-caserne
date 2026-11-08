@@ -37,15 +37,11 @@
 						<li><Rangee href="/echanges/comite:{c.id}" icone={c.icone} titre={murDuComite(c.nom)} /></li>
 					{/if}
 					{#each c.ressources as r (r.id)}
-						<li>
-							{#if r.lien}
-								<Rangee href="/reservations/{r.id}" icone={r.icone} titre={r.nom} sous="Matériel à réserver" />
-							{:else}
-								<Rangee icone={r.icone} titre={r.nom} sous="Matériel du comité" />
-							{/if}
-						</li>
+						<li><Rangee href="/reservations/{r.id}" icone={r.icone} titre={r.nom} sous="Calendrier des réservations" /></li>
 					{/each}
 				</ListeRangees>
+			{:else}
+				<ul role="list" class="lignes"><li><Rangee titre="Aucun comité pour l’instant" discret /></li></ul>
 			{/each}
 		</section>
 

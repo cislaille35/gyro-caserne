@@ -4,7 +4,7 @@ import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { quiFaitQuoi } from '../src/qui-fait-quoi.ts';
+import { ouvreQuiFaitQuoi, quiFaitQuoi } from '../src/qui-fait-quoi.ts';
 import { attribution, comite, equipe, personne, profil, profilDroit, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -60,11 +60,14 @@ describe('quiFaitQuoi', () => {
 	});
 
 	it('le lien vers le mur seulement pour qui le lit : ses membres, le chef, l’adjoint, le super administrateur', async () => {
-		const { base, alice, chef, nouvelle } = await jeu();
+		const { base, alice, chef, nouvelle, nommer, role } = await jeu();
 		const mur = async (qui: Acteur) => Object.fromEntries((await quiFaitQuoi(base, qui, aujourdhui)).comites.map((c) => [c.nom, c.mur]));
 		expect(await mur(acteur(alice))).toEqual({ Amicale: true, 'Comité du centre': false });
 		expect(await mur(acteur(await nouvelle('Denis', 'Roux')))).toEqual({ Amicale: false, 'Comité du centre': false });
 		expect(await mur(acteur(chef))).toEqual({ Amicale: true, 'Comité du centre': true });
+		const adjoint = await nouvelle('Adèle', 'Adjointe');
+		await nommer(adjoint, role('Chef de centre adjoint'), { type: 'centre' });
+		expect(await mur(acteur(adjoint))).toEqual({ Amicale: true, 'Comité du centre': true });
 		expect(await mur(superAdmin)).toEqual({ Amicale: true, 'Comité du centre': true });
 	});
 
@@ -79,27 +82,47 @@ describe('quiFaitQuoi', () => {
 		expect(vue.comites.find((c) => c.nom === 'Amicale')!.membres.map((m) => m.nom)).toEqual(['Bruno Petit', 'Alice Bernard']);
 	});
 
-	it('le matériel du comité ; lien vers sa page pour qui peut le réserver', async () => {
-		const { base, alice, amicale, nouvelle } = await jeu();
+	it('le matériel du comité, seulement celui que l’acteur voit dans Réservations (il le gère ou peut le réserver)', async () => {
+		const { base, alice, amicale, nouvelle, role } = await jeu();
 		await base.insert(ressource).values([
 			{ nom: 'Barnum', forme: 'jours', stock: 2, icone: 'outil', gereeParComiteId: amicale, creeLe: '2026-01-01T00:00' },
-			{ nom: 'Retiré', forme: 'jours', stock: 1, icone: 'outil', gereeParComiteId: amicale, creeLe: '2026-01-01T00:00', retireeLe: '2026-02-01' }
+			{ nom: 'Plancha', forme: 'jours', stock: 1, icone: 'inconnue', gereeParComiteId: amicale, creeLe: '2026-01-01T00:00' },
+			{ nom: 'Retiré', forme: 'jours', stock: 1, icone: 'outil', gereeParComiteId: amicale, creeLe: '2026-01-01T00:00', retireeLe: '2026-02-01' },
+			{ nom: 'Défibrillateur', forme: 'jours', stock: 1, icone: 'croix', gereeParResponsabiliteId: role('Référent pharmacie'), creeLe: '2026-01-01T00:00' }
 		]);
+		const materiel = async (qui: Acteur) => (await quiFaitQuoi(base, qui, aujourdhui)).comites.map((c) => [c.nom, c.ressources.map((r) => r.nom)]);
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
-		expect(vue.comites.find((c) => c.nom === 'Amicale')!.ressources).toEqual([{ id: expect.any(Number), nom: 'Barnum', icone: 'outil', lien: true }]);
-		expect(vue.comites.find((c) => c.nom === 'Comité du centre')!.ressources).toEqual([]);
-		// Sans le droit de réserver : le nom seul, sauf pour un membre du comité (il gère son matériel).
+		// Une icône inconnue retombe sur « outil », comme dans Réservations ; le matériel d'un rôle n'est pas celui d'un comité.
+		expect(vue.comites.find((c) => c.nom === 'Amicale')!.ressources).toEqual([
+			{ id: expect.any(Number), nom: 'Barnum', icone: 'outil' },
+			{ id: expect.any(Number), nom: 'Plancha', icone: 'outil' }
+		]);
+		expect(await materiel(superAdmin)).toEqual([
+			['Amicale', ['Barnum', 'Plancha']],
+			['Comité du centre', []]
+		]);
+		// Sans le droit de réserver : rien, sauf pour un membre du comité (il gère son matériel).
 		const denis = await nouvelle('Denis', 'Roux');
 		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
 		await base.delete(profilDroit).where(eq(profilDroit.profilId, agent!.id));
-		const lien = async (qui: number) => (await quiFaitQuoi(base, acteur(qui), aujourdhui)).comites.find((c) => c.nom === 'Amicale')!.ressources[0]!.lien;
-		expect(await lien(denis)).toBe(false);
-		expect(await lien(alice)).toBe(true);
+		expect(await materiel(acteur(denis))).toEqual([
+			['Amicale', []],
+			['Comité du centre', []]
+		]);
+		expect((await materiel(acteur(alice)))[0]).toEqual(['Amicale', ['Barnum', 'Plancha']]);
 	});
 
 	it('les référents avec leurs titulaires, « personne » pour un rôle vide ; ni archivé ni rôle de comité', async () => {
-		const { base, alice, base: b } = await jeu();
-		await b.insert(responsabilite).values({ nom: 'Référent ancien', nature: 'mission', typePerimetre: 'centre', archiveeLe: '2026-02-01' });
+		const { base, alice, nommer, nouvelle, role } = await jeu();
+		const [ancien] = await base.insert(responsabilite).values({ nom: 'Référent ancien', nature: 'mission', typePerimetre: 'centre', archiveeLe: '2026-02-01' }).returning();
+		await nommer(alice, ancien!.id, { type: 'centre' });
+		// Ni suspendu, ni extérieur, ni attribution hors du type de périmètre de son rôle.
+		const suspendu = await nouvelle('Sam', 'Suspendu');
+		await base.update(personne).set({ statut: 'suspendu' }).where(eq(personne.id, suspendu));
+		await nommer(suspendu, role('Référent pharmacie'), { type: 'centre' });
+		await nommer(await nouvelle('Eve', 'Exterieure', { exterieur: true }), role('Référent pharmacie'), { type: 'centre' });
+		await nommer(await nouvelle('Hors', 'Type'), role('Référent engins'), { type: 'equipe', id: 1 });
+		await nommer(await nouvelle('Horsc', 'Comite'), role('Membre de comité'), { type: 'centre' });
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
 		expect(vue.referents.map((r) => [r.nom, r.titulaires])).toEqual([
 			['Référent engins', []],
@@ -107,6 +130,7 @@ describe('quiFaitQuoi', () => {
 			['Référent technique', []]
 		]);
 		expect(vue.referents.find((r) => r.nom === 'Référent pharmacie')!.icone).toBe('croix');
+		expect(vue.comites.flatMap((c) => c.membres.map((m) => m.nom))).not.toContain('Horsc Comite');
 		expect(vue.commandement.map((r) => [r.nom, r.titulaires])).toEqual([
 			['Chef de centre', ['Claire Martin']],
 			['Chef de centre adjoint', []]
@@ -126,7 +150,11 @@ describe('quiFaitQuoi', () => {
 	});
 
 	it('réservée aux agents qui ont accès et au super administrateur', async () => {
-		const { base, nouvelle } = await jeu();
+		const { base, nouvelle, alice } = await jeu();
+		expect(await ouvreQuiFaitQuoi(base, acteur(alice))).toBe(true);
+		expect(await ouvreQuiFaitQuoi(base, superAdmin)).toBe(true);
+		expect(await ouvreQuiFaitQuoi(base, acteur(await nouvelle('Ext', 'Rieur', { exterieur: true })))).toBe(false);
+		expect(await ouvreQuiFaitQuoi(base, acteur(await nouvelle('Pa', 'Rti', { statut: 'parti' })))).toBe(false);
 		await expect(quiFaitQuoi(base, acteur(await nouvelle('Reserve', 'Citoyenne', { exterieur: true })), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(quiFaitQuoi(base, acteur(await nouvelle('Paul', 'Parti', { statut: 'parti' })), aujourdhui)).rejects.toBeInstanceOf(RefusDroit);
 		await expect(quiFaitQuoi(base, superAdmin, aujourdhui)).resolves.toMatchObject({ comites: expect.any(Array) });

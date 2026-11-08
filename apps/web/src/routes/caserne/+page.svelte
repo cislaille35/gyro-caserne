@@ -9,7 +9,7 @@
 	type Lien = { href: string; titre: string; texte: string; valeur?: string };
 	const organisation: Lien[] = $derived([
 		{ href: '/agents', titre: 'Agents', texte: 'L’équipe et les fiches des agents', valeur: data.agents === undefined ? undefined : pluriel(data.agents, 'agent') },
-		{ href: '/comites', titre: 'Comités et référents', texte: 'Qui fait quoi au centre' },
+		...(data.comites ? [{ href: '/comites', titre: 'Comités et référents', texte: 'Qui fait quoi au centre' }] : []),
 		...(data.peutNominations
 			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
 			: []),

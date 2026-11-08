@@ -10,7 +10,7 @@ Savoir à qui s'adresser : qui est dans quel comité, qui est référent de quoi
 - ses membres, avec leur rôle dans le comité (« Rapporteur », « Membre », ou le nom donné au rôle dans Réglages) ; le rapporteur d'abord ;
 - « Aucun membre pour l'instant » s'il est vide ;
 - le lien vers son mur, **seulement pour qui peut le lire** : ses membres, le chef de centre, l'adjoint et le super administrateur. Les autres ne voient pas de lien qui mènerait à un refus ;
-- son matériel à réserver, s'il en gère (le barnum de l'amicale…) : un lien vers son calendrier pour qui peut le réserver ou le gère, le nom seul sinon.
+- son matériel, s'il en gère (le barnum de l'amicale…), avec un lien vers son calendrier : seulement pour qui peut le réserver ou le gère, comme dans Réservations.
 
 **Référents et rôles**, rangés comme dans Réglages :
 - « Chef de centre et adjoint » ;
@@ -23,7 +23,7 @@ Sont comptés les agents qui ont accès à l'appli : ni partis, ni suspendus, ni
 
 ## Qui y entre
 
-Tout agent qui a accès, et le super administrateur. Le compte partagé de la réserve citoyenne reçoit un refus.
+Tout agent qui a accès, et le super administrateur. Le compte partagé de la réserve citoyenne n'a pas le lien dans Caserne et reçoit un refus s'il ouvre l'adresse.
 
 Un lien « Gérer » en haut de la page : vers « Nominations » pour qui peut nommer à au moins un rôle, sinon vers « Réglages » pour qui règle les comités ou les rôles. Rien pour les autres.
 
