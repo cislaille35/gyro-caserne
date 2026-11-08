@@ -17,20 +17,28 @@ const vue = {
 			icone: 'coeur',
 			mur: true,
 			membres: [
-				{ id: 5, nom: 'Bruno Petit', roles: ['Rapporteur'] },
-				{ id: 4, nom: 'Alice Bernard', roles: ['Membre', 'Trésorière'] }
+				{ id: 5, nom: 'Bruno Petit', roles: ['Rapporteur'], ecrire: true },
+				{ id: 4, nom: 'Alice Bernard', roles: ['Membre', 'Trésorière'], ecrire: false }
 			],
 			ressources: [{ id: 7, nom: 'Barnum', icone: 'outil' }]
 		},
 		{ id: 1, nom: 'Comité du centre', icone: 'etoile', mur: false, membres: [], ressources: [] }
 	],
 	commandement: [
-		{ id: 1, nom: 'Chef de centre', icone: 'etoile', titulaires: ['Claire Martin'] },
+		{ id: 1, nom: 'Chef de centre', icone: 'etoile', titulaires: [{ id: 1, nom: 'Claire Martin', ecrire: true }] },
 		{ id: 2, nom: 'Chef de centre adjoint', icone: 'etoile', titulaires: [] }
 	],
-	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', parEquipe: [{ equipe: 'Équipe 1', titulaires: ['Bruno Petit'] }, { equipe: 'Équipe 2', titulaires: [] }] }],
+	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', parEquipe: [{ equipe: 'Équipe 1', titulaires: [{ id: 5, nom: 'Bruno Petit', ecrire: true }] }, { equipe: 'Équipe 2', titulaires: [] }] }],
 	referents: [
-		{ id: 6, nom: 'Référent pharmacie', icone: 'croix', titulaires: ['Alice Bernard', 'Denis Roux'] },
+		{
+			id: 6,
+			nom: 'Référent pharmacie',
+			icone: 'croix',
+			titulaires: [
+				{ id: 4, nom: 'Alice Bernard', ecrire: false },
+				{ id: 8, nom: 'Denis Roux', ecrire: true }
+			]
+		},
 		{ id: 7, nom: 'Référent engins', icone: 'camion', titulaires: [] }
 	]
 };
@@ -51,7 +59,7 @@ describe('/comites', () => {
 		await base.insert(attribution).values({ personneId: alice.id, responsabiliteId: membre!.id, perimetreType: 'comite', perimetreId: amicale!.id, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
 		const data = await (load as any)({ locals: { base, acteur: alice } });
 		expect(data.comites.find((c: { nom: string }) => c.nom === 'Amicale')).toMatchObject({ mur: true, membres: [{ nom: 'Alice Test', roles: ['Membre'] }] });
-		expect(data.commandement[0]).toMatchObject({ nom: 'Chef de centre', titulaires: ['Chef Test'] });
+		expect(data.commandement[0]).toMatchObject({ nom: 'Chef de centre', titulaires: [{ nom: 'Chef Test', ecrire: true }] });
 	});
 
 	it('un titre par page, une section par sorte, un groupe par comité ou par thème', () => {
@@ -92,6 +100,19 @@ describe('/comites', () => {
 		// Ni droits ni lien vers une fiche réservée aux gestionnaires.
 		expect(page).not.toContain('href="/agents/');
 		expect(page).not.toContain('GERER_');
+	});
+
+	it('« Écrire » à côté de chaque titulaire et de chaque membre à qui l’on peut écrire, par l’entrée de la messagerie', () => {
+		const page = html({});
+		const ecrire = (id: number, nom: string) => new RegExp(`<a[^>]*href="/echanges/messages/a/${id}"[^>]*>Écrire<span class="masque"> à ${nom}</span></a>`);
+		expect(page).toMatch(ecrire(5, 'Bruno Petit'));
+		expect(page).toMatch(ecrire(1, 'Claire Martin'));
+		// Plusieurs titulaires : le nom se lit sur le lien.
+		expect(page).toMatch(/<a[^>]*href="\/echanges\/messages\/a\/8"[^>]*>Écrire à Denis Roux<\/a>/);
+		// Ni à soi-même, ni à qui n'a pas la messagerie.
+		expect(page).not.toContain('/echanges/messages/a/4"');
+		// Bruno : comme membre de l'Amicale et comme chef de garde.
+		expect(page.match(/\/echanges\/messages\/a\/5"/g)).toHaveLength(2);
 	});
 
 	it('« Gérer » seulement pour qui peut nommer ou régler', () => {

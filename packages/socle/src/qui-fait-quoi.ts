@@ -7,13 +7,16 @@ import { RefusDroit } from './erreurs.ts';
 import { iconeDuComite, iconeDuRole, NOMS_ICONES, type NomIcone } from './icones.ts';
 import { agentsDuJour, lecturesAgents } from './murs.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
+import { aLaMessagerie } from './messagerie.ts';
 import { comite, equipe, personne, profil, responsabilite, ressource } from './schema.ts';
 
-export type RoleTenu = { id: number; nom: string; icone: NomIcone; titulaires: string[] };
+// `ecrire` : l'acteur peut lui écrire par la messagerie (tous deux l'ont, et ce n'est pas lui-même).
+export type Titulaire = { id: number; nom: string; ecrire: boolean };
+export type RoleTenu = { id: number; nom: string; icone: NomIcone; titulaires: Titulaire[] };
 export type QuiFaitQuoi = {
-	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: { id: number; nom: string; roles: string[] }[]; ressources: { id: number; nom: string; icone: NomIcone }[] }[];
+	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: (Titulaire & { roles: string[] })[]; ressources: { id: number; nom: string; icone: NomIcone }[] }[];
 	commandement: RoleTenu[];
-	equipes: { id: number; nom: string; systeme: string | null; parEquipe: { equipe: string; titulaires: string[] }[] }[];
+	equipes: { id: number; nom: string; systeme: string | null; parEquipe: { equipe: string; titulaires: Titulaire[] }[] }[];
 	referents: RoleTenu[];
 };
 
@@ -24,7 +27,7 @@ const roleCourt = (nom: string) => nom.replace(/\s+(de|du) comité$/i, '') || no
 // Les titulaires sont les agents qui ont accès (ni partis, ni suspendus, ni extérieurs), comme les membres des murs. Un batch, plus les droits de l'acteur (déjà lus par le layout).
 export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string): Promise<QuiFaitQuoi> {
 	exigerDate(aujourdhui);
-	const [personnes, affectations, tenues, comites, roles, equipes, materiel] = await base.batch([
+	const [personnes, affectations, tenues, comites, roles, equipes, materiel, messagerie] = await base.batch([
 		...lecturesAgents(base, aujourdhui),
 		base.select({ id: comite.id, nom: comite.nom, theme: comite.theme, icone: comite.icone }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom)),
 		base
@@ -37,7 +40,8 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 			.select({ id: ressource.id, nom: ressource.nom, icone: ressource.icone, comiteId: ressource.gereeParComiteId })
 			.from(ressource)
 			.where(and(isNull(ressource.retireeLe), isNotNull(ressource.gereeParComiteId)))
-			.orderBy(asc(ressource.nom))
+			.orderBy(asc(ressource.nom)),
+		base.select({ id: personne.id }).from(personne).where(aLaMessagerie(personne.id, aujourdhui))
 	]);
 	const agents = agentsDuJour([personnes, affectations, tenues], aujourdhui);
 	const moi = acteur.type === 'super' ? null : agents.find((a) => a.id === acteur.id);
@@ -47,10 +51,13 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 	const droits = await droitsDe(base, acteur, aujourdhui);
 
 	const nomDe = new Map(agents.map((a) => [a.id, `${a.prenom} ${a.nom}`]));
+	const avecMessagerie = new Set(messagerie.map((p) => p.id));
+	const ecrire = (id: number) => moi !== null && id !== moi.id && avecMessagerie.has(moi.id) && avecMessagerie.has(id);
+	const titulaire = (id: number): Titulaire => ({ id, nom: nomDe.get(id)!, ecrire: ecrire(id) });
 	const ordre = new Map([...agents].sort((x, y) => x.nom.localeCompare(y.nom, 'fr') || x.prenom.localeCompare(y.prenom, 'fr')).map((a, i) => [a.id, i]));
 	const valides = tenuesValides(tenues).filter((t) => nomDe.has(t.personneId));
 	const titulaires = (garde: (t: (typeof valides)[number]) => boolean) =>
-		[...new Set(valides.filter(garde).map((t) => t.personneId))].sort((x, y) => ordre.get(x)! - ordre.get(y)!).map((id) => nomDe.get(id)!);
+		[...new Set(valides.filter(garde).map((t) => t.personneId))].sort((x, y) => ordre.get(x)! - ordre.get(y)!).map(titulaire);
 	const roleTenu = (r: (typeof roles)[number]): RoleTenu => ({ id: r.id, nom: r.nom, icone: iconeDuRole(r), titulaires: titulaires((t) => t.responsabiliteId === r.id) });
 
 	return {
@@ -61,7 +68,7 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 			const nomme = (id: number) => (lignes.some((t) => t.personneId === id && t.nomme !== null) ? 0 : 1);
 			const membres = ids
 				.sort((x, y) => nomme(x) - nomme(y) || ordre.get(x)! - ordre.get(y)!)
-				.map((id) => ({ id, nom: nomDe.get(id)!, roles: [...new Set(lignes.filter((t) => t.personneId === id).map((t) => roleCourt(t.nom)))] }));
+				.map((id) => ({ ...titulaire(id), roles: [...new Set(lignes.filter((t) => t.personneId === id).map((t) => roleCourt(t.nom)))] }));
 			const membre = moi?.a.membreComite.has(c.id) ?? false;
 			return {
 				id: c.id,
