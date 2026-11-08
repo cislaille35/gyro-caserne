@@ -1,7 +1,7 @@
 <script lang="ts">
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { untrack } from 'svelte';
-	import { estDroitPouvoir, estSansEffet, iconeDuRole, type Droit } from '@gyro-caserne/socle';
+	import { estDroitDuCentre, estDroitPouvoir, estSansEffet, iconeDuRole, type Droit } from '@gyro-caserne/socle';
 	import { LIBELLES_DROIT } from '#lib/droits.ts';
 	import { ADMINISTRATION, appliquerNiveaux, DOMAINES, estPersonnalise, niveauxDe, type DomaineId } from '#lib/paquets.ts';
 	import BarreActions from '#lib/ui/BarreActions.svelte';
@@ -23,6 +23,7 @@
 	const peutAdmin = $derived(data.peutPouvoir && !lectureSeule);
 
 	const adminDe = (droits: Droit[]) => droits.filter(estDroitPouvoir);
+	const RESERVE_AU_CENTRE = 'Réservé à un rôle du centre : gérer les accès, les comités et les responsabilités.';
 
 	// Après un refus, la saisie revient du serveur : on la réaffiche.
 	const saisis = $derived(form?.cible === 'role' && !form?.succes ? form?.valeurs : undefined);
@@ -39,19 +40,30 @@
 	// Ce qui est choisi à l'écran, pas encore enregistré. Repart de la page à chaque chargement (autre rôle, envoi).
 	let choix = $state(untrack(choixDepart));
 	let admin = $state(untrack(adminDepart));
+	// La portée choisie à l'écran. Sans JavaScript, celle de la page : le refus du serveur reste le filet.
+	const porteeDepart = () => (saisis?.portee as string | undefined) || role.portee;
+	let portee = $state(untrack(porteeDepart));
 	$effect.pre(() => {
 		choix = choixDepart();
 		admin = adminDepart();
+		portee = porteeDepart();
 	});
+
+	// Hors du centre, ces droits sont grisés et décochés : une case grisée n'est pas envoyée, le droit part à l'enregistrement.
+	const portePasCentre = $derived(portee !== 'centre');
+	const adminPermis = $derived(portePasCentre ? admin.filter((d) => !estDroitDuCentre(d)) : admin);
+	// Le détail s'enregistre seul, avec la portée déjà enregistrée : il suit celle-ci, pas celle de l'écran.
+	const detailPasCentre = $derived(role.portee !== 'centre');
+	const decritAdmin = $derived([!peutAdmin && 'admin-aide', portePasCentre && 'admin-centre'].filter(Boolean).join(' ') || undefined);
 
 	const departNiveaux = $derived(niveauxDe(actuels));
 	const departAdmin = $derived(adminDe(actuels));
 	const memes = (a: Droit[], b: Droit[]) => a.length === b.length && a.every((d) => b.includes(d));
-	const modifies = $derived(DOMAINES.filter((d) => choix[d.id] !== departNiveaux[d.id]).length + (memes(admin, departAdmin) ? 0 : 1));
+	const modifies = $derived(DOMAINES.filter((d) => choix[d.id] !== departNiveaux[d.id]).length + (memes(adminPermis, departAdmin) ? 0 : 1));
 	const message = $derived(modifies === 0 ? '' : modifies === 1 ? '1 domaine modifié, pas encore enregistré' : `${modifies} domaines modifiés, pas encore enregistrés`);
 
 	const numeriques = $derived(Object.fromEntries(Object.entries(choix).filter(([, n]) => typeof n === 'number')) as Partial<Record<DomaineId, number>>);
-	const apres = $derived([...appliquerNiveaux(actuels, numeriques).filter((d) => !estDroitPouvoir(d)), ...admin]);
+	const apres = $derived([...appliquerNiveaux(actuels, numeriques).filter((d) => !estDroitPouvoir(d)), ...adminPermis]);
 	const personnalise = $derived(estPersonnalise(apres, role.modele));
 
 	function toutRevenir(e: Event) {
@@ -65,7 +77,7 @@
 	// Un bloc s'ouvre seulement s'il est visé ; sinon aucun attribut open n'est posé, et l'hydratation ne referme pas ce que l'agent a ouvert.
 	const ouvert = (cible: string) => (concerne(cible) && !form?.succes ? { open: true } : {});
 	const erreurs = (cible: string): Record<string, string> => (concerne(cible) ? (form?.erreurs ?? {}) : {});
-	const saisie = (champ: 'nom' | 'nature' | 'portee' | 'attributeur', defaut: string) => (concerne('role') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
+	const saisie = (champ: 'nom' | 'nature' | 'attributeur', defaut: string) => (concerne('role') ? (form?.valeurs?.[champ] ?? defaut) : defaut);
 	const porteeLibelle = $derived(PORTEES.find((p) => p.valeur === role.portee)?.libelle ?? role.portee);
 	const avertissement = (n: number) =>
 		n === 0 ? 'Personne ne tient ce rôle aujourd’hui.' : n === 1 ? 'La personne qui tient ce rôle le perd aujourd’hui, avec ses droits.' : `Les ${n} personnes qui tiennent ce rôle le perdent aujourd’hui, avec ses droits.`;
@@ -104,8 +116,8 @@
 <svelte:element this={lectureSeule ? 'div' : 'form'} class="formulaire" {...lectureSeule ? {} : { method: 'POST', action: '?/enregistrer', id: 'role' }}>
 	<Domaines droits={actuels} modele={data.modele?.droits ?? null} bind:choix {lectureSeule} formRevenir="revenir" />
 
-	<Groupe titre="Administration de l’appli" resume={admin.length === 0 ? 'Aucun pouvoir' : admin.map((d) => ADMINISTRATION.find((a) => a.droit === d)?.libelle).join(', ')}>
-		<fieldset class="admin" aria-describedby={peutAdmin ? undefined : 'admin-aide'}>
+	<Groupe titre="Administration de l’appli" resume={adminPermis.length === 0 ? 'Aucun pouvoir' : adminPermis.map((d) => ADMINISTRATION.find((a) => a.droit === d)?.libelle).join(', ')}>
+		<fieldset class="admin" aria-describedby={decritAdmin}>
 			<legend class="cache">Administration de l’appli</legend>
 			<!-- Grisées pour l'une de deux raisons : le rôle est figé, ou la personne ne gère pas le pouvoir. -->
 			{#if !peutAdmin}
@@ -113,14 +125,15 @@
 			{:else}
 				<input type="hidden" name="administration" value="oui" />
 			{/if}
+			{#if portePasCentre}<p id="admin-centre" class="aide">{RESERVE_AU_CENTRE}</p>{/if}
 			{#each ADMINISTRATION as a (a.droit)}
 				<label class="case"
 					><input
 						type="checkbox"
 						name="admin"
 						value={a.droit}
-						checked={admin.includes(a.droit)}
-						disabled={!peutAdmin}
+						checked={adminPermis.includes(a.droit)}
+						disabled={!peutAdmin || (portePasCentre && estDroitDuCentre(a.droit))}
 						onchange={(e) => (admin = e.currentTarget.checked ? [...admin, a.droit] : admin.filter((d) => d !== a.droit))}
 					/>
 					{a.libelle}</label
@@ -137,7 +150,7 @@
 				{#if role.titulaires > 0}
 					<p class="aide">Portée : {porteeLibelle}. Elle ne change pas tant que le rôle est tenu.</p>
 				{:else}
-					<Choix id="role-portee" name="portee" libelle="Portée" valeur={saisie('portee', role.portee)} erreur={erreurs('role').portee} options={PORTEES} />
+					<Choix id="role-portee" name="portee" libelle="Portée" bind:valeur={portee} erreur={erreurs('role').portee} options={PORTEES} />
 				{/if}
 				<Choix id="role-attributeur" name="attributeur" libelle="Qui attribue" valeur={saisie('attributeur', valeurAttributeur(role.attributeur))} erreur={erreurs('role').attributeur} options={optionsAttributeur(data.comitesChoix)} />
 				<ChoixIcone valeur={(saisis?.icone as ReturnType<typeof iconeDuRole> | undefined) ?? iconeDuRole(role)} erreur={erreurs('role').icone} />
@@ -166,12 +179,14 @@
 	{:else}
 		<form method="POST" action="?/detail" class="formulaire-detail">
 			{#each [{ titre: 'Droits métier', liste: data.droitsMetier, pouvoir: false }, { titre: 'Droits d’administration', liste: data.droitsPouvoir, pouvoir: true }] as bloc (bloc.titre)}
-				<fieldset>
+				<fieldset aria-describedby={bloc.pouvoir && detailPasCentre ? 'detail-centre' : undefined}>
 					<legend>{bloc.titre}</legend>
+					{#if bloc.pouvoir && detailPasCentre}<p id="detail-centre" class="aide">{RESERVE_AU_CENTRE}</p>{/if}
 					{#each bloc.liste as d (d)}
 						{@const verrouille = role.droits.some((x) => x.droit === d && x.verrouille)}
+						{@const reserve = detailPasCentre && estDroitDuCentre(d)}
 						<label class="case"
-							><input type="checkbox" name="droits" value={d} checked={actuels.includes(d)} disabled={verrouille || (bloc.pouvoir && !data.peutPouvoir)} />
+							><input type="checkbox" name="droits" value={d} checked={actuels.includes(d) && !reserve} disabled={verrouille || reserve || (bloc.pouvoir && !data.peutPouvoir)} />
 							{LIBELLES_DROIT[d]}</label
 						>
 					{/each}
