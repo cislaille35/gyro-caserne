@@ -40,7 +40,7 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 	]);
 	const agents = agentsDuJour([personnes, affectations, tenues], aujourdhui);
 	const moi = acteur.type === 'super' ? null : agents.find((a) => a.id === acteur.id);
-	if (acteur.type !== 'super' && !moi) throw new RefusDroit('VOIR_ANNUAIRE', { type: 'centre' }, 'Réservé aux agents du centre');
+	if (moi === undefined) throw new RefusDroit('VOIR_ANNUAIRE', { type: 'centre' }, 'Réservé aux agents du centre');
 	// Mêmes règles que les murs (mursDe) : le chef, l'adjoint et le super administrateur lisent tous les comités, un agent les siens.
 	const tous = moi === null || moi.a.tous;
 	const droits = await droitsDe(base, acteur, aujourdhui);

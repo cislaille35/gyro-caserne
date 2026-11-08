@@ -33,7 +33,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/comites', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -281,7 +281,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('super administrateur', () => {
 			test.use({ storageState: ETAT_SUPER });
-			for (const chemin of ['/caserne', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', `/planning/preparer?annee=${new Date().getFullYear() + 3}&proposition=1`, '/reglages/aptitudes', '/remplacements', '/planning/preparer/fichier', '/planning/ete', '/reglages/armement', '/engins', '/engins/nouveau', '/engins/1/modifier', '/engins/fiches', '/engins/fiches/1', '/engins/fiches/fichier']) {
+			for (const chemin of ['/caserne', '/comites', '/moi', '/agents', '/agents/nouveau', '/nominations', '/profil', '/reglages', '/echanges/centre', '/echanges/publier', '/reservations', '/reservations/a-valider', '/reservations/materiel', '/planning', '/planning/preparer', '/planning/preparer?etape=fetes', '/planning/preparer?etape=manoeuvres&manoeuvre=nouvelle', '/planning/preparer?etape=reperes', '/planning/preparer?etape=publier', '/planning/preparer/manoeuvre', `/planning/preparer?annee=${new Date().getFullYear() + 3}&proposition=1`, '/reglages/aptitudes', '/remplacements', '/planning/preparer/fichier', '/planning/ete', '/reglages/armement', '/engins', '/engins/nouveau', '/engins/1/modifier', '/engins/fiches', '/engins/fiches/1', '/engins/fiches/fichier']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
