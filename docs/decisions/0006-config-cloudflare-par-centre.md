@@ -13,3 +13,4 @@
 - **Pourquoi** : le code commun ne connaît aucun centre, et un centre se met à jour en un clic. La démo ne risque jamais de toucher les vraies données.
 - **Validé par** : le porteur du projet, le 25/10/2026.
 - **Remplacée en partie** par [0010](0010-photos-dans-leur-base.md) : pas de stockage R2, une seconde base D1 pour les photos.
+- **Complétée** par [0024](0024-adresse-dans-la-config.md) : l'adresse de l'appli est en clair dans `wrangler.jsonc`, pas en secret.

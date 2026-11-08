@@ -14,7 +14,7 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
 2. Choisir l'identifiant du centre : minuscules, chiffres et tirets (par exemple `bruz`).
 3. Copier `centres/exemple` en `centres/<id>`, puis dans ce dossier :
    - `centre.ts` : la description du centre, avec `id: '<id>'`. Conservation, réglable en mois (nombre entier, 1 au moins) : `conservationMessagesMois` (messages, 12 par défaut) et `conservationPublicationsMois` (publications des murs et leurs photos, 24 par défaut ; une publication épinglée est gardée) ; l'effacement se fait chaque nuit ;
-   - `wrangler.jsonc` : `name` devient `gyro-caserne-<id>`.
+   - `wrangler.jsonc` : `name` devient `gyro-caserne-<id>`, et `vars.BETTER_AUTH_URL` l'adresse de l'appli, `https://gyro-caserne-<id>.<sous-domaine>.workers.dev` (sous-domaine : étape 7). Elle n'est pas un secret : elle reste en clair dans la config ([0024](../decisions/0024-adresse-dans-la-config.md)).
 4. Vérifier : `pnpm install && pnpm check && pnpm test`. Une erreur dans la description est signalée avec la liste des corrections à faire.
 5. Enregistrer le dossier dans le fork : `git add centres/<id> && git commit -m "Centre <id>" && git push`.
 6. Se connecter à Cloudflare : `pnpm --filter @gyro-caserne/web exec wrangler login`.
@@ -24,13 +24,12 @@ Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (of
    - la base des photos : `pnpm --filter @gyro-caserne/web exec wrangler d1 create gyro-caserne-<id>-photos`, liaison `PHOTOS`, `database_name` : `gyro-caserne-<id>-photos`.
 9. Créer les tables en ligne, dans les deux bases : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Pour tout ce qui est en ligne (`base-en-ligne`, `jeu-de-depart --en-ligne`, `deployer`), `CENTRE` est obligatoire : sans lui, la commande s'arrête tout de suite avec un message.
 10. Charger le jeu de départ en ligne (une seule fois) : `CENTRE=<id> pnpm --filter @gyro-caserne/web jeu-de-depart --en-ligne`. Sans personne fictive.
-11. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`). L'appli ne marche qu'une fois les secrets posés.
+11. Compiler et déployer : `CENTRE=<id> pnpm deployer`. L'adresse de l'appli s'affiche à la fin (en `….workers.dev`) : elle doit être celle de `vars.BETTER_AUTH_URL`, sinon la corriger et redéployer. L'appli ne marche qu'une fois les secrets posés.
 12. Poser les secrets, un par un (la valeur est demandée) : `pnpm --filter @gyro-caserne/web exec wrangler secret put <NOM> --config ../../centres/<id>/wrangler.jsonc`. Ils s'appliquent tout de suite, sans redéployer.
 
     | Secret | Valeur |
     |---|---|
     | `BETTER_AUTH_SECRET` | une longue chaîne aléatoire : `openssl rand -base64 32` |
-    | `BETTER_AUTH_URL` | l'adresse de l'appli, affichée à l'étape 11 |
     | `SUPER_ADMINS` | l'adresse du super administrateur (plusieurs : séparées par des virgules) |
     | `BREVO_CLE` | la clé d'API Brevo du centre |
     | `COURRIEL_EXPEDITEUR` | l'adresse d'expédition vérifiée dans Brevo, par exemple la boîte du centre (le nom « Gyro Caserne » est ajouté par l'appli). Voir [0007](../decisions/0007-brevo.md) |
@@ -48,6 +47,7 @@ Pour que GitHub déploie tout seul :
 3. Facultatif, pour que le déploiement pose aussi la clé de la vigilance : secret `VIGILANCE_CLE` (la même pour la préprod et la production ; à renouveler avant son expiration, le bandeau disparaît sinon sans bloquer l'appli).
 4. Facultatif, pour que le déploiement pose aussi les clés des notifications : secrets `VAPID_PUBLIQUE_PRODUCTION` et `VAPID_PRIVEE_PRODUCTION` (et `…_PREPROD` pour une préprod), avec des paires créées par `pnpm --filter @gyro-caserne/web cles-vapid`. Par exemple, sans afficher la clé privée : `node --experimental-transform-types apps/web/scripts/cles-vapid.ts | while IFS='=' read -r nom valeur; do printf %s "$valeur" | gh secret set "${nom}_PRODUCTION"; done`.
 5. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
+6. Après chaque déploiement, un contrôle fait échouer le passage, avec la liste des noms manquants, si `BETTER_AUTH_SECRET`, `SUPER_ADMINS` ou `BREVO_CLE` manque sur le Worker, ou l'adresse de l'appli ; puis il vérifie que `/connexion` répond. À la main : `CENTRE=<id> pnpm --filter @gyro-caserne/web controle-deploiement`. Seuls les noms des secrets sont lus, jamais leurs valeurs.
 
 `centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : ses `database_id` sont ceux de Laillé. En le copiant (étape 3 de l'installation), remplacer les deux `database_id` par ceux des nouvelles bases (étape 8).
 
@@ -57,6 +57,10 @@ Pour que GitHub déploie tout seul :
 2. En local : `git pull`, puis `pnpm install && pnpm test`. Si un test signale un réglage technique différent de `centres/exemple`, recopier ce réglage dans `centres/<id>/wrangler.jsonc`.
 3. Mettre à jour les tables en ligne (les deux bases) : `CENTRE=<id> pnpm --filter @gyro-caserne/web base-en-ligne`. Si la mise à jour ajoute la base des photos (décision 0010), la créer d'abord comme à l'étape 8.
 4. `CENTRE=<id> pnpm deployer`.
+
+## Adresse posée en secret (avant novembre 2026)
+
+Si `BETTER_AUTH_URL` était un secret sur le Worker, rien à retirer : au premier déploiement avec `vars.BETTER_AUTH_URL`, Wrangler prévient que la variable remplace le secret (en local, il demande de confirmer : répondre oui), et la nouvelle version porte l'adresse en clair. Ne jamais la repasser en `--var` ni en secret.
 
 ## Règle
 

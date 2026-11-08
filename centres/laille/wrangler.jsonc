@@ -8,6 +8,8 @@
 	"compatibility_flags": ["nodejs_als", "nodejs_compat"],
 	// Production, données réelles : jamais d’adresse de prévisualisation d’une version.
 	"preview_urls": false,
+	// Adresse de la production (déduite du sous-domaine cis-laille du compte, à confirmer avant le premier tag) : les liens de connexion pointent vers elle. En clair, ce n’est pas un secret (décision 0024) ; en local, .dev.vars l’emporte.
+	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-laille.cis-laille.workers.dev" },
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les cinq minutes, les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/5 * * * *"] },
