@@ -66,14 +66,10 @@
 <div class="page">
 	<EnTetePage titre="Préparer {p.annee}" phrase={p.publiee ? `Publiée le ${jourLong(p.publiee)} : chaque modification est visible tout de suite.` : 'Cinq étapes, chacune enregistrée seule. Les agents ne voient rien avant la publication.'} retour={{ href: `/planning?annee=${p.annee}`, libelle: 'Planning' }} secondaire={statut} />
 
-	<nav class="annees" aria-label="Année à préparer">
+	<nav class="annees segments" aria-label="Année à préparer">
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
-	<ListeRangees>
-		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
-		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
-	</ListeRangees>
 
 	{#if peutProposer}
 		<div class="proposer">
@@ -83,7 +79,7 @@
 	{/if}
 
 	<nav class="etapes" aria-label="Étapes">
-		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
+		<p class="ou">Étape {rang + 1} sur {ETAPES.length}</p>
 		<ol role="list">
 			{#each ETAPES as e, i (e.id)}
 				<li>
@@ -309,6 +305,11 @@
 		{#if rang > 0}<a href={vers(ETAPES[rang - 1]!.id)}>‹ {ETAPES[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
 		{#if rang < ETAPES.length - 1}<a class="suivante" href={vers(ETAPES[rang + 1]!.id)}>{ETAPES[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
+
+	<ListeRangees>
+		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
+		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
+	</ListeRangees>
 </div>
 
 {#if data.proposition}
@@ -388,27 +389,6 @@
 	.doux {
 		color: var(--doux);
 	}
-	.annees {
-		display: flex;
-		gap: var(--espace-8);
-	}
-	.annees a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		padding: 0 var(--espace-16);
-		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-bouton);
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.annees a[aria-current='page'] {
-		border-color: var(--encre);
-		background: var(--encre);
-		color: var(--surface);
-	}
 
 	.proposer {
 		display: flex;
@@ -439,18 +419,6 @@
 		color: var(--doux);
 		font-weight: 600;
 		font-size: var(--texte-15);
-	}
-	.barre {
-		flex: 1;
-		height: 6px;
-		border-radius: 3px;
-		background: var(--trait-doux);
-		overflow: hidden;
-	}
-	.barre span {
-		display: block;
-		height: 100%;
-		background: var(--encre);
 	}
 	.etapes ol {
 		display: grid;
@@ -781,11 +749,6 @@
 		color: var(--encre);
 		font-weight: 600;
 		text-decoration: none;
-	}
-	.suite .suivante {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
 	}
 
 	/* Les remplacements qu'un changement d'équipe toucherait */

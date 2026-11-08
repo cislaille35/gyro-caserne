@@ -47,6 +47,10 @@
 </fieldset>
 
 <style>
+	/* Figé : la phrase du niveau suffit, rien qui ait l'air modifiable. */
+	.selecteur:disabled label {
+		display: none;
+	}
 	.selecteur {
 		border: none;
 		margin: 0;

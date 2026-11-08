@@ -441,4 +441,34 @@ describe('direction B', () => {
 	it('la ligne affichée se montre dans une liste qui défile seule', () => {
 		for (const f of ['routes/reglages/+layout.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toContain('montrerCourante(');
 	});
+
+	// Écrans à reprendre (lot 7).
+	it('Préparer l’année et Été : l’avancement dit une fois, l’étape avant le reste', () => {
+		for (const f of ['routes/planning/preparer/+page.svelte', 'routes/planning/ete/+page.svelte']) {
+			expect(source(f), f).not.toContain('class="barre"');
+			expect(style(f), f).not.toMatch(/\.suite \.suivante \{[^}]*background: var\(--encre\)/);
+		}
+		const p = source('routes/planning/preparer/+page.svelte');
+		expect(p.indexOf('<nav class="etapes"')).toBeLessThan(p.indexOf('/planning/preparer/fichier?annee='));
+		expect(p).toMatch(/<nav class="annees segments" aria-label="Année à préparer">/);
+	});
+
+	it('le suivi d’une publication : des noms en liste, pas un paragraphe', () => {
+		expect(source('routes/echanges/[mur]/[id]/+page.svelte')).toMatch(/<ul class="noms" role="list">/);
+	});
+
+	it('un rôle en lecture seule dit son niveau en texte : rien qui ait l’air modifiable', () => {
+		expect(style('lib/ui/SelecteurNiveaux.svelte')).toMatch(/\.selecteur:disabled label \{\s*display: none;/);
+	});
+
+	it('un suivi ne ressemble pas à des boutons radio', () => {
+		expect(style('routes/habillement/[id]/+page.svelte')).toMatch(/\.puce \{[^}]*width: 12px;[^}]*height: 12px;/);
+	});
+
+	it('Comités et référents : les lignes d’un comité restent alignées', () => {
+		const s = source('routes/comites/+page.svelte');
+		expect(s).not.toMatch(/icone=\{c\.icone\}/);
+		expect(s).not.toMatch(/icone=\{r\.icone\}/);
+		expect(s).not.toContain('sous="Calendrier des réservations"');
+	});
 });

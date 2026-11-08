@@ -65,10 +65,10 @@
 						<li><Rangee titre="Aucun membre pour l’instant" discret /></li>
 					{/each}
 					{#if c.mur}
-						<li><Rangee href="/echanges/comite:{c.id}" icone={c.icone} titre={murDuComite(c.nom)} /></li>
+						<li><Rangee href="/echanges/comite:{c.id}" titre={murDuComite(c.nom)} /></li>
 					{/if}
 					{#each c.ressources as r (r.id)}
-						<li><Rangee href="/reservations/{r.id}" icone={r.icone} titre={r.nom} sous="Calendrier des réservations" /></li>
+						<li><Rangee href="/reservations/{r.id}" titre={r.nom} /></li>
 					{/each}
 				</ListeRangees>
 			{:else}
