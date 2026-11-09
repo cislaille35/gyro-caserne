@@ -78,6 +78,14 @@
 		</div>
 	{/if}
 
+	<details class="plus">
+		<summary>Exporter, importer, préparer l’été</summary>
+		<ListeRangees>
+			<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
+			<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
+		</ListeRangees>
+	</details>
+
 	<nav class="etapes" aria-label="Étapes">
 		<p class="ou">Étape {rang + 1} sur {ETAPES.length}</p>
 		<ol role="list">
@@ -303,13 +311,8 @@
 
 	<nav class="suite" aria-label="Étape précédente ou suivante">
 		{#if rang > 0}<a href={vers(ETAPES[rang - 1]!.id)}>‹ {ETAPES[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
-		{#if rang < ETAPES.length - 1}<a class="suivante" href={vers(ETAPES[rang + 1]!.id)}>{ETAPES[rang + 1]!.libelle} ›</a>{/if}
+		{#if rang < ETAPES.length - 1}<a href={vers(ETAPES[rang + 1]!.id)}>{ETAPES[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
-
-	<ListeRangees>
-		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
-		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
-	</ListeRangees>
 </div>
 
 {#if data.proposition}

@@ -701,7 +701,9 @@ test.describe('échanges', () => {
 		await gestion.goto(`/echanges/centre/${id}`);
 		const suivi = gestion.locator('#suivi');
 		await expect(suivi).toContainText('1 a pris connaissance');
-		await expect(suivi).toContainText(/pas encore : .*Alice Martin/);
+		await expect(suivi).toContainText('pas encore');
+		await suivi.locator('summary', { hasText: 'Qui n’a pas encore pris connaissance' }).click();
+		await expect(suivi.getByText('Alice Martin', { exact: true })).toBeVisible();
 		await suivi.locator('summary', { hasText: 'Qui a pris connaissance' }).click();
 		await expect(suivi.getByText('Test Fictif', { exact: true })).toBeVisible();
 		await gestion.context().close();

@@ -219,7 +219,7 @@
 
 	<nav class="suite" aria-label="Étape précédente ou suivante">
 		{#if rang > 0}<a href={vers(ETAPES_ETE[rang - 1]!.id)}>‹ {ETAPES_ETE[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
-		{#if rang < ETAPES_ETE.length - 1}<a class="suivante" href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
+		{#if rang < ETAPES_ETE.length - 1}<a href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
 
 	<!-- Le bouton de publication vit à la dernière étape ; avant, « Publier › » y conduit. -->

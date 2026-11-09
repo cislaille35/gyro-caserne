@@ -20,6 +20,7 @@
 	} = $props();
 
 	const phrase = $derived(valeur === 'sur_mesure' ? 'Des droits choisis un par un : voir le détail droit par droit.' : niveaux[valeur]?.phrase);
+	const nomDuNiveau = $derived(valeur === 'sur_mesure' ? 'Sur mesure' : (niveaux[valeur]?.libelle ?? ''));
 	let groupe: HTMLFieldSetElement;
 
 	// Un choix fait avant que la page soit prête n'est pas perdu.
@@ -43,11 +44,11 @@
 			>
 		{/if}
 	</div>
-	{#if phrase}<p class="phrase">{phrase}</p>{/if}
+	{#if phrase}<p class="phrase">{#if desactive}<strong>{nomDuNiveau}</strong> : {/if}{phrase}</p>{/if}
 </fieldset>
 
 <style>
-	/* Figé : la phrase du niveau suffit, rien qui ait l'air modifiable. */
+	/* Figé : le niveau dit en texte, rien qui ait l'air modifiable. */
 	.selecteur:disabled label {
 		display: none;
 	}

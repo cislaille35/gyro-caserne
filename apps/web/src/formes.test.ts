@@ -449,16 +449,24 @@ describe('direction B', () => {
 			expect(style(f), f).not.toMatch(/\.suite \.suivante \{[^}]*background: var\(--encre\)/);
 		}
 		const p = source('routes/planning/preparer/+page.svelte');
-		expect(p.indexOf('<nav class="etapes"')).toBeLessThan(p.indexOf('/planning/preparer/fichier?annee='));
+		// L'export et l'été restent à portée, repliés : ils ne repoussent plus l'étape.
+		expect(p).toMatch(/<details class="plus">\s*<summary>Exporter, importer, préparer l’été<\/summary>\s*<ListeRangees>\s*<li><Rangee href="\/planning\/preparer\/fichier/);
+		expect(p.indexOf('<details class="plus">')).toBeLessThan(p.indexOf('<nav class="etapes"'));
 		expect(p).toMatch(/<nav class="annees segments" aria-label="Année à préparer">/);
 	});
 
 	it('le suivi d’une publication : des noms en liste, pas un paragraphe', () => {
 		expect(source('routes/echanges/[mur]/[id]/+page.svelte')).toMatch(/<ul class="noms" role="list">/);
+		// Deux homonymes ne doivent pas faire planter la liste.
+		expect(source('routes/echanges/[mur]/[id]/+page.svelte')).toMatch(/\{#each liste as x \(x\.id\)\}/);
 	});
 
 	it('un rôle en lecture seule dit son niveau en texte : rien qui ait l’air modifiable', () => {
 		expect(style('lib/ui/SelecteurNiveaux.svelte')).toMatch(/\.selecteur:disabled label \{\s*display: none;/);
+	});
+
+	it('un rôle figé dit le nom de son niveau, et il reste lu', () => {
+		expect(source('lib/ui/SelecteurNiveaux.svelte')).toMatch(/\{#if desactive\}<strong>\{nomDuNiveau\}<\/strong> : \{\/if\}\{phrase\}/);
 	});
 
 	it('un suivi ne ressemble pas à des boutons radio', () => {

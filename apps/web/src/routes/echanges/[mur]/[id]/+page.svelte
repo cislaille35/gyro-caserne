@@ -19,7 +19,7 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 	const retour = $derived(form?.cible === `publication:${p.id}` ? form : undefined);
 	const prise = $derived(data.suivi?.priseDeConnaissance);
-	// « 31 ont pris connaissance, 4 pas encore : … »
+	// « 31 ont pris connaissance, 4 pas encore. »
 	const bilan = $derived(
 		prise
 			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore.` : 'personne d’autre n’est attendu.'}`
@@ -98,7 +98,7 @@
 </section>
 
 {#snippet listeNoms(liste: Personne[])}
-	{#if liste.length === 0}<p>personne</p>{:else}<ul class="noms" role="list">{#each liste as x (nom(x))}<li>{nom(x)}</li>{/each}</ul>{/if}
+	{#if liste.length === 0}<p>personne</p>{:else}<ul class="noms" role="list">{#each liste as x (x.id)}<li>{nom(x)}</li>{/each}</ul>{/if}
 {/snippet}
 
 {#if data.suivi}

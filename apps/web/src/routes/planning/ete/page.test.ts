@@ -79,7 +79,7 @@ describe('Été : le parcours du chef', () => {
 			expect(page(ete(), { etape })).not.toContain('Publier l’été 2027');
 			expect(page(ete(), { etape })).not.toContain('<div class="barre');
 		}
-		expect(page(ete(), { etape: 'repartition' })).toMatch(/<a class="suivante[^"]*" href="\?annee=2027&amp;etape=publier">Publier ›/);
+		expect(page(ete(), { etape: 'repartition' })).toMatch(/<a[^>]*href="\?annee=2027&amp;etape=publier"[^>]*>Publier ›/);
 		const derniere = page(ete(), { etape: 'publier' });
 		expect(derniere).toMatch(/<div class="barre[^"]*"[\s\S]*action="\?\/publier[\s\S]*Publier l’été 2027/);
 		expect(derniere).toContain('1 plage sans FPT armé : vous pouvez publier quand même.');
