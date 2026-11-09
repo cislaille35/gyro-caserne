@@ -12,6 +12,9 @@ describe('textes des engins', () => {
 	it('sous-ligne : le type n’est pas répété quand le nom le dit', () => {
 		expect(sousLigne({ ...engin, nom: 'VSAV 1', type: 'VSAV', situation: 'centre', immatriculation: 'AA-101-SP' })).toBe('AA-101-SP');
 	});
+	it('sous-ligne : un nom qui commence comme le type sans être lui garde le type', () => {
+		expect(sousLigne({ ...engin, nom: 'VSAVX', type: 'VSAV', situation: 'centre', immatriculation: 'AA-101-SP' })).toBe('VSAV · AA-101-SP');
+	});
 	it('sous-ligne : type, plaque, prêt', () => {
 		expect(sousLigne({ ...engin, nom: 'Ambulance' })).toBe('VSAV, AB-123-CD, prêté par CIS Exemple-Nord');
 		expect(sousLigne({ ...engin, nom: 'Ambulance', situation: 'centre', immatriculation: null })).toBe('VSAV');

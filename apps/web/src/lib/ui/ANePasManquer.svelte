@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { momentLong } from '#lib/planning/dates.ts';
-	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { DESSINS } from './icones-roles.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';

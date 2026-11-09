@@ -23,7 +23,7 @@ export function situationDe(e: Pick<EnginVu, 'situation' | 'provenance' | 'parti
 // Sous-ligne d'un engin : son type, sa plaque, et d'où il vient s'il est prêté.
 export function sousLigne(e: EnginVu): string {
 	// « VSAV 1 » dit déjà son type.
-	const infos = [e.nom.startsWith(e.type) ? null : e.type, e.immatriculation, e.situation === 'prete' ? `prêté par ${e.provenance}` : null].filter(Boolean);
+	const infos = [e.nom.split(' ')[0] === e.type ? null : e.type, e.immatriculation, e.situation === 'prete' ? `prêté par ${e.provenance}` : null].filter(Boolean);
 	// Deux infos courtes : un point ; trois : des virgules.
 	return infos.join(infos.length > 2 ? ', ' : ' · ');
 }
