@@ -236,10 +236,17 @@
 		display: inline-grid;
 		place-items: center;
 		flex: none;
-		width: 22px;
-		height: 22px;
+		width: 12px;
+		height: 12px;
+		margin-inline: var(--espace-4);
 		border: 1px solid var(--trait);
 		border-radius: 50%;
+	}
+	.faite .puce,
+	.en-cours .puce {
+		width: 20px;
+		height: 20px;
+		margin-inline: 0;
 	}
 	.faite .puce {
 		border-color: var(--statut-ok-texte);

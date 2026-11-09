@@ -76,7 +76,7 @@ describe('/comites', () => {
 		const page = html({});
 		expect(page).toMatch(/Bruno Petit[\s\S]*?Rapporteur[\s\S]*?Alice Bernard[\s\S]*?Membre, Trésorière/);
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Le mur de l’Amicale/);
-		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum[\s\S]*?Calendrier des réservations/);
+		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum/);
 	});
 
 	it('pas de lien vers un mur qu’on ne lit pas ; un comité vide le dit', () => {

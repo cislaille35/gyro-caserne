@@ -74,7 +74,7 @@
 	<EnTetePage titre="Été {e.annee}" phrase={resumeEte(e)} retour={{ href: `/planning/preparer?annee=${e.annee}`, libelle: `Préparer ${e.annee}` }} />
 
 	<nav class="etapes" aria-label="Étapes">
-		<p class="ou">Étape {rang + 1} sur {ETAPES_ETE.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES_ETE.length) * 100}%"></span></span></p>
+		<p class="ou">Étape {rang + 1} sur {ETAPES_ETE.length}</p>
 		<ol role="list">
 			{#each ETAPES_ETE as x, i (x.id)}
 				<li>
@@ -219,7 +219,7 @@
 
 	<nav class="suite" aria-label="Étape précédente ou suivante">
 		{#if rang > 0}<a href={vers(ETAPES_ETE[rang - 1]!.id)}>‹ {ETAPES_ETE[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
-		{#if rang < ETAPES_ETE.length - 1}<a class="suivante" href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
+		{#if rang < ETAPES_ETE.length - 1}<a href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
 
 	<!-- Le bouton de publication vit à la dernière étape ; avant, « Publier › » y conduit. -->
@@ -354,18 +354,6 @@
 		color: var(--doux);
 		font-weight: 600;
 		font-size: var(--texte-15);
-	}
-	.barre {
-		flex: 1;
-		height: 6px;
-		border-radius: 3px;
-		background: var(--trait-doux);
-		overflow: hidden;
-	}
-	.barre span {
-		display: block;
-		height: 100%;
-		background: var(--encre);
 	}
 	.etapes a {
 		min-height: 56px;
@@ -611,11 +599,6 @@
 		color: var(--encre);
 		font-weight: 600;
 		text-decoration: none;
-	}
-	.suite .suivante {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
 	}
 
 	/* Panneaux */

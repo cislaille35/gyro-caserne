@@ -11,7 +11,6 @@
 
 	const p = $derived(data.publication);
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
-	const noms = (liste: Personne[]) => (liste.length === 0 ? 'personne' : liste.map(nom).join(', '));
 	const quand = (iso: string) =>
 		formatDeDate({ day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
@@ -20,10 +19,10 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 	const retour = $derived(form?.cible === `publication:${p.id}` ? form : undefined);
 	const prise = $derived(data.suivi?.priseDeConnaissance);
-	// « 31 ont pris connaissance, 4 pas encore : … »
+	// « 31 ont pris connaissance, 4 pas encore. »
 	const bilan = $derived(
 		prise
-			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore : ${noms(prise.manquante)}.` : 'personne d’autre n’est attendu.'}`
+			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore.` : 'personne d’autre n’est attendu.'}`
 			: ''
 	);
 	const CATEGORIES = [
@@ -98,6 +97,10 @@
 	{/if}
 </section>
 
+{#snippet listeNoms(liste: Personne[])}
+	{#if liste.length === 0}<p>personne</p>{:else}<ul class="noms" role="list">{#each liste as x (x.id)}<li>{nom(x)}</li>{/each}</ul>{/if}
+{/snippet}
+
 {#if data.suivi}
 	<section id="suivi" aria-labelledby="titre-suivi" class="bloc">
 		<h2 id="titre-suivi">Suivi</h2>
@@ -106,7 +109,13 @@
 			{#if prise.faite.length > 0}
 				<details class="repli">
 					<summary>Qui a pris connaissance</summary>
-					<p>{noms(prise.faite)}</p>
+					{@render listeNoms(prise.faite)}
+				</details>
+			{/if}
+			{#if prise.manquante.length > 0}
+				<details class="repli">
+					<summary>Qui n’a pas encore pris connaissance</summary>
+					{@render listeNoms(prise.manquante)}
 				</details>
 			{/if}
 		{/if}
@@ -115,7 +124,7 @@
 				{#each CATEGORIES as [cle, libelle] (cle)}
 					<div>
 						<dt>{libelle} ({data.suivi.evenement[cle].length})</dt>
-						<dd>{noms(data.suivi.evenement[cle])}</dd>
+						<dd>{@render listeNoms(data.suivi.evenement[cle])}</dd>
 					</div>
 				{/each}
 			</dl>
@@ -124,6 +133,17 @@
 {/if}
 
 <style>
+	.noms {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		columns: 12rem auto;
+		column-gap: var(--espace-16);
+	}
+	.noms li {
+		break-inside: avoid;
+		padding-block: 2px;
+	}
 	.vers-mur {
 		display: flex;
 		margin-bottom: var(--espace-8);

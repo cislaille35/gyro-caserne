@@ -18,6 +18,7 @@ test.describe('chef : préparer l’année', () => {
 		test.setTimeout(90_000);
 		const annee = new Date().getFullYear();
 		await page.goto(`/planning/preparer?annee=${annee}`);
+		await page.getByText('Exporter, importer, préparer l’été').click();
 		await page.getByRole('link', { name: `Été ${annee}` }).click();
 		await expect(page.getByRole('heading', { level: 1, name: `Été ${annee}` })).toBeVisible();
 		const etapes = page.getByRole('navigation', { name: 'Étapes' });

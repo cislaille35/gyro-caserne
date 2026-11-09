@@ -2,7 +2,7 @@
 
 Ouvert au chef de centre et à son adjoint (droit « Gérer le planning »).
 
-1. Planning → « Préparer l'année » → « Exporter l'année ou importer un fichier ».
+1. Planning → « Préparer l'année » → « Exporter, importer, préparer l’été » → « Exporter l'année ou importer un fichier ».
 2. « Exporter l'année 2027 » : un classeur avec les onglets Semaines, Manœuvres, Vacances scolaires (et Été, une fois la répartition proposée). Une année vide donne le roulement calculé.
 3. Modifiez-le dans Excel ou LibreOffice :
    - **Semaines** : l'équipe de chaque semaine (liste déroulante).
