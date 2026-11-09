@@ -44,7 +44,7 @@
 	] as const;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
-	const quand = (iso: string) => date(iso, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+	const quand = (iso: string) => `${date(iso, { day: 'numeric', month: 'long' })}, ${heure(iso)}`;
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
 	const auteur = $derived(nom(p.auteur));
 	const convoques = $derived(
@@ -94,7 +94,7 @@
 			<div class="tete-bravo">
 				<GyroDuMoment tenue="victoire" taille={72} decoratif enMouvement={animer} />
 				<span class="colonne">
-					<span class="bravo-titre">Bravo !</span>
+					<span class="bravo-titre">Bravo !</span>
 					<span><strong id="auteur-{p.id}">{auteur}</strong> {@render signature()}</span>
 				</span>
 				{#if p.epinglee}<Pastille ton="info">Épinglée</Pastille>{/if}

@@ -152,11 +152,8 @@
 
 	h2 {
 		margin: var(--espace-12) 0 var(--espace-4);
-		color: var(--doux);
-		font-size: var(--texte-14);
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+		color: var(--encre);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
 	}
 	ul {
 		list-style: none;

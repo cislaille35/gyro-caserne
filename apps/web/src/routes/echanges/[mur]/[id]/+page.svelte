@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { deNom, heure } from '#lib/murs/quand.ts';
 	import Retour from '#lib/ui/Retour.svelte';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { enhance, type SubmitFunction } from '$app/forms';
@@ -11,8 +12,7 @@
 
 	const p = $derived(data.publication);
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
-	const quand = (iso: string) =>
-		formatDeDate({ day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const quand = (iso: string) => `${formatDeDate({ day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`))}, ${heure(iso)}`;
 	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
 	// Une seule zone annoncée par page, pour toutes les réponses des formulaires.
 	const annonceSucces = $derived(form?.succes ?? '');
@@ -50,11 +50,11 @@
 </script>
 
 <svelte:head>
-	<title>Publication de {nom(p.auteur)} · {data.mur.nom} · Gyro Caserne</title>
+	<title>Publication {deNom(nom(p.auteur))} · {data.mur.nom} · Gyro Caserne</title>
 </svelte:head>
 
 <div class="vers-mur"><Retour href="/echanges/{data.mur.cle}" libelle={data.mur.nom} /></div>
-<h1>Publication de {nom(p.auteur)}</h1>
+<h1>Publication {deNom(nom(p.auteur))}</h1>
 
 <div class="annonce" role="status">{annonceSucces}</div>
 <div class="annonce" role="alert">{annonceEchec}</div>

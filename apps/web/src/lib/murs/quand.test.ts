@@ -27,3 +27,13 @@ describe('dates d’un sondage', () => {
 		expect(heure('2026-11-05T09:05')).toBe('9 h 05');
 	});
 });
+
+describe('deNom : l’élision', () => {
+	it('élide devant une voyelle, un accent ou un h', async () => {
+		const { deNom } = await import('./quand.ts');
+		expect(deNom('Antoine Adjoint')).toBe('d’Antoine Adjoint');
+		expect(deNom('Élodie Martin')).toBe('d’Élodie Martin');
+		expect(deNom('Hélène Roux')).toBe('d’Hélène Roux');
+		expect(deNom('Claire Chef')).toBe('de Claire Chef');
+	});
+});

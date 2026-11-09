@@ -4,6 +4,9 @@ import { aujourdhuiParis } from '../aujourdhui.ts';
 const jour = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
 const format = (options: Intl.DateTimeFormatOptions, iso: string) => formatDeDate({ ...options, timeZone: 'UTC' }).format(jour(iso));
 
+// « d’Antoine », « de Claire » : l'élision devant une voyelle ou un h.
+export const deNom = (nom: string) => (/^[aeiouyhàâéèêëîïôöûü]/i.test(nom) ? `d’${nom}` : `de ${nom}`);
+
 // « 9 h », « 14 h 05 »
 export function heure(iso: string): string {
 	const [h, m] = iso.slice(11, 16).split(':');

@@ -73,7 +73,7 @@
 
 	{#if peutProposer}
 		<div class="proposer">
-			<p><strong>{p.annee} n’est pas préparée.</strong> <span class="doux">L’appli peut pré-remplir le brouillon d’après {p.annee - 1}. Vous retouchez, puis vous publiez.</span></p>
+			<p><strong>{p.annee} n’est pas préparée.</strong> <span class="doux">L’appli peut pré-remplir le brouillon d’après {p.annee - 1}. Vous ajustez, puis vous publiez.</span></p>
 			<a class="bouton-lien" href={ici({ proposition: '1' })} data-sveltekit-reset="false">Partir d’une proposition</a>
 		</div>
 	{/if}
@@ -272,7 +272,7 @@
 		{:else if !p.semaines.length}
 			{@render sansRoulement()}
 		{:else}
-			<p class="doux">Touchez une semaine pour changer son équipe (un échange, le tour des fêtes). La suite du roulement ne bouge pas.</p>
+			<p class="doux">Choisissez une semaine pour changer son équipe (un échange, le tour des fêtes). La suite du roulement ne bouge pas.</p>
 			{@render retour('semaines')}
 			<div class="grille">
 				{#each mois as m (m.numero)}

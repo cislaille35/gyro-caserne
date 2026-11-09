@@ -147,10 +147,8 @@
 	}
 	h2 {
 		margin: 0;
-		font: 700 var(--texte-16) var(--police-titre);
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
-		color: var(--doux);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
+		color: var(--encre);
 	}
 	.liste {
 		display: flex;

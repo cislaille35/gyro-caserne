@@ -141,7 +141,7 @@
 	<EnTetePage titre="Fichier de l'effectif" phrase="Pour charger ou changer l'effectif en masse, dans Excel ou LibreOffice. Pour un seul agent, passez par sa fiche." />
 
 	<Carte titre="Télécharger">
-		<p class="note">Le modèle vierge sert au premier chargement ; l'export, aux mises à jour.</p>
+		<p class="note">Le modèle vierge sert au premier chargement ; l'export, aux mises à jour.</p>
 		<div class="actions">
 			<Bouton variante="secondaire" desactive={occupe} onclick={() => telecharger(true)}>Télécharger le modèle vierge</Bouton>
 			<Bouton variante="secondaire" desactive={occupe} onclick={() => telecharger(false)}>Exporter l'effectif</Bouton>

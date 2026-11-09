@@ -42,7 +42,7 @@
 		<div class="principal">
 			{#if data.releve && presents.length}
 				<ListeRangees titre="Prise de garde et anomalies">
-					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" alerte={faites < presents.length} /></li>
+					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{pluriel(faites, 'prise faite', 'prises faites')} sur {presents.length}" alerte={faites < presents.length} /></li>
 					<li><Rangee href="/engins/anomalies" titre="Anomalies" sous={ouvertes ? `${pluriel(ouvertes, 'ouverte', 'ouvertes')}, à suivre jusqu’à la réparation` : 'Aucune ouverte'} alerte={ouvertes > 0} /></li>
 				</ListeRangees>
 			{/if}

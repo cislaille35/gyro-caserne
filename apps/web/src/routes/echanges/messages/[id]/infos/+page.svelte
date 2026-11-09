@@ -365,11 +365,8 @@
 	.carte h2 {
 		margin: 0;
 		padding: var(--espace-12) var(--espace-16) var(--espace-6);
-		color: var(--doux);
-		font-size: var(--texte-14);
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+		color: var(--encre);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
 	}
 	ul {
 		list-style: none;

@@ -191,7 +191,7 @@
 		{:else}
 			<section class="panneau" aria-label="Avant de commencer">
 				{#if data.peutFaire}
-					<p>Lisez chaque zone, puis touchez « Tout est complet » sous sa liste. Le premier geste commence la prise ; un collègue peut ensuite la reprendre sur son téléphone.</p>
+					<p>Lisez chaque zone, puis appuyez sur « Tout est complet » sous sa liste. Le premier geste commence la prise ; un collègue peut ensuite la reprendre sur son téléphone.</p>
 				{:else}
 					<p class="doux">La prise de garde est faite par les agents du centre.</p>
 				{/if}

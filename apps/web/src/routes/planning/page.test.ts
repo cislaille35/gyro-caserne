@@ -43,7 +43,9 @@ describe('onglet Planning', () => {
 	it('en-tête vivant et carte : compte à rebours, dates, équipe écrite, gestes', () => {
 		const html = page({});
 		expect(html).toMatch(/<h1[^>]*>Planning<\/h1>/);
-		expect(html).toContain('Votre équipe est d’astreinte dans 5 jours.');
+		expect(html).toContain('Votre équipe est d’astreinte dans 5 jours');
+		// Une seule fois : la plaque le dit, l'en-tête ne le répète pas.
+		expect(html.match(/Votre équipe est d’astreinte dans 5 jours/g)).toHaveLength(1);
 		expect(html).toContain('Ma prochaine astreinte');
 		expect(html).toContain('Du ven. 6 nov. 18 h au ven. 13 nov. 6 h');
 		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-06"');

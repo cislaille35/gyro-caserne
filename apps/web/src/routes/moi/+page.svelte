@@ -64,11 +64,11 @@
 			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" /></li>
 			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" /></li>
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>
-			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" /></li>
+			<li><Rangee href="/moi/notifications" titre="Notifications" /></li>
 		{/if}
 		<!-- Cachée dans l'appli installée (ouverte en plein écran), sans attendre JavaScript. -->
 		<li class="installer"><Rangee href="/moi/installer" titre="Installer l’appli" sous="Sur l’écran d’accueil, avec les notifications" /></li>
-		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" /></li>
+		<li><Rangee href="/affichage" titre="Affichage" /></li>
 	</ListeRangees>
 
 	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>

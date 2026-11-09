@@ -479,4 +479,21 @@ describe('direction B', () => {
 		expect(s).not.toMatch(/icone=\{r\.icone\}/);
 		expect(s).not.toContain('sous="Calendrier des réservations"');
 	});
+
+	// Texte (lot 8).
+	it('un seul format d’heure : « 19 h », « 16 h 04 », jamais « 19:00 »', () => {
+		for (const f of ['lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte', 'routes/echanges/[mur]/[id]/+page.svelte']) expect(source(f), f).not.toMatch(/hour: '2-digit'/);
+	});
+
+	it('plus de sur-titre en majuscules espacées dans un écran', () => {
+		for (const f of ['routes/echanges/[mur]/+page.svelte', 'routes/echanges/messages/nouveau/+page.svelte', 'routes/echanges/messages/nouveau/groupe/+page.svelte', 'routes/echanges/messages/[id]/infos/+page.svelte']) expect(style(f), f).not.toMatch(/text-transform: uppercase/);
+	});
+
+	it('à l’ordinateur on ne « touche » pas : hors des gestes propres au téléphone', () => {
+		for (const f of ['routes/engins/[id]/prise/+page.svelte', 'routes/planning/preparer/+page.svelte', 'routes/planning/ete/+page.svelte', 'routes/reglages/roles/[id]/+page.svelte']) expect(source(f), f).not.toMatch(/[Tt]ouchez/);
+	});
+
+	it('une invitation à écrire n’a pas de Gyro à la loupe', () => {
+		expect(source('lib/messagerie/Conversation.svelte')).toMatch(/<Vide gyro=\{false\} texte="Écrivez votre premier message/);
+	});
 });

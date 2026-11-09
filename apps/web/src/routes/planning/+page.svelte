@@ -54,7 +54,7 @@
 		!p.publiee
 			? `Le planning ${p.annee} n’est pas encore publié.`
 			: carte
-				? `${phraseAstreinte(carte, m).titre}.`
+				? undefined
 				: mode === 'moi'
 					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
 					: undefined

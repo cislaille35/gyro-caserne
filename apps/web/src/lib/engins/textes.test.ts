@@ -9,9 +9,12 @@ describe('textes des engins', () => {
 		expect(situationDe({ ...engin, situation: 'centre' })).toBe('Au centre');
 		expect(situationDe({ ...engin, situation: 'parti', partiLe: '2026-11-02' })).toBe('Parti le 2 nov. 2026');
 	});
+	it('sous-ligne : le type n’est pas répété quand le nom le dit', () => {
+		expect(sousLigne({ ...engin, nom: 'VSAV 1', type: 'VSAV', situation: 'centre', immatriculation: 'AA-101-SP' })).toBe('AA-101-SP');
+	});
 	it('sous-ligne : type, plaque, prêt', () => {
-		expect(sousLigne(engin)).toBe('VSAV, AB-123-CD, prêté par CIS Exemple-Nord');
-		expect(sousLigne({ ...engin, situation: 'centre', immatriculation: null })).toBe('VSAV');
+		expect(sousLigne({ ...engin, nom: 'Ambulance' })).toBe('VSAV, AB-123-CD, prêté par CIS Exemple-Nord');
+		expect(sousLigne({ ...engin, nom: 'Ambulance', situation: 'centre', immatriculation: null })).toBe('VSAV');
 	});
 	it('compte zones et éléments', () => {
 		expect(compteFiche([{ elements: [1, 2] }, { elements: [3] }])).toBe('2 zones · 3 éléments');
