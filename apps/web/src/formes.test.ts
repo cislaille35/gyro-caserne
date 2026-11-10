@@ -72,7 +72,7 @@ describe('formes', () => {
 		for (const f of ['routes/planning/+page.svelte', 'lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte']) expect(source(f), f).not.toMatch(/^\s*\.(bascule|reponse)\b/m);
 	});
 
-	it('les cartes : sans bord fin, l’ombre douce et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
+	it('les cartes : sans bord fin, l’ombre de carte (sans effet) et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
 		const cartes: [string, string][] = [
 			['lib/ui/Carte.svelte', 'section'],
 			['lib/ui/Groupe.svelte', '.groupe'],

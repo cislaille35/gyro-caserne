@@ -57,20 +57,14 @@ Vocabulaire : un **agent** est un pompier du centre, utilisateur de l'appli. Un 
 
 ## Interface
 
-Pour ne pas retomber dans les travers corrigés par la refonte. Détail : [`docs/technique/interface.md`](docs/technique/interface.md).
+Avant de créer ou de toucher un écran, un composant ou un style : la charte, [`.claude/skills/charte-gyro/SKILL.md`](.claude/skills/charte-gyro/SKILL.md) (décision 0026). Ses règles vérifiables sont gardées par `apps/web/src/formes.test.ts` et `jetons.test.ts`. Détail technique : [`docs/technique/interface.md`](docs/technique/interface.md).
 
-- Une carte par groupe de lignes (`ListeRangees`), jamais une carte par ligne.
-- Cartes arrondies et plates : une surface sur le fond, sans bord fin ni ombre (décision 0026).
-- Pas de bande de couleur à gauche pour dire qu'une ligne est nouvelle ou à traiter : un mot, un point, une pastille ou du gras.
-- La pilule est réservée aux états (pastilles, compteurs, interrupteurs) ; boutons et liens d'action en rectangles arrondis.
-- Un choix entre quelques options : un bloc segmenté (`.segments`), pas des boutons épars.
-- Une icône sans tuile, à l'encre, seulement si elle distingue quelque chose (type, rôle, comité, ressource) ; sinon un visage, une date ou rien.
-- Gyro seulement sur l'accueil, la connexion, les écrans vides et les réussites.
-- Sous un titre, une phrase seulement si elle apprend quelque chose ; jamais une qui répète le titre.
-- Au plus deux infos reliées par « · » ; au-delà, des virgules ou une ligne de plus.
-- Humour varié : pas deux fois la même blague (le café…), et jamais dans l'urgence.
-- Couleurs, tailles de texte, espacements et rayons par jetons (`app.css`), jamais en dur ; sur une couleur d'équipe, le texte noir ou blanc choisi par `encreSur`.
-- Les composants communs d'abord (`Rangee`, `Champ`, `ChoixRadio`, `ChampPhoto`, `Bouton`, cases à cocher de `app.css`) : pas de contrôle natif ou refait à la main dans un écran.
+L'essentiel, pour ne pas retomber dans les travers corrigés par la refonte :
+- fond gris clair, cartes plates, une carte par groupe de lignes, aucune bande de couleur sur un côté ;
+- vrais titres en Barlow Condensed, icônes à l'encre sans tuile ;
+- rouge pour l'action courante seulement, actions rares sous « Plus », actions graves en contour rouge et toujours confirmées ;
+- jetons d'`app.css` pour toute valeur, composants communs pour tout contrôle ;
+- Gyro seulement sur l'accueil, la connexion, les écrans vides et les réussites ; humour varié, jamais dans l'urgence.
 
 ## Données et sécurité
 
