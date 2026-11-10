@@ -34,7 +34,7 @@
 <div class="page">
 	<EnTetePage titre="Moi" />
 
-	<section class="carte" aria-label="Mon identité" style:--teinte={id?.equipe?.couleur ?? null}>
+	<section class="carte" aria-label="Mon identité">
 		{#if id}
 			<Visage prenom={id.prenom} nom={id.nom} couleur={id.equipe?.couleur ?? null} taille={52} />
 			<div class="qui">
@@ -95,9 +95,7 @@
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		/* Un liseré à la couleur de l'équipe, quand il y en a une. */
-		box-shadow:
-			inset 0 4px 0 var(--teinte, transparent),
-			var(--ombre-carte);
+		box-shadow: var(--ombre-carte);
 	}
 	.qui {
 		min-width: 0;

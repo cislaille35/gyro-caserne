@@ -279,9 +279,10 @@ describe('direction B', () => {
 	});
 
 	// Cartes et listes (lot 3).
-	it('plus de bande de couleur à gauche, sauf pour une citation', () => {
+	it('plus de bande de couleur sur un côté, sauf pour une citation', () => {
 		const citations = ['lib/ui/Bulle.svelte', 'lib/messagerie/Saisie.svelte', 'lib/ui/Publication.svelte'];
-		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-left(?:-width)?: *[2-9]px[^;]*;|inset [2-9]px 0 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
+		// Sur aucun côté : ni à gauche, ni dessous, ni dessus.
+		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-(?:left|bottom|top)(?:-width)?: *[3-9]px[^;]*;|inset -?[2-9]px 0 0[^;]*;|inset 0 -?[2-9]px 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
 		expect(bandes).toEqual([]);
 		expect(source('lib/ui/Groupe.svelte')).not.toMatch(/border-left/);
 	});
