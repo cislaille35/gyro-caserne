@@ -158,7 +158,7 @@
 				<form method="POST" action={action('proposer')} use:enhance={garder}><Bouton type="submit">Proposer la répartition</Bouton></form>
 			{:else}
 				<div class="entete-liste">
-					<p class="doux">{e.ete.publiee ? 'Publiée : vos changements valent tout de suite, et seuls les agents touchés sont prévenus.' : 'Touchez une semaine pour voir ses plages, puis une plage pour la modifier.'}</p>
+					<p class="doux">{e.ete.publiee ? 'Publiée : vos changements valent tout de suite, et seuls les agents touchés sont prévenus.' : 'Choisissez une semaine pour voir ses plages, puis une plage pour la modifier.'}</p>
 					{#if !e.ete.publiee}
 						<details class="menu">
 							<summary>Plus d’actions</summary>

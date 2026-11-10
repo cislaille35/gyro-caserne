@@ -108,12 +108,12 @@
 </svelte:head>
 
 <div class="fichier">
-	<EnTetePage titre="Fichier des fiches" phrase="Toutes les fiches de prise de garde dans Excel ou LibreOffice : une feuille par type d’engin, une ligne par élément." retour={{ href: '/engins/fiches', libelle: 'Fiches' }} />
+	<EnTetePage titre="Fichier des fiches" phrase="Toutes les fiches de prise de garde dans Excel ou LibreOffice : une feuille par type d’engin, une ligne par élément." retour={{ href: '/engins/fiches', libelle: 'Fiches' }} />
 
 	<ol class="etapes" role="list">
 		<li>
 			<Carte titre="1. Exporter les fiches">
-				<p class="note">Partez toujours de l’export : la colonne « Réf. » garde le lien de chaque élément avec son historique. Une ligne sans « Réf. » est un nouvel élément ; une ligne effacée retire l’élément. Une feuille absente laisse sa fiche telle quelle.</p>
+				<p class="note">Partez toujours de l’export : la colonne « Réf. » garde le lien de chaque élément avec son historique. Une ligne sans « Réf. » est un nouvel élément ; une ligne effacée retire l’élément. Une feuille absente laisse sa fiche telle quelle.</p>
 				<div class="actions"><Bouton variante="secondaire" desactive={occupe} onclick={exporter}>Exporter les fiches</Bouton></div>
 			</Carte>
 		</li>
@@ -135,9 +135,9 @@
 	{:else if apercu}
 		<Carte titre="3. Vérifier, puis valider" ancre="titre-apercu">
 			<div class="apercu">
-				<p class="resume">{changees.length ? pluriel(changees.length, 'fiche changée', 'fiches changées') : 'Aucun changement'}{apercu.erreurs.length ? `, ${pluriel(apercu.erreurs.length, 'erreur')}` : ''}</p>
+				<p class="resume">{changees.length ? pluriel(changees.length, 'fiche changée', 'fiches changées') : 'Aucun changement'}{apercu.erreurs.length ? `, ${pluriel(apercu.erreurs.length, 'erreur')}` : ''}</p>
 				{#each apercu.fiches as f (f.type)}
-					<Groupe titre="Fiche {f.type}" resume={resumerFiche(f) + (f.nouvelleVersion ? ` · deviendra la version ${f.version + 1}` : '')} niveauTitre={3}>
+					<Groupe titre="Fiche {f.type}" resume={resumerFiche(f) + (f.nouvelleVersion ? ` · deviendra la version ${f.version + 1}` : '')} niveauTitre={3}>
 						<div class="details">
 							{#each [['Ajoutés', f.ajoutes], ['Retirés', f.retires], ['Modifiés', f.modifies]] as const as [titre, liste] (titre)}
 								{#if liste.length}
@@ -155,9 +155,9 @@
 				{#if apercu.erreurs.length}
 					<section>
 						<h4>{pluriel(apercu.erreurs.length, 'erreur', 'erreurs')}</h4>
-						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
+						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
 						<ul class="erreurs">
-							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
+							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
 						</ul>
 					</section>
 				{/if}

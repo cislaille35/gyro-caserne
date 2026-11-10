@@ -109,10 +109,10 @@
 </svelte:head>
 
 <div class="fichier">
-	<EnTetePage titre="Fichier du planning {data.annee}" phrase="Préparer l’année en une fois, dans Excel ou LibreOffice : semaines, manœuvres, vacances scolaires et été. Les fériés sont calculés." retour={{ href: `/planning/preparer?annee=${data.annee}`, libelle: 'Préparer l’année' }} />
+	<EnTetePage titre="Fichier du planning {data.annee}" phrase="Préparer l’année en une fois, dans Excel ou LibreOffice : semaines, manœuvres, vacances scolaires et été. Les fériés sont calculés." retour={{ href: `/planning/preparer?annee=${data.annee}`, libelle: 'Préparer l’année' }} />
 
 	<Carte titre="Exporter l’année">
-		<p class="note">Une année vide donne un modèle avec le roulement calculé. Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).</p>
+		<p class="note">Une année vide donne un modèle avec le roulement calculé. Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).</p>
 		<div class="actions"><Bouton variante="secondaire" desactive={occupe} onclick={exporter}>Exporter l’année {data.annee}</Bouton></div>
 	</Carte>
 
@@ -126,20 +126,20 @@
 	{#if fini}
 		<Carte titre="Fichier appliqué" ancre="titre-fini">
 			<p>{resumer(apercu!)}.</p>
-			<p class="note">Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.</p>
+			<p class="note">Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.</p>
 			<div class="actions"><a class="lien" href="/planning/preparer?annee={data.annee}">Revenir à Préparer {data.annee}</a></div>
 		</Carte>
 	{:else if apercu}
 		<Carte titre="Aperçu de l’import" ancre="titre-apercu">
 			<div class="apercu">
 				<p class="resume">{resumer(apercu)}</p>
-				{#each alertesFetes(apercu) as a (a)}<p class="alerte"><strong>Tour des fêtes :</strong> {a}</p>{/each}
+				{#each alertesFetes(apercu) as a (a)}<p class="alerte"><strong>Tour des fêtes :</strong> {a}</p>{/each}
 
 				{#if apercu.semaines.length}
 					<section>
 						<h3>{pluriel(apercu.semaines.length, 'semaine changée', 'semaines changées')}</h3>
 						<ul>
-							{#each apercu.semaines as s (s.debut)}<li>S{s.numero}, semaine du {jourLong(s.debut)} : {s.avant} <span aria-hidden="true">→</span><span class="cache">devient</span> {s.apres}</li>{/each}
+							{#each apercu.semaines as s (s.debut)}<li>S{s.numero}, semaine du {jourLong(s.debut)} : {s.avant} <span aria-hidden="true">→</span><span class="cache">devient</span> {s.apres}</li>{/each}
 						</ul>
 					</section>
 				{/if}
@@ -148,7 +148,7 @@
 						<section>
 							<h3>{pluriel(apercu.manoeuvres[cle].length, s, p)}</h3>
 							<ul>
-								{#each apercu.manoeuvres[cle] as m, i (i)}<li>{momentLong(m.debut)} · {m.theme}{'annoncee' in m && m.annoncee ? ' (déjà annoncée : marquée « Annulée », convoqués prévenus)' : ''}</li>{/each}
+								{#each apercu.manoeuvres[cle] as m, i (i)}<li>{momentLong(m.debut)} · {m.theme}{'annoncee' in m && m.annoncee ? ' (déjà annoncée : marquée « Annulée », convoqués prévenus)' : ''}</li>{/each}
 							</ul>
 						</section>
 					{/if}
@@ -157,8 +157,8 @@
 					<section>
 						<h3>Vacances scolaires</h3>
 						<ul>
-							{#each apercu.vacances.ajoutees as v (v.nom + v.debut)}<li>Ajoutées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
-							{#each apercu.vacances.retirees as v (v.nom + v.debut)}<li>Retirées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
+							{#each apercu.vacances.ajoutees as v (v.nom + v.debut)}<li>Ajoutées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
+							{#each apercu.vacances.retirees as v (v.nom + v.debut)}<li>Retirées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
 						</ul>
 					</section>
 				{/if}
@@ -171,9 +171,9 @@
 				{#if apercu.erreurs.length}
 					<section>
 						<h3>{pluriel(apercu.erreurs.length, 'erreur', 'erreurs')}</h3>
-						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
+						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
 						<ul class="erreurs">
-							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
+							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
 						</ul>
 					</section>
 				{/if}

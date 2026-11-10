@@ -7,7 +7,7 @@
 	import VueAnnee from '#lib/planning/VueAnnee.svelte';
 	import VueMois from '#lib/planning/VueMois.svelte';
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
-	import { avecGroupe, phraseAstreinte } from '#lib/planning/astreinte.ts';
+	import { avecGroupe } from '#lib/planning/astreinte.ts';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
 	import { ETATS, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -54,7 +54,7 @@
 		!p.publiee
 			? `Le planning ${p.annee} n’est pas encore publié.`
 			: carte
-				? `${phraseAstreinte(carte, m).titre}.`
+				? undefined
 				: mode === 'moi'
 					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
 					: undefined

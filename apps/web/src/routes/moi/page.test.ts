@@ -13,7 +13,7 @@ describe('/moi', () => {
 		expect(page).toMatch(/<a[^>]*href="\/moi\/notifications"[^>]*>[\s\S]*?Notifications/);
 		expect(page).toMatch(/<a[^>]*href="\/profil"[^>]*>[\s\S]*?Mon profil/);
 		expect(page).toMatch(/<a[^>]*href="\/moi\/agenda"[^>]*>[\s\S]*?Ajouter à mon agenda/);
-		expect(page).toMatch(/<a[^>]*href="\/affichage"[^>]*>[\s\S]*?Affichage[\s\S]*?Thème et présence de Gyro/);
+		expect(page).toMatch(/<a[^>]*href="\/affichage"[^>]*>[\s\S]*?Affichage/);
 		expect(page).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/deconnecter"[\s\S]*?<button[^>]*type="submit"[^>]*>[\s\S]*?Se déconnecter/);
 	});
 

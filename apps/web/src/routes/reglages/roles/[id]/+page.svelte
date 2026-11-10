@@ -110,7 +110,7 @@
 {#if data.raison}<p class="raison">{data.raison}</p>{/if}
 {@render retour('role')}
 
-<p class="intro">Ce que ce rôle peut faire, en plus de ce que tout agent fait déjà.{lectureSeule ? '' : ' Touchez un domaine pour le régler.'}</p>
+<p class="intro">Ce que ce rôle peut faire, en plus de ce que tout agent fait déjà.{lectureSeule ? '' : ' Choisissez un domaine pour le régler.'}</p>
 
 <svelte:element this={lectureSeule ? 'div' : 'form'} class="formulaire" {...lectureSeule ? {} : { method: 'POST', action: '?/enregistrer', id: 'role' }}>
 	<Domaines droits={actuels} modele={data.modele?.droits ?? null} bind:choix {lectureSeule} formRevenir="revenir" />

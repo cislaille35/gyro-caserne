@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDeDate } from '@gyro-caserne/socle/dates';
+	import { momentLong } from '#lib/planning/dates.ts';
 	import { DESSINS } from './icones-roles.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';
@@ -22,8 +22,7 @@
 	] as const;
 	const lien = (i: ItemANePasManquer) => `/echanges/${i.cle}/${i.id}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
-	const debut = (iso: string) =>
-		formatDeDate({ weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const debut = momentLong;
 	const refus = (id: number) => (form?.cible === `publication:${id}` ? form.message : undefined);
 
 	const r = $derived(regrouper(a));

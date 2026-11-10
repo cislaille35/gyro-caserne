@@ -305,7 +305,7 @@
 			<p class="pages"><a href="?avant={messages[0]!.id}" onclick={chargerAnciens}>Messages plus anciens</a></p>
 		{/if}
 		{#if nouvelle && messages.length === 0}
-			<Vide texte="Écrivez votre premier message à {nouvelle.prenom}." />
+			<Vide gyro={false} texte="Écrivez votre premier message à {nouvelle.prenom}." />
 		{/if}
 		{#each elements as e (e.cle)}
 			{#if e.type === 'jour'}

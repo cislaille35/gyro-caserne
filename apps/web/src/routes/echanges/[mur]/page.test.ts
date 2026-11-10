@@ -255,7 +255,7 @@ describe('gestes sur une publication', () => {
 		expect(avant).toContain('>J’ai pris connaissance<');
 		const apres = agir(pub({ type: 'annonce', priseDeConnaissance: { le: '2026-10-28T14:30:00', faites: 1, attendues: 3 } }));
 		expect(apres).not.toContain('?/prendreConnaissance');
-		expect(apres).toContain('Vous avez pris connaissance le 28 octobre à 14:30.');
+		expect(apres).toContain('Vous avez pris connaissance le 28 octobre, 14 h 30.');
 		// L’auteur n’a pas à prendre connaissance de son annonce ; il en voit le suivi.
 		const auteur = agir(pub({ type: 'annonce', priseDeConnaissance: { le: null, faites: 0, attendues: 3 }, droits: { modifier: true, supprimer: true, epingler: false, fermer: true } }));
 		expect(auteur).not.toContain('?/prendreConnaissance');
@@ -307,7 +307,7 @@ describe('cartes par type', () => {
 		const page = agir(bravo);
 		expect(page).toMatch(/<button[^>]*aria-pressed="false"[^>]*>Applaudir · <span[^>]*>12<\/span>/);
 		expect(page).not.toContain('J’aime');
-		expect(page).toContain('Bravo !');
+		expect(page).toContain('Bravo !');
 		expect(page).toContain('class="gyro');
 		expect(page).toContain('class="confettis');
 		const sobre = agir(bravo, 'sobre');

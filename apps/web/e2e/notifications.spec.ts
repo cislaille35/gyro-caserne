@@ -83,7 +83,7 @@ test('couper un mur, le retrouver dans Moi → Notifications, le réactiver', as
 	await sansViolation(page);
 
 	await page.getByRole('link', { name: 'Moi', exact: true }).click();
-	await page.getByRole('link', { name: /^Notifications Ce téléphone/ }).click();
+	await page.locator('main').getByRole('link', { name: 'Notifications', exact: true }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Notifications' })).toBeVisible();
 	await expect(page.getByRole('switch', { name: 'Tout couper au téléphone' })).toHaveAttribute('aria-checked', 'false');
 	await sansViolation(page);
