@@ -10,3 +10,4 @@
 - **Pourquoi** : B retire le plus visible de l'effet « généré » à moindre risque, et le porteur a préféré cette direction après les avoir comparées sur l'accueil, le Planning et Échanges. Le dispositif permet un test d'ensemble sur téléphone sans toucher à la préprod.
 - **Exception** à la décision 0004, limitée à cette refonte. À la fin : retirer `deployer-refonte.yml`, remettre `preview_urls: false`, noter ici « terminée ».
 - **Validé par** : le porteur du projet, le 08/11/2026.
+- **Terminée** : la refonte est fusionnée sur `main` avec la validation du porteur (PR `fonction/refonte-ui` → `main`). `deployer-refonte.yml` retiré, `preview_urls: false` remis : l'adresse d'essai est coupée au déploiement suivant de la préprod. La charte vit dans `.claude/skills/charte-gyro/`.
