@@ -186,7 +186,7 @@
 	.jour:has(input:checked) {
 		border: 2px solid var(--encre);
 		padding: calc(var(--espace-12) - 1px) calc(var(--espace-16) - 1px);
-		background: color-mix(in srgb, var(--rouge) 8%, var(--surface));
+		background: var(--statut-neutre-fond);
 	}
 	.jour:has(input:focus-visible) {
 		outline: 3px solid var(--focus);

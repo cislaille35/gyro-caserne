@@ -38,6 +38,8 @@ Deux cookies, lus par le serveur (`src/lib/affichage.ts`) et posés sur `<html d
 
 Réglés sur l'appareil, à la page `/affichage`, même sans être connecté.
 
+Un lien sans classe prend la couleur du texte (`:where(a)` dans `app.css`) : jamais le bleu ou le violet du navigateur.
+
 ## Mouvement
 
 - Ce qui se touche répond à l'appui (`scale(0.97)`, 160 ms) : règle commune d'`app.css`, sans poids. Les lignes entières (`Rangee`) n'ont que leur changement de fond.

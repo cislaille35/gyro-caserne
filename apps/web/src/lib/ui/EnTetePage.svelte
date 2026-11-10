@@ -94,8 +94,9 @@
 		display: contents;
 	}
 	.titres:not(.avec-tete) h1 {
-		flex: 1 1 8rem;
-		min-width: 0;
+		flex: 1 1 auto;
+		min-width: min-content;
+		overflow-wrap: normal;
 	}
 	.phrase {
 		flex-basis: 100%;

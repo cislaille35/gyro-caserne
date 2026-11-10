@@ -320,10 +320,7 @@
 		line-height: 1.45;
 	}
 
-	/* Annonce à lire et confirmer */
-	.a-confirmer {
-		border: 2px solid var(--statut-alerte-trait);
-	}
+	/* Annonce à lire et confirmer : son bandeau le dit, sans cadre de couleur. */
 	.bandeau {
 		display: flex;
 		align-items: center;
@@ -397,7 +394,6 @@
 
 	/* Bravo */
 	.bravo {
-		border-color: var(--statut-alerte-trait);
 		background: var(--surface);
 	}
 	.confettis {
@@ -449,10 +445,6 @@
 	/* Les morceaux du bouton sont des éléments flexibles : l'espace avant le nombre vient de l'écart. */
 	.aimer {
 		gap: 0.3em;
-	}
-	.bravo .aimer {
-		border: 2px solid var(--statut-alerte-trait);
-		color: var(--statut-alerte-texte);
 	}
 	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.aimer[aria-pressed='true'] {

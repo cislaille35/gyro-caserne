@@ -117,8 +117,7 @@
 		})}
 	/>
 	{#if js}
-		{@const t = choix ? teinteDuMur(choix.type, choix) : null}
-		<p class="visible" aria-live="polite" hidden={!choix} style:--visible-fond={t?.fond} style:--visible-encre={t?.encre}>
+		<p class="visible" aria-live="polite" hidden={!choix}>
 			<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
 			<span>{choix ? `${phraseAudience(choix.type, choix.nom, choix.audience)}.` : ''}</span>
 		</p>
@@ -264,8 +263,8 @@
 		gap: var(--espace-8);
 		padding: var(--espace-12) var(--espace-12);
 		border-radius: var(--rayon-bouton);
-		background: var(--visible-fond);
-		color: var(--visible-encre);
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
 		font-size: var(--texte-15);
 	}
 	.visible svg {

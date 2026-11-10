@@ -533,13 +533,13 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 50%;
-		background: var(--statut-danger-fond);
-		color: var(--accent);
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.contact a:hover .rond {
-			background: var(--rouge);
-			color: var(--sur-rouge);
+			background: var(--encre);
+			color: var(--surface);
 		}
 	}
 	@media (hover: hover) and (pointer: fine) {

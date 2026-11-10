@@ -759,10 +759,11 @@
 	.valider-bloque {
 		min-height: var(--cible);
 		padding: 0 var(--espace-20);
-		border: 2px dashed var(--doux);
+		border: 1px solid transparent;
 		border-radius: var(--rayon-bouton);
-		background: var(--segment-fond);
-		color: var(--doux);
+		background: var(--rouge);
+		color: var(--sur-rouge);
+		opacity: 0.6;
 		font: 700 var(--texte-16) var(--police);
 		cursor: not-allowed;
 	}
