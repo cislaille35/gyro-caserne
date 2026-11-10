@@ -500,7 +500,7 @@ describe('direction B', () => {
 
 	// Passe complète.
 	it('un titre ne se coupe jamais en plein mot : le bouton d’action passe dessous', () => {
-		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.titres:not\(\.avec-tete\) h1 \{\s*flex: 1 1 auto;\s*min-width: min-content;/);
+		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.titres:not\(\.avec-tete\) h1 \{\s*flex: 1 1 auto;\s*min-width: 0;\s*overflow-wrap: break-word;/);
 	});
 
 	it('une publication épinglée ou un bravo ne portent pas de cadre coloré', () => {

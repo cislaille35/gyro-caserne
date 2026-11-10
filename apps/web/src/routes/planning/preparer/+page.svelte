@@ -722,7 +722,6 @@
 	}
 	.case.changee {
 		border-style: dashed;
-		border-bottom-style: solid;
 	}
 	.case.ouverte {
 		box-shadow: 0 0 0 3px var(--focus);
