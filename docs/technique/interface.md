@@ -1,6 +1,6 @@
 # Interface
 
-Choix d'ensemble : [décision 0008](../decisions/0008-design-interface.md), revue par la [décision 0026](../decisions/0026-refonte-ui-2.md). Maquettes : [`docs/superpowers/specs/2026-10-26-design-ui/`](../superpowers/specs/2026-10-26-design-ui/).
+Choix d'ensemble : [décision 0008](../decisions/0008-design-interface.md), revue par la [décision 0026](../decisions/0026-refonte-ui-2.md). La charte, pour qui écrit un écran : [`.claude/skills/charte-gyro/SKILL.md`](../../.claude/skills/charte-gyro/SKILL.md), gardée à jour par `src/charte.test.ts`. Maquettes : [`docs/superpowers/specs/2026-10-26-design-ui/`](../superpowers/specs/2026-10-26-design-ui/).
 
 ## Jetons
 
