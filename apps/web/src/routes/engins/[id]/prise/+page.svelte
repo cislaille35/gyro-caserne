@@ -759,7 +759,7 @@
 	.valider-bloque {
 		min-height: var(--cible);
 		padding: 0 var(--espace-20);
-		border: 2px dashed var(--doux);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--segment-fond);
 		color: var(--doux);

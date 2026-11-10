@@ -160,8 +160,7 @@
 
 {#key fiche.id}
 	<div class="fiche">
-		<header class="entete" style:--teinte={fiche.equipe?.couleur ?? null}>
-			<div class="bandeau" aria-hidden="true"></div>
+		<header class="entete">
 			<div class="corps">
 				<span class="visage"><Visage prenom={fiche.prenom} nom={fiche.nom} couleur={fiche.equipe?.couleur ?? null} taille={88} /></span>
 				<h1 tabindex="-1">{fiche.prenom} {fiche.nom}</h1>
@@ -459,7 +458,7 @@
 		gap: var(--espace-16);
 		padding: var(--espace-16);
 	}
-	/* La carte d'identité : un bandeau à la couleur de l'équipe, le visage à cheval. */
+	/* La carte d'identité : le visage à la couleur de l'équipe, le nom, le grade. */
 	.entete {
 		overflow: hidden;
 		background: var(--surface);
@@ -467,20 +466,15 @@
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
-	.bandeau {
-		height: 64px;
-		background: var(--teinte, var(--statut-neutre-fond));
-	}
 	.corps {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: var(--espace-8);
-		padding: 0 var(--espace-16) var(--espace-16);
+		padding: var(--espace-20) var(--espace-16) var(--espace-16);
 		text-align: center;
 	}
 	.visage {
-		margin-top: -48px;
 		border: 4px solid var(--surface);
 		border-radius: 50%;
 		display: inline-flex;
@@ -539,13 +533,13 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 50%;
-		background: var(--statut-danger-fond);
-		color: var(--accent);
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
 	}
 	@media (hover: hover) and (pointer: fine) {
 		.contact a:hover .rond {
-			background: var(--rouge);
-			color: var(--sur-rouge);
+			background: var(--encre);
+			color: var(--surface);
 		}
 	}
 	@media (hover: hover) and (pointer: fine) {

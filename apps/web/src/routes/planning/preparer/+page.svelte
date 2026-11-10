@@ -699,9 +699,8 @@
 		justify-content: center;
 		padding: var(--espace-4) 2px;
 		border: 1px solid color-mix(in srgb, var(--equipe) 55%, var(--trait-doux));
-		border-bottom: 5px solid var(--equipe);
 		border-radius: var(--rayon-bouton);
-		background: color-mix(in srgb, var(--equipe) 14%, var(--surface));
+		background: color-mix(in srgb, var(--equipe) 24%, var(--surface));
 		color: var(--encre);
 		text-decoration: none;
 		line-height: 1.1;
@@ -723,7 +722,6 @@
 	}
 	.case.changee {
 		border-style: dashed;
-		border-bottom-style: solid;
 	}
 	.case.ouverte {
 		box-shadow: 0 0 0 3px var(--focus);

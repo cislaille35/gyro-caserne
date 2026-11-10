@@ -33,7 +33,7 @@
 	<title>{data.mur.nom} · Échanges · Gyro Caserne</title>
 </svelte:head>
 
-<header class="bande" class:centre={data.mur.type === 'centre'} style:--bande-fond={teinte.fond} style:--bande-encre={teinte.encre} style:--bande-trait={teinte.trait}>
+<header class="bande" class:centre={data.mur.type === 'centre'} style:--bande-fond={teinte.fond} style:--bande-encre={teinte.encre}>
 	<Retour href="/echanges" libelle="Tous les murs" />
 	<div class="identite">
 		<span class="embleme"><PastilleMur icone={tuile.icone} couleur={tuile.couleur} numero={tuile.numero} /></span>
@@ -97,7 +97,6 @@
 		padding: var(--espace-8) var(--espace-16) var(--espace-16);
 		background: var(--bande-fond);
 		color: var(--bande-encre);
-		box-shadow: inset 0 -4px 0 var(--bande-trait);
 	}
 	.identite {
 		display: flex;

@@ -279,9 +279,10 @@ describe('direction B', () => {
 	});
 
 	// Cartes et listes (lot 3).
-	it('plus de bande de couleur à gauche, sauf pour une citation', () => {
+	it('plus de bande de couleur sur un côté, sauf pour une citation', () => {
 		const citations = ['lib/ui/Bulle.svelte', 'lib/messagerie/Saisie.svelte', 'lib/ui/Publication.svelte'];
-		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-left(?:-width)?: *[2-9]px[^;]*;|inset [2-9]px 0 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
+		// Sur aucun côté : ni à gauche, ni dessous, ni dessus.
+		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-(?:left|bottom|top)(?:-width)?: *[3-9]px[^;]*;|inset -?[2-9]px 0 0[^;]*;|inset 0 -?[2-9]px 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
 		expect(bandes).toEqual([]);
 		expect(source('lib/ui/Groupe.svelte')).not.toMatch(/border-left/);
 	});
@@ -495,5 +496,27 @@ describe('direction B', () => {
 
 	it('une invitation à écrire n’a pas de Gyro à la loupe', () => {
 		expect(source('lib/messagerie/Conversation.svelte')).toMatch(/<Vide gyro=\{false\} texte="Écrivez votre premier message/);
+	});
+
+	// Passe complète.
+	it('un titre ne se coupe jamais en plein mot : le bouton d’action passe dessous', () => {
+		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.titres:not\(\.avec-tete\) h1 \{\s*flex: 1 1 auto;\s*min-width: 0;\s*overflow-wrap: break-word;/);
+	});
+
+	it('une publication épinglée ou un bravo ne portent pas de cadre coloré', () => {
+		const s = style('lib/ui/Publication.svelte');
+		expect(s).not.toMatch(/border: 2px solid var\(--statut-alerte-trait\)/);
+		expect(s).not.toMatch(/\.bravo \{[^}]*border-color/);
+	});
+
+	it('un lien sans classe prend la couleur du texte, jamais le bleu ou le violet du navigateur', () => {
+		expect(source('app.css')).toMatch(/:where\(a\) \{\s*color: inherit;/);
+	});
+
+	it('rien de rouge qui ne soit une action : contacts, jours choisis, mur choisi', () => {
+		expect(style('routes/agents/[id]/+page.svelte')).not.toMatch(/background: var\(--statut-danger-fond\)/);
+		expect(style('lib/remplacements/ChoixSemaine.svelte')).not.toMatch(/var\(--rouge\) 8%/);
+		expect(source('lib/ui/FormulairePublication.svelte')).not.toContain('style:--visible-fond');
+		expect(style('routes/engins/[id]/prise/+page.svelte')).not.toMatch(/dashed var\(--doux\)/);
 	});
 });

@@ -94,8 +94,9 @@
 		display: contents;
 	}
 	.titres:not(.avec-tete) h1 {
-		flex: 1 1 8rem;
+		flex: 1 1 auto;
 		min-width: 0;
+		overflow-wrap: break-word;
 	}
 	.phrase {
 		flex-basis: 100%;

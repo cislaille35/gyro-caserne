@@ -307,6 +307,12 @@ body {
 	}
 }
 
+/* Un lien sans classe prend la couleur du texte qui l'entoure. Sans poids : un écran le recolore. */
+:where(a) {
+	color: inherit;
+	text-underline-offset: 3px;
+}
+
 /* Classes communes à tous les écrans. */
 /* Texte lu par les lecteurs d'écran, invisible à l'écran. */
 .masque {
