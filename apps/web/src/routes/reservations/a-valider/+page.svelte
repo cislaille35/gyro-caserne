@@ -146,10 +146,6 @@
 	.plus {
 		width: 100%;
 	}
-	.plus summary {
-		list-style: none;
-		display: inline-flex;
-	}
 	.plus form {
 		display: flex;
 		flex-direction: column;
@@ -190,10 +186,11 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
 	@media (min-width: 1024px) {
 		.page {

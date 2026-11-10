@@ -186,9 +186,6 @@
 		outline: 2px solid var(--equipe);
 		outline-offset: -2px;
 	}
-	.discrete {
-		border-left-color: color-mix(in srgb, var(--equipe) 45%, transparent);
-	}
 	.discrete .equipe,
 	.discrete .dates {
 		color: var(--doux);

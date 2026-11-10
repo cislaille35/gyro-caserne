@@ -59,7 +59,7 @@
 
 	<Carte titre="Coupés">
 		{#if data.coupes.length === 0}
-			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, touchez le haut-parleur dans son en-tête.</p>
+			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, appuyez sur le haut-parleur dans son en-tête.</p>
 		{:else}
 			<ul role="list">
 				{#each data.coupes as c (c.lieu)}

@@ -1,5 +1,7 @@
 # 0008 — Design de l'interface : les fondations
 
+> Le fond, les cartes et les tuiles de son complément sont remplacés par la [décision 0026](0026-refonte-ui-2.md) (direction B).
+
 - **Contexte** : les premiers écrans de gestion arrivent. Sans socle commun, chaque écran inventerait ses couleurs, ses boutons et son accessibilité. Le porteur veut une appli de gestion sérieuse, mais qui vit : du mouvement, de l'humour, Gyro.
 - **Options** :
   - reprendre un système de design existant (DSFR) : accessible, mais l'allure d'un site de l'État ;
