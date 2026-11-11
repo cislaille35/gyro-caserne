@@ -43,7 +43,7 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 		base.select({ personneId: vacancesAgent.personneId, debut: vacancesAgent.debut, fin: vacancesAgent.fin }).from(vacancesAgent).where(gte(vacancesAgent.fin, ajouterJours(aujourdhui, -8)))
 	]);
 	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes, plages: plages.map(lirePlage), vacances };
+	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes, plages: plages.map(lirePlage), vacances, astreintes: new Map<number, SemaineCalculee[]>() };
 }
 
 export type Contexte = Awaited<ReturnType<typeof lireContexte>>;
@@ -71,10 +71,15 @@ export type Chef = { personneId: number; systeme: string | null; equipeId: numbe
 const affectationsDe = (ctx: Contexte, id: number) => ctx.affectations.filter((a) => a.personneId === id);
 
 // Les semaines d'astreinte de la personne : son équipe à la relève ; en été publié, ses plages (renfort compris).
-// `periodes` : ses heures à elle.
+// `periodes` : ses heures à elle. Calculées une fois par personne et par requête : un échange compare chaque collègue
+// à chaque tranche, et refaire l'année à chaque fois dépassait le temps de calcul de Cloudflare (décision 0021).
 export function astreintesDe(ctx: Contexte, id: number): SemaineCalculee[] {
+	const deja = ctx.astreintes.get(id);
+	if (deja) return deja;
 	const siennes = affectationsDe(ctx, id);
-	return ctx.semaines.map((s) => ({ ...s, periodes: heuresDe(s, equipeLe(siennes, s.debut), id, ctx.plages) })).filter((s) => s.periodes.length > 0);
+	const calculees = ctx.semaines.map((s) => ({ ...s, periodes: heuresDe(s, equipeLe(siennes, s.debut), id, ctx.plages) })).filter((s) => s.periodes.length > 0);
+	ctx.astreintes.set(id, calculees);
+	return calculees;
 }
 
 export const dAstreinte = (ctx: Contexte, id: number, p: Periode) => astreintesDe(ctx, id).some((s) => s.periodes.some((x) => chevauche(x, p)));
