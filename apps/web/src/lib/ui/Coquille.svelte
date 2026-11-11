@@ -49,7 +49,7 @@
 	<header>
 		<div class="titre">
 			<span class="appli">Gyro Caserne</span>
-			<span class="centre">{#if ecusson !== null}<img class="ecusson" src="/ecusson?v={ecusson}" alt="Écusson de {nomCentre}" width="20" height="20" />{/if}{nomCentre}</span>
+			<span class="centre">{#if ecusson !== null}<img class="ecusson" src="/ecusson?v={ecusson}" alt="" width="20" height="20" />{/if}{nomCentre}</span>
 		</div>
 		{#if connecte}
 			<a class="rond cloche" href="/notifications" aria-label={nomCloche} aria-current={courant('/notifications')}>
