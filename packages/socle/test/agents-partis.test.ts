@@ -9,7 +9,7 @@ import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { ficheAgent, listeGestion } from '../src/effectif.ts';
 import { donneesFichier } from '../src/fichier-effectif.ts';
 import { lireDemande, toutesLesDemandes } from '../src/habillement.ts';
-import { effacerAgent, effacerAgentsPartis, PARTIS_PAR_NUIT } from '../src/partis.ts';
+import { dateDEffacement, effacerAgent, effacerAgentsPartis, PARTIS_PAR_NUIT } from '../src/partis.ts';
 import { historiquePrises, lirePriseFaite } from '../src/prises.ts';
 import { demandeVue } from '../src/remplacements/lectures.ts';
 import {
@@ -72,6 +72,14 @@ describe('date de départ', () => {
 		expect((await j.lire(id)).partiLe).toBeNull();
 		await j.partir(id, '2025-12-01');
 		expect((await j.lire(id)).partiLe).toBe('2025-12-01');
+	});
+});
+
+describe('dateDEffacement', () => {
+	it('la première nuit où la limite de 12 mois atteint le départ : un an après, le 1er mars pour un 29 février', () => {
+		expect(dateDEffacement('2025-11-11')).toBe('2026-11-11');
+		expect(dateDEffacement('2028-02-29')).toBe('2029-03-01');
+		expect(dateDEffacement('2027-02-28')).toBe('2028-02-28');
 	});
 });
 

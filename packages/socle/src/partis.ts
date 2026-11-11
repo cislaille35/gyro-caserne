@@ -12,6 +12,13 @@ import { aptitudeAgent, cleAgenda, envoiLien, journal, personne, user, valeurCha
 // La fiche reste, sous « Ancien agent » : publications, messages, demandes, prises de garde, anomalies et habillement la citent.
 export const PARTIS_PAR_NUIT = 10;
 
+// Le jour où la nuit l'efface : un an après le départ (la limite de 12 mois tombe le 28 février pour un départ un 29 : le 1er mars).
+export function dateDEffacement(partiLe: string): string {
+	exigerDate(partiLe);
+	const suivant = `${Number(partiLe.slice(0, 4)) + 1}${partiLe.slice(4)}`;
+	return suivant.endsWith('-02-29') ? `${suivant.slice(0, 4)}-03-01` : suivant;
+}
+
 // Une adresse unique qui ne reçoit rien (domaine réservé `.invalid`) : la colonne reste remplie et unique.
 const adresseEffacee = (id: number) => `efface-${id}@efface.invalid`;
 
