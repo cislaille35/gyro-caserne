@@ -47,8 +47,8 @@ describe('page fiche agent', () => {
 			expect(entete).toMatch(/aria-hidden="true"[^>]*>AM</);
 			expect(entete).toMatch(/<h1[^>]*>Alice Martin<\/h1>/);
 			expect(entete).toContain('Caporal-chef · Équipe 1');
-			// Le bandeau et le visage à la couleur de l'équipe.
-			expect(entete).toMatch(/<header[^>]*style="--teinte: #b3121f;?"/);
+			// Le visage à la couleur de l'équipe, sans bandeau.
+			expect(entete).not.toContain('bandeau');
 			expect(entete).toMatch(/background: #b3121f[^>]*>AM</);
 			expect(entete).toContain('Opérationnel');
 			expect(entete).toContain('Référent engins');

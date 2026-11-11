@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
 	import { FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from '@gyro-caserne/socle';
 	import { tick } from 'svelte';
 	import { duAu, jourLong, momentLong } from '#lib/planning/dates.ts';
@@ -108,19 +109,15 @@
 </svelte:head>
 
 <div class="fichier">
-	<EnTetePage titre="Fichier du planning {data.annee}" phrase="Préparer l’année en une fois, dans Excel ou LibreOffice : semaines, manœuvres, vacances scolaires et été. Les fériés sont calculés." retour={{ href: `/planning/preparer?annee=${data.annee}`, libelle: 'Préparer l’année' }} />
+	<EnTetePage titre="Fichier du planning {data.annee}" phrase="Préparer l’année en une fois, dans Excel ou LibreOffice : semaines, manœuvres, vacances scolaires et été. Les fériés sont calculés." retour={{ href: `/planning/preparer?annee=${data.annee}`, libelle: 'Préparer l’année' }} />
 
 	<Carte titre="Exporter l’année">
-		<p class="note">Une année vide donne un modèle avec le roulement calculé. Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).</p>
+		<p class="note">Une année vide donne un modèle avec le roulement calculé. Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).</p>
 		<div class="actions"><Bouton variante="secondaire" desactive={occupe} onclick={exporter}>Exporter l’année {data.annee}</Bouton></div>
 	</Carte>
 
 	<Carte titre="Importer un fichier">
-		<div class="champ">
-			<label for="fichier-planning">Fichier du planning</label>
-			<p id="fichier-planning-aide" class="note">Un fichier .xlsx tiré de l’export. Rien n’est écrit avant votre validation.</p>
-			<input id="fichier-planning" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="fichier-planning-aide" disabled={occupe} bind:this={champ} onchange={importer} />
-		</div>
+		<ChampPhoto id="fichier-planning" libelle="Fichier du planning" aide="Un fichier .xlsx tiré de l’export. Rien n’est écrit avant votre validation." appel="Choisir un fichier" icone="fichier" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" desactive={occupe} bind:champ onchange={importer} />
 	</Carte>
 
 	<div role="alert">{#if erreur}<p class="echec">{erreur}</p>{/if}</div>
@@ -129,20 +126,20 @@
 	{#if fini}
 		<Carte titre="Fichier appliqué" ancre="titre-fini">
 			<p>{resumer(apercu!)}.</p>
-			<p class="note">Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.</p>
+			<p class="note">Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.</p>
 			<div class="actions"><a class="lien" href="/planning/preparer?annee={data.annee}">Revenir à Préparer {data.annee}</a></div>
 		</Carte>
 	{:else if apercu}
 		<Carte titre="Aperçu de l’import" ancre="titre-apercu">
 			<div class="apercu">
 				<p class="resume">{resumer(apercu)}</p>
-				{#each alertesFetes(apercu) as a (a)}<p class="alerte"><strong>Tour des fêtes :</strong> {a}</p>{/each}
+				{#each alertesFetes(apercu) as a (a)}<p class="alerte"><strong>Tour des fêtes :</strong> {a}</p>{/each}
 
 				{#if apercu.semaines.length}
 					<section>
 						<h3>{pluriel(apercu.semaines.length, 'semaine changée', 'semaines changées')}</h3>
 						<ul>
-							{#each apercu.semaines as s (s.debut)}<li>S{s.numero}, semaine du {jourLong(s.debut)} : {s.avant} <span aria-hidden="true">→</span><span class="cache">devient</span> {s.apres}</li>{/each}
+							{#each apercu.semaines as s (s.debut)}<li>S{s.numero}, semaine du {jourLong(s.debut)} : {s.avant} <span aria-hidden="true">→</span><span class="cache">devient</span> {s.apres}</li>{/each}
 						</ul>
 					</section>
 				{/if}
@@ -151,7 +148,7 @@
 						<section>
 							<h3>{pluriel(apercu.manoeuvres[cle].length, s, p)}</h3>
 							<ul>
-								{#each apercu.manoeuvres[cle] as m, i (i)}<li>{momentLong(m.debut)} · {m.theme}{'annoncee' in m && m.annoncee ? ' (déjà annoncée : marquée « Annulée », convoqués prévenus)' : ''}</li>{/each}
+								{#each apercu.manoeuvres[cle] as m, i (i)}<li>{momentLong(m.debut)} · {m.theme}{'annoncee' in m && m.annoncee ? ' (déjà annoncée : marquée « Annulée », convoqués prévenus)' : ''}</li>{/each}
 							</ul>
 						</section>
 					{/if}
@@ -160,8 +157,8 @@
 					<section>
 						<h3>Vacances scolaires</h3>
 						<ul>
-							{#each apercu.vacances.ajoutees as v (v.nom + v.debut)}<li>Ajoutées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
-							{#each apercu.vacances.retirees as v (v.nom + v.debut)}<li>Retirées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
+							{#each apercu.vacances.ajoutees as v (v.nom + v.debut)}<li>Ajoutées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
+							{#each apercu.vacances.retirees as v (v.nom + v.debut)}<li>Retirées : {v.nom}, {duAu(v.debut, v.fin)}</li>{/each}
 						</ul>
 					</section>
 				{/if}
@@ -174,9 +171,9 @@
 				{#if apercu.erreurs.length}
 					<section>
 						<h3>{pluriel(apercu.erreurs.length, 'erreur', 'erreurs')}</h3>
-						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
+						<p class="note">Corrigez le fichier, puis importez-le de nouveau : rien n’est appliqué tant qu’il reste une erreur.</p>
 						<ul class="erreurs">
-							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
+							{#each apercu.erreurs as e, i (i)}<li>{e.feuille}, ligne {e.ligne} : {e.message}</li>{/each}
 						</ul>
 					</section>
 				{/if}
@@ -193,7 +190,7 @@
 	.fichier {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -204,25 +201,12 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 12px;
-	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 700;
-	}
-	input[type='file'] {
-		min-height: var(--cible);
-		max-width: 100%;
-		font: inherit;
+		gap: var(--espace-12);
+		margin-top: var(--espace-12);
 	}
 	.echec,
 	.alerte {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -233,19 +217,19 @@
 	.apercu {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	h3 {
-		margin: 0 0 8px;
-		font: 700 1.125rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	ul {
 		margin: 0;
-		padding-left: 20px;
+		padding-left: var(--espace-20);
 		overflow-wrap: anywhere;
 	}
 	li + li {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.resume {
 		font-weight: 700;

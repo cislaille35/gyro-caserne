@@ -19,14 +19,14 @@
 		tete?: Snippet;
 		retour?: { href: string; libelle: string };
 		secondaire?: Snippet;
-		action?: { href: string; libelle: string; dessin?: string };
+		action?: { href: string; libelle: string; dessin?: string; discrete?: boolean };
 	} = $props();
 </script>
 
 <header class="entete">
 	{#if retour}<Retour href={retour.href} libelle={retour.libelle} />{/if}
 	<div class="ligne">
-		<div class="titres">
+		<div class="titres" class:avec-tete={tete || complement}>
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 			{#if complement}{@render complement()}{/if}
@@ -36,7 +36,7 @@
 			<div class="actions">
 				{#if secondaire}<span class="secondaire">{@render secondaire()}</span>{/if}
 				{#if action}
-					<a class="action" href={action.href}>
+					<a class="action" class:discrete={action.discrete} href={action.href}>
 						<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
 							><path d={action.dessin ?? DESSINS.plus} /></svg
 						>
@@ -53,7 +53,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	/* Les actions passent sous le titre quand la place manque (téléphone, titre long). */
 	.ligne {
@@ -61,7 +61,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.actions {
 		margin-left: auto;
@@ -69,7 +69,7 @@
 		flex-wrap: wrap;
 		justify-content: flex-end;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* Gyro posé à droite du titre, sur la plaque qui suit. */
 	.tete {
@@ -83,21 +83,32 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	h1:focus {
 		outline: none;
 	}
+	/* Le bouton d'action reste à côté du titre ; la phrase passe dessous, sur toute la largeur. */
+	.titres:not(.avec-tete) {
+		display: contents;
+	}
+	.titres:not(.avec-tete) h1 {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow-wrap: break-word;
+	}
 	.phrase {
+		flex-basis: 100%;
+		order: 1;
 		margin: 2px 0 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.secondaire {
 		flex: none;
 		display: inline-flex;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.action {
 		flex: none;
@@ -107,17 +118,31 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 0 18px 0 14px;
+		gap: var(--espace-6);
+		padding: 0 var(--espace-16) 0 var(--espace-16);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
 		text-decoration: none;
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 30%, transparent);
 	}
-	.action:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.action:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
+	}
+	/* Une action rare : le rouge reste à ce qu'on fait tous les jours. */
+	.action.discrete {
+		border: 1px solid var(--trait);
+		background: var(--surface);
+		color: var(--encre);
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.action.discrete:hover {
+			background: var(--surface);
+			color: var(--encre);
+			border-color: var(--encre);
+		}
 	}
 	/* Le libellé se voit à toutes les tailles : le bouton dit ce qu'il fait. */
 	.libelle {

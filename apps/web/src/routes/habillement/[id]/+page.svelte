@@ -175,7 +175,7 @@
 				<div><Bouton type="submit" desactive={envoi}>Enregistrer</Bouton></div>
 			{:else if panneau === 'annuler'}
 				<p>Le référent habillement en sera prévenu s’il la suit déjà. Une demande annulée ne se rouvre pas.</p>
-				<div><Bouton type="submit" desactive={envoi}>Oui, annuler ma demande</Bouton></div>
+				<div><Bouton type="submit" variante="grave" desactive={envoi}>Oui, annuler ma demande</Bouton></div>
 				{@render erreur('annuler')}
 			{:else}
 				<ChoixRadio id="recuperation" name="recuperation" legende="Où la récupérer ?" options={RECUPERATIONS} bind:valeur={recuperation} disposition="rangees" requis />
@@ -197,7 +197,7 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -209,7 +209,7 @@
 		display: none;
 	}
 	.bandeau {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid;
 		border-radius: var(--rayon-petit);
 	}
@@ -225,21 +225,28 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.etapes li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.puce {
 		display: inline-grid;
 		place-items: center;
 		flex: none;
-		width: 22px;
-		height: 22px;
-		border: 2px solid var(--trait);
+		width: 12px;
+		height: 12px;
+		margin-inline: var(--espace-4);
+		border: 1px solid var(--trait);
 		border-radius: 50%;
+	}
+	.faite .puce,
+	.en-cours .puce {
+		width: 20px;
+		height: 20px;
+		margin-inline: 0;
 	}
 	.faite .puce {
 		border-color: var(--statut-ok-texte);
@@ -263,7 +270,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding: 10px 0;
+		padding: var(--espace-12) 0;
 	}
 	.fil li:first-child {
 		padding-top: 0;
@@ -276,7 +283,7 @@
 		overflow-wrap: anywhere;
 	}
 	.question {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-alerte-fond);
@@ -290,7 +297,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.echec {
 		color: var(--statut-danger-texte);
@@ -301,7 +308,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

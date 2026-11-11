@@ -7,8 +7,8 @@ Chacun règle l'allure de l'appli : **Moi → Affichage** (« Thème et présenc
 | Rubrique | Choix | Ce que ça change |
 |---|---|---|
 | Présence de Gyro | **Sobre** | « Sérieux : ni humour ni mouvement. » Gyro n'apparaît pas, pas de fêtes, pas d'ambiance météo. |
-| | **Équilibré** | « Un peu de couleur et de légèreté. » Gyro reste immobile. |
-| | **Vivant** (par défaut) | « Toute la bonne humeur de la caserne. » Gyro s'anime, la phrase d'en-tête prend une pointe d'humour. |
+| | **Équilibré** | « Un peu de couleur et de légèreté. » Gyro reste immobile, pas d'ambiance météo. |
+| | **Vivant** (par défaut) | « Toute la bonne humeur de la caserne. » Gyro et l'ambiance météo s'animent à l'arrivée puis s'arrêtent, la phrase d'en-tête prend une pointe d'humour. |
 | Thème | **Comme le téléphone** (par défaut), **Clair**, **Sombre** | Les couleurs de fond et de texte. |
 
 - « Enregistrer » applique le choix tout de suite : « Votre affichage est enregistré. »

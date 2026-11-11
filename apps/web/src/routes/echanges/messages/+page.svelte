@@ -33,22 +33,22 @@
 
 <style>
 	.messages {
-		max-width: 44rem;
+		max-width: var(--largeur-liste);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 		/* Le bouton crayon flotte au-dessus de la barre du bas : la fin de liste passe toujours au-dessus de lui. */
 		padding-bottom: 5rem;
 	}
 	.entete {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	h1 {
 		flex: 1;
 		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 	}
 
 	.crayon {
@@ -58,17 +58,18 @@
 		z-index: 10;
 		width: 60px;
 		height: 60px;
-		border-radius: 20px;
+		border-radius: var(--rayon-grand);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		box-shadow: 0 6px 16px color-mix(in srgb, var(--rouge) 35%, transparent);
 	}
-	.crayon:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.crayon:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
 
 	/* À l'ordinateur : le crayon prend place à côté du titre, rien ne flotte. */
@@ -80,7 +81,7 @@
 			position: static;
 			width: 48px;
 			height: 48px;
-			border-radius: 16px;
+			border-radius: var(--rayon-grand);
 		}
 	}
 </style>

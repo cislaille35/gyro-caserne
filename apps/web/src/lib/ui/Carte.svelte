@@ -18,10 +18,10 @@
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
-		padding: 20px;
+		padding: var(--espace-20);
 	}
 	h2 {
-		margin: 0 0 12px;
-		font: 700 1.5rem var(--police-titre);
+		margin: 0 0 var(--espace-12);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 </style>

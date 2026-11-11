@@ -5,7 +5,7 @@
 
 	// Une ligne d'un groupe (dans la carte de `ListeRangees`) : tête (tuile qui porte un sens, visage, date), titre, sous-ligne, valeur ou `droite` ;
 	// avec `href`, toute la ligne est un lien, avec chevron. Avec `children` (des gestes sous le texte), le lien du titre s'étend à la ligne
-	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte (en tête, ou à droite s'il y a une tête) ;
+	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte, à droite ;
 	// `discret`, pour ce qui n'existe pas encore. `sous` en liste : une ligne par info, quand elles sont trop nombreuses pour une seule.
 	let {
 		titre,
@@ -50,16 +50,14 @@
 		{@render tete()}
 	{:else if icone}
 		<IconeRole {icone} {dessin} taille={40} />
-	{:else if alerte}
-		{@render signe(false)}
 	{/if}
 	<div class="corps">
 		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
 		{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}
 		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>
-	<!-- Avec une icône en tête, le signe d'alerte passe à droite : jamais la couleur seule. -->
-	{#if alerte && (tete || icone)}{@render signe(true)}{/if}
+	<!-- Le signe d'alerte à droite, pour que les textes d'une liste restent alignés : jamais la couleur seule. -->
+	{#if alerte}{@render signe(true)}{/if}
 	{#if droite}
 		<span class="droite">{@render droite()}</span>
 	{:else if valeur}
@@ -83,27 +81,30 @@
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		color: var(--encre);
 		text-decoration: none;
 	}
-	a.rangee:hover,
-	.rangee:has(.etire:hover) {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		a.rangee:hover,
+		.rangee:has(.etire:hover) {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
-	a.rangee:hover .titre,
-	.etire:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.rangee:hover .titre,
+		.etire:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Le repère du clavier à l'intérieur de la ligne : la carte rogne ce qui dépasse. */
 	a.rangee:focus-visible {
 		outline-offset: -3px;
 	}
-	/* La page affichée : fond, liseré et titre en gras, pas la couleur seule. */
+	/* La page affichée : fond et titre en gras, pas la couleur seule. */
 	a.rangee[aria-current='page'] {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--encre);
 	}
 	a.rangee[aria-current='page'] .titre {
 		font-weight: 800;
@@ -120,7 +121,7 @@
 	}
 	.titre {
 		font-weight: 600;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		line-height: 1.3;
 		color: inherit;
 		overflow-wrap: anywhere;
@@ -156,18 +157,18 @@
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		overflow-wrap: anywhere;
 	}
 	.droite {
 		flex: none;
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.valeur {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	.chevron {
@@ -180,17 +181,16 @@
 		flex: none;
 		width: 40px;
 		height: 40px;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 	}
 	.a-droite {
 		width: 32px;
 		height: 32px;
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 	}
 	/* Pas encore là : en retrait. */
 	.discret .titre {

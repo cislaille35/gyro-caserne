@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const titulaire = (id: number, prenom: string, perimetre: { type: string; id: number | null; nom: string | null } = { type: 'comite', id: 2, nom: 'Amicale' }) => ({
 	id,
@@ -41,7 +42,7 @@ describe('/nominations : cartes', () => {
 		expect(page).not.toContain('principal');
 		expect(page.match(/class="nommer/g)).toHaveLength(data.roles.length);
 		expect(carte(page, 'Référent engins')).toContain('Tout le centre');
-		expect(carte(page, 'Référent engins')).toContain('--icone-camion-fond');
+		expect(carte(page, 'Référent engins')).toContain(`d="${ICONES_ROLES.camion}"`);
 		expect(carte(page, 'Membre de comité')).toContain('Amicale');
 		expect(carte(page, 'Chef de garde')).toContain('Équipe 1, Équipe 2');
 	});
@@ -102,7 +103,7 @@ describe('/nominations : panneau « Nommer »', () => {
 		expect(panneau).toContain('Bob Durand (Équipe 1)');
 		expect(panneau).toMatch(/<input type="hidden" name="perimetre" value="centre"/);
 		expect(panneau).toContain('À partir d’aujourd’hui');
-		expect(panneau).toMatch(/<details>(?:(?!<\/details>)[\s\S])*Changer les dates[\s\S]*name="debut"[^>]*value="2026-10-27"/);
+		expect(panneau).toMatch(/<details class="repli[^"]*">(?:(?!<\/details>)[\s\S])*Changer les dates[\s\S]*name="debut"[^>]*value="2026-10-27"/);
 		expect(panneau).toMatch(/name="fin"/);
 	});
 
@@ -130,7 +131,7 @@ describe('/nominations : panneau « Nommer »', () => {
 		const panneau = page.slice(page.indexOf('<dialog'), page.indexOf('</dialog>'));
 		expect(panneau).toContain('Cette personne tient déjà ce rôle sur cette période');
 		expect(panneau).toMatch(/role="alert"[^>]*>(<!--[^>]*-->)*<p[^>]*>Le formulaire contient des erreurs\./);
-		expect(panneau).toContain('<details open');
+		expect(panneau).toMatch(/<details class="repli[^"]*" open/);
 		expect(panneau).toContain('value="2026-12-01"');
 		expect(carte(page, 'Référent engins')).toContain('<dialog');
 	});

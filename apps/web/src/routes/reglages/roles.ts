@@ -13,7 +13,10 @@ export const NOMS_ICONES: Record<IconeRole, string> = {
 	groupe: 'Groupe',
 	coeur: 'Cœur',
 	outil: 'Outil',
-	veste: 'Veste'
+	veste: 'Veste',
+	banc: 'Banc',
+	table: 'Table',
+	tente: 'Tente'
 };
 
 export const PORTEES = [

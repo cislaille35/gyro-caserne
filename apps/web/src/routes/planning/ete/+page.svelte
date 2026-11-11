@@ -74,7 +74,7 @@
 	<EnTetePage titre="Été {e.annee}" phrase={resumeEte(e)} retour={{ href: `/planning/preparer?annee=${e.annee}`, libelle: `Préparer ${e.annee}` }} />
 
 	<nav class="etapes" aria-label="Étapes">
-		<p class="ou">Étape {rang + 1} sur {ETAPES_ETE.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES_ETE.length) * 100}%"></span></span></p>
+		<p class="ou">Étape {rang + 1} sur {ETAPES_ETE.length}</p>
 		<ol role="list">
 			{#each ETAPES_ETE as x, i (x.id)}
 				<li>
@@ -109,7 +109,7 @@
 				{@render retour(['relancer'])}
 				<ul class="rangees" role="list">
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Ont répondu<span class="doux">{' '}· avec des vacances</span></span><span class="compte">{avecVacances.length}</span></summary>
 							{#if avecVacances.length}
 								<ul class="noms" role="list">
@@ -119,7 +119,7 @@
 						</details>
 					</li>
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Sans réponse</span><span class="compte">{sansReponse.length}</span></summary>
 							{#if sansReponse.length}
 								<ul class="noms" role="list">{#each sansReponse as r (r.id)}<li>{r.prenom} {r.nom}</li>{/each}</ul>
@@ -140,7 +140,7 @@
 						{/if}
 					</li>
 					<li>
-						<details>
+						<details class="repli">
 							<summary><span class="titre-rangee">Disponibles tout l’été</span><span class="compte">{toutLete.length}</span></summary>
 							{#if toutLete.length}<ul class="noms" role="list">{#each toutLete as r (r.id)}<li>{r.prenom} {r.nom}</li>{/each}</ul>{:else}<p class="doux contenu">Personne pour l’instant.</p>{/if}
 						</details>
@@ -158,7 +158,7 @@
 				<form method="POST" action={action('proposer')} use:enhance={garder}><Bouton type="submit">Proposer la répartition</Bouton></form>
 			{:else}
 				<div class="entete-liste">
-					<p class="doux">{e.ete.publiee ? 'Publiée : vos changements valent tout de suite, et seuls les agents touchés sont prévenus.' : 'Touchez une semaine pour voir ses plages, puis une plage pour la modifier.'}</p>
+					<p class="doux">{e.ete.publiee ? 'Publiée : vos changements valent tout de suite, et seuls les agents touchés sont prévenus.' : 'Choisissez une semaine pour voir ses plages, puis une plage pour la modifier.'}</p>
 					{#if !e.ete.publiee}
 						<details class="menu">
 							<summary>Plus d’actions</summary>
@@ -168,7 +168,7 @@
 				</div>
 				{#if e.conflits.length}
 					<!-- Replié, le nombre reste visible : l'alerte ne se fait pas oublier. -->
-					<details class="alerte">
+					<details class="alerte repli">
 						<summary><h3><span aria-hidden="true">⚠</span>{' '}{pluriel(e.conflits.length, 'remplacement à revoir', 'remplacements à revoir')}</h3></summary>
 						<ul>{#each e.conflits as t (t)}<li>{t}</li>{/each}</ul>
 					</details>
@@ -177,7 +177,7 @@
 					{#each semaines as s (s.debut)}
 						{@const eq = equipe(s.equipeId)}
 						<li>
-							<details class="semaine" style:--equipe={eq.couleur}>
+							<details class="semaine repli" style:--equipe={eq.couleur}>
 								<summary>
 									<span class="titre-rangee">Semaine du {jourCourt(s.debut)}</span>
 									<PastilleEquipe nom={eq.nom} couleur={eq.couleur} />
@@ -219,7 +219,7 @@
 
 	<nav class="suite" aria-label="Étape précédente ou suivante">
 		{#if rang > 0}<a href={vers(ETAPES_ETE[rang - 1]!.id)}>‹ {ETAPES_ETE[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
-		{#if rang < ETAPES_ETE.length - 1}<a class="suivante" href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
+		{#if rang < ETAPES_ETE.length - 1}<a href={vers(ETAPES_ETE[rang + 1]!.id)}>{ETAPES_ETE[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
 
 	<!-- Le bouton de publication vit à la dernière étape ; avant, « Publier › » y conduit. -->
@@ -306,8 +306,8 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 60rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-page);
 	}
 	p,
 	h2,
@@ -316,17 +316,17 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	h2:focus {
 		outline: none;
 	}
 	h3 {
-		font: 700 1.0625rem var(--police-titre);
+		font: 700 var(--texte-16) var(--police-titre);
 	}
 	h4 {
-		margin: 8px 0 0;
-		font-size: 0.9375rem;
+		margin: var(--espace-8) 0 0;
+		font-size: var(--texte-15);
 		color: var(--doux);
 	}
 	.doux {
@@ -337,7 +337,7 @@
 	.etapes {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.etapes ol {
 		margin: 0;
@@ -345,27 +345,15 @@
 		list-style: none;
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.ou {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--doux);
 		font-weight: 600;
-		font-size: 0.9375rem;
-	}
-	.barre {
-		flex: 1;
-		height: 6px;
-		border-radius: 3px;
-		background: var(--trait-doux);
-		overflow: hidden;
-	}
-	.barre span {
-		display: block;
-		height: 100%;
-		background: var(--encre);
+		font-size: var(--texte-15);
 	}
 	.etapes a {
 		min-height: 56px;
@@ -374,10 +362,10 @@
 		align-items: center;
 		justify-content: center;
 		gap: 2px;
-		padding: 6px 2px;
-		border-radius: 14px;
+		padding: var(--espace-6) 2px;
+		border-radius: var(--rayon-grand);
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
@@ -390,10 +378,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.etapes a.faite .numero {
 		border-color: var(--encre);
@@ -412,10 +400,10 @@
 	.etape {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.carte {
-		padding: 14px 16px;
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -426,7 +414,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px 16px;
+		gap: var(--espace-8) var(--espace-16);
 	}
 	.phrase {
 		font-weight: 700;
@@ -436,7 +424,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -460,33 +448,20 @@
 	}
 	.rangees summary {
 		min-height: var(--cible);
-		padding: 10px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		cursor: pointer;
 		list-style: none;
-	}
-	.rangees summary::-webkit-details-marker {
-		display: none;
-	}
-	.rangees summary::after {
-		content: '›';
-		margin-left: auto;
-		font-size: 1.25rem;
-		color: var(--doux);
-		transition: transform 0.15s;
-	}
-	.rangees details[open] > summary::after {
-		transform: rotate(90deg);
 	}
 	.titre-rangee {
 		font-weight: 700;
 	}
 	.compte {
 		min-width: 2rem;
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border-radius: 999px;
 		background: var(--fond);
 		border: 1px solid var(--trait-doux);
@@ -495,29 +470,29 @@
 	}
 	.noms {
 		margin: 0;
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 		list-style: none;
 		overflow-wrap: anywhere;
 	}
 	.noms li + li {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.contenu {
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 	}
 	.relance {
-		padding: 0 16px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 12px;
+		gap: var(--espace-8) var(--espace-12);
 	}
 	.entete-liste {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.menu {
 		position: relative;
@@ -526,7 +501,7 @@
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		font-weight: 600;
@@ -536,33 +511,30 @@
 		display: flex;
 		align-items: center;
 		min-height: var(--cible);
-		margin-top: 6px;
-		padding: 0 14px;
+		margin-top: var(--espace-6);
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
 		color: var(--encre);
 		font-weight: 600;
 	}
-	.semaine summary {
-		border-left: 4px solid var(--equipe);
-	}
 	.plages {
 		margin: 0;
-		padding: 0 16px 12px;
+		padding: 0 var(--espace-16) var(--espace-12);
 		list-style: none;
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.plages a {
 		min-height: var(--cible);
-		padding: 6px 12px;
+		padding: var(--espace-6) var(--espace-12);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 4px 12px;
+		gap: var(--espace-4) var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		color: var(--encre);
@@ -575,7 +547,7 @@
 		font-weight: 700;
 	}
 	.etat {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		color: var(--doux);
 	}
 	.non-arme .etat {
@@ -584,7 +556,7 @@
 	}
 	.encadre,
 	.alerte {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 	}
@@ -596,44 +568,31 @@
 	}
 	.alerte summary {
 		min-height: var(--cible);
-		padding: 6px 16px;
+		padding: var(--espace-6) var(--espace-16);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		cursor: pointer;
 		list-style: none;
 	}
-	.alerte summary::-webkit-details-marker {
-		display: none;
-	}
-	.alerte summary::after {
-		content: '›';
-		font-size: 1.25rem;
-		color: var(--doux);
-		transition: transform 0.15s;
-	}
-	.alerte[open] summary::after {
-		transform: rotate(90deg);
-	}
 	.alerte ul {
 		margin: 0;
-		padding: 0 16px 12px 36px;
+		padding: 0 var(--espace-16) var(--espace-12) var(--espace-32);
 	}
 	.recap {
-		margin: 6px 0 0;
-		padding-left: 20px;
+		margin: var(--espace-6) 0 0;
+		padding-left: var(--espace-20);
 	}
 	.suite {
 		display: flex;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.suite a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -641,23 +600,18 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.suite .suivante {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
-	}
 
 	/* Panneaux */
 	.formulaire {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.formulaire label {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 		font-weight: 600;
 	}
 	input[type='date'] {
@@ -665,30 +619,28 @@
 		font: inherit;
 		color: var(--texte);
 		background: var(--fond);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		padding: 0 10px;
+		padding: 0 var(--espace-12);
 	}
 	.arme,
 	.manque {
 		font-weight: 700;
 	}
 	.manque {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--accent);
 		border-radius: var(--rayon-petit);
 	}
 	.sous-titre {
-		margin-top: 16px;
+		margin-top: var(--espace-16);
 	}
 	.poste {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		color: var(--doux);
 	}
 	.liste {
-		margin: 0 0 12px;
+		margin: 0 0 var(--espace-12);
 		padding: 0;
 		list-style: none;
 	}
@@ -696,29 +648,29 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
-		padding: 4px 0;
+		padding: var(--espace-4) 0;
 	}
 	/* Les postes d'un candidat : une seconde ligne, ils sont déjà séparés par des virgules. */
 	.postes {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.liste li + li {
 		border-top: 1px solid var(--trait-doux);
 	}
 	.etiquette {
-		margin-left: 6px;
-		padding: 0 6px;
+		margin-left: var(--espace-6);
+		padding: 0 var(--espace-6);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.geste {
 		min-height: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		font: inherit;
 		font-weight: 600;
 		color: var(--texte);
@@ -733,7 +685,7 @@
 		position: absolute;
 	}
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
@@ -741,7 +693,7 @@
 		font-weight: 600;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -755,18 +707,12 @@
 	}
 	@media (min-width: 640px) {
 		.etapes a {
-			font-size: 0.875rem;
+			font-size: var(--texte-14);
 		}
 	}
 	@media (min-width: 720px) {
 		.plages {
 			grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.rangees summary::after,
-		.alerte summary::after {
-			transition: none;
 		}
 	}
 </style>

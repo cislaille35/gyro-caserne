@@ -1,6 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 import { encreSur } from '#lib/couleurs.ts';
 
 const css = readFileSync(new URL('./app.css', import.meta.url), 'utf8');
@@ -48,14 +47,18 @@ describe('jetons', () => {
 			['doux', 'surface'],
 			['accent', 'surface'],
 			['sur-rouge', 'rouge'],
-			...['ok', 'info', 'alerte', 'danger', 'neutre'].map((k) => [`statut-${k}-texte`, `statut-${k}-fond`]),
-			...Object.keys(ICONES_ROLES).map((k) => [`icone-${k}-texte`, `icone-${k}-fond`])
+			...['ok', 'info', 'alerte', 'danger', 'neutre'].map((k) => [`statut-${k}-texte`, `statut-${k}-fond`])
 		]) {
 			expect(t[a], a).toMatch(/^#[0-9a-f]{6}$/);
 			expect(t[b], b).toMatch(/^#[0-9a-f]{6}$/);
 			expect(contraste(t[a], t[b]), `${a}/${b}`).toBeGreaterThanOrEqual(4.5);
 		}
 		expect(contraste(t.focus, t.fond), 'focus/fond').toBeGreaterThanOrEqual(3);
+	});
+
+	it('le clair est un gris neutre : plus de crème ni de beige', () => {
+		expect(themes.clair).toMatchObject({ fond: '#eef0f3', 'trait-doux': '#d9dee3', 'segment-fond': '#e1e5ea', 'menu-actif': '#e1e5ea' });
+		expect(themes.clair['ombre-carte']).toBe('0 0 0 transparent');
 	});
 
 	it.each(['clair', 'sombre'])('%s : la vue Mois reste lisible, « ma semaine » comprise', (nom) => {
@@ -71,7 +74,7 @@ describe('jetons', () => {
 		expect(vue).toMatch(/\.mienne \.equipe,\s*\.mienne \.numero,\s*\.mienne \.marque,\s*\.mienne td a,\s*\.mienne \.signes span \{[^}]*color: var\(--sur-equipe\)/);
 		expect(vue).toMatch(/\.mienne \{[^}]*--focus: var\(--sur-equipe\)/);
 		// Sur « ma semaine », seule la taille distingue alors les jours hors du mois : jamais la couleur seule.
-		expect(vue).toMatch(/\.hors \.jour \{[^}]*font-size: 0\.8125rem/);
+		expect(vue).toMatch(/\.hors \.jour \{[^}]*font-size: var\(--texte-14\)/);
 		for (const equipe of ['#f2c200', '#e5699a', '#3d7fd6', '#3fa34d', '#d4a017', '#c2185b', '#1565c0', '#2e7d32', '#8a949e'])
 			expect(contraste(encreSur(equipe), equipe), equipe).toBeGreaterThanOrEqual(4.5);
 	});
@@ -118,18 +121,16 @@ describe('jetons', () => {
 		expect(contraste(themes.sombre['gyro-socle'], themes.sombre.surface)).toBeGreaterThanOrEqual(3);
 	});
 
-	it('fond crème et bord doux en clair, fond inchangé en sombre', () => {
-		expect(themes.clair.fond).toBe('#f6f3ef');
-		expect(themes.clair['trait-doux']).toBe('#e3ddd5');
+	it('en sombre, le fond ne change pas', () => {
 		expect(themes.sombre.fond).toBe('#11171f');
 		expect(themes.sombre['trait-doux']).toBe('#2b3642');
 	});
 
-	it('cartes arrondies sans bord : une ombre douce en clair, une surface plus claire que le fond en sombre', () => {
+	it('cartes arrondies sans bord ni ombre : une surface sur le fond', () => {
 		expect(themes.clair['rayon-grand']).toBe('14px');
 		expect(themes.clair['rayon-bouton']).toBe('10px');
-		expect(themes.clair['ombre-carte']).toMatch(/rgb\(/);
 		// Une ombre invisible plutôt que « none » : elle se combine avec une autre ombre.
+		expect(themes.clair['ombre-carte']).toBe('0 0 0 transparent');
 		expect(themes.sombre['ombre-carte']).toBe('0 0 0 transparent');
 		expect(luminance(themes.sombre.surface)).toBeGreaterThan(luminance(themes.sombre.fond));
 	});

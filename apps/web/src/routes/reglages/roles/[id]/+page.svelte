@@ -110,7 +110,7 @@
 {#if data.raison}<p class="raison">{data.raison}</p>{/if}
 {@render retour('role')}
 
-<p class="intro">Ce que ce rôle peut faire, en plus de ce que tout agent fait déjà.{lectureSeule ? '' : ' Touchez un domaine pour le régler.'}</p>
+<p class="intro">Ce que ce rôle peut faire, en plus de ce que tout agent fait déjà.{lectureSeule ? '' : ' Choisissez un domaine pour le régler.'}</p>
 
 <svelte:element this={lectureSeule ? 'div' : 'form'} class="formulaire" {...lectureSeule ? {} : { method: 'POST', action: '?/enregistrer', id: 'role' }}>
 	<Domaines droits={actuels} modele={data.modele?.droits ?? null} bind:choix {lectureSeule} formRevenir="revenir" />
@@ -170,7 +170,7 @@
 <!-- Sans JavaScript, « Revenir au modèle » et « Tout revenir » envoient ce formulaire. -->
 {#if !lectureSeule}<form id="revenir" method="POST" action="?/revenir"></form>{/if}
 
-<details class="pli" {...ouvert('detail')}>
+<details class="pli repli" {...ouvert('detail')}>
 	<summary>Détail droit par droit</summary>
 	{@render retour('detail')}
 	{#if lectureSeule}
@@ -199,13 +199,13 @@
 </details>
 
 {#if !lectureSeule}
-	<details class="pli" {...ouvert('archiver')}>
+	<details class="pli repli" {...ouvert('archiver')}>
 		<summary>Archiver le rôle</summary>
 		{@render retour('archiver')}
 		<form method="POST" action="?/archiver" class="formulaire-detail">
 			<p class="avertissement">{avertissement(role.titulaires)}</p>
 			<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
-			<Bouton type="submit" variante="secondaire">Archiver le rôle</Bouton>
+			<Bouton type="submit" variante="grave">Archiver le rôle</Bouton>
 		</form>
 	</details>
 {/if}
@@ -214,7 +214,7 @@
 	.en-tete-role {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	p {
 		margin: 0;
@@ -226,10 +226,10 @@
 	.pastilles {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.raison {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-neutre-fond);
 		border: 1px solid var(--statut-neutre-trait);
@@ -237,13 +237,13 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.admin,
 	fieldset {
 		border: none;
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.cache {
 		position: absolute;
@@ -253,25 +253,25 @@
 		clip-path: inset(50%);
 	}
 	.champs {
-		padding: 12px 14px 14px;
+		padding: var(--espace-12) var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 	}
 	.secondaire {
 		min-height: var(--cible);
-		padding: 0 20px;
+		padding: 0 var(--espace-20);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--doux);
 		background: var(--surface);
 		color: var(--encre);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.pli {
@@ -279,7 +279,7 @@
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 	}
 	summary {
 		min-height: 56px;
@@ -291,8 +291,8 @@
 	.formulaire-detail {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding-bottom: 14px;
+		gap: var(--espace-12);
+		padding-bottom: var(--espace-16);
 	}
 	.formulaire-detail > :global(button) {
 		align-self: flex-start;
@@ -301,14 +301,14 @@
 		font-weight: 700;
 	}
 	.detail {
-		margin: 0 0 14px;
+		margin: 0 0 var(--espace-16);
 	}
 	.avertissement {
 		font-weight: 600;
 	}
 	.echec,
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

@@ -198,7 +198,7 @@ describe('page d’un rôle', () => {
 
 	it('choix de l’icône dans la liste fixe, celle du modèle par défaut', () => {
 		const page = html({});
-		expect(page.match(/name="icone"/g)).toHaveLength(11);
+		expect(page.match(/name="icone"/g)).toHaveLength(14);
 		expect(page).toMatch(/<input type="radio" name="icone" value="camion" checked/);
 		expect(page).toContain('Camion');
 	});

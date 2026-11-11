@@ -31,9 +31,9 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 36rem;
-		padding: 16px;
+		gap: var(--espace-16);
+		max-width: var(--largeur-lecture);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -43,7 +43,7 @@
 		align-self: flex-start;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

@@ -34,18 +34,18 @@
 		flex: 1;
 		min-width: 0;
 		min-height: 48px;
-		padding: 0 16px 0 48px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
+		padding: 0 var(--espace-16) 0 var(--espace-48);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	input::placeholder {
 		color: var(--doux);
 	}
-	input:hover {
-		border-color: var(--doux);
+	@media (hover: hover) and (pointer: fine) {
+		input:hover {
+			border-color: var(--doux);
+		}
 	}
 	.loupe {
 		position: absolute;
@@ -62,7 +62,9 @@
 		color: var(--doux);
 		cursor: pointer;
 	}
-	.loupe:hover {
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.loupe:hover {
+			color: var(--encre);
+		}
 	}
 </style>

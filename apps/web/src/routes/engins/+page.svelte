@@ -35,14 +35,14 @@
 	<EnTetePage
 		titre="Engins"
 		retour={{ href: '/caserne', libelle: 'Caserne' }}
-		action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin', dessin: DESSINS.plus } : undefined}
+		action={data.gere ? { href: '/engins/nouveau', libelle: 'Ajouter un engin', dessin: DESSINS.plus, discrete: true } : undefined}
 	/>
 
 	<div class="colonnes">
 		<div class="principal">
 			{#if data.releve && presents.length}
 				<ListeRangees titre="Prise de garde et anomalies">
-					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{faites} sur {presents.length} {faites > 1 ? 'prises faites' : 'prise faite'}" alerte={faites < presents.length} /></li>
+					<li><Rangee href="/engins/prise" titre={texteReleve(data.releve)} sous="{pluriel(faites, 'prise faite', 'prises faites')} sur {presents.length}" alerte={faites < presents.length} /></li>
 					<li><Rangee href="/engins/anomalies" titre="Anomalies" sous={ouvertes ? `${pluriel(ouvertes, 'ouverte', 'ouvertes')}, à suivre jusqu’à la réparation` : 'Aucune ouverte'} alerte={ouvertes > 0} /></li>
 				</ListeRangees>
 			{/if}
@@ -87,7 +87,7 @@
 	.principal {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* Dans le bloc replié : des lignes séparées par un trait fin, sans carte de plus. */
 	.liste {
@@ -103,7 +103,10 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
+		}
+		.colonnes:has(> :only-child) {
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 </style>

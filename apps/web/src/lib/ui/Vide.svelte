@@ -17,7 +17,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		padding: 2rem 1rem;
 		text-align: center;
 	}
@@ -26,13 +26,13 @@
 		max-width: 26rem;
 	}
 	.titre {
-		margin-top: 6px;
-		font: 700 1.375rem/1.2 var(--police-titre);
+		margin-top: var(--espace-6);
+		font: 700 var(--texte-20)/1.2 var(--police-titre);
 	}
 	.titre + .texte {
 		color: var(--doux);
 	}
 	.action {
-		margin-top: 10px;
+		margin-top: var(--espace-12);
 	}
 </style>

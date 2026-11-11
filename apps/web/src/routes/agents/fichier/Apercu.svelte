@@ -109,22 +109,22 @@
 	.apercu {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	h3 {
-		margin: 0 0 8px;
-		font: 700 1.25rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	p {
-		margin: 0 0 8px;
+		margin: 0 0 var(--espace-8);
 	}
 	ul {
 		margin: 0;
-		padding-left: 20px;
+		padding-left: var(--espace-20);
 		overflow-wrap: anywhere;
 	}
 	li + li {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.note {
 		color: var(--doux);
@@ -135,7 +135,7 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.cache {
 		position: absolute;

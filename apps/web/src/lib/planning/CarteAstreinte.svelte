@@ -108,8 +108,8 @@
 		--focus: var(--sur-equipe);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px 18px;
+		gap: var(--espace-12);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--equipe);
 		color: var(--sur-equipe);
 	}
@@ -117,45 +117,45 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.ligne.haut {
 		align-items: baseline;
 		flex-wrap: wrap;
-		gap: 4px 12px;
+		gap: var(--espace-4) var(--espace-12);
 	}
 	.rebours {
 		display: flex;
 		align-items: center;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.rebours strong {
 		font: 700 5.25rem/0.85 var(--police-titre);
 	}
 	.rebours span {
-		font: 600 1.25rem/1.1 var(--police-titre);
+		font: 600 var(--texte-20)/1.1 var(--police-titre);
 	}
 	.droite {
 		text-align: right;
 	}
 	.equipe {
-		font: 700 0.9375rem var(--police-titre);
+		font: 700 var(--texte-15) var(--police-titre);
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 	}
 	.dates {
 		margin-top: 2px;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		line-height: 1.35;
 		text-align: right;
 	}
 	.jusqua {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.nom {
-		font: 700 1.625rem/1 var(--police-titre);
+		font: 700 var(--texte-24)/1 var(--police-titre);
 		text-transform: uppercase;
 	}
 	.grand {
@@ -165,7 +165,7 @@
 		overflow-wrap: anywhere;
 	}
 	.plage {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	/* Le geste du moment, sur la plaque : en encre pleine, comme dans la maquette (anthracite sur une couleur claire). */
 	.prise {
@@ -173,18 +173,20 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 10px;
-		padding: 0 16px;
+		gap: var(--espace-12);
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		background: var(--sur-equipe);
 		color: var(--sur-bouton);
-		font: 700 1.3125rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 		letter-spacing: 0.02em;
 		text-decoration: none;
 		--focus: var(--sur-equipe);
 	}
-	.prise:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.prise:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Les gestes de l'Accueil, dans la bande claire sous la plaque. */
 	.gestes {
@@ -197,8 +199,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
-		padding: 4px 10px;
+		gap: var(--espace-8);
+		padding: var(--espace-4) var(--espace-12);
 		color: var(--encre);
 		font-weight: 600;
 		text-align: center;
@@ -211,8 +213,10 @@
 	.gestes a + a {
 		border-left: 1px solid var(--trait-doux);
 	}
-	.gestes a:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.gestes a:hover {
+			text-decoration: underline;
+		}
 	}
 	.gestes svg,
 	.prise svg {
@@ -220,7 +224,7 @@
 	}
 	.gestes .planning {
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 	}
 
 	/* Au Planning : une ligne, le titre et les gestes à côté dès que la place le permet. */
@@ -228,8 +232,8 @@
 		flex-flow: row wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 10px 16px;
-		padding: 10px 10px 10px 16px;
+		gap: var(--espace-12) var(--espace-16);
+		padding: var(--espace-12) var(--espace-12) var(--espace-12) var(--espace-16);
 	}
 	.textes {
 		display: flex;
@@ -238,28 +242,28 @@
 		min-width: 0;
 	}
 	.titre {
-		font: 700 1.25rem/1.15 var(--police-titre);
+		font: 700 var(--texte-20)/1.15 var(--police-titre);
 	}
 	.plaque:not(.compacte) .plage {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.gestes-plaque {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 12px;
+		gap: var(--espace-4) var(--espace-12);
 	}
 	.plaque:not(.compacte) .prise {
 		min-height: var(--cible);
-		padding: 0 14px;
-		font: 600 1rem var(--police);
+		padding: 0 var(--espace-16);
+		font: 600 var(--texte-16) var(--police);
 		letter-spacing: 0;
 	}
 	.lien {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--sur-equipe);
 		font-weight: 600;
 		text-decoration: underline;

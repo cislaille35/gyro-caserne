@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import { tick } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { Fiche } from '@gyro-caserne/socle';
@@ -60,7 +61,7 @@
 	{#if form?.succes}<p class="succes">{form.succes}</p>{/if}
 	{#if data.nouveau && f.zones.length === 0}<p class="note">Fiche créée. Commencez par ses zones : cabine, coffres, sacs…</p>{/if}
 
-	<div class="zones">
+	<div class="zones pile">
 		{#each f.zones as z, i (z.ref)}
 			<Groupe titre={z.nom} resume={pluriel(z.elements.length, 'élément')} ouvert={ouverte(z.ref, i)}>
 				<div class="zone" id="zone-{z.ref}" tabindex="-1" role="group" aria-label="Zone {z.nom}">
@@ -71,6 +72,8 @@
 								<div class="element">
 									<span class="libelle">{e.libelle}</span>
 									{#if e.quantite !== null}<span class="quantite">{e.quantite}<span class="masque">{' '}attendus</span></span>{/if}
+									<details class="geste" open={pour(`element:${e.ref}`)?.message !== undefined}>
+										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 									<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 										<input type="hidden" name="element" value={e.ref} />
 										<input type="hidden" name="zone" value={z.ref} />
@@ -79,20 +82,13 @@
 										<button type="submit" class="rond" name="quoi" value="descendre_element" data-geste="descendre:{e.ref}" disabled={j === z.elements.length - 1}>{@render fleche(BAS)}<span class="masque">Descendre {e.libelle}</span></button>
 										<button type="submit" class="petit" name="quoi" value="retirer_element" data-geste="retirer:{e.ref}">Retirer<span class="masque">{' '}{e.libelle}</span></button>
 									</form>
-									<details open={pour(`element:${e.ref}`)?.message !== undefined}>
-										<summary>Modifier<span class="masque">{' '}{e.libelle}</span></summary>
 										<form method="POST" action="?/geste" use:enhance class="formulaire">
 											<input type="hidden" name="quoi" value="modifier_element" />
 											<input type="hidden" name="element" value={e.ref} />
 											<input type="hidden" name="cible" value="element:{e.ref}" />
 											<Champ id="libelle-{e.ref}" name="libelle" libelle="Élément" requis maxlength={120} valeur={e.libelle} />
 											<Champ id="quantite-{e.ref}" name="quantite" type="number" libelle="Quantité attendue" aide="Vide : seulement présent ou manquant." valeur={e.quantite === null ? '' : String(e.quantite)} />
-											<div class="champ">
-												<label for="zone-{e.ref}">Zone</label>
-												<select id="zone-{e.ref}" name="zone">
-													{#each f.zones as autre (autre.ref)}<option value={String(autre.ref)} selected={autre.ref === z.ref}>{autre.nom}</option>{/each}
-												</select>
-											</div>
+											<Choix id="zone-{e.ref}" name="zone" libelle="Zone" valeur={String(z.ref)} options={f.zones.map((autre) => ({ valeur: String(autre.ref), libelle: autre.nom }))} />
 											<div><Bouton type="submit">Enregistrer<span class="masque">{' '}{e.libelle}</span></Bouton></div>
 										</form>
 									</details>
@@ -102,6 +98,8 @@
 						{/each}
 					</ol>
 
+					<details class="plus" open={pour(`ajout:${z.ref}`) !== null}>
+						<summary>Ajouter un élément<span class="masque">{' '}à {z.nom}</span></summary>
 					<form method="POST" action="?/geste" use:enhance class="formulaire ajout">
 						<input type="hidden" name="quoi" value="ajouter_element" />
 						<input type="hidden" name="zone" value={z.ref} />
@@ -110,8 +108,11 @@
 						<Champ id="ajout-quantite-{z.ref}" name="quantite" type="number" libelle="Quantité attendue (facultative)" valeur={pour(`ajout:${z.ref}`)?.valeurs?.quantite ?? ''} />
 						<div><Bouton type="submit" variante="secondaire">Ajouter l’élément</Bouton></div>
 					</form>
+					</details>
 					{@render message(`ajout:${z.ref}`)}
 
+					<details class="plus" open={pour(`zone:${z.ref}`)?.message !== undefined || data.retirerZone === z.ref}>
+						<summary>Gérer la zone<span class="masque">{' '}{z.nom}</span></summary>
 					<div class="outils">
 						<form method="POST" action="?/geste" use:enhance={garderFocus} class="gestes">
 							<input type="hidden" name="zone" value={z.ref} />
@@ -119,7 +120,7 @@
 							<button type="submit" class="petit" name="quoi" value="monter_zone" data-geste="monter-zone:{z.ref}" disabled={i === 0}>{@render fleche(HAUT)} Monter<span class="masque">{' '}la zone {z.nom}</span></button>
 							<button type="submit" class="petit" name="quoi" value="descendre_zone" data-geste="descendre-zone:{z.ref}" disabled={i === f.zones.length - 1}>{@render fleche(BAS)} Descendre<span class="masque">{' '}la zone {z.nom}</span></button>
 						</form>
-						<details open={pour(`zone:${z.ref}`)?.message !== undefined}>
+						<details class="repli" open={pour(`zone:${z.ref}`)?.message !== undefined}>
 							<summary>Renommer<span class="masque">{' '}la zone {z.nom}</span></summary>
 							<form method="POST" action="?/geste" use:enhance class="formulaire">
 								<input type="hidden" name="quoi" value="renommer_zone" />
@@ -134,7 +135,7 @@
 								<input type="hidden" name="zone" value={z.ref} />
 								<p><strong>Retirer « {z.nom} »{z.elements.length ? ` et ses ${pluriel(z.elements.length, 'élément')}` : ''} ?</strong> Les prises passées les gardent.</p>
 								<div class="gestes">
-									<Bouton type="submit">Oui, retirer<span class="masque">{' '}la zone {z.nom}</span></Bouton>
+									<Bouton type="submit" variante="grave">Oui, retirer<span class="masque">{' '}la zone {z.nom}</span></Bouton>
 									<a class="petit" href="?">Annuler</a>
 								</div>
 								<input type="hidden" name="quoi" value="retirer_zone" />
@@ -144,6 +145,7 @@
 						{/if}
 						{@render message(`zone:${z.ref}`)}
 					</div>
+					</details>
 				</div>
 			</Groupe>
 		{/each}
@@ -166,13 +168,10 @@
 	.zone {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-	}
-	.zones {
-		gap: 10px;
+		gap: var(--espace-16);
 	}
 	.zone {
-		padding: 4px 14px 14px;
+		padding: var(--espace-4) var(--espace-16) var(--espace-16);
 	}
 	.zone:focus-visible,
 	.confirmer:focus-visible {
@@ -185,7 +184,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux,
 	.version {
@@ -201,8 +200,8 @@
 	li {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 10px 0;
+		gap: var(--espace-6);
+		padding: var(--espace-12) 0;
 	}
 	li + li {
 		border-top: 1px solid var(--trait-doux);
@@ -211,7 +210,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px 10px;
+		gap: var(--espace-8) var(--espace-12);
 	}
 	.libelle {
 		flex: 1 1 60%;
@@ -221,7 +220,7 @@
 	.quantite {
 		flex: none;
 		min-width: 2.5em;
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
 		text-align: center;
@@ -231,20 +230,20 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.rond,
 	.petit {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		min-height: var(--cible);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		text-decoration: none;
 		cursor: pointer;
 	}
@@ -253,7 +252,7 @@
 		padding: 0;
 	}
 	.petit {
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 	}
 	.rond:disabled,
 	.petit:disabled {
@@ -267,15 +266,12 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
-	}
-	summary::-webkit-details-marker {
-		display: none;
 	}
 	/* Ouvert, le formulaire prend toute la largeur sous l'élément. */
 	.element details[open] {
@@ -290,51 +286,34 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 12px 0 4px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) 0 var(--espace-4);
 	}
 	.ajout {
-		padding: 14px;
+		padding: var(--espace-16);
 		border: 1px dashed var(--trait);
 		border-radius: var(--rayon-petit);
-	}
-	.champ {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	label {
-		font-weight: 600;
-	}
-	select {
-		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
-		background: var(--surface);
-		color: var(--encre);
-		font: inherit;
 	}
 	.outils {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding-top: 12px;
+		gap: var(--espace-12);
+		padding-top: var(--espace-12);
 		border-top: 1px solid var(--trait-doux);
 	}
 	.confirmer {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--accent);
 		border-radius: var(--rayon-petit);
 	}
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -342,7 +321,7 @@
 	}
 	.succes,
 	.note {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		font-weight: 600;
 	}
@@ -355,7 +334,7 @@
 		border: 1px solid var(--trait);
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -369,7 +348,8 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 52rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

@@ -64,7 +64,8 @@ describe('téléphone et ordinateur : rien qui n’existe qu’à une taille', (
 	it.each(ECRANS)('%s', (fichier) => {
 		const source = readFileSync(new URL(`../${fichier}`, import.meta.url), 'utf8');
 		const css = source.match(/<style>([\s\S]*)<\/style>/)?.[1] ?? '';
-		for (const bloc of blocsMedia(css).filter((b) => !/prefers-reduced-motion/.test(b))) expect(bloc).not.toMatch(CACHE);
+		// Le départ d'une animation (@starting-style) ne cache rien.
+		for (const bloc of blocsMedia(css).filter((b) => !/prefers-reduced-motion/.test(b))) expect(bloc.replace(/@starting-style\s*\{[^}]*\}/g, '')).not.toMatch(CACHE);
 		// Ni classe ni condition propres à une taille dans le balisage.
 		expect(source).not.toMatch(/innerWidth|matchMedia\(|seulement-(telephone|ordinateur)/);
 	});

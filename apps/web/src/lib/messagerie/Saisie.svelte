@@ -219,8 +219,8 @@
 		flex-direction: column;
 	}
 	.erreur {
-		margin: 8px 12px 0;
-		padding: 8px 12px;
+		margin: var(--espace-8) var(--espace-12) 0;
+		padding: var(--espace-8) var(--espace-12);
 		border: 1px solid var(--statut-danger-trait);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-danger-fond);
@@ -228,25 +228,25 @@
 		font-weight: 600;
 	}
 	.apercu {
-		margin: 8px 12px 0;
+		margin: var(--espace-8) var(--espace-12) 0;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.cite {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		padding: 5px 8px;
+		padding: var(--espace-4) var(--espace-8);
 		border-left: 3px solid var(--statut-info-texte);
-		border-radius: 6px;
+		border-radius: var(--rayon-petit);
 		background: var(--fond);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.cite strong {
 		color: var(--statut-info-texte);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.edition .cite {
 		border-left-color: var(--accent);
@@ -268,15 +268,15 @@
 		border-radius: 50%;
 		background: none;
 		color: var(--doux);
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 		cursor: pointer;
 	}
 	.photos {
 		list-style: none;
-		margin: 8px 12px 0;
+		margin: var(--espace-8) var(--espace-12) 0;
 		padding: 0;
 		display: flex;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.photos li {
 		position: relative;
@@ -285,7 +285,7 @@
 		display: block;
 		width: 64px;
 		height: 64px;
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 		object-fit: cover;
 	}
 	.retirer {
@@ -296,10 +296,10 @@
 		box-shadow: 0 1px 4px color-mix(in srgb, var(--encre) 25%, transparent);
 	}
 	form {
-		padding: 8px 10px;
+		padding: var(--espace-8) var(--espace-12);
 		display: flex;
 		align-items: flex-end;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.rond {
 		flex: none;
@@ -331,11 +331,9 @@
 		flex: 1;
 		min-width: 0;
 		min-height: var(--cible);
-		max-height: calc(5 * 1.5em + 22px);
+		max-height: calc(5 * 1.5em + 26px);
 		box-sizing: border-box;
-		padding: 10px 16px;
-		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 22px;
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -349,8 +347,10 @@
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.envoyer:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.envoyer:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.masque {
 		position: absolute;

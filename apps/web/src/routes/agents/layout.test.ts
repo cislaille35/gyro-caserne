@@ -47,19 +47,19 @@ const gestion = (autres: Record<string, unknown> = {}) => ({
 const html = (composant: any, props: Record<string, unknown>) => render(composant, { props }).body;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const tete = (composant: any, props: Record<string, unknown>) => render(composant, { props }).head;
-const boutonDuGroupe = (mise: string, titre: string) => mise.match(new RegExp(`<button[^>]*aria-expanded="(true|false)"[^>]*>(?:\\s|<!--[^>]*-->)*<span class="textes[^"]*">\\s*<span class="titre[^"]*">${titre}`))?.[1];
+const boutonDuGroupe = (mise: string, titre: string) => mise.match(new RegExp(`<button[^>]*aria-expanded="(true|false)"[^>]*>(?:\\s|<!--[^>]*-->|<span class="carre[^>]*></span>)*<span class="textes[^"]*">\\s*<span class="titre[^"]*">${titre}`))?.[1];
 
 describe('/agents : vue de tous', () => {
 	const data = { gestion: false, groupes };
 
-	it('groupe par équipe, ouverts, avec liseré, effectif et chef en résumé', () => {
+	it('groupe par équipe, ouverts, avec carré de couleur, effectif et chef en résumé', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toMatch(/<h1[^>]*>Agents<\/h1>/);
 		// Le visage à la couleur de l'équipe ; gris sans équipe.
 		expect(mise).toMatch(/background: #b3121f[^>]*>AM</);
 		expect(mise).toMatch(/background: var\(--statut-neutre-fond\)[^>]*>TF</);
 		expect(mise).toMatch(/<h2[^>]*>\s*<button[\s\S]*Équipe 1[\s\S]*2 agents · chef : A\. Martin/);
-		expect(mise).toContain('border-left: 6px solid #b3121f');
+		expect(mise).toMatch(/class="carre[^"]*"[^>]*style="background: #b3121f;?"/);
 		expect(boutonDuGroupe(mise, 'Équipe 1')).toBe('true');
 		expect(boutonDuGroupe(mise, 'Sans équipe')).toBe('true');
 		expect(mise).toMatch(/Sans équipe[\s\S]*1 agent</);
@@ -109,7 +109,7 @@ describe('/agents : les colonnes', () => {
 	const hors = (cle: string, titre: string) => ({ cle, titre, equipe: null, personnes: [{ id: 90 + titre.length, prenom: 'Test', nom: titre, grade: null, roles: [] }] });
 	const colonnes = (mise: string) => {
 		const bloc = mise.slice(mise.indexOf('class="colonnes'));
-		return { equipes: bloc.slice(0, bloc.indexOf('class="pile')), pile: bloc.slice(bloc.indexOf('class="pile')) };
+		return { equipes: bloc.slice(0, bloc.indexOf('class="hors-equipes')), pile: bloc.slice(bloc.indexOf('class="hors-equipes')) };
 	};
 
 	it('de 2 à 6 équipes : une colonne chacune, dans l’ordre ; les autres groupes ensemble dans une dernière colonne', () => {
@@ -123,7 +123,7 @@ describe('/agents : les colonnes', () => {
 	});
 
 	it('sans autre groupe : pas de colonne vide', () => {
-		expect(html(Layout, { data: { gestion: false, groupes: [equipe(1)] }, children: enfants })).not.toContain('class="pile');
+		expect(html(Layout, { data: { gestion: false, groupes: [equipe(1)] }, children: enfants })).not.toContain('class="hors-equipes');
 	});
 
 	it('une fiche ouverte : la liste passe à côté d’elle', () => {

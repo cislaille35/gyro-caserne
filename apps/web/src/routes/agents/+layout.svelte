@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { montrerCourante } from '#lib/ui/zone-defilante.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import { page } from '$app/state';
 	import { emailCherche, rechercheListe } from '#lib/liste-agents.ts';
@@ -26,6 +28,9 @@
 		!equipe ? agents(n) : equipe.chefs.length === 0 ? `${agents(n)} · sans chef de garde` : `${agents(n)} · chef : ${equipe.chefs.join(', ')}`;
 	// Au téléphone, les équipes s'ouvrent à la demande. Le serveur ne connaît pas l'écran : tout part ouvert, ce qui reste lisible sans JavaScript.
 	let replier = $state(false);
+	let liste = $state<HTMLElement>();
+	afterNavigate(() => montrerCourante(liste));
+
 	onMount(() => {
 		const ecran = matchMedia('(max-width: 1023px)');
 		const suivre = () => (replier = ecran.matches);
@@ -99,9 +104,9 @@
 </svelte:head>
 
 <div class="page" class:a-cote={enfant}>
-	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents">
+	<section class="liste" class:masquee={enfant && data.gestion} aria-label="Agents" bind:this={liste}>
 		{#if data.gestion}
-			<EnTetePage titre="Agents" action={{ href: '/agents/nouveau', libelle: 'Ajouter' }}>
+			<EnTetePage titre="Agents" retour={{ href: '/caserne', libelle: 'Caserne' }} action={{ href: '/agents/nouveau', libelle: 'Ajouter', discrete: true }}>
 				{#snippet secondaire()}
 					<a class="lien-secondaire" href="/agents/fichier"
 						><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -121,7 +126,7 @@
 				</div>
 			</form>
 		{:else}
-			<EnTetePage titre="Agents" />
+			<EnTetePage titre="Agents" retour={{ href: '/caserne', libelle: 'Caserne' }} />
 		{/if}
 
 		{#if data.groupes.length > 0}
@@ -129,7 +134,7 @@
 			<div class="colonnes">
 				{#each equipes as g (g.cle)}{@render groupe(g)}{/each}
 				{#if horsEquipes.length > 0}
-					<div class="pile">
+					<div class="hors-equipes">
 						{#each horsEquipes as g (g.cle)}{@render groupe(g)}{/each}
 					</div>
 				{/if}
@@ -154,7 +159,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 28px;
+		gap: var(--espace-32);
 	}
 	.detail {
 		order: -1;
@@ -165,17 +170,17 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.liste {
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.colonnes,
-	.pile {
+	.hors-equipes {
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: var(--espace-16);
 	}
 	.masquee,
 	.masque-detail {
@@ -183,38 +188,40 @@
 	}
 	@media (max-width: 639px) {
 		.etat :global(span) {
-			padding: 1px 8px;
-			font-size: 0.8125rem;
+			padding: 1px var(--espace-8);
+			font-size: var(--texte-14);
 		}
 	}
 	.filtres {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
 	.puces {
 		display: flex;
-		gap: 8px;
+		gap: var(--espace-8);
 		margin: -4px -16px;
-		padding: 4px 16px;
+		padding: var(--espace-4) var(--espace-16);
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
 	.puce {
 		flex: none;
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		white-space: nowrap;
 		cursor: pointer;
 	}
-	.puce:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.puce:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* Pressé : fond plein et gras, pas seulement une teinte. */
 	.puce[aria-pressed='true'] {
@@ -232,9 +239,9 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: 64px;
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.agent + .agent {
 		border-top: 1px solid var(--trait-doux);
@@ -248,13 +255,13 @@
 	}
 	.nom {
 		font-weight: 600;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		line-height: 1.3;
 		color: var(--encre);
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		overflow-wrap: anywhere;
 	}
 	/* Toute la ligne ouvre la fiche. */
@@ -266,8 +273,10 @@
 		position: absolute;
 		inset: 0;
 	}
-	.agent:hover a.nom {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.agent:hover a.nom {
+			text-decoration: underline;
+		}
 	}
 	a.nom:focus-visible {
 		outline: none;
@@ -279,7 +288,6 @@
 	/* L'agent affiché : fond, liseré et nom en gras, pas la couleur seule. */
 	.courant {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--encre);
 	}
 	.courant .nom {
 		font-weight: 800;
@@ -290,7 +298,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		gap: 4px;
+		gap: var(--espace-4);
 		white-space: nowrap;
 	}
 	.chevron {
@@ -303,8 +311,8 @@
 		display: inline-flex;
 		align-items: center;
 		min-height: 36px;
-		margin-right: 12px;
-		padding: 0 14px;
+		margin-right: var(--espace-12);
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		color: var(--encre);
@@ -318,8 +326,10 @@
 		position: absolute;
 		inset: -4px;
 	}
-	.nommer:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.nommer:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (min-width: 1024px) {
 		.page {
@@ -335,6 +345,10 @@
 		/* Une fiche ouverte : la liste à gauche, sur une colonne. */
 		.a-cote .liste {
 			flex: 0 1 460px;
+			position: sticky;
+			top: 16px;
+			max-height: calc(100dvh - 32px);
+			overflow-y: auto;
 		}
 		.detail {
 			flex: 1 1 0;
@@ -347,7 +361,7 @@
 		}
 		.page:not(.a-cote) .agent {
 			flex-wrap: wrap;
-			gap: 2px 12px;
+			gap: 2px var(--espace-12);
 		}
 		.page:not(.a-cote) .identite {
 			flex-basis: calc(100% - 52px);
@@ -368,7 +382,7 @@
 			flex-direction: row;
 			flex-wrap: wrap;
 			align-items: center;
-			gap: 10px 16px;
+			gap: var(--espace-12) var(--espace-16);
 		}
 		.page:not(.a-cote) .filtres > :global(.recherche) {
 			flex: 0 1 26rem;
@@ -376,7 +390,7 @@
 		.page:not(.a-cote) .puces {
 			flex: 1 1 auto;
 			margin: -4px 0;
-			padding: 4px;
+			padding: var(--espace-4);
 		}
 		/* La liste est à côté : pas de retour. */
 		.retour {

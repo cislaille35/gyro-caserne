@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDeDate } from '@gyro-caserne/socle/dates';
+	import { momentLong } from '#lib/planning/dates.ts';
 	import { DESSINS } from './icones-roles.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import type { ANePasManquer, ApercuMur, ItemANePasManquer } from '@gyro-caserne/socle';
@@ -22,8 +22,7 @@
 	] as const;
 	const lien = (i: ItemANePasManquer) => `/echanges/${i.cle}/${i.id}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
-	const debut = (iso: string) =>
-		formatDeDate({ weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const debut = momentLong;
 	const refus = (id: number) => (form?.cible === `publication:${id}` ? form.message : undefined);
 
 	const r = $derived(regrouper(a));
@@ -116,66 +115,71 @@
 <style>
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.boutons {
+		width: 100%;
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.boutons button {
-		padding: 0 4px;
+		padding: 0 var(--espace-4);
 	}
 	form {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 6px;
-		margin-top: 6px;
+		gap: var(--espace-6);
+		margin-top: var(--espace-6);
 	}
 	.demain {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	.geste {
 		min-height: var(--cible);
 		min-width: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.geste:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.geste:hover {
+			border-color: var(--encre);
+		}
 	}
 	.lien {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
 		align-self: flex-start;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--statut-info-texte);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		text-decoration: none;
 	}
-	.lien:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.lien:hover {
+			text-decoration: underline;
+		}
 	}
 	.echec {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		font-weight: 600;
 		color: var(--statut-danger-texte);
 	}
 	.compte {
 		min-width: 24px;
 		height: 24px;
-		padding: 0 7px;
-		border-radius: 12px;
+		padding: 0 var(--espace-8);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 </style>

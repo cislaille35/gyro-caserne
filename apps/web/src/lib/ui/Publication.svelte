@@ -44,7 +44,7 @@
 	] as const;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
-	const quand = (iso: string) => date(iso, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+	const quand = (iso: string) => `${date(iso, { day: 'numeric', month: 'long' })}, ${heure(iso)}`;
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
 	const auteur = $derived(nom(p.auteur));
 	const convoques = $derived(
@@ -94,7 +94,7 @@
 			<div class="tete-bravo">
 				<GyroDuMoment tenue="victoire" taille={72} decoratif enMouvement={animer} />
 				<span class="colonne">
-					<span class="bravo-titre">Bravo !</span>
+					<span class="bravo-titre">Bravo !</span>
 					<span><strong id="auteur-{p.id}">{auteur}</strong> {@render signature()}</span>
 				</span>
 				{#if p.epinglee}<Pastille ton="info">Épinglée</Pastille>{/if}
@@ -188,10 +188,8 @@
 				{:else if !p.commentairesFermes && !lectureSeule}
 					<a class="pilule" href="{lien}#commenter">Commenter</a>
 				{/if}
-				{#if p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
 			{/if}
-			{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
-			<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>
+			{#if !agir || p.commentaires > 0 || p.commentairesFermes}<span class="doux">{agir ? commentaires : `${aimes} · ${commentaires}`}</span>{/if}
 		</div>
 
 		{#if !seule && p.derniersCommentaires.length > 0}
@@ -206,8 +204,12 @@
 		{#if retour?.succes}<p class="succes">{retour.succes}</p>{/if}
 		{#if retour?.message}<p class="echec">{retour.message}</p>{/if}
 
-		{#if p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
+		{#if prive || (!seule && p.droits.supprimer && (p.priseDeConnaissance || p.evenement)) || p.droits.fermer || (!seule && (p.droits.epingler || p.droits.modifier || p.droits.supprimer))}
+			<details class="plus">
+				<summary>Plus<span class="masque"> : gestes sur la publication</span></summary>
 			<div class="gestes">
+				{#if !seule && p.droits.supprimer && (p.priseDeConnaissance || p.evenement)}<a class="pilule" href="{lien}#suivi">Voir le suivi</a>{/if}
+				{#if prive}<a class="pilule" href={prive} aria-label="Répondre en privé à {auteur}">Répondre en privé</a>{/if}
 				{#if p.droits.fermer}
 					<form method="POST" action="?/fermerCommentaires" use:enhance={garderFocus}>
 						<input type="hidden" name="id" value={p.id} />
@@ -223,7 +225,7 @@
 					</form>
 				{/if}
 				{#if !seule && p.droits.modifier}
-					<details>
+					<details class="repli">
 						<summary>Modifier</summary>
 						<form method="POST" action="?/modifier" class="formulaire">
 							<input type="hidden" name="id" value={p.id} />
@@ -234,16 +236,17 @@
 					</details>
 				{/if}
 				{#if !seule && p.droits.supprimer}
-					<details>
+					<details class="repli">
 						<summary>Supprimer</summary>
 						<form method="POST" action="?/supprimer" class="formulaire">
 							<input type="hidden" name="id" value={p.id} />
 							<p>La publication, ses photos et ses commentaires seront supprimés.</p>
-							<Bouton type="submit" variante="secondaire">Confirmer la suppression</Bouton>
+							<Bouton type="submit" variante="grave">Confirmer la suppression</Bouton>
 						</form>
 					</details>
 				{/if}
 			</div>
+			</details>
 		{/if}
 	</div>
 </article>
@@ -251,11 +254,12 @@
 <style>
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.reponses {
+		width: 100%;
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.reponses button {
-		padding: 0 4px;
+		padding: 0 var(--espace-4);
 	}
 	.publication {
 		position: relative;
@@ -270,14 +274,14 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 	}
 	.pied {
 		padding-top: 0;
 	}
 	.photos + .pied {
-		padding-top: 10px;
+		padding-top: var(--espace-12);
 	}
 	p,
 	ul {
@@ -292,7 +296,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px 10px;
+		gap: var(--espace-6) var(--espace-12);
 	}
 	.entete .colonne {
 		flex: 1;
@@ -302,38 +306,35 @@
 	}
 	.doux {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.entete .doux,
 	.tete-bravo .doux {
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	/* Le texte reste du texte : ses retours à la ligne sont gardés, rien n'est interprété. */
 	.texte {
 		white-space: pre-line;
 		overflow-wrap: anywhere;
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		line-height: 1.45;
 	}
 
-	/* Annonce à lire et confirmer */
-	.a-confirmer {
-		border: 2px solid var(--statut-alerte-trait);
-	}
+	/* Annonce à lire et confirmer : son bandeau le dit, sans cadre de couleur. */
 	.bandeau {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 14px;
+		gap: var(--espace-8);
+		padding: var(--espace-8) var(--espace-16);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 	.lecture {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	/* La jauge double le texte, qui porte les nombres. */
 	.jauge {
@@ -355,7 +356,7 @@
 		border-radius: var(--rayon-bouton);
 		background: var(--encre);
 		color: var(--surface);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.fait {
@@ -366,23 +367,23 @@
 	.rdv {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.titre-evenement {
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 		line-height: 1.3;
 	}
 	.rdv .doux {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.rdv .petit {
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.presents {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.visages {
 		display: flex;
@@ -393,8 +394,7 @@
 
 	/* Bravo */
 	.bravo {
-		border-color: var(--statut-alerte-trait);
-		background: linear-gradient(160deg, color-mix(in srgb, var(--statut-alerte-fond) 55%, var(--surface)) 0%, var(--statut-alerte-fond) 100%);
+		background: var(--surface);
 	}
 	.confettis {
 		position: absolute;
@@ -404,13 +404,13 @@
 	.tete-bravo {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.tete-bravo .colonne {
 		flex: 1;
 	}
 	.bravo-titre {
-		font: 700 1.625rem/1.1 var(--police-titre);
+		font: 700 var(--texte-24)/1.1 var(--police-titre);
 		color: var(--statut-alerte-texte);
 	}
 
@@ -419,23 +419,25 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.pilule {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		text-decoration: none;
 		cursor: pointer;
 	}
-	.pilule:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.pilule:hover {
+			border-color: var(--encre);
+		}
 	}
 	.bravo .pilule {
 		background: color-mix(in srgb, var(--surface) 70%, transparent);
@@ -443,10 +445,6 @@
 	/* Les morceaux du bouton sont des éléments flexibles : l'espace avant le nombre vient de l'écart. */
 	.aimer {
 		gap: 0.3em;
-	}
-	.bravo .aimer {
-		border: 2px solid var(--statut-alerte-trait);
-		color: var(--statut-alerte-texte);
 	}
 	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.aimer[aria-pressed='true'] {
@@ -458,14 +456,14 @@
 	}
 	.commentaires {
 		list-style: none;
-		padding: 0 0 0 12px;
+		padding: 0 0 0 var(--espace-12);
 		border-left: 3px solid var(--trait);
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.commentaires .texte {
-		font-size: 1rem;
+		font-size: var(--texte-16);
 	}
 	.publication:focus-visible {
 		outline: 3px solid var(--focus);
@@ -475,10 +473,10 @@
 	/* Photos en grand : une seule prend toute la largeur. */
 	.photos {
 		list-style: none;
-		padding: 0 14px 0;
+		padding: 0 var(--espace-16) 0;
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.photos.une {
 		padding: 0;
@@ -489,7 +487,7 @@
 		width: 100%;
 		aspect-ratio: 4 / 3;
 		object-fit: cover;
-		border-radius: 10px;
+		border-radius: var(--rayon-bouton);
 		background: var(--fond);
 	}
 	.photos.une img {
@@ -501,14 +499,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-start;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
-	summary {
+	details:not(.plus) > summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		padding: 0 14px;
-		border: 2px solid var(--trait);
+		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		font-weight: 600;
 		cursor: pointer;
@@ -519,8 +517,8 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding-top: 8px;
+		gap: var(--espace-8);
+		padding-top: var(--espace-8);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -529,16 +527,14 @@
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	.echec,
 	.succes {
-		padding: 8px 12px;
+		padding: var(--espace-8) var(--espace-12);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

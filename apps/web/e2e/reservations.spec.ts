@@ -5,6 +5,8 @@ import { ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 test.use({ storageState: ETAT_CONNECTE });
 
 async function sansViolation(page: Page) {
+	// Une fenêtre qui apparaît fausserait le calcul du contraste : on attend la fin de ce qui n'est pas sans fin.
+	await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
 	// La fête de la première réservation apparaît en fondu : axe mesurerait le contraste en plein fondu.
 	await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().endTime !== Infinity).map((a) => a.finished)));
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

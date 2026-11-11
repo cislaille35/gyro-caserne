@@ -47,14 +47,14 @@
 	.cote {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	h2,
 	p {
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
@@ -63,10 +63,10 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.panneau {
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -77,7 +77,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

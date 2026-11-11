@@ -117,8 +117,7 @@
 		})}
 	/>
 	{#if js}
-		{@const t = choix ? teinteDuMur(choix.type, choix) : null}
-		<p class="visible" aria-live="polite" hidden={!choix} style:--visible-fond={t?.fond} style:--visible-encre={t?.encre}>
+		<p class="visible" aria-live="polite" hidden={!choix}>
 			<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
 			<span>{choix ? `${phraseAudience(choix.type, choix.nom, choix.audience)}.` : ''}</span>
 		</p>
@@ -178,7 +177,7 @@
 
 	<ChampPhoto bind:champ={champPhotos} id="publier-photos" name="photos" libelle="Photos" aide="4 au plus, en JPEG ou WebP. Elles sont réduites avant l’envoi." appel="Ajouter des photos" accept="image/jpeg,image/webp,image/*" multiple erreur={erreurPhoto} />
 
-	<details class="sondage" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
+	<details class="sondage repli" open={Boolean(valeurs.question || erreurs.sondage || erreurs.ouverture || erreurs.cloture)}>
 		<summary>Sondage</summary>
 		<div class="contenu-sondage">
 			<Champ id="publier-question" name="question" libelle="Question" maxlength={200} valeur={valeurs.question ?? ''} erreur={erreurs.sondage} />
@@ -239,14 +238,14 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 	}
 	fieldset {
 		margin: 0;
 		min-width: 0;
 	}
 	legend {
-		padding: 0 0 8px;
+		padding: 0 0 var(--espace-8);
 		font-weight: 700;
 	}
 	label,
@@ -261,12 +260,12 @@
 	.visible {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 10px 12px;
-		border-radius: 12px;
-		background: var(--visible-fond);
-		color: var(--visible-encre);
-		font-size: 0.9375rem;
+		gap: var(--espace-8);
+		padding: var(--espace-12) var(--espace-12);
+		border-radius: var(--rayon-bouton);
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
+		font-size: var(--texte-15);
 	}
 	.visible svg {
 		flex: none;
@@ -276,7 +275,7 @@
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.champ > label {
 		font-weight: 700;
@@ -286,16 +285,13 @@
 		min-height: var(--cible);
 		box-sizing: border-box;
 		width: 100%;
-		padding: 0 12px;
-		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 12px;
+		padding: 0 var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	textarea {
-		padding: 12px;
-		border-radius: 14px;
+		padding: var(--espace-12);
 		resize: vertical;
 	}
 	[aria-invalid='true'] {
@@ -304,13 +300,13 @@
 	.groupe {
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-grand);
-		padding: 0 14px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.groupe > legend {
-		padding: 0 6px;
+		padding: 0 var(--espace-6);
 	}
 	.groupe[hidden] {
 		display: none;
@@ -329,33 +325,23 @@
 	}
 	summary {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		cursor: pointer;
 		list-style: none;
 	}
-	summary::-webkit-details-marker {
-		display: none;
-	}
-	summary::before {
-		content: '+';
-		font-weight: 700;
-	}
-	.sondage[open] summary::before {
-		content: '−';
-	}
 	.contenu-sondage {
-		padding: 0 14px 14px;
+		padding: 0 var(--espace-16) var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.reponses {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.titre-reponses {
 		font-weight: 600;
@@ -370,24 +356,24 @@
 		border: 0;
 		background: none;
 		color: var(--statut-info-texte);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	/* Côte à côte s'il y a la place, l'une sous l'autre au téléphone. */
 	.dates {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.dates .saisie {
-		padding: 0 8px;
-		font-size: 0.9375rem;
+		padding: 0 var(--espace-8);
+		font-size: var(--texte-15);
 	}
 
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 		font-weight: 400;
 	}
@@ -399,15 +385,15 @@
 	}
 	.aide {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.erreur {
 		color: var(--accent);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;
@@ -415,14 +401,16 @@
 	.publier {
 		min-height: 52px;
 		border-radius: var(--rayon-bouton);
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.publier:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.publier:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.publier:disabled {
 		opacity: 0.6;

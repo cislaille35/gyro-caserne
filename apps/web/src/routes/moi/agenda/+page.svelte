@@ -54,7 +54,7 @@
 		<section class="carte" aria-labelledby="mode-emploi">
 			<h2 id="mode-emploi">Mode d’emploi</h2>
 			<p class="doux">Si le bouton n’ouvre pas votre agenda, suivez les étapes de votre application.</p>
-			<details open={data.appareil === 'android'}>
+			<details class="repli" open={data.appareil === 'android'}>
 				<summary>Google Agenda (Android)</summary>
 				<ol>
 					<li>Touchez « Copier le lien » ci-dessus.</li>
@@ -62,7 +62,7 @@
 					<li>Collez le lien, puis « Ajouter l’agenda ». Il apparaît aussi sur le téléphone.</li>
 				</ol>
 			</details>
-			<details open={data.appareil === 'iphone'}>
+			<details class="repli" open={data.appareil === 'iphone'}>
 				<summary>iPhone (Calendrier)</summary>
 				<ol>
 					<li>Touchez « Ajouter à mon agenda » ci-dessus.</li>
@@ -70,7 +70,7 @@
 					<li>Ou : Réglages, Calendrier, Comptes, Ajouter un compte, Autre, « Ajouter un calendrier avec abonnement », puis collez le lien.</li>
 				</ol>
 			</details>
-			<details>
+			<details class="repli">
 				<summary>Outlook</summary>
 				<ol>
 					<li>Touchez « Copier le lien » ci-dessus.</li>
@@ -95,15 +95,16 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 40rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	h2,
 	p {
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	ul,
 	ol {
@@ -111,13 +112,13 @@
 		padding-left: 1.4em;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -127,72 +128,53 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.principal {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 22px 0 18px;
-		border: 2px solid var(--encre);
+		gap: var(--espace-8);
+		padding: 0 var(--espace-20) 0 var(--espace-16);
+		border: 1px solid transparent;
 		border-radius: var(--rayon-petit);
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font: 700 1.0625rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		text-decoration: none;
 	}
-	.principal:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.principal:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	label {
 		font-weight: 600;
 	}
 	input {
 		min-height: var(--cible);
-		padding: 0 12px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: 0 var(--espace-12);
 		background: var(--fond);
 		color: var(--encre);
-		font: 400 0.9375rem var(--police);
+		font: 400 var(--texte-15) var(--police);
 		text-overflow: ellipsis;
 	}
 	details {
 		border-top: 1px solid var(--trait-doux);
-		padding-top: 4px;
+		padding-top: var(--espace-4);
 	}
 	/* Le signe « + » / « – » dit que la rubrique s'ouvre (il remplace le triangle, que la mise en page masque). */
 	summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		font: 700 1.125rem var(--police-titre);
+		gap: var(--espace-12);
+		font: 700 var(--texte-18) var(--police-titre);
 		cursor: pointer;
 		list-style: none;
 	}
-	summary::-webkit-details-marker {
-		display: none;
-	}
-	summary::after {
-		content: '+' / '';
-		flex: none;
-		width: 32px;
-		height: 32px;
-		border: 1px solid var(--trait);
-		border-radius: 50%;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		font: 600 1.25rem var(--police);
-	}
-	details[open] summary::after {
-		content: '–' / '';
-	}
 	details ol {
-		padding-bottom: 8px;
+		padding-bottom: var(--espace-8);
 	}
 	.doux {
 		color: var(--doux);
@@ -202,7 +184,7 @@
 		font-weight: 600;
 	}
 	.succes {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--ok);
 		border-radius: var(--rayon-petit);
 		font-weight: 600;

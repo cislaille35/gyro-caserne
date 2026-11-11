@@ -286,7 +286,7 @@
 		>
 		<svelte:element this={nouvelle ? 'div' : 'a'} class="qui" href={nouvelle ? undefined : `/echanges/messages/${id}/infos`}>
 			{#if groupe}
-				<span class="icone" aria-hidden="true" style:background="var(--icone-{icone}-fond)" style:color="var(--icone-{icone}-texte)"
+				<span class="icone" aria-hidden="true"
 					><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[icone]} /></svg></span
 				>
 			{:else if autre}
@@ -305,7 +305,7 @@
 			<p class="pages"><a href="?avant={messages[0]!.id}" onclick={chargerAnciens}>Messages plus anciens</a></p>
 		{/if}
 		{#if nouvelle && messages.length === 0}
-			<Vide texte="Écrivez votre premier message à {nouvelle.prenom}." />
+			<Vide gyro={false} texte="Écrivez votre premier message à {nouvelle.prenom}." />
 		{/if}
 		{#each elements as e (e.cle)}
 			{#if e.type === 'jour'}
@@ -413,8 +413,8 @@
 		z-index: 5;
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 12px 8px 4px;
+		gap: var(--espace-6);
+		padding: var(--espace-8) var(--espace-12) var(--espace-8) var(--espace-4);
 		background: var(--surface);
 		border-bottom: 1px solid var(--trait-doux);
 	}
@@ -434,12 +434,14 @@
 		min-height: 48px;
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		color: var(--encre);
 		text-decoration: none;
 	}
-	a.qui:hover h1 {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.qui:hover h1 {
+			text-decoration: underline;
+		}
 	}
 	.icone {
 		flex: none;
@@ -460,14 +462,14 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
-		font: 700 1.25rem/1.15 var(--police-titre);
+		font: 700 var(--texte-20)/1.15 var(--police-titre);
 	}
 	.sous {
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 
 	.fil {
@@ -475,43 +477,43 @@
 		display: flex;
 		flex-direction: column;
 		gap: 3px;
-		padding: 12px 10px 16px;
+		padding: var(--espace-12) var(--espace-12) var(--espace-16);
 	}
 	.fil :global([id^='message-']),
 	.non-lus {
 		scroll-margin: 80px 0 140px;
 	}
 	.pages {
-		margin: 4px 0 8px;
+		margin: var(--espace-4) 0 var(--espace-8);
 		text-align: center;
 	}
 	.pages a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		color: var(--statut-info-texte);
 		font-weight: 600;
 	}
 	.jour {
-		margin: 10px 0 6px;
+		margin: var(--espace-12) 0 var(--espace-6);
 		text-align: center;
 	}
 	.jour span {
 		display: inline-block;
-		padding: 4px 12px;
+		padding: var(--espace-4) var(--espace-12);
 		border-radius: 999px;
 		background: var(--trait-doux);
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.non-lus {
-		margin: 4px -10px 8px;
-		padding: 6px;
+		margin: var(--espace-4) -10px var(--espace-8);
+		padding: var(--espace-6);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 		text-align: center;
 	}
@@ -519,7 +521,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 3px;
-		margin-top: 6px;
+		margin-top: var(--espace-6);
 	}
 	.rangee {
 		position: relative;
@@ -535,7 +537,7 @@
 		transition: none;
 	}
 	.rangee {
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	.rangee :global(.menu) {
 		left: 0;
@@ -561,13 +563,19 @@
 	.gestes[hidden] {
 		display: none;
 	}
-	.rangee:hover .gestes,
 	.gestes:focus-visible,
 	.gestes[aria-expanded='true'] {
 		opacity: 1;
 	}
-	.gestes:hover {
-		background: var(--trait-doux);
+	@media (hover: hover) and (pointer: fine) {
+		.rangee:hover .gestes {
+			opacity: 1;
+		}
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.gestes:hover {
+			background: var(--trait-doux);
+		}
 	}
 	/* Au doigt, l'appui long ouvre le menu : le bouton n'apparaît qu'au clavier ou au lecteur d'écran. */
 	@media (hover: none) {
@@ -614,14 +622,14 @@
 		right: -6px;
 		min-width: 22px;
 		height: 22px;
-		padding: 0 5px;
+		padding: 0 var(--espace-4);
 		border-radius: 999px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 	}
 	.annonce {
@@ -635,16 +643,16 @@
 		max-width: calc(100% - 32px);
 	}
 	.annonce.visible {
-		padding: 8px 14px;
+		padding: var(--espace-8) var(--espace-16);
 		border-radius: 999px;
 		background: var(--encre);
 		color: var(--surface);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.fin {
 		margin: 0;
-		padding: 16px;
+		padding: var(--espace-16);
 		color: var(--doux);
 		text-align: center;
 		font-weight: 600;
@@ -652,9 +660,9 @@
 
 	.confirmation {
 		max-width: min(24rem, calc(100vw - 32px));
-		padding: 20px;
+		padding: var(--espace-20);
 		border: 0;
-		border-radius: 20px;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 	}
@@ -662,21 +670,21 @@
 		background: color-mix(in srgb, #000 45%, transparent);
 	}
 	.confirmation h2 {
-		margin: 0 0 8px;
-		font: 700 1.25rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.confirmation p {
-		margin: 0 0 16px;
+		margin: 0 0 var(--espace-16);
 		color: var(--doux);
 	}
 	.choix {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.choix button {
 		min-height: var(--cible);
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -687,10 +695,11 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
 
 	@media (min-width: 1024px) {
@@ -702,7 +711,7 @@
 			padding-bottom: 0;
 		}
 		.fil {
-			padding: 16px 24px;
+			padding: var(--espace-16) var(--espace-24);
 		}
 	}
 </style>

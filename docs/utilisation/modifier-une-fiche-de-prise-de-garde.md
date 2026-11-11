@@ -5,10 +5,9 @@ Réservé au chef de centre, à son adjoint, aux chefs de garde et au référent
 1. Ouvrez **Caserne**, puis **Engins**, puis **Fiches de prise de garde**.
 2. Choisissez la fiche (« Fiche VSAV »).
 3. Ouvrez une zone (« Cabine ») :
-   - sous « Ajouter un élément à « Cabine » », son nom et, s'il se compte, la quantité attendue, puis **Ajouter l’élément** ;
-   - **Modifier** : changer le nom, la quantité ou la zone, puis **Enregistrer** ;
-   - les flèches le montent ou le descendent ; **Retirer** l'enlève.
-4. En bas, sous « Ajouter une zone », son nom puis **Ajouter la zone**. Dans une zone : **Renommer**, **Monter**, **Descendre** ou **Retirer la zone** (puis **Oui, retirer**).
+   - **Ajouter un élément** : son nom et, s'il se compte, la quantité attendue, puis **Ajouter l’élément** ;
+   - **Modifier** à côté d'un élément : changer le nom, la quantité ou la zone, puis **Enregistrer** ; les flèches le montent ou le descendent ; **Retirer** l'enlève.
+4. En bas, sous « Ajouter une zone », son nom puis **Ajouter la zone**. Dans une zone, **Gérer la zone** : **Renommer**, **Monter**, **Descendre** ou **Retirer la zone** (puis **Oui, retirer**).
 
 Les changements valent pour la prochaine prise de garde ; les prises passées gardent leur fiche.
 

@@ -131,7 +131,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Nominations" phrase={phrase} />
+	<EnTetePage titre="Nominations" phrase={phrase} retour={{ href: '/caserne', libelle: 'Caserne' }} />
 
 	<!-- Sans JavaScript, ce formulaire porte la recherche et les boutons « Nommer » et « Retirer » (par l'adresse). -->
 	<form id="choix" method="GET" role="search" onsubmit={(e) => e.preventDefault()}>
@@ -140,7 +140,7 @@
 
 	<p role="status" class="resultat">{resultat}</p>
 
-	<div class="roles">
+	<div class="roles pile">
 		{#each visibles as r (r.responsabiliteId)}
 			{@const id = r.responsabiliteId}
 			{@const cible = `attribuer-${id}`}
@@ -243,7 +243,7 @@
 							{/if}
 							{#if r.perimetres.length === 1 && erreurs.perimetreId}<p class="echec">{erreurs.perimetreId}</p>{/if}
 							<p class="note">À partir d’aujourd’hui, sans date de fin.</p>
-							<details open={datesEnCause}>
+							<details class="repli" open={datesEnCause}>
 								<summary>Changer les dates</summary>
 								<div class="dates">
 									<Champ id="debut-{id}" name="debut" type="date" libelle="Début" requis valeur={saisie(cible, 'debut', data.aujourdhui)} erreur={erreurs.debut} />
@@ -269,10 +269,10 @@
 	.dates {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.page {
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	h2,
 	h3,
@@ -281,10 +281,10 @@
 	}
 	.note {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.page {
-		max-width: 60rem;
+		max-width: var(--largeur-page);
 	}
 	/* Les zones d'annonce vides ne creusent pas d'écart. */
 	.resultat:empty {
@@ -293,16 +293,11 @@
 	.role > div[role='status']:empty {
 		margin-top: -10px;
 	}
-	.roles {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
 	.role {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -314,7 +309,7 @@
 		grid-template-columns: auto minmax(0, 1fr) auto;
 		grid-template-areas: 'icone textes nommer' '. titulaires titulaires';
 		align-items: center;
-		gap: 8px 12px;
+		gap: var(--espace-8) var(--espace-12);
 	}
 	.tete > :global(.tuile) {
 		grid-area: icone;
@@ -328,35 +323,37 @@
 	.nommer {
 		grid-area: nommer;
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.nommer:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.nommer:hover {
+			border-color: var(--encre);
+		}
 	}
 	h2 {
-		font: 600 1.0625rem/1.3 var(--police);
+		font: 600 var(--texte-16)/1.3 var(--police);
 		overflow-wrap: anywhere;
 	}
 	h3 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.bouton {
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-petit);
-		font: 700 1rem var(--police);
+		font: 700 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.secondaire {
 		background: transparent;
 		color: var(--encre);
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		font-weight: 600;
 	}
 	.titulaires {
@@ -365,28 +362,28 @@
 		padding: 0;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.titulaire {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		min-height: var(--cible);
-		padding: 0 8px 0 14px;
+		padding: 0 var(--espace-8) 0 var(--espace-16);
 		border: 1px solid var(--statut-info-trait);
 		border-radius: 999px;
 		background: var(--statut-info-fond);
 		color: var(--statut-info-texte);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		text-align: left;
 		cursor: pointer;
 	}
 	.croix {
-		font-size: 1.25rem;
+		font-size: var(--texte-20);
 		line-height: 1;
 	}
 	.etape {
-		padding-top: 12px;
+		padding-top: var(--espace-12);
 		border-top: 1px solid var(--trait-doux);
 	}
 	.etape :global(button),
@@ -396,13 +393,13 @@
 	.boutons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.succes,
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		font-weight: 600;
 	}
 	.echec {
@@ -420,9 +417,9 @@
 	.volet {
 		position: static;
 		margin: 0;
-		padding: 16px;
+		padding: var(--espace-16);
 		border: 1px solid var(--trait-doux);
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
 	}
@@ -441,7 +438,7 @@
 		background: rgb(17 23 31 / 0.45);
 	}
 	.volet h3 {
-		margin-bottom: 12px;
+		margin-bottom: var(--espace-12);
 	}
 	@media (min-width: 900px) {
 		.volet:modal {

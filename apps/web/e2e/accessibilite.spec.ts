@@ -8,6 +8,8 @@ import { ADRESSE, ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 
 async function sansViolation(page: Page, chemin?: string) {
 	if (chemin) await page.goto(chemin);
+	// Une fenêtre qui apparaît fausserait le calcul du contraste : on attend la fin de ce qui n'est pas sans fin.
+	await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 }
@@ -699,7 +701,9 @@ test.describe('échanges', () => {
 		await gestion.goto(`/echanges/centre/${id}`);
 		const suivi = gestion.locator('#suivi');
 		await expect(suivi).toContainText('1 a pris connaissance');
-		await expect(suivi).toContainText(/pas encore : .*Alice Martin/);
+		await expect(suivi).toContainText('pas encore');
+		await suivi.locator('summary', { hasText: 'Qui n’a pas encore pris connaissance' }).click();
+		await expect(suivi.getByText('Alice Martin', { exact: true })).toBeVisible();
 		await suivi.locator('summary', { hasText: 'Qui a pris connaissance' }).click();
 		await expect(suivi.getByText('Test Fictif', { exact: true })).toBeVisible();
 		await gestion.context().close();

@@ -72,7 +72,7 @@ describe('formes', () => {
 		for (const f of ['routes/planning/+page.svelte', 'lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte']) expect(source(f), f).not.toMatch(/^\s*\.(bascule|reponse)\b/m);
 	});
 
-	it('les cartes : sans bord fin, l’ombre douce et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
+	it('les cartes : sans bord fin, l’ombre de carte (sans effet) et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
 		const cartes: [string, string][] = [
 			['lib/ui/Carte.svelte', 'section'],
 			['lib/ui/Groupe.svelte', '.groupe'],
@@ -97,8 +97,9 @@ describe('formes', () => {
 		expect(carte).toMatch(/border-radius: var\(--rayon-grand\);/);
 		expect(carte).toMatch(/background: var\(--surface\);/);
 		expect(css).toMatch(/\.lignes > li \+ li \{\s*border-top: 1px solid var\(--trait-doux\);/);
-		// Le titre du groupe au-dessus de la carte, en condensé, majuscules espacées, gris.
-		expect(css).toMatch(/\.titre-groupe \{[^}]*font: 700 0\.875rem\/1\.2 var\(--police-titre\);[^}]*letter-spacing: 0\.1em;[^}]*text-transform: uppercase;[^}]*color: var\(--doux\);/);
+		// Le titre du groupe au-dessus de la carte : un vrai titre, en condensé, à l'encre.
+		expect(css).toMatch(/\.titre-groupe \{[^}]*font: 700 var\(--texte-18\)\/1\.2 var\(--police-titre\);[^}]*color: var\(--encre\);/);
+		expect(css.match(/\.titre-groupe \{([^}]*)\}/)![1]).not.toMatch(/uppercase|letter-spacing/);
 		// Une ligne n'est plus une carte.
 		const ligne = source('lib/ui/Rangee.svelte').match(/\n\t\.rangee \{([^}]*)\}/)![1];
 		expect(ligne).not.toMatch(/box-shadow|border-radius|border:/);
@@ -144,5 +145,392 @@ describe('formes', () => {
 		expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.segments :is\(\[aria-current='page'\], \[aria-current='true'\], \[aria-pressed='true'\]\) \{\s*outline: 2px solid CanvasText;/);
 		// Quatre onglets des remplacements : à la ligne, aucun caché hors de l'écran.
 		expect(source('routes/remplacements/+page.svelte')).toMatch(/\.onglets \{\s*flex-wrap: wrap;/);
+	});
+});
+
+// La direction B (décision 0026) : ni halo ni dégradé, et des échelles en jetons plutôt que des valeurs en dur.
+describe('direction B', () => {
+	const HORS_ECHELLE = /^lib\/(gyro|meteo|animations)\//;
+	const ecrans = [...fichiers('lib'), ...fichiers('routes')].filter((f) => f.endsWith('.svelte') && !HORS_ECHELLE.test(f));
+	const style = (f: string) => {
+		const s = source(f);
+		return s.slice(Math.max(0, s.indexOf('<style')));
+	};
+	const relever = (motif: RegExp) => ['app.css', ...ecrans].flatMap((f) => [...(f === 'app.css' ? source(f) : style(f)).matchAll(motif)].map((m) => `${f} | ${m[0].trim()}`));
+
+	it('la graisse 700 de Barlow est servie : pas de faux gras', () => {
+		expect(source('app.css')).toContain("@import '@fontsource/barlow/700.css';");
+	});
+
+	it('aucun halo coloré sous un bouton', () => {
+		expect(relever(/box-shadow:[^;]*--rouge[^;]*;/g)).toEqual([]);
+	});
+
+	it('aucun dégradé, hors la bande de marquage et la colonne du menu', () => {
+		const dehors = relever(/(linear|radial)-gradient\([^;]*;/g).filter((l) => !l.startsWith('app.css |') && !l.startsWith('lib/ui/Coquille.svelte'));
+		expect(dehors).toEqual([]);
+	});
+
+	it('une icône sans tuile : ni fond ni teinte', () => {
+		const s = source('lib/ui/IconeRole.svelte');
+		expect(s).not.toMatch(/style:background/);
+		expect(s).not.toMatch(/--icone-/);
+	});
+
+	it('les espacements viennent de l’échelle', () => {
+		expect(relever(/(?:^|\n)\s*(?:gap|row-gap|column-gap|padding[a-z-]*|margin[a-z-]*):[^;]*(?<![-\d.])(?:[4-9]|[1-3]\d|4[0-8])px[^;]*;/g)).toEqual([]);
+	});
+
+	it('les tailles de texte viennent de l’échelle', () => {
+		expect(relever(/(?:font-size: *|font: *\d+ +)(?:0?\.\d+|1(?:\.\d+)?|2)rem/g)).toEqual([]);
+	});
+
+	it('les rayons viennent des jetons, sauf la pilule et les petits détails', () => {
+		expect(relever(/border-radius: *(?:[5-9]|[1-9]\d|[1-8]\d\d)px/g)).toEqual([]);
+	});
+
+	it('un seul bouton principal : à-plat rouge, sans contour', () => {
+		const principal = source('lib/ui/Bouton.svelte').match(/\.principal \{([^}]*)\}/)![1];
+		expect(principal).toMatch(/background: var\(--rouge\);/);
+		expect(principal).toMatch(/border: 1px solid transparent;/);
+		expect(relever(/border: 2px solid var\(--encre\);[^}]*background: var\(--rouge\)|background: var\(--rouge\);[^}]*border: 2px solid var\(--encre\)/g)).toEqual([]);
+	});
+
+	it('un seul bouton secondaire : le contour fin de « .lien-secondaire »', () => {
+		const secondaire = source('lib/ui/Bouton.svelte').match(/\.secondaire \{([^}]*)\}/)![1];
+		expect(secondaire).toMatch(/border: 1px solid var\(--trait\);/);
+		expect(relever(/border: 2px solid var\(--trait\);/g)).toEqual([]);
+	});
+
+	it('un seul style de champ, posé par app.css', () => {
+		expect(source('app.css')).toMatch(/:where\(textarea, select, input:not\(\[type='checkbox'\], \[type='radio'\], \[type='file'\]\)\) \{[^}]*border: 1px solid var\(--doux\);/);
+		// L'interrupteur de la vue Année est une case dessinée, pas un champ.
+		const ecrit = ecrans.filter((f) => f !== 'lib/planning/VueAnnee.svelte').filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
+		expect(ecrit).toEqual([]);
+		expect(style('lib/ui/FormulairePublication.svelte')).not.toMatch(/\.saisie \{[^}]*border:/);
+	});
+
+	it('une seule couleur de bouton radio, posée par app.css', () => {
+		expect(source('app.css')).toMatch(/:where\(input\[type='radio'\]\) \{[^}]*accent-color: var\(--encre\);/);
+		expect(relever(/accent-color: (?!var\(--encre\))[^;]*;/g)).toEqual([]);
+	});
+
+	it('une liste déroulante passe par « Choix »', () => {
+		expect(ecrans.filter((f) => f !== 'lib/ui/Choix.svelte' && /<select\b/.test(source(f)))).toEqual([]);
+	});
+
+	it('un champ fichier est dessiné : aucun champ natif visible hors « ChampPhoto »', () => {
+		expect(ecrans.filter((f) => !['lib/ui/ChampPhoto.svelte', 'lib/messagerie/Saisie.svelte'].includes(f) && /type="file"/.test(source(f)))).toEqual([]);
+	});
+
+	it('un fichier à importer : pas de nom ni de « Retirer », la page reprend la main sur le champ', () => {
+		const s = source('lib/ui/ChampPhoto.svelte');
+		expect(s).toMatch(/const lire = \(\) => \{\s*if \(icone === 'fichier'\) return;/);
+		expect(s).toMatch(/\.js \.zone:has\(input:disabled\) \{[^}]*opacity:/);
+	});
+
+	it('« Géré par » garde un comité après une action', () => {
+		expect(source('routes/reservations/materiel/+page.svelte')).toMatch(/<Choix id="ajouter-comite"[^>]*valeur=\{valeur\('comite'\) \|\| String\(data\.comites\[0\]!\.id\)\}/);
+	});
+
+	it('« Aujourd’hui au centre » : des initiales lisibles et « Souhaiter » qui a l’air d’une action', () => {
+		const s = style('routes/echanges/+layout.svelte');
+		expect(s).toMatch(/background: var\(--statut-neutre-fond\);\s*color: var\(--statut-neutre-texte\);/);
+		expect(s).toMatch(/\.souhaiter \{[^}]*border: 1px solid var\(--trait\);/);
+	});
+
+	it('une option choisie ne saute pas : son bord plus épais est repris sur le retrait', () => {
+		const fautifs = ecrans.filter((f) => /border: 2px solid var\(--encre\);\s*padding: var\(--espace-8\) var\(--espace-12\);/.test(style(f)));
+		expect(fautifs).toEqual([]);
+	});
+
+	it('l’interrupteur de la vue Année garde sa piste : ce n’est pas un champ', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.interrupteur input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
+	});
+
+	// Le mouvement (lot 2) : des jetons, un retour à l'appui commun, des panneaux qui viennent de quelque part.
+	it('des durées et des courbes en jetons, jamais écrites dans un écran', () => {
+		const css = source('app.css');
+		for (const jeton of ['--courbe-sortie: cubic-bezier(0.23, 1, 0.32, 1);', '--courbe-tiroir: cubic-bezier(0.32, 0.72, 0, 1);', '--duree-appui: 160ms;', '--duree-panneau: 240ms;', '--duree-etat: 150ms;']) expect(css).toContain(jeton);
+		expect(relever(/transition: *(?!none)[^;]*\d(?:ms|s)\b[^;]*;/g)).toEqual([]);
+	});
+
+	it('tout ce qui se touche répond à l’appui, sauf si le mouvement est réduit', () => {
+		expect(source('app.css')).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{[^@]*:where\(button:not\(:disabled\)[^)]*\)[^{]*:active \{\s*transform: scale\(0\.97\);/);
+	});
+
+	it('le panneau et les fenêtres s’ouvrent en glissant ou en apparaissant, sans mouvement si c’est réduit', () => {
+		const panneau = style('lib/planning/Panneau.svelte');
+		expect(panneau).toMatch(/prefers-reduced-motion: no-preference[\s\S]*\.panneau \{[^}]*transition: transform var\(--duree-panneau\) var\(--courbe-tiroir\);[\s\S]*@starting-style \{\s*transform: translateY\(100%\);/);
+		expect(source('app.css')).toMatch(/prefers-reduced-motion: no-preference[\s\S]*dialog\[open\]:not\(\.panneau\)[^{]*\{[^}]*transition:[^;]*var\(--duree-panneau\)[\s\S]*@starting-style \{\s*opacity: 0;\s*transform: scale\(0\.97\);/);
+	});
+
+	it('tirer pour actualiser suit le doigt : la hauteur n’est pas animée', () => {
+		expect(source('lib/animations/TirerPourActualiser.svelte')).not.toMatch(/transition: height/);
+	});
+
+	it('le survol est réservé aux appareils qui en ont un', () => {
+		// Sans les blocs déjà réservés, aucune règle de survol ne doit rester.
+		const dehors = ['app.css', ...ecrans].flatMap((f) => {
+			const sans = (f === 'app.css' ? source(f) : style(f)).replace(/@media \(hover: hover\) and \(pointer: fine\) \{(?:[^{}]*\{[^{}]*\})*\s*\}/g, '');
+			return [...sans.matchAll(/[^{}\n]*:hover[^{}]*\{/g)].map((m) => `${f} | ${m[0].trim()}`);
+		});
+		expect(dehors).toEqual([]);
+	});
+
+	// Cartes et listes (lot 3).
+	it('plus de bande de couleur sur un côté, sauf pour une citation', () => {
+		const citations = ['lib/ui/Bulle.svelte', 'lib/messagerie/Saisie.svelte', 'lib/ui/Publication.svelte'];
+		// Sur aucun côté : ni à gauche, ni dessous, ni dessus.
+		const bandes = ecrans.filter((f) => !citations.includes(f)).flatMap((f) => [...style(f).matchAll(/border-(?:left|bottom|top)(?:-width)?: *[3-9]px[^;]*;|inset -?[2-9]px 0 0[^;]*;|inset 0 -?[2-9]px 0[^;]*;/g)].map((m) => `${f} | ${m[0]}`));
+		expect(bandes).toEqual([]);
+		expect(source('lib/ui/Groupe.svelte')).not.toMatch(/border-left/);
+	});
+
+	it('des sections qui se suivent forment une seule carte', () => {
+		expect(source('app.css')).toMatch(/\n\.pile \{[^}]*border-radius: var\(--rayon-grand\);[^}]*background: var\(--surface\);/);
+		const piles: [string, RegExp][] = [
+			['routes/agents/[id]/+page.svelte', /<div class="pile">\s*<Groupe titre="Identité et contact"/],
+			['routes/reglages/Domaines.svelte', /<div class="domaines pile">/],
+			['lib/engins/ZonesFiche.svelte', /<div class="zones pile">/],
+			['routes/engins/fiches/[id]/+page.svelte', /<div class="zones pile">/],
+			['routes/nominations/+page.svelte', /<div class="roles pile">/],
+			['routes/reservations/[id]/+page.svelte', /<ul class="jours pile" role="list">/],
+			['routes/reservations/materiel/+page.svelte', /<ul class="pile" role="list">/],
+			['lib/planning/VueAnnee.svelte', /<div class="mois pile">/]
+		];
+		for (const [f, motif] of piles) expect(source(f), f).toMatch(motif);
+	});
+
+	it('un choix unique passe par « ChoixRadio » là où il n’a rien de particulier', () => {
+		for (const f of ['routes/affichage/+page.svelte', 'lib/engins/FormulaireEngin.svelte', 'lib/planning/FormulaireManoeuvre.svelte', 'routes/engins/anomalies/[id]/+page.svelte']) {
+			expect(source(f), f).not.toMatch(/type="radio"/);
+			expect(source(f), f).toContain('<ChoixRadio');
+		}
+	});
+
+	it('un groupe à l’étroit garde son titre lisible : l’action passe dessous', () => {
+		const s = style('lib/ui/Groupe.svelte');
+		expect(s).toMatch(/\.ligne \{[^}]*flex-wrap: wrap;/);
+		expect(s).toMatch(/\.entete \{[^}]*flex: 1 1 11rem;/);
+	});
+
+	it('dans une pile, le repère du clavier reste entier et chaque état garde son signe', () => {
+		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.repli summary:focus-visible \{\s*outline-offset: -3px;/);
+		expect(style('lib/messagerie/ListeConversations.svelte')).toMatch(/\.conversation\[aria-current='page'\] \.nom \{\s*font-weight: 700;/);
+		expect(style('routes/reservations/[id]/+page.svelte')).toMatch(/\.jour\.passe \{\s*color: var\(--doux\);/);
+		expect(style('lib/engins/FormulaireEngin.svelte')).toMatch(/\.echec \{[^}]*border: 2px solid var\(--accent\);/);
+		// « .pile » est la carte commune : aucun écran n'en fait autre chose.
+		expect(style('routes/agents/+layout.svelte')).not.toMatch(/\.pile\b/);
+	});
+
+	it('les cases d’équipes d’une manœuvre restent un groupe nommé', () => {
+		expect(source('lib/planning/FormulaireManoeuvre.svelte')).toMatch(/<fieldset class="equipes">\s*<legend class="masque">/);
+	});
+
+	// Hiérarchie des actions (lot 4).
+	it('une action grave se distingue : variante du bouton, avec un mot sans ambiguïté', () => {
+		expect(source('lib/ui/Bouton.svelte')).toMatch(/\.grave \{[^}]*color: var\(--accent\);[^}]*border: 1px solid var\(--accent\);/);
+		for (const [f, motif] of [
+			['routes/reglages/comites/[id]/+page.svelte', /<Bouton type="submit" variante="grave">Dissoudre le comité<\/Bouton>/],
+			['lib/ui/Publication.svelte', /<Bouton type="submit" variante="grave">Confirmer la suppression<\/Bouton>/],
+			['routes/engins/anomalies/[id]/+page.svelte', /<Bouton type="submit" variante="grave"[^>]*>\{e\.etat === 'indisponible'/]
+		] as const) expect(source(f), f).toMatch(motif);
+	});
+
+	it('une action rare d’en-tête n’est pas rouge', () => {
+		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.action\.discrete \{[^}]*background: var\(--surface\);[^}]*color: var\(--encre\);/);
+		for (const f of ['routes/planning/+page.svelte', 'routes/reglages/+page.svelte', 'routes/engins/+page.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toMatch(/discrete: true/);
+	});
+
+	it('ce qui est rare se range sous « Plus », utilisable sans JavaScript', () => {
+		expect(source('app.css')).toMatch(/\.plus > summary \{[^}]*min-height: var\(--cible\);/);
+		const p = source('lib/ui/Publication.svelte');
+		expect(p).toMatch(/<details class="plus[^"]*">\s*<summary>Plus<span class="masque">/);
+		const plus = p.slice(p.indexOf('<details class="plus'));
+		for (const geste of ['Voir le suivi', 'Répondre en privé', 'fermerCommentaires', 'epingler', 'Modifier', 'Supprimer']) expect(plus, geste).toContain(geste);
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="plus"[^>]*>\s*<summary>Gérer la zone/);
+		expect(source('routes/engins/[id]/+page.svelte')).toMatch(/<details class="plus">\s*<summary>Gérer l’engin/);
+	});
+
+	it('une aptitude ne montre pas tous ses boutons d’un coup : ses gestes s’ouvrent', () => {
+		expect(source('routes/reglages/aptitudes/+page.svelte')).toMatch(/<details[^>]*>\s*<summary[^>]*>[\s\S]*?Modifier/);
+	});
+
+	it('l’ajout d’un élément reste replié tant qu’on n’y revient pas', () => {
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/open=\{pour\(`ajout:\$\{z\.ref\}`\) !== null\}/);
+	});
+
+	// Navigation (lot 5).
+	it('une seule forme de retour : le composant, sur les murs aussi', () => {
+		for (const f of ['routes/echanges/[mur]/+page.svelte', 'routes/echanges/[mur]/[id]/+page.svelte']) {
+			expect(source(f), f).toContain('<Retour ');
+			expect(source(f), f).not.toMatch(/>‹ /);
+		}
+		for (const f of ['routes/agents/+layout.svelte', 'routes/nominations/+page.svelte', 'routes/comites/+page.svelte', 'routes/reglages/+page.svelte']) expect(source(f), f).toMatch(/retour=\{\{ href: '\/caserne', libelle: 'Caserne' \}\}/);
+	});
+
+	it('une seule forme de dépliage : le chevron de « .repli », posé par app.css', () => {
+		expect(source('app.css')).toMatch(/\.repli > summary::before \{[^}]*border-right: 2px solid currentColor;/);
+		const propres = ecrans.flatMap((f) => [...style(f).matchAll(/[^\n{}]*summary::(?:before|after)[^{]*\{/g)].map((m) => `${f} | ${m[0].trim()}`));
+		expect(propres).toEqual([]);
+		const sansForme = ecrans.flatMap((f) => [...source(f).matchAll(/<details(?![^>]*class="[^"]*\b(?:repli|plus|aptitude|menu|geste)\b)[^>]*>/g)].map((m) => `${f} | ${m[0]}`));
+		expect(sansForme).toEqual([]);
+	});
+
+	it('le bouton d’action reste à côté du titre : la phrase passe dessous', () => {
+		const s = style('lib/ui/EnTetePage.svelte');
+		expect(s).toMatch(/\.titres:not\(\.avec-tete\) \{\s*display: contents;/);
+		expect(s).toMatch(/\.phrase \{[^}]*flex-basis: 100%;[^}]*order: 1;/);
+	});
+
+	it('Accueil et Caserne ne se ressemblent pas ; la page en cours n’a pas l’air d’un repère du clavier', () => {
+		const c = source('lib/ui/Coquille.svelte');
+		const trace = (nom: string) => c.match(new RegExp(`${nom}: '([^']*)'`))![1];
+		expect(trace('caserne')).not.toBe(trace('accueil'));
+		expect(trace('caserne')).not.toMatch(/M9 21v-6h6v6/);
+		expect(style('lib/ui/Coquille.svelte')).not.toMatch(/0 0 0 4px var\(--entete-texte\)/);
+	});
+
+	it('en mode contrasté, la page en cours reste visible sur « Moi » et la cloche', () => {
+		expect(style('lib/ui/Coquille.svelte')).toMatch(/@media \(forced-colors: active\) \{\s*header a\.moi\[aria-current='page'\][\s\S]*?outline: 2px solid/);
+	});
+
+	it('un geste de ligne (« Écart », « Modifier ») n’a pas de chevron : c’est un lien, pas un bloc', () => {
+		expect(source('routes/engins/[id]/prise/+page.svelte')).toMatch(/<details class="geste"[^>]*name="ecart"/);
+		expect(source('routes/engins/fiches/[id]/+page.svelte')).toMatch(/<details class="geste" open=\{pour\(`element:/);
+	});
+
+	// Ordinateur (lot 6).
+	it('trois largeurs de page, en jetons', () => {
+		const css = source('app.css');
+		for (const j of ['--largeur-lecture: 40rem;', '--largeur-liste: 56rem;', '--largeur-page: 76rem;']) expect(css).toContain(j);
+		const ecrites = ecrans.filter((f) => f !== 'routes/connexion/+page.svelte').flatMap((f) => [...style(f).matchAll(/\.(?:page|formulaire|messages) \{[^}]*max-width: (?!var\(--largeur-)[^;]*;/g)].map(() => f));
+		expect(ecrites).toEqual([]);
+	});
+
+	it('une page étroite est centrée : pas de vide d’un seul côté', () => {
+		for (const f of ['routes/moi/+page.svelte', 'routes/profil/+page.svelte', 'routes/notifications/+page.svelte', 'routes/engins/anomalies/signaler/+page.svelte']) expect(style(f), f).toMatch(/\.page \{[^}]*max-width: var\(--largeur-[a-z]+\);[^}]*margin-inline: auto;/);
+	});
+
+	it('pas de colonne fantôme : seul, le contenu prend la place', () => {
+		for (const f of ['routes/engins/+page.svelte', 'routes/engins/anomalies/+page.svelte']) expect(style(f), f).toMatch(/\.colonnes:has\(> :only-child\) \{\s*grid-template-columns: minmax\(0, 1fr\);/);
+	});
+
+	it('un bloc de choix ne s’étire pas sur tout l’écran à l’ordinateur', () => {
+		expect(source('app.css')).toMatch(/@media \(min-width: 1024px\) \{\s*\.segments \{\s*width: fit-content;/);
+	});
+
+	it('sur un mur à l’ordinateur, le fil a la place de se lire', () => {
+		expect(style('routes/echanges/+layout.svelte')).toMatch(/grid-template-columns: 13rem minmax\(0, 1fr\) 15rem;/);
+	});
+
+	it('à côté d’une fiche, une longue liste défile seule : la page ne s’allonge pas pour elle', () => {
+		expect(style('routes/reglages/+layout.svelte')).toMatch(/\.cote \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
+		expect(style('routes/agents/+layout.svelte')).toMatch(/\.a-cote \.liste \{[^}]*position: sticky;[^}]*max-height: calc\(100dvh - 32px\);[^}]*overflow-y: auto;/);
+	});
+
+	it('une page dans une colonne flexible garde sa largeur : pas de marge automatique', () => {
+		for (const f of ['routes/reglages/+page.svelte', 'routes/reglages/aptitudes/+page.svelte', 'routes/reglages/armement/+page.svelte']) expect(style(f), f).not.toMatch(/margin-inline: auto/);
+	});
+
+	it('un bloc de choix ne déborde pas d’une colonne étroite ; trois réponses restent à parts égales', () => {
+		expect(source('app.css')).toMatch(/min-width: min\(20rem, 100%\);/);
+		for (const [f, c] of [['lib/ui/Publication.svelte', 'reponses'], ['lib/ui/ANePasManquer.svelte', 'boutons'], ['routes/planning/+page.svelte', 'boutons']]) expect(style(f), f).toMatch(new RegExp(`\\.${c} \\{[^}]*width: 100%;`));
+	});
+
+	it('la ligne affichée se montre dans une liste qui défile seule', () => {
+		for (const f of ['routes/reglages/+layout.svelte', 'routes/agents/+layout.svelte']) expect(source(f), f).toContain('montrerCourante(');
+	});
+
+	// Écrans à reprendre (lot 7).
+	it('Préparer l’année et Été : l’avancement dit une fois, l’étape avant le reste', () => {
+		for (const f of ['routes/planning/preparer/+page.svelte', 'routes/planning/ete/+page.svelte']) {
+			expect(source(f), f).not.toContain('class="barre"');
+			expect(style(f), f).not.toMatch(/\.suite \.suivante \{[^}]*background: var\(--encre\)/);
+		}
+		const p = source('routes/planning/preparer/+page.svelte');
+		// L'export et l'été restent à portée, repliés : ils ne repoussent plus l'étape.
+		expect(p).toMatch(/<details class="plus">\s*<summary>Exporter, importer, préparer l’été<\/summary>\s*<ListeRangees>\s*<li><Rangee href="\/planning\/preparer\/fichier/);
+		expect(p.indexOf('<details class="plus">')).toBeLessThan(p.indexOf('<nav class="etapes"'));
+		expect(p).toMatch(/<nav class="annees segments" aria-label="Année à préparer">/);
+	});
+
+	it('le suivi d’une publication : des noms en liste, pas un paragraphe', () => {
+		expect(source('routes/echanges/[mur]/[id]/+page.svelte')).toMatch(/<ul class="noms" role="list">/);
+		// Deux homonymes ne doivent pas faire planter la liste.
+		expect(source('routes/echanges/[mur]/[id]/+page.svelte')).toMatch(/\{#each liste as x \(x\.id\)\}/);
+	});
+
+	it('un rôle en lecture seule dit son niveau en texte : rien qui ait l’air modifiable', () => {
+		expect(style('lib/ui/SelecteurNiveaux.svelte')).toMatch(/\.selecteur:disabled label \{\s*display: none;/);
+	});
+
+	it('un rôle figé dit le nom de son niveau, et il reste lu', () => {
+		expect(source('lib/ui/SelecteurNiveaux.svelte')).toMatch(/\{#if desactive\}<strong>\{nomDuNiveau\}<\/strong> : \{\/if\}\{phrase\}/);
+	});
+
+	it('un suivi ne ressemble pas à des boutons radio', () => {
+		expect(style('routes/habillement/[id]/+page.svelte')).toMatch(/\.puce \{[^}]*width: 12px;[^}]*height: 12px;/);
+	});
+
+	it('Comités et référents : les lignes d’un comité restent alignées', () => {
+		const s = source('routes/comites/+page.svelte');
+		expect(s).not.toMatch(/icone=\{c\.icone\}/);
+		expect(s).not.toMatch(/icone=\{r\.icone\}/);
+		expect(s).not.toContain('sous="Calendrier des réservations"');
+	});
+
+	// Texte (lot 8).
+	it('un seul format d’heure : « 19 h », « 16 h 04 », jamais « 19:00 »', () => {
+		for (const f of ['lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte', 'routes/echanges/[mur]/[id]/+page.svelte']) expect(source(f), f).not.toMatch(/hour: '2-digit'/);
+	});
+
+	it('plus de sur-titre en majuscules espacées dans un écran', () => {
+		for (const f of ['routes/echanges/[mur]/+page.svelte', 'routes/echanges/messages/nouveau/+page.svelte', 'routes/echanges/messages/nouveau/groupe/+page.svelte', 'routes/echanges/messages/[id]/infos/+page.svelte']) expect(style(f), f).not.toMatch(/text-transform: uppercase/);
+	});
+
+	it('à l’ordinateur on ne « touche » pas : hors des gestes propres au téléphone', () => {
+		for (const f of ['routes/engins/[id]/prise/+page.svelte', 'routes/planning/preparer/+page.svelte', 'routes/planning/ete/+page.svelte', 'routes/reglages/roles/[id]/+page.svelte']) expect(source(f), f).not.toMatch(/[Tt]ouchez/);
+	});
+
+	it('une invitation à écrire n’a pas de Gyro à la loupe', () => {
+		expect(source('lib/messagerie/Conversation.svelte')).toMatch(/<Vide gyro=\{false\} texte="Écrivez votre premier message/);
+	});
+
+	// Passe complète.
+	it('un titre ne se coupe jamais en plein mot : le bouton d’action passe dessous', () => {
+		expect(style('lib/ui/EnTetePage.svelte')).toMatch(/\.titres:not\(\.avec-tete\) h1 \{\s*flex: 1 1 auto;\s*min-width: 0;\s*overflow-wrap: break-word;/);
+	});
+
+	it('une publication épinglée ou un bravo ne portent pas de cadre coloré', () => {
+		const s = style('lib/ui/Publication.svelte');
+		expect(s).not.toMatch(/border: 2px solid var\(--statut-alerte-trait\)/);
+		expect(s).not.toMatch(/\.bravo \{[^}]*border-color/);
+	});
+
+	it('un lien sans classe prend la couleur du texte, jamais le bleu ou le violet du navigateur', () => {
+		expect(source('app.css')).toMatch(/:where\(a\) \{\s*color: inherit;/);
+	});
+
+	it('rien de rouge qui ne soit une action : contacts, jours choisis, mur choisi', () => {
+		expect(style('routes/agents/[id]/+page.svelte')).not.toMatch(/background: var\(--statut-danger-fond\)/);
+		expect(style('lib/remplacements/ChoixSemaine.svelte')).not.toMatch(/var\(--rouge\) 8%/);
+		expect(source('lib/ui/FormulairePublication.svelte')).not.toContain('style:--visible-fond');
+		expect(style('routes/engins/[id]/prise/+page.svelte')).not.toMatch(/dashed var\(--doux\)/);
+	});
+
+	// Relecture finale.
+	it('un geste grave a partout la même forme : contour rouge, jamais à-plat rouge', () => {
+		const aplat = ecrans.filter((f) => /\n\t\.danger \{[^}]*background: var\(--rouge\)/.test(style(f)));
+		expect(aplat).toEqual([]);
+	});
+
+	it('avec un complément (météo, vigilance), l’en-tête garde son ordre : titre, phrase, complément', () => {
+		expect(source('lib/ui/EnTetePage.svelte')).toMatch(/class:avec-tete=\{tete \|\| complement\}/);
+	});
+
+	it('un « .plus » local n’ajoute pas un second style à celui d’app.css', () => {
+		for (const f of ['lib/remplacements/CarteDemande.svelte', 'routes/reservations/a-valider/+page.svelte']) expect(style(f), f).not.toMatch(/\.plus summary/);
 	});
 });

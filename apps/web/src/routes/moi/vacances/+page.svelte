@@ -76,30 +76,31 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 40rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	p,
 	h2 {
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.carte {
-		padding: 16px;
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.retours:has(p) {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.retours:not(:has(p)) {
 		margin-bottom: -16px;
@@ -108,7 +109,7 @@
 		color: var(--doux);
 	}
 	.encadre {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 1px solid var(--trait);
 	}
@@ -123,7 +124,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 		font-weight: 600;
 	}
@@ -132,7 +133,7 @@
 	}
 	.retirer {
 		min-height: var(--cible);
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		font: inherit;
 		font-weight: 600;
 		color: var(--texte);
@@ -145,12 +146,12 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: end;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.ajout label {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 		font-weight: 600;
 	}
 	input[type='date'] {
@@ -158,12 +159,10 @@
 		font: inherit;
 		color: var(--texte);
 		background: var(--fond);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
-		padding: 0 10px;
+		padding: 0 var(--espace-12);
 	}
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
@@ -171,7 +170,7 @@
 		font-weight: 600;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

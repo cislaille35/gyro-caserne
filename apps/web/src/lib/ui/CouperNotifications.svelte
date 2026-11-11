@@ -27,17 +27,19 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 0 10px;
+		gap: var(--espace-6);
+		padding: 0 var(--espace-12);
 		border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
 		border-radius: var(--rayon-bouton);
 		background: color-mix(in srgb, var(--surface) 70%, transparent);
 		color: inherit;
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.couper:hover {
-		border-color: currentColor;
+	@media (hover: hover) and (pointer: fine) {
+		.couper:hover {
+			border-color: currentColor;
+		}
 	}
 	.coupe {
 		background: var(--surface);

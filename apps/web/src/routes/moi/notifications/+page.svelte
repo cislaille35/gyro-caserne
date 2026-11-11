@@ -59,7 +59,7 @@
 
 	<Carte titre="Coupés">
 		{#if data.coupes.length === 0}
-			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, touchez le haut-parleur dans son en-tête.</p>
+			<p class="doux">Rien n’est coupé. Pour couper un mur ou une conversation, appuyez sur le haut-parleur dans son en-tête.</p>
 		{:else}
 			<ul role="list">
 				{#each data.coupes as c (c.lieu)}
@@ -83,8 +83,9 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
-		max-width: 40rem;
+		gap: var(--espace-20);
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	.doux {
 		margin: 0;
@@ -92,7 +93,7 @@
 	}
 	.erreur {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-danger-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-danger-fond);
@@ -102,7 +103,7 @@
 	.interrupteur {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.interrupteur p {
 		margin: 0;
@@ -112,13 +113,13 @@
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 10px;
-		padding: 0 14px 0 6px;
+		gap: var(--espace-12);
+		padding: 0 var(--espace-16) 0 var(--espace-6);
 		border: 1px solid var(--trait);
 		border-radius: 999px;
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
 	.glissiere {
@@ -127,7 +128,7 @@
 		height: 26px;
 		border-radius: 999px;
 		background: var(--doux);
-		transition: background 0.15s;
+		transition: background var(--duree-etat) var(--courbe-sortie);
 	}
 	.bouton-rond {
 		position: absolute;
@@ -138,7 +139,7 @@
 		border-radius: 50%;
 		background: var(--surface);
 		box-shadow: 0 1px 2px color-mix(in srgb, #000 30%, transparent);
-		transition: transform 0.15s;
+		transition: transform var(--duree-etat) var(--courbe-sortie);
 	}
 	[aria-checked='true'] .glissiere {
 		background: var(--accent);
@@ -156,7 +157,7 @@
 	li {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: 56px;
 		border-top: 1px solid var(--trait-doux);
 	}
@@ -175,17 +176,19 @@
 	}
 	.reactiver {
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.reactiver:hover,
-	[role='switch']:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.reactiver:hover,
+		[role='switch']:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.glissiere,

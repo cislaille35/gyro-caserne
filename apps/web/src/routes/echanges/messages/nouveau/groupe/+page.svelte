@@ -137,14 +137,14 @@
 <style>
 	/* À l'ordinateur, la page garde une largeur de lecture. */
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
 		margin: 0 auto;
 	}
 	.entete {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.annuler {
 		min-height: var(--cible);
@@ -154,26 +154,28 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.annuler:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.annuler:hover {
+			text-decoration: underline;
+		}
 	}
 	h1 {
 		grid-column: 2;
 		margin: 0;
 		text-align: center;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.etape {
-		margin: 0 0 12px;
+		margin: 0 0 var(--espace-12);
 		text-align: center;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 
 	.recherche {
 		position: relative;
 		display: flex;
-		margin-bottom: 8px;
+		margin-bottom: var(--espace-8);
 	}
 	.recherche svg {
 		position: absolute;
@@ -184,9 +186,7 @@
 	.recherche input {
 		flex: 1;
 		min-height: var(--cible);
-		padding: 0 16px 0 40px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
+		padding: 0 var(--espace-16) 0 var(--espace-48);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -203,12 +203,9 @@
 	}
 	legend {
 		padding: 0;
-		margin: 12px 0 4px;
-		color: var(--doux);
-		font-size: 0.875rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+		margin: var(--espace-12) 0 var(--espace-4);
+		color: var(--encre);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
 	}
 	ul {
 		list-style: none;
@@ -224,15 +221,17 @@
 	.ligne {
 		position: relative;
 		min-height: 60px;
-		padding: 6px 8px;
+		padding: var(--espace-6) var(--espace-8);
 		border-radius: var(--rayon-grand);
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		cursor: pointer;
 	}
-	.ligne:hover {
-		background: var(--surface);
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: var(--surface);
+		}
 	}
 	.ligne:has(input:focus-visible) {
 		outline: 3px solid var(--focus);
@@ -245,12 +244,12 @@
 		flex-direction: column;
 	}
 	.nom {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		font-weight: 600;
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	/* La vraie case reste là pour le clavier et le lecteur d'écran ; on dessine une coche ronde par-dessus. */
 	.ligne input {
@@ -291,15 +290,15 @@
 	.barre {
 		position: sticky;
 		bottom: calc(4.5rem + env(safe-area-inset-bottom));
-		margin: 12px -8px 0;
-		padding: 10px 12px;
+		margin: var(--espace-12) -8px 0;
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
+		gap: var(--espace-12);
 		box-shadow: 0 4px 14px color-mix(in srgb, var(--encre) 12%, transparent);
 	}
 	.compte {
@@ -309,26 +308,26 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	.rappel {
-		padding: 14px 16px;
+		padding: var(--espace-16) var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.rappel h2 {
 		margin: 0;
-		font-size: 1rem;
+		font-size: var(--texte-16);
 		font-weight: 700;
 	}
 	.visages {
 		display: flex;
-		padding-left: 6px;
+		padding-left: var(--espace-6);
 	}
 	.visages > :global(*) {
 		margin-left: -6px;
@@ -336,7 +335,7 @@
 	.noms {
 		margin: 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.modifier {
 		align-self: flex-start;
@@ -348,14 +347,14 @@
 	}
 
 	.erreur {
-		margin: 0 0 4px;
+		margin: 0 0 var(--espace-4);
 		color: var(--accent);
 		font-weight: 600;
 	}
 	.aucune {
-		margin: 8px 16px 0;
+		margin: var(--espace-8) var(--espace-16) 0;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		text-align: center;
 	}
 	.masque {

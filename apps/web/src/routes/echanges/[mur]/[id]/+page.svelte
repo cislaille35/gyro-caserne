@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { deNom, heure } from '#lib/murs/quand.ts';
+	import Retour from '#lib/ui/Retour.svelte';
 	import { formatDeDate } from '@gyro-caserne/socle/dates';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
@@ -10,19 +12,17 @@
 
 	const p = $derived(data.publication);
 	const nom = (a: { prenom: string; nom: string }) => `${a.prenom} ${a.nom}`.trim();
-	const noms = (liste: Personne[]) => (liste.length === 0 ? 'personne' : liste.map(nom).join(', '));
-	const quand = (iso: string) =>
-		formatDeDate({ day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
+	const quand = (iso: string) => `${formatDeDate({ day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`))}, ${heure(iso)}`;
 	const agir = $derived(data.estPersonne === true && !data.mur.lectureSeule);
 	// Une seule zone annoncée par page, pour toutes les réponses des formulaires.
 	const annonceSucces = $derived(form?.succes ?? '');
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 	const retour = $derived(form?.cible === `publication:${p.id}` ? form : undefined);
 	const prise = $derived(data.suivi?.priseDeConnaissance);
-	// « 31 ont pris connaissance, 4 pas encore : … »
+	// « 31 ont pris connaissance, 4 pas encore. »
 	const bilan = $derived(
 		prise
-			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore : ${noms(prise.manquante)}.` : 'personne d’autre n’est attendu.'}`
+			? `${prise.faite.length} ${prise.faite.length > 1 ? 'ont' : 'a'} pris connaissance, ${prise.manquante.length > 0 ? `${prise.manquante.length} pas encore.` : 'personne d’autre n’est attendu.'}`
 			: ''
 	);
 	const CATEGORIES = [
@@ -50,11 +50,11 @@
 </script>
 
 <svelte:head>
-	<title>Publication de {nom(p.auteur)} · {data.mur.nom} · Gyro Caserne</title>
+	<title>Publication {deNom(nom(p.auteur))} · {data.mur.nom} · Gyro Caserne</title>
 </svelte:head>
 
-<p class="retour"><a href="/echanges/{data.mur.cle}">‹ {data.mur.nom}</a></p>
-<h1>Publication de {nom(p.auteur)}</h1>
+<div class="vers-mur"><Retour href="/echanges/{data.mur.cle}" libelle={data.mur.nom} /></div>
+<h1>Publication {deNom(nom(p.auteur))}</h1>
 
 <div class="annonce" role="status">{annonceSucces}</div>
 <div class="annonce" role="alert">{annonceEchec}</div>
@@ -97,15 +97,25 @@
 	{/if}
 </section>
 
+{#snippet listeNoms(liste: Personne[])}
+	{#if liste.length === 0}<p>personne</p>{:else}<ul class="noms" role="list">{#each liste as x (x.id)}<li>{nom(x)}</li>{/each}</ul>{/if}
+{/snippet}
+
 {#if data.suivi}
 	<section id="suivi" aria-labelledby="titre-suivi" class="bloc">
 		<h2 id="titre-suivi">Suivi</h2>
 		{#if prise}
 			<p>{bilan}</p>
 			{#if prise.faite.length > 0}
-				<details>
+				<details class="repli">
 					<summary>Qui a pris connaissance</summary>
-					<p>{noms(prise.faite)}</p>
+					{@render listeNoms(prise.faite)}
+				</details>
+			{/if}
+			{#if prise.manquante.length > 0}
+				<details class="repli">
+					<summary>Qui n’a pas encore pris connaissance</summary>
+					{@render listeNoms(prise.manquante)}
 				</details>
 			{/if}
 		{/if}
@@ -114,7 +124,7 @@
 				{#each CATEGORIES as [cle, libelle] (cle)}
 					<div>
 						<dt>{libelle} ({data.suivi.evenement[cle].length})</dt>
-						<dd>{noms(data.suivi.evenement[cle])}</dd>
+						<dd>{@render listeNoms(data.suivi.evenement[cle])}</dd>
 					</div>
 				{/each}
 			</dl>
@@ -123,29 +133,34 @@
 {/if}
 
 <style>
-	.retour {
-		margin: 0 0 8px;
+	.noms {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		columns: 12rem auto;
+		column-gap: var(--espace-16);
 	}
-	.retour a {
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		color: var(--encre);
-		font-weight: 600;
+	.noms li {
+		break-inside: avoid;
+		padding-block: 2px;
+	}
+	.vers-mur {
+		display: flex;
+		margin-bottom: var(--espace-8);
 	}
 	h1 {
-		margin: 0 0 16px;
-		font: 700 1.75rem var(--police-titre);
+		margin: 0 0 var(--espace-16);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	h2 {
 		margin: 0;
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.bloc {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		margin-top: 20px;
+		gap: var(--espace-12);
+		margin-top: var(--espace-20);
 	}
 	p,
 	dl,
@@ -157,16 +172,16 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.commentaires li {
-		padding: 10px 12px;
+		padding: var(--espace-12) var(--espace-12);
 		border: 1px solid var(--trait-doux);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.auteur {
 		font-weight: 700;
@@ -181,18 +196,18 @@
 	.petit {
 		align-self: flex-start;
 		min-height: var(--cible);
-		padding: 0 14px;
-		border: 2px solid var(--trait);
+		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		background: transparent;
 		color: var(--encre);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -201,12 +216,10 @@
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 	}
 	summary {
 		min-height: var(--cible);
@@ -217,7 +230,7 @@
 	}
 	.categories {
 		display: grid;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	dt {
 		font-weight: 700;

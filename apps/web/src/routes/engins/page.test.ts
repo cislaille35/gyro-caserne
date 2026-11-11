@@ -11,7 +11,7 @@ describe('/engins', () => {
 
 	it('chaque engin présent, son type, sa plaque, son prêt et son état écrits ; les partis repliés à part', () => {
 		const page = html({ engins, gere: false });
-		expect(page).toMatch(/href="\/engins\/1"[\s\S]*?VSAV 1[\s\S]*?VSAV · AB-123-CD[\s\S]*?Disponible/);
+		expect(page).toMatch(/href="\/engins\/1"[\s\S]*?VSAV 1[\s\S]*?AB-123-CD[\s\S]*?Disponible/);
 		expect(page).toMatch(/href="\/engins\/2"[\s\S]*?prêté par CIS Exemple-Nord[\s\S]*?Indisponible/);
 		expect(page).toMatch(/Partis[\s\S]*?1 engin sorti[\s\S]*?hidden[\s\S]*?FPT 2[\s\S]*?Parti le 1 oct\. 2026/);
 	});
@@ -35,8 +35,8 @@ describe('/engins', () => {
 		const releve = { debut: '2026-10-30T18:00', equipe: { id: 2, nom: 'Équipe 2', couleur: '#000000' } };
 		const prises = { 1: { prise: { etat: 'validee', valideeLe: '2026-10-30T18:40', equipe: 'Équipe 2', par: 'A' }, ouvertes: 2 }, 2: { prise: null, ouvertes: 0 } };
 		const page = html({ engins, gere: false, releve, prises });
-		expect(page).toMatch(/href="\/engins\/prise"[\s\S]*?Relève du ven\. 30 oct\., équipe 2[\s\S]*?1 sur 2 prise faite/);
-		expect(page).toMatch(/VSAV 1[\s\S]*?<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise faite par l’équipe 2, ven\. 18 h 40 · 2 anomalies ouvertes[\s\S]*?Avertissement/);
+		expect(page).toMatch(/href="\/engins\/prise"[\s\S]*?Relève du ven\. 30 oct\., équipe 2[\s\S]*?1 prise faite sur 2/);
+		expect(page).toMatch(/VSAV 1[\s\S]*?<span class="sous[^"]*">AB-123-CD<\/span><span class="sous[^"]*">Prise faite par l’équipe 2, ven\. 18 h 40 · 2 anomalies ouvertes[\s\S]*?Avertissement/);
 		expect(page).toMatch(/VSAV 23[\s\S]*?Prise à faire/);
 		expect(page).toMatch(/href="\/engins\/anomalies"[\s\S]*?2 ouvertes, à suivre jusqu’à la réparation/);
 	});

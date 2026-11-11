@@ -27,7 +27,7 @@
 	const dessins: Record<string, string> = {
 		accueil: 'M3 10.5 12 3l9 7.5V21H3z M9 21v-6h6v6',
 		planning: 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4',
-		caserne: 'M3 21V9l9-5 9 5v12 M9 21v-6h6v6',
+		caserne: 'M2 21h20 M4 21V10h11v11 M15 21V4h5v17 M7 21v-6h5v6',
 		echanges: DESSINS.echanges,
 		connexion: DESSINS.sortir,
 		affichage: DESSINS.affichage,
@@ -110,8 +110,8 @@
 		min-height: 60px;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 12px 8px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-8) var(--espace-12) var(--espace-8) var(--espace-16);
 		background: var(--entete-fond);
 		color: var(--entete-texte);
 		--focus: var(--entete-focus);
@@ -128,7 +128,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		column-gap: 10px;
+		column-gap: var(--espace-12);
 	}
 	header a {
 		min-height: var(--cible);
@@ -145,12 +145,12 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		background: var(--entete-bouton);
 		color: var(--entete-texte);
 	}
 	header :global(.visage) {
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 	}
 	.cloche {
 		position: relative;
@@ -161,7 +161,7 @@
 		right: -6px;
 		min-width: 22px;
 		height: 22px;
-		padding: 0 5px;
+		padding: 0 var(--espace-4);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -169,7 +169,7 @@
 		border: 2px solid var(--entete-fond);
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 		line-height: 1;
 	}
@@ -185,18 +185,25 @@
 		right: -14px;
 	}
 	.moi {
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 	}
-	/* La page « Moi » ou la cloche : un anneau clair autour du carré, pas seulement une couleur. */
+	/* La page « Moi » ou la cloche : un trait clair dessous, pour ne pas ressembler au repère du clavier. */
 	header a.moi[aria-current='page'] :global(.visage),
 	header a.moi[aria-current='page'] .rond,
 	header a.rond[aria-current='page'] {
-		box-shadow:
-			0 0 0 2px var(--entete-fond),
-			0 0 0 4px var(--entete-texte);
+		box-shadow: 0 4px 0 -1px var(--entete-texte);
+	}
+	/* Le mode contrasté retire les ombres. */
+	@media (forced-colors: active) {
+		header a.moi[aria-current='page'] :global(.visage),
+		header a.moi[aria-current='page'] .rond,
+		header a.rond[aria-current='page'] {
+			outline: 2px solid CanvasText;
+			outline-offset: 2px;
+		}
 	}
 	.appli {
-		font: 700 1.375rem/1.1 var(--police-titre);
+		font: 700 var(--texte-20)/1.1 var(--police-titre);
 		letter-spacing: 0.02em;
 		text-transform: uppercase;
 	}
@@ -206,7 +213,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		color: var(--entete-doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	main {
 		flex: 1;
@@ -237,7 +244,7 @@
 		padding: 0.25rem;
 		color: var(--doux);
 		text-decoration: none;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	nav a[aria-current='page'] {
 		color: var(--encre);
@@ -278,17 +285,17 @@
 		}
 		header {
 			grid-area: entete;
-			gap: 12px;
-			padding: 8px 20px;
+			gap: var(--espace-12);
+			padding: var(--espace-8) var(--espace-20);
 		}
 		.marquage {
 			grid-area: marquage;
 		}
 		.appli {
-			font-size: 1.5rem;
+			font-size: var(--texte-24);
 		}
 		.centre {
-			font-size: 0.875rem;
+			font-size: var(--texte-14);
 		}
 		nav {
 			grid-area: menu;
@@ -296,8 +303,8 @@
 			top: 0;
 			align-self: start;
 			flex-direction: column;
-			gap: 4px;
-			padding: 16px 12px;
+			gap: var(--espace-4);
+			padding: var(--espace-16) var(--espace-12);
 			border-top: 0;
 			background: var(--menu-fond);
 		}
@@ -306,10 +313,10 @@
 			min-height: 46px;
 			flex-direction: row;
 			justify-content: flex-start;
-			gap: 12px;
-			padding: 0 14px;
-			border-radius: 10px;
-			font-size: 1rem;
+			gap: var(--espace-12);
+			padding: 0 var(--espace-16);
+			border-radius: var(--rayon-bouton);
+			font-size: var(--texte-16);
 			font-weight: 500;
 		}
 		nav a[aria-current='page'] {

@@ -160,8 +160,7 @@
 
 {#key fiche.id}
 	<div class="fiche">
-		<header class="entete" style:--teinte={fiche.equipe?.couleur ?? null}>
-			<div class="bandeau" aria-hidden="true"></div>
+		<header class="entete">
 			<div class="corps">
 				<span class="visage"><Visage prenom={fiche.prenom} nom={fiche.nom} couleur={fiche.equipe?.couleur ?? null} taille={88} /></span>
 				<h1 tabindex="-1">{fiche.prenom} {fiche.nom}</h1>
@@ -189,6 +188,7 @@
 			</div>
 		</div>
 
+		<div class="pile">
 		<Groupe titre="Identité et contact" icone="livre" dessin={DESSINS.profil} resume={resumes.identite} ouvert={blocOuvert === 'identite'}>
 			<div class="bloc">
 				{#if data.raison}
@@ -304,7 +304,7 @@
 					{@render liste('À venir', data.attributions.aVenir)}
 				{/if}
 				{#if data.attributions.passees.length > 0}
-					<details>
+					<details class="repli">
 						<summary>Passées ({data.attributions.passees.length})</summary>
 						<ul class="roles">
 							{#each data.attributions.passees as l (l.id)}
@@ -386,7 +386,7 @@
 			</div>
 		</Groupe>
 
-		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} couleur="var(--rouge)" ouvert={blocOuvert === 'depart'}>
+		<Groupe titre="Départ du centre" icone="etoile" dessin={DESSINS.sortir} resume={resumes.depart} ouvert={blocOuvert === 'depart'}>
 			<div class="bloc">
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
@@ -408,11 +408,12 @@
 							Je confirme
 						</label>
 						{#if erreurs.confirmation}<p id="confirmation-erreur" class="erreur">{erreurs.confirmation}</p>{/if}
-						<Bouton type="submit">Déclarer le départ</Bouton>
+						<Bouton type="submit" variante="grave">Déclarer le départ</Bouton>
 					</form>
 				{/if}
 			</div>
 		</Groupe>
+		</div>
 	</div>
 {/key}
 
@@ -421,7 +422,7 @@
 	.annonces {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 		margin: -8px 0;
 	}
 	.annonces:not(:has(p)) {
@@ -431,33 +432,33 @@
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	form + form {
-		margin-top: 24px;
-		padding-top: 24px;
+		margin-top: var(--espace-24);
+		padding-top: var(--espace-24);
 		border-top: 1px solid var(--trait);
 	}
 	form :global(button) {
 		align-self: flex-start;
 	}
 	.expiree {
-		margin-left: 6px;
-		padding: 0 8px;
+		margin-left: var(--espace-6);
+		padding: 0 var(--espace-8);
 		border-radius: 999px;
 		border: 1px solid var(--statut-alerte-trait);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.bloc {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 	}
-	/* La carte d'identité : un bandeau à la couleur de l'équipe, le visage à cheval. */
+	/* La carte d'identité : le visage à la couleur de l'équipe, le nom, le grade. */
 	.entete {
 		overflow: hidden;
 		background: var(--surface);
@@ -465,27 +466,22 @@
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
 	}
-	.bandeau {
-		height: 64px;
-		background: var(--teinte, var(--statut-neutre-fond));
-	}
 	.corps {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 8px;
-		padding: 0 16px 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-20) var(--espace-16) var(--espace-16);
 		text-align: center;
 	}
 	.visage {
-		margin-top: -48px;
 		border: 4px solid var(--surface);
 		border-radius: 50%;
 		display: inline-flex;
 	}
 	h1 {
 		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	h1:focus {
@@ -500,7 +496,7 @@
 		flex-wrap: wrap;
 		justify-content: center;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		margin: 0;
 		padding: 0;
 		list-style: none;
@@ -508,25 +504,25 @@
 	.role {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		padding: 2px 10px 2px 2px;
+		gap: var(--espace-6);
+		padding: 2px var(--espace-12) 2px 2px;
 		border: 1px solid var(--trait-doux);
 		border-radius: 999px;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.contact {
-		gap: 20px;
-		margin-top: 6px;
+		gap: var(--espace-20);
+		margin-top: var(--espace-6);
 	}
 	.contact a {
 		min-width: 64px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 4px;
+		gap: var(--espace-4);
 		color: var(--encre);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		text-decoration: none;
 	}
@@ -537,15 +533,19 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 50%;
-		background: var(--statut-danger-fond);
-		color: var(--accent);
+		background: var(--statut-neutre-fond);
+		color: var(--encre);
 	}
-	.contact a:hover .rond {
-		background: var(--rouge);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.contact a:hover .rond {
+			background: var(--encre);
+			color: var(--surface);
+		}
 	}
-	.contact a:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.contact a:hover {
+			text-decoration: underline;
+		}
 	}
 	p {
 		margin: 0;
@@ -553,9 +553,9 @@
 	.succes,
 	.echec,
 	.raison {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		font-weight: 600;
 	}
 	.echec {
@@ -564,7 +564,7 @@
 	dl {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 8px 16px;
+		gap: var(--espace-8) var(--espace-16);
 		margin: 0;
 	}
 	dt {
@@ -574,14 +574,14 @@
 		margin: 0;
 	}
 	.note {
-		margin-top: 8px;
+		margin-top: var(--espace-8);
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	label {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 		font-weight: 600;
 	}
@@ -590,8 +590,8 @@
 		font-weight: 600;
 	}
 	h3 {
-		margin: 8px 0 0;
-		font: 700 1.125rem var(--police-titre);
+		margin: var(--espace-8) 0 0;
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.roles {
 		list-style: none;
@@ -599,26 +599,26 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.roles li {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.roles li > div {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	form.terminer,
 	form.finir {
 		flex-direction: row;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	form.finir {
 		align-items: flex-end;
@@ -629,8 +629,8 @@
 		border-top: none;
 	}
 	form.nomination {
-		margin-top: 24px;
-		padding-top: 24px;
+		margin-top: var(--espace-24);
+		padding-top: var(--espace-24);
 		border-top: 1px solid var(--trait);
 	}
 	form.nomination h3 {

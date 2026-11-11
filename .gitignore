@@ -13,3 +13,8 @@ dist
 centres/*/wrangler.en-ligne.jsonc
 test-results
 playwright-report
+# Outils locaux de Claude : seul le skill de charte est versionné.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/charte-gyro/

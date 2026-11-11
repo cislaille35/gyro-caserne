@@ -75,17 +75,17 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.page {
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	p {
 		margin: 0;
 	}
 	.reussite,
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}
@@ -102,23 +102,23 @@
 	.confirmer {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 		width: 100%;
-		padding: 12px 14px;
-		border-radius: 12px;
+		padding: var(--espace-12) var(--espace-16);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-danger-fond);
 		color: var(--statut-danger-texte);
 	}
 	.choix {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.bouton {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -130,14 +130,16 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 48rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

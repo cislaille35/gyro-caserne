@@ -51,4 +51,7 @@ export const mouvementAnnuleAppui = (x: number, y: number) => Math.abs(x) > 8 ||
 // « Réduire les animations » (`calme`) coupe le glissement ; le menu propose toujours « Répondre ».
 export const glissementCommence = (x: number, y: number, { actif, calme }: { actif: boolean; calme: boolean }) => actif && !calme && x > 12 && Math.abs(y) < x / 2;
 export const ecartGlisse = (x: number) => Math.max(0, Math.min(x, GLISSE_MAX));
-export const glissementRepond = (ecart: number) => ecart >= SEUIL_REPONSE;
+// Un geste vif suffit, sans aller jusqu'au seuil ; un tout petit mouvement n'y suffit pas.
+const VIF_MIN = 24;
+const VITESSE_VIVE = 0.11;
+export const glissementRepond = (ecart: number, duree = Infinity) => ecart >= SEUIL_REPONSE || (ecart >= VIF_MIN && ecart / duree > VITESSE_VIVE);

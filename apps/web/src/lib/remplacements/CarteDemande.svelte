@@ -93,8 +93,8 @@
 		isolation: isolate;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 14px 16px;
+		gap: var(--espace-6);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -108,15 +108,19 @@
 		border-radius: 0;
 		background: none;
 	}
-	.ligne:has(.etire:hover) {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:has(.etire:hover) {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	a.etire {
 		color: inherit;
 		text-decoration: none;
 	}
-	a.etire:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		a.etire:hover {
+			text-decoration: underline;
+		}
 	}
 	/* Le lien du titre couvre toute la demande ; son repère du clavier aussi. */
 	.etire::after {
@@ -145,11 +149,11 @@
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.titre {
 		margin: 0;
-		font: 700 1.1875rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	p {
 		margin: 0;
@@ -167,8 +171,8 @@
 	}
 	.suite,
 	.avertissement {
-		padding: 8px 12px;
-		border-radius: 12px;
+		padding: var(--espace-8) var(--espace-12);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 		border: 1px solid var(--statut-alerte-trait);
@@ -177,14 +181,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-start;
-		gap: 8px;
-		margin-top: 6px;
+		gap: var(--espace-8);
+		margin-top: var(--espace-6);
 	}
 	.bouton {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -192,7 +196,7 @@
 		cursor: pointer;
 	}
 	.principal {
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
@@ -201,26 +205,20 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
 	.plus {
 		flex-basis: 100%;
 	}
-	.plus summary {
-		list-style: none;
-		display: inline-flex;
-	}
-	.plus summary::-webkit-details-marker {
-		display: none;
-	}
 	.plus form {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		margin-top: 10px;
+		gap: var(--espace-8);
+		margin-top: var(--espace-12);
 	}
 	.plus form button {
 		align-self: flex-start;
@@ -229,12 +227,10 @@
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 		resize: vertical;
 	}
 </style>

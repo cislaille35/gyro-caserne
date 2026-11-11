@@ -64,10 +64,13 @@
 				<a class="bouton" href="/engins/anomalies?engin={e.id}">Anomalies de l’engin</a>
 			</div>
 			{#if data.gere}
-				<div class="gestes">
+				<details class="plus">
+					<summary>Gérer l’engin</summary>
+					<div class="gestes">
 					<a class="bouton" href="/engins/{e.id}/modifier">Modifier l’engin</a>
 					<a class="bouton" href="/engins/fiches/{e.typeId}">Modifier la fiche {e.type}</a>
-				</div>
+					</div>
+				</details>
 			{/if}
 		</section>
 
@@ -101,10 +104,10 @@
 	.fiche {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	.colonnes {
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	h2,
 	p,
@@ -113,7 +116,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
@@ -121,13 +124,13 @@
 	.tete {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -136,7 +139,7 @@
 	dl {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	dl div {
 		display: flex;
@@ -149,46 +152,50 @@
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.bouton {
 		display: inline-flex;
 		align-items: center;
 		min-height: var(--cible);
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		color: var(--encre);
 		font-weight: 700;
 		text-decoration: none;
 	}
-	.bouton:hover {
-		background: var(--fond);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton:hover {
+			background: var(--fond);
+		}
 	}
 	.bouton.principal {
 		border-color: var(--rouge);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
-	.bouton.principal:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton.principal:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.prise {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px 10px;
+		gap: var(--espace-6) var(--espace-12);
 	}
 	.bandeau {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 14px 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16) var(--espace-16);
 		border: 1px solid;
 		border-radius: var(--rayon-grand);
 	}
 	.bandeau h2 {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 	}
 	.bandeau.alerte {
 		background: var(--statut-alerte-fond);
@@ -206,13 +213,13 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.bandeau li {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 4px 8px;
+		gap: var(--espace-4) var(--espace-8);
 	}
 	.bandeau a {
 		color: inherit;
@@ -222,7 +229,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

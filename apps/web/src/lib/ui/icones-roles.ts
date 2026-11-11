@@ -1,7 +1,10 @@
 // Tracés des icônes de rôle (grille 24 × 24, trait de 1,8).
 export const ICONES_ROLES = {
+	banc: 'M3 9h18M3 13h18M6 13v6M18 13v6',
+	table: 'M3 9h18M6 9v10M18 9v10',
+	tente: 'M12 4 3 19h18zM12 4v15M12 12l-4 7M12 12l4 7',
 	etoile: 'M12 3l2.6 5.6 6 .6-4.5 4 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.5-4 6-.6z',
-	casque: 'M4 15a8 8 0 0 1 16 0M2 15h20M12 7V4M8 15v2h8v-2',
+	casque: 'M4 16c0-5.5 3.5-9 8-9s8 3.5 8 9M2 16h16l4 3M9 7.5C9 5 10.5 4 12 4s3 1 3 3.5',
 	camion: 'M3 16V8h11v8M14 11h4l3 3v2h-7M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0',
 	croix: 'M9 3h6v6h6v6h-6v6H9v-6H3V9h6z',
 	cle: 'M14 6a4 4 0 1 0 1.5 3.1L21 15v3h-3v-2h-2v-2l-2.5-2.5',
@@ -20,6 +23,7 @@ export const ICONE_MAISON = 'M3 11l9-7 9 7v9H3zM9 20v-6h6v6';
 
 // Tracés d'interface partagés entre écrans (même grille 24 × 24).
 export const DESSINS = {
+	fichier: 'M6 3h8l4 4v14H6z M14 3v4h4 M9 12h6 M9 16h6',
 	profil: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
 	sortir: 'M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3',
 	annonce: 'M3 10v4h3l7 5V5l-7 5z M16.5 8.5a5 5 0 0 1 0 7',

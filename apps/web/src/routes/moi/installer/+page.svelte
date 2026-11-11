@@ -16,7 +16,8 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 40rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 </style>

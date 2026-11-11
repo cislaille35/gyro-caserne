@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { arreterApres, DUREE_ACCUEIL } from '#lib/gyro/mouvement.ts';
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
@@ -28,6 +30,9 @@
 	const annonceEchec = $derived(form && !form.succes ? (form.message ?? '') : '');
 
 	const affichage = lireAffichageContexte();
+	// Le décor météo bouge à l'arrivée, puis s'arrête, comme Gyro.
+	let meteoAnimee = $state(true);
+	onMount(() => arreterApres(DUREE_ACCUEIL, () => (meteoAnimee = false)));
 	const vigilance = $derived(data.meteo.vigilance);
 	const bandeau = $derived(vigilance?.etat === 'ok' && vigilance.niveau >= 3 ? vigilance : null);
 	const discrete = $derived(vigilance && !bandeau ? vigilance : null);
@@ -86,7 +91,7 @@
 		{/each}
 		{#if liste.length > VISIBLES}
 			<li>
-				<details class="autres">
+				<details class="autres repli">
 					<summary>Voir {liste.length - VISIBLES > 1 ? `les ${liste.length - VISIBLES} autres` : 'l’autre'}</summary>
 					<ul role="list">
 						{#each liste.slice(VISIBLES) as element, i (i)}
@@ -111,7 +116,7 @@
 		</section>
 	{/if}
 	<div class="ciel">
-		{#if ambiance && affichage.niveau !== 'sobre'}<MeteoAnim {ambiance} nuit={soleilCouche(new Date(), centre.position)} />{/if}
+		{#if ambiance && affichage.niveau === 'vivant'}<MeteoAnim {ambiance} anime={meteoAnimee} nuit={soleilCouche(new Date(), centre.position)} />{/if}
 		<div class="devant">
 			<EnTetePage titre={data.prenom ? `Bonjour ${data.prenom}` : 'Bonjour'} {phrase} complement={data.meteo.meteo || discrete ? meteo : undefined} tete={gyroSelonNiveau(affichage.niveau).visible ? gyroAccueil : undefined} />
 		</div>
@@ -194,13 +199,13 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: var(--espace-16);
 	}
 	/* L'ambiance passe derrière l'en-tête, déborde un peu sur les côtés, sans gêner la lecture. */
 	.ciel {
 		position: relative;
 		margin: -12px -16px 0;
-		padding: 12px 16px 0;
+		padding: var(--espace-12) var(--espace-16) 0;
 		border-radius: var(--rayon-grand);
 		overflow: hidden;
 	}
@@ -209,9 +214,9 @@
 		z-index: 1;
 	}
 	.meteo {
-		margin: 4px 0 0;
+		margin: var(--espace-4) 0 0;
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.source {
 		white-space: nowrap;
@@ -219,14 +224,14 @@
 	.meteo a {
 		margin-left: 0.5ch;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.vigilance-discrete {
 		display: flex;
-		gap: 8px;
+		gap: var(--espace-8);
 		align-items: center;
-		margin: 6px 0 0;
-		font-size: 0.9375rem;
+		margin: var(--espace-6) 0 0;
+		font-size: var(--texte-15);
 		font-weight: 500;
 	}
 	.vigilance-discrete a {
@@ -245,7 +250,7 @@
 		background: var(--statut-ok-trait);
 	}
 	.vigilance-discrete.niveau-2 {
-		font-size: 1rem;
+		font-size: var(--texte-16);
 		font-weight: 600;
 	}
 	.vigilance-discrete.niveau-2 a {
@@ -259,11 +264,10 @@
 	}
 	.vigilance {
 		display: flex;
-		gap: 12px;
+		gap: var(--espace-12);
 		align-items: flex-start;
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
-		border-left-width: 6px;
 		border-radius: var(--rayon-grand);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
@@ -283,14 +287,14 @@
 	}
 	.vigilance a {
 		display: inline-block;
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 		color: inherit;
 	}
 	.colonnes,
 	.colonne {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	/* « Voir les autres » : une ligne de la carte, centrée. */
 	.autres summary {
@@ -298,8 +302,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 8px;
-		padding: 0 14px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-16);
 		color: var(--encre);
 		font-weight: 600;
 		cursor: pointer;
@@ -308,22 +312,10 @@
 	.autres summary:focus-visible {
 		outline-offset: -3px;
 	}
-	.autres summary:hover {
-		text-decoration: underline;
-	}
-	.autres summary::-webkit-details-marker {
-		display: none;
-	}
-	.autres summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(45deg);
-	}
-	.autres[open] summary::before {
-		transform: rotate(-135deg);
+	@media (hover: hover) and (pointer: fine) {
+		.autres summary:hover {
+			text-decoration: underline;
+		}
 	}
 	.autres ul {
 		margin: 0;
@@ -336,7 +328,7 @@
 	.gerer {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* « Gérer » : une case par geste, côte à côte. */
 	.grille-gestes {
@@ -354,18 +346,20 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		padding: 8px 4px;
+		gap: var(--espace-6);
+		padding: var(--espace-8) var(--espace-4);
 		color: var(--encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
 		overflow-wrap: anywhere;
 	}
-	.grille-gestes a:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.grille-gestes a:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+			text-decoration: underline;
+		}
 	}
 	.grille-gestes a:focus-visible {
 		outline-offset: -3px;
@@ -375,7 +369,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 		.colonnes.seule {
 			grid-template-columns: minmax(0, 1fr);

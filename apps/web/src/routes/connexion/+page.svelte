@@ -35,7 +35,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 14px;
+		gap: var(--espace-16);
 		max-width: 26rem;
 		margin: 0 auto;
 		padding-top: 1rem;
@@ -43,7 +43,7 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 2rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 	}
 	p {
 		margin: 0;
@@ -55,8 +55,8 @@
 		align-self: stretch;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		padding: 20px;
+		gap: var(--espace-16);
+		padding: var(--espace-20);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -67,10 +67,10 @@
 		width: 100%;
 	}
 	div.carte {
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.titre {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.adresse {
 		overflow-wrap: anywhere;
@@ -79,7 +79,7 @@
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 12px;
+		padding: 0 var(--espace-12);
 		color: var(--encre);
 		font-weight: 600;
 	}

@@ -234,12 +234,12 @@
 	.murs {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 
 	.avis {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-info-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-info-fond);
@@ -260,16 +260,16 @@
 	.colonne {
 		display: flex;
 		flex-direction: column;
-		gap: 22px;
+		gap: var(--espace-20);
 	}
 	.section {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.rubrique {
 		margin: 0;
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	ul {
 		list-style: none;
@@ -278,7 +278,7 @@
 	}
 	.doux {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 400;
 	}
 
@@ -286,15 +286,16 @@
 	.jour {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 16px;
-		border-radius: 20px;
-		background: linear-gradient(135deg, var(--statut-alerte-fond) 0%, var(--icone-coeur-fond) 100%);
+		gap: var(--espace-12);
+		padding: var(--espace-16);
+		border-radius: var(--rayon-grand);
+		border: 1px solid transparent;
+		background: var(--surface);
 	}
 	.ligne-jour {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--encre);
 		text-decoration: none;
 	}
@@ -312,33 +313,36 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--icone-coeur-texte);
-		color: var(--surface);
+		background: var(--statut-neutre-fond);
+		color: var(--statut-neutre-texte);
 		font-weight: 700;
 	}
 	.souhaiter {
 		flex: none;
 		min-height: 44px;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		background: var(--surface);
-		color: var(--icone-coeur-texte);
+		color: var(--encre);
 		font-weight: 600;
 		text-decoration: none;
 	}
 	.evenement {
 		min-height: 44px;
 	}
-	.evenement:hover strong {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.evenement:hover strong {
+			text-decoration: underline;
+		}
 	}
 	.calendrier {
 		flex: none;
 		width: 44px;
 		height: 44px;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		flex-direction: column;
 		align-items: center;
@@ -347,12 +351,12 @@
 		background: var(--surface);
 	}
 	.jour-semaine {
-		font-size: 0.6875rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 		color: var(--accent);
 	}
 	.calendrier .numero {
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 
 	/* À venir, sur un mur à l'ordinateur */
@@ -362,8 +366,8 @@
 	.a-venir {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 16px;
+		gap: var(--espace-8);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -382,8 +386,10 @@
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.venir:hover strong {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.venir:hover strong {
+			text-decoration: underline;
+		}
 	}
 	.journee .ligne-jour {
 		flex-wrap: wrap;
@@ -410,21 +416,21 @@
 	.bandeau {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
 	.bandeau .nom {
 		flex: 1;
 		font-weight: 700;
-		font-size: 1.125rem;
+		font-size: var(--texte-18);
 	}
 	.officiel {
-		padding: 3px 8px;
+		padding: 3px var(--espace-8);
 		border-radius: 999px;
 		background: color-mix(in srgb, var(--sur-rouge) 20%, transparent);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.bandeau .compte {
@@ -434,22 +440,24 @@
 	.contenu {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 12px 14px;
+		gap: var(--espace-6);
+		padding: var(--espace-12) var(--espace-16);
 	}
 	.a-confirmer {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--statut-alerte-texte);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.extrait {
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
-	.centre:hover .extrait {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.centre:hover .extrait {
+			text-decoration: underline;
+		}
 	}
 
 	/* Un mur : une ligne de la carte du groupe, toute la ligne est le lien. */
@@ -457,29 +465,33 @@
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.tuile:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.tuile:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	.tuile:focus-visible {
 		outline-offset: -3px;
 	}
-	/* Le mur affiché : fond, liseré et nom en gras, pas la couleur seule. */
+	/* Le mur affiché : fond et nom en gras, pas la couleur seule. */
 	.tuile[aria-current='page'] {
 		background: var(--statut-neutre-fond);
-		box-shadow: inset 4px 0 0 var(--accent);
+	}
+	.nom {
+		overflow-wrap: anywhere;
 	}
 	.tuile[aria-current='page'] .nom {
 		font-weight: 800;
 	}
 	.breve {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		gap: 10px;
+		padding: var(--espace-8) var(--espace-12);
+		gap: var(--espace-12);
 	}
 	.corps {
 		flex: 1;
@@ -492,23 +504,23 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		column-gap: 6px;
+		column-gap: var(--espace-6);
 		row-gap: 2px;
 	}
 	.nom {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 	}
 	.sorte,
 	.heure {
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.apercu {
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.apercu.vide {
 		font-style: italic;
@@ -518,19 +530,19 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.compte {
 		min-width: 22px;
 		height: 22px;
-		padding: 0 6px;
-		border-radius: 11px;
+		padding: 0 var(--espace-6);
+		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 	}
 
@@ -547,37 +559,17 @@
 	}
 	.repli summary {
 		min-height: 48px;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		font-weight: 600;
 		cursor: pointer;
 		list-style: none;
 	}
-	.repli summary::-webkit-details-marker {
-		display: none;
-	}
-	.repli summary::before {
-		content: '';
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid currentColor;
-		border-bottom: 2px solid currentColor;
-		transform: rotate(-45deg);
-		transition: transform 0.15s;
-	}
-	.repli[open] summary::before {
-		transform: rotate(45deg);
-	}
 	/* Dans le bloc replié : les lignes sous un trait fin, sans carte de plus. */
 	.repli li {
 		border-top: 1px solid var(--trait-doux);
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.repli summary::before {
-			transition: none;
-		}
 	}
 
 	/* Téléphone : la liste seule, ou le mur seul. */
@@ -590,7 +582,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
 			align-items: start;
-			gap: 24px;
+			gap: var(--espace-24);
 		}
 		.sur-un-mur {
 			grid-template-columns: 20rem minmax(0, 1fr);
@@ -604,7 +596,7 @@
 		}
 		.sur-un-mur .colonnes,
 		.sur-un-mur .colonne {
-			gap: 14px;
+			gap: var(--espace-16);
 		}
 		/* Entre 1024 et 1279 px : « Aujourd'hui » sous le mur, dans l'ordre du clavier. */
 		.avec-journee .murs {
@@ -616,7 +608,7 @@
 			display: flex;
 			flex-wrap: wrap;
 			align-items: start;
-			gap: 16px;
+			gap: var(--espace-16);
 		}
 		.journee > section {
 			flex: 1 1 16rem;
@@ -629,7 +621,7 @@
 	/* À partir de 1280 px : trois colonnes, la liste, le mur, puis « Aujourd'hui ». */
 	@media (min-width: 1280px) {
 		.sur-un-mur {
-			grid-template-columns: 16rem minmax(0, 1fr) 16rem;
+			grid-template-columns: 13rem minmax(0, 1fr) 15rem;
 			gap: 1.25rem;
 		}
 		.avec-journee .murs {

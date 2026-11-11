@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Retour from '#lib/ui/Retour.svelte';
 	import { phraseAudience, phraseDuMur } from '#lib/murs/phrases.ts';
 	import { teinteDuMur } from '#lib/murs/teinte.ts';
 	import CouperNotifications from '#lib/ui/CouperNotifications.svelte';
@@ -32,8 +33,8 @@
 	<title>{data.mur.nom} · Échanges · Gyro Caserne</title>
 </svelte:head>
 
-<header class="bande" class:centre={data.mur.type === 'centre'} style:--bande-fond={teinte.fond} style:--bande-encre={teinte.encre} style:--bande-trait={teinte.trait}>
-	<a class="retour" href="/echanges">‹ Tous les murs</a>
+<header class="bande" class:centre={data.mur.type === 'centre'} style:--bande-fond={teinte.fond} style:--bande-encre={teinte.encre}>
+	<Retour href="/echanges" libelle="Tous les murs" />
 	<div class="identite">
 		<span class="embleme"><PastilleMur icone={tuile.icone} couleur={tuile.couleur} numero={tuile.numero} /></span>
 		<div class="titres">
@@ -88,38 +89,26 @@
 <style>
 	/* La bande du mur, à sa couleur. Au téléphone, elle va d'un bord à l'autre. */
 	.bande {
+		--retour-couleur: currentColor;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		margin: -1rem -1rem 16px;
-		padding: 8px 16px 18px;
+		gap: var(--espace-12);
+		margin: -1rem -1rem var(--espace-16);
+		padding: var(--espace-8) var(--espace-16) var(--espace-16);
 		background: var(--bande-fond);
 		color: var(--bande-encre);
-		box-shadow: inset 0 -4px 0 var(--bande-trait);
-	}
-	.retour {
-		align-self: flex-start;
-		display: inline-flex;
-		align-items: center;
-		min-height: var(--cible);
-		color: inherit;
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.retour:hover {
-		text-decoration: underline;
 	}
 	.identite {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	/* Un cadre clair détache la pastille de la bande, qui est de la même teinte. */
 	.embleme {
 		display: inline-flex;
 		padding: 2px;
-		border-radius: 16px;
+		border-radius: var(--rayon-grand);
 		background: color-mix(in srgb, var(--surface) 65%, transparent);
 	}
 	.centre .embleme {
@@ -131,22 +120,22 @@
 	}
 	h1 {
 		margin: 0;
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 		overflow-wrap: anywhere;
 	}
 	.phrase {
 		margin: 2px 0 0;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 	}
 	.audience {
 		margin: 0;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		padding: 8px 12px;
-		border-radius: 12px;
+		gap: var(--espace-8);
+		padding: var(--espace-8) var(--espace-12);
+		border-radius: var(--rayon-bouton);
 		background: color-mix(in srgb, var(--surface) 55%, transparent);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 500;
 	}
 	.audience svg {
@@ -157,21 +146,19 @@
 	}
 	h2 {
 		margin: 0;
-		font: 700 1rem var(--police-titre);
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
-		color: var(--doux);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
+		color: var(--encre);
 	}
 	.liste {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		margin-bottom: 20px;
+		gap: var(--espace-16);
+		margin-bottom: var(--espace-20);
 	}
 	.pages {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 16px;
+		gap: var(--espace-16);
 		margin: 0;
 	}
 	.pages a {
@@ -189,8 +176,8 @@
 		color: var(--doux);
 	}
 	.anniversaires {
-		margin: 0 0 16px;
-		padding: 12px 16px;
+		margin: 0 0 var(--espace-16);
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		border: 1px solid var(--statut-alerte-trait);
 		background: var(--statut-alerte-fond);
@@ -215,17 +202,18 @@
 		min-height: 48px;
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
-		padding: 0 20px 0 16px;
+		gap: var(--espace-6);
+		padding: 0 var(--espace-20) 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--rouge) 35%, transparent);
 		font-weight: 700;
 		text-decoration: none;
 	}
-	.aller-publier:hover {
-		background: var(--rouge-survol);
+	@media (hover: hover) and (pointer: fine) {
+		.aller-publier:hover {
+			background: var(--rouge-survol);
+		}
 	}
 	.aller-publier svg {
 		flex: none;
@@ -237,17 +225,17 @@
 	}
 	@media (min-width: 640px) {
 		.bande {
-			margin: 0 0 20px;
-			border-radius: 20px;
-			padding: 12px 20px 20px;
+			margin: 0 0 var(--espace-20);
+			border-radius: var(--rayon-grand);
+			padding: var(--espace-12) var(--espace-20) var(--espace-20);
 		}
 	}
 	@media (min-width: 1024px) {
-		.retour {
+		.bande :global(.retour) {
 			display: none;
 		}
 		.bande {
-			padding-top: 20px;
+			padding-top: var(--espace-20);
 		}
 		.aller-publier {
 			bottom: 1.5rem;

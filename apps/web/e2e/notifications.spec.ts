@@ -5,6 +5,8 @@ import { ETAT_CONNECTE, ETAT_SUPER } from './serveur.ts';
 test.use({ storageState: ETAT_CONNECTE });
 
 async function sansViolation(page: Page) {
+	// Une fenêtre qui apparaît fausserait le calcul du contraste : on attend la fin de ce qui n'est pas sans fin.
+	await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 }
@@ -81,7 +83,7 @@ test('couper un mur, le retrouver dans Moi → Notifications, le réactiver', as
 	await sansViolation(page);
 
 	await page.getByRole('link', { name: 'Moi', exact: true }).click();
-	await page.getByRole('link', { name: /^Notifications Ce téléphone/ }).click();
+	await page.locator('main').getByRole('link', { name: 'Notifications', exact: true }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Notifications' })).toBeVisible();
 	await expect(page.getByRole('switch', { name: 'Tout couper au téléphone' })).toHaveAttribute('aria-checked', 'false');
 	await sansViolation(page);

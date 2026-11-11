@@ -88,7 +88,7 @@
 	.champs {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	form > :global(button) {
 		align-self: flex-start;
@@ -97,7 +97,7 @@
 		margin: 0;
 	}
 	.echec {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

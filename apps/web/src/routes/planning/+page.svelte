@@ -7,7 +7,7 @@
 	import VueAnnee from '#lib/planning/VueAnnee.svelte';
 	import VueMois from '#lib/planning/VueMois.svelte';
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
-	import { avecGroupe, phraseAstreinte } from '#lib/planning/astreinte.ts';
+	import { avecGroupe } from '#lib/planning/astreinte.ts';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
 	import { ETATS, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
@@ -23,7 +23,7 @@
 	const p = $derived(data.planning);
 	const m = $derived(data.maintenant);
 	const CALENDRIER = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
-	const action = $derived(p.peutPreparer ? { href: `/planning/preparer?annee=${p.annee}`, libelle: 'Préparer l’année', dessin: CALENDRIER } : undefined);
+	const action = $derived(p.peutPreparer ? { href: `/planning/preparer?annee=${p.annee}`, libelle: 'Préparer l’année', discrete: true, dessin: CALENDRIER } : undefined);
 	const equipe = (id: number) => (p.publiee ? p.equipes.find((e) => e.id === id) : undefined) ?? { id, nom: 'Équipe archivée', couleur: '#8a949e' };
 	const FETES = { noel: 'de Noël', nouvel_an: 'du Nouvel An' } as const;
 	const VUES = [
@@ -54,7 +54,7 @@
 		!p.publiee
 			? `Le planning ${p.annee} n’est pas encore publié.`
 			: carte
-				? `${phraseAstreinte(carte, m).titre}.`
+				? undefined
 				: mode === 'moi'
 					? `Le planning ${Number(m.slice(0, 4)) + 1} n’est pas encore publié.`
 					: undefined
@@ -191,49 +191,52 @@
 <style>
 	.en-cours {
 		display: block;
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 	}
 	/* Les trois réponses, à parts égales, sur une ligne à 390 px. */
 	.boutons {
+		width: 100%;
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 	.boutons button {
-		padding: 0 4px;
+		padding: 0 var(--espace-4);
 	}
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 76rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-page);
 	}
 	.colonnes,
 	.calendrier {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	.acces {
 		display: grid;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.remplacements {
 		justify-self: start;
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 12px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.remplacements:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.remplacements:hover {
+			border-color: var(--encre);
+		}
 	}
 	@media (min-width: 1024px) {
 		.vues {
@@ -242,13 +245,13 @@
 		.acces {
 			grid-template-columns: minmax(0, 1fr) auto;
 			align-items: center;
-			gap: 12px;
+			gap: var(--espace-12);
 		}
 		.colonnes {
 			display: grid;
 			grid-template-columns: minmax(0, 8fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 		.colonnes.seule {
 			grid-template-columns: minmax(0, 1fr);
@@ -259,19 +262,19 @@
 		}
 	}
 	.titre-vue {
-		margin: 0 0 10px;
-		font: 700 1.375rem var(--police-titre);
+		margin: 0 0 var(--espace-12);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.annees {
 		display: flex;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.annees a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 6px;
+		padding: 0 var(--espace-6);
 		color: var(--doux);
 		font-weight: 600;
 	}
@@ -280,14 +283,14 @@
 		display: inline-flex;
 		align-items: center;
 		color: var(--encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	.note {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	form {
-		margin-top: 6px;
+		margin-top: var(--espace-6);
 	}
 </style>

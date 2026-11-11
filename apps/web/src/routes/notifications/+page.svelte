@@ -227,7 +227,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	h2:focus {
 		outline: none;
@@ -235,26 +235,30 @@
 	.groupe {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* Une ligne de la carte du groupe : toute la ligne est le lien. */
 	.ligne {
 		min-height: 64px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 12px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		color: var(--encre);
 		text-decoration: none;
 	}
-	.ligne:hover {
-		background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: color-mix(in srgb, var(--encre) 4%, var(--surface));
+		}
 	}
 	.ligne:focus-visible {
 		outline-offset: -3px;
 	}
-	.ligne:hover .quoi {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover .quoi {
+			text-decoration: underline;
+		}
 	}
 	/* Non lue : titre en gras, point, et « Non lu » écrit pour les lecteurs d'écran ; jamais la couleur seule. */
 	.non-lue .quoi {
@@ -274,7 +278,7 @@
 	}
 	.extrait {
 		color: var(--doux);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		overflow: hidden;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
@@ -284,7 +288,7 @@
 	}
 	.moment {
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.pictogramme {
 		flex: none;
@@ -305,7 +309,7 @@
 	}
 	.tout-lu {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		white-space: nowrap;
 	}
 	.liste {
@@ -314,23 +318,22 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 
 	/* Messages signalés */
 	.signalements {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.signalement {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 14px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16) var(--espace-16);
 		background: var(--surface);
 		border: 1px solid var(--statut-danger-trait);
-		border-left-width: 4px;
 		border-radius: var(--rayon-grand);
 	}
 	.signalement p {
@@ -341,8 +344,8 @@
 	}
 	blockquote {
 		margin: 0;
-		padding: 10px 14px;
-		border-radius: 4px 16px 16px 16px;
+		padding: var(--espace-12) var(--espace-16);
+		border-radius: 4px var(--rayon-grand) var(--rayon-grand) var(--rayon-grand);
 		background: var(--fond);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
@@ -354,14 +357,14 @@
 	.photos {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.photos img {
 		width: 160px;
 		max-width: 100%;
 		aspect-ratio: 1;
 		object-fit: cover;
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		border: 1px solid var(--trait-doux);
 	}
 	.note {
@@ -371,7 +374,7 @@
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	button,
 	.bouton {
@@ -379,7 +382,7 @@
 		display: inline-flex;
 		align-items: center;
 		text-decoration: none;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -390,34 +393,39 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
-	a.danger:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		a.danger:hover {
+			background: var(--statut-danger-fond);
+			color: var(--accent);
+		}
 	}
-	a.secondaire:hover {
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		a.secondaire:hover {
+			color: var(--encre);
+		}
 	}
 	.confirmer-ici {
-		padding: 12px 14px;
-		border-radius: 12px;
+		padding: var(--espace-12) var(--espace-16);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-danger-fond);
 		color: var(--statut-danger-texte);
 	}
 	.confirmer-ici h3 {
-		margin: 0 0 6px;
-		font: 700 1.125rem var(--police-titre);
+		margin: 0 0 var(--espace-6);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	.confirmer-ici p {
-		margin: 0 0 12px;
+		margin: 0 0 var(--espace-12);
 	}
 	.erreur {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-danger-trait);
 		border-radius: var(--rayon-grand);
 		background: var(--statut-danger-fond);
@@ -427,9 +435,9 @@
 
 	.confirmation {
 		max-width: min(24rem, calc(100vw - 32px));
-		padding: 20px;
+		padding: var(--espace-20);
 		border: 0;
-		border-radius: 20px;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 	}
@@ -437,22 +445,23 @@
 		background: color-mix(in srgb, #000 45%, transparent);
 	}
 	.confirmation h2 {
-		margin: 0 0 8px;
-		font: 700 1.25rem var(--police-titre);
+		margin: 0 0 var(--espace-8);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.confirmation p {
-		margin: 0 0 16px;
+		margin: 0 0 var(--espace-16);
 		color: var(--doux);
 	}
 	.choix {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 44rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

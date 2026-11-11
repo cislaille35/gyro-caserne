@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Choix from '#lib/ui/Choix.svelte';
 	import { enhance } from '$app/forms';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentPlanningPublie } from '#lib/animations/celebration.ts';
@@ -65,24 +66,28 @@
 <div class="page">
 	<EnTetePage titre="Préparer {p.annee}" phrase={p.publiee ? `Publiée le ${jourLong(p.publiee)} : chaque modification est visible tout de suite.` : 'Cinq étapes, chacune enregistrée seule. Les agents ne voient rien avant la publication.'} retour={{ href: `/planning?annee=${p.annee}`, libelle: 'Planning' }} secondaire={statut} />
 
-	<nav class="annees" aria-label="Année à préparer">
+	<nav class="annees segments" aria-label="Année à préparer">
 		{#each data.annees as a (a)}<a href="?annee={a}&etape={data.etape}" aria-current={a === p.annee ? 'page' : undefined}>{a}</a>{/each}
 	</nav>
 
-	<ListeRangees>
-		<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
-		<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
-	</ListeRangees>
 
 	{#if peutProposer}
 		<div class="proposer">
-			<p><strong>{p.annee} n’est pas préparée.</strong> <span class="doux">L’appli peut pré-remplir le brouillon d’après {p.annee - 1}. Vous retouchez, puis vous publiez.</span></p>
+			<p><strong>{p.annee} n’est pas préparée.</strong> <span class="doux">L’appli peut pré-remplir le brouillon d’après {p.annee - 1}. Vous ajustez, puis vous publiez.</span></p>
 			<a class="bouton-lien" href={ici({ proposition: '1' })} data-sveltekit-reset="false">Partir d’une proposition</a>
 		</div>
 	{/if}
 
+	<details class="plus">
+		<summary>Exporter, importer, préparer l’été</summary>
+		<ListeRangees>
+			<li><Rangee href="/planning/preparer/fichier?annee={p.annee}" titre="Exporter l’année ou importer un fichier" sous="Tout préparer d’un coup dans un tableur." /></li>
+			<li><Rangee href="/planning/ete?annee={p.annee}" titre="Été {p.annee}" sous="Vacances des agents et répartition qui arme le FPT." /></li>
+		</ListeRangees>
+	</details>
+
 	<nav class="etapes" aria-label="Étapes">
-		<p class="ou">Étape {rang + 1} sur {ETAPES.length}<span class="barre" aria-hidden="true"><span style:width="{((rang + 1) / ETAPES.length) * 100}%"></span></span></p>
+		<p class="ou">Étape {rang + 1} sur {ETAPES.length}</p>
 		<ol role="list">
 			{#each ETAPES as e, i (e.id)}
 				<li>
@@ -197,17 +202,8 @@
 							<label for="fete-annee">Année</label>
 							<input id="fete-annee" name="annee" type="number" min="2020" max={p.annee} value={p.annee - 1} required />
 						</div>
-						<div class="champ">
-							<label for="fete-fete">Fête</label>
-							<select id="fete-fete" name="fete"><option value="noel">Noël</option><option value="nouvel_an">Nouvel An</option></select>
-						</div>
-						<div class="champ">
-							<label for="fete-equipe">Équipe</label>
-							<select id="fete-equipe" name="equipe">
-								{#each p.equipes as e (e.id)}<option value={e.id}>{e.nom}</option>{/each}
-								<option value="">Effacer cette ligne</option>
-							</select>
-						</div>
+						<Choix id="fete-fete" name="fete" libelle="Fête" options={[{ valeur: 'noel', libelle: 'Noël' }, { valeur: 'nouvel_an', libelle: 'Nouvel An' }]} valeur="noel" />
+						<Choix id="fete-equipe" name="equipe" libelle="Équipe" options={[...p.equipes.map((e) => ({ valeur: String(e.id), libelle: e.nom })), { valeur: '', libelle: 'Effacer cette ligne' }]} valeur={String(p.equipes[0]?.id ?? '')} />
 						<Bouton type="submit" variante="secondaire">Noter</Bouton>
 					</form>
 				</details>
@@ -276,7 +272,7 @@
 		{:else if !p.semaines.length}
 			{@render sansRoulement()}
 		{:else}
-			<p class="doux">Touchez une semaine pour changer son équipe (un échange, le tour des fêtes). La suite du roulement ne bouge pas.</p>
+			<p class="doux">Choisissez une semaine pour changer son équipe (un échange, le tour des fêtes). La suite du roulement ne bouge pas.</p>
 			{@render retour('semaines')}
 			<div class="grille">
 				{#each mois as m (m.numero)}
@@ -315,7 +311,7 @@
 
 	<nav class="suite" aria-label="Étape précédente ou suivante">
 		{#if rang > 0}<a href={vers(ETAPES[rang - 1]!.id)}>‹ {ETAPES[rang - 1]!.libelle}</a>{:else}<span></span>{/if}
-		{#if rang < ETAPES.length - 1}<a class="suivante" href={vers(ETAPES[rang + 1]!.id)}>{ETAPES[rang + 1]!.libelle} ›</a>{/if}
+		{#if rang < ETAPES.length - 1}<a href={vers(ETAPES[rang + 1]!.id)}>{ETAPES[rang + 1]!.libelle} ›</a>{/if}
 	</nav>
 </div>
 
@@ -370,8 +366,8 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 60rem;
+		gap: var(--espace-16);
+		max-width: var(--largeur-page);
 	}
 	h2,
 	h3,
@@ -379,13 +375,13 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.5rem var(--police-titre);
+		font: 700 var(--texte-24) var(--police-titre);
 	}
 	h2:focus {
 		outline: none;
 	}
 	h3 {
-		font: 700 1.125rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	ul,
 	ol {
@@ -396,35 +392,14 @@
 	.doux {
 		color: var(--doux);
 	}
-	.annees {
-		display: flex;
-		gap: 8px;
-	}
-	.annees a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		padding: 0 18px;
-		border: 1px solid var(--trait-doux);
-		border-radius: var(--rayon-bouton);
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
-	}
-	.annees a[aria-current='page'] {
-		border-color: var(--encre);
-		background: var(--encre);
-		color: var(--surface);
-	}
 
 	.proposer {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px 16px;
-		padding: 14px 16px;
+		gap: var(--espace-12) var(--espace-16);
+		padding: var(--espace-16) var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -438,32 +413,20 @@
 	.etapes {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.ou {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--doux);
 		font-weight: 600;
-		font-size: 0.9375rem;
-	}
-	.barre {
-		flex: 1;
-		height: 6px;
-		border-radius: 3px;
-		background: var(--trait-doux);
-		overflow: hidden;
-	}
-	.barre span {
-		display: block;
-		height: 100%;
-		background: var(--encre);
+		font-size: var(--texte-15);
 	}
 	.etapes ol {
 		display: grid;
 		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.etapes a {
 		min-height: 56px;
@@ -472,10 +435,10 @@
 		align-items: center;
 		justify-content: center;
 		gap: 2px;
-		padding: 6px 2px;
-		border-radius: 14px;
+		padding: var(--espace-6) 2px;
+		border-radius: var(--rayon-grand);
 		color: var(--doux);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 600;
 		text-align: center;
 		text-decoration: none;
@@ -488,10 +451,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		border: 2px solid var(--trait);
+		border: 1px solid var(--trait);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.etapes a.faite .numero {
 		border-color: var(--encre);
@@ -508,15 +471,15 @@
 	}
 	@media (min-width: 640px) {
 		.etapes a {
-			font-size: 0.875rem;
+			font-size: var(--texte-14);
 		}
 	}
 
 	.etape {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -524,7 +487,7 @@
 	}
 	.encadre,
 	.avertissement {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid var(--statut-alerte-trait);
 		border-radius: var(--rayon-petit);
 		background: var(--statut-alerte-fond);
@@ -539,29 +502,28 @@
 	.ordre {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.ordre li {
 		min-height: 56px;
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 6px 8px 6px 14px;
+		gap: var(--espace-12);
+		padding: var(--espace-6) var(--espace-8) var(--espace-6) var(--espace-16);
 		border: 1px solid var(--trait-doux);
-		border-left: 6px solid var(--equipe);
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 		background: var(--fond);
 	}
 	.rang {
 		min-width: 6.5em;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 	}
 	.gestes {
 		margin-left: auto;
 		display: flex;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.gestes button {
 		width: var(--cible);
@@ -582,27 +544,35 @@
 	.apercu {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
-		gap: 6px;
+		gap: var(--espace-6);
+	}
+	.apercu strong::before {
+		content: '';
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: var(--espace-6);
+		border-radius: 2px;
+		background: var(--equipe);
 	}
 	.apercu li {
 		display: flex;
 		flex-direction: column;
-		padding: 6px 10px;
-		border-left: 6px solid var(--equipe);
+		padding: var(--espace-6) var(--espace-12);
 		border-radius: var(--rayon-petit);
 		background: color-mix(in srgb, var(--equipe) 12%, var(--surface));
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.numero-s {
 		color: var(--doux);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-variant-numeric: tabular-nums;
 	}
 
 	/* Fêtes */
 	.fetes {
 		display: grid;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	@media (min-width: 720px) {
 		.fetes {
@@ -613,17 +583,16 @@
 	.fete {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 12px 14px;
-		border-left: 6px solid var(--equipe);
-		border-radius: 14px;
+		gap: var(--espace-8);
+		padding: var(--espace-12) var(--espace-16);
+		border-radius: var(--rayon-grand);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}
 	.proposition {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
-		padding: 12px;
+		gap: var(--espace-12);
+		padding: var(--espace-12);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-petit);
 		background: var(--surface);
@@ -632,28 +601,28 @@
 	.feries {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.historique li,
 	.feries li {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: space-between;
-		gap: 4px 12px;
+		gap: var(--espace-4) var(--espace-12);
 	}
 	.repli {
 		border: 1px solid var(--trait-doux);
-		border-radius: 14px;
-		padding: 0 12px;
+		border-radius: var(--rayon-grand);
+		padding: 0 var(--espace-12);
 	}
 	.repli[open] {
-		padding-bottom: 12px;
+		padding-bottom: var(--espace-12);
 	}
 	.repli summary {
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		font-weight: 600;
 		cursor: pointer;
 	}
@@ -663,56 +632,48 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-end;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	label {
 		font-weight: 600;
 	}
-	select,
-	input {
-		min-height: var(--cible);
-		padding: 0 10px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
-		background: var(--surface);
-		color: var(--encre);
-		font: 400 1rem var(--police);
-	}
 	.retirer {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
-		font: 600 0.9375rem var(--police);
+		font: 600 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
 	.bouton-lien {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		background: var(--rouge);
 		color: var(--sur-rouge);
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.bouton-lien:hover {
-		background: var(--rouge-survol);
-		color: var(--sur-rouge);
+	@media (hover: hover) and (pointer: fine) {
+		.bouton-lien:hover {
+			background: var(--rouge-survol);
+			color: var(--sur-rouge);
+		}
 	}
 
 	/* La grille de l'année : une case par semaine, l'équipe écrite dedans. */
 	.grille {
 		display: grid;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	@media (min-width: 720px) {
 		.grille {
@@ -725,10 +686,10 @@
 		}
 	}
 	.mois ul {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 		display: grid;
 		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.case {
 		min-height: 56px;
@@ -736,31 +697,31 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 4px 2px;
+		padding: var(--espace-4) 2px;
 		border: 1px solid color-mix(in srgb, var(--equipe) 55%, var(--trait-doux));
-		border-bottom: 5px solid var(--equipe);
-		border-radius: 10px;
-		background: color-mix(in srgb, var(--equipe) 14%, var(--surface));
+		border-radius: var(--rayon-bouton);
+		background: color-mix(in srgb, var(--equipe) 24%, var(--surface));
 		color: var(--encre);
 		text-decoration: none;
 		line-height: 1.1;
 	}
-	.case:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.case:hover {
+			border-color: var(--encre);
+		}
 	}
 	.case .nom {
-		font-size: 0.6875rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 		text-align: center;
 	}
 	.case .mot {
-		font-size: 0.625rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 		color: var(--statut-alerte-texte);
 	}
 	.case.changee {
 		border-style: dashed;
-		border-bottom-style: solid;
 	}
 	.case.ouverte {
 		box-shadow: 0 0 0 3px var(--focus);
@@ -768,7 +729,7 @@
 	.recap {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 		padding-left: 1.2em;
 		list-style: disc;
 	}
@@ -776,13 +737,13 @@
 	.suite {
 		display: flex;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.suite a {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 16px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
@@ -790,49 +751,43 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.suite .suivante {
-		background: var(--encre);
-		border-color: var(--encre);
-		color: var(--surface);
-	}
 
 	/* Les remplacements qu'un changement d'équipe toucherait */
 	.touches {
-		margin-top: 12px;
-		padding: 12px 16px;
+		margin-top: var(--espace-12);
+		padding: var(--espace-12) var(--espace-16);
 		border: 2px solid var(--accent);
 		border-radius: var(--rayon-petit);
 	}
 	.touches ul {
-		margin-top: 6px;
-		padding-left: 20px;
+		margin-top: var(--espace-6);
+		padding-left: var(--espace-20);
 		list-style: disc;
 	}
 	/* Le choix d'équipe d'une semaine */
 	.choix fieldset {
-		margin: 12px 0 0;
+		margin: var(--espace-12) 0 0;
 		padding: 0;
 		border: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.choix legend {
-		margin-bottom: 8px;
+		margin-bottom: var(--espace-8);
 		font-weight: 700;
 	}
 	.choix button {
 		min-height: 52px;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 0 16px;
+		gap: var(--espace-12);
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--trait);
-		border-left: 6px solid var(--equipe);
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		text-align: left;
 		cursor: pointer;
 	}
@@ -842,7 +797,7 @@
 	.pastille {
 		width: 12px;
 		height: 12px;
-		border-radius: 6px;
+		border-radius: var(--rayon-petit);
 		background: var(--equipe);
 	}
 	/* Sans message, les zones annoncées ne creusent pas d'écart. */
@@ -851,7 +806,7 @@
 	}
 	.echec,
 	.succes {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

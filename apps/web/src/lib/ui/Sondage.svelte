@@ -46,7 +46,7 @@
 			{/each}
 		</ul>
 		{#if ouvert && agir}
-			<details>
+			<details class="repli">
 				<summary>Changer mon vote</summary>
 				<form method="POST" action="?/voter" use:enhance={garderFocus}>
 					<input type="hidden" name="id" value={id} />
@@ -68,9 +68,9 @@
 	.sondage {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 12px;
-		border-radius: 14px;
+		gap: var(--espace-8);
+		padding: var(--espace-12);
+		border-radius: var(--rayon-grand);
 		background: var(--fond);
 	}
 	p,
@@ -82,10 +82,10 @@
 		flex-wrap: wrap;
 		justify-content: space-between;
 		align-items: baseline;
-		gap: 4px 8px;
+		gap: var(--espace-4) var(--espace-8);
 	}
 	.etat {
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		color: var(--statut-ok-texte);
 	}
@@ -97,26 +97,28 @@
 	}
 	.doux {
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.choix {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.reponse {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		text-align: left;
 		border: 1px solid var(--statut-neutre-trait);
-		border-radius: 12px;
+		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font: 500 0.9375rem var(--police);
+		font: 500 var(--texte-15) var(--police);
 		cursor: pointer;
 	}
-	.reponse:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.reponse:hover {
+			border-color: var(--encre);
+		}
 	}
 	/* L'état appuyé se lit aussi par la coche, pas seulement par la couleur. */
 	.reponse[aria-pressed='true'] {
@@ -132,7 +134,7 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	/* La barre double le texte, qui porte les nombres. */
 	.barre {
@@ -160,6 +162,6 @@
 		cursor: pointer;
 	}
 	details form {
-		padding-top: 4px;
+		padding-top: var(--espace-4);
 	}
 </style>

@@ -58,6 +58,28 @@
 </dialog>
 
 <style>
+	/* Le panneau glisse depuis son bord, le voile apparaît ; rien si le mouvement est réduit. */
+	@media (prefers-reduced-motion: no-preference) {
+		.panneau {
+			transition: transform var(--duree-panneau) var(--courbe-tiroir);
+			@starting-style {
+				transform: translateY(100%);
+			}
+		}
+		.voile {
+			transition: opacity var(--duree-panneau) var(--courbe-sortie);
+			@starting-style {
+				opacity: 0;
+			}
+		}
+		@media (min-width: 1024px) {
+			.panneau {
+				@starting-style {
+					transform: translateX(100%);
+				}
+			}
+		}
+	}
 	.voile {
 		position: fixed;
 		inset: 0;
@@ -77,7 +99,7 @@
 		max-height: 88dvh;
 		display: flex;
 		flex-direction: column;
-		border-radius: 22px 22px 0 0;
+		border-radius: var(--rayon-grand) var(--rayon-grand) 0 0;
 		background: var(--fond);
 		box-shadow: 0 -8px 30px color-mix(in srgb, #000 25%, transparent);
 	}
@@ -91,14 +113,14 @@
 	.tete {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 14px 16px 10px;
+		gap: var(--espace-12);
+		padding: var(--espace-16) var(--espace-16) var(--espace-12);
 		border-bottom: 1px solid var(--trait-doux);
 	}
 	h2 {
 		flex: 1;
 		margin: 0;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	h2:focus {
 		outline: none;
@@ -116,7 +138,7 @@
 	}
 	.corps {
 		overflow: auto;
-		padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+		padding: var(--espace-16) var(--espace-16) calc(var(--espace-16) + env(safe-area-inset-bottom));
 	}
 	@media (min-width: 1024px) {
 		.panneau {
@@ -124,7 +146,7 @@
 			height: auto;
 			width: min(30rem, 100vw);
 			max-height: none;
-			border-radius: 22px 0 0 22px;
+			border-radius: var(--rayon-grand) 0 0 var(--rayon-grand);
 			box-shadow: -8px 0 30px color-mix(in srgb, #000 25%, transparent);
 		}
 	}

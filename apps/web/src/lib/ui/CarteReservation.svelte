@@ -29,19 +29,19 @@
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
-		padding: 14px 16px;
+		gap: var(--espace-6);
+		padding: var(--espace-16) var(--espace-16);
 		overflow-wrap: anywhere;
 	}
 	.haut {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	h3 {
 		margin: 0;
-		font: 700 1.1875rem var(--police-titre);
+		font: 700 var(--texte-18) var(--police-titre);
 	}
 	p {
 		margin: 0;
@@ -59,7 +59,7 @@
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
-		margin-top: 6px;
+		gap: var(--espace-8);
+		margin-top: var(--espace-6);
 	}
 </style>

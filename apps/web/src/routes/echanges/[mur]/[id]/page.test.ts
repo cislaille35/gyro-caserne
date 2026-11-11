@@ -69,8 +69,9 @@ describe('page d’une publication', () => {
 	it('suivi de la prise de connaissance : nombres et noms', () => {
 		const page = html({ suivi: { priseDeConnaissance: { faite: [personne('Alice'), personne('Bruno')], manquante: [personne('Chloé')] } } });
 		expect(page).toContain('id="suivi"');
-		expect(page).toContain('2 ont pris connaissance, 1 pas encore : Chloé Test.');
-		expect(page).toContain('Alice Test, Bruno Test');
+		expect(page).toContain('2 ont pris connaissance, 1 pas encore.');
+		expect(page).toMatch(/<li[^>]*>Chloé Test<\/li>/);
+		expect(page).toMatch(/<li[^>]*>Alice Test<\/li>\s*(<!--[^>]*-->\s*)*<li[^>]*>Bruno Test<\/li>/);
 		expect(html({ suivi: { priseDeConnaissance: { faite: [personne('Alice')], manquante: [] } } })).toContain('1 a pris connaissance, personne d’autre n’est attendu.');
 		expect(html()).not.toContain('id="suivi"');
 	});
@@ -80,7 +81,7 @@ describe('page d’une publication', () => {
 		expect(page).toContain('Présents (1)');
 		expect(page).toContain('Absents (0)');
 		expect(page).toContain('Sans réponse (2)');
-		expect(page).toContain('Chloé Test, David Test');
+		expect(page).toMatch(/<li[^>]*>Chloé Test<\/li>\s*(<!--[^>]*-->\s*)*<li[^>]*>David Test<\/li>/);
 		expect(page).toContain('personne');
 	});
 });

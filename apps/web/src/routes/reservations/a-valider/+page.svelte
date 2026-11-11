@@ -100,10 +100,10 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.page {
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	ul {
 		margin: 0;
@@ -115,7 +115,7 @@
 	}
 	.reussite,
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}
@@ -133,9 +133,9 @@
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 10px 12px;
-		border-radius: 12px;
+		gap: var(--espace-4);
+		padding: var(--espace-12) var(--espace-12);
+		border-radius: var(--rayon-bouton);
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 		border: 1px solid var(--statut-alerte-trait);
@@ -146,18 +146,11 @@
 	.plus {
 		width: 100%;
 	}
-	.plus summary {
-		list-style: none;
-		display: inline-flex;
-	}
-	.plus summary::-webkit-details-marker {
-		display: none;
-	}
 	.plus form {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		margin-top: 10px;
+		gap: var(--espace-8);
+		margin-top: var(--espace-12);
 	}
 	.plus form button {
 		align-self: flex-start;
@@ -166,19 +159,17 @@
 		font-weight: 600;
 	}
 	textarea {
-		padding: 10px 14px;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-12) var(--espace-16);
 		background: var(--surface);
 		color: var(--encre);
-		font: 400 1rem var(--police);
+		font: 400 var(--texte-16) var(--police);
 		resize: vertical;
 	}
 	.bouton {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		padding: 0 18px;
+		padding: 0 var(--espace-16);
 		border-radius: var(--rayon-bouton);
 		font: inherit;
 		font-weight: 600;
@@ -186,7 +177,7 @@
 		cursor: pointer;
 	}
 	.principal {
-		border: 2px solid var(--encre);
+		border: 1px solid transparent;
 		background: var(--rouge);
 		color: var(--sur-rouge);
 	}
@@ -195,14 +186,16 @@
 		background: var(--surface);
 		color: var(--encre);
 	}
+	/* Un geste grave : contour et texte d'alerte, comme `Bouton variante="grave"`. */
 	.danger {
-		border: 0;
-		background: var(--rouge);
-		color: var(--sur-rouge);
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--accent);
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 56rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

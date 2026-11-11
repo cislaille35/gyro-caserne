@@ -34,7 +34,7 @@
 <div class="page">
 	<EnTetePage titre="Moi" />
 
-	<section class="carte" aria-label="Mon identité" style:--teinte={id?.equipe?.couleur ?? null}>
+	<section class="carte" aria-label="Mon identité">
 		{#if id}
 			<Visage prenom={id.prenom} nom={id.nom} couleur={id.equipe?.couleur ?? null} taille={52} />
 			<div class="qui">
@@ -64,11 +64,11 @@
 			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" /></li>
 			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" /></li>
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>
-			<li><Rangee href="/moi/notifications" titre="Notifications" sous="Ce téléphone, ce qui est coupé" /></li>
+			<li><Rangee href="/moi/notifications" titre="Notifications" /></li>
 		{/if}
 		<!-- Cachée dans l'appli installée (ouverte en plein écran), sans attendre JavaScript. -->
 		<li class="installer"><Rangee href="/moi/installer" titre="Installer l’appli" sous="Sur l’écran d’accueil, avec les notifications" /></li>
-		<li><Rangee href="/affichage" titre="Affichage" sous="Thème et présence de Gyro" /></li>
+		<li><Rangee href="/affichage" titre="Affichage" /></li>
 	</ListeRangees>
 
 	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
@@ -82,21 +82,20 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
-		max-width: 40rem;
+		gap: var(--espace-20);
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
 	}
 	.carte {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 18px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		/* Un liseré à la couleur de l'équipe, quand il y en a une. */
-		box-shadow:
-			inset 0 4px 0 var(--teinte, transparent),
-			var(--ombre-carte);
+		box-shadow: var(--ombre-carte);
 	}
 	.qui {
 		min-width: 0;
@@ -106,12 +105,12 @@
 		overflow-wrap: anywhere;
 	}
 	.aptitudes {
-		margin-top: 4px !important;
-		font-size: 0.9375rem;
+		margin-top: var(--espace-4) !important;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	.nom {
-		font: 700 1.5rem/1.15 var(--police-titre);
+		font: 700 var(--texte-24)/1.15 var(--police-titre);
 	}
 	@media (display-mode: standalone) {
 		.installer {
@@ -125,23 +124,25 @@
 	form {
 		display: flex;
 		justify-content: center;
-		margin-top: 8px;
+		margin-top: var(--espace-8);
 	}
 	.sortir {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		padding: 0 16px;
+		gap: var(--espace-8);
+		padding: 0 var(--espace-16);
 		border: 0;
 		border-radius: var(--rayon-bouton);
 		background: none;
 		color: var(--accent);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 		cursor: pointer;
 	}
-	.sortir:hover {
-		background: var(--statut-danger-fond);
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.sortir:hover {
+			background: var(--statut-danger-fond);
+			text-decoration: underline;
+		}
 	}
 </style>

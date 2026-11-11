@@ -65,13 +65,13 @@
 	{#if c.estCentre}
 		<p class="aide">Le comité du centre ne se dissout pas.</p>
 	{:else}
-		<details class="pli" {...ouvert('dissoudre')}>
+		<details class="pli repli" {...ouvert('dissoudre')}>
 			<summary>Dissoudre le comité</summary>
 			{@render retour('dissoudre')}
 			<form method="POST" action="?/dissoudre" class="formulaire">
 				<p class="avertissement">{avertissement(c.membresEnCours)}</p>
 				<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
-				<Bouton type="submit" variante="secondaire">Dissoudre le comité</Bouton>
+				<Bouton type="submit" variante="grave">Dissoudre le comité</Bouton>
 			</form>
 		</details>
 	{/if}
@@ -94,14 +94,14 @@
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
-		padding: 14px;
+		padding: var(--espace-16);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	.pli {
 		display: block;
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 	}
 	summary {
 		min-height: 56px;
@@ -113,9 +113,9 @@
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		max-width: 36rem;
-		padding-bottom: 14px;
+		gap: var(--espace-16);
+		max-width: var(--largeur-lecture);
+		padding-bottom: var(--espace-16);
 	}
 	.formulaire > :global(button) {
 		align-self: flex-start;
@@ -123,7 +123,7 @@
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 	}
 	.avertissement {
@@ -131,7 +131,7 @@
 	}
 	.echec,
 	.succes {
-		padding: 12px 16px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

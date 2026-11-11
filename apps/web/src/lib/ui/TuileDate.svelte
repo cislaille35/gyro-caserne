@@ -21,7 +21,7 @@
 		flex-direction: column;
 		align-items: center;
 		border: 1px solid var(--trait-doux);
-		border-radius: 14px;
+		border-radius: var(--rayon-grand);
 		overflow: hidden;
 		background: var(--surface);
 		text-align: center;
@@ -31,15 +31,15 @@
 		padding: 3px 0;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 	}
 	.date {
-		font: 700 1.875rem/1.1 var(--police-titre);
+		font: 700 var(--texte-30)/1.1 var(--police-titre);
 	}
 	.mois {
-		padding-bottom: 4px;
+		padding-bottom: var(--espace-4);
 		color: var(--doux);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 	}
 </style>

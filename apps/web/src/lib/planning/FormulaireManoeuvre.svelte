@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import { untrack } from 'svelte';
 	import Bouton from '../ui/Bouton.svelte';
 	import Champ from '../ui/Champ.svelte';
@@ -40,16 +41,13 @@
 			</div>
 			<Champ id="theme" name="theme" libelle="Thème" requis maxlength={100} aide="Par exemple « Feux de forêt » ou « Sport + SAP »." valeur={saisi('theme', m?.theme ?? '')} />
 			<Champ id="lieu" name="lieu" libelle="Lieu" requis maxlength={200} valeur={saisi('lieu', m?.lieu ?? 'Caserne')} />
-			<fieldset>
-				<legend>Équipes convoquées</legend>
-				<label class="case"><input type="radio" name="pour" value="tous" bind:group={pour} /> Tout le centre</label>
-				<label class="case"><input type="radio" name="pour" value="equipes" bind:group={pour} /> Certaines équipes</label>
-				<div class="equipes">
+			<ChoixRadio id="pour" legende="Équipes convoquées" name="pour" disposition="rangees" bind:valeur={pour} options={[{ valeur: 'tous', libelle: 'Tout le centre' }, { valeur: 'equipes', libelle: 'Certaines équipes' }]} />
+			<fieldset class="equipes">
+				<legend class="masque">Les équipes convoquées</legend>
 					{#each equipes as e (e.id)}
 						<label class="case"><input type="checkbox" name="equipes" value={e.id} checked={cochee(e.id)} onchange={(ev) => ev.currentTarget.checked && (pour = 'equipes')} /> {e.nom}</label>
 					{/each}
-				</div>
-			</fieldset>
+				</fieldset>
 			<label class="case"><input type="checkbox" name="petitDejeuner" value="oui" checked={petitDejeuner} /> Petit-déjeuner (un sondage demande qui en prend, jusqu’au vendredi d’avant)</label>
 			<Bouton type="submit">{m ? 'Enregistrer' : 'Ajouter la manœuvre'}</Bouton>
 		</form>
@@ -69,7 +67,7 @@
 	.formulaires {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
@@ -77,8 +75,8 @@
 	.carte {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
 		border-radius: var(--rayon-grand);
@@ -89,43 +87,31 @@
 	}
 	.deux {
 		display: grid;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	@media (min-width: 560px) {
 		.deux {
 			grid-template-columns: 1fr 1fr;
 		}
 	}
-	fieldset {
+	fieldset.equipes {
 		margin: 0;
-		padding: 0;
 		border: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-	legend {
-		margin-bottom: 6px;
-		font-weight: 600;
+		min-width: 0;
 	}
 	.equipes {
 		display: flex;
 		flex-direction: column;
-		padding-left: 32px;
-	}
-	.case input[type='radio'] {
-		width: 22px;
-		height: 22px;
-		flex: none;
+		padding-left: var(--espace-32);
 	}
 	.case {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 		min-height: var(--cible);
 	}
 	.echec {
-		padding: 10px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-petit);
 		border: 2px solid var(--accent);
 		font-weight: 600;

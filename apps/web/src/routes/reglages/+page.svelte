@@ -18,7 +18,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre="Réglages du centre" action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle' } : undefined}>
+	<EnTetePage titre="Réglages du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} action={data.responsabilites ? { href: '/reglages/roles/nouveau', libelle: 'Nouveau rôle', discrete: true } : undefined}>
 		{#snippet secondaire()}
 			{#if data.comites}
 				<a class="lien-secondaire" href="/reglages/comites/nouveau" aria-label="Nouveau comité"
@@ -50,16 +50,16 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
-		max-width: 44rem;
+		gap: var(--espace-20);
+		max-width: var(--largeur-liste);
 	}
 	.mesure {
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		color: inherit;
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		white-space: nowrap;
 	}
 	.barre {

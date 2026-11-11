@@ -44,7 +44,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Comités et référents">
+	<EnTetePage titre="Comités et référents" retour={{ href: '/caserne', libelle: 'Caserne' }}>
 		{#snippet secondaire()}
 			{#if gerer}<a class="lien-secondaire" href={gerer.href}>Gérer<span class="masque">{` ${gerer.quoi}`}</span></a>{/if}
 		{/snippet}
@@ -65,10 +65,10 @@
 						<li><Rangee titre="Aucun membre pour l’instant" discret /></li>
 					{/each}
 					{#if c.mur}
-						<li><Rangee href="/echanges/comite:{c.id}" icone={c.icone} titre={murDuComite(c.nom)} /></li>
+						<li><Rangee href="/echanges/comite:{c.id}" titre={murDuComite(c.nom)} /></li>
 					{/if}
 					{#each c.ressources as r (r.id)}
-						<li><Rangee href="/reservations/{r.id}" icone={r.icone} titre={r.nom} sous="Calendrier des réservations" /></li>
+						<li><Rangee href="/reservations/{r.id}" titre={r.nom} /></li>
 					{/each}
 				</ListeRangees>
 			{:else}
@@ -103,23 +103,23 @@
 	/* Plus serré qu'un lien de page : il tient dans la ligne, au téléphone aussi. */
 	.ecrire {
 		min-height: 40px;
-		padding: 0 12px;
-		font-size: 0.9375rem;
+		padding: 0 var(--espace-12);
+		font-size: var(--texte-15);
 	}
 	.page,
 	.colonne {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--espace-24);
 	}
 	.colonnes {
 		display: flex;
 		flex-direction: column;
-		gap: 32px;
+		gap: var(--espace-32);
 	}
 	.titre-section {
 		margin: 0;
-		font: 700 1.375rem/1.2 var(--police-titre);
+		font: 700 var(--texte-20)/1.2 var(--police-titre);
 	}
 	/* À l'ordinateur, les comités à gauche, les rôles à droite. */
 	@media (min-width: 1024px) {
@@ -127,7 +127,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

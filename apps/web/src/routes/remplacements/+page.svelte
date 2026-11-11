@@ -82,24 +82,24 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: var(--espace-16);
 	}
 	p {
 		margin: 0;
 	}
 	.compte {
 		min-width: 1.5em;
-		padding: 0 6px;
+		padding: 0 var(--espace-6);
 		border-radius: 999px;
 		background: var(--rouge);
 		color: var(--sur-rouge);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		text-align: center;
 	}
 	.echanges {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0 24px;
+		gap: 0 var(--espace-24);
 	}
 	.echanges a {
 		min-height: var(--cible);
@@ -112,8 +112,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 10px;
-		padding: 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -121,18 +121,18 @@
 	}
 	.deroule h2 {
 		margin: 0;
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.deroule ol {
 		margin: 0;
 		padding-left: 1.4em;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.reussite,
 	.erreur {
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		font-weight: 600;
 	}
@@ -148,7 +148,8 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 48rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

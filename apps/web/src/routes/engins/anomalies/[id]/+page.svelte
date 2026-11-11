@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -151,7 +152,7 @@
 						<p>{e.etat === 'indisponible' ? `${e.nom} est déjà indisponible. Cette anomalie le bloquera aussi jusqu’à sa remise en service.` : `${e.nom} reste disponible tant que vous ne décidez pas du contraire.`}</p>
 						<form method="POST" use:enhance={soumettre}>
 							<input type="hidden" name="quoi" value="indisponible" />
-							<Bouton type="submit" desactive={envoi}>{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
+							<Bouton type="submit" variante="grave" desactive={envoi}>{e.etat === 'indisponible' ? 'Bloquer aussi l’engin' : 'Rendre l’engin indisponible'}</Bouton>
 						</form>
 						{@render message('indisponible')}
 					{/if}
@@ -205,12 +206,7 @@
 		<form method="POST" action={sans} use:enhance={soumettre} class="formulaire">
 			<input type="hidden" name="quoi" value={panneau} />
 			{#if panneau === 'attente'}
-				<fieldset>
-					<legend>Motif</legend>
-					{#each Object.entries(LIBELLES_MOTIF) as [valeur, libelle], i (valeur)}
-						<label class="choix"><input type="radio" name="motif" value={valeur} checked={i === 0} /> {libelle}</label>
-					{/each}
-				</fieldset>
+				<ChoixRadio id="motif" legende="Motif" name="motif" disposition="rangees" valeur={Object.keys(LIBELLES_MOTIF)[0]} options={Object.entries(LIBELLES_MOTIF).map(([valeur, libelle]) => ({ valeur, libelle }))} />
 				<div class="champ">
 					<label for="texte-attente">Précision <span class="doux">(facultative : garage, date de retour prévue…)</span></label>
 					<input id="texte-attente" name="texte" type="text" maxlength="300" />
@@ -228,7 +224,7 @@
 					<label for="texte-clore">Pourquoi <span class="doux">(facultatif : signalé deux fois, sans objet…)</span></label>
 					<input id="texte-clore" name="texte" type="text" maxlength="300" />
 				</div>
-				<div><Bouton type="submit" desactive={envoi}>Clore</Bouton></div>
+				<div><Bouton type="submit" variante="grave" desactive={envoi}>Clore l’anomalie</Bouton></div>
 			{/if}
 			{@render message(panneau)}
 		</form>
@@ -241,7 +237,7 @@
 	.principal {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	h2,
 	p,
@@ -250,7 +246,7 @@
 		margin: 0;
 	}
 	h2 {
-		font: 700 1.25rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.doux {
 		color: var(--doux);
@@ -258,8 +254,8 @@
 	.panneau {
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 16px;
+		gap: var(--espace-16);
+		padding: var(--espace-16);
 		background: var(--surface);
 		border: 1px solid transparent;
 		box-shadow: var(--ombre-carte);
@@ -270,11 +266,11 @@
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.bandeau {
 		margin: 0;
-		padding: 12px 14px;
+		padding: var(--espace-12) var(--espace-16);
 		border: 1px solid;
 		border-radius: var(--rayon-petit);
 	}
@@ -300,21 +296,28 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.etapes li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.puce {
 		display: inline-grid;
 		place-items: center;
 		flex: none;
-		width: 22px;
-		height: 22px;
-		border: 2px solid var(--trait);
+		width: 12px;
+		height: 12px;
+		margin-inline: var(--espace-4);
+		border: 1px solid var(--trait);
 		border-radius: 50%;
+	}
+	.faite .puce,
+	.en-cours .puce {
+		width: 20px;
+		height: 20px;
+		margin-inline: 0;
 	}
 	.faite .puce {
 		border-color: var(--statut-ok-texte);
@@ -339,41 +342,21 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		padding-left: 12px;
-		border-left: 3px solid var(--trait-doux);
 	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.formulaire {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-	}
-	fieldset {
-		margin: 0;
-		padding: 0;
-		border: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 18px;
-	}
-	legend {
-		font-weight: 700;
-		margin-bottom: 4px;
-	}
-	.choix {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		min-height: var(--cible);
+		gap: var(--espace-12);
 	}
 	.champ {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.champ label {
 		font-weight: 700;
@@ -384,9 +367,7 @@
 	input[type='text'],
 	textarea {
 		min-height: var(--cible);
-		padding: 8px 12px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-petit);
+		padding: var(--espace-8) var(--espace-12);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -394,7 +375,7 @@
 	dl {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	dl div {
 		display: flex;
@@ -420,7 +401,7 @@
 			display: grid;
 			grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 			align-items: start;
-			gap: 28px;
+			gap: var(--espace-32);
 		}
 	}
 </style>

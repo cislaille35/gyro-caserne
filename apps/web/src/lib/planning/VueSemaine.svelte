@@ -80,7 +80,7 @@
 	.vue {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--espace-12);
 	}
 	p,
 	h2,
@@ -90,7 +90,7 @@
 	.navigation {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	h2 {
 		flex: 1;
@@ -98,13 +98,13 @@
 		flex-wrap: wrap;
 		align-items: baseline;
 		justify-content: center;
-		gap: 0 10px;
-		font: 700 1.375rem var(--police-titre);
+		gap: 0 var(--espace-12);
+		font: 700 var(--texte-20) var(--police-titre);
 		text-align: center;
 	}
 	h2 .dates {
 		color: var(--doux);
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 	}
 	.fleche {
 		flex: none;
@@ -117,19 +117,20 @@
 		border-radius: var(--rayon-bouton);
 		background: var(--surface);
 		color: var(--encre);
-		font-size: 1.5rem;
+		font-size: var(--texte-24);
 		line-height: 1;
 		text-decoration: none;
 	}
-	.fleche:hover {
-		border-color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.fleche:hover {
+			border-color: var(--encre);
+		}
 	}
 	.bande {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 12px 14px;
-		border-left: 8px solid var(--equipe);
+		gap: var(--espace-4);
+		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
 		background: color-mix(in srgb, var(--equipe) 10%, var(--surface));
 	}
@@ -141,7 +142,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 6px 8px;
+		gap: var(--espace-6) var(--espace-8);
 	}
 	.pastille {
 		width: 14px;
@@ -150,11 +151,11 @@
 		background: var(--equipe);
 	}
 	.marque {
-		padding: 0 8px;
+		padding: 0 var(--espace-8);
 		border-radius: 999px;
 		background: var(--encre);
 		color: var(--surface);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		font-weight: 700;
 	}
 	.doux {
@@ -174,7 +175,7 @@
 		display: inline-flex;
 		align-items: center;
 		color: var(--encre);
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		font-weight: 600;
 	}
 	ol,
@@ -195,21 +196,22 @@
 	.jours > li {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		padding: 10px 14px;
+		gap: var(--espace-4);
+		padding: var(--espace-12) var(--espace-16);
 		scroll-margin-top: 12px;
 	}
 	.jours > li + li {
 		border-top: 1px solid var(--trait-doux);
 	}
 	.jours > li:target {
-		box-shadow: inset 4px 0 0 var(--focus);
+		outline: 2px solid var(--focus);
+		outline-offset: -2px;
 	}
 	.aujourdhui {
 		background: var(--statut-neutre-fond);
 	}
 	h3 {
-		font: 600 1rem var(--police);
+		font: 600 var(--texte-16) var(--police);
 	}
 	.auj {
 		color: var(--doux);
@@ -218,13 +220,13 @@
 	.plages {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: var(--espace-6);
 	}
 	.plage {
-		padding: 1px 10px;
+		padding: 1px var(--espace-12);
 		border-radius: 999px;
 		border: 1px solid var(--trait);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
@@ -232,7 +234,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.signe {
 		font-weight: 700;

@@ -94,18 +94,18 @@
 <style>
 	/* À l'ordinateur, la page garde une largeur de lecture. */
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--espace-4);
 	}
 	.entete {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		gap: 8px;
-		margin-bottom: 8px;
+		gap: var(--espace-8);
+		margin-bottom: var(--espace-8);
 	}
 	.annuler {
 		min-height: var(--cible);
@@ -115,20 +115,22 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.annuler:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.annuler:hover {
+			text-decoration: underline;
+		}
 	}
 	h1 {
 		grid-column: 2;
 		margin: 0;
 		text-align: center;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 
 	.recherche {
 		position: relative;
 		display: flex;
-		margin-bottom: 8px;
+		margin-bottom: var(--espace-8);
 	}
 	.recherche svg {
 		position: absolute;
@@ -139,9 +141,7 @@
 	input {
 		flex: 1;
 		min-height: var(--cible);
-		padding: 0 16px 0 40px;
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
+		padding: 0 var(--espace-16) 0 var(--espace-48);
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
@@ -151,12 +151,9 @@
 	}
 
 	h2 {
-		margin: 12px 0 4px;
-		color: var(--doux);
-		font-size: 0.875rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+		margin: var(--espace-12) 0 var(--espace-4);
+		color: var(--encre);
+		font: 700 var(--texte-18)/1.2 var(--police-titre);
 	}
 	ul {
 		list-style: none;
@@ -167,25 +164,27 @@
 	}
 	.ligne {
 		min-height: 60px;
-		padding: 6px 8px;
+		padding: var(--espace-6) var(--espace-8);
 		border-radius: var(--rayon-grand);
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--espace-12);
 		color: var(--encre);
 		text-decoration: none;
 	}
 	a.ligne.grande {
 		min-height: 64px;
-		padding: 8px;
+		padding: var(--espace-8);
 	}
 	/* « Nouveau groupe » est hors de la liste : il s'aligne sur elle. */
 	.page > .ligne {
 		margin: 0 -8px;
 	}
-	.ligne:hover {
-		background: var(--surface);
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.ligne:hover {
+			background: var(--surface);
+			color: var(--encre);
+		}
 	}
 	.rond {
 		flex: none;
@@ -205,7 +204,7 @@
 		flex-direction: column;
 	}
 	.nom {
-		font-size: 1.0625rem;
+		font-size: var(--texte-16);
 		font-weight: 600;
 	}
 	.grande .nom {
@@ -213,12 +212,12 @@
 	}
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.aucune {
-		margin: 8px 16px 0;
+		margin: var(--espace-8) var(--espace-16) 0;
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		text-align: center;
 	}
 	.masque {

@@ -26,6 +26,7 @@ import Rangee from './Rangee.svelte';
 import CarteDemande from '../remplacements/CarteDemande.svelte';
 import Vide from './Vide.svelte';
 import Recherche from './Recherche.svelte';
+import { NOMS_ICONES } from '@gyro-caserne/socle';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
 
 const contenu = createRawSnippet(() => ({ render: () => '<span>Contenu</span>' }));
@@ -125,8 +126,6 @@ describe('PastilleMur', () => {
 	it('un comité : son icône sur sa teinte, décorative', () => {
 		const page = html(PastilleMur, { ...vide, icone: 'coeur' });
 		expect(page).toContain('aria-hidden="true"');
-		expect(page).toContain('var(--icone-coeur-fond)');
-		expect(page).toContain('var(--icone-coeur-texte)');
 		expect(page).toContain(`d="${ICONES_ROLES.coeur}"`);
 		expect(page).toContain('width: 48px');
 	});
@@ -265,9 +264,9 @@ describe('Groupe', () => {
 		expect(html(Groupe, base)).not.toContain('class="tuile');
 	});
 
-	it('liseré de couleur et résumé en alerte, sur demande seulement', () => {
+	it('carré de couleur et résumé en alerte, sur demande seulement', () => {
 		const page = html(Groupe, { ...base, couleur: '#b3121f', alerte: true });
-		expect(page).toMatch(/<section[^>]*style="border-left: 6px solid #b3121f;?"/);
+		expect(page).toMatch(/<span class="carre[^"]*"[^>]*style="background: #b3121f;?"/);
 		expect(page).toMatch(/class="resume[^"]*alerte/);
 		expect(html(Groupe, base)).not.toContain('border-left');
 		expect(html(Groupe, base)).not.toMatch(/class="resume[^"]*alerte/);
@@ -276,7 +275,7 @@ describe('Groupe', () => {
 	it('action facultative à côté du titre, hors du bouton', () => {
 		const action = createRawSnippet(() => ({ render: () => '<a href="/nominations">Nommer</a>' }));
 		const page = html(Groupe, { ...base, action });
-		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
+		expect(page).toMatch(/<\/h2>(\s|<!--[^>]*-->)*<div class="geste[^"]*">(\s|<!--[^>]*-->)*<a href="\/nominations">Nommer<\/a>/);
 		expect(page.match(/<button[\s\S]*?<\/button>/)![0]).not.toContain('Nommer');
 	});
 
@@ -307,14 +306,14 @@ describe('BarreActions', () => {
 });
 
 describe('IconeRole', () => {
-	it.each(Object.keys(ICONES_ROLES))('%s : tuile décorative avec son tracé et sa couleur', (icone) => {
+	it.each(Object.keys(ICONES_ROLES))('%s : icône décorative, avec son tracé, sans teinte', (icone) => {
 		const page = html(IconeRole, { icone });
 		expect(page).toMatch(/<span[^>]*aria-hidden="true"/);
 		expect(page).toContain(`d="${ICONES_ROLES[icone as keyof typeof ICONES_ROLES]}"`);
-		expect(page).toContain(`--icone-${icone}-fond`);
+		expect(page).not.toContain('--icone-');
 	});
-	it('a les onze icônes des rôles', () => {
-		expect(Object.keys(ICONES_ROLES).sort()).toEqual(['ballon', 'camion', 'casque', 'cle', 'coeur', 'croix', 'etoile', 'groupe', 'livre', 'outil', 'veste']);
+	it('a toutes les icônes des rôles et du matériel', () => {
+		expect(Object.keys(ICONES_ROLES).sort()).toEqual([...NOMS_ICONES].sort());
 	});
 });
 
@@ -401,7 +400,7 @@ describe('EnTetePage', () => {
 	it('action principale : le libellé se voit à toutes les tailles, jamais masqué', () => {
 		const css = readFileSync(new URL('./EnTetePage.svelte', import.meta.url), 'utf8').match(/<style>([\s\S]*)<\/style>/)?.[1] ?? '';
 		expect(css).not.toMatch(/clip-path|clip:|width:\s*1px|display:\s*none/);
-		expect(css).not.toContain('@media');
+		expect(css).not.toMatch(/@media[^{]*width/);
 	});
 	it('retour au-dessus du titre, nommé', () => {
 		const page = net(EnTetePage, { titre: 'Mon profil', retour: { href: '/moi', libelle: 'Moi' } });
@@ -450,7 +449,7 @@ describe('Rangee', () => {
 		expect(page).toMatch(/<span class="sous[^"]*">VSAV · AB-123-CD<\/span><span class="sous[^"]*">Prise à faire · 1 anomalie ouverte<\/span>/);
 	});
 	it('une tuile seulement sur demande : elle porte un sens (type, rôle)', () => {
-		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain('var(--icone-casque-fond)');
+		expect(net(Rangee, { href: '/reglages/roles/3', titre: 'Référent', icone: 'casque' })).toContain(`d="${ICONES_ROLES.casque}"`);
 		expect(net(Rangee, { href: '/agents', titre: 'Agents' })).not.toContain('tuile');
 	});
 	it('sans lien : ni chevron ni lien', () => {
@@ -466,14 +465,14 @@ describe('Rangee', () => {
 		expect(page).toMatch(/<div class="inclus[^"]*"><span>Contenu<\/span><\/div>/);
 		expect(page).not.toContain('chevron');
 	});
-	it('alerte : le signe d’alerte en tête, jamais la couleur seule', () => {
+	it('alerte : le signe d’alerte à droite, jamais la couleur seule', () => {
 		const page = net(Rangee, { href: '/nominations', titre: 'Équipe 2 sans chef de garde', alerte: true });
 		expect(page).toMatch(/class="rangee[^"]*\balerte\b/);
 		expect(page).toMatch(/class="signe[^"]*"[^>]*aria-hidden="true"[\s\S]*?<svg/);
 	});
 	it('alerte avec une tuile : le signe d’alerte reste, à droite', () => {
 		const page = net(Rangee, { href: '/reglages', titre: 'Photos', icone: 'camion', alerte: true });
-		expect(page).toContain('var(--icone-camion-fond)');
+		expect(page).toContain(`d="${ICONES_ROLES.camion}"`);
 		expect(page).toMatch(/class="signe[^"]*\ba-droite\b[^"]*"[^>]*aria-hidden="true"/);
 	});
 	it('alerte avec une tête : le signe d’alerte passe à droite', () => {

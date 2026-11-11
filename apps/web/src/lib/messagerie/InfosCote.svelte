@@ -24,7 +24,7 @@
 <aside class="infos" aria-labelledby="t-infos">
 	{#if groupe}
 		<div class="tete">
-			<span class="icone" aria-hidden="true" style:background="var(--icone-{icone}-fond)" style:color="var(--icone-{icone}-texte)"
+			<span class="icone" aria-hidden="true"
 				><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_ROLES[icone]} /></svg></span
 			>
 			<h2 id="t-infos">Infos du groupe</h2>
@@ -75,12 +75,12 @@
 	.infos {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		padding: 20px 16px;
+		gap: var(--espace-12);
+		padding: var(--espace-20) var(--espace-16);
 	}
 	h2 {
 		margin: 0;
-		font: 700 1.25rem/1.15 var(--police-titre);
+		font: 700 var(--texte-20)/1.15 var(--police-titre);
 	}
 	p {
 		margin: 0;
@@ -89,7 +89,7 @@
 	.personne {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.icone {
 		flex: none;
@@ -103,36 +103,38 @@
 	.resume,
 	.sous {
 		color: var(--doux);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 	}
 	.prive {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--espace-6);
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.gestes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	.pilule {
 		min-height: var(--cible);
-		padding: 0 14px;
+		padding: 0 var(--espace-16);
 		border: 1px solid var(--statut-neutre-trait);
 		border-radius: var(--rayon-bouton);
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
+		gap: var(--espace-4);
 		color: var(--encre);
 		font-weight: 600;
-		font-size: 0.9375rem;
+		font-size: var(--texte-15);
 		text-decoration: none;
 	}
-	.pilule:hover {
-		background: var(--fond);
-		color: var(--encre);
+	@media (hover: hover) and (pointer: fine) {
+		.pilule:hover {
+			background: var(--fond);
+			color: var(--encre);
+		}
 	}
 	ul {
 		list-style: none;
@@ -140,12 +142,12 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	li {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--espace-12);
 	}
 	.textes {
 		flex: 1;
@@ -159,11 +161,11 @@
 	}
 	.animateur {
 		flex: none;
-		padding: 2px 8px;
+		padding: 2px var(--espace-8);
 		border-radius: 999px;
 		background: var(--statut-ok-fond);
 		color: var(--statut-ok-texte);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		font-weight: 700;
 	}
 	.lien,
@@ -171,26 +173,28 @@
 		min-height: var(--cible);
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--espace-8);
 		font-weight: 600;
 	}
 	.lien {
 		color: var(--statut-info-texte);
 	}
 	.quitter {
-		margin-top: 4px;
+		margin-top: var(--espace-4);
 		color: var(--statut-danger-texte);
 		text-decoration: none;
 	}
-	.quitter:hover {
-		text-decoration: underline;
-		color: var(--statut-danger-texte);
+	@media (hover: hover) and (pointer: fine) {
+		.quitter:hover {
+			text-decoration: underline;
+			color: var(--statut-danger-texte);
+		}
 	}
 	dl {
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--espace-8);
 	}
 	dl div {
 		display: flex;
@@ -198,7 +202,7 @@
 	}
 	dt {
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	dd {
 		margin: 0;

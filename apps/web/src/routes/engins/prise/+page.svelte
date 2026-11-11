@@ -37,7 +37,7 @@
 	.page {
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: var(--espace-20);
 	}
 	.bilan,
 	.doux {
@@ -48,7 +48,8 @@
 	}
 	@media (min-width: 1024px) {
 		.page {
-			max-width: 52rem;
+			max-width: var(--largeur-liste);
+			margin-inline: auto;
 		}
 	}
 </style>

@@ -1,7 +1,7 @@
 import { MODELES } from './modeles.ts';
 
 // Icônes des rôles : les tracés sont dans l'appli (icones-roles.ts), mêmes noms.
-export const NOMS_ICONES = ['etoile', 'casque', 'camion', 'croix', 'cle', 'ballon', 'livre', 'groupe', 'coeur', 'outil', 'veste'] as const;
+export const NOMS_ICONES = ['etoile', 'casque', 'camion', 'croix', 'cle', 'ballon', 'livre', 'groupe', 'coeur', 'outil', 'veste', 'banc', 'table', 'tente'] as const;
 export type NomIcone = (typeof NOMS_ICONES)[number];
 
 // Une seule règle partout : l'icône choisie, sinon celle du modèle, sinon d'après le nom, sinon celle du thème (la portée).

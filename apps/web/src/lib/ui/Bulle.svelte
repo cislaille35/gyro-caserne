@@ -145,17 +145,17 @@
 	.systeme {
 		align-self: center;
 		max-width: 85%;
-		margin: 6px auto;
+		margin: var(--espace-6) auto;
 		color: var(--doux);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		text-align: center;
 	}
 	.bulle {
 		position: relative;
 		display: block;
 		max-width: min(80%, 36rem);
-		padding: 7px 10px 6px;
-		border-radius: 16px;
+		padding: var(--espace-8) var(--espace-12) var(--espace-6);
+		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		color: var(--encre);
 		box-shadow: 0 1px 1px color-mix(in srgb, var(--encre) 10%, transparent);
@@ -173,12 +173,12 @@
 		background: var(--bulle-moi);
 	}
 	.moi.premiere {
-		border-top-left-radius: 16px;
+		border-top-left-radius: var(--rayon-grand);
 		border-top-right-radius: 4px;
 	}
 	.auteur {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 		color: var(--statut-info-texte);
 	}
 	.auteur.teinte {
@@ -195,18 +195,18 @@
 	.citation {
 		display: flex;
 		flex-direction: column;
-		margin: 2px 0 6px;
-		padding: 5px 8px;
+		margin: 2px 0 var(--espace-6);
+		padding: var(--espace-4) var(--espace-8);
 		border-left: 3px solid var(--statut-info-texte);
-		border-radius: 6px;
+		border-radius: var(--rayon-petit);
 		background: color-mix(in srgb, var(--encre) 6%, transparent);
 		color: var(--encre);
-		font-size: 0.875rem;
+		font-size: var(--texte-14);
 		text-decoration: none;
 	}
 	.citation strong {
 		color: var(--statut-info-texte);
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	.citation .extrait {
 		display: -webkit-box;
@@ -219,14 +219,16 @@
 		font-style: italic;
 		color: var(--doux);
 	}
-	.citation:hover .extrait {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.citation:hover .extrait {
+			text-decoration: underline;
+		}
 	}
 	.photos {
 		display: grid;
 		gap: 3px;
-		margin: 0 -6px 6px;
-		border-radius: 12px;
+		margin: 0 -6px var(--espace-6);
+		border-radius: var(--rayon-bouton);
 		overflow: hidden;
 	}
 	.photos.plusieurs {
@@ -249,7 +251,7 @@
 		height: 110px;
 	}
 	.photo-seule {
-		padding: 4px;
+		padding: var(--espace-4);
 	}
 	.photo-seule .photos {
 		position: relative;
@@ -262,7 +264,7 @@
 		bottom: 6px;
 		float: none;
 		margin: 0;
-		padding: 1px 8px;
+		padding: 1px var(--espace-8);
 		border-radius: 999px;
 		background: rgb(0 0 0 / 0.6);
 		color: #ffffff;
@@ -282,11 +284,11 @@
 	.meta {
 		float: right;
 		display: inline-flex;
-		gap: 4px;
+		gap: var(--espace-4);
 		align-items: center;
-		margin: 5px 0 -3px 10px;
+		margin: var(--espace-4) 0 -3px var(--espace-12);
 		color: var(--doux);
-		font-size: 0.75rem;
+		font-size: var(--texte-12);
 		white-space: nowrap;
 	}
 	.coche {
@@ -301,14 +303,14 @@
 		clear: both;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px;
-		margin: 4px 0 -18px;
+		gap: var(--espace-4);
+		margin: var(--espace-4) 0 -18px;
 	}
 	.reaction {
 		min-width: var(--cible);
 		justify-content: center;
 		min-height: 28px;
-		padding: 1px 8px;
+		padding: 1px var(--espace-8);
 		display: inline-flex;
 		align-items: center;
 		border: 1px solid var(--trait-doux);
@@ -316,7 +318,7 @@
 		background: var(--surface);
 		color: var(--encre);
 		font: inherit;
-		font-size: 0.8125rem;
+		font-size: var(--texte-14);
 	}
 	button.reaction {
 		position: relative;
@@ -335,7 +337,7 @@
 		font-weight: 600;
 	}
 	.bulle:has(.reactions) {
-		margin-bottom: 18px;
+		margin-bottom: var(--espace-16);
 	}
 	.masque {
 		position: absolute;

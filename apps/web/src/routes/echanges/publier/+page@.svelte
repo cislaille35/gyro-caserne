@@ -30,15 +30,15 @@
 <style>
 	/* À l'ordinateur, le formulaire garde une largeur de lecture. */
 	.page {
-		max-width: 40rem;
+		max-width: var(--largeur-lecture);
 		margin: 0 auto;
 	}
 	.entete {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
-		gap: 8px;
-		margin-bottom: 16px;
+		gap: var(--espace-8);
+		margin-bottom: var(--espace-16);
 	}
 	.annuler {
 		min-height: var(--cible);
@@ -48,14 +48,16 @@
 		font-weight: 600;
 		text-decoration: none;
 	}
-	.annuler:hover {
-		text-decoration: underline;
+	@media (hover: hover) and (pointer: fine) {
+		.annuler:hover {
+			text-decoration: underline;
+		}
 	}
 	h1 {
 		grid-column: 2;
 		margin: 0;
 		text-align: center;
-		font: 700 1.375rem var(--police-titre);
+		font: 700 var(--texte-20) var(--police-titre);
 	}
 	.annonce {
 		position: absolute;
