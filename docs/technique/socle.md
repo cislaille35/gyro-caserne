@@ -18,7 +18,7 @@ erDiagram
 
 | Table | Contenu |
 |---|---|
-| `personne` | Une adresse autorisée : nom, grade, profil, statut opérationnel |
+| `personne` | Une adresse autorisée : nom, grade, profil, statut opérationnel ; `parti_le` (dernier départ, vide au retour), `efface_le` (données effacées) |
 | `profil`, `profil_droit` | Droits de base d'un type de personne (agent, réserve citoyenne…), chacun sur un périmètre |
 | `equipe`, `affectation_equipe` | Équipes du centre et qui y est, avec dates |
 | `responsabilite`, `responsabilite_droit` | Fonctions (chef de centre…) et missions (référent pharmacie…), avec leurs droits ; `archivee_le` : date d'archivage, vide tant qu'elle sert ; `modele` : modèle d'origine (vide pour un rôle fait à la main) ; `icone` : icône choisie (vide : l'appli choisit) |
@@ -37,6 +37,20 @@ Les dates sont des textes `AAAA-MM-JJ` ; une attribution ou une affectation est 
 - La préprod a des données : une migration publiée n'est jamais réécrite, une nouvelle n'efface ni ne transforme rien.
 - Une donnée de départ ajoutée après coup va dans le jeu de départ (bases vides) **et** dans la migration, en insertion gardée qui ne joue que sur une base déjà remplie (`EXISTS profil`) et sans doublon (`NOT EXISTS`). Exemple : `0001` ajoute le « Référent technique ».
 - **Un droit de plus** (`DROITS`) change le `CHECK` de `profil_droit` et `responsabilite_droit` : SQLite ne sait pas modifier un `CHECK`, il faut **reconstruire** les deux tables (première fois : `0022`, [décision 0025](../decisions/0025-droit-habillement-et-reconstruction.md)). Partir du SQL de drizzle-kit, puis à la main : retirer les `PRAGMA foreign_keys` (sans effet dans la transaction de D1, et inutiles : aucune table ne pointe vers ces deux-là), recopier le `rowid`, et écrire un test qui compare toutes les lignes et la forme des tables avant et après (`migration-0022.test.ts`, migration jouée comme D1 : clés étrangères actives, une transaction).
+
+## Agents partis et effacement
+
+[Décision 0029](../decisions/0029-effacement-des-agents-partis.md), [données des agents](../fonctionnel/donnees-des-agents.md). Migration `0025`, additive (`personne.parti_le`, `personne.efface_le`, sans valeur : un parti d'avant n'a pas de date et n'est pas effacé la nuit).
+
+- `changerStatut` pose `parti_le` au passage à « Parti » (pas s'il l'était déjà) et le vide à tout autre statut ; il refuse un agent effacé (`Agent effacé`), comme `modifierFiche`.
+- `partis.ts` :
+  - `effacerAgentsPartis(base, limite, aujourdhui)` (nuit, `limite` = `limiteDeConservation(quand, 12)`) : statut « parti », `parti_le <= limite`, pas encore effacé ; 10 par nuit (`PARTIS_PAR_NUIT`), le reste la nuit suivante. Rien à faire : 1 requête ; sinon 2 lectures puis un `batch` par agent.
+  - `effacerAgent(base, acteur, id, maintenant, adressesReservees)` (sur demande) : `GERER_ACCES` sur le centre ; refuse soi-même, une adresse de super administrateur, un agent pas parti (`Déclarez d’abord son départ`), déjà effacé.
+  - `dateDEffacement(partiLe)` : un an après (le 1er mars pour un 29 février), affichée sur la fiche.
+  - L'effacement, un `batch` : `personne` anonymisée (« Ancien » « agent », `efface-<id>@efface.invalid`, autres champs personnels vides, `profil_id` et `statut` gardés) ; `user` (sessions et comptes en cascade), `verification`, `envoi_lien` pour **toutes** ses adresses (l'actuelle et celles du journal, sauf une reprise par une autre fiche) ; `valeur_champ`, `aptitude_agent`, `cle_agenda`, `visite_mur`, `effacerNotificationsDe` (dont `envoi_push` en cascade) ; `details.email` retiré de ses lignes du journal ; une ligne `effacer_agent` (acteur `nuit`, ou l'auteur).
+  - Gardé, sous « Ancien agent » : tout ce qui cite son identifiant (publications, messages, demandes, prises, anomalies, habillement, été, affectations, attributions). PHOTOS n'est pas touchée : aucune photo n'est à lui seul, et `personne.photo` n'est jamais remplie.
+- Un effacé sort de `listeGestion`, de l'export et de l'import du fichier de l'effectif ; `ficheAgent` le lit toujours.
+- Les copies chiffrées hebdomadaires sont gardées 3 mois : un effacement y disparaît au plus tard 3 mois après.
 
 ## Droits
 

@@ -9,4 +9,6 @@ Réservé au chef de centre, à son adjoint et au super administrateur.
 
 L'agent est déconnecté et ne peut plus se connecter. Il quitte aussi son équipe et tous ses rôles (dès aujourd'hui, l'historique est conservé). Il n'apparaît plus dans la vue de tous, mais reste dans la liste de gestion, dans le groupe « Partis » (replié ; le filtre « Partis » l'ouvre).
 
-S'il revient, ouvrez le bloc « Équipe et statut », choisissez à nouveau son statut (par exemple « Opérationnel ») et enregistrez. Il pourra se reconnecter. Il n'a plus d'équipe ni de rôle : réaffectez-le dans le même bloc et nommez-le à nouveau si besoin. Sa date de naissance est à ressaisir par la gestion ; son contact d'urgence, l'agent le saisit lui-même dans « Mon profil ».
+12 mois après son départ, ses données personnelles sont effacées et son nom devient « Ancien agent » (le bloc « Départ du centre » en donne la date). S'il le demande plus tôt : [Comment effacer les données d'un agent ?](effacer-un-agent.md).
+
+S'il revient avant, ouvrez le bloc « Équipe et statut », choisissez à nouveau son statut (par exemple « Opérationnel ») et enregistrez. Il pourra se reconnecter. Il n'a plus d'équipe ni de rôle : réaffectez-le dans le même bloc et nommez-le à nouveau si besoin. Sa date de naissance est à ressaisir par la gestion ; son contact d'urgence, l'agent le saisit lui-même dans « Mon profil ».
