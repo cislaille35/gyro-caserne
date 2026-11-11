@@ -84,10 +84,6 @@
 	.aptitude[open] .echec {
 		margin: 0 var(--espace-16) var(--espace-12);
 	}
-	.retirer {
-		color: var(--accent);
-		border-color: var(--accent);
-	}
 	.page {
 		display: flex;
 		flex-direction: column;

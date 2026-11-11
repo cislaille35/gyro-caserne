@@ -3,7 +3,7 @@ import { erreursCentre, type Centre } from '@gyro-caserne/centre';
 import { unstable_getMiniflareWorkerOptions, unstable_readConfig } from 'wrangler';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { CRON_NUIT, CRON_REVEIL } from './planifie.ts';
 
@@ -40,8 +40,8 @@ describe('centres du dépôt', () => {
 			expect(config.name).toBe(`gyro-caserne-${dossier}`);
 			expect(config.main).toBe(resolve(appli, '.svelte-kit/cloudflare/_worker.js'));
 			expect(resolve(dirname(fichier), config.assets?.directory ?? '')).toBe(resolve(appli, '.svelte-kit/cloudflare'));
-			// Une version d'essai en ligne pour le centre fictif seulement, le temps de la refonte (décision 0026).
-			expect(config.preview_urls, 'preview_urls').toBe(dossier === 'exemple');
+			// Aucune version d'essai en ligne : les adresses de prévisualisation sont coupées à chaque déploiement (décision 0026, terminée).
+			expect(config.preview_urls, 'preview_urls').toBe(false);
 		});
 
 		// L'adresse n'est pas un secret : elle est dans la config, pour qu'aucun déploiement ne la perde (décision 0024).
@@ -86,21 +86,7 @@ describe('adresse en local', () => {
 	});
 });
 
-// La version d'essai de la refonte (décision 0026) : jamais la version en ligne de la préprod, et ses liens de connexion mènent à elle.
-describe('version d’essai', () => {
-	const flux = readFileSync(fileURLToPath(new URL('../../../.github/workflows/deployer-refonte.yml', import.meta.url)), 'utf8');
-
-	it('part de la branche de la refonte', () => {
-		expect(flux).toMatch(/branches: \[fonction\/refonte-ui\]/);
-	});
-
-	it('téléverse une version sans la déployer', () => {
-		expect(flux).toContain('wrangler versions upload');
-		expect(flux).toContain('--preview-alias refonte');
-		expect(flux).not.toMatch(/wrangler (versions )?deploy|deployer|base-en-ligne/);
-	});
-
-	it('envoie ses liens de connexion vers sa propre adresse', () => {
-		expect(flux).toContain('BETTER_AUTH_URL:https://refonte-gyro-caserne-exemple.cis-laille.workers.dev');
-	});
+// La version d'essai de la refonte est retirée (décision 0026, terminée).
+it('aucun flux ne déploie de version d’essai', () => {
+	expect(existsSync(fileURLToPath(new URL('../../../.github/workflows/deployer-refonte.yml', import.meta.url)))).toBe(false);
 });

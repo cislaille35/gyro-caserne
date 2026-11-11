@@ -519,4 +519,18 @@ describe('direction B', () => {
 		expect(source('lib/ui/FormulairePublication.svelte')).not.toContain('style:--visible-fond');
 		expect(style('routes/engins/[id]/prise/+page.svelte')).not.toMatch(/dashed var\(--doux\)/);
 	});
+
+	// Relecture finale.
+	it('un geste grave a partout la même forme : contour rouge, jamais à-plat rouge', () => {
+		const aplat = ecrans.filter((f) => /\n\t\.danger \{[^}]*background: var\(--rouge\)/.test(style(f)));
+		expect(aplat).toEqual([]);
+	});
+
+	it('avec un complément (météo, vigilance), l’en-tête garde son ordre : titre, phrase, complément', () => {
+		expect(source('lib/ui/EnTetePage.svelte')).toMatch(/class:avec-tete=\{tete \|\| complement\}/);
+	});
+
+	it('un « .plus » local n’ajoute pas un second style à celui d’app.css', () => {
+		for (const f of ['lib/remplacements/CarteDemande.svelte', 'routes/reservations/a-valider/+page.svelte']) expect(style(f), f).not.toMatch(/\.plus summary/);
+	});
 });

@@ -26,7 +26,7 @@
 <header class="entete">
 	{#if retour}<Retour href={retour.href} libelle={retour.libelle} />{/if}
 	<div class="ligne">
-		<div class="titres" class:avec-tete={tete}>
+		<div class="titres" class:avec-tete={tete || complement}>
 			<h1 tabindex="-1">{titre}</h1>
 			{#if phrase}<p class="phrase">{phrase}</p>{/if}
 			{#if complement}{@render complement()}{/if}
