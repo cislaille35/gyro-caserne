@@ -43,7 +43,22 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 		base.select({ personneId: vacancesAgent.personneId, debut: vacancesAgent.debut, fin: vacancesAgent.fin }).from(vacancesAgent).where(gte(vacancesAgent.fin, ajouterJours(aujourdhui, -8)))
 	]);
 	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes, plages: plages.map(lirePlage), vacances, astreintes: new Map<number, SemaineCalculee[]>() };
+	return {
+		maintenant: maintenant.slice(0, 16),
+		reglage,
+		semaines,
+		affectations,
+		demandes,
+		engages: engagesDe(demandes),
+		agents,
+		aptitudes,
+		chefs,
+		equipes,
+		plages: plages.map(lirePlage),
+		vacances,
+		astreintes: new Map<number, SemaineCalculee[]>(),
+		heures: new Map<number, { debuts: string[]; finsMax: string[] }>()
+	};
 }
 
 export type Contexte = Awaited<ReturnType<typeof lireContexte>>;
@@ -82,7 +97,27 @@ export function astreintesDe(ctx: Contexte, id: number): SemaineCalculee[] {
 	return calculees;
 }
 
-export const dAstreinte = (ctx: Contexte, id: number, p: Periode) => astreintesDe(ctx, id).some((s) => s.periodes.some((x) => chevauche(x, p)));
+// D'astreinte sur une période : ses heures, à plat et triées par début, avec la fin la plus tardive atteinte à chaque rang.
+// Une recherche par moitiés trouve celles qui commencent avant la fin de la période : il en chevauche une si l'une finit après
+// son début. Sans parcourir toute l'année à chaque tranche vérifiée (décision 0021).
+export function dAstreinte(ctx: Contexte, id: number, p: Periode): boolean {
+	let heures = ctx.heures.get(id);
+	if (!heures) {
+		const periodes = astreintesDe(ctx, id)
+			.flatMap((s) => s.periodes)
+			.sort((a, b) => (a.debut < b.debut ? -1 : a.debut > b.debut ? 1 : 0));
+		let plusTard = '';
+		heures = { debuts: periodes.map((x) => x.debut), finsMax: periodes.map((x) => (plusTard = x.fin > plusTard ? x.fin : plusTard)) };
+		ctx.heures.set(id, heures);
+	}
+	let avant = 0;
+	for (let apres = heures.debuts.length; avant < apres; ) {
+		const milieu = (avant + apres) >> 1;
+		if (heures.debuts[milieu]! < p.fin) avant = milieu + 1;
+		else apres = milieu;
+	}
+	return avant > 0 && heures.finsMax[avant - 1]! > p.debut;
+}
 
 // Qui cède et qui prend quoi dans une demande : le demandeur cède dès qu'il demande ; le remplaçant prend une fois qu'il a accepté.
 // Échange : le collègue cède les siennes et le demandeur les prend, une fois accepté.
@@ -94,9 +129,21 @@ export function engagements(d: LigneDemande): { personneId: number; periode: Per
 	return liste;
 }
 
+// Les périodes où chacun est engagé, par personne : lues une fois par requête, et non à chaque tranche vérifiée (décision 0021).
+function engagesDe(demandes: LigneDemande[]) {
+	const parPersonne = new Map<number, { demandeId: number; periode: Periode }[]>();
+	for (const d of demandes)
+		for (const e of engagements(d)) {
+			const liste = parPersonne.get(e.personneId) ?? [];
+			liste.push({ demandeId: d.id, periode: e.periode });
+			parPersonne.set(e.personneId, liste);
+		}
+	return parPersonne;
+}
+
 // Ni engagé dans une autre demande sur ces périodes (`sauf` : celle qu'on traite).
 export const sansEngagement = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
-	!ctx.demandes.some((d) => d.id !== sauf && engagements(d).some((e) => e.personneId === id && periodes.some((p) => chevauche(p, e.periode))));
+	!(ctx.engages.get(id) ?? []).some((e) => e.demandeId !== sauf && periodes.some((p) => chevauche(p, e.periode)));
 
 // Disponible : un agent qui a accès, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
 export const disponible = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
