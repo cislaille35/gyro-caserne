@@ -11,9 +11,10 @@
 		cloche = 0,
 		nonLus = 0,
 		visage = null,
+		ecusson = null,
 		conversation = false,
 		children
-	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; visage?: { prenom: string; nom: string; couleur: string | null } | null; conversation?: boolean; children: Snippet } = $props();
+	}: { chemin: string; connecte: boolean; nomCentre: string; cloche?: number; nonLus?: number; visage?: { prenom: string; nom: string; couleur: string | null } | null; ecusson?: number | null; conversation?: boolean; children: Snippet } = $props();
 
 	const entrees = $derived(entreesNavigation(connecte));
 	// Sans connexion, seule la page elle-même est marquée.
@@ -48,7 +49,7 @@
 	<header>
 		<div class="titre">
 			<span class="appli">Gyro Caserne</span>
-			<span class="centre">{nomCentre}</span>
+			<span class="centre">{#if ecusson !== null}<img class="ecusson" src="/ecusson?v={ecusson}" alt="Écusson de {nomCentre}" width="20" height="20" />{/if}{nomCentre}</span>
 		</div>
 		{#if connecte}
 			<a class="rond cloche" href="/notifications" aria-label={nomCloche} aria-current={courant('/notifications')}>
@@ -214,6 +215,14 @@
 		white-space: nowrap;
 		color: var(--entete-doux);
 		font-size: var(--texte-14);
+	}
+	/* L'écusson du centre, s'il y en a un : petit, devant son nom, sans cadre. */
+	.ecusson {
+		width: var(--ecusson-entete);
+		height: var(--ecusson-entete);
+		margin-right: var(--espace-6);
+		object-fit: contain;
+		vertical-align: -0.3em;
 	}
 	main {
 		flex: 1;

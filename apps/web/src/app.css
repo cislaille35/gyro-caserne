@@ -84,6 +84,9 @@
 	--texte-24: 1.5rem;
 	--texte-30: 1.875rem;
 	--cible: 44px;
+	/* L'écusson du centre : en petit dans l'en-tête, plus grand à la connexion. */
+	--ecusson-entete: 20px;
+	--ecusson-connexion: 72px;
 	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
 	--hauteur-entete: 64px;
 

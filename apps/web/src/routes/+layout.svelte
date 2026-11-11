@@ -58,7 +58,7 @@
 	});
 </script>
 
-<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
+<Coquille chemin={page.url.pathname} connecte={data.connecte} cloche={data.cloche} visage={data.visage} ecusson={data.ecusson} {nonLus} nomCentre={centre.nom} conversation={dansUneConversation(page.route.id, page.error)}>
 	{@render children()}
 	<EnvoiCoupe />
 </Coquille>

@@ -246,16 +246,16 @@ describe('le fil et la cloche', () => {
 		]);
 	});
 
-	it('enTeteDe : non-lues et visage en 1 requête ; super administrateur sans requête', async () => {
+	it('enTeteDe : non-lues, visage et écusson en 1 requête ; super administrateur, l’écusson seul', async () => {
 		const { base, e2, chef, bruno } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const avant = base.requetes;
-		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur } });
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
 		expect(base.requetes - avant).toBe(1);
-		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null } });
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
 		const ensuite = base.requetes;
-		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: null });
-		expect(base.requetes).toBe(ensuite);
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: null, ecusson: null });
+		expect(base.requetes).toBe(ensuite + 1);
 	});
 
 	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {

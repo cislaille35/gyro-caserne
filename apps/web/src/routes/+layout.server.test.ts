@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { ajouterRessource, attribuer, chargerJeuDeDepart, reserver, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { ajouterRessource, attribuer, deposerEcusson, chargerJeuDeDepart, reserver, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -92,6 +92,17 @@ describe('load du layout', () => {
 		// Le super administrateur et le visiteur : ni nombre, ni visage.
 		expect(await appeler(super_, base)).toMatchObject({ cloche: 0, visage: null });
 		expect(await appeler(null, base)).toMatchObject({ cloche: 0, visage: null });
+	});
+
+	it('l’écusson du centre : sa version, lue avec la cloche ; aucun pour le visiteur ou sans écusson', async () => {
+		const { base, alice } = await preparer();
+		expect((await appeler(alice, base)).ecusson).toBeNull();
+		const o = new Uint8Array(100);
+		o.set([0xff, 0xd8, 0xff, 0xe0]);
+		const v = await deposerEcusson(base, base.photos, super_, { type: 'image/jpeg', donnees: o }, maintenantParis());
+		expect((await appeler(alice, base)).ecusson).toBe(v);
+		expect((await appeler(super_, base)).ecusson).toBe(v);
+		expect((await appeler(null, base)).ecusson).toBeNull();
 	});
 
 	it('la cloche dépend de « app:cloche » : relue seule après une page qui marque des notifications lues', async () => {

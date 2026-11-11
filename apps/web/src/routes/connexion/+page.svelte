@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
+	import centre from '$centre';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 
-	let { form } = $props();
+	let { data, form } = $props();
 </script>
 
 <svelte:head>
@@ -12,6 +13,7 @@
 
 <div class="page">
 	<GyroDuMoment tenue="bienvenue" taille={120} decoratif />
+	{#if data?.ecusson != null}<img class="ecusson" src="/ecusson?v={data.ecusson}" alt="Écusson de {centre.nom}" width="72" height="72" />{/if}
 	<h1>Connexion</h1>
 	{#if form?.envoye}
 		<div class="carte" role="status">
@@ -40,6 +42,12 @@
 		margin: 0 auto;
 		padding-top: 1rem;
 		text-align: center;
+	}
+	/* L'écusson du centre, s'il y en a un, au-dessus du titre. */
+	.ecusson {
+		width: var(--ecusson-connexion);
+		height: var(--ecusson-connexion);
+		object-fit: contain;
 	}
 	h1 {
 		margin: 0;
