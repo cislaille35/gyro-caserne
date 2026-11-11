@@ -61,7 +61,8 @@ export async function donneesFichier(base: Base, acteur: Acteur, aujourdhui: str
 		base.select({ id: profil.id, nom: profil.nom }).from(profil).orderBy(asc(profil.id)),
 		base.select().from(responsabilite).where(isNull(responsabilite.archiveeLe)),
 		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)),
-		base.select().from(personne),
+		// Un agent effacé n'a plus de ligne dans le fichier.
+		base.select().from(personne).where(isNull(personne.effaceLe)),
 		base.select().from(affectationEquipe).orderBy(asc(affectationEquipe.debut)),
 		base
 			.select({ personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, systeme: responsabilite.systeme })

@@ -150,8 +150,10 @@ export async function ajouterPersonne(
 export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: Acteur, personneId: number, statut: StatutOperationnel, maintenant: string): Promise<void> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(STATUTS_OPERATIONNELS as readonly string[]).includes(statut)) throw new DonneeInvalide('Statut inconnu');
-	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut }).from(personne).where(eq(personne.id, personneId));
+	const [fiche] = await base.select({ id: personne.id, email: personne.email, profilId: personne.profilId, statut: personne.statut, effaceLe: personne.effaceLe }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	// Un agent effacé ne revient pas : s'il revient au centre, on lui refait une fiche.
+	if (fiche.effaceLe !== null) throw new DonneeInvalide('Agent effacé');
 	await exigerProtection(base, acteur, personneId, aujourdhui, {
 		chef: 'Seul un super administrateur change le statut du chef de centre',
 		adjoint: 'Seuls le chef de centre ou un super administrateur changent le statut d’un adjoint'
@@ -182,7 +184,8 @@ export async function changerStatut(base: Base, basePhotos: BasePhotos, acteur: 
 		// Au départ, on n'en garde pas plus que nécessaire.
 		base
 			.update(personne)
-			.set(statut === 'parti' ? { statut, naissance: null, contactUrgence: null } : { statut })
+			// La date du dernier départ : l'effacement compte 12 mois de là (partis.ts) ; vide au retour.
+			.set(statut === 'parti' ? { statut, naissance: null, contactUrgence: null, ...(fiche.statut === 'parti' ? {} : { partiLe: aujourdhui }) } : { statut, partiLe: null })
 			.where(eq(personne.id, personneId)),
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'changer_statut', cibleType: 'personne', cibleId: personneId, details: { statut } }, aujourdhui),
 		...retrait,
@@ -214,6 +217,7 @@ export async function modifierFiche(base: Base, acteur: Acteur, id: number, cham
 	await exiger(base, acteur, centre, aujourdhui);
 	const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	if (fiche.effaceLe !== null) throw new DonneeInvalide('Agent effacé');
 	await exigerProtection(base, acteur, id, aujourdhui, {
 		chef: 'Seul un super administrateur modifie la fiche du chef de centre',
 		adjoint: 'Seuls le chef de centre ou un super administrateur modifient la fiche d’un adjoint'

@@ -153,7 +153,9 @@ export async function listeGestion(base: Base, acteur: Acteur, filtres: { texte?
 		})
 		.from(personne)
 		.leftJoin(grade, eq(grade.id, personne.gradeId))
-		.leftJoin(profil, eq(profil.id, personne.profilId));
+		.leftJoin(profil, eq(profil.id, personne.profilId))
+		// Un agent effacé n'est plus dans la liste ; sa fiche reste ouverte par son lien.
+		.where(isNull(personne.effaceLe));
 	const roles = await rolesCourants(base, aujourdhui);
 	// Fiche à compléter : sans grade ou sans date d'entrée, pour un agent présent du centre.
 	const toutes = lignes.map((l) => ({ ...l, aCompleter: l.statut !== 'parti' && l.type !== 'exterieur' && (l.gradeId === null || l.entreeCentre === null) }));
