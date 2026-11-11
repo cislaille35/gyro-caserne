@@ -44,7 +44,7 @@ export async function envoyerLot(base: Base, cles: ClesVapid | null, envoyer: (u
 }
 
 // Envoyés dès le geste, après la réponse : 20 au plus, pour que la requête de l'auteur reste légère (environ 0,5 ms de calcul
-// par envoi). Le reste part au réveil suivant de la tâche planifiée (toutes les cinq minutes), par lots de 40.
+// par envoi). Le reste part au réveil suivant de la tâche planifiée (toutes les dix minutes), par lots de 40.
 export const LOT_IMMEDIAT = 20;
 
 // Après la réponse : attend ce qui part en arrière-plan (les notifications du geste, y compris celles inscrites entre-temps),

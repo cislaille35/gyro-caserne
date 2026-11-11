@@ -1,10 +1,10 @@
 import { and, asc, eq, gte, lte } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDateHeure } from '../dates.ts';
+import { ajouterJours, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
 import { affectationEquipe, anneePlanning, equipe, semaineChangee } from '../schema.ts';
-import { anneesPubliees, equipeLe, type EquipePlanning } from './annee.ts';
-import type { Periode, Reglage } from './calendrier.ts';
+import { equipeLe, semainesCalculees, type EquipePlanning } from './annee.ts';
+import { semainesDe, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 import { groupeDeLaSemaine, nomsDeGroupes, requeteEtes } from './groupes.ts';
 import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 
@@ -27,13 +27,34 @@ export async function astreinteDe(base: Base, acteur: Acteur, maintenant: string
 	]);
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const plages = lignesPlages.map(lirePlage);
-	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	const fin = (s: (typeof semaines)[number]) => s.periodes.at(-1)!.fin;
+	const fin = (s: SemaineCalculee) => s.periodes.at(-1)!.fin;
 	const avecEquipe = equipeLe(affectations, m.slice(0, 10)) !== null;
-	// Avec une équipe : mes heures (en été publié, mes plages ; un renfort compte aussi).
-	const miennes = semaines.map((s) => ({ ...s, periodes: heuresDe(s, equipeLe(affectations, s.debut), moi, plages) })).filter((s) => s.periodes.length > 0);
-	const aMoi = avecEquipe || miennes.some((s) => fin(s) > m);
-	const semaine = aMoi ? miennes.find((s) => fin(s) > m) : semaines.find((s) => s.periodes[0]!.debut <= m && fin(s) > m);
+	// Mes heures ne peuvent venir que d'une équipe (encore la mienne depuis le début de la semaine en cours, ou plus tard)
+	// ou d'un renfort d'été à venir. Sans l'un ni l'autre, on ne les calcule pas (décision 0021).
+	const depuis = ajouterJours(m.slice(0, 10), -15);
+	const peutAvoir = affectations.some((a) => a.fin === null || a.fin >= depuis) || plages.some((p) => p.fin > m && p.ajoutes.includes(moi));
+	// Les années publiées, dans l'ordre, calculées une à une jusqu'à trouver. La dernière semaine de l'année d'avant peut être
+	// encore en cours : elle finit au plus tard 7 jours après sa relève (un jour de marge).
+	const finAvant = ajouterJours(semainesDe(annee - 1, reglage).at(-1)!.debut, 8);
+	const publiees = annees.filter((a) => a.publieeLe !== null && (a.annee >= annee || m.slice(0, 10) <= finAvant)).sort((a, b) => a.annee - b.annee);
+	let courante: SemaineCalculee | undefined;
+	let mienne: SemaineCalculee | undefined;
+	for (const a of publiees) {
+		const semaines = semainesCalculees(a.annee, a.ordre, changees, reglage);
+		courante ??= semaines.find((s) => s.periodes[0]!.debut <= m && fin(s) > m);
+		if (peutAvoir)
+			for (const s of semaines) {
+				// Avec une équipe : mes heures (en été publié, mes plages ; un renfort compte aussi).
+				const periodes = heuresDe(s, equipeLe(affectations, s.debut), moi, plages);
+				if (periodes.length > 0 && periodes.at(-1)!.fin > m) {
+					mienne = { ...s, periodes };
+					break;
+				}
+			}
+		if (mienne || (!peutAvoir && courante)) break;
+	}
+	const aMoi = avecEquipe || mienne !== undefined;
+	const semaine = aMoi ? mienne : courante;
 	if (!semaine) return null;
 	const trouvee = equipes.find((x) => x.id === semaine.equipeId);
 	const e = trouvee ? { id: trouvee.id, nom: groupeDeLaSemaine(etes, nomsDeGroupes(equipes), semaine) ?? trouvee.nom, couleur: trouvee.couleur } : { id: semaine.equipeId, nom: 'Équipe archivée', couleur: '#8a949e' };

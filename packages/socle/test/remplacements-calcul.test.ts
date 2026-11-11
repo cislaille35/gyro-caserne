@@ -122,7 +122,8 @@ describe('Échanger : le calcul reste borné', () => {
 				for (const p of [{ debut: decaler(x.debut, -1), fin: x.debut }, { debut: x.fin, fin: decaler(x.fin, 1) }, { debut: decaler(x.debut, -1), fin: decaler(x.debut, 1) }])
 					expect(dAstreinte(ctx, a.id, p), `${a.id} ${p.debut} ${p.fin}`).toBe(toutes.some((y) => chevauche(y, p)));
 		}
-		expect(oui).toBeGreaterThan(1000);
+		// Les heures de la fenêtre des remplacements (décision 0021) : des centaines de réponses « oui ».
+		expect(oui).toBeGreaterThan(300);
 	});
 
 	it('d’astreinte : une heure dans une plus longue ne cache pas la longue', async () => {
@@ -133,5 +134,34 @@ describe('Échanger : le calcul reste borné', () => {
 		ctx.astreintes.set(gens[0]!, [{ ...semaine, periodes: [{ debut: '2026-11-07T00:00', fin: '2026-11-08T00:00' }, { debut: '2026-11-07T02:00', fin: '2026-11-07T03:00' }] }]);
 		expect(dAstreinte(ctx, gens[0]!, { debut: '2026-11-07T05:00', fin: '2026-11-07T06:00' })).toBe(true);
 		expect(dAstreinte(ctx, gens[0]!, { debut: '2026-11-08T00:00', fin: '2026-11-08T06:00' })).toBe(false);
+	});
+
+	it('les semaines calculées seulement dans la fenêtre des remplacements : mêmes résultats qu’avec toute l’année', { timeout: 60_000 }, async () => {
+		const { base, gens } = await preparer(4);
+		const { anneesPubliees } = await import('../src/planning/annee.ts');
+		const { anneePlanning, semaineChangee } = await import('../src/schema.ts');
+		const { bandesDe, candidats } = await import('../src/remplacements/contexte.ts');
+		const { ajouterJours } = await import('../src/dates.ts');
+		const toutes = [...anneesPubliees(await base.select().from(anneePlanning), await base.select().from(semaineChangee), reglage).values()].flat();
+		let compares = 0;
+		// Tous les quatre jours de l'année, et chaque jour autour des deux Nouvel An.
+		const jours = new Set<string>();
+		for (let jour = '2025-12-20'; jour < '2027-01-10'; jour = ajouterJours(jour, 1)) if (jour.slice(5) >= '12-20' || jour.slice(5) <= '01-10' || Number(jour.slice(8)) % 4 === 0) jours.add(jour);
+		for (const jour of jours)
+			for (const heure of ['00:00', '18:00']) {
+				const ctx = await lireContexte(base, `${jour}T${heure}`, reglage);
+				// La même lecture, avec toutes les semaines publiées comme avant.
+				const avant = { ...ctx, semaines: toutes, astreintes: new Map(), heures: new Map() };
+				expect(ctx.semaines.length).toBeLessThan(toutes.length);
+				for (const id of gens) {
+					expect(mesTranches(ctx, id), `${jour} ${heure} ${id}`).toEqual(mesTranches(avant, id));
+					const bandes = bandesDe(ctx, id, gens[0]!);
+					expect(bandes).toEqual(bandesDe(avant, id, gens[0]!));
+					const libres = bandes.flatMap((b) => b.tranches).filter((t) => t.etat === 'libre');
+					for (const t of [libres[0], libres.at(-1)].filter((x) => x !== undefined)) expect(candidats(ctx, id, [t])).toEqual(candidats(avant, id, [t]));
+					compares += libres.length;
+				}
+			}
+		expect(compares).toBeGreaterThan(1000);
 	});
 });

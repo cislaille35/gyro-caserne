@@ -8,8 +8,7 @@ import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import type { ElementFiche, ZoneFiche } from './fiches.ts';
 import { avisAnomalies, quiTraite } from './anomalies-avis.ts';
 import { GENRES_ECART, STATUTS_AVEC_ACCES, type EtapeAnomalie, type EtatPrise, type GenreEcart, type MotifAttente } from './listes.ts';
-import { anneesPubliees } from './planning/annee.ts';
-import { rangDuJour, type Reglage } from './planning/calendrier.ts';
+import { rangDuJour, semainesDe, type Reglage } from './planning/calendrier.ts';
 import { affectationEquipe, anneePlanning, anomalie, engin, equipe, ficheElement, ficheVersion, ficheZone, personne, priseGarde, profil, semaineChangee, typeEngin } from './schema.ts';
 
 // La prise de garde : à la relève, l'équipe d'astreinte vérifie chaque engin zone par zone. Un brouillon sur le serveur
@@ -77,11 +76,17 @@ export async function equipeAstreinte(base: Base, maintenant: string, reglage: R
 	const [annees, changees, equipes] = await base.batch([...lecturesEquipe(base, releve)]);
 	return equipeDe(releve, annees, changees, equipes, reglage)?.id ?? null;
 }
+// Seulement la semaine de la relève, comme `calculerAnnee` la donnerait : celle choisie par le chef, sinon le roulement. L'accueil du chef
+// la demande deux fois ; calculer toute l'année pour une semaine coûtait (décision 0021).
 function equipeDe(releve: string, annees: (typeof anneePlanning.$inferSelect)[], changees: { debut: string; equipeId: number }[], equipes: EquipeReleve[], reglage: Reglage): EquipeReleve | null {
-	const semaine = anneesPubliees(annees, changees, reglage)
-		.get(Number(releve.slice(0, 4)))
-		?.find((s) => s.debut === releve.slice(0, 10));
-	return (semaine && equipes.find((e) => e.id === semaine.equipeId)) ?? null;
+	const annee = Number(releve.slice(0, 4));
+	const jour = releve.slice(0, 10);
+	const ligne = annees.find((a) => a.annee === annee && a.publieeLe !== null);
+	const ordre = JSON.parse(ligne?.ordre ?? '[]') as number[];
+	const rang = semainesDe(annee, reglage).findIndex((s) => s.debut === jour);
+	if (ordre.length === 0 || rang < 0) return null;
+	const id = changees.findLast((c) => c.debut === jour)?.equipeId ?? ordre[rang % ordre.length]!;
+	return equipes.find((e) => e.id === id) ?? null;
 }
 
 const nomComplet = (p: { prenom: string; nom: string } | undefined) => (p ? `${p.prenom} ${p.nom}` : 'Un ancien agent');

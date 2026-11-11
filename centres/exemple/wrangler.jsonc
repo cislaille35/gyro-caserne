@@ -11,8 +11,8 @@
 	// Adresse de la préprod : les liens de connexion pointent vers elle. En clair, ce n’est pas un secret (décision 0024) ; en local, .dev.vars l’emporte.
 	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-exemple.cis-laille.workers.dev" },
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
-	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les cinq minutes, les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
-	"triggers": { "crons": ["30 3 * * *", "*/5 * * * *"] },
+	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les dix minutes (décision 0012), les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
+	"triggers": { "crons": ["30 3 * * *", "*/10 * * * *"] },
 	// Base de la préprod du CIS Laillé : un autre centre remplace ce database_id par celui de sa base.
 	"d1_databases": [
 		{

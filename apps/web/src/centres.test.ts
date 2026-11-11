@@ -30,9 +30,9 @@ describe('centres du dépôt', () => {
 			expect(centre.id).toBe(dossier);
 		});
 
-		it(`${dossier} fait son ménage chaque nuit, à 3 h 30 (UTC), et se réveille toutes les cinq minutes`, () => {
+		it(`${dossier} fait son ménage chaque nuit, à 3 h 30 (UTC), et se réveille toutes les dix minutes`, () => {
 			expect(configCloudflare(chemin).config.triggers.crons).toEqual([CRON_NUIT, CRON_REVEIL]);
-			expect(CRON_REVEIL).toBe('*/5 * * * *');
+			expect(CRON_REVEIL).toBe('*/10 * * * *');
 		});
 
 		it(`${dossier} a sa config Cloudflare, qui déploie l'appli sous son propre nom`, () => {

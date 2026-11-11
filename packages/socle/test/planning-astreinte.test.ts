@@ -5,7 +5,7 @@ import type { Acteur } from '../src/droits.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { astreinteDe } from '../src/planning/astreinte.ts';
-import { affectationEquipe, attribution, equipe, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, attribution, equipe, ete, personne, plageEte, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -25,7 +25,7 @@ async function jeu({ publier = true } = {}) {
 	const a = (id: number): Acteur => ({ type: 'personne', id });
 	await reglerRoulement(base, a(chef), 2026, ids, '2026-01-01T10:00');
 	if (publier) await publierAnnee(base, a(chef), 2026, '2026-01-01T10:00');
-	return { base, ids, chef: a(chef), alice: a(alice) };
+	return { base, ids, nouvelle, chef: a(chef), alice: a(alice), a };
 }
 
 describe('astreinte de l’accueil', () => {
@@ -58,5 +58,28 @@ describe('astreinte de l’accueil', () => {
 		await reglerRoulement(base, chef, 2027, [ids[1]!, ids[2]!, ids[3]!, ids[0]!], '2026-11-01T10:00');
 		await publierAnnee(base, chef, 2027, '2026-11-01T10:00');
 		expect(await astreinteDe(base, alice, '2027-01-02T10:00', reglage)).toMatchObject({ debut: '2027-01-22T18:00', mienne: true });
+	});
+
+	// Les années ne sont calculées qu'à la demande (décision 0021) : les cas où l'on ne cherche pas ses heures, ou pas l'année d'avant.
+	it('sans équipe, le 1er janvier : la semaine en cours, commencée l’année d’avant', async () => {
+		const { base, chef, ids } = await jeu();
+		expect(await astreinteDe(base, chef, '2027-01-01T10:00', reglage)).toMatchObject({ debut: '2026-12-25T18:00', fin: '2027-01-01T18:00', mienne: false, enCours: true, equipe: { id: ids[3] } });
+	});
+
+	it('ancien membre d’une équipe : la semaine en cours, pas la sienne ; parti pendant sa semaine : encore la sienne', async () => {
+		const { base, ids, nouvelle, a } = await jeu();
+		const parti = await nouvelle('parti');
+		await base.insert(affectationEquipe).values({ personneId: parti, equipeId: ids[0]!, debut: '2026-01-01', fin: '2026-10-01' });
+		expect(await astreinteDe(base, a(parti), '2026-11-01T10:00', reglage)).toMatchObject({ debut: '2026-10-30T18:00', mienne: false, equipe: { id: ids[3] } });
+		const partant = await nouvelle('partant');
+		await base.insert(affectationEquipe).values({ personneId: partant, equipeId: ids[0]!, debut: '2026-01-01', fin: '2026-11-08' });
+		expect(await astreinteDe(base, a(partant), '2026-11-10T14:00', reglage)).toMatchObject({ debut: '2026-11-06T18:00', mienne: true, enCours: true });
+	});
+
+	it('sans équipe, en renfort d’un été publié : sa plage', async () => {
+		const { base, chef } = await jeu();
+		await base.insert(ete).values({ annee: 2026, debut: '2026-06-01', fin: '2026-12-31', dateLimite: '2026-05-01', publieeLe: '2026-05-02T10:00' });
+		await base.insert(plageEte).values({ debut: '2026-11-16T18:00', fin: '2026-11-17T06:00', annee: 2026, ajoutes: JSON.stringify([chef.type === 'personne' ? chef.id : 0]), retires: '[]' });
+		expect(await astreinteDe(base, chef, '2026-11-11T10:00', reglage)).toMatchObject({ debut: '2026-11-16T18:00', fin: '2026-11-17T06:00', mienne: true, enCours: false });
 	});
 });

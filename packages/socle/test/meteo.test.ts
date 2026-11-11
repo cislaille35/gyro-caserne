@@ -155,13 +155,13 @@ describe('mettreAJourReleves et relevesDe', () => {
 		expect(base.requetes - avant).toBe(1);
 	});
 
-	it('deux délais : la vigilance toutes les 15 minutes, la météo toutes les heures', async () => {
+	it('deux délais : la vigilance à chaque réveil (toutes les 10 minutes), la météo toutes les heures', async () => {
 		const base = await baseDeTest();
 		const r = reseau({ meteo: averses, vigilance: vigilance({ 1: 1 }) });
 		const vig = () => r.appels.filter((a) => a.url.startsWith(URL_VIGILANCE)).length;
-		for (const h of ['10:00', '10:05', '10:10']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, r.recuperer, 'cle');
+		for (const h of ['10:00', '10:05', '10:09']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, r.recuperer, 'cle');
 		expect(vig()).toBe(1);
-		await mettreAJourReleves(base, lieu, '2026-11-02T10:15', r.recuperer, 'cle');
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:10', r.recuperer, 'cle');
 		expect(vig()).toBe(2);
 		expect(r.appels).toHaveLength(3);
 		await mettreAJourReleves(base, lieu, '2026-11-02T11:00', r.recuperer, 'cle');
@@ -264,13 +264,13 @@ describe('passage au rouge', () => {
 		expect(await envois(base)).toHaveLength(2);
 	});
 
-	it('lue toutes les 15 minutes, l’alerte ne repart pas ; une lecture ratée au milieu non plus', async () => {
+	it('lue toutes les 10 minutes, l’alerte ne repart pas ; une lecture ratée au milieu non plus', async () => {
 		const base = await jeu();
 		const rouge = reseau({ meteo: averses, vigilance: vigilance({ 3: 4 }) }).recuperer;
 		const panne = reseau({ meteo: averses }).recuperer;
-		for (const h of ['10:00', '10:15', '10:30']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
-		await mettreAJourReleves(base, lieu, '2026-11-02T10:45', panne, 'cle');
-		for (const h of ['11:00', '11:15', '11:30']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
+		for (const h of ['10:00', '10:10', '10:20']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
+		await mettreAJourReleves(base, lieu, '2026-11-02T10:30', panne, 'cle');
+		for (const h of ['10:40', '10:50', '11:00']) await mettreAJourReleves(base, lieu, `2026-11-02T${h}`, rouge, 'cle');
 		expect(await envois(base)).toHaveLength(1);
 	});
 
