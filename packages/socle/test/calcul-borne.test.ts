@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { accueilDe } from '../src/casquettes.ts';
 import * as calendrier from '../src/planning/calendrier.ts';
 import * as annee from '../src/planning/annee.ts';
+import * as armement from '../src/armement.ts';
 import * as plages from '../src/planning/plages.ts';
 import { astreinteDe } from '../src/planning/astreinte.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
@@ -21,6 +22,11 @@ vi.mock('../src/planning/calendrier.ts', async (original) => {
 vi.mock('../src/planning/plages.ts', async (original) => {
 	const m = await original<typeof import('../src/planning/plages.ts')>();
 	return { ...m, heuresDe: vi.fn(m.heuresDe) };
+});
+// Le FPT armé ou non, et les postes de chacun : le travail du compte des plages à revoir.
+vi.mock('../src/armement.ts', async (original) => {
+	const m = await original<typeof import('../src/armement.ts')>();
+	return { ...m, armement: vi.fn(m.armement), postesDe: vi.fn(m.postesDe) };
 });
 // L'équipe de chacun à une date : le travail de l'été, agent par agent.
 vi.mock('../src/planning/annee.ts', async (original) => {
@@ -136,6 +142,19 @@ describe('Le calcul reste borné, avec 60 agents, 6 années publiées et 50 dema
 		// L'accueil du chef refait le compte des plages à revoir : même borne.
 		const accueil = await compter(() => accueilDe(base, acteurs.chef, null, m.slice(0, 10), m, reglage));
 		expect(accueil.equipes).toBeLessThanOrEqual(jeu.agents * (semaines + 2));
+	});
+
+	it.each(['2026-11-11T10:00', '2027-06-01T10:00'])('l’accueil du chef compte les plages à revoir sans refaire l’été (%s)', async (m) => {
+		const { base, reglage, acteurs } = jeu;
+		const plages = (await eteAPreparer(base, acteurs.chef, 2027, m, reglage)).semaines.flatMap((s) => s.plages).length;
+		expect(plages).toBeGreaterThan(60);
+		for (const f of [armement.armement, armement.postesDe, calendrier.calculerAnnee]) vi.mocked(f).mockClear();
+		await accueilDe(base, acteurs.chef, null, m.slice(0, 10), m, reglage);
+		// Avant : le FPT calculé pour chaque plage, les postes de chacun pour chaque jour, toutes les semaines de l'année.
+		expect(vi.mocked(armement.armement).mock.calls.length, 'FPT calculé').toBeLessThanOrEqual(10);
+		expect(vi.mocked(armement.postesDe).mock.calls.length, 'postes calculés').toBeLessThanOrEqual(jeu.agents);
+		const semaines = vi.mocked(calendrier.calculerAnnee).mock.results.map((r) => (r.value as unknown[]).length);
+		expect(semaines, 'semaines calculées : seulement celles de l’été').toEqual([expect.toBeOneOf([9, 10])]);
 	});
 
 	it('ce qui n’a pas besoin des semaines ne les calcule pas ; l’accueil d’un agent, une année', async () => {

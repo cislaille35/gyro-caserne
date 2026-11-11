@@ -95,16 +95,18 @@ export function periodesDeLaSemaine(debut: string, reglage: Reglage, feriesDates
 	return periodes;
 }
 
-// Roulement : la semaine `i` revient à ordre[i % n], sauf si le chef l'a changée.
-export function calculerAnnee(annee: number, reglage: Reglage, ordre: number[], changees: Map<string, number>): SemaineCalculee[] {
+// Roulement : la semaine `i` revient à ordre[i % n], sauf si le chef l'a changée. `entre` : seules les semaines qui commencent
+// dans cette période (l'été), sans calculer les autres.
+export function calculerAnnee(annee: number, reglage: Reglage, ordre: number[], changees: Map<string, number>, entre?: Periode): SemaineCalculee[] {
 	const f = new Set(feries(annee).map((x) => x.date));
 	// La dernière semaine peut finir en janvier suivant.
 	for (const x of feries(annee + 1)) f.add(x.date);
-	return semainesDe(annee, reglage).map((s, i) => {
+	return semainesDe(annee, reglage).flatMap((s, i) => {
+		if (entre && (s.debut < entre.debut || s.debut >= entre.fin)) return [];
 		const prevue = ordre.length ? ordre[i % ordre.length]! : 0;
 		const choisie = changees.get(s.debut);
 		const equipeId = choisie ?? prevue;
-		return { ...s, equipeId, changee: choisie !== undefined && choisie !== prevue, periodes: periodesDeLaSemaine(s.debut, reglage, f) };
+		return [{ ...s, equipeId, changee: choisie !== undefined && choisie !== prevue, periodes: periodesDeLaSemaine(s.debut, reglage, f) }];
 	});
 }
 
