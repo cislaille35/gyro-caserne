@@ -137,4 +137,25 @@ describe('Le calcul reste borné, avec 60 agents, 6 années publiées et 50 dema
 		const accueil = await compter(() => accueilDe(base, acteurs.chef, null, m.slice(0, 10), m, reglage));
 		expect(accueil.equipes).toBeLessThanOrEqual(jeu.agents * (semaines + 2));
 	});
+
+	it('l’équipe d’une relève, lue sans calculer l’année : la même que celle du planning, semaine changée comprise', async () => {
+		const { base, reglage, acteurs } = jeu;
+		const { changerSemaines, anneesPubliees } = await import('../src/planning/annee.ts');
+		const { equipeAstreinte, releveDe } = await import('../src/prises.ts');
+		const { anneePlanning, semaineChangee } = await import('../src/schema.ts');
+		const semaines = (await base.select().from(anneePlanning)).find((a) => a.annee === 2027)!;
+		const ordre = JSON.parse(semaines.ordre) as number[];
+		await changerSemaines(base, acteurs.chef, 2027, { '2027-03-05': ordre.find((id) => id !== ordre[9 % ordre.length])! }, '2026-11-11T10:00', reglage);
+		const publiees = anneesPubliees(await base.select().from(anneePlanning), await base.select().from(semaineChangee), reglage);
+		vi.mocked(calendrier.calculerAnnee).mockClear();
+		let changee = 0;
+		for (const s of [...publiees.get(2026)!, ...publiees.get(2027)!]) {
+			const m = `${s.debut}T${reglage.debut.heure}`;
+			expect(releveDe(m, reglage)).toBe(m);
+			expect(await equipeAstreinte(base, m, reglage), m).toBe(s.equipeId);
+			if (s.changee) changee++;
+		}
+		expect(changee).toBeGreaterThan(0);
+		expect(vi.mocked(calendrier.calculerAnnee)).not.toHaveBeenCalled();
+	});
 });
