@@ -229,6 +229,8 @@ export const publication = sqliteTable(
 		modifieeLe: text('modifiee_le'),
 		// Événement : début (date et heure), lieu, convoqués (JSON : « tous » ou liste d'identifiants d'équipes).
 		debut: text('debut'),
+		// Fin (date et heure) d'un événement qui en a une (une manœuvre) ; sinon, il dure 3 h.
+		fin: text('fin'),
 		lieu: text('lieu'),
 		convoques: text('convoques'),
 		// Sondage : question et réponses (JSON, liste de textes).
@@ -544,6 +546,8 @@ export const manoeuvre = sqliteTable(
 	{
 		id: integer('id').primaryKey({ autoIncrement: true }),
 		debut: text('debut').notNull(),
+		// Même jour que le début ; vide pour une manœuvre saisie avant l'heure de fin : elle dure alors 3 h.
+		fin: text('fin'),
 		theme: text('theme').notNull(),
 		lieu: text('lieu').notNull(),
 		convoques: text('convoques').notNull(),
