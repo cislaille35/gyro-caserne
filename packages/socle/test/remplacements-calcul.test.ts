@@ -33,7 +33,7 @@ describe('Échanger : le calcul reste borné', () => {
 		const qui = { type: 'super', email: 'a@b.fr' } as const;
 		await reglerRoulement(base, qui, 2026, ids, maintenant);
 		await publierAnnee(base, qui, 2026, maintenant);
-		const semaines = (await lireContexte(base, maintenant, reglage)).semaines.length;
+		const ctx = await lireContexte(base, maintenant, reglage);
 
 		const nuitLundi9 = { debut: '2026-11-09T18:00', fin: '2026-11-10T06:00' };
 		const alice = { type: 'personne', id: gens[0]! } as const;
@@ -41,7 +41,7 @@ describe('Échanger : le calcul reste borné', () => {
 		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: gens[2]! });
 		expect(lu.echangeables.length).toBeGreaterThanOrEqual(3);
 		expect(lu.semainesAvec.length).toBeGreaterThan(0);
-		// Au plus une année par agent du centre.
-		expect(vi.mocked(plages.heuresDe).mock.calls.length).toBeLessThanOrEqual(semaines * gens.length);
+		// Les semaines publiées calculées au plus une fois par agent.
+		expect(vi.mocked(plages.heuresDe).mock.calls.length).toBeLessThanOrEqual(ctx.semaines.length * ctx.agents.length);
 	});
 });

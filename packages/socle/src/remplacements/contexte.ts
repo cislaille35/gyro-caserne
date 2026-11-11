@@ -43,7 +43,6 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 		base.select({ personneId: vacancesAgent.personneId, debut: vacancesAgent.debut, fin: vacancesAgent.fin }).from(vacancesAgent).where(gte(vacancesAgent.fin, ajouterJours(aujourdhui, -8)))
 	]);
 	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
-	// `astreintes` : les semaines d'astreinte déjà calculées, par personne, le temps de la requête (voir astreintesDe).
 	return { maintenant: maintenant.slice(0, 16), reglage, semaines, affectations, demandes, agents, aptitudes, chefs, equipes, plages: plages.map(lirePlage), vacances, astreintes: new Map<number, SemaineCalculee[]>() };
 }
 
