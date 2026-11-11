@@ -72,6 +72,12 @@ describe('copie hebdomadaire', () => {
 		expect(texte.match(/secrets\.BREVO_CLE_PREPROD \}\}/g)).toHaveLength(1);
 	});
 
+	// Un export d'un seul tenant ne se restaure pas (une table remplie avant celle qu'elle cite) : les tables, puis les données
+	it('exporte les tables puis les données, dans cet ordre', () => {
+		expect(texte).toContain('for partie in no-data no-schema; do');
+		expect(texte).toContain('cat "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"');
+	});
+
 	it('n’affiche jamais la sortie de wrangler', () => {
 		const exports = texte.split('\n').filter((ligne) => ligne.includes('wrangler d1 export'));
 		expect(exports).toHaveLength(1);

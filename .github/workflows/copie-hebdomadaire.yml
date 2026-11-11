@@ -108,7 +108,9 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
-      # Wrangler reste muet : seules ses lignes d'erreur sont montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
+      # Deux exports : toutes les tables d'abord, puis les données. Un export d'un seul tenant ne se restaure pas : il remplit une table
+      # avant que la table qu'elle cite n'existe (« no such table », vu à l'essai). Wrangler reste muet : seules ses lignes d'erreur sont
+      # montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
       - name: Export
         if: steps.centre.outputs.centre != ''
         working-directory: apps/web
@@ -120,12 +122,16 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          if ! pnpm exec wrangler d1 export BASE --remote --config "../../centres/$CENTRE/wrangler.jsonc" --output "$DOSSIER/copie.sql" > "$DOSSIER/wrangler.log" 2>&1; then
-            echo "::error::L'export de la base a échoué, rien n'est envoyé. Erreur de Wrangler :"
-            grep -E 'ERROR|✘' "$DOSSIER/wrangler.log" | head -n 5 | cut -c1-300 || true
-            exit 1
-          fi
-          if ! grep -q '^CREATE TABLE' "$DOSSIER/copie.sql" || ! grep -q 'd1_migrations' "$DOSSIER/copie.sql"; then
+          for partie in no-data no-schema; do
+            if ! pnpm exec wrangler d1 export BASE --remote --config "../../centres/$CENTRE/wrangler.jsonc" "--$partie" --output "$DOSSIER/$partie.sql" > "$DOSSIER/wrangler.log" 2>&1; then
+              echo "::error::L'export de la base a échoué, rien n'est envoyé. Erreur de Wrangler :"
+              grep -E 'ERROR|✘' "$DOSSIER/wrangler.log" | head -n 5 | cut -c1-300 || true
+              exit 1
+            fi
+          done
+          cat "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"
+          rm -f "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql"
+          if ! grep -q '^CREATE TABLE' "$DOSSIER/copie.sql" || ! grep -q '^INSERT INTO "d1_migrations"' "$DOSSIER/copie.sql"; then
             echo "::error::Export vide ou incomplet, rien n'est envoyé."
             exit 1
           fi
