@@ -105,15 +105,41 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 	const semaines = lignesAnnee[0] ? semainesCalculees(annee, lignesAnnee[0].ordre, changees, reglage) : [];
 	const lesSemaines = e ? semaines.filter((s) => s.debut >= e.debut && s.debut < e.fin) : [];
 	const plagesEte: PlageEte[] = lesSemaines.flatMap((s) => tranchesDe(s.periodes, reglage).map((t) => ({ ...t, semaine: s.debut, equipeId: s.equipeId })));
-	const affectationsDe = (id: number) => affectations.filter((a) => a.personneId === id);
-	// Inapte temporaire : présent, mais ne tient aucun poste.
-	const postes = (id: number, date: string) => {
-		const a = agents.find((x) => x.id === id);
-		if (!a || a.statut === 'inapte_temporaire') return new Set<Poste>();
-		return postesDe(fpt.niveaux, validesLe(aptitudes.filter((x) => x.personneId === id), date));
+	// Rangés une fois par personne, et l'équipe de base gardée par semaine : chaque plage les relisait pour tous les agents (décision 0021).
+	const parPersonne = <T extends { personneId: number }>(lignes: T[]) => {
+		const m = new Map<number, T[]>();
+		for (const l of lignes) {
+			const siennes = m.get(l.personneId);
+			if (siennes) siennes.push(l);
+			else m.set(l.personneId, [l]);
+		}
+		return (id: number) => m.get(id) ?? [];
 	};
-	const base_ = (p: PlageEte) => agents.filter((a) => equipeLe(affectationsDe(a.id), p.semaine) === p.equipeId).map((a) => a.id);
-	return { e, semaines: lesSemaines, sansRoulement: !lignesAnnee[0] || lignesAnnee[0].ordre === '[]', plagesEte, agents, affectations, vacances, reponses, plages: plages.map(lirePlage), equipes, conclues, fpt, postes, base: base_, affectationsDe };
+	const affectationsDe = parPersonne(affectations);
+	const aptitudesDe = parPersonne(aptitudes);
+	const agentsParId = new Map(agents.map((a) => [a.id, a]));
+	// Inapte temporaire : présent, mais ne tient aucun poste.
+	const postesLus = new Map<string, Set<Poste>>();
+	const postes = (id: number, date: string) => {
+		const cle = `${id} ${date}`;
+		let p = postesLus.get(cle);
+		if (!p) {
+			const a = agentsParId.get(id);
+			p = !a || a.statut === 'inapte_temporaire' ? new Set<Poste>() : postesDe(fpt.niveaux, validesLe(aptitudesDe(id), date));
+			postesLus.set(cle, p);
+		}
+		return p;
+	};
+	const deBase = new Map<string, number[]>();
+	const base_ = (p: PlageEte) => {
+		const cle = `${p.semaine} ${p.equipeId}`;
+		let ids = deBase.get(cle);
+		if (!ids) deBase.set(cle, (ids = agents.filter((a) => equipeLe(affectationsDe(a.id), p.semaine) === p.equipeId).map((a) => a.id)));
+		return ids;
+	};
+	const plagesLues = plages.map(lirePlage);
+	const ecarts = new Map(plagesLues.map((x) => [x.debut, x]));
+	return { e, semaines: lesSemaines, sansRoulement: !lignesAnnee[0] || lignesAnnee[0].ordre === '[]', plagesEte, agents, affectations, vacances, reponses, plages: plagesLues, ecartDe: (p: Periode) => ecarts.get(p.debut), equipes, conclues, fpt, postes, base: base_, affectationsDe };
 }
 
 type Lu = Awaited<ReturnType<typeof lireEte>>;
@@ -126,7 +152,10 @@ const duGroupe = (lu: Lu, equipeId: number) => {
 const enginFpt = (r: ReglageArmement) => r.engins.find((x) => x.nom === ENGIN_CALCULE)!.postes;
 
 // Les présents d'une plage, d'après les écarts enregistrés.
-const presentsDe = (lu: Lu, p: PlageEte, ecart: PlageLue | undefined) => [...lu.base(p).filter((id) => !ecart?.retires.includes(id)), ...(ecart?.ajoutes ?? []).filter((id) => !lu.base(p).includes(id))];
+const presentsDe = (lu: Lu, p: PlageEte, ecart: PlageLue | undefined) => {
+	const deBase = lu.base(p);
+	return [...deBase.filter((id) => !ecart?.retires.includes(id)), ...(ecart?.ajoutes ?? []).filter((id) => !deBase.includes(id))];
+};
 
 export type VuePlage = Periode & { presents: { id: number; prenom: string; nom: string; renfort: boolean }[]; arme: boolean; manque: Poste[] };
 
@@ -134,9 +163,10 @@ const nomDe = (lu: Lu, id: number) => lu.agents.find((a) => a.id === id) ?? { id
 
 // Une plage du tableau : ses présents (renforts après), FPT armé ou ce qui manque.
 function vueDe(lu: Lu, fpt: Postes, p: PlageEte): VuePlage & { semaine: string; equipeId: number } {
-	const ids = presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut));
+	const ids = presentsDe(lu, p, lu.ecartDe(p));
 	const r = armement(fpt, ids.map((id) => ({ id, postes: lu.postes(id, p.debut.slice(0, 10)) })));
-	const presents = ids.map((id) => ({ ...pick(nomDe(lu, id)), renfort: !lu.base(p).includes(id) })).sort((a, b) => Number(a.renfort) - Number(b.renfort) || a.nom.localeCompare(b.nom, 'fr'));
+	const deBase = lu.base(p);
+	const presents = ids.map((id) => ({ ...pick(nomDe(lu, id)), renfort: !deBase.includes(id) })).sort((a, b) => Number(a.renfort) - Number(b.renfort) || a.nom.localeCompare(b.nom, 'fr'));
 	return { debut: p.debut, fin: p.fin, semaine: p.semaine, equipeId: p.equipeId, presents, arme: r.arme, manque: r.manque };
 }
 
@@ -217,7 +247,7 @@ export async function plagesARevoir(base: Base, annee: number, aujourdhui: strin
 	const lu = await lireEte(base, annee, aujourdhui, reglage);
 	const fpt = enginFpt(lu.fpt);
 	const date = (p: PlageEte) => p.debut.slice(0, 10);
-	return lu.plagesEte.filter((p) => !armement(fpt, presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut)).map((id) => ({ id, postes: lu.postes(id, date(p)) }))).arme).length;
+	return lu.plagesEte.filter((p) => !armement(fpt, presentsDe(lu, p, lu.ecartDe(p)).map((id) => ({ id, postes: lu.postes(id, date(p)) }))).arme).length;
 }
 
 const pick = (a: { id: number; prenom: string; nom: string }) => ({ id: a.id, prenom: a.prenom, nom: a.nom });
@@ -301,7 +331,7 @@ export const ENTETES_ETE = ['N°', 'Agent', 'Groupe'];
 export async function feuilleEte(base: Base, annee: number, aujourdhui: string, reglage: Reglage) {
 	const lu = await lireEte(base, annee, aujourdhui, reglage);
 	if (lu.plages.length === 0) return null;
-	const presences = lu.plagesEte.map((p) => new Set(presentsDe(lu, p, lu.plages.find((x) => x.debut === p.debut))));
+	const presences = lu.plagesEte.map((p) => new Set(presentsDe(lu, p, lu.ecartDe(p))));
 	const agents = [...lu.agents].sort((a, b) => a.nom.localeCompare(b.nom, 'fr') || a.prenom.localeCompare(b.prenom, 'fr'));
 	const groupes = nomsDeGroupes(lu.equipes);
 	const equipeDe = (id: number) => groupes.get(equipeLe(lu.affectationsDe(id), lu.plagesEte[0]!.semaine) ?? 0) ?? '';

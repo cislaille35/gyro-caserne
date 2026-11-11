@@ -42,11 +42,23 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 		requetePlagesPubliees(base, ajouterJours(aujourdhui, -8), '9999-12-31'),
 		base.select({ personneId: vacancesAgent.personneId, debut: vacancesAgent.debut, fin: vacancesAgent.fin }).from(vacancesAgent).where(gte(vacancesAgent.fin, ajouterJours(aujourdhui, -8)))
 	]);
-	const semaines = [...anneesPubliees(annees, changees, reglage).entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s);
+	// Les semaines publiées utiles, calculées seulement si on s'en sert (l'échange de manœuvre ou la liste des demandes, non) :
+	// celles qui commencent dans la fenêtre des remplacements, de deux semaines avant aujourd'hui à la fin des douze semaines proposées.
+	// Une semaine finit au plus 8 jours après sa relève, et une demande ne porte que sur des tranches de cette fenêtre (décision 0021).
+	const du = ajouterJours(aujourdhui, -15);
+	const au = ajouterJours(aujourdhui, SEMAINES_PROPOSEES * 7 + 7);
+	let semaines: SemaineCalculee[] | null = null;
+	const utiles = annees.filter((a) => a.annee >= Number(du.slice(0, 4)) && a.annee <= Number(au.slice(0, 4)));
 	return {
 		maintenant: maintenant.slice(0, 16),
 		reglage,
-		semaines,
+		get semaines(): SemaineCalculee[] {
+			semaines ??= [...anneesPubliees(utiles, changees, reglage).entries()]
+				.sort(([a], [b]) => a - b)
+				.flatMap(([, s]) => s)
+				.filter((s) => s.debut >= du && s.debut <= au);
+			return semaines;
+		},
 		affectations,
 		demandes,
 		engages: engagesDe(demandes),

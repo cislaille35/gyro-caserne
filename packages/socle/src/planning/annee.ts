@@ -393,10 +393,18 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
-	// Les années lues seulement : hors de cette fenêtre, les semaines changées ne sont pas lues.
-	const publiees = anneesPubliees(annees.filter((a) => a.annee >= Number(debutLecture.slice(0, 4)) && a.annee <= Number(finLecture.slice(0, 4))), changees, reglage);
-	const semainesAnnee = publiees.get(annee);
-	if (!semainesAnnee) return { publiee: false, annee, peutPreparer: gerer };
+	// Les années lues seulement : hors de cette fenêtre, les semaines changées ne sont pas lues. Chaque année n'est calculée
+	// qu'à la demande, une fois (décision 0021).
+	const publiees = annees.filter((a) => a.publieeLe !== null && a.annee >= Number(debutLecture.slice(0, 4)) && a.annee <= Number(finLecture.slice(0, 4))).sort((a, b) => a.annee - b.annee);
+	const calculees = new Map<number, SemaineCalculee[]>();
+	const semainesDeLAnnee = (a: (typeof publiees)[number]) => {
+		let s = calculees.get(a.annee);
+		if (!s) calculees.set(a.annee, (s = semainesCalculees(a.annee, a.ordre, changees, reglage)));
+		return s;
+	};
+	const ligneAnnee = publiees.find((a) => a.annee === annee);
+	if (!ligneAnnee) return { publiee: false, annee, peutPreparer: gerer };
+	const semainesAnnee = semainesDeLAnnee(ligneAnnee);
 
 	// Mes heures de la semaine : celles de mon équipe, ou mes plages de l'été publié (renfort compris, vacances retirées).
 	const plages = lignesPlages.map(lirePlage);
@@ -407,17 +415,29 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		const groupe = groupeDeLaSemaine(etes, groupes, s);
 		return h.length ? { ...s, periodes: h, mienne: true, groupe } : { ...s, mienne: false, groupe };
 	};
-	const toutes = [...publiees.entries()].sort(([a], [b]) => a - b).flatMap(([, s]) => s).map(avecMesHeures);
-	const prochaineSemaine = toutes.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
+	// Ma prochaine semaine et ma prochaine fête ne peuvent venir que d'une équipe (encore la mienne depuis le début de la semaine
+	// en cours, ou plus tard) ou d'un renfort d'été à venir ; elles ne tombent pas avant la semaine en cours.
+	const depuis = ajouterJours(aujourdhui, -15);
+	const peutAvoir = affectations.some((a) => a.fin === null || a.fin >= depuis) || plages.some((p) => p.fin > maintenant && p.ajoutes.includes(moi));
+	const aVenir = peutAvoir ? publiees.filter((a) => a.annee >= Number(depuis.slice(0, 4))) : [];
+	let prochaineSemaine: ReturnType<typeof avecMesHeures> | undefined;
+	for (const a of aVenir) {
+		prochaineSemaine = semainesDeLAnnee(a)
+			.filter((s) => s.periodes.at(-1)!.fin > maintenant)
+			.map(avecMesHeures)
+			.find((s) => s.mienne && s.periodes.at(-1)!.fin > maintenant);
+		if (prochaineSemaine) break;
+	}
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
-	const prochaineManoeuvre = vues.find((m) => momentEvenement(m.debut, maintenant) !== 'passe' && convoqueA(m) && publiees.has(Number(m.debut.slice(0, 4))));
+	const prochaineManoeuvre = vues.find((m) => momentEvenement(m.debut, maintenant) !== 'passe' && convoqueA(m) && publiees.some((a) => a.annee === Number(m.debut.slice(0, 4))));
 	const [reponse] = prochaineManoeuvre?.publicationId
 		? await base.select({ reponse: reponseEvenement.reponse }).from(reponseEvenement).where(and(eq(reponseEvenement.publicationId, prochaineManoeuvre.publicationId), eq(reponseEvenement.personneId, moi)))
 		: [];
 	let fete: { fete: Fete; date: string } | null = null;
-	for (const [a, s] of [...publiees.entries()].sort(([x], [y]) => x - y)) {
-		const f = fetes(a, s);
+	for (const ligne of aVenir.filter((x) => x.annee >= Number(aujourdhui.slice(0, 4)))) {
+		const a = ligne.annee;
+		const f = fetes(a, semainesDeLAnnee(ligne));
 		const candidates = [
 			{ fete: 'noel' as const, date: `${a}-12-25`, equipeId: f.noel },
 			{ fete: 'nouvel_an' as const, date: `${a}-12-31`, equipeId: f.nouvelAn }

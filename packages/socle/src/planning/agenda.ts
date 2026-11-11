@@ -61,11 +61,30 @@ const horlogeParis = (ms: number) => {
 	return Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00Z`);
 };
 
+// Le décalage de Paris sur l'UTC (en ms), le même du début à la fin du jour ; null un jour de changement d'heure.
+// Lu deux fois par jour au plus, puis gardé : chaque date de l'agenda en lisait l'horloge trois fois (décision 0021).
+const decalages = new Map<string, number | null>();
+function decalageDuJour(jour: string): number | null {
+	let d = decalages.get(jour);
+	if (d === undefined) {
+		// De 3 h avant le début du jour, en UTC, à la fin du jour suivant : tout ce que lit le calcul ci-dessous pour ce jour.
+		const avant = Date.parse(`${jour}T00:00:00Z`) - 3 * 3_600_000;
+		const apres = avant + 51 * 3_600_000;
+		const a = horlogeParis(avant) - avant;
+		d = a === horlogeParis(apres) - apres ? a : null;
+		decalages.set(jour, d);
+	}
+	return d;
+}
+
 // « AAAA-MM-JJTHH:MM » de Paris → « AAAAMMJJTHHMMSSZ ».
 export function versUtc(local: string): string {
 	const voulu = Date.parse(`${local.slice(0, 16)}:00Z`);
+	const decalage = decalageDuJour(local.slice(0, 10));
 	let t = voulu - 3_600_000;
-	for (let i = 0; i < 3; i++) t += voulu - horlogeParis(t);
+	if (decalage !== null) t = voulu - decalage;
+	// Jour de changement d'heure : l'heure cherchée pas à pas, comme avant.
+	else for (let i = 0; i < 3; i++) t += voulu - horlogeParis(t);
 	return new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
@@ -78,13 +97,18 @@ const echapper = (texte: string) =>
 		.replace(/\r\n?|\n/g, '\\n')
 		.replace(/[\u0000-\u001f\u007f]/g, '');
 
-// Une ligne de 75 octets au plus ; la suite commence par une espace.
-function plier(ligne: string): string {
+// Une ligne de 75 octets au plus ; la suite commence par une espace. Une ligne courte en ASCII passe telle quelle.
+const octetsDe = (c: string) => {
+	const n = c.codePointAt(0)!;
+	return n < 0x80 ? 1 : n < 0x800 ? 2 : n < 0x10000 ? 3 : 4;
+};
+export function plier(ligne: string): string {
+	if (ligne.length <= 75 && /^[\x00-\x7f]*$/.test(ligne)) return ligne;
 	const morceaux: string[] = [];
 	let courant = '';
 	let octets = 0;
 	for (const c of ligne) {
-		const n = new TextEncoder().encode(c).length;
+		const n = octetsDe(c);
 		if (octets + n > (morceaux.length ? 74 : 75)) {
 			morceaux.push(courant);
 			courant = '';
