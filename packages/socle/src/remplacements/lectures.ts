@@ -241,9 +241,11 @@ export async function pourDemander(base: Base, acteur: Acteur, maintenant: strin
 	const libres = semaines.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre');
 	const choisies = libres.filter((t) => (choix.periodes ?? []).some((p) => p.debut === t.debut && p.fin === t.fin)).map(({ debut, fin }) => ({ debut, fin }));
 	const libresPour = candidats(ctx, moi, choisies);
-	const echangeables = choix.echange ? libresPour.filter((c) => bandesDe(ctx, c.id, moi).some((s) => s.tranches.some((t) => t.etat === 'libre'))) : [];
+	// Les semaines de chaque collègue, gardées : celles du collègue choisi ne sont pas recalculées.
+	const leurs = new Map(choix.echange ? libresPour.map((c) => [c.id, bandesDe(ctx, c.id, moi)]) : []);
+	const echangeables = libresPour.filter((c) => leurs.get(c.id)?.some((s) => s.tranches.some((t) => t.etat === 'libre')));
 	const avec = echangeables.find((c) => c.id === choix.avec) ?? null;
-	const semainesAvec = avec ? bandesDe(ctx, avec.id, moi) : [];
+	const semainesAvec = avec ? leurs.get(avec.id)! : [];
 	const siennes = semainesAvec.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre' && (choix.periodesAvec ?? []).some((p) => p.debut === t.debut && p.fin === t.fin));
 	const manqueMoi = avec && siennes[0] ? manque(ctx, avec.id, moi, siennes[0].debut.slice(0, 10)) : [];
 	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec, manqueMoi };
