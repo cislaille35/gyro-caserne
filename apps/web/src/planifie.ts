@@ -42,7 +42,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes, à chaque réveil.
 				if (maintenant[15] === '0') taches.push(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
-				// La météo et la vigilance : regardées à chaque réveil, redemandées si elles ont plus d'une heure (météo) ou de 15 minutes (vigilance : donc toutes les 20 minutes).
+				// La météo et la vigilance : regardées à chaque réveil, la météo redemandée si elle a plus d'une heure, la vigilance à chaque réveil (décision 0012).
 				const lieu = { position: centre.position, departement: centre.departement };
 				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
 				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.

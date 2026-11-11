@@ -37,8 +37,10 @@ test.describe('remplacements', () => {
 			await page.getByRole('link', { name: 'Me faire remplacer' }).first().click();
 			await expect(page.getByRole('heading', { level: 1, name: 'Me faire remplacer' })).toBeVisible();
 			await sansViolation(page);
-			// Étape 1 : la semaine de la carte est ouverte ; toucher un jour libre.
+			// Étape 1 : la semaine de la carte est ouverte, mais elle peut n'avoir plus rien de libre selon le jour (férié commencé,
+			// nuit déjà demandée par le jeu de départ) : on ouvre la première semaine qui a un jour libre, puis on touche ce jour.
 			await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
+			await page.getByRole('list', { name: 'Mes semaines d’astreinte' }).getByRole('link', { name: /\d+ jours? libres?/ }).first().click();
 			await page.locator('input[name="p"]:not([disabled])').first().check();
 			await page.getByRole('button', { name: 'Continuer' }).click();
 			// Étape 2 : « Tout le monde » est choisi d'office.

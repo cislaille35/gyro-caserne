@@ -232,7 +232,7 @@ Spec : [2026-11-01-planning-ete-design.md](../superpowers/specs/2026-11-01-plann
 Spec : [2026-11-02-meteo-design.md](../superpowers/specs/2026-11-02-meteo-design.md). Migration additive `0016`. Décision : [0016](../decisions/0016-meteo-et-vigilance.md).
 
 - Table `releve` : `cle` (`meteo` ou `vigilance`), `donnees` (JSON), `maj_le` (heure de Paris).
-- `meteo.ts` : `classer` (9 ambiances), `texteMeteo`, `lireOpenMeteo` et `lireVigilance` (lectures tolérantes : null au moindre doute), `vueMeteo` (ce que montre l'Accueil), `relevesDe` (une requête ; météo gardée 6 h, vigilance 2 h : au-delà, `'indisponible'` ; `null` = aucun relevé = rien d'affiché), `mettreAJourReleves` (appelé toutes les dix minutes par `planifie.ts` ; météo de plus d'une heure et vigilance de plus de 15 minutes redemandées ; une première lecture de vigilance ratée laisse une trace `{jours: null}` pour que l'Accueil dise « indisponible », `fetch` passé en paramètre pour les tests ; passage au rouge : `mettreEnFile`, lieu `meteo`, à tous les agents ayant accès).
+- `meteo.ts` : `classer` (9 ambiances), `texteMeteo`, `lireOpenMeteo` et `lireVigilance` (lectures tolérantes : null au moindre doute), `vueMeteo` (ce que montre l'Accueil), `relevesDe` (une requête ; météo gardée 6 h, vigilance 2 h : au-delà, `'indisponible'` ; `null` = aucun relevé = rien d'affiché), `mettreAJourReleves` (appelé toutes les dix minutes par `planifie.ts` ; météo de plus d'une heure et vigilance redemandée à chaque réveil (10 minutes ou plus) ; une première lecture de vigilance ratée laisse une trace `{jours: null}` pour que l'Accueil dise « indisponible », `fetch` passé en paramètre pour les tests ; passage au rouge : `mettreEnFile`, lieu `meteo`, à tous les agents ayant accès).
 
 ## Engins et fiches
 

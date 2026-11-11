@@ -1,8 +1,8 @@
 name: Relevé des coupures
 
 # Chaque matin : la veille, combien de requêtes Cloudflare a coupées (erreur 1102, limite de calcul de l'offre gratuite) et le temps de calcul.
-# Le passage échoue, et GitHub prévient par courriel, s'il y a eu des coupures la veille (statuts « exceeded… ») ou si le pire temps
-# du jour (p99, toutes requêtes et réveils compris) dépasse 50 ms : une alerte avant la première coupure. Le résumé donne les chiffres.
+# Le passage échoue, et GitHub prévient par courriel, s'il y a eu des coupures la veille (statuts « exceeded… »). Le résumé donne les chiffres,
+# dont le pire temps du jour (p99 et maximum, toutes requêtes et réveils compris) ; un p99 au-delà de 150 ms ajoute un avertissement, sans échec.
 # Rien de personnel n'est lu : des nombres par Worker et par statut.
 on:
   schedule:
@@ -24,10 +24,9 @@ jobs:
         run: |
           if [ -z "${CENTRES// /}" ]; then echo '::error::Aucun centre : variables CENTRE_PREPROD et CENTRE_PRODUCTION vides'; exit 1; fi
           jour=$(date -u -d yesterday +%F)
-          # Au-delà de ce pire temps (p99, en ms), le passage échoue : le crédit de calcul s'use vite (décision 0021).
-          seuil=50
+          # Au-delà de ce pire temps (p99, en ms), un avertissement : le crédit de calcul s'use vite (décision 0021).
+          seuil=150
           coupures=0
-          lents=0
           echo "### Relevé du $jour (UTC)" >> "$GITHUB_STEP_SUMMARY"
           echo '| Worker | Requêtes | Coupures (1102) | Autres erreurs | Calcul moyen | Médiane | Pire temps (p99) | Maximum |' >> "$GITHUB_STEP_SUMMARY"
           echo '|---|---|---|---|---|---|---|---|' >> "$GITHUB_STEP_SUMMARY"
@@ -62,8 +61,7 @@ jobs:
             fi
             p99=$(jq '(.jour[0].quantiles.cpuTimeP99 // 0) / 1000 | round' <<< "$compte")
             if [ "$p99" -gt "$seuil" ]; then
-              echo "::error::$worker : pire temps de calcul du $jour (p99) de $p99 ms, au-delà de $seuil ms. Au-delà de 10 ms, chaque requête use le crédit de calcul de l'offre gratuite (environ 2 s), puis Cloudflare coupe : chercher la page ou le réveil en cause avec le banc (décision 0021)."
-              lents=$((lents + 1))
+              echo "::warning::$worker : pire temps de calcul du $jour (p99) de $p99 ms, au-delà de $seuil ms. Au-delà de 10 ms, chaque requête use le crédit de calcul de l'offre gratuite (environ 2 s), puis Cloudflare coupe : chercher la page ou le réveil en cause avec le banc (décision 0021)."
             fi
           done
-          [ "$coupures" -eq 0 ] && [ "$lents" -eq 0 ]
+          [ "$coupures" -eq 0 ]

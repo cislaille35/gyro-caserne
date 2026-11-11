@@ -21,8 +21,8 @@ export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string; nuit: boole
 export const URL_VIGILANCE = 'https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours';
 const UNE_HEURE = 60;
 const SIX_HEURES = 6 * 60;
-// La vigilance a plus de 15 minutes : relue au réveil suivant, soit toutes les 20 minutes (72 appels par jour) et n'est plus montrée au-delà de 2 heures.
-const QUINZE_MINUTES = 15;
+// La vigilance est relue à chaque réveil, toutes les 10 minutes (144 appels par jour), et n'est plus montrée au-delà de 2 heures.
+const DIX_MINUTES = 10;
 const DEUX_HEURES = 2 * 60;
 
 // Codes WMO d'Open-Meteo. Priorité : orage, neige, vent fort, pluie, brouillard, chaleur, gel, nuages.
@@ -169,7 +169,7 @@ const ecrire = (base: Base, cle: string, donnees: unknown, maintenant: string) =
 	return base.insert(releve).values(valeurs).onConflictDoUpdate({ target: releve.cle, set: valeurs });
 };
 
-// Appelée par la tâche planifiée : la météo de plus d'une heure et la vigilance de plus de 15 minutes sont redemandées. En cas d'échec, l'ancien relevé est gardé.
+// Appelée par la tâche planifiée : la météo de plus d'une heure et la vigilance de 10 minutes ou plus (celle du réveil précédent) sont redemandées. En cas d'échec, l'ancien relevé est gardé.
 // Une première lecture ratée (clé refusée…) laisse une trace « sans jours » : l'Accueil dit alors « indisponible » au lieu de se taire.
 // Vigilance : seulement avec la clé et le département. Au passage au rouge, tous les agents sont prévenus au téléphone, une fois par épisode.
 export async function mettreAJourReleves(
@@ -188,7 +188,7 @@ export async function mettreAJourReleves(
 		const meteo = lireOpenMeteo(await demander(recuperer, urlOpenMeteo(lieu.position)));
 		if (meteo) ecritures.push(ecrire(base, 'meteo', meteo, maintenant));
 	}
-	if (cleVigilance && lieu.departement && aRefaire('vigilance', QUINZE_MINUTES)) {
+	if (cleVigilance && lieu.departement && aRefaire('vigilance', DIX_MINUTES)) {
 		const jours = lireVigilance(await demander(recuperer, URL_VIGILANCE, { apikey: cleVigilance }), lieu.departement, aujourdhui);
 		if (!jours) {
 			if (!lignes.some((l) => l.cle === 'vigilance')) ecritures.push(ecrire(base, 'vigilance', { jours: null }, maintenant));
