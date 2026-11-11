@@ -25,6 +25,7 @@ flowchart LR
 - Tables et modèle des droits : [socle.md](socle.md).
 - Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
 - Passer la main au super administrateur suivant : [passation.md](passation.md).
+- Sauvegarde (retour en arrière de D1, copie hebdomadaire chiffrée par e-mail) : [sauvegarde.md](sauvegarde.md).
 - Interface (jetons, coquille, composants, Gyro, tests d'accessibilité) : [interface.md](interface.md).
 
 ## Dépôt
@@ -46,8 +47,9 @@ GitHub Actions, actions figées par leur empreinte de commit, droits en lecture 
   - sur un tag `vX.Y.Z` : même chose pour la **production** (centre `CENTRE_PRODUCTION`), seulement si le tag pointe sur `main`. Si la base ne se met pas à jour, l'appli n'est pas déployée.
   - après chaque déploiement, préprod et production, un **contrôle** (`apps/web/scripts/controle-deploiement.ts`) : le passage échoue, avec les noms manquants, si `BETTER_AUTH_SECRET`, `SUPER_ADMINS`, `BREVO_CLE` (lus par `wrangler secret list`, noms seulement) ou l'adresse de l'appli (config ou secret) manque ; l'adresse appelée est celle de la config, que chaque déploiement pose sur le Worker,, ou si `GET /connexion` ne répond pas 200 (six essais en une minute). Aucune valeur de secret ni adresse e-mail dans le journal, aucun courriel envoyé.
 - `releve-coupures.yml`, chaque matin (sans installer l'appli, moins d'une minute) : demande à Cloudflare (GraphQL, `workersInvocationsAdaptive`) le nombre de requêtes coupées la veille (statut `exceededResources`) et le temps de calcul (moyenne ; médiane, pire temps p99 et maximum de toutes les requêtes du jour, réveils compris), pour `gyro-caserne-<centre>` en préprod et en production (si `CENTRE_PRODUCTION` existe). **Une coupure fait échouer le passage** (un pire temps p99 au-delà de 150 ms ajoute seulement un avertissement, qui prévient avant la première coupure) : GitHub prévient par courriel celui qui a modifié le fichier en dernier ; les chiffres sont dans le résumé du passage. Aucun secret affiché. Jeton : le `CLOUDFLARE_API_TOKEN` existant suffit. GitHub suspend les tâches planifiées après 60 jours sans activité sur le dépôt.
+- `copie-hebdomadaire.yml`, chaque dimanche (et à la main, production ou préprod) : la base principale de la production est exportée, compressée, chiffrée avec age pour le porteur, puis envoyée par Brevo à la boîte du centre. Elle n'est jamais gardée sur GitHub : `permissions: {}`, ni artefact ni cache, fichiers effacés même après un échec, aucune donnée dans le journal. Tant que `CENTRE_PRODUCTION` est vide, rien n'est fait. Au-delà de 4 000 000 octets chiffrés, échec sans envoi. Voir [sauvegarde.md](sauvegarde.md).
 - `comptes-de-test.yml`, lancé à la main depuis `main` (préprod du centre `exemple` seulement) : un compte par profil et des données fictives, voir le [README](../../README.md).
-- Réglages du dépôt GitHub : variables `CENTRE_PREPROD` et `CENTRE_PRODUCTION` (sans elles, rien n'est déployé), secrets `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` ; facultatifs, posés sur le Worker au déploiement : `VAPID_PUBLIQUE_PREPROD`, `VAPID_PRIVEE_PREPROD` (et `…_PRODUCTION`), `VIGILANCE_CLE`. Pour Laillé : `exemple` et `laille`.
+- Réglages du dépôt GitHub : variables `CENTRE_PREPROD` et `CENTRE_PRODUCTION` (sans elles, rien n'est déployé), secrets `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` ; facultatifs, posés sur le Worker au déploiement : `VAPID_PUBLIQUE_PREPROD`, `VAPID_PRIVEE_PREPROD` (et `…_PRODUCTION`), `VIGILANCE_CLE`. Pour la copie hebdomadaire : variables `COPIE_CLE_PUBLIQUE_PRODUCTION` et `COPIE_DESTINATAIRE`, secret `BREVO_CLE_PRODUCTION`, facultatif `COURRIEL_EXPEDITEUR_PRODUCTION` ([sauvegarde.md](sauvegarde.md)). Pour Laillé : `exemple` et `laille`.
 - **Journal des mises en production** : chaque version déployée a sa fiche dans les « Releases » du dépôt (date, PR incluses, résumé en langage clair). Seul le job de production peut écrire ces fiches.
 - Dépôt public. `main` est protégée dans GitHub : PR obligatoire, administrateurs compris, ni poussée forcée ni suppression (aucune vérification exigée avant fusion). Pas d'environnements GitHub ni de règles sur les tags : la garde de la production est le tag sur `main`, vérifié avant de déployer.
 
@@ -76,6 +78,7 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | write-excel-file | 4.1.1 | Écrit le fichier de l'effectif (`.xlsx`, listes déroulantes), dans le navigateur |
 | read-excel-file | 9.3.12 | Relit le fichier de l'effectif, dans le navigateur |
+| age | 1.3.2 | Chiffre la copie hebdomadaire de la base pour la clé publique du porteur. Binaire officiel téléchargé par le workflow à une adresse fixe, empreinte SHA-256 vérifiée (la même que celle publiée par GitHub pour la version). Choisi plutôt que gpg pour sa simplicité côté porteur ([0029](../decisions/0029-copie-hebdomadaire.md)) |
 | Vitest | 5 | Tests |
 | Playwright (`@playwright/test`) | 1.64.1 | Tests dans un vrai navigateur (Chromium), aux tailles téléphone et ordinateur |
 | axe pour Playwright (`@axe-core/playwright`) | 4.14.0 | Contrôle automatique des règles WCAG A et AA, base des tests RGAA |
