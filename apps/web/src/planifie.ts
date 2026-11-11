@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAnciens, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -19,6 +19,8 @@ type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: st
 // Les notifications du fil sont gardées 30 jours.
 const CONSERVATION_NOTIFICATIONS_JOURS = 30;
 const CONSERVATION_HABILLEMENT_MOIS = 24;
+// Les données d'un agent parti sont effacées 12 mois après son dernier départ (décision 0029).
+const CONSERVATION_PARTIS_MOIS = 12;
 // Le ménage, chaque nuit ; le réveil, toutes les dix minutes (chaque réveil démarre à froid : décision 0012). Voir wrangler.jsonc.
 export const CRON_NUIT = '30 3 * * *';
 export const CRON_REVEIL = '*/10 * * * *';
@@ -66,6 +68,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerVieillesNotifications(base, notifications),
 					effacerVieillesReservations(base, reservations),
 					effacerVieillesDemandes(base, habillement),
+					effacerAgentsPartis(base, limiteDeConservation(quand, CONSERVATION_PARTIS_MOIS), aujourdhuiParis(quand)),
 					// Les octets de PHOTOS que plus rien ne référence (un effacement raté) : une tranche par nuit.
 					effacerPhotosOrphelines(base, photos, maintenantParis(quand))
 				])

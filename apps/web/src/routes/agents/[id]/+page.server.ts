@@ -9,7 +9,9 @@ import {
 	attributionsDe,
 	ceQueJePeuxAttribuer,
 	changerStatut,
+	dateDEffacement,
 	DonneeInvalide,
+	effacerAgent,
 	equipe,
 	estChefDeCentre,
 	ficheAgent,
@@ -41,6 +43,7 @@ async function lireFiche(locals: App.Locals, brut: string) {
 
 // Mêmes règles que le socle : la raison s'affiche à la place des formulaires.
 async function raisonDeProtection(locals: App.Locals, acteur: Acteur, fiche: FicheAgent, aujourdhui: string): Promise<string | null> {
+	if (fiche.effaceLe) return `Données effacées le ${fiche.effaceLe.split('-').reverse().join('/')}. Cette fiche ne se modifie plus.`;
 	if (fiche.protection === null || acteur.type === 'super') return null;
 	if (fiche.protection === 'chef') return 'Seul un super administrateur modifie la fiche du chef de centre.';
 	if (await estChefDeCentre(locals.base, acteur.id, aujourdhui)) return null;
@@ -73,6 +76,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		fiche,
 		raison: await raisonDeProtection(locals, acteur, fiche, aujourdhui),
 		ecrire: await peutEcrire(locals, acteur, fiche.id, aujourdhui),
+		// Un agent parti : le jour où la nuit effacera ses données (inconnu s'il est parti avant que l'appli note la date).
+		effacementPrevu: fiche.statut === 'parti' && !fiche.effaceLe && fiche.partiLe ? dateDEffacement(fiche.partiLe) : null,
 		grades,
 		profils,
 		equipes,
@@ -178,6 +183,18 @@ export const actions: Actions = {
 			return echec(erreur, { valeurs });
 		}
 		return { succes: true, message: 'Statut enregistré', bloc: statut === 'parti' ? 'depart' : 'equipe' };
+	},
+
+	// Sur demande de l'agent parti : définitif, rien sans confirmation explicite.
+	effacer: async ({ locals, params, request }) => {
+		const { acteur, id } = await lireFiche(locals, params.id);
+		if ((await request.formData()).get('confirmation') !== 'oui') return fail<Reponse>(400, { erreurs: { effacement: 'Cochez « Je confirme » pour effacer ses données.' } });
+		try {
+			await effacerAgent(locals.base, acteur, id, maintenantParis(), locals.superAdmins);
+		} catch (erreur) {
+			return echec(erreur, { bloc: 'effacement' }, {});
+		}
+		return { succes: true, message: 'Données effacées', bloc: 'depart' };
 	},
 
 	attribuer: async ({ locals, params, request }) => {

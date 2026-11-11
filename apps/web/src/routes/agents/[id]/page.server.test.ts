@@ -37,7 +37,7 @@ const locaux = (base: { photos: unknown }, acteur: unknown) => ({ base, basePhot
 const lire = (locals: unknown, id: number) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(load as any)({ locals, params: { id: String(id) } });
-const agir = (nom: 'fiche' | 'equipe' | 'statut' | 'attribuer' | 'terminer' | 'finir' | 'aptitude' | 'oterAptitude', locals: unknown, id: number, corps: Record<string, string>) =>
+const agir = (nom: 'fiche' | 'equipe' | 'statut' | 'effacer' | 'attribuer' | 'terminer' | 'finir' | 'aptitude' | 'oterAptitude', locals: unknown, id: number, corps: Record<string, string>) =>
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(actions[nom] as any)({ locals, params: { id: String(id) }, request: new Request('http://x', { method: 'POST', body: new URLSearchParams(corps) }) });
 const lirePersonne = async (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => (await base.select().from(personne).where(eq(personne.id, id)))[0]!;
@@ -223,6 +223,44 @@ describe('/agents/[id] : ?/statut', () => {
 		const refus = await agir('statut', locaux(base, { type: 'personne', id: adjoint }), chef, { statut: 'suspendu' });
 		expect(refus).toMatchObject({ status: 403, data: { message: 'Seul un super administrateur change le statut du chef de centre' } });
 		expect((await lirePersonne(base, chef)).statut).toBe('operationnel');
+	});
+});
+
+describe('/agents/[id] : ?/effacer', () => {
+	const partir = (base: Awaited<ReturnType<typeof baseDeTest>>, id: number) => agir('statut', locaux(base, super_), id, { statut: 'parti', confirmation: 'oui' });
+
+	it('un agent parti : la fiche dit la date de départ et celle de l’effacement automatique, 12 mois après', async () => {
+		const { base, agent } = await preparer();
+		await partir(base, agent);
+		const aujourdhui = aujourdhuiParis();
+		const { fiche, effacementPrevu } = await lire(locaux(base, super_), agent);
+		expect(fiche.partiLe).toBe(aujourdhui);
+		expect(effacementPrevu).toBe(`${Number(aujourdhui.slice(0, 4)) + 1}${aujourdhui.slice(4)}`.replace(/-02-29$/, '-03-01'));
+	});
+
+	it('sans « Je confirme » : refusé, rien d’effacé', async () => {
+		const { base, agent } = await preparer();
+		await partir(base, agent);
+		expect(await agir('effacer', locaux(base, super_), agent, {})).toMatchObject({ status: 400, data: { erreurs: { effacement: 'Cochez « Je confirme » pour effacer ses données.' } } });
+		expect((await lirePersonne(base, agent)).prenom).toBe('Alice');
+	});
+
+	it('confirmé par le chef de centre : « Ancien agent », puis la fiche ne se modifie plus et dit pourquoi', async () => {
+		const { base, chef, agent } = await preparer();
+		await partir(base, agent);
+		const locals = locaux(base, { type: 'personne', id: chef });
+		expect(await agir('effacer', locals, agent, { confirmation: 'oui' })).toEqual({ succes: true, message: 'Données effacées', bloc: 'depart' });
+		expect(await lirePersonne(base, agent)).toMatchObject({ prenom: 'Ancien', nom: 'agent', effaceLe: aujourdhuiParis() });
+		const vue = await lire(locals, agent);
+		expect(vue.raison).toBe(`Données effacées le ${aujourdhuiParis().split('-').reverse().join('/')}. Cette fiche ne se modifie plus.`);
+		expect(vue.ecrire).toBe(false);
+	});
+
+	it('refuse un agent pas encore parti et soi-même, avec le message du socle', async () => {
+		const { base, chef, agent } = await preparer();
+		expect(await agir('effacer', locaux(base, super_), agent, { confirmation: 'oui' })).toMatchObject({ status: 400, data: { message: 'Déclarez d’abord son départ' } });
+		expect(await agir('effacer', locaux(base, { type: 'personne', id: chef }), chef, { confirmation: 'oui' })).toMatchObject({ status: 400, data: { message: 'Vous ne pouvez pas effacer vos propres données' } });
+		expect((await lirePersonne(base, agent)).effaceLe).toBeNull();
 	});
 });
 

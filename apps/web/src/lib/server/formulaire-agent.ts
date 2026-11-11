@@ -91,7 +91,7 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 };
 
 // Ce que reçoit la page après un envoi : message général, erreurs par champ, saisie à réafficher.
-export type Reponse = { cible?: string; role?: number; message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
+export type Reponse = { cible?: string; role?: number; bloc?: string; message?: string; erreurs?: Record<string, string>; valeurs?: Record<string, string> };
 
 // Traduit un refus du socle en réponse du formulaire ; toute autre erreur remonte.
 export function echec(erreur: unknown, contexte: Reponse = {}, champs: Record<string, string> = CHAMP_DE_L_ERREUR) {

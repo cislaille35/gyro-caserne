@@ -173,6 +173,56 @@ describe('page fiche agent', () => {
 		expect(statut).toMatch(/<option[^>]*value=""[^>]*selected[^>]*>À choisir|<option[^>]*selected[^>]*value=""[^>]*>À choisir/);
 	});
 
+	describe('effacer ses données', () => {
+		const parti = { ...data, fiche: { ...fiche, statut: 'parti', partiLe: '2026-10-01', effaceLe: null }, effacementPrevu: '2027-10-01' };
+		const depart = (page: string) => page.slice(page.indexOf('>Départ du centre<'));
+
+		it('dit la date de départ et celle de l’effacement automatique', () => {
+			expect(bloc(html({ data: parti, form: null }), 'Départ du centre')[0]).toContain('Parti le 01/10/2026');
+			expect(depart(html({ data: parti, form: null }))).toContain('Ses données seront effacées le 01/10/2027.');
+		});
+
+		it('sous « Plus », fermé : ce qui sera perdu, « Je confirme », puis le bouton grave', () => {
+			const page = depart(html({ data: parti, form: null }));
+			const plus = page.slice(page.indexOf('<details class="plus"'));
+			expect(plus).toMatch(/^<details class="plus">\s*<summary[^>]*>Plus<\/summary>/);
+			expect(plus).toMatch(/id="effacement-avertissement"[^>]*>[\s\S]*Ancien agent/);
+			expect(plus).toMatch(/name="confirmation"\s+value="oui"/);
+			expect(plus).toMatch(/class="grave[^"]*"[^>]*>(<!--[^>]*-->)*Effacer ses données/);
+			expect(page).toContain('action="?/effacer"');
+		});
+
+		it('sans confirmation : le bloc et « Plus » s’ouvrent, l’erreur est reliée à la case', () => {
+			const page = html({ data: parti, form: { erreurs: { effacement: 'Cochez « Je confirme » pour effacer ses données.' } } });
+			expect(ouvert(page, 'Départ du centre')).toBe(true);
+			expect(depart(page)).toMatch(/<details class="plus" open/);
+			expect(page).toMatch(/aria-describedby="effacement-avertissement effacement-erreur"/);
+		});
+
+		it('un refus du socle ouvre aussi le bloc et « Plus »', () => {
+			const page = html({ data: parti, form: { message: 'Vous ne pouvez pas effacer vos propres données', bloc: 'effacement' } });
+			expect(ouvert(page, 'Départ du centre')).toBe(true);
+			expect(depart(page)).toMatch(/<details class="plus" open/);
+		});
+
+		it('pas proposé à un agent présent ; parti sans date connue, pas de date d’effacement', () => {
+			expect(html({ data, form: null })).not.toContain('Effacer ses données');
+			const sansDate = html({ data: { ...parti, fiche: { ...parti.fiche, partiLe: null }, effacementPrevu: null }, form: null });
+			expect(sansDate).toContain('Effacer ses données');
+			expect(sansDate).not.toContain('seront effacées le');
+		});
+
+		it('effacé : la raison partout, ni formulaire ni courriel', () => {
+			const raison = 'Données effacées le 12/11/2026. Cette fiche ne se modifie plus.';
+			const page = html({ data: { ...parti, fiche: { ...parti.fiche, prenom: 'Ancien', nom: 'agent', email: 'efface-3@efface.invalid', effaceLe: '2026-11-12' }, effacementPrevu: null, raison }, form: null });
+			expect(page).toContain('Ancien agent');
+			expect(page).toContain(raison);
+			expect(page).not.toContain('<form');
+			expect(page).not.toContain('mailto:');
+			expect(page).not.toContain('efface-3@efface.invalid');
+		});
+	});
+
 	it('un agent parti : une erreur de départ s’affiche quand même dans son bloc', () => {
 		const page = html({ data: { ...data, fiche: { ...fiche, statut: 'parti' } }, form: { erreurs: { confirmation: 'Cochez « Je confirme » pour déclarer le départ.' }, valeurs: { statut: 'parti' } } });
 		expect(ouvert(page, 'Départ du centre')).toBe(true);
