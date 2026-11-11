@@ -98,8 +98,8 @@ export function astreintesDe(ctx: Contexte, id: number): SemaineCalculee[] {
 }
 
 // D'astreinte sur une période : ses heures, à plat et triées par début, avec la fin la plus tardive atteinte à chaque rang.
-// Une recherche par moitiés trouve celles qui commencent avant la fin de la période : il en chevauche une si l'une finit après
-// son début. Sans parcourir toute l'année à chaque tranche vérifiée (décision 0021).
+// Une recherche par moitiés trouve les heures qui commencent avant la fin de la période : l'une la chevauche si la plus tardive
+// finit après son début. Sans parcourir toute l'année à chaque tranche vérifiée (décision 0021).
 export function dAstreinte(ctx: Contexte, id: number, p: Periode): boolean {
 	let heures = ctx.heures.get(id);
 	if (!heures) {

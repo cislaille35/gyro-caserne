@@ -69,9 +69,11 @@ describe('Échanger : le calcul reste borné', () => {
 		expect(ctx.demandes).toHaveLength(n);
 		const textes = new Set(ctx.demandes.map((d) => d.periodes));
 		const parse = vi.spyOn(JSON, 'parse');
-		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: gens[2]! });
-		const lus = parse.mock.calls.filter(([texte]) => textes.has(texte as string)).length;
-		parse.mockRestore();
+		let lus = 0;
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: gens[2]! }).finally(() => {
+			lus = parse.mock.calls.filter(([texte]) => textes.has(texte as string)).length;
+			parse.mockRestore();
+		});
 		expect(lu.echangeables.length).toBeGreaterThanOrEqual(1);
 		// Une lecture par demande à la lecture du contexte (deux au plus si un remplaçant l'a prise), quel que soit le nombre de tranches.
 		expect(lus).toBeLessThanOrEqual(2 * ctx.demandes.length);
@@ -91,11 +93,11 @@ describe('Échanger : le calcul reste borné', () => {
 	});
 
 	it('vérifier qu’un agent est d’astreinte ne parcourt pas toutes ses semaines', async () => {
-		const { base, gens, ctx, alice } = await preparer();
+		const { base, gens, ctx, alice } = await preparer(4);
 		vi.mocked(tranches.chevauche).mockClear();
 		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true, avec: gens[2]! });
 		expect(lu.semainesAvec.length).toBeGreaterThan(0);
-		// Avant : chaque tranche vérifiée était comparée à toutes les heures d'astreinte de l'année (près de 4 000 comparaisons ici).
+		// Avant : chaque tranche vérifiée était comparée à toutes les heures d'astreinte de l'année (4 656 comparaisons ici, 46 après).
 		expect(vi.mocked(tranches.chevauche).mock.calls.length).toBeLessThanOrEqual(ctx.agents.length * 10);
 	});
 
@@ -121,5 +123,15 @@ describe('Échanger : le calcul reste borné', () => {
 					expect(dAstreinte(ctx, a.id, p), `${a.id} ${p.debut} ${p.fin}`).toBe(toutes.some((y) => chevauche(y, p)));
 		}
 		expect(oui).toBeGreaterThan(1000);
+	});
+
+	it('d’astreinte : une heure dans une plus longue ne cache pas la longue', async () => {
+		const { ctx, gens } = await preparer();
+		const { dAstreinte } = await import('../src/remplacements/contexte.ts');
+		const semaine = ctx.semaines[0]!;
+		// Une garde de 24 h, et une heure plus courte qui commence dedans (un renfort d'été, par exemple).
+		ctx.astreintes.set(gens[0]!, [{ ...semaine, periodes: [{ debut: '2026-11-07T00:00', fin: '2026-11-08T00:00' }, { debut: '2026-11-07T02:00', fin: '2026-11-07T03:00' }] }]);
+		expect(dAstreinte(ctx, gens[0]!, { debut: '2026-11-07T05:00', fin: '2026-11-07T06:00' })).toBe(true);
+		expect(dAstreinte(ctx, gens[0]!, { debut: '2026-11-08T00:00', fin: '2026-11-08T06:00' })).toBe(false);
 	});
 });
