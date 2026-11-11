@@ -73,9 +73,23 @@ describe('copie hebdomadaire', () => {
 	});
 
 	// Un export brut ne se restaure pas (une table remplie avant celle qu'elle cite) : remis en ordre par copie-restaurable.ts
-	it('exporte les tables et les données, puis les remet dans un ordre restaurable', () => {
-		expect(texte).toContain('for partie in no-data no-schema; do');
-		expect(texte).toContain('scripts/copie-restaurable.ts "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"');
+	it('remet l’export dans un ordre restaurable', () => {
+		expect(texte).toContain('scripts/copie-restaurable.ts "$DOSSIER/export.sql" > "$DOSSIER/copie.sql"');
+	});
+
+	it('ne touche à rien tant que la cible n’a pas de centre', () => {
+		const etapes = texte.split(/\n      - /).slice(1);
+		const autres = etapes.filter((e) => !/^name: (Centre visé|Ménage)\n/.test(e));
+		expect(autres.length).toBeGreaterThan(5);
+		for (const etape of autres) expect(etape).toContain("if: steps.centre.outputs.centre != ''");
+	});
+
+	it('ne copie la production qu’avec le workflow de main', () => {
+		expect(texte).toContain('if [ "$CIBLE" = production ] && [ "$GITHUB_REF" != refs/heads/main ]; then');
+	});
+
+	it('vérifie chaque commande, sans substitution de processus que set -e ne verrait pas', () => {
+		expect(texte).not.toContain('<(');
 	});
 
 	it('n’affiche jamais la sortie de wrangler', () => {

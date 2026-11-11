@@ -12,10 +12,9 @@ Détail technique : [sauvegarde.md](../technique/sauvegarde.md). Décision : [00
 
 ## 1. Créer la paire de clés (une fois)
 
-1. Installer age (version 1.2 ou plus récente) :
-   - Debian ou Ubuntu : `sudo apt install age` ;
-   - macOS : `brew install age` ;
-   - Windows : `winget install --id FiloSottile.age`.
+Les commandes de cette page se tapent sous Linux, macOS, ou Windows avec WSL, comme l'installation de l'appli.
+
+1. Installer age (version 1.2 ou plus récente) : `sudo apt install age` (Debian, Ubuntu, WSL) ou `brew install age` (macOS).
 2. Créer la paire : `age-keygen -o cle-gyro.txt`. La commande affiche la clé publique, `Public key: age1…`. Le fichier contient la clé privée, `AGE-SECRET-KEY-1…`.
 3. Copier tout le contenu de `cle-gyro.txt` dans le gestionnaire de mots de passe, dans une note sécurisée « Gyro Caserne : clé des copies ». Vérifier que la note est bien enregistrée.
 4. Poser la clé publique dans GitHub : Settings › Secrets and variables › Actions › onglet Variables, variable `COPIE_CLE_PUBLIQUE_PRODUCTION` = `age1…`. Elle n'est pas secrète.
@@ -52,7 +51,7 @@ Détail technique : [sauvegarde.md](../technique/sauvegarde.md). Décision : [00
 
 L'ancienne base n'est pas touchée : on peut y revenir, ou la comparer.
 
-1. Créer la base : `pnpm exec wrangler d1 create gyro-caserne-laille-restauree`. La commande affiche son `database_id`.
+1. Créer la base : `pnpm exec wrangler d1 create gyro-caserne-laille-restauree`. La commande affiche son `database_id`. Si elle propose d'écrire elle-même la liaison dans un fichier de config, répondre non : l'étape 2 s'en charge.
 2. Dans `centres/laille/wrangler.jsonc`, sur la liaison `BASE`, remplacer `database_name` et `database_id` par ceux de la nouvelle base.
 3. Charger la copie : `pnpm exec wrangler d1 execute BASE --remote --config $C --file copie.sql`.
 4. Appliquer les mises à jour de la base plus récentes que la copie : `CENTRE=laille pnpm base-en-ligne`.
@@ -62,19 +61,19 @@ L'ancienne base n'est pas touchée : on peut y revenir, ou la comparer.
 
 ### B. Dans la base existante
 
-Cette voie **efface toute la base** avant de la recharger. Pendant l'opération, quelques minutes, l'appli ne marche pas.
+Cette voie **efface toute la base** avant de la recharger, en une seule opération : pendant ce temps, quelques minutes, la base ne répond pas, et personne n'écrit entre le vidage et le chargement.
 
 1. Noter le point de retour, pour revenir en arrière pendant 7 jours : `pnpm exec wrangler d1 time-travel info BASE --config $C`.
 2. Lister les tables actuelles : `pnpm exec wrangler d1 export BASE --remote --config $C --no-data --output tables-actuelles.sql`.
 3. Préparer le vidage : `node --experimental-transform-types --no-warnings scripts/copie-restaurable.ts --vider tables-actuelles.sql > vider.sql`. Le script supprime chaque table avant celles qu'elle cite, sinon D1 refuse.
-4. Vider la base : `pnpm exec wrangler d1 execute BASE --remote --config $C --file vider.sql`.
-5. Charger la copie : `pnpm exec wrangler d1 execute BASE --remote --config $C --file copie.sql`.
+4. Mettre le vidage et la copie dans un seul fichier : `cat vider.sql copie.sql > restauration.sql`.
+5. Vider puis recharger la base : `pnpm exec wrangler d1 execute BASE --remote --config $C --file restauration.sql`. **Si cette commande échoue, revenir tout de suite au point noté (étape 8).**
 6. Appliquer les mises à jour plus récentes que la copie : `CENTRE=laille pnpm base-en-ligne`.
 7. Vérifier la connexion, le planning et quelques comptes, comme en A.5.
 8. En cas de souci, revenir au point noté : `pnpm exec wrangler d1 time-travel restore BASE --config $C --bookmark=<point noté>`.
 
 **Après la restauration, par A ou par B :**
-- effacer `copie.sql`, `tables-actuelles.sql` et `vider.sql` ;
+- effacer `copie.sql`, `tables-actuelles.sql`, `vider.sql` et `restauration.sql` ;
 - les photos publiées après la copie restent dans la base des photos, sans publication pour les afficher, ce qui ne gêne rien ;
 - les photos effacées depuis la copie manquent : leur publication s'affiche sans image.
 

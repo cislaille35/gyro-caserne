@@ -51,6 +51,11 @@ jobs:
             exit 0
           fi
           [[ "$centre" =~ ^[a-z0-9-]+$ ]] || { echo "::error::Identifiant de centre invalide : $centre"; exit 1; }
+          # La production ne se copie qu'avec le workflow de main : une branche en cours pourrait afficher des données.
+          if [ "$CIBLE" = production ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::La copie de la production ne se lance que depuis main (ici : $GITHUB_REF)."
+            exit 1
+          fi
           mkdir -m 700 -p "$RUNNER_TEMP/copie"
           echo "DOSSIER=$RUNNER_TEMP/copie" >> "$GITHUB_ENV"
           echo "centre=$centre" >> "$GITHUB_OUTPUT"
@@ -108,8 +113,8 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
-      # Deux exports (les tables, puis les données), remis dans un ordre que D1 accepte à la restauration : l'export suit l'ordre de
-      # création des tables et remplit une table avant celle qu'elle cite (refusé par D1, vu à l'essai). Voir scripts/copie-restaurable.ts.
+      # L'export est remis dans un ordre que D1 accepte à la restauration : il suit l'ordre de création des tables et remplit une
+      # table avant celle qu'elle cite (refusé par D1, vu à l'essai). Voir scripts/copie-restaurable.ts.
       # Wrangler reste muet : seules ses lignes d'erreur sont montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
       - name: Export
         if: steps.centre.outputs.centre != ''
@@ -122,15 +127,13 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          for partie in no-data no-schema; do
-            if ! pnpm exec wrangler d1 export BASE --remote --config "../../centres/$CENTRE/wrangler.jsonc" "--$partie" --output "$DOSSIER/$partie.sql" > "$DOSSIER/wrangler.log" 2>&1; then
-              echo "::error::L'export de la base a échoué, rien n'est envoyé. Erreur de Wrangler :"
-              grep -E 'ERROR|✘' "$DOSSIER/wrangler.log" | head -n 5 | cut -c1-300 || true
-              exit 1
-            fi
-          done
-          node --experimental-transform-types --no-warnings scripts/copie-restaurable.ts "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"
-          rm -f "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql"
+          if ! pnpm exec wrangler d1 export BASE --remote --config "../../centres/$CENTRE/wrangler.jsonc" --output "$DOSSIER/export.sql" > "$DOSSIER/wrangler.log" 2>&1; then
+            echo "::error::L'export de la base a échoué, rien n'est envoyé. Erreur de Wrangler :"
+            grep -E 'ERROR|✘' "$DOSSIER/wrangler.log" | head -n 5 | cut -c1-300 || true
+            exit 1
+          fi
+          node --experimental-transform-types --no-warnings scripts/copie-restaurable.ts "$DOSSIER/export.sql" > "$DOSSIER/copie.sql"
+          rm -f "$DOSSIER/export.sql"
           if ! grep -q '^CREATE TABLE' "$DOSSIER/copie.sql" || ! grep -q '^INSERT INTO "d1_migrations"' "$DOSSIER/copie.sql"; then
             echo "::error::Export vide ou incomplet, rien n'est envoyé."
             exit 1
@@ -150,7 +153,7 @@ jobs:
           nom="copie-$CENTRE-$(date -u +%F).age.txt"
           gzip -9 -n -c "$DOSSIER/copie.sql" | age -a "${destinataires[@]}" -o "$DOSSIER/$nom"
           rm -f "$DOSSIER/copie.sql"
-          head -n 1 "$DOSSIER/$nom" | grep -qx -- '-----BEGIN AGE ENCRYPTED FILE-----'
+          head -n 1 "$DOSSIER/$nom" | grep -qx -- '-----BEGIN AGE ENCRYPTED FILE-----' || { echo "::error::Chiffrement raté, rien n'est envoyé."; exit 1; }
           taille=$(stat -c %s "$DOSSIER/$nom")
           echo "Copie chiffrée : $taille octets (limite : $LIMITE_OCTETS)"
           if [ "$taille" -gt "$LIMITE_OCTETS" ]; then
@@ -177,11 +180,12 @@ jobs:
           expediteur="${expediteur:-$DESTINATAIRE}"
           jour=$(date -u +%d/%m/%Y)
           mode_emploi="https://github.com/$GITHUB_REPOSITORY/blob/main/docs/fonctionnel/copie-hebdomadaire.md"
+          base64 -w0 "$DOSSIER/$NOM" > "$DOSSIER/contenu.b64"
           jq -n \
             --arg de "$expediteur" --arg a "$DESTINATAIRE" --arg nom "$NOM" \
             --arg sujet "Copie de la base Gyro Caserne ($CENTRE) du $jour" \
             --arg texte "Copie chiffrée de la base principale du centre $CENTRE, faite le $jour. Elle ne s'ouvre qu'avec la clé privée du porteur. À garder 3 mois. Mode d'emploi : $mode_emploi" \
-            --rawfile contenu <(base64 -w0 "$DOSSIER/$NOM") \
+            --rawfile contenu "$DOSSIER/contenu.b64" \
             '{sender: {name: "Gyro Caserne", email: $de}, to: [{email: $a}], subject: $sujet, textContent: $texte, attachment: [{name: $nom, content: $contenu}]}' \
             > "$DOSSIER/courriel.json"
           code=$(printf 'api-key: %s\n' "$cle" | curl -sS --max-time 60 -o "$DOSSIER/reponse.json" -w '%{http_code}' \
