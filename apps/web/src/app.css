@@ -46,9 +46,9 @@
 	--menu-actif: #e1e5ea;
 	--segment-fond: #e1e5ea;
 	--jaune: #f2c200;
-	/* Les insignes de grade : galons rouges, or et argent sur une patte sombre, la même dans les deux thèmes. */
-	--insigne-fond: #1d2733;
-	--insigne-trait: #1d2733;
+	/* Les insignes de grade : galons rouges, or et argent sur un carré noir, le même dans les deux thèmes. */
+	--insigne-fond: #000000;
+	--insigne-trait: #000000;
 	--insigne-rouge: #ef4b59;
 	--insigne-or: #e8b923;
 	--insigne-argent: #d9dee3;
@@ -134,8 +134,8 @@
 	--entete-doux: #a7b2bd;
 	--entete-bouton: #1f2933;
 	--entete-focus: #7ab8ff;
-	/* La patte de l'insigne, bordée d'un trait clair pour se détacher du fond sombre. */
-	--insigne-fond: #1d2733;
+	/* Le carré noir de l’insigne, bordé d’un trait clair pour se détacher du fond sombre. */
+	--insigne-fond: #000000;
 	--insigne-trait: #7d8b99;
 	--insigne-rouge: #ef4b59;
 	--insigne-or: #e8b923;
@@ -185,8 +185,8 @@
 		--entete-doux: #a7b2bd;
 		--entete-bouton: #1f2933;
 		--entete-focus: #7ab8ff;
-		/* La patte de l'insigne, bordée d'un trait clair pour se détacher du fond sombre. */
-		--insigne-fond: #1d2733;
+		/* Le carré noir de l’insigne, bordé d’un trait clair pour se détacher du fond sombre. */
+		--insigne-fond: #000000;
 		--insigne-trait: #7d8b99;
 		--insigne-rouge: #ef4b59;
 		--insigne-or: #e8b923;

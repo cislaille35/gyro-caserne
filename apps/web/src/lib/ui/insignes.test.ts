@@ -19,6 +19,19 @@ describe('insignes de grade', () => {
 		expect(insigneDe('Lieutenant-colonel')).toBe(INSIGNES['lieutenant colonel']);
 	});
 
+	it('d’après l’annexe II : galons obliques des sapeurs aux sergents, droits des adjudants et officiers ; couleurs et nombre', () => {
+		const resume = (l: string) => insigneDe(l)!.map((g) => `${g.forme === 'oblique' ? '/' : '='}${g.couleur}${g.bord ? '+bord' : ''}${g.raie ? '+raie' : ''}`).join(' ');
+		expect(resume('Sapeur 1re classe')).toBe('/rouge');
+		expect(resume('Caporal-chef')).toBe('/rouge /rouge /rouge');
+		expect(resume('Sergent')).toBe('/argent+bord');
+		expect(resume('Sergent-chef')).toBe('/argent+bord /argent+bord /argent+bord');
+		expect(resume('Adjudant')).toBe('=or+raie');
+		expect(resume('Adjudant-chef')).toBe('=argent+raie');
+		expect(resume('Commandant')).toBe('=argent =argent =argent =argent');
+		expect(resume('Lieutenant-colonel')).toBe('=argent =or =argent =or =argent');
+		expect(insigneDe('Sapeur 2e classe')).toBeNull();
+	});
+
 	it('un grade saisi à la main, inconnu, ou pas de grade : aucun insigne, rien d’affiché', () => {
 		expect(insigneDe('Brigadier')).toBeNull();
 		expect(insigneDe(null)).toBeNull();
@@ -37,9 +50,10 @@ describe('insignes de grade', () => {
 
 	it('des couleurs par jetons seulement, et des galons qui tiennent dans la patte', () => {
 		for (const libelle of Object.keys(INSIGNES)) {
-			const d = dessinDe(libelle)!;
-			expect(d[0]!.y, libelle).toBeGreaterThanOrEqual(2);
-			expect(d.at(-1)!.y + d.at(-1)!.h, libelle).toBeLessThanOrEqual(22);
+			// Tous les points dans le carré noir (de 2 à 22), avec une marge.
+			const nombres = dessinDe(libelle)!.flatMap((f) => ('points' in f ? f.points.split(/[ ,]/).map(Number) : [f.x, f.y, f.x + f.l, f.y + f.h]));
+			for (const n of nombres) expect(n, libelle).toBeGreaterThanOrEqual(3);
+			for (const n of nombres) expect(n, libelle).toBeLessThanOrEqual(21);
 			expect(html({ grade: libelle })).not.toMatch(/#[0-9a-f]{3,6}/i);
 		}
 	});
