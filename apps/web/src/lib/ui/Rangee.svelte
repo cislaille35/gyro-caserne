@@ -1,12 +1,15 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import IconeRole from './IconeRole.svelte';
+	import Insigne from './Insigne.svelte';
 	import type { IconeRole as NomIcone } from './icones-roles.ts';
 
 	// Une ligne d'un groupe (dans la carte de `ListeRangees`) : tête (tuile qui porte un sens, visage, date), titre, sous-ligne, valeur ou `droite` ;
 	// avec `href`, toute la ligne est un lien, avec chevron. Avec `children` (des gestes sous le texte), le lien du titre s'étend à la ligne
 	// et les gestes passent par-dessus. `courant` : la page affichée. `alerte` ajoute le signe d'alerte, à droite ;
 	// `discret`, pour ce qui n'existe pas encore. `sous` en liste : une ligne par info, quand elles sont trop nombreuses pour une seule.
+	// `grade` : l'insigne du grade après le titre (le nom d'un agent), lu par les lecteurs d'écran ; `sousContenu` : une sous-ligne
+	// qui porte plus que du texte (des noms avec leur insigne), à la place de `sous`.
 	let {
 		titre,
 		sous,
@@ -19,6 +22,8 @@
 		courant = false,
 		tete,
 		droite,
+		grade,
+		sousContenu,
 		children
 	}: {
 		titre: string;
@@ -32,6 +37,8 @@
 		courant?: boolean;
 		tete?: Snippet;
 		droite?: Snippet;
+		grade?: string | null;
+		sousContenu?: Snippet;
 		children?: Snippet;
 	} = $props();
 
@@ -52,8 +59,8 @@
 		<IconeRole {icone} {dessin} taille={40} />
 	{/if}
 	<div class="corps">
-		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}</span>{/if}
-		{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}
+		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}{#if grade}<Insigne {grade} />{/if}</span>{/if}
+		{#if sousContenu}<span class="sous">{@render sousContenu()}</span>{:else}{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}{/if}
 		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>
 	<!-- Le signe d'alerte à droite, pour que les textes d'une liste restent alignés : jamais la couleur seule. -->
@@ -75,6 +82,12 @@
 {/if}
 
 <style>
+	/* L'insigne du grade, à côté du nom. */
+	.titre :global(.insigne),
+	.sous :global(.insigne) {
+		margin-left: var(--espace-6);
+		vertical-align: -0.25em;
+	}
 	.rangee {
 		position: relative;
 		isolation: isolate;

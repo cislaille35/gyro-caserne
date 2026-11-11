@@ -17,26 +17,26 @@ const vue = {
 			icone: 'coeur',
 			mur: true,
 			membres: [
-				{ id: 5, nom: 'Bruno Petit', roles: ['Rapporteur'], ecrire: true },
-				{ id: 4, nom: 'Alice Bernard', roles: ['Membre', 'Trésorière'], ecrire: false }
+				{ id: 5, nom: 'Bruno Petit', grade: 'Sergent', roles: ['Rapporteur'], ecrire: true },
+				{ id: 4, nom: 'Alice Bernard', grade: null, roles: ['Membre', 'Trésorière'], ecrire: false }
 			],
 			ressources: [{ id: 7, nom: 'Barnum', icone: 'outil' }]
 		},
 		{ id: 1, nom: 'Comité du centre', icone: 'etoile', mur: false, membres: [], ressources: [] }
 	],
 	commandement: [
-		{ id: 1, nom: 'Chef de centre', icone: 'etoile', titulaires: [{ id: 1, nom: 'Claire Martin', ecrire: true }] },
+		{ id: 1, nom: 'Chef de centre', icone: 'etoile', titulaires: [{ id: 1, nom: 'Claire Martin', grade: 'Lieutenant', ecrire: true }] },
 		{ id: 2, nom: 'Chef de centre adjoint', icone: 'etoile', titulaires: [] }
 	],
-	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', parEquipe: [{ equipe: 'Équipe 1', titulaires: [{ id: 5, nom: 'Bruno Petit', ecrire: true }] }, { equipe: 'Équipe 2', titulaires: [] }] }],
+	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', parEquipe: [{ equipe: 'Équipe 1', titulaires: [{ id: 5, nom: 'Bruno Petit', grade: 'Sergent', ecrire: true }] }, { equipe: 'Équipe 2', titulaires: [] }] }],
 	referents: [
 		{
 			id: 6,
 			nom: 'Référent pharmacie',
 			icone: 'croix',
 			titulaires: [
-				{ id: 4, nom: 'Alice Bernard', ecrire: false },
-				{ id: 8, nom: 'Denis Roux', ecrire: true }
+				{ id: 4, nom: 'Alice Bernard', grade: null, ecrire: false },
+				{ id: 8, nom: 'Denis Roux', grade: 'Grade maison', ecrire: true }
 			]
 		},
 		{ id: 7, nom: 'Référent engins', icone: 'camion', titulaires: [] }
@@ -91,12 +91,12 @@ describe('/comites', () => {
 
 	it('chaque rôle et ses titulaires ; « Personne pour l’instant » s’il est vide ; les chefs de garde par équipe', () => {
 		const page = html({});
-		expect(page).toMatch(/Chef de centre<\/span>[\s\S]*?Claire Martin/);
-		expect(page).toMatch(/Chef de centre adjoint<\/span>[\s\S]*?Personne pour l’instant/);
-		expect(page).toMatch(/Équipe 1<\/span>[\s\S]*?Bruno Petit/);
-		expect(page).toMatch(/Équipe 2<\/span>[\s\S]*?Personne pour l’instant/);
-		expect(page).toMatch(/Référent pharmacie<\/span>[\s\S]*?Alice Bernard, Denis Roux/);
-		expect(page).toMatch(/Référent engins<\/span>[\s\S]*?Personne pour l’instant/);
+		expect(page).toMatch(/Chef de centre(<!--[^>]*-->)*<\/span>[\s\S]*?Claire Martin/);
+		expect(page).toMatch(/Chef de centre adjoint(<!--[^>]*-->)*<\/span>[\s\S]*?Personne pour l’instant/);
+		expect(page).toMatch(/Équipe 1(<!--[^>]*-->)*<\/span>[\s\S]*?Bruno Petit/);
+		expect(page).toMatch(/Équipe 2(<!--[^>]*-->)*<\/span>[\s\S]*?Personne pour l’instant/);
+		expect(page).toMatch(/Référent pharmacie(<!--[^>]*-->)*<\/span>[\s\S]*?Alice Bernard(<!--[^>]*-->)*, (<!--[^>]*-->)*Denis Roux/);
+		expect(page).toMatch(/Référent engins(<!--[^>]*-->)*<\/span>[\s\S]*?Personne pour l’instant/);
 		// Ni droits ni lien vers une fiche réservée aux gestionnaires.
 		expect(page).not.toContain('href="/agents/');
 		expect(page).not.toContain('GERER_');
@@ -113,6 +113,14 @@ describe('/comites', () => {
 		expect(page).not.toContain('/echanges/messages/a/4"');
 		// Bruno : comme membre de l'Amicale et comme chef de garde.
 		expect(page.match(/\/echanges\/messages\/a\/5"/g)).toHaveLength(2);
+	});
+
+	it('l’insigne du grade à côté de chaque nom, nommé par le grade ; rien sans grade ou pour un grade sans insigne', () => {
+		const page = html({});
+		expect(page).toMatch(/Bruno Petit(<!--[^>]*-->)*<svg[^>]*role="img"[^>]*aria-label="Sergent"/);
+		expect(page).toMatch(/Claire Martin(<!--[^>]*-->)*<svg[^>]*aria-label="Lieutenant"/);
+		expect(page).not.toMatch(/Alice Bernard(<!--[^>]*-->)*<svg/);
+		expect(page).not.toMatch(/Denis Roux(<!--[^>]*-->)*<svg/);
 	});
 
 	it('« Gérer » seulement pour qui peut nommer ou régler', () => {

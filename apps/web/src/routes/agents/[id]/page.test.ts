@@ -46,7 +46,7 @@ describe('page fiche agent', () => {
 			const entete = page.slice(page.indexOf('<header'), page.indexOf('</header>'));
 			expect(entete).toMatch(/aria-hidden="true"[^>]*>AM</);
 			expect(entete).toMatch(/<h1[^>]*>Alice Martin<\/h1>/);
-			expect(entete).toContain('Caporal-chef · Équipe 1');
+			expect(entete).toMatch(/<svg[^>]*class="insigne[^"]*"[^>]*aria-hidden="true"[\s\S]*?Caporal-chef · Équipe 1/);
 			// Le visage à la couleur de l'équipe, sans bandeau.
 			expect(entete).not.toContain('bandeau');
 			expect(entete).toMatch(/background: #b3121f[^>]*>AM</);

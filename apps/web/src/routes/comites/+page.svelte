@@ -2,14 +2,14 @@
 	import { murDuComite } from '#lib/murs/phrases.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Insigne from '#lib/ui/Insigne.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import type { IconeRole as NomIcone } from '#lib/ui/icones-roles.ts';
 
 	let { data } = $props();
 
-	type Titulaire = { id: number; nom: string; ecrire: boolean };
+	type Titulaire = { id: number; nom: string; grade: string | null; ecrire: boolean };
 	const PERSONNE = 'Personne pour l’instant';
-	const qui = (titulaires: Titulaire[]) => (titulaires.length > 0 ? titulaires.map((t) => t.nom).join(', ') : PERSONNE);
 	// Nommer est ce qui change le plus souvent ; à défaut, les réglages (comités, rôles).
 	const gerer = $derived(data.peutNominations ? { href: '/nominations', quoi: 'les nominations' } : data.peutReglages ? { href: '/reglages', quoi: 'les réglages du centre' } : null);
 </script>
@@ -27,16 +27,22 @@
 	{/if}
 {/snippet}
 
+<!-- Les titulaires, chacun avec l'insigne de son grade. -->
+{#snippet noms(titulaires: Titulaire[])}
+	{#each titulaires as t, i (t.id)}{#if i > 0}{', '}{/if}{t.nom}<Insigne grade={t.grade} />{:else}{PERSONNE}{/each}
+{/snippet}
+
 <!-- Un titulaire : « Écrire » à droite ; plusieurs : un « Écrire à … » par titulaire, sous les noms. -->
 {#snippet role(titre: string, titulaires: Titulaire[], icone?: NomIcone)}
 	{@const ecrits = titulaires.filter((t) => t.ecrire)}
+	{#snippet sousNoms()}{@render noms(titulaires)}{/snippet}
 	<li>
 		{#if titulaires.length > 1 && ecrits.length > 0}
-			<Rangee {icone} {titre} sous={qui(titulaires)}>
+			<Rangee {icone} {titre} sousContenu={sousNoms}>
 				{#each ecrits as t (t.id)}{@render ecrire(t, true)}{/each}
 			</Rangee>
 		{:else}
-			<Rangee {icone} {titre} sous={qui(titulaires)}>
+			<Rangee {icone} {titre} sousContenu={sousNoms}>
 				{#snippet droite()}{#if ecrits[0]}{@render ecrire(ecrits[0])}{/if}{/snippet}
 			</Rangee>
 		{/if}
@@ -57,7 +63,7 @@
 				<ListeRangees titre={c.nom} compte={c.membres.length} niveau={3}>
 					{#each c.membres as m (m.id)}
 						<li>
-							<Rangee titre={m.nom} sous={m.roles.join(', ')}>
+							<Rangee titre={m.nom} grade={m.grade} sous={m.roles.join(', ')}>
 								{#snippet droite()}{#if m.ecrire}{@render ecrire(m)}{/if}{/snippet}
 							</Rangee>
 						</li>

@@ -5,7 +5,7 @@ import type { Acteur } from '../src/droits.ts';
 import { RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { ouvreQuiFaitQuoi, quiFaitQuoi } from '../src/qui-fait-quoi.ts';
-import { attribution, comite, equipe, personne, profil, profilDroit, responsabilite, ressource } from '../src/schema.ts';
+import { attribution, comite, equipe, grade, personne, profil, profilDroit, responsabilite, ressource } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -52,8 +52,8 @@ describe('quiFaitQuoi', () => {
 		expect(vue.comites.map((c) => c.nom)).toEqual(['Amicale', 'Comité du centre']);
 		const [amicale, centre] = vue.comites;
 		expect(amicale!.membres).toEqual([
-			{ id: expect.any(Number), nom: 'Bruno Petit', roles: ['Rapporteur'], ecrire: true },
-			{ id: expect.any(Number), nom: 'Alice Bernard', roles: ['Membre'], ecrire: false }
+			{ id: expect.any(Number), nom: 'Bruno Petit', grade: null, roles: ['Rapporteur'], ecrire: true },
+			{ id: expect.any(Number), nom: 'Alice Bernard', grade: null, roles: ['Membre'], ecrire: false }
 		]);
 		expect(amicale!.icone).toBe('coeur');
 		expect(centre!.membres).toEqual([]);
@@ -112,6 +112,19 @@ describe('quiFaitQuoi', () => {
 		expect((await materiel(acteur(alice)))[0]).toEqual(['Amicale', ['Barnum', 'Plancha']]);
 	});
 
+	it('le grade de chaque titulaire et membre (son libellé), lu dans le même envoi ; aucun s’il n’en a pas', async () => {
+		const { base, alice, bruno, chef } = await jeu();
+		const grades = await base.select().from(grade);
+		await base.update(personne).set({ gradeId: grades.find((g) => g.code === 'Sgt')!.id }).where(eq(personne.id, bruno));
+		await base.update(personne).set({ gradeId: grades.find((g) => g.code === 'Ltn')!.id }).where(eq(personne.id, chef));
+		base.requetes = 0;
+		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
+		expect(base.requetes).toBe(4);
+		expect(vue.comites[0]!.membres.map((m) => [m.nom, m.grade])).toEqual([['Bruno Petit', 'Sergent'], ['Alice Bernard', null]]);
+		expect(vue.commandement[0]!.titulaires).toMatchObject([{ nom: 'Claire Martin', grade: 'Lieutenant' }]);
+		expect(vue.equipes[0]!.parEquipe[0]!.titulaires).toMatchObject([{ nom: 'Bruno Petit', grade: 'Sergent' }]);
+	});
+
 	it('les référents avec leurs titulaires, « personne » pour un rôle vide ; ni archivé ni rôle de comité', async () => {
 		const { base, alice, nommer, nouvelle, role } = await jeu();
 		const [ancien] = await base.insert(responsabilite).values({ nom: 'Référent ancien', nature: 'mission', typePerimetre: 'centre', archiveeLe: '2026-02-01' }).returning();
@@ -145,7 +158,7 @@ describe('quiFaitQuoi', () => {
 		expect(vue.equipes).toHaveLength(1);
 		const [chefs] = vue.equipes;
 		expect(chefs!.nom).toBe('Chef de garde');
-		expect(chefs!.parEquipe[0]).toEqual({ equipe: equipes[0]!.nom, titulaires: [{ id: expect.any(Number), nom: 'Bruno Petit', ecrire: true }] });
+		expect(chefs!.parEquipe[0]).toEqual({ equipe: equipes[0]!.nom, titulaires: [{ id: expect.any(Number), nom: 'Bruno Petit', grade: null, ecrire: true }] });
 		expect(chefs!.parEquipe.map((l) => l.equipe)).toEqual(equipes.slice(0, -1).map((e) => e.nom));
 		expect(chefs!.parEquipe[1]!.titulaires).toEqual([]);
 	});

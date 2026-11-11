@@ -121,6 +121,13 @@ describe('jetons', () => {
 		expect(contraste(themes.sombre['gyro-socle'], themes.sombre.surface)).toBeGreaterThanOrEqual(3);
 	});
 
+	it('les insignes de grade : chaque galon lisible sur sa patte, la patte détachée du fond et des cartes, dans chaque thème', () => {
+		for (const [nom, t] of Object.entries(themes)) {
+			for (const g of ['insigne-rouge', 'insigne-or', 'insigne-argent']) expect(contraste(t[g], t['insigne-fond']), `${nom} ${g}`).toBeGreaterThanOrEqual(3);
+			for (const f of ['fond', 'surface']) expect(contraste(t['insigne-trait'], t[f]), `${nom} patte/${f}`).toBeGreaterThanOrEqual(3);
+		}
+	});
+
 	it('en sombre, le fond ne change pas', () => {
 		expect(themes.sombre.fond).toBe('#11171f');
 		expect(themes.sombre['trait-doux']).toBe('#2b3642');

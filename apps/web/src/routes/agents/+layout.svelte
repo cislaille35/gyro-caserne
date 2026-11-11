@@ -13,6 +13,7 @@
 	import Statut from '#lib/ui/Statut.svelte';
 	import type { StatutPersonne } from '#lib/ui/statut.ts';
 	import Vide from '#lib/ui/Vide.svelte';
+	import Insigne from '#lib/ui/Insigne.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data, children } = $props();
@@ -62,9 +63,9 @@
 		<span class="identite">
 			{#if data.gestion}
 				<!-- La liste garde sa recherche et son filtre à côté de la fiche. -->
-				<a class="nom" href="/agents/{p.id}{rechercheListe(page.url)}" aria-current={courant ? 'page' : undefined}>{p.prenom} {p.nom}</a>
+				<a class="nom" href="/agents/{p.id}{rechercheListe(page.url)}" aria-current={courant ? 'page' : undefined}>{p.prenom} {p.nom}<Insigne grade={p.grade} decoratif /></a>
 			{:else}
-				<span class="nom">{p.prenom} {p.nom}</span>
+				<span class="nom">{p.prenom} {p.nom}<Insigne grade={p.grade} decoratif /></span>
 			{/if}
 			{#if p.grade || p.roles.length > 0 || email}
 				<span class="sous"
@@ -252,6 +253,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
+	}
+	/* L'insigne du grade, à côté du nom. */
+	.nom :global(.insigne) {
+		margin-left: var(--espace-6);
+		vertical-align: -0.25em;
 	}
 	.nom {
 		font-weight: 600;
