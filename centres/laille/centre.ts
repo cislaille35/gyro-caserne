@@ -23,5 +23,7 @@ export default defineCentre({
 		semaine: { debut: '18:00', fin: '06:00' },
 		// Planning 2026 : le vendredi 16/01/2026, c'est l'équipe 1
 		reference: { date: '2026-01-16', equipe: 1 }
-	}
+	},
+	// Manœuvres de 7 h 45 à midi, avec le petit-déjeuner au choix
+	manoeuvres: { debut: '07:45', fin: '12:00', petitDejeuner: ['Croissant', 'Pain au chocolat', 'Pain au raisin', 'Rien pour moi'] }
 });

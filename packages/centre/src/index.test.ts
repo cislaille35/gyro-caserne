@@ -149,4 +149,28 @@ describe('defineCentre', () => {
 		expect(erreursCentre({ ...exemple, anomalies: { libelles: { signalee: ' ' } } })).toEqual(['anomalies, libellé de l’étape « signalee » : de 1 à 30 caractères']);
 		expect(erreursCentre({ ...exemple, anomalies: { libelles: { reparee: 'x'.repeat(31) } } })).toEqual(['anomalies, libellé de l’étape « reparee » : de 1 à 30 caractères']);
 	});
+
+	it('manœuvres : de 8 h 30 à 11 h 30 et « Oui », « Non » au petit-déjeuner par défaut ; ou le choix du centre', () => {
+		expect(defineCentre(exemple).manoeuvres).toEqual({ debut: '08:30', fin: '11:30', petitDejeuner: ['Oui', 'Non'] });
+		expect(defineCentre({ ...exemple, manoeuvres: { debut: '07:45', fin: '12:00' } }).manoeuvres).toEqual({ debut: '07:45', fin: '12:00', petitDejeuner: ['Oui', 'Non'] });
+		const choix = ['Croissant', 'Pain au chocolat', 'Pain au raisin', 'Rien pour moi'];
+		expect(defineCentre({ ...exemple, manoeuvres: { petitDejeuner: choix } }).manoeuvres).toEqual({ debut: '08:30', fin: '11:30', petitDejeuner: choix });
+	});
+
+	it('manœuvres : heures au format HH:MM, la fin après le début', () => {
+		expect(erreursCentre({ ...exemple, manoeuvres: { debut: '7h45' } })).toEqual(['manœuvres, début : heure « 7h45 » au format HH:MM attendue']);
+		expect(erreursCentre({ ...exemple, manoeuvres: { fin: '24:00' } })).toEqual(['manœuvres, fin : heure « 24:00 » au format HH:MM attendue']);
+		expect(erreursCentre({ ...exemple, manoeuvres: { debut: '12:00', fin: '07:45' } })).toEqual(['manœuvres : la fin (12:00 → 07:45) doit suivre le début, le même jour']);
+		// Avec le début par défaut (08:30)
+		expect(erreursCentre({ ...exemple, manoeuvres: { fin: '08:00' } })).toEqual(['manœuvres : la fin (08:30 → 08:00) doit suivre le début, le même jour']);
+	});
+
+	it('manœuvres : de 2 à 6 choix de petit-déjeuner, distincts, de 1 à 100 caractères', () => {
+		const avec = (petitDejeuner: string[]) => erreursCentre({ ...exemple, manoeuvres: { petitDejeuner } });
+		expect(avec(['Oui'])).toEqual(['manœuvres, petit-déjeuner : de 2 à 6 choix']);
+		expect(avec(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toEqual(['manœuvres, petit-déjeuner : de 2 à 6 choix']);
+		expect(avec(['Croissant', ' '])).toEqual(['manœuvres, petit-déjeuner : choix vide']);
+		expect(avec(['Croissant', 'x'.repeat(101)])).toEqual([`manœuvres, petit-déjeuner : choix « ${'x'.repeat(101)} », 100 caractères au plus`]);
+		expect(avec(['Croissant', 'croissant '])).toEqual(['manœuvres, petit-déjeuner : choix « croissant » en double']);
+	});
 });

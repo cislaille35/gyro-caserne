@@ -42,13 +42,18 @@ export interface Centre {
 	conservationPublicationsMois?: number;
 	/** Le suivi des anomalies : étapes « en attente » (oui si omis) et « vérifiée » par une autre personne (non si omis), libellés renommés */
 	anomalies?: Partial<ReglageAnomalies>;
+	/** Les manœuvres : heures proposées à la saisie (08:30 à 11:30 si omises) et choix du sondage petit-déjeuner (« Oui », « Non » si omis) */
+	manoeuvres?: Partial<ReglageManoeuvres>;
 }
+
+export type ReglageManoeuvres = { debut: string; fin: string; petitDejeuner: string[] };
+export const MANOEUVRES_PAR_DEFAUT: ReglageManoeuvres = { debut: '08:30', fin: '11:30', petitDejeuner: ['Oui', 'Non'] };
 
 export type EtapeReglable = 'signalee' | 'prise_en_charge' | 'en_attente' | 'reparee' | 'verifiee';
 export type ReglageAnomalies = { enAttente: boolean; verifiee: boolean; libelles: Partial<Record<EtapeReglable, string>> };
 
 /** Un centre déclaré par defineCentre : les valeurs par défaut sont posées. */
-export type CentreDeclare = Centre & { conservationMessagesMois: number; conservationPublicationsMois: number; anomalies: ReglageAnomalies };
+export type CentreDeclare = Centre & { conservationMessagesMois: number; conservationPublicationsMois: number; anomalies: ReglageAnomalies; manoeuvres: ReglageManoeuvres };
 
 const JOURS: JourSemaine[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -104,6 +109,18 @@ export function erreursCentre(centre: Centre): string[] {
 		erreurs.push(`conservation des publications : ${moisPublications} mois, un nombre entier de 1 au moins attendu`);
 	for (const [etape, libelle] of Object.entries(centre.anomalies?.libelles ?? {}))
 		if (typeof libelle !== 'string' || libelle.trim().length < 1 || libelle.length > 30) erreurs.push(`anomalies, libellé de l’étape « ${etape} » : de 1 à 30 caractères`);
+	const m = { ...MANOEUVRES_PAR_DEFAUT, ...centre.manoeuvres };
+	for (const [nom, h] of [['début', m.debut], ['fin', m.fin]]) if (!heure.test(h!)) erreurs.push(`manœuvres, ${nom} : heure « ${h} » au format HH:MM attendue`);
+	if (heure.test(m.debut) && heure.test(m.fin) && m.fin <= m.debut) erreurs.push(`manœuvres : la fin (${m.debut} → ${m.fin}) doit suivre le début, le même jour`);
+	if (m.petitDejeuner.length < 2 || m.petitDejeuner.length > 6) erreurs.push('manœuvres, petit-déjeuner : de 2 à 6 choix');
+	const vus = new Set<string>();
+	for (const brut of m.petitDejeuner) {
+		const choix = String(brut).trim();
+		if (choix.length < 1) erreurs.push('manœuvres, petit-déjeuner : choix vide');
+		else if (choix.length > 100) erreurs.push(`manœuvres, petit-déjeuner : choix « ${choix} », 100 caractères au plus`);
+		else if (vus.has(choix.toLocaleLowerCase('fr'))) erreurs.push(`manœuvres, petit-déjeuner : choix « ${choix} » en double`);
+		vus.add(choix.toLocaleLowerCase('fr'));
+	}
 	return erreurs;
 }
 
@@ -112,5 +129,5 @@ export function defineCentre(centre: Centre): CentreDeclare {
 	const erreurs = erreursCentre(centre);
 	if (erreurs.length) throw new Error(`Centre « ${centre.id} » mal décrit :\n- ${erreurs.join('\n- ')}`);
 	const a = centre.anomalies;
-	return { ...centre, conservationMessagesMois: centre.conservationMessagesMois ?? 12, conservationPublicationsMois: centre.conservationPublicationsMois ?? 24, anomalies: { enAttente: a?.enAttente ?? true, verifiee: a?.verifiee ?? false, libelles: a?.libelles ?? {} } };
+	return { ...centre, conservationMessagesMois: centre.conservationMessagesMois ?? 12, conservationPublicationsMois: centre.conservationPublicationsMois ?? 24, anomalies: { enAttente: a?.enAttente ?? true, verifiee: a?.verifiee ?? false, libelles: a?.libelles ?? {} }, manoeuvres: { ...MANOEUVRES_PAR_DEFAUT, ...centre.manoeuvres, petitDejeuner: (centre.manoeuvres?.petitDejeuner ?? MANOEUVRES_PAR_DEFAUT.petitDejeuner).map((c) => c.trim()) } };
 }

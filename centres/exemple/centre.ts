@@ -24,7 +24,9 @@ export default defineCentre({
 		reference: { date: '2026-01-02', equipe: 1 },
 		// En semaine, de 18 h à 6 h ; le week-end et les jours fériés, 24 h sur 24. Sans cette ligne, l'astreinte est continue.
 		semaine: { debut: '18:00', fin: '06:00' }
-	}
+	},
+	// Manœuvres : heures proposées à la saisie et choix du sondage petit-déjeuner. Sans cette ligne : de 8 h 30 à 11 h 30, « Oui » ou « Non ».
+	manoeuvres: { debut: '08:00', fin: '11:30', petitDejeuner: ['Viennoiserie', 'Pain et confiture', 'Rien pour moi'] }
 	// Messages gardés 12 mois, puis effacés ; pour une autre durée : conservationMessagesMois: 24
 	// Publications des murs (et leurs photos) gardées 24 mois, puis effacées, sauf épinglées ; pour une autre durée : conservationPublicationsMois: 36
 	// Suivi des anomalies : étape « en attente » oui, « vérifiée » non, libellés d'origine ; pour changer :
