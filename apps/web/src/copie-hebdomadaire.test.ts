@@ -72,10 +72,10 @@ describe('copie hebdomadaire', () => {
 		expect(texte.match(/secrets\.BREVO_CLE_PREPROD \}\}/g)).toHaveLength(1);
 	});
 
-	// Un export d'un seul tenant ne se restaure pas (une table remplie avant celle qu'elle cite) : les tables, puis les données
-	it('exporte les tables puis les données, dans cet ordre', () => {
+	// Un export brut ne se restaure pas (une table remplie avant celle qu'elle cite) : remis en ordre par copie-restaurable.ts
+	it('exporte les tables et les données, puis les remet dans un ordre restaurable', () => {
 		expect(texte).toContain('for partie in no-data no-schema; do');
-		expect(texte).toContain('cat "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"');
+		expect(texte).toContain('scripts/copie-restaurable.ts "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"');
 	});
 
 	it('n’affiche jamais la sortie de wrangler', () => {

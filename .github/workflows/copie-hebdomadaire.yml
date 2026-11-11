@@ -108,9 +108,9 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
-      # Deux exports : toutes les tables d'abord, puis les données. Un export d'un seul tenant ne se restaure pas : il remplit une table
-      # avant que la table qu'elle cite n'existe (« no such table », vu à l'essai). Wrangler reste muet : seules ses lignes d'erreur sont
-      # montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
+      # Deux exports (les tables, puis les données), remis dans un ordre que D1 accepte à la restauration : l'export suit l'ordre de
+      # création des tables et remplit une table avant celle qu'elle cite (refusé par D1, vu à l'essai). Voir scripts/copie-restaurable.ts.
+      # Wrangler reste muet : seules ses lignes d'erreur sont montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
       - name: Export
         if: steps.centre.outputs.centre != ''
         working-directory: apps/web
@@ -129,7 +129,7 @@ jobs:
               exit 1
             fi
           done
-          cat "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"
+          node --experimental-transform-types --no-warnings scripts/copie-restaurable.ts "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql" > "$DOSSIER/copie.sql"
           rm -f "$DOSSIER/no-data.sql" "$DOSSIER/no-schema.sql"
           if ! grep -q '^CREATE TABLE' "$DOSSIER/copie.sql" || ! grep -q '^INSERT INTO "d1_migrations"' "$DOSSIER/copie.sql"; then
             echo "::error::Export vide ou incomplet, rien n'est envoyé."
