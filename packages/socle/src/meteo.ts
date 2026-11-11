@@ -21,7 +21,7 @@ export type VueMeteo = { meteo: { ambiance: Ambiance; texte: string; nuit: boole
 export const URL_VIGILANCE = 'https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours';
 const UNE_HEURE = 60;
 const SIX_HEURES = 6 * 60;
-// La vigilance est relue toutes les 15 minutes (96 appels par jour) et n'est plus montrée au-delà de 2 heures.
+// La vigilance a plus de 15 minutes : relue au réveil suivant, soit toutes les 20 minutes (72 appels par jour) et n'est plus montrée au-delà de 2 heures.
 const QUINZE_MINUTES = 15;
 const DEUX_HEURES = 2 * 60;
 

@@ -1,4 +1,4 @@
-# 0012 — Notifications : Web Push maison, envoi dès le geste, file en filet toutes les cinq minutes
+# 0012 — Notifications : Web Push maison, envoi dès le geste, file en filet toutes les dix minutes
 
 - **Contexte** : prévenir l'agent au téléphone d'une publication, d'un commentaire ou d'un message. Offre gratuite de Cloudflare : 50 sous-requêtes et 50 requêtes D1 par appel, 10 ms de calcul. Une publication sur « Le centre » peut viser plus de 50 appareils, et la publication de l'auteur ne doit jamais attendre ni échouer à cause des envois.
 - **Options** :
@@ -59,3 +59,12 @@
   - Appli ouverte : le layout additionne `cloche` et `nonLus`, qu'il lit déjà (`chiffreIcone`).
 - **Coût** : aucune requête de plus (lot d'envois : toujours 2, 1 si la file est vide ; navigation : rien). Calcul : une sous-requête de plus par personne du lot, côté base.
 - **Validé par** : le porteur, le 7 novembre 2026.
+
+## Révision du 11 novembre 2026 : réveil toutes les dix minutes
+
+- **Contexte** : audit du temps de calcul (décision 0021). En préprod, chaque réveil coûte environ 29 ms de calcul (médiane de 348 réveils sur 30 h, de 16 à 88 ms), même sans rien à faire, et même juste après des pages vues. Au banc, le même travail à chaud coûte 1 à 3 ms. Un Worker jetable (`gyro-mesure-froid`, supprimé) appelé à la minute est tombé 6 fois sur 7 sur un isolat neuf. Le coût est donc surtout le démarrage à froid (chargement et compilation de l'appli), payé à chaque réveil, qu'on ne réduit pas par le code de la tâche.
+- **Choix** : réveil toutes les dix minutes (`*/10 * * * *`, `centres/*/wrangler.jsonc`).
+  - Inchangés : annonces de 8 h et 8 h 10 (deux réveils), remplacements toutes les dix minutes (désormais à chaque réveil), météo toutes les heures, lot de 40 au réveil, lot de 20 dès le geste.
+  - Vigilance : redemandée quand elle a plus de 15 minutes, donc toutes les 20 minutes au lieu de 15 (72 appels par jour au lieu de 96). Une vigilance rouge est connue au plus tard 20 minutes après sa publication par Météo-France.
+- **Conséquences** : 144 réveils par jour au lieu de 288 : deux fois moins de calcul fixe. Chaque réveil coûte toujours autant (il reste à froid). Délai d'une notification restée en file (au-delà des 20 envoyés dès le geste) : 10 minutes au plus, puis 10 de plus par tranche de 40. Un envoi coupé repart 5 à 15 minutes plus tard (plus tôt si un geste notifie entre-temps).
+- **Validé par** : à valider par le porteur (PR #84).
