@@ -38,6 +38,8 @@ Chaque règle vérifiable est gardée par un test (`apps/web/src/formes.test.ts`
 
 **Icônes.** À l'encre, sans tuile colorée, et seulement si elles distinguent quelque chose (type, rôle, comité, ressource). Sinon un visage, une date, ou rien.
 
+**Insigne de grade.** `Insigne` (galons sur un carré noir, jetons `--insigne-*`), à côté du nom d'un agent, et seulement dans la liste des agents, sur sa fiche et dans « Comités et référents » : pas sur chaque visage ailleurs. Le grade reste écrit (alors l'insigne est `decoratif`) ; sinon l'insigne est nommé par le grade. Un grade inconnu n'en a pas ([0028](../../../docs/decisions/0028-insignes-de-grade.md)).
+
 **États.** Une information se dit une fois.
 - Un état durable : une `Pastille` (`ok`, `info`, `alerte`, `danger`, `neutre`), avec son mot.
 - Une chose à traiter : le signe `alerte` de `Rangee` (à droite), avec le fait en sous-ligne.
