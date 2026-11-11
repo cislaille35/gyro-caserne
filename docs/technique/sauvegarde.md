@@ -33,7 +33,7 @@ Workflow `.github/workflows/copie-hebdomadaire.yml`, chaque dimanche à 2 h 41 U
 
    Il refuse un cycle entre tables, qu'aucun ordre ne restaurerait, une table inconnue et toute autre instruction. Avec `--vider`, il écrit le vidage d'une base, chaque table supprimée avant celles qu'elle cite. Tests : `src/copie-restaurable.test.ts`, dont un rechargement dans SQLite avec les liens contrôlés à chaque instruction, comme D1.
 6. **Compression et chiffrement** : `gzip -9`, puis `age -a`, pour chaque clé publique de la variable. La copie en clair est effacée aussitôt.
-7. **Taille** : 4 000 000 octets au plus pour la pièce jointe chiffrée. Au-delà, le passage échoue et rien n'est envoyé. Les limites : Brevo accepte 20 Mo par e-mail et conseille 4 Mo par pièce jointe ; Gmail reçoit jusqu'à 25 Mo. La préprod fait 212 Ko de SQL.
+7. **Taille** : 4 000 000 octets au plus pour la pièce jointe chiffrée. Au-delà, le passage échoue et rien n'est envoyé. Les limites : Brevo accepte 20 Mo par e-mail et conseille 4 Mo par pièce jointe ; Gmail reçoit jusqu'à 25 Mo. La préprod fait 212 Ko de SQL, 24 Ko compressés.
 8. **Envoi** : `POST https://api.brevo.com/v3/smtp/email`, sans bibliothèque, comme l'appli (décision 0007). La clé passe par l'entrée standard de `curl`, jamais sur la ligne de commande. La réponse de Brevo n'est montrée qu'en cas de refus (code et message). La pièce jointe s'appelle `copie-<centre>-<AAAA-MM-JJ>.age.txt`, car Brevo refuse l'extension `.age`. La sortie `-a` d'age est un vrai fichier texte.
 9. **Ménage** (`if: always()`) : `$RUNNER_TEMP/copie` est effacé, même après un échec.
 
@@ -62,7 +62,8 @@ Mode d'emploi du porteur : [copie-hebdomadaire.md](../fonctionnel/copie-hebdomad
 ### Essai du 12/11/2026 (préprod, données fictives)
 
 Avec une paire de clés de test, effacée ensuite. Sur une branche jetable, supprimée ensuite :
-- l'export puis la restauration dans une base D1 jetable, neuve puis vidée et rechargée, donnent les mêmes comptes sur les 71 tables (980 lignes) ; la base jetable a été supprimée ;
+- l'export fait 212 Ko de SQL, soit 24 Ko compressés ;
+- la restauration dans une base D1 jetable, neuve puis vidée et rechargée en un seul fichier, donne les mêmes comptes sur les 71 tables (980 lignes) et les mêmes 35 compteurs AUTOINCREMENT ; la base jetable a été supprimée ;
 - sans production, le passage dit « elle n'existe pas encore, rien n'est copié » ;
 - sans clé Brevo, il échoue avant l'export.
 
