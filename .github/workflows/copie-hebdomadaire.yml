@@ -1,0 +1,192 @@
+name: Copie hebdomadaire
+
+# Chaque dimanche : la base principale de la production (pas les photos) est exportée, compressée, chiffrée pour le seul porteur (age),
+# puis envoyée par e-mail (Brevo). Rien ne reste sur GitHub : ni artefact, ni fichier, ni ligne de la base dans le journal.
+# Un échec fait échouer le passage, et GitHub prévient par courriel. Voir docs/technique/sauvegarde.md et la décision 0029.
+on:
+  schedule:
+    - cron: '41 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: Base à copier
+        type: choice
+        options: [production, preprod]
+        default: production
+
+permissions: {}
+
+concurrency:
+  group: copie-hebdomadaire
+  cancel-in-progress: false
+
+jobs:
+  copie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CIBLE: ${{ inputs.cible || 'production' }}
+      # Taille maximale de la pièce jointe : Brevo conseille 4 Mo par pièce jointe (20 Mo par e-mail), Gmail reçoit jusqu'à 25 Mo.
+      LIMITE_OCTETS: 4000000
+      AGE_ADRESSE: https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz
+      AGE_EMPREINTE: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+    steps:
+      # Tant que la cible n'a pas de centre (production pas encore créée), le passage le dit et s'arrête là, au vert.
+      - name: Centre visé
+        id: centre
+        env:
+          PRODUCTION: ${{ vars.CENTRE_PRODUCTION }}
+          PREPROD: ${{ vars.CENTRE_PREPROD }}
+        run: |
+          set -euo pipefail
+          case "$CIBLE" in
+            production) centre="$PRODUCTION" ;;
+            preprod) centre="$PREPROD" ;;
+            *) echo "::error::Cible inconnue : $CIBLE"; exit 1 ;;
+          esac
+          if [ -z "$centre" ]; then
+            message="Pas de centre pour la cible « $CIBLE » (variable CENTRE_${CIBLE^^} vide) : elle n'existe pas encore, rien n'est copié."
+            echo "::notice::$message"
+            echo "$message" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          [[ "$centre" =~ ^[a-z0-9-]+$ ]] || { echo "::error::Identifiant de centre invalide : $centre"; exit 1; }
+          mkdir -m 700 -p "$RUNNER_TEMP/copie"
+          echo "DOSSIER=$RUNNER_TEMP/copie" >> "$GITHUB_ENV"
+          echo "centre=$centre" >> "$GITHUB_OUTPUT"
+          echo "Centre : $centre ($CIBLE)"
+
+      # Avant tout export : la clé publique, le destinataire et la clé Brevo de la cible. Seule leur présence est lue ici.
+      - name: Réglages présents
+        if: steps.centre.outputs.centre != ''
+        env:
+          CLES_PRODUCTION: ${{ vars.COPIE_CLE_PUBLIQUE_PRODUCTION }}
+          CLES_PREPROD: ${{ vars.COPIE_CLE_PUBLIQUE_PREPROD }}
+          DESTINATAIRE: ${{ vars.COPIE_DESTINATAIRE }}
+          BREVO_PRODUCTION_POSEE: ${{ secrets.BREVO_CLE_PRODUCTION != '' }}
+          BREVO_PREPROD_POSEE: ${{ secrets.BREVO_CLE_PREPROD != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$CIBLE" = production ]; then cles="$CLES_PRODUCTION"; brevo="$BREVO_PRODUCTION_POSEE"; else cles="$CLES_PREPROD"; brevo="$BREVO_PREPROD_POSEE"; fi
+          manque=()
+          [ -n "${cles//[[:space:]]/}" ] || manque+=("variable COPIE_CLE_PUBLIQUE_${CIBLE^^}")
+          [ -n "$DESTINATAIRE" ] || manque+=("variable COPIE_DESTINATAIRE")
+          [ "$brevo" = true ] || manque+=("secret BREVO_CLE_${CIBLE^^}")
+          if [ ${#manque[@]} -gt 0 ]; then
+            echo "::error::Rien n'est copié : il manque $(IFS=,; echo "${manque[*]}" | sed 's/,/, /g') (Settings › Secrets and variables › Actions)."
+            exit 1
+          fi
+          for cle in $cles; do
+            [[ "$cle" =~ ^age1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}$ ]] || { echo "::error::Clé publique mal formée dans COPIE_CLE_PUBLIQUE_${CIBLE^^} : une clé age commence par « age1 » et fait 62 caractères."; exit 1; }
+          done
+          echo "CLES=$(echo $cles)" >> "$GITHUB_ENV"
+
+      - name: age
+        if: steps.centre.outputs.centre != ''
+        run: |
+          set -euo pipefail
+          cd "$DOSSIER"
+          curl -sSfL --retry 3 -o age.tar.gz "$AGE_ADRESSE"
+          echo "$AGE_EMPREINTE  age.tar.gz" | sha256sum -c --quiet
+          tar xzf age.tar.gz age/age
+          rm age.tar.gz
+          echo "$DOSSIER/age" >> "$GITHUB_PATH"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.centre.outputs.centre != ''
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: steps.centre.outputs.centre != ''
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.centre.outputs.centre != ''
+        with:
+          node-version-file: .nvmrc
+      - name: Wrangler
+        if: steps.centre.outputs.centre != ''
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+
+      # Wrangler reste muet : seules ses lignes d'erreur sont montrées si l'export échoue. Le SQL ne passe jamais dans le journal.
+      - name: Export
+        if: steps.centre.outputs.centre != ''
+        working-directory: apps/web
+        env:
+          CENTRE: ${{ steps.centre.outputs.centre }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          umask 077
+          if ! pnpm exec wrangler d1 export BASE --remote --config "../../centres/$CENTRE/wrangler.jsonc" --output "$DOSSIER/copie.sql" > "$DOSSIER/wrangler.log" 2>&1; then
+            echo "::error::L'export de la base a échoué, rien n'est envoyé. Erreur de Wrangler :"
+            grep -E 'ERROR|✘' "$DOSSIER/wrangler.log" | head -n 5 | cut -c1-300 || true
+            exit 1
+          fi
+          if ! grep -q '^CREATE TABLE' "$DOSSIER/copie.sql" || ! grep -q 'd1_migrations' "$DOSSIER/copie.sql"; then
+            echo "::error::Export vide ou incomplet, rien n'est envoyé."
+            exit 1
+          fi
+          echo "Export : $(stat -c %s "$DOSSIER/copie.sql") octets"
+
+      # La copie en clair est effacée dès qu'elle est chiffrée. Plusieurs clés publiques : chacune peut déchiffrer.
+      - name: Compression et chiffrement
+        if: steps.centre.outputs.centre != ''
+        env:
+          CENTRE: ${{ steps.centre.outputs.centre }}
+        run: |
+          set -euo pipefail
+          umask 077
+          destinataires=()
+          for cle in $CLES; do destinataires+=(-r "$cle"); done
+          nom="copie-$CENTRE-$(date -u +%F).age.txt"
+          gzip -9 -n -c "$DOSSIER/copie.sql" | age -a "${destinataires[@]}" -o "$DOSSIER/$nom"
+          rm -f "$DOSSIER/copie.sql"
+          head -n 1 "$DOSSIER/$nom" | grep -qx -- '-----BEGIN AGE ENCRYPTED FILE-----'
+          taille=$(stat -c %s "$DOSSIER/$nom")
+          echo "Copie chiffrée : $taille octets (limite : $LIMITE_OCTETS)"
+          if [ "$taille" -gt "$LIMITE_OCTETS" ]; then
+            echo "::error::La copie chiffrée fait $taille octets, au-delà de la limite de $LIMITE_OCTETS octets pour une pièce jointe. Rien n'est envoyé. Voir docs/technique/sauvegarde.md."
+            exit 1
+          fi
+          echo "NOM=$nom" >> "$GITHUB_ENV"
+          echo "TAILLE=$taille" >> "$GITHUB_ENV"
+
+      # La clé Brevo passe par l'entrée standard de curl, jamais sur la ligne de commande. La réponse n'est montrée qu'en cas de refus.
+      - name: Envoi
+        if: steps.centre.outputs.centre != ''
+        env:
+          CENTRE: ${{ steps.centre.outputs.centre }}
+          BREVO_PRODUCTION: ${{ secrets.BREVO_CLE_PRODUCTION }}
+          BREVO_PREPROD: ${{ secrets.BREVO_CLE_PREPROD }}
+          EXPEDITEUR_PRODUCTION: ${{ secrets.COURRIEL_EXPEDITEUR_PRODUCTION }}
+          EXPEDITEUR_PREPROD: ${{ secrets.COURRIEL_EXPEDITEUR_PREPROD }}
+          DESTINATAIRE: ${{ vars.COPIE_DESTINATAIRE }}
+        run: |
+          set -euo pipefail
+          umask 077
+          if [ "$CIBLE" = production ]; then cle="$BREVO_PRODUCTION"; expediteur="$EXPEDITEUR_PRODUCTION"; else cle="$BREVO_PREPROD"; expediteur="$EXPEDITEUR_PREPROD"; fi
+          expediteur="${expediteur:-$DESTINATAIRE}"
+          jour=$(date -u +%d/%m/%Y)
+          mode_emploi="https://github.com/$GITHUB_REPOSITORY/blob/main/docs/fonctionnel/copie-hebdomadaire.md"
+          jq -n \
+            --arg de "$expediteur" --arg a "$DESTINATAIRE" --arg nom "$NOM" \
+            --arg sujet "Copie de la base Gyro Caserne ($CENTRE) du $jour" \
+            --arg texte "Copie chiffrée de la base principale du centre $CENTRE, faite le $jour. Elle ne s'ouvre qu'avec la clé privée du porteur. À garder 3 mois. Mode d'emploi : $mode_emploi" \
+            --rawfile contenu <(base64 -w0 "$DOSSIER/$NOM") \
+            '{sender: {name: "Gyro Caserne", email: $de}, to: [{email: $a}], subject: $sujet, textContent: $texte, attachment: [{name: $nom, content: $contenu}]}' \
+            > "$DOSSIER/courriel.json"
+          code=$(printf 'api-key: %s\n' "$cle" | curl -sS --max-time 60 -o "$DOSSIER/reponse.json" -w '%{http_code}' \
+            -H @- -H 'content-type: application/json' -H 'accept: application/json' \
+            --data-binary @"$DOSSIER/courriel.json" https://api.brevo.com/v3/smtp/email) || code=000
+          if [ "$code" != 201 ]; then
+            echo "::error::Brevo n'a pas accepté l'envoi (HTTP $code) : $(jq -r '"\(.code // "") \(.message // "")"' "$DOSSIER/reponse.json" 2>/dev/null || echo 'pas de réponse lisible')"
+            exit 1
+          fi
+          echo "Copie envoyée : $NOM, $TAILLE octets, chiffrée." | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Ménage
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/copie"
