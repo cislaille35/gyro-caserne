@@ -501,7 +501,7 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 export type Envoi = { id: number; abonnementId: number; personneId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush; pastille: number };
 
 // Un lot réserve ses envois, puis ne les retire de la file qu'une fois partis (finirEnvois). Coupé en route (Cloudflare arrête
-// la requête), il laisse ses envois réservés : un passage suivant les reprend cinq minutes plus tard, trois fois au plus.
+// la requête), il laisse ses envois réservés : un passage suivant les reprend, cinq minutes au moins après (5 à 15 minutes avec le réveil de dix minutes), trois fois au plus.
 // Un envoi repris alors qu'il était déjà parti remplace la notification encore affichée (même `tag`), sans en ajouter une ;
 // arrivé après un plus récent du même fil, il ne le remplace pas (voir notification-recue.ts de l'appli).
 export const REPRISE_MINUTES = 5;

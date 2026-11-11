@@ -138,6 +138,13 @@ describe('Le calcul reste borné, avec 60 agents, 6 années publiées et 50 dema
 		expect(accueil.equipes).toBeLessThanOrEqual(jeu.agents * (semaines + 2));
 	});
 
+	it('ce qui n’a pas besoin des semaines ne les calcule pas ; l’accueil d’un agent, une année', async () => {
+		const { base, reglage, acteurs, m } = jeu;
+		expect((await compter(() => remplacementsDe(base, acteurs.agent, m, reglage))).annees).toBe(0);
+		expect((await compter(() => manoeuvresEchangeables(base, acteurs.agent, m, reglage))).annees).toBe(0);
+		expect((await compter(() => astreinteDe(base, acteurs.agent, m, reglage))).annees).toBe(1);
+	});
+
 	it('l’équipe d’une relève, lue sans calculer l’année : la même que celle du planning, semaine changée comprise', async () => {
 		const { base, reglage, acteurs } = jeu;
 		const { changerSemaines, anneesPubliees } = await import('../src/planning/annee.ts');

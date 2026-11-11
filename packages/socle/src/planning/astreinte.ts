@@ -34,7 +34,7 @@ export async function astreinteDe(base: Base, acteur: Acteur, maintenant: string
 	const depuis = ajouterJours(m.slice(0, 10), -15);
 	const peutAvoir = affectations.some((a) => a.fin === null || a.fin >= depuis) || plages.some((p) => p.fin > m && p.ajoutes.includes(moi));
 	// Les années publiées, dans l'ordre, calculées une à une jusqu'à trouver. La dernière semaine de l'année d'avant peut être
-	// encore en cours : elle finit au plus tard 7 jours après sa relève.
+	// encore en cours : elle finit au plus tard 7 jours après sa relève (un jour de marge).
 	const finAvant = ajouterJours(semainesDe(annee - 1, reglage).at(-1)!.debut, 8);
 	const publiees = annees.filter((a) => a.publieeLe !== null && (a.annee >= annee || m.slice(0, 10) <= finAvant)).sort((a, b) => a.annee - b.annee);
 	let courante: SemaineCalculee | undefined;

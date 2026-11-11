@@ -62,7 +62,7 @@ jobs:
             fi
             p99=$(jq '(.jour[0].quantiles.cpuTimeP99 // 0) / 1000 | round' <<< "$compte")
             if [ "$p99" -gt "$seuil" ]; then
-              echo "::error::$worker : pire temps de calcul du $jour (p99) de $p99 ms, au-delà de $seuil ms. Une page ou un réveil s'approche de la coupure (10 ms par requête sur l'offre gratuite) : chercher lequel avec le banc (décision 0021)."
+              echo "::error::$worker : pire temps de calcul du $jour (p99) de $p99 ms, au-delà de $seuil ms. Au-delà de 10 ms, chaque requête use le crédit de calcul de l'offre gratuite (environ 2 s), puis Cloudflare coupe : chercher la page ou le réveil en cause avec le banc (décision 0021)."
               lents=$((lents + 1))
             fi
           done
