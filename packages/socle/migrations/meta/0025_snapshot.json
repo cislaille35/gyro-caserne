@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a463d17d-aa52-49f4-890a-408df237cb5e",
+  "id": "83b464bc-7f47-4545-b53a-6c69c837b467",
   "prevId": "1276dbe5-c7b8-45a4-8f9b-e07f49cd1777",
   "tables": {
     "abonnement_push": {
@@ -2907,7 +2907,16 @@
           "default": "'{}'"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "journal_cible": {
+          "name": "journal_cible",
+          "columns": [
+            "cible_type",
+            "cible_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

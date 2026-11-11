@@ -402,7 +402,7 @@
 					<details class="plus" open={plusOuvert || undefined}>
 						<summary>Plus</summary>
 						<form method="POST" action={action('effacer')}>
-							<p id="effacement-avertissement"><strong>Sur demande de l'agent :</strong> son nom, son adresse, son téléphone, son contact d'urgence, sa date de naissance, son grade, ses aptitudes et son compte de connexion seront effacés pour de bon. Dans l'historique, il devient « Ancien agent ».</p>
+							<p id="effacement-avertissement"><strong>Sur demande de l'agent :</strong> son nom, son adresse e-mail, son téléphone, son grade, ses aptitudes et son compte de connexion seront effacés. C'est définitif : dans l'historique, il devient « Ancien agent ».</p>
 							<label>
 								<input
 									type="checkbox"

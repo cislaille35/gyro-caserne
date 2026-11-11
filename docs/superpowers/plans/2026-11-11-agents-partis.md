@@ -11,7 +11,7 @@
 - Parti : `personne.statut = 'parti'` (déjà là, posé par `changerStatut`, y compris depuis l'import).
 - Depuis quand : nouvelle colonne **`personne.parti_le`** (date), posée par `changerStatut` au passage à « Parti », remise à vide au retour. Un nouveau départ la repose : le délai part toujours du **dernier** départ. Le journal (`changer_statut`) le dit aussi, mais le lire chaque nuit coûterait un parcours de toute la table.
 - Effacé : nouvelle colonne **`personne.efface_le`** (date). Un agent effacé ne revient plus (`changerStatut`, `modifierFiche` refusent) ; s'il revient au centre, on lui refait une fiche.
-- **Migration `0025`, purement additive** : deux `ALTER TABLE personne ADD` sans valeur. Aucune ligne n'est touchée. Conséquence : un agent parti avant cette version n'a pas de date, et la nuit ne l'efface pas ; le chef peut l'effacer sur demande. La production part d'une base vide : elle n'est pas concernée.
+- **Migration `0025`, purement additive** : deux `ALTER TABLE personne ADD` sans valeur, et un index `journal(cible_type, cible_id)` (ajouté après la review). Aucune ligne n'est touchée. Conséquence : un agent parti avant cette version n'a pas de date, et la nuit ne l'efface pas ; le chef peut l'effacer sur demande. La production part d'une base vide : elle n'est pas concernée.
 
 ## Qui efface
 

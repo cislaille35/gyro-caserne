@@ -149,7 +149,7 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 	const moi = acteur.id;
 	const gere = await gereHabillement(base, acteur, aujourdhui);
 	const [[d], [compte], [moiMeme], ...lignes] = await base.batch([
-		base.select({ demande: demandeHabillement, prenom: personne.prenom, nom: personne.nom }).from(demandeHabillement).innerJoin(personne, eq(personne.id, demandeHabillement.demandeurId)).where(eq(demandeHabillement.id, id)),
+		base.select({ demande: demandeHabillement, prenom: personne.prenom, nom: personne.nom, statut: personne.statut }).from(demandeHabillement).innerJoin(personne, eq(personne.id, demandeHabillement.demandeurId)).where(eq(demandeHabillement.id, id)),
 		base.select({ n: sql<number>`count(*)` }).from(filHabillement).where(eq(filHabillement.demandeId, id)),
 		base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, moi)),
 		...lecturesGestionnaires(base)
@@ -207,7 +207,8 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 		: a.prisePar !== null ? [a.prisePar]
 		: quoi === 'annulation' ? []
 		: gestionnaires(lignes as LignesGestionnaires, aujourdhui).referents;
-	const prevenus = [...new Set(pourQui)].filter((x) => x !== moi);
+	// Un agent parti (ou effacé) n'est plus prévenu.
+	const prevenus = [...new Set(pourQui)].filter((x) => x !== moi && !(x === a.demandeurId && d.statut === 'parti'));
 
 	const resultats = await base.batch([
 		instruction(base, sql`INSERT INTO ${filHabillement} (demande_id, quoi, texte, par, le, jeton) SELECT ${id}, ${quoi}, ${texte || null}, ${moi}, ${maintenant}, ${jeton} FROM ${demandeHabillement} WHERE ${avant}`),

@@ -1,6 +1,7 @@
-import { and, eq, isNotNull, like, ne } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, like, ne } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { changerStatut, modifierFiche } from '../src/actions/personnes.ts';
+import { affecterEquipe, changerStatut, modifierFiche } from '../src/actions/personnes.ts';
+import { donnerAptitude } from '../src/aptitudes.ts';
 import { lirePublication } from '../src/actions/publications.ts';
 import { lireAnomalie, listerAnomalies, REGLAGE_ANOMALIES } from '../src/anomalies.ts';
 import { acteurDe } from '../src/connexion.ts';
@@ -8,15 +9,19 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { ficheAgent, listeGestion } from '../src/effectif.ts';
 import { donneesFichier } from '../src/fichier-effectif.ts';
-import { lireDemande, toutesLesDemandes } from '../src/habillement.ts';
+import { gesteHabillement, lireDemande, toutesLesDemandes } from '../src/habillement.ts';
 import { dateDEffacement, effacerAgent, effacerAgentsPartis, PARTIS_PAR_NUIT } from '../src/partis.ts';
 import { historiquePrises, lirePriseFaite } from '../src/prises.ts';
 import { demandeVue } from '../src/remplacements/lectures.ts';
+import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import {
 	abonnementPush,
 	account,
 	affectationEquipe,
 	anomalie,
+	avisHabillement,
+	avisRemplacement,
+	destinataireRemplacement,
 	aptitude,
 	aptitudeAgent,
 	attribution,
@@ -91,12 +96,12 @@ describe('effacerAgentsPartis (nuit)', () => {
 		await j.partir(douze, '2025-11-11');
 		await j.partir(presque, '2025-11-12');
 		// La nuit du 11/11/2026 : limite à 12 mois, le 11/11/2025.
-		expect(await effacerAgentsPartis(j.base, '2025-11-11', '2026-11-11')).toBe(1);
+		expect(await effacerAgentsPartis(j.base, '2025-11-11', '2026-11-11', [])).toBe(1);
 		expect(await j.lire(douze)).toMatchObject({ prenom: 'Ancien', nom: 'agent', effaceLe: '2026-11-11' });
 		expect(await j.lire(presque)).toMatchObject({ prenom: 'Paul', effaceLe: null });
 		// Le lendemain, son tour ; un effacé n'est jamais repris.
-		expect(await effacerAgentsPartis(j.base, '2025-11-12', '2026-11-12')).toBe(1);
-		expect(await effacerAgentsPartis(j.base, '2025-11-13', '2026-11-13')).toBe(0);
+		expect(await effacerAgentsPartis(j.base, '2025-11-12', '2026-11-12', [])).toBe(1);
+		expect(await effacerAgentsPartis(j.base, '2025-11-13', '2026-11-13', [])).toBe(0);
 		expect((await j.lire(douze)).effaceLe).toBe('2026-11-11');
 	});
 
@@ -109,10 +114,10 @@ describe('effacerAgentsPartis (nuit)', () => {
 		await j.partir(reparti, '2024-01-10');
 		await j.revenir(reparti, '2024-06-01');
 		await j.partir(reparti, '2026-01-10');
-		expect(await effacerAgentsPartis(j.base, '2026-01-09', '2027-01-09')).toBe(0);
+		expect(await effacerAgentsPartis(j.base, '2026-01-09', '2027-01-09', [])).toBe(0);
 		expect((await j.lire(revenu)).effaceLe).toBeNull();
 		expect((await j.lire(reparti)).effaceLe).toBeNull();
-		expect(await effacerAgentsPartis(j.base, '2026-01-10', '2027-01-10')).toBe(1);
+		expect(await effacerAgentsPartis(j.base, '2026-01-10', '2027-01-10', [])).toBe(1);
 		expect((await j.lire(reparti)).effaceLe).toBe('2027-01-10');
 		expect((await j.lire(revenu)).effaceLe).toBeNull();
 	});
@@ -121,23 +126,26 @@ describe('effacerAgentsPartis (nuit)', () => {
 		const j = await jeu();
 		const id = await j.ajouter('ancien@exemple.fr');
 		await j.base.update(personne).set({ statut: 'parti' }).where(eq(personne.id, id));
-		expect(await effacerAgentsPartis(j.base, '2030-01-01', '2031-01-01')).toBe(0);
+		expect(await effacerAgentsPartis(j.base, '2030-01-01', '2031-01-01', [])).toBe(0);
 	});
 
 	it(`borne : ${PARTIS_PAR_NUIT} agents par nuit, le reste la nuit suivante, peu de requêtes`, async () => {
 		const j = await jeu();
 		for (let i = 0; i < PARTIS_PAR_NUIT + 2; i++) await j.partir(await j.ajouter(`a${i}@exemple.fr`), '2025-01-01');
 		const avant = j.base.requetes;
-		expect(await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01')).toBe(PARTIS_PAR_NUIT);
+		expect(await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01', [])).toBe(PARTIS_PAR_NUIT);
 		expect(j.base.requetes - avant).toBeLessThanOrEqual(2 + PARTIS_PAR_NUIT);
 		expect(j.base.parametresMax).toBeLessThanOrEqual(100);
-		expect(await effacerAgentsPartis(j.base, '2026-01-02', '2027-01-02')).toBe(2);
+		expect(await effacerAgentsPartis(j.base, '2026-01-02', '2027-01-02', [])).toBe(2);
+		// Ses lignes du journal se lisent par l'index, sans parcourir tout le journal.
+		const lecture = j.base.jouees.find((r) => r.sql.startsWith('select') && r.sql.includes('from "journal"'))!;
+		expect(j.base.plan(lecture).join(' ')).toContain('journal_cible');
 	});
 
 	it('rien à effacer : une seule requête', async () => {
 		const j = await jeu();
 		const avant = j.base.requetes;
-		expect(await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01')).toBe(0);
+		expect(await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01', [])).toBe(0);
 		expect(j.base.requetes - avant).toBe(1);
 	});
 });
@@ -171,7 +179,7 @@ describe('ce qui est effacé, ce qui est gardé', () => {
 		const [abo] = await base.insert(abonnementPush).values({ personneId: id, endpoint: 'https://push/1', p256dh: 'p', auth: 'a', creeLe: '2025-01-01' }).returning();
 		await base.insert(envoiPush).values({ abonnementId: abo!.id, donnees: '{}', creeLe: '2025-01-01' });
 
-		await effacerAgentsPartis(base, '2026-01-01', '2027-01-01');
+		await effacerAgentsPartis(base, '2026-01-01', '2027-01-01', []);
 
 		const p = await j.lire(id);
 		expect(p).toMatchObject({ prenom: 'Ancien', nom: 'agent', email: `efface-${id}@efface.invalid`, surnom: null, photo: null, telephone: null, telephoneVisible: 0, naissance: null, anniversaireVisible: 0, contactUrgence: null, entreeCentre: null, engagementSpv: null, gradeId: null, dateGrade: null, statut: 'parti', partiLe: '2025-01-01', effaceLe: '2027-01-01' });
@@ -201,17 +209,31 @@ describe('ce qui est effacé, ce qui est gardé', () => {
 			{ id: 'u2', name: 'Paul', email: 'paul.d@exemple.fr' }
 		]);
 		await j.partir(id, '2025-01-01');
-		await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01');
+		await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01', []);
 		expect((await j.base.select().from(user)).map((u) => u.id)).toEqual(['u1']);
+	});
+
+	it('une adresse de super administrateur (actuelle ou ancienne) : son compte reste, la fiche est quand même effacée', async () => {
+		const j = await jeu();
+		const id = await j.ajouter('chef.ancien@exemple.fr');
+		await modifierFiche(j.base, superAdmin, id, { email: 'paul.d@exemple.fr' }, '2024-06-01', []);
+		await j.base.insert(user).values({ id: 'u1', name: 'Super', email: 'chef.ancien@exemple.fr' });
+		await j.partir(id, '2025-01-01');
+		await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01', ['Chef.Ancien@exemple.fr']);
+		expect((await j.base.select().from(user)).map((u) => u.id)).toEqual(['u1']);
+		expect((await j.lire(id)).effaceLe).toBe('2027-01-01');
 	});
 
 	it('un agent effacé ne revient pas et sa fiche ne se modifie plus ; il sort de la liste et du fichier', async () => {
 		const j = await jeu();
 		const id = await j.ajouter('paul@exemple.fr');
 		await j.partir(id, '2025-01-01');
-		await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01');
+		await effacerAgentsPartis(j.base, '2026-01-01', '2027-01-01', []);
 		await expect(j.revenir(id, '2027-01-02')).rejects.toThrow(new DonneeInvalide('Agent effacé'));
 		await expect(modifierFiche(j.base, superAdmin, id, { prenom: 'Paul' }, '2027-01-02', [])).rejects.toThrow(new DonneeInvalide('Agent effacé'));
+		await expect(affecterEquipe(j.base, superAdmin, id, j.equipeId, '2027-01-02', '2027-01-02')).rejects.toThrow(new DonneeInvalide('Agent effacé'));
+		const [apt] = await j.base.insert(aptitude).values({ nom: 'SAP', ordre: 1 }).returning();
+		await expect(donnerAptitude(j.base, superAdmin, id, { aptitudeId: apt!.id, obtenueLe: '2027-01-01', expireLe: null }, '2027-01-02T10:00')).rejects.toThrow(new DonneeInvalide('Agent effacé'));
 		const liste = await listeGestion(j.base, superAdmin, {}, '2027-01-02');
 		expect(liste.groupes.flatMap((g) => g.personnes.map((p) => p.id))).not.toContain(id);
 		expect(liste.comptes.partis).toBe(0);
@@ -312,5 +334,27 @@ describe('l’historique sous « Ancien agent »', () => {
 		const toutes = await toutesLesDemandes(base, superAdmin, m.slice(0, 10));
 		expect(toutes.enCours.some((d) => d.id === hab!.id)).toBe(true);
 		sansAnciens(await lireDemande(base, superAdmin, hab!.id, m));
+		// Le référent la prend, pose une question, la traite et la livre : aucun avis ni envoi pour l'effacé.
+		const plusTard = (min: number) => `${m.slice(0, 11)}${String(10 + min).padStart(2, '0')}:30`;
+		await gesteHabillement(base, acteurs.chef, hab!.id, { quoi: 'prendre' }, plusTard(1));
+		await gesteHabillement(base, acteurs.chef, hab!.id, { quoi: 'question', texte: 'Quelle taille ?' }, plusTard(2));
+		await gesteHabillement(base, acteurs.chef, hab!.id, { quoi: 'traiter', issue: 'stock', texte: 'En stock' }, plusTard(3));
+		await gesteHabillement(base, acteurs.chef, hab!.id, { quoi: 'livrer', texte: 'Au vestiaire' }, plusTard(4));
+		expect(await base.select().from(avisHabillement).where(eq(avisHabillement.personneId, hab!.demandeurId))).toEqual([]);
+		sansAnciens(await lireDemande(base, superAdmin, hab!.id, plusTard(5)));
+	});
+
+	it('une demande de remplacement ouverte à tous, dont un destinataire est effacé : relance et expiration passent', { timeout: 60_000 }, async () => {
+		const { base, m } = await jeuGrossi();
+		const [ouverte] = await base.select().from(demandeRemplacement).where(and(eq(demandeRemplacement.etat, 'attente'), isNull(demandeRemplacement.cibleId)));
+		const [dest] = await base.select().from(destinataireRemplacement).where(and(eq(destinataireRemplacement.demandeId, ouverte!.id), ne(destinataireRemplacement.personneId, ouverte!.demandeurId)));
+		await changerStatut(base, base.photos, superAdmin, dest!.personneId, 'parti', m);
+		await effacerAgent(base, superAdmin, dest!.personneId, m, []);
+		// La veille du début (relance), puis à son début (expiration).
+		const veille = `${new Date(Date.parse(`${ouverte!.debut.slice(0, 10)}T00:00Z`) - 864e5).toISOString().slice(0, 10)}T10:00`;
+		await remplacementsDuMoment(base, veille);
+		await remplacementsDuMoment(base, ouverte!.debut);
+		expect((await base.select().from(demandeRemplacement).where(eq(demandeRemplacement.id, ouverte!.id)))[0]!.etat).not.toBe('attente');
+		expect(await base.select().from(avisRemplacement).where(eq(avisRemplacement.personneId, dest!.personneId))).toEqual([]);
 	});
 });

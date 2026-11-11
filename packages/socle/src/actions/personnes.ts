@@ -281,8 +281,9 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 	exigerDate(aujourdhui);
 	exigerDate(debut);
 	await exiger(base, acteur, centre, aujourdhui);
-	const [fiche] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
+	const [fiche] = await base.select({ id: personne.id, effaceLe: personne.effaceLe }).from(personne).where(eq(personne.id, personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
+	if (fiche.effaceLe !== null) throw new DonneeInvalide('Agent effacé');
 	await exigerProtection(base, acteur, personneId, aujourdhui, REFUS_EQUIPE);
 	const [uneEquipe] = await base.select().from(equipe).where(eq(equipe.id, equipeId));
 	if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');

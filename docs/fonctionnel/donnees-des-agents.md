@@ -17,8 +17,9 @@ Un agent revenu avant 12 mois n'est jamais effacé. S'il repart, les 12 mois com
 ## Ce qui est effacé, ce qui reste
 
 - **Effacé** : nom et prénom, adresse e-mail (toutes celles qu'il a eues), téléphone, contact d'urgence, date de naissance, surnom, grade et dates (nomination, entrée au centre, engagement), champs du centre, aptitudes, compte de connexion, appareils et notifications. Il ne peut plus se connecter ni recevoir de courriel.
-- **Reste, sous « Ancien agent »** : ses publications et commentaires, ses messages, ses demandes de remplacement et d'habillement, ses prises de garde, ses anomalies, ses réponses de l'été, ses équipes et rôles passés. Les liens et les pages marchent comme avant. Chacun de ces éléments part ensuite à sa propre échéance (publications 24 mois, habillement 24 mois après la fin, réservations 12 mois, messages selon le centre).
-- Une demande d'habillement encore ouverte reste traitable par le référent : elle s'affiche « Ancien agent ».
+- **Reste, sous « Ancien agent »** : ses publications et commentaires, ses messages, ses demandes de remplacement et d'habillement, ses prises de garde, ses anomalies, ses réponses et vacances de l'été (pour l'équité des étés suivants), ses équipes et rôles passés. Les liens et les pages marchent comme avant. Chacun de ces éléments part ensuite à sa propre échéance (publications 24 mois, habillement 24 mois après la fin, réservations 12 mois, messages selon le centre).
+- Une demande d'habillement encore ouverte reste traitable par le référent : elle s'affiche « Ancien agent », et l'agent parti n'est plus prévenu.
+- Les notifications déjà reçues par les autres agents peuvent citer son nom : elles partent d'elles-mêmes au bout de 30 jours. Cela ne compte que pour un effacement sur demande ; à 12 mois, elles sont parties depuis longtemps.
 
 ## Qui efface sur demande
 

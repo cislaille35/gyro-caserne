@@ -191,15 +191,20 @@ export const attribution = sqliteTable(
 	]
 );
 
-export const journal = sqliteTable('journal', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
-	quand: text('quand').notNull(),
-	acteur: text('acteur').notNull(),
-	action: text('action').notNull(),
-	cibleType: text('cible_type').notNull(),
-	cibleId: integer('cible_id'),
-	details: text('details').notNull().default('{}')
-});
+export const journal = sqliteTable(
+	'journal',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		quand: text('quand').notNull(),
+		acteur: text('acteur').notNull(),
+		action: text('action').notNull(),
+		cibleType: text('cible_type').notNull(),
+		cibleId: integer('cible_id'),
+		details: text('details').notNull().default('{}')
+	},
+	// L'effacement d'un agent (partis.ts) relit ses lignes sans parcourir tout le journal.
+	(t) => [index('journal_cible').on(t.cibleType, t.cibleId)]
+);
 
 // Dernier lien de connexion envoyé à chaque adresse : un lien par minute au plus.
 export const envoiLien = sqliteTable('envoi_lien', {

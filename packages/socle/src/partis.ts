@@ -25,8 +25,9 @@ const adresseEffacee = (id: number) => `efface-${id}@efface.invalid`;
 type Partie = { id: number; email: string };
 
 // Toutes les adresses qu'a eues chaque agent (l'actuelle, et celles du journal : ajout, changements), sauf celles qu'une autre
-// fiche porte aujourd'hui : son compte de connexion et ses liens peuvent être restés sous une ancienne adresse. Une requête.
-async function adressesDe(base: Base, parties: Partie[]): Promise<Map<number, string[]>> {
+// fiche porte aujourd'hui ou qui est réservée à un super administrateur : son compte de connexion et ses liens peuvent être
+// restés sous une ancienne adresse. Une requête.
+async function adressesDe(base: Base, parties: Partie[], adressesReservees: string[]): Promise<Map<number, string[]>> {
 	const ids = parties.map((p) => p.id);
 	const [lignes, autres] = await base.batch([
 		base
@@ -35,7 +36,7 @@ async function adressesDe(base: Base, parties: Partie[]): Promise<Map<number, st
 			.where(and(eq(journal.cibleType, 'personne'), inArray(journal.cibleId, ids), sql`json_extract(${journal.details}, '$.email') IS NOT NULL`)),
 		base.select({ email: personne.email }).from(personne).where(notInArray(personne.id, ids))
 	]);
-	const prises = new Set(autres.map((a) => a.email));
+	const prises = new Set([...autres.map((a) => a.email), ...adressesReservees.map(normaliserAdresse)]);
 	const parAgent = new Map(parties.map((p) => [p.id, new Set([p.email])]));
 	for (const l of lignes) {
 		const email = (JSON.parse(l.details) as { email: string | { avant: string; apres: string } }).email;
@@ -73,7 +74,7 @@ function effacement(base: Base, p: Partie, adresses: string[], acteur: string, a
 
 // Tâche de nuit : efface les agents partis le jour `limite` ou avant (AAAA-MM-JJ, 12 mois plus tôt), jamais un agent revenu
 // (sa date de départ est vide). 10 au plus par nuit, le reste la nuit suivante : deux lectures, puis un batch par agent. Rend le nombre effacé.
-export async function effacerAgentsPartis(base: Base, limite: string, aujourdhui: string): Promise<number> {
+export async function effacerAgentsPartis(base: Base, limite: string, aujourdhui: string, adressesReservees: string[]): Promise<number> {
 	exigerDate(limite);
 	exigerDate(aujourdhui);
 	const parties = await base
@@ -83,7 +84,7 @@ export async function effacerAgentsPartis(base: Base, limite: string, aujourdhui
 		.orderBy(asc(personne.partiLe), asc(personne.id))
 		.limit(PARTIS_PAR_NUIT);
 	if (parties.length === 0) return 0;
-	const adresses = await adressesDe(base, parties);
+	const adresses = await adressesDe(base, parties, adressesReservees);
 	for (const p of parties) await base.batch(effacement(base, p, adresses.get(p.id)!, 'nuit', aujourdhui));
 	return parties.length;
 }
@@ -99,6 +100,6 @@ export async function effacerAgent(base: Base, acteur: Acteur, personneId: numbe
 	if (adressesReservees.map(normaliserAdresse).includes(p.email)) throw new DonneeInvalide('Adresse réservée au super administrateur');
 	if (p.effaceLe !== null) throw new DonneeInvalide('Agent déjà effacé');
 	if (p.statut !== 'parti') throw new DonneeInvalide('Déclarez d’abord son départ');
-	const adresses = await adressesDe(base, [p]);
+	const adresses = await adressesDe(base, [p], adressesReservees);
 	await base.batch(effacement(base, p, adresses.get(p.id)!, acteur.type === 'super' ? `super:${acteur.email}` : `personne:${acteur.id}`, aujourdhui));
 }

@@ -14,7 +14,7 @@ export function limiteDeConservation(quand: Date, mois: number): string {
 	return vise.toISOString().slice(0, 10);
 }
 
-type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: string };
+type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: string; SUPER_ADMINS?: string };
 
 // Les notifications du fil sont gardées 30 jours.
 const CONSERVATION_NOTIFICATIONS_JOURS = 30;
@@ -68,7 +68,8 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerVieillesNotifications(base, notifications),
 					effacerVieillesReservations(base, reservations),
 					effacerVieillesDemandes(base, habillement),
-					effacerAgentsPartis(base, limiteDeConservation(quand, CONSERVATION_PARTIS_MOIS), aujourdhuiParis(quand)),
+					// Les adresses des super administrateurs (séparées par des virgules) : leur compte n'est jamais touché.
+					effacerAgentsPartis(base, limiteDeConservation(quand, CONSERVATION_PARTIS_MOIS), aujourdhuiParis(quand), (env.SUPER_ADMINS ?? '').split(',').map((a) => a.trim()).filter(Boolean)),
 					// Les octets de PHOTOS que plus rien ne référence (un effacement raté) : une tranche par nuit.
 					effacerPhotosOrphelines(base, photos, maintenantParis(quand))
 				])

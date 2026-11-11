@@ -43,10 +43,15 @@ describe('avecPlanifie', () => {
 		// Les demandes d'habillement finies depuis plus de 24 mois.
 		expect(vi.mocked(effacerVieillesDemandes).mock.calls[0]![1]).toBe('2024-10-29');
 		// Les agents partis depuis 12 mois (ce jour-là compris) : leurs données sont effacées, datées du jour à Paris.
-		expect(vi.mocked(effacerAgentsPartis).mock.calls[0]!.slice(1)).toEqual(['2025-10-29', '2026-10-29']);
+		expect(vi.mocked(effacerAgentsPartis).mock.calls[0]!.slice(1)).toEqual(['2025-10-29', '2026-10-29', []]);
 		// Le ménage des photos orphelines, à l'heure de Paris.
 		expect(vi.mocked(effacerPhotosOrphelines).mock.calls[0]![2]).toBe('2026-10-29T04:30:00');
 		expect(envoyerLot).not.toHaveBeenCalled();
+	});
+
+	it('l’effacement des partis ne touche jamais au compte d’un super administrateur : il reçoit leurs adresses', async () => {
+		await lancer('30 3 * * *', '2026-10-29T03:30:00Z', { SUPER_ADMINS: ' a@b.fr, c@d.fr ,' });
+		expect(vi.mocked(effacerAgentsPartis).mock.calls[0]![3]).toEqual(['a@b.fr', 'c@d.fr']);
 	});
 
 	it('à chaque réveil (toutes les dix minutes) : un lot d’envois au téléphone, filet des envois ratés, avec les clés VAPID du centre (nulles sans secrets)', async () => {
