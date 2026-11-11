@@ -19,6 +19,7 @@ Pour écrire un écran : regarder d'abord un écran modèle (en bas), suivre les
 - La tuile de date (jour, numéro, mois).
 - Gyro, seulement sur l'accueil, la connexion, les écrans vides et les réussites.
 - Les couleurs d'équipe, qui viennent du centre (`centres/<id>/centre.ts`), avec le texte noir ou blanc choisi par `encreSur`.
+- L'écusson du centre, s'il en a déposé un (Réglages) : à la connexion, au-dessus du titre, et en petit dans l'en-tête, devant le nom du centre. Nulle part ailleurs, jamais dans le dépôt ([0027](../../../docs/decisions/0027-ecusson-du-centre.md)). Sans écusson, l'en-tête et la connexion restent tels quels.
 
 ## Les règles
 

@@ -24,6 +24,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Fêtes de Gyro et actualisation | [fetes-et-actualisation.md](fetes-et-actualisation.md) |
 | Météo et vigilance | [meteo-et-vigilance.md](meteo-et-vigilance.md) |
 | Affichage | [affichage.md](affichage.md) |
+| Écusson du centre | [ecusson-du-centre.md](ecusson-du-centre.md) |
 
 ## Ce qui est livré
 

@@ -50,6 +50,7 @@ Format d'une page :
 - [Comment saisir les aptitudes d'un agent ?](saisir-les-aptitudes.md)
 - [Comment ajouter un engin ou un engin prêté ?](ajouter-un-engin.md)
 - [Comment régler l'armement des engins ?](regler-l-armement-des-engins.md)
+- [Comment mettre l'écusson du centre ?](mettre-l-ecusson-du-centre.md)
 - [Comment modifier la fiche de prise de garde d'un engin ?](modifier-une-fiche-de-prise-de-garde.md)
 - [Comment faire la prise de garde d'un engin ?](faire-la-prise-de-garde.md)
 - [Comment signaler un problème sur un engin ?](signaler-un-probleme.md)
