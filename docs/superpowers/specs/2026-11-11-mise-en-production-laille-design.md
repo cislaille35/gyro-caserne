@@ -1,6 +1,6 @@
 # Mise en production au CIS de Laillé
 
-Cadré avec le porteur le 11/11/2026.
+Cadré avec le porteur le 11/11/2026. **Validé par le porteur le 11/11/2026.**
 
 ## Pourquoi
 
@@ -47,6 +47,7 @@ Installer un centre **jetable** sur le compte Cloudflare de Laillé, en suivant 
 Le porteur fournit : les plannings annuels 2025 et 2026, le planning d'été passé, et **à part** les adresses e-mail des agents avec leur grade. **Ces fichiers arrivent avant la répétition générale** (choix de Claude) : leur structure sert à fabriquer les copies fictives de l'étape 1 ; ils sont traités comme à l'étape 2 dès leur arrivée.
 - Claude les lit, les convertit au **format d'import de l'appli** (fichier de l'effectif, fichier du planning : feuilles Semaines, Manœuvres, Vacances, Été), et liste ce qui manque (adresse, grade, équipe, aptitude…). Porteur et Claude complètent ensemble.
 - Un agent sans adresse est signalé : il ne peut pas se connecter tant qu'elle manque.
+- Les plannings du porteur contiennent aussi **les manœuvres et leurs thèmes** : à extraire vers la feuille « Manœuvres » du fichier du planning (manière à discuter avec le porteur à réception des fichiers).
 - **Traitement des fichiers** : sur la machine de développement uniquement, dans un dossier à part **hors de tout dépôt**, droits limités à l'utilisateur ; jamais dans GitHub ; effacés de la machine une fois importés et vérifiés (avec les copies déposées dans la conversation). Les fichiers déposés dans la conversation passent aussi par les serveurs d'Anthropic : le porteur le sait.
 - **Données minimales** : nom, prénom, adresse e-mail, équipe, grade, aptitudes, rôles et comités. Téléphone et contact d'urgence restent facultatifs, remplis par l'agent lui-même s'il le veut (choix de Claude). Date de naissance : facultative, ajoutée par l'agent pour son anniversaire.
 - **Dates d'entrée et de grade** (décision du porteur) : tout le monde entre en **2025** dans le fichier, chacun ajustera ensuite ; le porteur fournit à part un fichier **adresse e-mail + grade**.
