@@ -6,10 +6,10 @@ import Page from './+page.svelte';
 const page = (ecusson: number | null, form: unknown = null) => render(Page as any, { props: { data: { ecusson }, form } }).body.replace(/<!--[^>]*-->/g, '');
 
 describe('Écusson du centre', () => {
-	it('sans écusson : le champ d’image (JPEG ou WebP, 200 Ko) et « Enregistrer l’écusson », rien à retirer', () => {
+	it('sans écusson : le champ d’image (JPEG, WebP ou PNG) et « Enregistrer l’écusson », rien à retirer', () => {
 		const html = page(null);
 		expect(html).toContain('Image de l’écusson');
-		expect(html).toContain('JPEG ou WebP, 200 Ko au plus');
+		expect(html).toContain('JPEG, WebP ou PNG');
 		expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Enregistrer l’écusson/);
 		expect(html).not.toContain('/ecusson?v=');
 		expect(html).not.toContain('Retirer');

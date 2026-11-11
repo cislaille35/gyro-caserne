@@ -59,7 +59,7 @@
 		<IconeRole {icone} {dessin} taille={40} />
 	{/if}
 	<div class="corps">
-		{#if href && !lien}<a class="titre etire" {href}>{titre}</a>{:else}<span class="titre">{titre}{#if grade}<Insigne {grade} />{/if}</span>{/if}
+		{#if href && !lien}<a class="titre etire" {href}>{titre}{#if grade}<Insigne {grade} />{/if}</a>{:else}<span class="titre">{titre}{#if grade}<Insigne {grade} />{/if}</span>{/if}
 		{#if sousContenu}<span class="sous">{@render sousContenu()}</span>{:else}{#each [sous ?? []].flat().filter(Boolean) as ligne, i (i)}<span class="sous">{ligne}</span>{/each}{/if}
 		{#if children}<div class="inclus">{@render children()}</div>{/if}
 	</div>

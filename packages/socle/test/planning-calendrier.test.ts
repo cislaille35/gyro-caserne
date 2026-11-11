@@ -73,6 +73,14 @@ describe('équipes de l’année', () => {
 		expect(annee[0]!.changee).toBe(false);
 	});
 
+	it('restreinte à une période (l’été) : les mêmes semaines que l’année entière, roulement et semaines changées compris', () => {
+		const changees = new Map([['2026-07-10', 15]]);
+		const ete = { debut: '2026-06-26', fin: '2026-09-04' };
+		const toute = calculerAnnee(2026, laille, ordre, changees).filter((s) => s.debut >= ete.debut && s.debut < ete.fin);
+		expect(toute.length).toBeGreaterThan(8);
+		expect(calculerAnnee(2026, laille, ordre, changees, ete)).toEqual(toute);
+	});
+
 	it('Noël et Nouvel An : l’équipe d’astreinte le 25 à midi et le 31 au soir', () => {
 		const annee = calculerAnnee(2026, laille, ordre, new Map());
 		// Semaine du 18 décembre (index 50) : 50 % 4 = 2 ; semaine du 25 décembre : 3

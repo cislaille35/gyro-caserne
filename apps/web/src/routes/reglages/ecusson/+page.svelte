@@ -2,14 +2,14 @@
 	import centre from '$centre';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
-	import { reduirePhoto } from '#lib/murs/reduire-photo.ts';
+	import { reduireEcusson } from '#lib/murs/reduire-photo.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
 	import ChampPhoto from '#lib/ui/ChampPhoto.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 
 	let { data, form } = $props();
 
-	// Une image déjà en JPEG ou WebP de 200 Ko au plus part telle quelle (un WebP garde son fond transparent) ; sinon, réduite en JPEG.
+	// Une image déjà en JPEG ou WebP de 200 Ko au plus part telle quelle ; une autre (un PNG transparent) est refaite en WebP.
 	const TAILLE_MAX = 200 * 1024;
 	let champ = $state<HTMLInputElement>();
 	let erreurLocale = $state('');
@@ -19,7 +19,10 @@
 		const f = formData.get('image');
 		if (f instanceof File && f.size > 0 && !(['image/jpeg', 'image/webp'].includes(f.type) && f.size <= TAILLE_MAX)) {
 			try {
-				formData.set('image', await reduirePhoto(f), 'ecusson.jpg');
+				{
+					const b = await reduireEcusson(f);
+					formData.set('image', b, b.type === 'image/webp' ? 'ecusson.webp' : 'ecusson.jpg');
+				}
 			} catch (e) {
 				erreurLocale = e instanceof Error ? `${e.message}.` : 'Image illisible.';
 				cancel();
@@ -58,7 +61,7 @@
 	{/if}
 
 	<form method="POST" action="?/deposer" enctype="multipart/form-data" class="carte" use:enhance={surEnvoi}>
-		<ChampPhoto bind:champ id="ecusson-image" name="image" libelle={data.ecusson === null ? 'Image de l’écusson' : 'Nouvelle image'} aide="JPEG ou WebP, 200 Ko au plus. Un WebP garde son fond transparent." appel="Choisir une image" accept="image/jpeg,image/webp,image/*" {erreur} />
+		<ChampPhoto bind:champ id="ecusson-image" name="image" libelle={data.ecusson === null ? 'Image de l’écusson' : 'Nouvelle image'} aide="JPEG, WebP ou PNG. Une image trop lourde ou en PNG est réduite avant l’envoi, en gardant son fond transparent." appel="Choisir une image" accept="image/jpeg,image/webp,image/*" {erreur} />
 		<Bouton type="submit" desactive={envoi}>{data.ecusson === null ? 'Enregistrer l’écusson' : 'Remplacer l’écusson'}</Bouton>
 	</form>
 

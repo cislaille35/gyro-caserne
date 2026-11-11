@@ -6,7 +6,7 @@ N'utilisez un écusson que si le centre a le droit de le montrer (celui du SDIS 
 
 1. Ouvrez l'onglet « Caserne », puis « Réglages ».
 2. Sous « Listes du centre », appuyez sur « Écusson du centre ».
-3. Appuyez sur « Choisir une image » : un JPEG ou un WebP de 200 Ko au plus. Un WebP garde son fond transparent ; une image plus lourde est réduite en JPEG.
+3. Appuyez sur « Choisir une image » : un JPEG, un WebP ou un PNG. Une image lourde ou en PNG est réduite avant l'envoi, en gardant son fond transparent.
 4. Appuyez sur « Enregistrer l'écusson ». Le message « Écusson enregistré. » apparaît, avec un aperçu.
 
 L'écusson s'affiche sur la page de connexion et, en petit, dans l'en-tête à côté du nom du centre.

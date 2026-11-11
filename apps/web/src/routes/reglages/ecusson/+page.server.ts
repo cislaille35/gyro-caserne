@@ -25,7 +25,7 @@ const ERREURS: Record<string, string> = {
 export const actions: Actions = {
 	deposer: async ({ locals, request }) => {
 		const cible = 'ecusson';
-		const { acteur, base } = await accesReglages(locals, aujourdhuiParis());
+		const { acteur, base } = await acces(locals);
 		const fichier = (await request.formData()).get('image');
 		if (!(fichier instanceof File) || fichier.size === 0) return fail<Reponse>(400, { cible, erreurs: { image: 'Choisissez une image.' } });
 		try {
@@ -38,7 +38,7 @@ export const actions: Actions = {
 	},
 	retirer: async ({ locals, request }) => {
 		const cible = 'retirer';
-		const { acteur, base } = await accesReglages(locals, aujourdhuiParis());
+		const { acteur, base } = await acces(locals);
 		if (texte(await request.formData(), 'confirmation') !== 'oui') return manque(cible, 'Cochez « Je confirme » pour continuer.');
 		try {
 			await retirerEcusson(base, locals.basePhotos, acteur, maintenantParis());

@@ -8,7 +8,7 @@ Qui gère les listes du centre (droit `GERER_LISTES` sur le centre : chef de cen
 
 ## Comment
 
-Réglages → « Écusson du centre » : déposer une image (JPEG ou WebP, 200 Ko au plus, comme les photos), la remplacer, ou la retirer (sous « Plus », avec « Je confirme »). Un aperçu montre l'écusson et l'en-tête tel que les agents le verront.
+Réglages → « Écusson du centre » : déposer une image (JPEG, WebP ou PNG). Elle est rangée en JPEG ou WebP de 200 Ko au plus, comme les photos : une image plus lourde ou en PNG est refaite dans le navigateur en WebP de 512 px, qui garde le fond transparent (sur un navigateur qui ne sait pas écrire de WebP, en JPEG sur fond blanc), la remplacer, ou la retirer (sous « Plus », avec « Je confirme »). Un aperçu montre l'écusson et l'en-tête tel que les agents le verront.
 
 ## Ce qu'il faut savoir
 
