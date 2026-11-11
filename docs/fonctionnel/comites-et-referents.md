@@ -17,7 +17,7 @@ Savoir à qui s'adresser : qui est dans quel comité, qui est référent de quoi
 - « Chefs de garde », une ligne par équipe active ;
 - « Référents » (pharmacie, engins, habillement, technique…), chacun avec son icône.
 
-Chaque rôle montre ses titulaires du jour, ou « Personne pour l'instant ». Les droits techniques ne sont pas affichés.
+Chaque rôle montre ses titulaires du jour, ou « Personne pour l'instant ». Chaque nom porte l'insigne de son grade, lu par les lecteurs d'écran (« Sergent ») ; rien pour un agent sans grade ou d'un grade sans insigne. Les droits techniques ne sont pas affichés.
 
 **« Écrire »**, à côté de chaque membre et de chaque titulaire, ouvre la conversation à deux avec la personne dans Messages (comme « Message » sur la fiche d'un agent). Il n'y est pas à côté de son propre nom, ni quand l'un des deux n'a pas la messagerie (le super administrateur, un agent dont le profil ne la donne pas). Un rôle à plusieurs titulaires montre un « Écrire à … » par titulaire.
 

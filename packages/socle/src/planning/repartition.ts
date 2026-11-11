@@ -83,9 +83,19 @@ async function exigerGestion(base: Base, acteur: Acteur, maintenant: string) {
 	return aujourdhui;
 }
 
-// Tout ce qu'il faut pour l'été d'une année, lu d'un bloc.
-async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: Reglage) {
-	const [[lignesEte, lignesAnnee, changees, agents, affectations, aptitudes, vacances, reponses, plages, equipes, conclues], fpt] = await Promise.all([
+// Le reste de l'été : les vacances, les réponses, les équipes, les remplacements conclus.
+const lecturesDuReste = (base: Base, annee: number) =>
+	[
+		base.select().from(vacancesAgent).where(eq(vacancesAgent.annee, annee)).orderBy(asc(vacancesAgent.debut)),
+		base.select().from(reponseEte).where(eq(reponseEte.annee, annee)),
+		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation)),
+		requeteConclues(base, `${annee}-01-01`, `${annee}-12-31`)
+	] as const;
+
+// Tout ce qu'il faut pour l'été d'une année, lu d'un bloc. `toutLEte` faux : seulement ce que demande le compte des plages à revoir
+// (l'accueil du chef), sans les vacances, les réponses, les équipes ni les remplacements conclus.
+async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: Reglage, toutLEte = true) {
+	const [[lignesEte, lignesAnnee, changees, agents, affectations, aptitudes, plages, vacances = [], reponses = [], equipes = [], conclues = []], fpt] = await Promise.all([
 		base.batch([
 			base.select().from(ete).where(eq(ete.annee, annee)),
 			base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)),
@@ -93,17 +103,14 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 			base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, statut: personne.statut }).from(personne).where(inArray(personne.statut, [...STATUTS_AVEC_ACCES])),
 			base.select({ personneId: affectationEquipe.personneId, equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe),
 			base.select({ personneId: aptitudeAgent.personneId, aptitudeId: aptitudeAgent.aptitudeId, obtenueLe: aptitudeAgent.obtenueLe, expireLe: aptitudeAgent.expireLe }).from(aptitudeAgent).innerJoin(aptitude, eq(aptitude.id, aptitudeAgent.aptitudeId)).where(isNull(aptitude.retireeLe)),
-			base.select().from(vacancesAgent).where(eq(vacancesAgent.annee, annee)).orderBy(asc(vacancesAgent.debut)),
-			base.select().from(reponseEte).where(eq(reponseEte.annee, annee)),
 			base.select().from(plageEte).where(eq(plageEte.annee, annee)).orderBy(asc(plageEte.debut)),
-			base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation)),
-			requeteConclues(base, `${annee}-01-01`, `${annee}-12-31`)
+			...(toutLEte ? lecturesDuReste(base, annee) : ([] as unknown as ReturnType<typeof lecturesDuReste>))
 		]),
 		lireArmement(base)
 	]);
 	const e = lignesEte[0] ? vueEte(lignesEte[0]) : null;
-	const semaines = lignesAnnee[0] ? semainesCalculees(annee, lignesAnnee[0].ordre, changees, reglage) : [];
-	const lesSemaines = e ? semaines.filter((s) => s.debut >= e.debut && s.debut < e.fin) : [];
+	// Seules les semaines de l'été sont calculées.
+	const lesSemaines = e && lignesAnnee[0] ? semainesCalculees(annee, lignesAnnee[0].ordre, changees, reglage, e) : [];
 	const plagesEte: PlageEte[] = lesSemaines.flatMap((s) => tranchesDe(s.periodes, reglage).map((t) => ({ ...t, semaine: s.debut, equipeId: s.equipeId })));
 	// Rangés une fois par personne, et l'équipe de base gardée par semaine : chaque plage les relisait pour tous les agents (décision 0021).
 	const parPersonne = <T extends { personneId: number }>(lignes: T[]) => {
@@ -118,10 +125,19 @@ async function lireEte(base: Base, annee: number, aujourdhui: string, reglage: R
 	const affectationsDe = parPersonne(affectations);
 	const aptitudesDe = parPersonne(aptitudes);
 	const agentsParId = new Map(agents.map((a) => [a.id, a]));
-	// Inapte temporaire : présent, mais ne tient aucun poste.
+	// Inapte temporaire : présent, mais ne tient aucun poste. Les postes d'un agent ne changent qu'au début ou à la fin d'une aptitude :
+	// si rien ne change pendant l'été, ils sont calculés une fois pour tout l'été.
+	const du = plagesEte[0]?.debut.slice(0, 10) ?? '';
+	const au = plagesEte.at(-1)?.debut.slice(0, 10) ?? '';
+	const fixes = new Map<number, boolean>();
+	const fixe = (id: number) => {
+		let f = fixes.get(id);
+		if (f === undefined) fixes.set(id, (f = !aptitudesDe(id).some((l) => (du < l.obtenueLe && l.obtenueLe <= au) || (l.expireLe !== null && du <= l.expireLe && l.expireLe < au))));
+		return f;
+	};
 	const postesLus = new Map<string, Set<Poste>>();
 	const postes = (id: number, date: string) => {
-		const cle = `${id} ${date}`;
+		const cle = du <= date && date <= au && fixe(id) ? `${id}` : `${id} ${date}`;
 		let p = postesLus.get(cle);
 		if (!p) {
 			const a = agentsParId.get(id);
@@ -244,10 +260,20 @@ export async function plageAPreparer(base: Base, acteur: Acteur, annee: number, 
 
 // Les plages où la répartition enregistrée n'arme pas le FPT : pour l'accueil du chef, comme l'écran Été les compte.
 export async function plagesARevoir(base: Base, annee: number, aujourdhui: string, reglage: Reglage): Promise<number> {
-	const lu = await lireEte(base, annee, aujourdhui, reglage);
+	const lu = await lireEte(base, annee, aujourdhui, reglage, false);
 	const fpt = enginFpt(lu.fpt);
-	const date = (p: PlageEte) => p.debut.slice(0, 10);
-	return lu.plagesEte.filter((p) => !armement(fpt, presentsDe(lu, p, lu.ecartDe(p)).map((id) => ({ id, postes: lu.postes(id, date(p)) }))).arme).length;
+	// Des présents qui tiennent les mêmes postes arment le FPT de la même façon : une équipe garde souvent les mêmes d'une plage à
+	// l'autre, le calcul est fait une fois par combinaison.
+	const armees = new Map<string, boolean>();
+	const noms = new Map<Set<Poste>, string>();
+	const nom = (x: Set<Poste>) => noms.get(x) ?? noms.set(x, [...x].join()).get(x)!;
+	return lu.plagesEte.filter((p) => {
+		const postes = presentsDe(lu, p, lu.ecartDe(p)).map((id) => lu.postes(id, p.debut.slice(0, 10)));
+		const cle = postes.map(nom).sort().join(' ');
+		let arme = armees.get(cle);
+		if (arme === undefined) armees.set(cle, (arme = armement(fpt, postes.map((x, id) => ({ id, postes: x }))).arme));
+		return !arme;
+	}).length;
 }
 
 const pick = (a: { id: number; prenom: string; nom: string }) => ({ id: a.id, prenom: a.prenom, nom: a.nom });

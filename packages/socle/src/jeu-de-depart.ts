@@ -21,7 +21,7 @@ const DROITS_AGENT: Droit[] = [
 	'RESERVER'
 ];
 
-const GRADES = [
+export const GRADES_DE_DEPART = [
 	['JSP', 'Jeune sapeur-pompier'],
 	['Sap', 'Sapeur'],
 	['Cap', 'Caporal'],
@@ -111,7 +111,7 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 		...(centre.equipes.length > 0 ? [base.insert(equipe).values(centre.equipes.map((e) => ({ nom: e.nom, couleur: e.couleur, ordreRotation: e.numero })))] : []),
 		// La VL du centre, renommable, gérée par le référent engins. La migration 0011 l'ajoute aux bases déjà remplies.
 		base.insert(ressource).values({ nom: 'VL', forme: 'creneau', stock: null, icone: 'camion', ouverteReserve: 1, gereeParResponsabiliteId: idResponsabilite('Référent engins'), creeLe: sql`strftime('%Y-%m-%dT%H:%M', 'now')` }),
-		base.insert(grade).values(GRADES.map(([code, libelle], i) => ({ code, libelle, ordre: i + 1 }))),
+		base.insert(grade).values(GRADES_DE_DEPART.map(([code, libelle], i) => ({ code, libelle, ordre: i + 1 }))),
 		base.insert(aptitude).values(APTITUDES_PAR_DEFAUT.map(([nom, controlee], i) => ({ nom, controlee: controlee ? 1 : 0, ordre: i + 1 }))),
 		...fichesDeDepart(base)
 	]);

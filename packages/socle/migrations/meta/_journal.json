@@ -169,6 +169,13 @@
       "when": 1794131106486,
       "tag": "0023_habillement",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1794399909794,
+      "tag": "0024_ecusson",
+      "breakpoints": true
     }
   ]
 }

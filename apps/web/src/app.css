@@ -46,6 +46,12 @@
 	--menu-actif: #e1e5ea;
 	--segment-fond: #e1e5ea;
 	--jaune: #f2c200;
+	/* Les insignes de grade : galons rouges, or et argent sur un carré noir, le même dans les deux thèmes. */
+	--insigne-fond: #000000;
+	--insigne-trait: #000000;
+	--insigne-rouge: #ef4b59;
+	--insigne-or: #e8b923;
+	--insigne-argent: #d9dee3;
 	--marquage: repeating-linear-gradient(-45deg, var(--jaune) 0 10px, var(--rouge) 10px 20px);
 	/* Les cartes sont plates : une surface sur le fond, sans ombre (décision 0026). */
 	--ombre-carte: 0 0 0 transparent;
@@ -84,6 +90,9 @@
 	--texte-24: 1.5rem;
 	--texte-30: 1.875rem;
 	--cible: 44px;
+	/* L'écusson du centre : en petit dans l'en-tête, plus grand à la connexion. */
+	--ecusson-entete: 20px;
+	--ecusson-connexion: 72px;
 	/* Hauteur de l'en-tête de l'appli : ce qui doit remplir l'écran en dessous la retranche. */
 	--hauteur-entete: 64px;
 
@@ -125,6 +134,12 @@
 	--entete-doux: #a7b2bd;
 	--entete-bouton: #1f2933;
 	--entete-focus: #7ab8ff;
+	/* Le carré noir de l’insigne, bordé d’un trait clair pour se détacher du fond sombre. */
+	--insigne-fond: #000000;
+	--insigne-trait: #7d8b99;
+	--insigne-rouge: #ef4b59;
+	--insigne-or: #e8b923;
+	--insigne-argent: #d9dee3;
 	--menu-fond: #0f141b;
 	--menu-actif: #1a222c;
 	--segment-fond: #252e39;
@@ -170,6 +185,12 @@
 		--entete-doux: #a7b2bd;
 		--entete-bouton: #1f2933;
 		--entete-focus: #7ab8ff;
+		/* Le carré noir de l’insigne, bordé d’un trait clair pour se détacher du fond sombre. */
+		--insigne-fond: #000000;
+		--insigne-trait: #7d8b99;
+		--insigne-rouge: #ef4b59;
+		--insigne-or: #e8b923;
+		--insigne-argent: #d9dee3;
 		--menu-fond: #0f141b;
 		--menu-actif: #1a222c;
 		--segment-fond: #252e39;

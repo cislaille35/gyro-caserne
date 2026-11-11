@@ -106,6 +106,14 @@ describe('Coquille', () => {
 		}
 	});
 
+	it('l’écusson du centre, en petit à côté de son nom, décoratif (le nom est déjà écrit) ; sans écusson, rien', () => {
+		const avec = render(Coquille, { props: { chemin: '/', connecte: true, nomCentre: 'CIS Test', ecusson: 12, children: contenu } }).body;
+		expect(avec).toMatch(/<img[^>]*class="ecusson[^"]*"[^>]*src="\/ecusson\?v=12"|<img[^>]*src="\/ecusson\?v=12"[^>]*class="ecusson/);
+		expect(avec).toMatch(/<img[^>]*src="\/ecusson\?v=12"[^>]*alt=""/);
+		expect(avec).not.toContain('Écusson de');
+		expect(html('/')).not.toContain('<img');
+	});
+
 	it('affiche le nom du centre', () => {
 		expect(html('/')).toContain('CIS Test');
 	});

@@ -1,5 +1,8 @@
-import { normaliserAdresse } from '@gyro-caserne/socle';
-import type { Actions } from './$types';
+import { ecussonDuCentre, normaliserAdresse } from '@gyro-caserne/socle';
+import type { Actions, PageServerLoad } from './$types';
+
+// L'écusson du centre, s'il y en a un : une petite lecture, la page n'est vue qu'à la connexion.
+export const load: PageServerLoad = async ({ locals }) => ({ ecusson: await ecussonDuCentre(locals.base) });
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {

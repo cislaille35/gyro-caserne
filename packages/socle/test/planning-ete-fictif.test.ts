@@ -1,12 +1,14 @@
-import { count, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { chargerEteFictif, chargerPlanningFictif } from '../src/planning/fictif.ts';
 import { periodeParDefaut } from '../src/planning/ete.ts';
-import { eteAPreparer } from '../src/planning/repartition.ts';
+import { armement, lireArmement, postesDe } from '../src/armement.ts';
+import { validesLe } from '../src/aptitudes.ts';
+import { eteAPreparer, plagesARevoir } from '../src/planning/repartition.ts';
 import { chargerRemplacementsFictifs } from '../src/remplacements/fictif.ts';
-import { ete, personne, plageEte, reponseEte, vacancesAgent } from '../src/schema.ts';
+import { aptitude, aptitudeAgent, ete, personne, plageEte, reponseEte, vacancesAgent } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -53,6 +55,37 @@ describe('été fictif (local et préprod)', () => {
 		await chargerEteFictif(base, maintenant, reglage);
 		const vue = await eteAPreparer(base, super_, 2027, maintenant, reglage);
 		expect(vue.impossibles.length).toBeGreaterThanOrEqual(2);
+	});
+
+	it('des aptitudes qui commencent ou expirent en plein été : le compte de l’accueil suit l’écran Été, jour par jour', async () => {
+		const base = await jeu();
+		await chargerRemplacementsFictifs(base, maintenant, reglage);
+		await chargerEteFictif(base, maintenant, reglage);
+		const avant = (await eteAPreparer(base, super_, 2027, maintenant, reglage)).impossibles.length;
+		const apts = await base.select().from(aptitude);
+		const id = (nom: string) => apts.find((a) => a.nom === nom)!.id;
+		const lignes = await base.select().from(aptitudeAgent);
+		const de = (apt: number) => lignes.filter((l) => l.aptitudeId === apt);
+		const changer = (l: { personneId: number; aptitudeId: number }, valeurs: { obtenueLe?: string; expireLe?: string }) =>
+			base.update(aptitudeAgent).set(valeurs).where(and(eq(aptitudeAgent.personneId, l.personneId), eq(aptitudeAgent.aptitudeId, l.aptitudeId)));
+		await changer(de(id('CA2'))[0]!, { expireLe: '2027-07-14' });
+		await changer(de(id('CE'))[0]!, { expireLe: '2027-07-20' });
+		await changer(de(id('CE'))[1]!, { obtenueLe: '2027-07-27' });
+		await changer(de(id('CA2'))[1]!, { obtenueLe: '2027-08-09' });
+		const vue = await eteAPreparer(base, super_, 2027, maintenant, reglage);
+		expect(vue.impossibles.length).toBeGreaterThan(avant);
+		expect(await plagesARevoir(base, 2027, maintenant.slice(0, 10), reglage)).toBe(vue.impossibles.length);
+		// Chaque plage, recalculée à part avec les aptitudes valables ce jour-là.
+		const r = await lireArmement(base);
+		const fpt = r.engins.find((e) => e.nom === 'FPT')!.postes;
+		const toutes = await base.select().from(aptitudeAgent);
+		const statuts = new Map((await base.select().from(personne)).map((p) => [p.id, p.statut]));
+		const plages = vue.semaines.flatMap((x) => x.plages);
+		for (const p of plages) {
+			const jour = p.debut.slice(0, 10);
+			const postes = (pid: number) => (statuts.get(pid) === 'inapte_temporaire' ? new Set<never>() : postesDe(r.niveaux, validesLe(toutes.filter((l) => l.personneId === pid), jour)));
+			expect(p.arme, p.debut).toBe(armement(fpt, p.presents.map((x) => ({ id: x.id, postes: postes(x.id) }))).arme);
+		}
 	});
 
 	it('relançable sans doublon', async () => {

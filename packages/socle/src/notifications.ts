@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
+import { ecussonDuCentre, requeteEcusson } from './ecusson.ts';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
@@ -343,19 +344,21 @@ function deMurs(
 		});
 }
 
-// L'en-tête de chaque page : le nombre de non-lues et le visage de la personne. Une requête ; aucune pour le super administrateur.
+// L'en-tête de chaque page : le nombre de non-lues, le visage de la personne et la version de l'écusson du centre (null sans écusson).
+// Une requête, l'écusson lu dans le même envoi ; pour le super administrateur, seulement l'écusson.
 // `remplacementsAValider` : les demandes de remplacement que la personne doit trancher (chef de garde, ou chef de centre à défaut).
-export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<{ nonLues: number; remplacementsAValider: number; visage: { prenom: string; nom: string; couleur: string | null } | null }> {
+export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<{ nonLues: number; remplacementsAValider: number; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
 	exigerDate(aujourdhui);
-	if (acteur.type !== 'personne') return { nonLues: 0, remplacementsAValider: 0, visage: null };
-	const [[compte], [visage]] = await base.batch([
+	if (acteur.type !== 'personne') return { nonLues: 0, remplacementsAValider: 0, visage: null, ecusson: await ecussonDuCentre(base) };
+	const [[compte], [visage], [ecusson]] = await base.batch([
 		nonLuesDe(base, acteur.id, aValiderPar(acteur.id, aujourdhui, maintenant)),
 		base
 			.select({ prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
 			.from(personne)
-			.where(eq(personne.id, acteur.id))
+			.where(eq(personne.id, acteur.id)),
+		requeteEcusson(base)
 	]);
-	return { nonLues: compte?.n ?? 0, remplacementsAValider: compte?.aValider ?? 0, visage: visage ?? null };
+	return { nonLues: compte?.n ?? 0, remplacementsAValider: compte?.aValider ?? 0, visage: visage ?? null, ecusson: ecusson?.photoId ?? null };
 }
 
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {

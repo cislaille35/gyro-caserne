@@ -6,7 +6,7 @@ export { aLeDroit, couvre, droitsDe, estChefDeCentre, type Acteur, type DroitAcc
 export { DonneeInvalide, RefusDroit } from './erreurs.ts';
 export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';
 export * from './listes.ts';
-export { chargerJeuDeDepart, NOM_COMITE_CENTRE } from './jeu-de-depart.ts';
+export { chargerJeuDeDepart, GRADES_DE_DEPART, NOM_COMITE_CENTRE } from './jeu-de-depart.ts';
 export { chargerComptesDeTest, COMPTES_DE_TEST } from './comptes-de-test.ts';
 export { affecterEquipe, ajouterPersonne, changerStatut, modifierFiche, modifierMonProfil, monProfil, retirerEquipe, type ChampsFiche, type MonProfil } from './actions/personnes.ts';
 export { attribuer, attributionsDe, ceQueJePeuxAttribuer, finirAttribution, peutAttribuerQuelqueChose, regleDAttribution, terminerAttribution, titulairesDe, titulairesDesMiens, type CeQueJePeuxAttribuer, type LigneAttribution, type PerimetreNomme, type Titulaire } from './actions/attributions.ts';
@@ -25,6 +25,7 @@ export { ouvreQuiFaitQuoi, quiFaitQuoi, type QuiFaitQuoi, type RoleTenu } from '
 export { audiences, equipesConvoquees, exigerMur, mursDe, type CleMur, type Convocation, type Mur } from './murs.ts';
 export { TAILLE_PHOTO_MAX, type Photo } from './commun.ts';
 export { effacerPhotosOrphelines } from './photos-orphelines.ts';
+export { deposerEcusson, ecussonDuCentre, octetsEcusson, retirerEcusson } from './ecusson.ts';
 export { effacerVieillesPublications, epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication, type DonneesPublication, type RemplissagePhotos, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
 export { aNePasManquer, anniversairesDuJour, monAnniversaire, type ANePasManquer, type ItemANePasManquer } from './a-ne-pas-manquer.ts';

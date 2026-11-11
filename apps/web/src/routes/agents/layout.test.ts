@@ -72,6 +72,14 @@ describe('/agents : vue de tous', () => {
 		expect(mise).not.toContain('/nominations');
 	});
 
+	it('l’insigne du grade à côté du nom, caché aux lecteurs d’écran (le grade est écrit dessous) ; rien sans grade', () => {
+		const mise = html(Layout, { data, children: enfants });
+		expect(mise).toMatch(/Alice Martin(<!--[^>]*-->)*<svg[^>]*class="insigne[^"]*"[^>]*aria-hidden="true"/);
+		expect(mise).toMatch(/Inès Faure(<!--[^>]*-->)*<svg[^>]*class="insigne/);
+		expect(mise).not.toMatch(/Paul Durand(<!--[^>]*-->)*<svg/);
+		expect(mise).not.toContain('role="img"');
+	});
+
 	it('montre nom, grade et rôles, sans statut, e-mail, filtres ni lien vers la fiche', () => {
 		const mise = html(Layout, { data, children: enfants });
 		expect(mise).toContain('Alice Martin');
@@ -150,8 +158,8 @@ describe('/agents : gestion', () => {
 
 	it('une ligne : lien vers la fiche au nom de l’agent, grade, statut hors opérationnel, fiche à compléter ; pas d’e-mail', () => {
 		const mise = html(Layout, { data: gestion(), children: enfants });
-		expect(mise).toMatch(/<a[^>]*href="\/agents\/1"[^>]*>Alice Martin<\/a>/);
-		expect(mise).toMatch(/Alice Martin<\/a>[\s\S]*?Sapeur/);
+		expect(mise).toMatch(/<a[^>]*href="\/agents\/1"[^>]*>Alice Martin(<!--[^>]*-->)*<\/a>/);
+		expect(mise).toMatch(/Alice Martin(<!--[^>]*-->)*<\/a>[\s\S]*?Sapeur/);
 		expect(mise).not.toContain('alice@exemple.fr');
 		expect(mise).toMatch(/Alice Martin[\s\S]*Stagiaire[\s\S]*À compléter[\s\S]*Paul Durand/);
 		expect(mise).not.toContain('Opérationnel');
@@ -160,7 +168,7 @@ describe('/agents : gestion', () => {
 
 	it('montre l’e-mail dans la sous-ligne quand c’est lui qui répond à la recherche', () => {
 		const parEmail = html(Layout, { data: gestion({ filtres: { texte: 'ALICE@', filtre: '' } }), children: enfants });
-		expect(parEmail).toMatch(/Alice Martin<\/a>[\s\S]*?class="sous[^"]*"[^>]*>[\s\S]*?alice@exemple\.fr/);
+		expect(parEmail).toMatch(/Alice Martin(<!--[^>]*-->)*<\/a>[\s\S]*?class="sous[^"]*"[^>]*>[\s\S]*?alice@exemple\.fr/);
 		expect(parEmail).not.toContain('paul@exemple.fr');
 		// Le nom répond déjà : pas d'e-mail.
 		expect(html(Layout, { data: gestion({ filtres: { texte: 'alice', filtre: '' } }), children: enfants })).not.toContain('alice@exemple.fr');

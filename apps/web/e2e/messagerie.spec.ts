@@ -176,6 +176,8 @@ test('infos du groupe : menu d’un membre au clavier et confirmation', async ({
 });
 
 const axe = async (page: Page) => {
+	// Une fenêtre qui apparaît fausserait le calcul du contraste : on attend la fin de ce qui n'est pas sans fin (comme accessibilite.spec.ts).
+	await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
 	const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
 	expect(violations.map((v) => ({ regle: v.id, ou: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
 };

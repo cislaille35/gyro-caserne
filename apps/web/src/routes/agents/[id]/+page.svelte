@@ -11,6 +11,7 @@
 	import PastilleEquipe from '#lib/ui/PastilleEquipe.svelte';
 	import Statut from '#lib/ui/Statut.svelte';
 	import { LIBELLES_STATUT } from '#lib/ui/statut.ts';
+	import Insigne from '#lib/ui/Insigne.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
 	let { data, form } = $props();
@@ -164,7 +165,7 @@
 			<div class="corps">
 				<span class="visage"><Visage prenom={fiche.prenom} nom={fiche.nom} couleur={fiche.equipe?.couleur ?? null} taille={88} /></span>
 				<h1 tabindex="-1">{fiche.prenom} {fiche.nom}</h1>
-				{#if sousTitre}<p class="doux">{sousTitre}</p>{/if}
+				{#if sousTitre}<p class="doux sous-titre"><Insigne grade={fiche.grade?.libelle} taille={24} decoratif />{sousTitre}</p>{/if}
 				<ul class="etiquettes" aria-label="Statut et rôles en cours">
 					<li><Statut statut={fiche.statut} /></li>
 					{#each enCours as l (l.id)}
@@ -478,6 +479,12 @@
 		border: 4px solid var(--surface);
 		border-radius: 50%;
 		display: inline-flex;
+	}
+	/* L'insigne du grade, devant le grade écrit. */
+	.sous-titre {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--espace-6);
 	}
 	h1 {
 		margin: 0;

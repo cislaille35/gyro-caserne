@@ -676,6 +676,13 @@ export const reglageArmement = sqliteTable('reglage_armement', {
 	valeur: text('valeur').notNull()
 });
 
+// L'écusson du centre (ecusson.ts) : une seule ligne, l'image dans la base des photos. Absente : pas d'écusson, l'appli reste sans.
+export const ecusson = sqliteTable('ecusson', {
+	id: integer('id').primaryKey(),
+	photoId: integer('photo_id').notNull(),
+	modifieLe: text('modifie_le').notNull()
+});
+
 // L'été d'une année (planning/ete.ts) : `debut` et `fin`, jours de relève de la première et de la dernière semaine.
 // Ouvert par le chef : les agents donnent leurs vacances jusqu'à `date_limite`. `publiee_le` : la répartition est visible.
 export const ete = sqliteTable('ete', {

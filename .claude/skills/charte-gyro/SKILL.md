@@ -19,6 +19,7 @@ Pour écrire un écran : regarder d'abord un écran modèle (en bas), suivre les
 - La tuile de date (jour, numéro, mois).
 - Gyro, seulement sur l'accueil, la connexion, les écrans vides et les réussites.
 - Les couleurs d'équipe, qui viennent du centre (`centres/<id>/centre.ts`), avec le texte noir ou blanc choisi par `encreSur`.
+- L'écusson du centre, s'il en a déposé un (Réglages) : à la connexion, au-dessus du titre, et en petit dans l'en-tête, devant le nom du centre. Nulle part ailleurs, jamais dans le dépôt ([0027](../../../docs/decisions/0027-ecusson-du-centre.md)). Sans écusson, l'en-tête et la connexion restent tels quels.
 
 ## Les règles
 
@@ -36,6 +37,8 @@ Chaque règle vérifiable est gardée par un test (`apps/web/src/formes.test.ts`
 **Titres.** Un vrai titre en Barlow Condensed (`.titre-groupe`, `.rubrique`), à l'encre, sans majuscules espacées. Sous un titre, une phrase seulement si elle apprend quelque chose.
 
 **Icônes.** À l'encre, sans tuile colorée, et seulement si elles distinguent quelque chose (type, rôle, comité, ressource). Sinon un visage, une date, ou rien.
+
+**Insigne de grade.** `Insigne` (galons sur un carré noir, jetons `--insigne-*`), à côté du nom d'un agent, et seulement dans la liste des agents, sur sa fiche et dans « Comités et référents » : pas sur chaque visage ailleurs. Le grade reste écrit (alors l'insigne est `decoratif`) ; sinon l'insigne est nommé par le grade. Un grade inconnu n'en a pas ([0028](../../../docs/decisions/0028-insignes-de-grade.md)).
 
 **États.** Une information se dit une fois.
 - Un état durable : une `Pastille` (`ok`, `info`, `alerte`, `danger`, `neutre`), avec son mot.

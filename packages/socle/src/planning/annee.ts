@@ -68,10 +68,10 @@ export function lectures(base: Base, debut: string, fin: string) {
 	] as const;
 }
 
-export const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage): SemaineCalculee[] => {
+export const semainesCalculees = (annee: number, ordreJson: string | undefined, changees: { debut: string; equipeId: number }[], reglage: Reglage, entre?: Periode): SemaineCalculee[] => {
 	const ordre = JSON.parse(ordreJson ?? '[]') as number[];
 	if (ordre.length === 0) return [];
-	return calculerAnnee(annee, reglage, ordre, new Map(changees.filter((c) => c.debut.startsWith(`${annee}-`)).map((c) => [c.debut, c.equipeId])));
+	return calculerAnnee(annee, reglage, ordre, new Map(changees.filter((c) => c.debut.startsWith(`${annee}-`)).map((c) => [c.debut, c.equipeId])), entre);
 };
 
 // L'ordre que donnerait la référence du centre (centre.ts) pour la première semaine de l'année, parmi les équipes actives.

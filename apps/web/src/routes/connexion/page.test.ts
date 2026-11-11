@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const html = (form: unknown) => render(Page as any, { props: { form } }).body;
+const html = (form: unknown, ecusson: number | null = null) => render(Page as any, { props: { form, data: { ecusson } } }).body;
 
 describe('page de connexion', () => {
 	it('une phrase, un champ, un bouton', () => {
@@ -18,5 +18,11 @@ describe('page de connexion', () => {
 		expect(page).toMatch(/role="status"[\s\S]*?un lien vient de partir[\s\S]*?claire@exemple\.fr/);
 		expect(page).toMatch(/<a[^>]*href="\/connexion"[^>]*>Changer d’adresse<\/a>/);
 		expect(page).not.toContain('<form');
+	});
+
+	it('l’écusson du centre s’il y en a un, avec son texte alternatif ; sinon, la page d’aujourd’hui', () => {
+		expect(html(null, 7)).toMatch(/<img[^>]*src="\/ecusson\?v=7"/);
+		expect(html(null, 7)).toMatch(/alt="Écusson de [^"]+"/);
+		expect(html(null)).not.toContain('/ecusson');
 	});
 });
