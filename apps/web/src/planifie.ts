@@ -26,7 +26,7 @@ export const CRON_NUIT = '30 3 * * *';
 export const CRON_REVEIL = '*/10 * * * *';
 
 // Le worker de SvelteKit, plus le gestionnaire planifié.
-export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; conservationPublicationsMois: number; position: { latitude: number; longitude: number }; departement?: string }) {
+export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; conservationPublicationsMois: number; position: { latitude: number; longitude: number }; departement?: string; manoeuvres: { petitDejeuner: string[] } }) {
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -38,7 +38,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// Les manœuvres du planning s'annoncent le matin, pas en pleine nuit : à 8 h (Paris), et à 8 h 10 si le passage de 8 h a manqué.
 				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
 				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) {
-					taches.push(planningDuMatin(base, maintenant).catch((e) => console.error('Planning du matin', e)));
+					taches.push(planningDuMatin(base, maintenant, centre.manoeuvres.petitDejeuner).catch((e) => console.error('Planning du matin', e)));
 					// Les rappels des vacances d'été : chacun n'est envoyé qu'une fois.
 					taches.push(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', e)));
 				}

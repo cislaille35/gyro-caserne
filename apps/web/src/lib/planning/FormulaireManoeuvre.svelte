@@ -1,4 +1,5 @@
 <script lang="ts">
+	import centre from '$centre';
 	import ChoixRadio from '#lib/ui/ChoixRadio.svelte';
 	import { untrack } from 'svelte';
 	import Bouton from '../ui/Bouton.svelte';
@@ -6,6 +7,7 @@
 	import type { EquipePlanning, ManoeuvreVue } from '@gyro-caserne/socle';
 
 	// Le formulaire d'une manœuvre (nouvelle si `manoeuvre` est nul), dans sa page ou dans le panneau de « Préparer l'année ».
+	// Une nouvelle prend les heures réglées par le centre.
 	type Retour = { cible: string; message?: string; valeurs?: Record<string, string | string[]> } | null | undefined;
 	let { manoeuvre, equipes, form = null }: { manoeuvre: ManoeuvreVue | null; equipes: EquipePlanning[]; form?: Retour } = $props();
 
@@ -35,9 +37,10 @@
 		<form method="POST" action="/planning/preparer/manoeuvre?/enregistrer" class="carte">
 			<div role="alert">{#if form?.cible === 'manoeuvre' && form.message}<p class="echec">{form.message}</p>{/if}</div>
 			{#if m || saisi('id', '')}<input type="hidden" name="id" value={m?.id ?? saisi('id', '')} />{/if}
+			<Champ id="date" name="date" type="date" libelle="Date" requis valeur={saisi('date', m ? m.debut.slice(0, 10) : '')} />
 			<div class="deux">
-				<Champ id="date" name="date" type="date" libelle="Date" requis valeur={saisi('date', m ? m.debut.slice(0, 10) : '')} />
-				<Champ id="heure" name="heure" type="time" libelle="Heure de début" requis valeur={saisi('heure', m ? m.debut.slice(11, 16) : '08:30')} />
+				<Champ id="heure" name="heure" type="time" libelle="Heure de début" requis valeur={saisi('heure', m ? m.debut.slice(11, 16) : centre.manoeuvres.debut)} />
+				<Champ id="fin" name="fin" type="time" libelle="Heure de fin" requis valeur={saisi('fin', m ? m.fin.slice(11, 16) : centre.manoeuvres.fin)} />
 			</div>
 			<Champ id="theme" name="theme" libelle="Thème" requis maxlength={100} aide="Par exemple « Feux de forêt » ou « Sport + SAP »." valeur={saisi('theme', m?.theme ?? '')} />
 			<Champ id="lieu" name="lieu" libelle="Lieu" requis maxlength={200} valeur={saisi('lieu', m?.lieu ?? 'Caserne')} />
@@ -48,7 +51,7 @@
 						<label class="case"><input type="checkbox" name="equipes" value={e.id} checked={cochee(e.id)} onchange={(ev) => ev.currentTarget.checked && (pour = 'equipes')} /> {e.nom}</label>
 					{/each}
 				</fieldset>
-			<label class="case"><input type="checkbox" name="petitDejeuner" value="oui" checked={petitDejeuner} /> Petit-déjeuner (un sondage demande qui en prend, jusqu’au vendredi d’avant)</label>
+			<label class="case"><input type="checkbox" name="petitDejeuner" value="oui" checked={petitDejeuner} /> Petit-déjeuner (un sondage jusqu’au vendredi d’avant : {centre.manoeuvres.petitDejeuner.join(', ')})</label>
 			<Bouton type="submit">{m ? 'Enregistrer' : 'Ajouter la manœuvre'}</Bouton>
 		</form>
 

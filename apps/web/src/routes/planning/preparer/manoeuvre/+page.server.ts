@@ -1,3 +1,4 @@
+import centre from '$centre';
 import { redirect } from '@sveltejs/kit';
 import { enregistrerManoeuvre, manoeuvreAPreparer, manoeuvreChangee, supprimerManoeuvre } from '@gyro-caserne/socle';
 import { enArrierePlan } from '#lib/server/notifier.ts';
@@ -19,7 +20,7 @@ export const actions: Actions = {
 	enregistrer: async ({ locals, request }) => {
 		const { acteur, base } = connecte(locals);
 		const f = await request.formData();
-		const valeurs = { id: champ(f, 'id'), date: champ(f, 'date'), heure: champ(f, 'heure'), theme: champ(f, 'theme'), lieu: champ(f, 'lieu'), pour: champ(f, 'pour'), petitDejeuner: champ(f, 'petitDejeuner'), equipes: f.getAll('equipes').map(String) };
+		const valeurs = { id: champ(f, 'id'), date: champ(f, 'date'), heure: champ(f, 'heure'), fin: champ(f, 'fin'), theme: champ(f, 'theme'), lieu: champ(f, 'lieu'), pour: champ(f, 'pour'), petitDejeuner: champ(f, 'petitDejeuner'), equipes: f.getAll('equipes').map(String) };
 		let id: number;
 		try {
 			id = await enregistrerManoeuvre(
@@ -28,12 +29,14 @@ export const actions: Actions = {
 				{
 					id: /^\d+$/.test(valeurs.id) ? Number(valeurs.id) : undefined,
 					debut: `${valeurs.date}T${valeurs.heure}`,
+					fin: valeurs.fin ? `${valeurs.date}T${valeurs.fin}` : null,
 					theme: valeurs.theme,
 					lieu: valeurs.lieu,
 					convoques: valeurs.pour === 'tous' ? 'tous' : nombres(f, 'equipes'),
 					petitDejeuner: valeurs.petitDejeuner === 'oui'
 				},
-				maintenantParis()
+				maintenantParis(),
+				centre.manoeuvres.petitDejeuner
 			);
 		} catch (erreur) {
 			return echecPlanning(erreur, 'manoeuvre', valeurs);

@@ -12,7 +12,7 @@ const preparation = (autres: Record<string, unknown> = {}) => ({
 	ordre: [1, 2, 3, 4],
 	ordrePropose: [1, 2, 3, 4],
 	semaines,
-	manoeuvres: [{ id: 5, debut: '2027-03-07T08:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: [1, 2], convocation: [1, 2], petitDejeuner: true, annulee: false, publiee: true, publicationId: 9 }],
+	manoeuvres: [{ id: 5, debut: '2027-03-07T08:30', fin: '2027-03-07T11:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: [1, 2], convocation: [1, 2], petitDejeuner: true, annulee: false, publiee: true, publicationId: 9 }],
 	vacances: [{ id: 3, nom: 'Vacances d’hiver', debut: '2027-02-13', fin: '2027-03-01' }],
 	feries: feries(2027),
 	// Noël 2027 : semaine du 24 décembre, Équipe 4.
@@ -128,7 +128,7 @@ describe('Préparer l’année en cinq étapes', () => {
 		semaines: 53,
 		changees: [{ debut: '2027-12-10', numero: 49, avant: 2, apres: 4 }, { debut: '2027-12-24', numero: 51, avant: 4, apres: 2 }],
 		fetes: { noel: { equipeId: 2, dansLeTour: true, attendues: [2] }, nouvelAn: { equipeId: 1, dansLeTour: true, attendues: [1] }, compromis: false, memeSemaine: false, deSuite: [] },
-		manoeuvres: [{ debut: '2027-03-14T08:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [1, 2], petitDejeuner: true }],
+		manoeuvres: [{ debut: '2027-03-14T08:30', fin: '2027-03-14T11:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [1, 2], petitDejeuner: true }],
 		tourDeRole: true,
 		annulees: 1,
 		passees: 0,

@@ -24,7 +24,7 @@ describe('avecPlanifie', () => {
 	const lancer = async (cron: string, quand: string, env: Record<string, unknown> = {}) => {
 		vi.clearAllMocks();
 		const kit = { fetch: vi.fn() };
-		const worker = avecPlanifie(kit, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, departement: '35' });
+		const worker = avecPlanifie(kit, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, departement: '35', manoeuvres: { petitDejeuner: ['Croissant', 'Rien pour moi'] } });
 		expect(worker.fetch).toBe(kit.fetch);
 		const attendus: Promise<unknown>[] = [];
 		worker.scheduled({ cron, scheduledTime: Date.parse(quand) } as never, { BASE: {}, PHOTOS: {}, ...env } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
@@ -75,7 +75,7 @@ describe('avecPlanifie', () => {
 		vi.mocked(remplacementsDuMoment).mockImplementationOnce(plusTard('remplacements') as never);
 		vi.mocked(envoyerLot).mockImplementationOnce(async () => (ordre.push('envoi'), { envoyes: 0, perimes: 0 }));
 		const attendus: Promise<unknown>[] = [];
-		const worker = avecPlanifie({ fetch: vi.fn() }, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 } });
+		const worker = avecPlanifie({ fetch: vi.fn() }, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, manoeuvres: { petitDejeuner: ['Oui', 'Non'] } });
 		worker.scheduled({ cron: '*/10 * * * *', scheduledTime: Date.parse('2026-11-15T07:00:00Z') } as never, { BASE: {}, PHOTOS: {} } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
 		await Promise.all(attendus);
 		expect(ordre).toHaveLength(3);
@@ -86,6 +86,8 @@ describe('avecPlanifie', () => {
 		await lancer('*/10 * * * *', '2026-11-15T07:00:00Z');
 		expect(planningDuMatin).toHaveBeenCalledOnce();
 		expect(vi.mocked(planningDuMatin).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
+		// Avec les choix du petit-déjeuner du centre.
+		expect(vi.mocked(planningDuMatin).mock.calls[0]![2]).toEqual(['Croissant', 'Rien pour moi']);
 		// Les rappels des vacances d'été partent avec.
 		expect(vi.mocked(rappelsEte).mock.calls[0]![1]).toBe('2026-11-15T08:00:00');
 		await lancer('*/10 * * * *', '2026-11-15T07:10:00Z');

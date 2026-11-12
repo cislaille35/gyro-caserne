@@ -11,4 +11,9 @@
 - **Pourquoi** : peu de données, rien à resynchroniser quand le roulement change, gratuit.
 - **Conséquences** : changer un réglage d'heures dans `centre.ts` change aussi l'affichage des années passées.
 - **Validé par** : le porteur du projet, à la fusion de la PR #28 (01/11/2026).
+- **Complément du 12 novembre 2026 : heure de fin des manœuvres, choix du petit-déjeuner** :
+  - Une manœuvre a une heure de fin (`manoeuvre.fin`, le même jour que le début), recopiée sur sa publication (`publication.fin`). Elle reste « En cours » jusqu'à cette fin sur l'accueil, le mur et le Planning, et l'agenda la donne en `DTEND`. Les autres événements, et une manœuvre enregistrée avant (colonne vide, aucune donnée réécrite), durent 3 h.
+  - Le centre règle les heures proposées et les choix du sondage (`manoeuvres` dans `centre.ts`) ; sans réglage, 8 h 30 à 11 h 30 et « Oui » / « Non ». Une manœuvre déjà annoncée garde ses choix. Fichier : colonnes « Début » (anciennement « Heure ») et « Fin » ; une fin vide prend la durée réglée par le centre.
+  - Migration additive (deux colonnes vides). Validé par : le porteur, le 12 novembre 2026 (à confirmer à la fusion).
+  - Remplace « Une manœuvre y dure 3 h » (agenda) ci-dessus.
 - **Remplacée en partie** par la [révision du 6 novembre 2026 de 0012](0012-notifications-file-d-envoi.md#révision-du-6-novembre-2026--envoi-immédiat-réveil-toutes-les-cinq-minutes) : les annonces de 8 h et 8 h 10 partent du réveil de toutes les cinq minutes.

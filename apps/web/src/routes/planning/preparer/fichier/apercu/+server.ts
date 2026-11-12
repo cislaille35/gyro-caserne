@@ -12,7 +12,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	if (corps === undefined) return pasDuJson();
 	if (!estFichierPlanningLu(corps?.lu)) return json({ message: 'Fichier mal formé' }, { status: 400 });
 	try {
-		return json(await apercuPlanning(locals.base, acteur, anneeValide(corps.annee), corps.lu, maintenantParis(), centre.astreinte));
+		return json(await apercuPlanning(locals.base, acteur, anneeValide(corps.annee), corps.lu, maintenantParis(), centre.astreinte, centre.manoeuvres));
 	} catch (erreur) {
 		return refus(erreur);
 	}

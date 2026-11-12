@@ -44,7 +44,7 @@ Elle se prépare sur sa propre page (« Écrire », ou « Publier dans … » de
 
 - **Message** (par défaut) ;
 - **Annonce** : peut demander une **prise de connaissance**, réservée aux modérateurs du mur ;
-- **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement. Un événement n'a pas d'heure de fin : il dure **3 h**. Pendant ce temps, il est marqué « En cours » (écrit, pas seulement en couleur) et les boutons de réponse disparaissent ;
+- **Événement** : date et heure, lieu, **convoqués** (tout le mur ou des équipes ; sur un mur d'équipe, l'équipe), réponse **Présent / Absent / Incertain** jusqu'au début de l'événement. Un événement n'a pas d'heure de fin : il dure **3 h** (une manœuvre du planning a la sienne). Pendant ce temps, il est marqué « En cours » (écrit, pas seulement en couleur) et les boutons de réponse disparaissent ;
 - **Bravo** : une réussite (examen, compétition).
 
 Chaque publication montre le **visage** de son auteur (ses initiales sur la couleur de son équipe, gris s'il n'en a pas ou s'il est parti) et son rôle (« Chef de centre », « Adjoint », « Chef de garde »). Chaque type a sa carte : l'annonce à confirmer, avec son bandeau « Annonce à lire et confirmer » et « 12 sur 38 ont confirmé » (le nombre est visible de tous, les noms restent réservés à l'auteur et aux modérateurs) ; l'événement, avec une tuile calendrier, les présents et trois boutons qui portent chacun un signe et un mot ; le bravo,, avec des confettis et Gyro en tenue de victoire (« J'aime » y devient « Applaudir »).
@@ -66,7 +66,7 @@ Sur une annonce, l'auteur (modérateur) coche « Demander une prise de connaissa
 Sur l'accueil, quelle que soit la casquette :
 
 1. les **demandes de remplacement** reçues qui attendent une réponse (« Accepter ou refuser ») ;
-2. les **événements à venir ou en cours** où la personne est convoquée, avec les boutons de réponse ; la veille, l'événement est marqué « Demain ». Commencé, il reste jusqu'à sa fin (3 h après le début), marqué « En cours », sans boutons : il n'attend plus rien de la personne ;
+2. les **événements à venir ou en cours** où la personne est convoquée, avec les boutons de réponse ; la veille, l'événement est marqué « Demain ». Commencé, il reste jusqu'à sa fin (3 h après le début, ou l'heure de fin d'une manœuvre), marqué « En cours », sans boutons : il n'attend plus rien de la personne ;
 3. les **annonces à prendre en compte** (90 derniers jours), avec le bouton « Pris connaissance » ;
 4. les **sondages ouverts** auxquels elle n'a pas répondu (pas avant leur ouverture, plus après leur clôture) ;
 5. les **publications épinglées** récentes (30 jours) de ses murs ;

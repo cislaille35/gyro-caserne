@@ -9,6 +9,7 @@
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
 	import { avecGroupe } from '#lib/planning/astreinte.ts';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
+	import { heure } from '#lib/murs/quand.ts';
 	import { ETATS, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
@@ -147,7 +148,7 @@
 					<ListeRangees titre="À venir">
 						{#if manoeuvre}
 							<li>
-								<Rangee titre={manoeuvre.theme} sous="Manœuvre, {momentLong(manoeuvre.debut)}, {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ', petit-déjeuner' : ''}">
+								<Rangee titre={manoeuvre.theme} sous="Manœuvre, {momentLong(manoeuvre.debut)} à {heure(manoeuvre.fin)}, {manoeuvre.lieu}{manoeuvre.petitDejeuner ? ', petit-déjeuner' : ''}">
 									{#snippet tete()}<TuileDate iso={manoeuvre.debut} />{/snippet}
 									<!-- Commencée, on n'y répond plus et on n'échange plus sa place (le serveur refuse). -->
 									{#if manoeuvre.enCours}

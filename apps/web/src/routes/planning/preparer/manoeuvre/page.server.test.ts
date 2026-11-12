@@ -18,14 +18,20 @@ describe('/planning/preparer/manoeuvre', () => {
 	it('ajoute une manœuvre pour deux équipes, puis la modifie pour tout le centre', async () => {
 		const { base, chef, ids, annee } = await preparer();
 		const l = locaux(base, chef);
-		const champs: [string, string][] = [['date', `${annee + 1}-03-07`], ['heure', '08:30'], ['theme', 'Feux de forêt'], ['lieu', 'Caserne'], ['pour', 'equipes'], ['equipes', String(ids[0])], ['equipes', String(ids[1])], ['petitDejeuner', 'oui']];
+		const champs: [string, string][] = [['date', `${annee + 1}-03-07`], ['heure', '08:30'], ['fin', '12:00'], ['theme', 'Feux de forêt'], ['lieu', 'Caserne'], ['pour', 'equipes'], ['equipes', String(ids[0])], ['equipes', String(ids[1])], ['petitDejeuner', 'oui']];
 		await expect(envoyer(actions, 'enregistrer', l, champs)).rejects.toMatchObject({ status: 303, location: `/planning/preparer?annee=${annee + 1}&etape=manoeuvres` });
 		const [m] = await base.select().from(manoeuvre);
-		expect(m).toMatchObject({ debut: `${annee + 1}-03-07T08:30`, convoques: JSON.stringify([ids[0], ids[1]]), petitDejeuner: 1 });
+		expect(m).toMatchObject({ debut: `${annee + 1}-03-07T08:30`, fin: `${annee + 1}-03-07T12:00`, convoques: JSON.stringify([ids[0], ids[1]]), petitDejeuner: 1 });
 		const data = await charger(load, l, `?id=${m!.id}`);
 		expect(data.manoeuvre).toMatchObject({ id: m!.id, theme: 'Feux de forêt' });
 		await expect(envoyer(actions, 'enregistrer', l, [['id', String(m!.id)], ['date', `${annee + 1}-03-07`], ['heure', '09:00'], ['theme', 'Feux de forêt'], ['lieu', 'Bois'], ['pour', 'tous']])).rejects.toMatchObject({ status: 303 });
 		expect((await base.select().from(manoeuvre))[0]).toMatchObject({ debut: `${annee + 1}-03-07T09:00`, lieu: 'Bois', convoques: '"tous"', petitDejeuner: 0 });
+	});
+
+	it('une fin avant le début : refusée, la saisie gardée', async () => {
+		const { base, chef, annee } = await preparer();
+		const r = await envoyer(actions, 'enregistrer', locaux(base, chef), [['date', `${annee + 1}-03-07`], ['heure', '08:30'], ['fin', '08:00'], ['theme', 'Feux'], ['lieu', 'Caserne'], ['pour', 'tous']]);
+		expect(r).toMatchObject({ status: 400, data: { message: expect.stringContaining('La fin doit suivre le début'), valeurs: { fin: '08:00' } } });
 	});
 
 	it('garde la saisie et dit l’erreur ; supprimer une manœuvre non annoncée', async () => {

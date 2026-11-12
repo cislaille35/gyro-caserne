@@ -421,6 +421,7 @@ describe('lireMur', () => {
 			jaimeParMoi: true,
 			evenement: {
 				debut: '2026-11-02T19:00',
+				fin: null,
 				lieu: 'Caserne',
 				convoques: 'tous',
 				convoque: true,

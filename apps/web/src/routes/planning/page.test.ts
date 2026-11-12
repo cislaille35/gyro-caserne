@@ -12,7 +12,7 @@ const equipes = [
 ];
 const semaines = calculerAnnee(2026, centre.astreinte, [1, 2, 3, 4], new Map()).map((s) => ({ ...s, mienne: s.equipeId === 1 }));
 const sem = (debut: string) => semaines.find((s) => s.debut === debut)!;
-const manoeuvre = { id: 1, debut: '2026-11-15T08:30', theme: 'Sport + SAP', lieu: 'Caserne', convoques: [1], convocation: [1], petitDejeuner: true, annulee: false, publiee: true, publicationId: 42 };
+const manoeuvre = { id: 1, debut: '2026-11-15T08:30', fin: '2026-11-15T12:00', theme: 'Sport + SAP', lieu: 'Caserne', convoques: [1], convocation: [1], petitDejeuner: true, annulee: false, publiee: true, publicationId: 42 };
 const publiee = {
 	publiee: true,
 	annee: 2026,
@@ -129,6 +129,7 @@ describe('onglet Planning', () => {
 		const html = page({ remplacements: { ...vides, pourMoi: [demande] } });
 		expect(html).toMatch(/<h2[^>]*>À venir/);
 		expect(html).toContain('Sport + SAP');
+		expect(html).toContain('8 h 30 à 12 h, Caserne');
 		expect(html).toMatch(/action="\?\/repondre&amp;annee=2026&amp;/);
 		expect(html).toMatch(/<button[^>]*value="present"[^>]*aria-pressed="true"/);
 		expect(html).toMatch(/<button[^>]*value="absent"[^>]*aria-pressed="false"/);

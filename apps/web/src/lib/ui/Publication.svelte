@@ -117,7 +117,7 @@
 				<TuileDate iso={e.debut} />
 				<span class="colonne">
 					<strong class="texte titre-evenement">{p.texte}</strong>
-					<span class="doux">{heure(e.debut)} · {e.lieu}</span>
+					<span class="doux">{heure(e.debut)}{e.fin ? ` à ${heure(e.fin)}` : ''} · {e.lieu}</span>
 					<span class="doux petit">Convoqués : {convoques}{e.convoque ? ' (vous l’êtes)' : ''}</span>
 					{#if e.moment === 'enCours' && !p.annulee}<span><Pastille ton="ok">En cours</Pastille></span>{/if}
 				</span>
