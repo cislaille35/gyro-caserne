@@ -13,19 +13,19 @@
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les dix minutes (décision 0012), les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/10 * * * *"] },
-	// database_id : remplissage, le vrai identifiant sera posé avec le déploiement.
+	// Bases créées le 12/11/2026 dans l’Union européenne (--jurisdiction eu).
 	"d1_databases": [
 		{
 			"binding": "BASE",
 			"database_name": "gyro-caserne-laille",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "79084104-51fa-49f8-b7e3-14cf67b7ae2a",
 			"migrations_dir": "../../packages/socle/migrations"
 		},
-		// Base des photos (décision 0010) : remplissage aussi, le vrai identifiant sera posé avec le déploiement.
+		// Base des photos (décision 0010).
 		{
 			"binding": "PHOTOS",
 			"database_name": "gyro-caserne-laille-photos",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "93af4244-2071-4334-a2a0-dcadfd14710f",
 			"migrations_dir": "../../packages/socle/migrations-photos"
 		}
 	]

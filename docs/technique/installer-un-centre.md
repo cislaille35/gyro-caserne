@@ -55,7 +55,7 @@ Suivie de bout en bout le 12/11/2026 (répétition générale, centre jetable su
 - **Jamais `--var` ni de `vars` pour un secret** (clé Brevo, `BETTER_AUTH_SECRET`, clés VAPID, `SUPER_ADMINS`) : seulement `wrangler secret`.
 - **Export de la base.** `wrangler d1 export` affiche une adresse de téléchargement valable une heure, qui donne toute la base : ne jamais la coller dans une PR, un ticket ou un message. Le fichier exporté ne va jamais dans un dépôt.
 - **Pas de données réelles hors de Cloudflare** : pas de capture de la production dans une PR (captures sur la préprod fictive), pas de parcours automatique sur la production, diagnostics limités aux comptes et aux temps, sans nom ni adresse.
-- **Compte Brevo à part** pour la production, pour qu'un essai en préprod n'épuise jamais la limite gratuite (300 e-mails par jour).
+- **Clé Brevo à part** pour la production, révocable sans toucher à la préprod. Un compte Brevo à part évite en plus qu'un essai en préprod épuise la limite gratuite (300 e-mails par jour). Laillé garde un seul compte (peu d'envois en préprod) : à séparer si la limite gêne un jour.
 
 ## Supprimer un centre
 
