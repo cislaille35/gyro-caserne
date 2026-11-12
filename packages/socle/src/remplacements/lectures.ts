@@ -51,7 +51,7 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 	const avenir = d.debut > maintenant;
 	const recue = lu.destinataires.some((x) => x.demandeId === d.id && x.personneId === moi && x.refuseLe === null);
 	const estValideur = valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi);
-	// Un stagiaire ne se voit rien proposer, même une demande reçue avant de le devenir.
+	// Un non-opérationnel (stagiaire, inapte temporaire) ne se voit rien proposer, même une demande reçue avant.
 	const pourMoi = d.etat === 'attente' && avenir && recue && d.demandeurId !== moi && (d.cibleId === null || d.cibleId === moi) && (ctx === null || peutRemplacer(ctx, moi));
 	const periodes = periodesDe(d.periodes);
 	const periodesCible = periodesDe(d.periodesCible);
@@ -223,8 +223,8 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 		.where(
 			and(
 				eq(destinataireRemplacement.personneId, moi),
-				// Un stagiaire n'a rien à prendre : la règle de peutRemplacer (contexte.ts), en SQL.
-				sql`not exists (select 1 from personne as moi where moi.id = ${moi} and moi.statut = 'stagiaire')`,
+				// Seul un opérationnel a quelque chose à prendre : la règle de peutRemplacer (contexte.ts), en SQL.
+				sql`exists (select 1 from personne as moi where moi.id = ${moi} and moi.statut = 'operationnel')`,
 				isNull(destinataireRemplacement.refuseLe),
 				eq(demandeRemplacement.etat, 'attente'),
 				gt(demandeRemplacement.debut, maintenant.slice(0, 16)),

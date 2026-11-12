@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours } from '../dates.ts';
+import { DonneeInvalide } from '../erreurs.ts';
 import { STATUTS_AVEC_ACCES } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
 import type { Periode, Reglage, SemaineCalculee } from '../planning/calendrier.ts';
@@ -157,13 +158,18 @@ function engagesDe(demandes: LigneDemande[]) {
 export const sansEngagement = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
 	!(ctx.engages.get(id) ?? []).some((e) => e.demandeId !== sauf && periodes.some((p) => chevauche(p, e.periode)));
 
-// Un stagiaire (les JSP compris) ne prend jamais la place d'un collègue : ni disponible, ni destinataire, ni remplaçant, ni dans un échange.
-// Il peut toujours demander à être remplacé sur son astreinte.
-export const STAGIAIRE = 'Un stagiaire ne prend pas la place d’un collègue';
-export const estStagiaire = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut === 'stagiaire');
-export const peutRemplacer = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut !== 'stagiaire');
+// Seul un opérationnel prend la place d'un collègue. Un stagiaire (les JSP compris) ou un inapte temporaire n'est ni disponible,
+// ni destinataire, ni remplaçant, ni dans un échange ; il peut toujours demander à être remplacé sur son astreinte.
+export const peutRemplacer = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut === 'operationnel');
+// Refuse le geste si l'un de ces agents a accès sans être opérationnel.
+export function exigerRemplacants(ctx: Contexte, ...ids: number[]) {
+	for (const id of ids) {
+		const statut = ctx.agents.find((a) => a.id === id)?.statut;
+		if (statut !== undefined && statut !== 'operationnel') throw new DonneeInvalide(`Un ${statut === 'stagiaire' ? 'stagiaire' : 'inapte temporaire'} ne prend pas la place d’un collègue`);
+	}
+}
 
-// Disponible : un agent qui a accès, pas stagiaire, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
+// Disponible : un opérationnel, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
 export const disponible = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
 	peutRemplacer(ctx, id) && !periodes.some((p) => dAstreinte(ctx, id, p) || enVacances(ctx.vacances, id, p)) && sansEngagement(ctx, id, periodes, sauf);
 

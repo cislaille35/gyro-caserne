@@ -8,7 +8,7 @@
   - **Valideurs** : le rôle système Chef de garde de l'équipe d'astreinte du demandeur (le droit `VALIDER_REMPLACEMENT` y est verrouillé) ; à défaut, chef de centre et adjoint. La cloche les compte en SQL (`remplacements/compte.ts`), les écrans en TypeScript (`valideurs`) ; un test vérifie qu'ils s'accordent.
   - **Convocation à exceptions** : `{ equipes, ajoutes, retires }` dans le JSON des convoqués de la manœuvre et de sa publication ; les anciennes formes (`"tous"`, liste d'équipes) restent valables.
   - **Expiration et relance** par la tâche de chaque minute, un passage sur dix.
-  - **Stagiaires jamais remplaçants** (12/11/2026, validé par le porteur) : un agent au statut `stagiaire` (dont les JSP) n'est ni disponible, ni destinataire, ni capable d'accepter, ni dans un échange ; il peut toujours demander à être remplacé (`peutRemplacer`, `remplacements/contexte.ts`).
+  - **Opérationnels seuls remplaçants** (12/11/2026, validé par le porteur) : un agent au statut `stagiaire` (dont les JSP) ou `inapte_temporaire` n'est ni disponible, ni destinataire, ni capable d'accepter, ni dans un échange ; il peut toujours demander à être remplacé (`peutRemplacer`, `exigerRemplacants`, `remplacements/contexte.ts`). Suspendus et partis n'ont plus accès.
   - **Aptitudes** : liste du centre (`GERER_LISTES`), aptitudes datées des agents (`GERER_ACCES`), une colonne par aptitude dans le fichier de l'effectif.
 - **Pourquoi** : peu de données, une seule règle de disponibilité partagée par la demande, l'acceptation et l'écran, gratuit.
 - **Décisions à valider** : voir le compte rendu de la PR #30.
