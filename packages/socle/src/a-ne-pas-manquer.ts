@@ -12,7 +12,7 @@ import { personne, priseConnaissance, profil, publication, reponseEvenement, vis
 export type ItemANePasManquer = { id: number; cle: CleMur; nomMur: string; titre: string };
 export type ANePasManquer = {
 	annonces: ItemANePasManquer[];
-	// `enCours` : commencé, pas fini (3 h après le début) ; on ne peut plus y répondre.
+	// `enCours` : commencé, pas fini (à sa fin, ou 3 h après le début) ; on ne peut plus y répondre.
 	evenements: (ItemANePasManquer & { debut: string; demain: boolean; enCours: boolean; reponse: ReponseEvenement | null })[];
 	sondages: ItemANePasManquer[];
 	epinglees: ItemANePasManquer[];
@@ -60,10 +60,10 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 			.where(and(surSesMurs, eq(publication.type, 'annonce'), eq(publication.priseDeConnaissance, 1), pasDeMoi, gte(publication.creeLe, ajouterJours(aujourdhui, -ANNONCES)), isNull(priseConnaissance.publicationId)))
 			.orderBy(desc(publication.creeLe), desc(publication.id)),
 		base
-			.select({ ...champs, debut: publication.debut, convoques: publication.convoques, reponse: reponseEvenement.reponse })
+			.select({ ...champs, debut: publication.debut, fin: publication.fin, convoques: publication.convoques, reponse: reponseEvenement.reponse })
 			.from(publication)
 			.leftJoin(reponseEvenement, and(eq(reponseEvenement.publicationId, publication.id), eq(reponseEvenement.personneId, moi)))
-			.where(and(surSesMurs, gt(publication.debut, debutMinimumEvenement(maintenant)), isNull(publication.annuleeLe)))
+			.where(and(surSesMurs, or(gt(publication.debut, debutMinimumEvenement(maintenant)), gt(publication.fin, m)), isNull(publication.annuleeLe)))
 			.orderBy(asc(publication.debut), asc(publication.id)),
 		base
 			.select(champs)
@@ -93,9 +93,10 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	return {
 		annonces: annonces.map(item),
 		evenements: evenements
-			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi))
+			// La requête ramène aussi une manœuvre courte déjà finie (moins de 3 h) : écartée ici.
+			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi) && momentEvenement(p.debut!, maintenant, p.fin) !== 'passe')
 			.map((p) => {
-				const enCours = momentEvenement(p.debut!, maintenant) === 'enCours';
+				const enCours = momentEvenement(p.debut!, maintenant, p.fin) === 'enCours';
 				return { ...item(p), debut: p.debut!, demain: !enCours && p.debut!.slice(0, 10) === demain, enCours, reponse: p.reponse };
 			}),
 		sondages: sondages.map(item),

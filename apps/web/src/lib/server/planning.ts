@@ -1,3 +1,4 @@
+import centre from '$centre';
 import { error, redirect } from '@sveltejs/kit';
 import { planningDuMatin, RefusDroit, type Acteur } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
@@ -32,5 +33,5 @@ export const heureDAnnoncer = (maintenant: string) => maintenant.slice(11, 16) >
 
 export function annoncerSiJournee(locals: App.Locals) {
 	const maintenant = maintenantParis();
-	if (heureDAnnoncer(maintenant)) enArrierePlan(locals, () => planningDuMatin(locals.base, maintenant));
+	if (heureDAnnoncer(maintenant)) enArrierePlan(locals, () => planningDuMatin(locals.base, maintenant, centre.manoeuvres.petitDejeuner));
 }

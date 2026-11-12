@@ -188,12 +188,17 @@ describe('le tour de rôle', () => {
 
 describe('reprendre les manœuvres', () => {
 	type Source = Parameters<typeof reprendreManoeuvres>[0][number];
-	const m = (debut: string, convoques: 'tous' | number[], autres: Partial<Source> = {}): Source => ({ debut, theme: 'Feux', lieu: 'Caserne', convoques, petitDejeuner: true, annulee: false, ...autres });
+	const m = (debut: string, convoques: 'tous' | number[], autres: Partial<Source> = {}): Source => ({ debut, fin: `${debut.slice(0, 10)}T12:00`, theme: 'Feux', lieu: 'Caserne', convoques, petitDejeuner: true, annulee: false, ...autres });
 
-	it('mêmes équipes, même heure, thème, lieu et petit-déjeuner', () => {
+	it('mêmes équipes, mêmes heures de début et de fin, thème, lieu et petit-déjeuner', () => {
 		const r = reprendreManoeuvres([m('2026-03-08T08:30', [1, 2], { theme: 'SAP', lieu: 'Stade', petitDejeuner: false })], 2027, TOUS, maintenant, []);
-		expect(r.manoeuvres).toEqual([{ debut: '2027-03-14T08:30', theme: 'SAP', lieu: 'Stade', convoques: [1, 2], petitDejeuner: false }]);
+		expect(r.manoeuvres).toEqual([{ debut: '2027-03-14T08:30', fin: '2027-03-14T12:00', theme: 'SAP', lieu: 'Stade', convoques: [1, 2], petitDejeuner: false }]);
 		expect(r).toMatchObject({ tourDeRole: false, annulees: 0, passees: 0, deja: 0 });
+	});
+
+	it('une fin le lendemain (ancienne manœuvre du soir) : reprise sans fin', () => {
+		const r = reprendreManoeuvres([m('2026-03-08T22:00', 'tous', { fin: '2026-03-09T01:00' })], 2027, TOUS, maintenant, []);
+		expect(r.manoeuvres[0]).toMatchObject({ debut: '2027-03-14T22:00', fin: null });
 	});
 
 	it('les annulées ne sont pas reprises, mais comptent dans le tour', () => {
@@ -341,7 +346,7 @@ describe('proposer l’année', () => {
 		const gardee = await enregistrerManoeuvre(base, chef, { debut: '2026-12-13T08:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [ids[0]!], petitDejeuner: true }, maintenant);
 		const p = await proposerAnnee(base, chef, 2027, maintenant, reglage);
 		expect(gardee).toBeGreaterThan(0);
-		expect(p.manoeuvres).toEqual([{ debut: '2027-12-12T08:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [ids[0]], petitDejeuner: true }]);
+		expect(p.manoeuvres).toEqual([{ debut: '2027-12-12T08:30', fin: '2027-12-12T11:30', theme: 'Feux de forêt', lieu: 'Stade', convoques: [ids[0]], petitDejeuner: true }]);
 		expect(p.annulees).toBe(1);
 		expect(p.vacances).toBe(0);
 	});
