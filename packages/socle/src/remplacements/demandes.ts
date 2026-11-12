@@ -10,7 +10,7 @@ import type { Convocation } from '../murs.ts';
 import { convoque, equipeLe } from '../planning/annee.ts';
 import { anneePlanning, demandeRemplacement, destinataireRemplacement, manoeuvre, personne, publication, reponseEvenement } from '../schema.ts';
 import { avis } from './avis.ts';
-import { astreintesDe, disponible, disponibles, lireContexte, manque, mesTranches, periodesDe, valideurs, type Contexte, type LigneDemande } from './contexte.ts';
+import { astreintesDe, disponible, disponibles, lireContexte, manque, mesTranches, periodesDe, estStagiaire, peutRemplacer, STAGIAIRE, valideurs, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
 // Les gestes d'une demande de remplacement ou d'échange. Chaque écriture vérifie l'état attendu : deux gestes simultanés
@@ -74,7 +74,9 @@ export async function demanderRemplacement(base: Base, acteur: Acteur, d: { peri
 	const mot = motDe(d.mot);
 	let destinataires: number[];
 	if (d.cibleId !== null) {
-		if (!Number.isInteger(d.cibleId) || d.cibleId === moi || !disponible(ctx, d.cibleId, periodes)) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
+		if (!Number.isInteger(d.cibleId) || d.cibleId === moi) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
+		if (estStagiaire(ctx, d.cibleId)) throw new DonneeInvalide(STAGIAIRE);
+		if (!disponible(ctx, d.cibleId, periodes)) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
 		destinataires = [d.cibleId];
 	} else destinataires = disponibles(ctx, moi, periodes).map((a) => a.id);
 	const texte = `${nomDe(ctx, moi)} · ${texteDemande(periodes)}`;
@@ -107,6 +109,7 @@ export async function proposerEchange(base: Base, acteur: Acteur, d: { periodes:
 	const ctx = await lireContexte(base, maintenant, reglage);
 	const periodes = exigerTranches(ctx, moi, d.periodes);
 	if (!Number.isInteger(d.cibleId) || d.cibleId === moi || !ctx.agents.some((a) => a.id === d.cibleId)) throw new DonneeInvalide('Collègue inconnu');
+	if (estStagiaire(ctx, moi) || estStagiaire(ctx, d.cibleId)) throw new DonneeInvalide(STAGIAIRE);
 	const periodesCible = exigerTranches(ctx, d.cibleId, d.periodesCible);
 	if (!disponible(ctx, d.cibleId, periodes) || !disponible(ctx, moi, periodesCible)) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
 	const mot = motDe(d.mot);
@@ -138,16 +141,16 @@ const convoqueA = (ctx: Contexte, m: ManoeuvreLue, id: number) => {
 	return c !== 'tous' && convoque(c, equipeLe(ctx.affectations.filter((a) => a.personneId === id), m.debut.slice(0, 10)), id);
 };
 
-// Pour l'écran : mes manœuvres échangeables, et celles de chaque collègue (où je ne suis pas convoqué).
+// Pour l'écran : mes manœuvres échangeables, et celles de chaque collègue (où je ne suis pas convoqué). Rien pour un stagiaire, ni avec lui.
 export async function manoeuvresEchangeables(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage) {
 	const moi = moiDe(acteur);
 	const [ctx, manoeuvres] = await Promise.all([lireContexte(base, maintenant, reglage), lireManoeuvres(base, maintenant)]);
 	const vue = (m: ManoeuvreLue) => ({ id: m.id, debut: m.debut, theme: m.theme });
-	const miennes = manoeuvres.filter((m) => convoqueA(ctx, m, moi));
+	const miennes = peutRemplacer(ctx, moi) ? manoeuvres.filter((m) => convoqueA(ctx, m, moi)) : [];
 	return {
 		miennes: miennes.map(vue),
 		collegues: ctx.agents
-			.filter((a) => a.id !== moi)
+			.filter((a) => a.id !== moi && peutRemplacer(ctx, moi) && peutRemplacer(ctx, a.id))
 			// `aussiA` : mes manœuvres où il est aussi convoqué (il ne peut pas y prendre ma place).
 			.map((a) => ({ id: a.id, prenom: a.prenom, nom: a.nom, manoeuvres: manoeuvres.filter((m) => convoqueA(ctx, m, a.id) && !convoqueA(ctx, m, moi)).map(vue), aussiA: miennes.filter((m) => convoqueA(ctx, m, a.id)).map((m) => m.id) }))
 			.filter((a) => a.manoeuvres.length > 0)
@@ -171,6 +174,7 @@ export async function proposerEchangeManoeuvre(base: Base, acteur: Acteur, d: { 
 	const moi = await exigerDemander(base, acteur, maintenant);
 	const [ctx, manoeuvres] = await Promise.all([lireContexte(base, maintenant, reglage), lireManoeuvres(base, maintenant)]);
 	if (!Number.isInteger(d.cibleId) || d.cibleId === moi || !ctx.agents.some((a) => a.id === d.cibleId)) throw new DonneeInvalide('Collègue inconnu');
+	if (estStagiaire(ctx, moi) || estStagiaire(ctx, d.cibleId)) throw new DonneeInvalide(STAGIAIRE);
 	const { m1, m2 } = exigerEchangeManoeuvre(ctx, manoeuvres, { demandeurId: moi, cibleId: d.cibleId, manoeuvreId: d.manoeuvreId, manoeuvreCibleId: d.manoeuvreCibleId });
 	const deja = ctx.demandes.some((x) => x.genre === 'manoeuvre' && x.etat === 'attente' && x.demandeurId === moi && x.manoeuvreId === m1.id);
 	if (deja) throw new DonneeInvalide('Échange déjà proposé pour cette manœuvre');
@@ -279,10 +283,13 @@ export const texteDe = (ctx: Contexte, d: LigneDemande) =>
 export async function accepterDemande(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage): Promise<'conclue' | 'a_valider'> {
 	const moi = await exigerDemander(base, acteur, maintenant);
 	const { d, destinataires, ctx } = await lireDemande(base, id, maintenant, reglage);
+	if (estStagiaire(ctx, moi)) throw new DonneeInvalide(STAGIAIRE);
 	const recue = destinataires.some((x) => x.personneId === moi && x.refuseLe === null);
 	if (!recue || (d.cibleId !== null && d.cibleId !== moi)) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous est pas adressée');
 	if (d.etat !== 'attente') throw new DonneeInvalide(d.remplacantId === null ? 'Cette demande n’est plus ouverte' : 'Déjà prise par un collègue');
 	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
+	// Un échange proposé par un agent devenu stagiaire depuis ne se conclut plus.
+	if (d.genre !== 'remplacement' && estStagiaire(ctx, d.demandeurId)) throw new DonneeInvalide(STAGIAIRE);
 	if (d.genre === 'manoeuvre') return accepterManoeuvre(base, d, moi, ctx, maintenant);
 	const periodes = periodesDe(d.periodes);
 	const date = d.debut.slice(0, 10);

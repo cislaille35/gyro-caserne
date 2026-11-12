@@ -58,7 +58,7 @@ export function estMembre(a: Appartenances, cle: string): boolean {
 export function lecturesAgents(base: Base, aujourdhui: string) {
 	return [
 		base
-			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
+			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, statut: personne.statut })
 			.from(personne)
 			.leftJoin(profil, eq(profil.id, personne.profilId))
 			.where(and(inArray(personne.statut, STATUTS_AVEC_ACCES), or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur')))),

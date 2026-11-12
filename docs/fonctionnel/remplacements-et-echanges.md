@@ -9,7 +9,7 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 - **Période** : une tranche de son astreinte, prise dans le planning. Une **nuit** en semaine (18 h – 6 h), une **garde de 24 h** le week-end ou un férié (6 h – 6 h), la nuit du vendredi de relève ; des raccourcis (« Ce soir », « Le week-end », « Toute la semaine ») les choisissent d'un geste. Pas d'heure à saisir.
 - **Remplacement** : céder une ou plusieurs périodes. Plusieurs périodes se prennent **en bloc** ; pour les céder à des collègues différents, on fait plusieurs demandes.
   - **Ciblé** : à un seul collègue, lui seul la reçoit et doit accepter. S'il refuse, le demandeur l'**ouvre à tous** d'un geste.
-  - **Ouvert** : envoyé à tous les **disponibles** (ni d'astreinte, ni en vacances d'été, ni engagés dans une autre demande à ce moment-là). Le **premier** qui accepte l'emporte, jamais deux.
+  - **Ouvert** : envoyé à tous les **disponibles** (ni stagiaires, ni d'astreinte, ni en vacances d'été, ni engagés dans une autre demande à ce moment-là). Le **premier** qui accepte l'emporte, jamais deux.
 - **Échange de périodes** : « je prends ton week-end, tu prends le mien », en même temps. Pas de dette à rendre plus tard.
 - **Échange de manœuvre** : un agent convoqué à une manœuvre échange sa place avec un collègue convoqué à une autre. Chacun est convoqué à la place de l'autre (la publication de la manœuvre et l'agenda suivent ; chacun est noté présent à sa nouvelle manœuvre). Pas pour une manœuvre de tout le centre. Pas de validation : le collègue accepte, le chef de garde est informé.
 - **Aptitudes** : la liste du centre (CA2, CA1, CE, COD1, COD2, INC, SAP, DIV, FDF1, FDF2 par défaut), chacune **contrôlée en remplacement** ou non (par défaut : commandement et conduite). Chaque agent a les siennes, datées (obtention, expiration facultative).
@@ -33,6 +33,7 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 - **Annuler** : le demandeur, tant que personne n'a accepté ; ensuite le remplaçant se désiste, ou le chef annule (avant le début).
 - **Délais** : on ne demande pas une période commencée. Une demande non conclue (y compris à valider) **expire au début** de sa première période ; le titulaire reste responsable et il est prévenu (le remplaçant et le chef aussi si elle attendait la validation). La **veille**, à partir de 8 h, une demande sans remplaçant est relancée une fois au demandeur et au chef de garde.
 - **Départ** d'un agent : ses demandes sont annulées ; celles où il remplaçait repartent.
+- **Stagiaires** (les JSP compris) : jamais remplaçants. Ils ne sont ni proposés, ni prévenus d'une demande, ni ciblables, et ne peuvent pas accepter (« Un stagiaire ne prend pas la place d’un collègue »). Pas d'échange de périodes ni de manœuvre avec eux, ni de leur part. Un stagiaire placé dans une équipe peut toujours **demander** à être remplacé sur son astreinte.
 - **Notifications** : coupées seulement par l'interrupteur général.
 
 ## Ce que la fonction ne fait pas
@@ -45,4 +46,5 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 
 - Julie (équipe 1, CA1) ne peut pas tenir la nuit du lundi 9 novembre. Elle l'ouvre à tous. Marc (équipe 3, CA1) accepte le premier : c'est conclu, le chef de l'équipe 1 est informé, le planning dit « Marc remplace Julie ».
 - Si c'est Paul (sans CA1) qui accepte, l'appli l'avertit ; le remplacement attend le chef de l'équipe 1. Il refuse : la demande repart, Paul ne la revoit plus.
+- Léo, JSP au statut stagiaire, n'apparaît jamais parmi les collègues libres, et ne reçoit pas la demande de Julie.
 - Julie et Bruno (équipe 2) échangent la nuit du 9 contre celle du 16. Bruno accepte : chacun tient la nuit de l'autre.

@@ -157,9 +157,15 @@ function engagesDe(demandes: LigneDemande[]) {
 export const sansEngagement = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
 	!(ctx.engages.get(id) ?? []).some((e) => e.demandeId !== sauf && periodes.some((p) => chevauche(p, e.periode)));
 
-// Disponible : un agent qui a accès, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
+// Un stagiaire (les JSP compris) ne prend jamais la place d'un collègue : ni disponible, ni destinataire, ni remplaçant, ni dans un échange.
+// Il peut toujours demander à être remplacé sur son astreinte.
+export const STAGIAIRE = 'Un stagiaire ne prend pas la place d’un collègue';
+export const estStagiaire = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut === 'stagiaire');
+export const peutRemplacer = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut !== 'stagiaire');
+
+// Disponible : un agent qui a accès, pas stagiaire, ni d'astreinte ni en vacances sur l'une des périodes, ni engagé dans une demande qui les touche.
 export const disponible = (ctx: Contexte, id: number, periodes: Periode[], sauf: number | null = null) =>
-	ctx.agents.some((a) => a.id === id) && !periodes.some((p) => dAstreinte(ctx, id, p) || enVacances(ctx.vacances, id, p)) && sansEngagement(ctx, id, periodes, sauf);
+	peutRemplacer(ctx, id) && !periodes.some((p) => dAstreinte(ctx, id, p) || enVacances(ctx.vacances, id, p)) && sansEngagement(ctx, id, periodes, sauf);
 
 const controleesValides = (ctx: Contexte, id: number, date: string) => {
 	const siennes = ctx.aptitudes.filter((a) => a.personneId === id && a.controlee === 1);
