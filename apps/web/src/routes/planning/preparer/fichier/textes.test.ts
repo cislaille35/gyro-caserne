@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alertesFetes, resumer } from './textes.ts';
+import { alertesFetes, apresImport, resumer } from './textes.ts';
 
 const vide = { semaines: [], manoeuvres: { ajoutees: [], modifiees: [], retirees: [] }, vacances: { ajoutees: [], retirees: [] }, fetes: [], ete: { ajouts: 0, retraits: 0 }, erreurs: [] };
 const m = { debut: '2027-03-07T08:30', theme: 'Incendie' };
@@ -16,5 +16,10 @@ describe('aperçu du fichier du planning', () => {
 
 	it('l’alerte du tour des fêtes', () => {
 		expect(alertesFetes({ ...vide, fetes: [{ fete: 'noel', avant: 'Équipe 1', apres: 'Équipe 2', horsTour: true }, { fete: 'nouvel_an', avant: null, apres: 'Équipe 3', horsTour: false }] })).toEqual(['Équipe 2 tiendrait Noël hors de son tour.']);
+	});
+
+	it('après l’import, ce que voient les agents, selon que l’année est publiée ou non', () => {
+		expect(apresImport(true)).toBe('Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.');
+		expect(apresImport(false)).toBe('Année en brouillon : les agents ne voient rien avant la publication, à l’étape « Vérifier et publier ».');
 	});
 });

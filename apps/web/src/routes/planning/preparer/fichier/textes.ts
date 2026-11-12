@@ -26,3 +26,9 @@ export function resumer(a: ApercuPlanning): string {
 
 // L'alerte du tour des fêtes.
 export const alertesFetes = (a: ApercuPlanning) => a.fetes.filter((f) => f.horsTour).map((f) => `${f.apres} tiendrait ${FETES[f.fete]} hors de son tour.`);
+
+// Après l'import : une année en brouillon reste invisible des agents jusqu'à sa publication.
+export const apresImport = (publiee: boolean) =>
+	publiee
+		? 'Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.'
+		: 'Année en brouillon : les agents ne voient rien avant la publication, à l’étape « Vérifier et publier ».';

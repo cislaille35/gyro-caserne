@@ -24,10 +24,15 @@ describe('/planning/preparer/fichier', () => {
 		await expect(envoyer(appliquer, l, {})).rejects.toMatchObject({ status: 403 });
 	});
 
+	it('dit si l’année est publiée, pour le message après l’import', async () => {
+		const { base, chef, annee } = await preparer();
+		expect(await charger(load, locaux(base, chef), `?annee=${annee}`)).toEqual({ annee, publiee: true });
+	});
+
 	it('exporte, prévisualise, applique ; refuse un fichier mal formé', async () => {
 		const { base, chef, annee, ids } = await preparer({ publiee: false });
 		const l = locaux(base, chef);
-		expect(await charger(load, l, `?annee=${annee + 1}`)).toEqual({ annee: annee + 1 });
+		expect(await charger(load, l, `?annee=${annee + 1}`)).toEqual({ annee: annee + 1, publiee: false });
 		const donnees = await (await lire(l, annee)).json();
 		const lignes = donnees.feuilles[0].lignes.map((cellules: string[], i: number) => ({ numero: i + 2, cellules }));
 		lignes[3].cellules[3] = lignes[3].cellules[3] === 'Équipe 1' ? 'Équipe 2' : 'Équipe 1';
