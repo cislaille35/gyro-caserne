@@ -46,8 +46,15 @@ Pour que GitHub déploie tout seul :
    - variable `CENTRE_PRODUCTION` = `<id>` ; et, pour une préprod, `CENTRE_PREPROD` = l'identifiant de son centre de démonstration.
 3. Facultatif, pour que le déploiement pose aussi la clé de la vigilance : secret `VIGILANCE_CLE` (la même pour la préprod et la production ; à renouveler avant son expiration, le bandeau disparaît sinon sans bloquer l'appli).
 4. Facultatif, pour que le déploiement pose aussi les clés des notifications : secrets `VAPID_PUBLIQUE_PRODUCTION` et `VAPID_PRIVEE_PRODUCTION` (et `…_PREPROD` pour une préprod), avec des paires créées par `pnpm --filter @gyro-caserne/web cles-vapid`. Par exemple, sans afficher la clé privée : `node --experimental-transform-types apps/web/scripts/cles-vapid.ts | while IFS='=' read -r nom valeur; do printf %s "$valeur" | gh secret set "${nom}_PRODUCTION"; done`.
-5. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
-6. Après chaque déploiement, un contrôle fait échouer le passage, avec la liste des noms manquants, si `BETTER_AUTH_SECRET`, `SUPER_ADMINS` ou `BREVO_CLE` manque sur le Worker, ou l'adresse de l'appli ; puis il vérifie que `/connexion` répond. À la main : `CENTRE=<id> pnpm --filter @gyro-caserne/web controle-deploiement`. Seuls les noms des secrets sont lus, jamais leurs valeurs.
+5. Copie hebdomadaire de la base, chiffrée et envoyée par e-mail ([sauvegarde.md](sauvegarde.md)). Sans ces réglages, le passage du dimanche échoue et GitHub prévient :
+   - le porteur crée sa paire de clés age et garde la clé privée en lieu sûr ([mode d'emploi](../fonctionnel/copie-hebdomadaire.md)) ;
+   - variable `COPIE_CLE_PUBLIQUE_PRODUCTION` = sa clé publique `age1…` ;
+   - variable `COPIE_DESTINATAIRE` = la boîte qui reçoit les copies ;
+   - secret `BREVO_CLE_PRODUCTION` = la clé Brevo de la production, la même que le secret `BREVO_CLE` du Worker ;
+   - facultatif, secret `COURRIEL_EXPEDITEUR_PRODUCTION` = l'expéditeur vérifié dans Brevo ; à défaut, le destinataire ;
+   - puis lancer une copie à la main (Actions › Copie hebdomadaire › Run workflow) et vérifier qu'elle s'ouvre.
+6. Ensuite : chaque mise à jour de `main` déploie la préprod ; un tag `vX.Y.Z` posé sur `main` déploie la production.
+7. Après chaque déploiement, un contrôle fait échouer le passage, avec la liste des noms manquants, si `BETTER_AUTH_SECRET`, `SUPER_ADMINS` ou `BREVO_CLE` manque sur le Worker, ou l'adresse de l'appli ; puis il vérifie que `/connexion` répond. À la main : `CENTRE=<id> pnpm --filter @gyro-caserne/web controle-deploiement`. Seuls les noms des secrets sont lus, jamais leurs valeurs.
 
 `centres/exemple` sert à la fois de modèle et de préprod pour le CIS Laillé : ses `database_id` sont ceux de Laillé. En le copiant (étape 3 de l'installation), remplacer les deux `database_id` par ceux des nouvelles bases (étape 8).
 

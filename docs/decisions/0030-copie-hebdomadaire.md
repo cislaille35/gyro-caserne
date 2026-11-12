@@ -1,0 +1,23 @@
+# 0030 — Copie hebdomadaire chiffrée, par e-mail
+
+- **Contexte** : avant les vraies données de Laillé, il faut une copie hors de Cloudflare. Le retour en arrière de D1 (Time Travel) ne remonte qu'à 7 jours en offre gratuite, et il disparaît avec le compte. Le dépôt est public, et le centre n'a pas de carte bancaire.
+- **Options pour le lieu** :
+  - R2 de Cloudflare : demande une carte bancaire, comme pour les photos (décision [0010](0010-photos-dans-leur-base.md)) ;
+  - artefact ou fichier dans GitHub : téléchargeable par tous, le dépôt étant public ;
+  - **e-mail** à la boîte du centre, par Brevo, déjà en place.
+- **Options pour le chiffrement** :
+  - gpg : déjà sur les machines de GitHub, mais trousseau, sous-clés et expirations sont un piège pour un non-spécialiste ;
+  - **age** : une commande crée la paire ; une ligne de clé privée se range dans un gestionnaire de mots de passe ; un fichier se déchiffre en une commande.
+- **Choix** :
+  - un workflow GitHub Actions, chaque dimanche. Le jeton Cloudflare est déjà là, et l'export (`wrangler d1 export`) ne se fait pas depuis le Worker ;
+  - il exporte la base principale (`BASE`), la compresse (gzip) et la chiffre avec age 1.3.2 (binaire officiel, empreinte vérifiée), pour la ou les clés publiques du porteur ;
+  - la copie part par l'API de Brevo à `cislaille35@gmail.com`, avec la clé Brevo de production posée en secret de dépôt ;
+  - les photos ne sont pas copiées : Time Travel les couvre ;
+  - 3 mois de copies dans la boîte ; 4 000 000 octets au plus, sinon échec sans envoi.
+- **Pourquoi** : gratuit, sans carte ni nouveau service. Rien ne reste sur GitHub. Seul le porteur peut lire les copies. La restauration est vérifiée sur une base D1 jetable.
+- **Contreparties** :
+  - **clé perdue = copies perdues** (une deuxième clé, chez une personne de confiance, est possible) ;
+  - au-delà de 4 Mo chiffrés, il faudra découper la copie ou passer à R2 ;
+  - un export brut de D1 ne se restaure pas (ordre des tables), d'où `scripts/copie-restaurable.ts`.
+- **Détails** : [sauvegarde.md](../technique/sauvegarde.md), mode d'emploi : [copie-hebdomadaire.md](../fonctionnel/copie-hebdomadaire.md).
+- **Validé par** : le porteur, le 11/11/2026 (e-mail plutôt que R2, chiffrement par une clé qu'il est seul à détenir, garde de 3 mois). Le choix d'age et les détails sont à valider dans la PR #88.
