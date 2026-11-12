@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, gt, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
@@ -6,7 +6,7 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import type { EtatDemande, GenreDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
 import { avisRemplacement, demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
-import { bandesDe, candidats, disponibles, EN_COURS, lireContexte, manque, periodesDe, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
+import { bandesDe, candidats, disponibles, EN_COURS, lireContexte, manque, periodesDe, peutRemplacer, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
 // Ce que montrent les écrans : Pour moi, Mes demandes, À valider, l'historique, le détail d'une demande.
@@ -51,7 +51,8 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 	const avenir = d.debut > maintenant;
 	const recue = lu.destinataires.some((x) => x.demandeId === d.id && x.personneId === moi && x.refuseLe === null);
 	const estValideur = valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi);
-	const pourMoi = d.etat === 'attente' && avenir && recue && d.demandeurId !== moi && (d.cibleId === null || d.cibleId === moi);
+	// Un stagiaire ne se voit rien proposer, même une demande reçue avant de le devenir.
+	const pourMoi = d.etat === 'attente' && avenir && recue && d.demandeurId !== moi && (d.cibleId === null || d.cibleId === moi) && (ctx === null || peutRemplacer(ctx, moi));
 	const periodes = periodesDe(d.periodes);
 	const periodesCible = periodesDe(d.periodesCible);
 	const man = m(d.manoeuvreId);
@@ -222,6 +223,8 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 		.where(
 			and(
 				eq(destinataireRemplacement.personneId, moi),
+				// Un stagiaire n'a rien à prendre (décision 0014).
+				sql`not exists (select 1 from personne as moi where moi.id = ${moi} and moi.statut = 'stagiaire')`,
 				isNull(destinataireRemplacement.refuseLe),
 				eq(demandeRemplacement.etat, 'attente'),
 				gt(demandeRemplacement.debut, maintenant.slice(0, 16)),

@@ -590,3 +590,74 @@ describe('échange de manœuvre, parcours court', () => {
 		expect(choix.collegues.find((c) => c.id === n.bruno)?.aussiA).toEqual([commune]);
 	});
 });
+
+describe('stagiaires : jamais remplaçants', () => {
+	const REFUS = new DonneeInvalide('Un stagiaire ne prend pas la place d’un collègue');
+	// Sam, stagiaire de l'équipe 3 (libre comme Chloé la nuit du 9) ; Théo, stagiaire de l'équipe 1 (d'astreinte comme Alice).
+	async function avecStagiaires() {
+		const j = await jeu();
+		const stagiaire = async (prenom: string, equipeNo: number) => {
+			const [p] = await j.base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Test', statut: 'stagiaire', profilId: (await j.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+			await j.base.insert(affectationEquipe).values({ personneId: p!.id, equipeId: j.ids[equipeNo - 1]!, debut: '2026-01-01' });
+			return p!.id;
+		};
+		const sam = await stagiaire('Sam', 3);
+		const theo = await stagiaire('Theo', 1);
+		return { ...j, sam, theo };
+	}
+
+	it('absent des disponibles et des collègues libres ; un opérationnel reste proposé', async () => {
+		const { base, n, alice, sam } = await avecStagiaires();
+		const ctx = await lireContexte(base, maintenant, reglage);
+		expect(disponibles(ctx, n.alice, [nuitLundi9]).map((x) => x.id)).toEqual([n.chloe, n.bruno, n.chef]);
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9] });
+		expect(lu.candidats.map((x) => x.id)).not.toContain(sam);
+		expect(lu.candidats.map((x) => x.id)).toContain(n.chloe);
+	});
+
+	it('ni destinataire d’une demande ouverte, ni ciblable', async () => {
+		const { base, n, alice, sam, avisDe, destinataires } = await avecStagiaires();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		expect(await destinataires(id)).toEqual([n.chef, n.bruno, n.chloe].sort());
+		expect(await avisDe(sam)).toEqual([]);
+		await expect(demanderRemplacement(base, alice, { periodes: [nuitMardi10], cibleId: sam }, maintenant, reglage)).rejects.toThrow(REFUS);
+		// Ouverte à tous après un refus : toujours pas lui.
+		const ciblee = await demanderRemplacement(base, alice, { periodes: [nuitMardi10], cibleId: n.chloe }, maintenant, reglage);
+		await ouvrirATous(base, alice, ciblee, maintenant, reglage);
+		expect(await destinataires(ciblee)).not.toContain(sam);
+	});
+
+	it('ne peut pas accepter, même une demande reçue avant de devenir stagiaire ; elle ne lui est plus montrée', async () => {
+		const { base, n, alice, chef, chloe } = await avecStagiaires();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.chloe, 'stagiaire', maintenant);
+		expect((await remplacementsDe(base, chloe, maintenant, reglage)).pourMoi).toEqual([]);
+		expect((await aNePasManquer(base, chloe, '2026-11-01', maintenant)).remplacements).toEqual([]);
+		await expect(accepterDemande(base, chloe, id, maintenant, reglage)).rejects.toThrow(REFUS);
+	});
+
+	it('absent des échanges de périodes et de manœuvre', async () => {
+		const { base, n, alice, ids, sam, theo } = await avecStagiaires();
+		const lu = await pourDemander(base, alice, maintenant, reglage, { periodes: [nuitLundi9], echange: true });
+		expect(lu.echangeables.map((x) => x.id)).not.toContain(sam);
+		expect(lu.echangeables.map((x) => x.id)).toContain(n.chloe);
+		await expect(proposerEchange(base, alice, { periodes: [nuitLundi9], cibleId: sam, periodesCible: [{ debut: '2026-11-23T18:00', fin: '2026-11-24T06:00' }] }, maintenant, reglage)).rejects.toThrow(REFUS);
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const m1 = await enregistrerManoeuvre(base, qui, { debut: '2026-11-08T08:30', theme: 'Secourisme', lieu: 'Caserne', convoques: [ids[0]!], petitDejeuner: false }, maintenant);
+		const m3 = await enregistrerManoeuvre(base, qui, { debut: '2026-11-15T08:30', theme: 'Incendie', lieu: 'Caserne', convoques: [ids[2]!], petitDejeuner: false }, maintenant);
+		const choix = await manoeuvresEchangeables(base, alice, maintenant, reglage);
+		expect(choix.collegues.map((c) => c.id)).toEqual([n.chloe]);
+		await expect(proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: sam, manoeuvreCibleId: m3 }, maintenant, reglage)).rejects.toThrow(REFUS);
+		// Lui non plus ne prend pas la place d'un collègue par un échange.
+		expect(await manoeuvresEchangeables(base, { type: 'personne', id: theo }, maintenant, reglage)).toEqual({ miennes: [], collegues: [] });
+		await expect(proposerEchangeManoeuvre(base, { type: 'personne', id: theo }, { manoeuvreId: m1, cibleId: n.chloe, manoeuvreCibleId: m3 }, maintenant, reglage)).rejects.toThrow(REFUS);
+		await expect(proposerEchange(base, { type: 'personne', id: theo }, { periodes: [nuitLundi9], cibleId: n.bruno, periodesCible: [nuitLundi16] }, maintenant, reglage)).rejects.toThrow(REFUS);
+	});
+
+	it('demande toujours à être remplacé sur son astreinte : les opérationnels disponibles la reçoivent', async () => {
+		const { base, n, theo, destinataires, chloe } = await avecStagiaires();
+		const id = await demanderRemplacement(base, { type: 'personne', id: theo }, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		expect(await destinataires(id)).toEqual([n.chef, n.bruno, n.chloe].sort());
+		expect(await accepterDemande(base, chloe, id, maintenant, reglage)).toBe('conclue');
+	});
+});
