@@ -74,8 +74,9 @@ export async function demanderRemplacement(base: Base, acteur: Acteur, d: { peri
 	const mot = motDe(d.mot);
 	let destinataires: number[];
 	if (d.cibleId !== null) {
+		if (!Number.isInteger(d.cibleId) || d.cibleId === moi) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
 		if (estStagiaire(ctx, d.cibleId)) throw new DonneeInvalide(STAGIAIRE);
-		if (!Number.isInteger(d.cibleId) || d.cibleId === moi || !disponible(ctx, d.cibleId, periodes)) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
+		if (!disponible(ctx, d.cibleId, periodes)) throw new DonneeInvalide('Collègue indisponible sur ces périodes');
 		destinataires = [d.cibleId];
 	} else destinataires = disponibles(ctx, moi, periodes).map((a) => a.id);
 	const texte = `${nomDe(ctx, moi)} · ${texteDemande(periodes)}`;
@@ -287,6 +288,8 @@ export async function accepterDemande(base: Base, acteur: Acteur, id: number, ma
 	if (!recue || (d.cibleId !== null && d.cibleId !== moi)) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous est pas adressée');
 	if (d.etat !== 'attente') throw new DonneeInvalide(d.remplacantId === null ? 'Cette demande n’est plus ouverte' : 'Déjà prise par un collègue');
 	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
+	// Un échange proposé par un agent devenu stagiaire depuis ne se conclut plus.
+	if (d.genre !== 'remplacement' && estStagiaire(ctx, d.demandeurId)) throw new DonneeInvalide(STAGIAIRE);
 	if (d.genre === 'manoeuvre') return accepterManoeuvre(base, d, moi, ctx, maintenant);
 	const periodes = periodesDe(d.periodes);
 	const date = d.debut.slice(0, 10);

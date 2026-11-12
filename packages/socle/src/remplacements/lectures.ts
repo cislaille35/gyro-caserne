@@ -223,7 +223,7 @@ export const requetePourMoi = (base: Base, moi: number, maintenant: string) =>
 		.where(
 			and(
 				eq(destinataireRemplacement.personneId, moi),
-				// Un stagiaire n'a rien à prendre (décision 0014).
+				// Un stagiaire n'a rien à prendre : la règle de peutRemplacer (contexte.ts), en SQL.
 				sql`not exists (select 1 from personne as moi where moi.id = ${moi} and moi.statut = 'stagiaire')`,
 				isNull(destinataireRemplacement.refuseLe),
 				eq(demandeRemplacement.etat, 'attente'),

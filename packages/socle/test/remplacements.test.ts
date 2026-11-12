@@ -654,6 +654,22 @@ describe('stagiaires : jamais remplaçants', () => {
 		await expect(proposerEchange(base, { type: 'personne', id: theo }, { periodes: [nuitLundi9], cibleId: n.bruno, periodesCible: [nuitLundi16] }, maintenant, reglage)).rejects.toThrow(REFUS);
 	});
 
+	it('devenu stagiaire : une demande qui repart ne lui est pas renvoyée ; son échange de manœuvre ne se conclut plus', async () => {
+		const { base, n, alice, chef, chloe, ids, avisDe } = await avecStagiaires();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.bruno, 'stagiaire', maintenant);
+		await desister(base, chloe, id, maintenant, reglage);
+		expect(await avisDe(n.bruno)).toEqual(['recue']);
+		expect(await avisDe(n.chef)).toEqual(['recue', 'recue']);
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const m1 = await enregistrerManoeuvre(base, qui, { debut: '2026-11-08T08:30', theme: 'Secourisme', lieu: 'Caserne', convoques: [ids[0]!], petitDejeuner: false }, maintenant);
+		const m3 = await enregistrerManoeuvre(base, qui, { debut: '2026-11-15T08:30', theme: 'Incendie', lieu: 'Caserne', convoques: [ids[2]!], petitDejeuner: false }, maintenant);
+		const echange = await proposerEchangeManoeuvre(base, alice, { manoeuvreId: m1, cibleId: n.chloe, manoeuvreCibleId: m3 }, maintenant, reglage);
+		await changerStatut(base, base.photos, chef, n.alice, 'stagiaire', maintenant);
+		await expect(accepterDemande(base, chloe, echange, maintenant, reglage)).rejects.toThrow(REFUS);
+	});
+
 	it('demande toujours à être remplacé sur son astreinte : les opérationnels disponibles la reçoivent', async () => {
 		const { base, n, theo, destinataires, chloe } = await avecStagiaires();
 		const id = await demanderRemplacement(base, { type: 'personne', id: theo }, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
