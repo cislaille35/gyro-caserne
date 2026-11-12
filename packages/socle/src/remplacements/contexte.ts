@@ -160,16 +160,12 @@ export const sansEngagement = (ctx: Contexte, id: number, periodes: Periode[], s
 
 // Seul un opérationnel prend la place d'un collègue. Un stagiaire (les JSP compris) ou un inapte temporaire n'est ni disponible,
 // ni destinataire, ni remplaçant, ni dans un échange ; il peut toujours demander à être remplacé sur son astreinte.
-const REFUS_REMPLACANT: Record<string, string> = {
-	stagiaire: 'Un stagiaire ne prend pas la place d’un collègue',
-	inapte_temporaire: 'Un inapte temporaire ne prend pas la place d’un collègue'
-};
 export const peutRemplacer = (ctx: Contexte, id: number) => ctx.agents.some((a) => a.id === id && a.statut === 'operationnel');
 // Refuse le geste si l'un de ces agents a accès sans être opérationnel.
 export function exigerRemplacants(ctx: Contexte, ...ids: number[]) {
 	for (const id of ids) {
 		const statut = ctx.agents.find((a) => a.id === id)?.statut;
-		if (statut !== undefined && statut !== 'operationnel') throw new DonneeInvalide(REFUS_REMPLACANT[statut] ?? 'Ne prend pas la place d’un collègue');
+		if (statut !== undefined && statut !== 'operationnel') throw new DonneeInvalide(`Un ${statut === 'stagiaire' ? 'stagiaire' : 'inapte temporaire'} ne prend pas la place d’un collègue`);
 	}
 }
 
