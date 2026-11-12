@@ -5,6 +5,8 @@ import { GET } from './donnees/+server';
 import { POST as apercu } from './apercu/+server';
 import { POST as appliquer } from './appliquer/+server';
 import { charger, locaux, preparer } from '../../de-test.ts';
+import writeXlsxFile from 'write-excel-file/universal';
+import { ecrireClasseurPlanning, lireClasseurPlanning } from '#lib/planning/classeur.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lire = (locals: unknown, annee: number) => (GET as any)({ locals, url: new URL(`http://x/planning/preparer/fichier/donnees?annee=${annee}`) });
@@ -40,5 +42,24 @@ describe('/planning/preparer/fichier', () => {
 		expect(await base.select().from(semaineChangee)).toHaveLength(1);
 		expect(await base.select().from(manoeuvre)).toEqual([]);
 		expect(ids).toHaveLength(4);
+	});
+
+	it('aller-retour : les heures retapées en nombre dans le tableur s’importent sans erreur', async () => {
+		const { base, chef, annee } = await preparer({ publiee: false });
+		const l = locaux(base, chef);
+		await base.insert(manoeuvre).values({ debut: `${annee}-01-15T07:45`, fin: `${annee}-01-15T12:00`, theme: 'Incendie', lieu: 'Caserne', convoques: '"tous"' });
+		const donnees = await (await lire(l, annee)).json();
+		const noms = donnees.feuilles.map((f: { nom: string }) => f.nom);
+		expect((await lireClasseurPlanning(await ecrireClasseurPlanning(donnees), noms)).feuilles['Manœuvres'][0].cellules.slice(2, 4)).toEqual(['07:45', '12:00']);
+		// Le même fichier, Début et Fin retapés : le tableur en fait des fractions de journée.
+		const enNombre = (h: string) => (Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5))) / (24 * 60);
+		const feuilles = donnees.feuilles.map((f: { nom: string; entetes: string[]; lignes: string[][] }) => ({
+			sheet: f.nom,
+			data: [f.entetes.map((e) => ({ value: e, type: String })), ...f.lignes.map((ligne) => ligne.map((v, i) => (['Début', 'Fin'].includes(f.entetes[i]!) && v ? { value: enNombre(v), type: Number } : v ? { value: v, type: String } : null)))]
+		}));
+		const lu = await lireClasseurPlanning(await writeXlsxFile(feuilles).toBlob(), noms);
+		const a = await (await envoyer(apercu, l, { annee, lu })).json();
+		expect(a.erreurs).toEqual([]);
+		expect(a.manoeuvres).toEqual({ ajoutees: [], modifiees: [], retirees: [] });
 	});
 });

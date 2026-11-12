@@ -5,6 +5,8 @@ import { getCellAddress, getOrderOfSiblings, insertElementMarkupAccordingToOrder
 
 // Le classeur du planning : une feuille par partie, les listes déroulantes dans une feuille « Listes » masquée.
 const COLONNES_DATE = ['Du', 'Au', 'Date'];
+// « Heure » : l'ancienne colonne, d'avant Début et Fin.
+const COLONNES_HEURE = ['Début', 'Fin', 'Heure'];
 const DERNIERE_LIGNE = 400;
 const LISTES = 'Listes';
 
@@ -14,7 +16,7 @@ function cellule(entete: string, valeur: string): Cell {
 	const iso = COLONNES_DATE.includes(entete) ? dateIso(valeur) : null;
 	if (iso) return { value: new Date(`${iso}T00:00:00Z`), type: Date, format: 'dd/mm/yyyy' };
 	// Format texte : « 08:30 » reste une heure lisible, « 1, 3 » une liste d'équipes.
-	if (entete === 'Heure' || entete === 'Équipes' || entete === 'Réf.') return { value: valeur || undefined, type: String, format: '@' };
+	if (COLONNES_HEURE.includes(entete) || entete === 'Équipes' || entete === 'Réf.') return { value: valeur || undefined, type: String, format: '@' };
 	return texte(valeur);
 }
 
@@ -64,14 +66,18 @@ export async function ecrireClasseurPlanning(donnees: DonneesFichierPlanning): P
 
 type Valeur = string | number | boolean | Date | null;
 
+const enHeure = (journee: number) => {
+	const minutes = Math.round(journee * 24 * 60) % (24 * 60);
+	return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+
 function enTexte(valeur: Valeur, entete: string | undefined): string {
 	if (valeur === null) return '';
+	// Une heure tapée dans le tableur arrive en fraction de journée, ou en date du 30/12/1899 si la cellule a un format heure.
+	const heure = entete !== undefined && COLONNES_HEURE.includes(entete);
+	if (heure && valeur instanceof Date) return enHeure((valeur.getTime() - Date.UTC(1899, 11, 30)) / 86_400_000);
+	if (heure && typeof valeur === 'number' && valeur >= 0 && valeur < 1) return enHeure(valeur);
 	if (valeur instanceof Date) return dateFichier(valeur.toISOString().slice(0, 10));
-	// Une heure tapée dans le tableur arrive en fraction de journée.
-	if (entete === 'Heure' && typeof valeur === 'number' && valeur >= 0 && valeur < 1) {
-		const minutes = Math.round(valeur * 24 * 60);
-		return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-	}
 	const brut = String(valeur).trim();
 	const iso = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(brut) ? dateIso(brut) : null;
 	return iso ? dateFichier(iso) : brut;
