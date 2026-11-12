@@ -7,7 +7,7 @@
 	import Carte from '#lib/ui/Carte.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
-	import { alertesFetes, resumer } from './textes.ts';
+	import { alertesFetes, apresImport, resumer } from './textes.ts';
 
 	let { data } = $props();
 
@@ -126,7 +126,7 @@
 	{#if fini}
 		<Carte titre="Fichier appliqué" ancre="titre-fini">
 			<p>{resumer(apercu!)}.</p>
-			<p class="note">Année publiée : les agents voient déjà les changements ; les convoqués des manœuvres annoncées sont prévenus.</p>
+			<p class="note">{apresImport(data.publiee)}</p>
 			<div class="actions"><a class="lien" href="/planning/preparer?annee={data.annee}">Revenir à Préparer {data.annee}</a></div>
 		</Carte>
 	{:else if apercu}

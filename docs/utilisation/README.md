@@ -18,6 +18,7 @@ Format d'une page :
 - [Comment importer l'effectif ?](importer-l-effectif.md)
 - [Comment modifier mon profil ?](modifier-mon-profil.md)
 - [Comment me déconnecter ?](se-deconnecter.md)
+- [Que garde l'appli sur moi ?](que-garde-l-appli-sur-moi.md)
 - [À qui m'adresser ?](a-qui-m-adresser.md)
 - [Comment créer un comité ou un rôle ?](creer-un-comite-ou-une-responsabilite.md)
 - [Comment nommer quelqu'un à une responsabilité ?](nommer-a-une-responsabilite.md)

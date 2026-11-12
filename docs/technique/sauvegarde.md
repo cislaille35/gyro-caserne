@@ -17,6 +17,8 @@ Toujours actif, sans réglage. Depuis `apps/web`, avec `C=../../centres/<id>/wra
 
 Time Travel ne sait pas restaurer dans une autre base.
 
+La commande de retour que Wrangler affiche après `info` ou `restore` oublie `--config` : toujours la rajouter. Sans terminal interactif, `restore` ne demande pas de confirmation (il répond oui tout seul). Marche de la même façon sur une base créée avec `--jurisdiction eu`.
+
 ## Copie hebdomadaire
 
 Workflow `.github/workflows/copie-hebdomadaire.yml`, chaque dimanche à 2 h 41 UTC. On peut aussi le lancer à la main (Run workflow), avec la cible `production` (par défaut) ou `preprod`.
@@ -70,3 +72,13 @@ Avec une paire de clés de test, effacée ensuite. Sur une branche jetable, supp
 - l'envoi réel est arrivé dans la boîte du centre : `copie-exemple-2026-11-12.age.txt`, 33 511 octets. Déchiffrée avec la clé de test, elle donne 211 996 octets de SQL. Rechargée dans une base D1 jetable locale (Wrangler `--local`), elle donne les mêmes comptes que la préprod : 71 tables, 980 lignes, 35 compteurs.
 
 Le détail est dans la PR #88.
+
+### Essai du 12/11/2026 (répétition générale, base `eu`, données fictives)
+
+Sur le centre jetable `repetition` (bases `--jurisdiction eu`), après import des copies fictives de l'effectif et des plannings :
+- export : 139 Ko de SQL, 14,5 Ko compressés ; l'export d'une base `eu` passe par un stockage européen de Cloudflare ;
+- restauration A (base neuve `eu`, chargée par `d1 execute --file`) et B (vidée puis rechargée en un seul fichier) : mêmes comptes que l'origine sur les 71 tables (643 lignes) et les 17 compteurs AUTOINCREMENT ;
+- Time Travel : un point noté, une table vidée, `restore --bookmark` : la table revient, le reste est intact, l'appli répond ;
+- tout a été supprimé ensuite (Worker et trois bases).
+
+Pour comparer les comptes : D1 refuse un `UNION ALL` de plus de quelques `SELECT` (« too many terms in compound SELECT ») ; compter par lots de 5 tables.

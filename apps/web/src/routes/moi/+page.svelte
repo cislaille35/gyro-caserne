@@ -69,6 +69,7 @@
 		<!-- Cachée dans l'appli installée (ouverte en plein écran), sans attendre JavaScript. -->
 		<li class="installer"><Rangee href="/moi/installer" titre="Installer l’appli" sous="Sur l’écran d’accueil, avec les notifications" /></li>
 		<li><Rangee href="/affichage" titre="Affichage" /></li>
+		<li><Rangee href="/donnees" titre="Vos données" sous="Ce qui est gardé, où, combien de temps" /></li>
 	</ListeRangees>
 
 	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>

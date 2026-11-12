@@ -69,13 +69,13 @@
 
 ### Lot 4 : répétition générale (opération, puis PR de corrections)
 
-- [ ] Centre `repetition` sur le compte de Laillé, en suivant `docs/technique/installer-un-centre.md` **à la lettre**, avec un journal de chaque écart.
-- [ ] Bases en Europe (région ou juridiction D1 : doc Cloudflare, puis ajout à l'installation).
-- [ ] Secrets de test, import des copies fictives (lot 3), vérification des engins.
-- [ ] Essai de la copie hebdomadaire (lot 2) et d'une **restauration** complète. Essai du retour en arrière (Time Travel).
-- [ ] Essai du contrôle après déploiement et d'un tag (sur le centre de répétition ou la préprod, selon le workflow).
-- [ ] Suppression du centre `repetition` : Worker, bases, dossier, secrets.
-- [ ] PR « Doc d'installation corrigée » : chaque coquille, la région européenne, la page « Vos données dans Gyro Caserne » (fonctionnelle, dans l'appli, lien depuis Moi et la connexion), les points de vigilance de la production, et une décision courte « Chemin de sortie » (changement d'hébergeur, spec).
+- [x] Centre `repetition` sur le compte de Laillé, en suivant `docs/technique/installer-un-centre.md` **à la lettre**, avec un journal de chaque écart.
+- [x] Bases en Europe (région ou juridiction D1 : doc Cloudflare, puis ajout à l'installation).
+- [x] Secrets de test, import des copies fictives (lot 3), vérification des engins.
+- [x] Essai de la copie hebdomadaire (lot 2) et d'une **restauration** complète. Essai du retour en arrière (Time Travel).
+- [x] Essai du contrôle après déploiement et d'un tag (sur le centre de répétition ou la préprod, selon le workflow).
+- [x] Suppression du centre `repetition` : Worker, bases, dossier, secrets.
+- [x] PR « Doc d'installation corrigée » : chaque coquille, la région européenne, la page « Vos données dans Gyro Caserne » (fonctionnelle, dans l'appli, lien depuis Moi et la connexion), les points de vigilance de la production, et une décision courte « Chemin de sortie » (changement d'hébergeur, spec).
 
 ### Étape 5 : installation de Laillé (opération, avec le porteur)
 
