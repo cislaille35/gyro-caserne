@@ -7,6 +7,7 @@ Une page par fonction, avec exemples et cas d'usage. Le modèle commun (briques,
 | Accès et attributions | [acces-et-attributions.md](acces-et-attributions.md) |
 | Fiche agent | [fiche-agent.md](fiche-agent.md) |
 | Données des agents (partis, effacement) | [donnees-des-agents.md](donnees-des-agents.md) |
+| Vos données dans Gyro Caserne (page pour les agents) | [vos-donnees.md](vos-donnees.md) |
 | Comités et référents | [comites-et-referents.md](comites-et-referents.md) |
 | Astreinte et rotation | [astreinte-et-rotation.md](astreinte-et-rotation.md) |
 | Planning de l'année | [planning-de-l-annee.md](planning-de-l-annee.md) |

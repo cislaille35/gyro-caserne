@@ -51,7 +51,7 @@ Les commandes de cette page se tapent sous Linux, macOS, ou Windows avec WSL, co
 
 L'ancienne base n'est pas touchée : on peut y revenir, ou la comparer.
 
-1. Créer la base : `pnpm exec wrangler d1 create gyro-caserne-laille-restauree`. La commande affiche son `database_id`. Si elle propose d'écrire elle-même la liaison dans un fichier de config, répondre non : l'étape 2 s'en charge.
+1. Créer la base, dans l'Union européenne comme l'originale : `pnpm exec wrangler d1 create gyro-caserne-laille-restauree --jurisdiction eu`. La commande affiche son `database_id`. Si elle propose d'écrire elle-même la liaison dans un fichier de config, répondre non : l'étape 2 s'en charge.
 2. Dans `centres/laille/wrangler.jsonc`, sur la liaison `BASE`, remplacer `database_name` et `database_id` par ceux de la nouvelle base.
 3. Charger la copie : `pnpm exec wrangler d1 execute BASE --remote --config $C --file copie.sql`.
 4. Appliquer les mises à jour de la base plus récentes que la copie : `CENTRE=laille pnpm base-en-ligne`.

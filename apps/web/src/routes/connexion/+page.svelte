@@ -30,6 +30,7 @@
 			<Bouton type="submit">Recevoir un lien de connexion</Bouton>
 		</form>
 	{/if}
+	<a class="donnees" href="/donnees">Vos données dans Gyro Caserne</a>
 </div>
 
 <style>
@@ -83,12 +84,17 @@
 	.adresse {
 		overflow-wrap: anywhere;
 	}
-	.changer {
+	.changer,
+	.donnees {
 		min-height: var(--cible);
 		display: inline-flex;
 		align-items: center;
 		padding: 0 var(--espace-12);
 		color: var(--encre);
 		font-weight: 600;
+	}
+	.donnees {
+		color: var(--doux);
+		font-weight: 400;
 	}
 </style>

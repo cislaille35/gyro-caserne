@@ -26,7 +26,7 @@ for (const theme of ['auto', 'sombre']) {
 		});
 
 		test.describe('non connecté', () => {
-			for (const chemin of ['/connexion', '/affichage']) {
+			for (const chemin of ['/connexion', '/affichage', '/donnees']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
@@ -35,7 +35,7 @@ for (const theme of ['auto', 'sombre']) {
 
 		test.describe('connecté', () => {
 			test.use({ storageState: ETAT_CONNECTE });
-			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/comites', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1', '/habillement']) {
+			for (const chemin of ['/', '/planning', '/planning?vue=mois', '/planning?vue=annee', '/planning?vue=equipes', '/caserne', '/comites', '/echanges', '/echanges/vie', '/echanges/publier?mur=vie', '/echanges/messages/nouveau', '/echanges/messages/nouveau/groupe', '/notifications', '/moi', '/moi/notifications', '/moi/agenda', '/moi/installer', '/affichage', '/donnees', '/agents', '/profil', '/reservations', '/reservations/1', '/reservations/2', '/reservations/1/reserver', '/reservations/2/reserver', '/reservations/miennes', '/remplacements', '/remplacements/demander', '/remplacements/demander?mode=echange', '/remplacements/manoeuvre', '/moi/vacances', '/engins', '/engins/1', '/engins/prise', '/engins/1/prise', '/engins/anomalies', '/engins/anomalies/signaler?engin=1', '/habillement']) {
 				test(`${chemin} sans violation`, async ({ page }) => {
 					await sansViolation(page, chemin);
 				});
