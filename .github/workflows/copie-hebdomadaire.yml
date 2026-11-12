@@ -2,7 +2,7 @@ name: Copie hebdomadaire
 
 # Chaque dimanche : la base principale de la production (pas les photos) est exportée, compressée, chiffrée pour le seul porteur (age),
 # puis envoyée par e-mail (Brevo). Rien ne reste sur GitHub : ni artefact, ni fichier, ni ligne de la base dans le journal.
-# Un échec fait échouer le passage, et GitHub prévient par courriel. Voir docs/technique/sauvegarde.md et la décision 0029.
+# Un échec fait échouer le passage, et GitHub prévient par courriel. Voir docs/technique/sauvegarde.md et la décision 0030.
 on:
   schedule:
     - cron: '41 2 * * 0'

@@ -8,7 +8,7 @@ Chaque dimanche vers 3 h 40 (heure de Paris en hiver, 4 h 40 en été), la base 
 
 > **Seule la clé privée du porteur ouvre les copies. Si la clé est perdue, toutes les copies sont perdues.** Personne ne peut les rouvrir : ni Cloudflare, ni GitHub, ni Claude.
 
-Détail technique : [sauvegarde.md](../technique/sauvegarde.md). Décision : [0029](../decisions/0029-copie-hebdomadaire.md).
+Détail technique : [sauvegarde.md](../technique/sauvegarde.md). Décision : [0030](../decisions/0030-copie-hebdomadaire.md).
 
 ## 1. Créer la paire de clés (une fois)
 

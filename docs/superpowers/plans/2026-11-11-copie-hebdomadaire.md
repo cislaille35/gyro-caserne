@@ -66,5 +66,5 @@
 
 - [ ] `docs/fonctionnel/copie-hebdomadaire.md` (mode d'emploi du porteur : créer la paire, la garder, déchiffrer, restaurer dans une base neuve ou l'existante, garder 3 mois, clé perdue = copies perdues) et sa ligne dans le README.
 - [ ] `docs/technique/sauvegarde.md`, `docs/technique/README.md` (CI, Technos : age), `installer-un-centre.md` (réglages à poser).
-- [ ] Décision `docs/decisions/0029-copie-hebdomadaire.md`.
+- [ ] Décision `docs/decisions/0030-copie-hebdomadaire.md`.
 - [ ] Review (modèle le plus capable, au premier plan), PR prête, CI.

@@ -1,4 +1,4 @@
-# 0029 — Copie hebdomadaire chiffrée, par e-mail
+# 0030 — Copie hebdomadaire chiffrée, par e-mail
 
 - **Contexte** : avant les vraies données de Laillé, il faut une copie hors de Cloudflare. Le retour en arrière de D1 (Time Travel) ne remonte qu'à 7 jours en offre gratuite, et il disparaît avec le compte. Le dépôt est public, et le centre n'a pas de carte bancaire.
 - **Options pour le lieu** :

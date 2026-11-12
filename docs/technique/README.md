@@ -78,7 +78,7 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | write-excel-file | 4.1.1 | Écrit le fichier de l'effectif (`.xlsx`, listes déroulantes), dans le navigateur |
 | read-excel-file | 9.3.12 | Relit le fichier de l'effectif, dans le navigateur |
-| age | 1.3.2 | Chiffre la copie hebdomadaire de la base pour la clé publique du porteur. Binaire officiel téléchargé par le workflow à une adresse fixe, empreinte SHA-256 vérifiée (la même que celle publiée par GitHub pour la version). Choisi plutôt que gpg pour sa simplicité côté porteur ([0029](../decisions/0029-copie-hebdomadaire.md)) |
+| age | 1.3.2 | Chiffre la copie hebdomadaire de la base pour la clé publique du porteur. Binaire officiel téléchargé par le workflow à une adresse fixe, empreinte SHA-256 vérifiée (la même que celle publiée par GitHub pour la version). Choisi plutôt que gpg pour sa simplicité côté porteur ([0030](../decisions/0030-copie-hebdomadaire.md)) |
 | Vitest | 5 | Tests |
 | Playwright (`@playwright/test`) | 1.64.1 | Tests dans un vrai navigateur (Chromium), aux tailles téléphone et ordinateur |
 | axe pour Playwright (`@axe-core/playwright`) | 4.14.0 | Contrôle automatique des règles WCAG A et AA, base des tests RGAA |

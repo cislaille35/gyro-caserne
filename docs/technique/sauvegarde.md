@@ -1,6 +1,6 @@
 # Sauvegarde
 
-Deux niveaux, sans carte bancaire (décision [0029](../decisions/0029-copie-hebdomadaire.md)) :
+Deux niveaux, sans carte bancaire (décision [0030](../decisions/0030-copie-hebdomadaire.md)) :
 
 | | Retour en arrière de D1 (Time Travel) | Copie hebdomadaire |
 |---|---|---|
@@ -65,6 +65,8 @@ Avec une paire de clés de test, effacée ensuite. Sur une branche jetable, supp
 - l'export fait 212 Ko de SQL, soit 24 Ko compressés ;
 - la restauration dans une base D1 jetable, neuve puis vidée et rechargée en un seul fichier, donne les mêmes comptes sur les 71 tables (980 lignes) et les mêmes 35 compteurs AUTOINCREMENT ; la base jetable a été supprimée ;
 - sans production, le passage dit « elle n'existe pas encore, rien n'est copié » ;
-- sans clé Brevo, il échoue avant l'export.
+- sans clé Brevo, il échoue avant l'export ;
+- avec une limite abaissée à 1 000 octets, il échoue au chiffrement (copie de 33 511 octets) et n'envoie rien ;
+- l'envoi réel est arrivé dans la boîte du centre : `copie-exemple-2026-11-12.age.txt`, 33 511 octets. Déchiffrée avec la clé de test, elle donne 211 996 octets de SQL. Rechargée dans une base D1 jetable locale (Wrangler `--local`), elle donne les mêmes comptes que la préprod : 71 tables, 980 lignes, 35 compteurs.
 
 Le détail est dans la PR #88.

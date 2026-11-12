@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-// La copie hebdomadaire de la base part chiffrée par e-mail (décision 0029). Le dépôt est public :
+// La copie hebdomadaire de la base part chiffrée par e-mail (décision 0030). Le dépôt est public :
 // ces règles gardent qu'aucune donnée ne reste sur GitHub et que les secrets restent à leur étape.
 const chemin = fileURLToPath(new URL('../../../.github/workflows/copie-hebdomadaire.yml', import.meta.url));
 const texte = existsSync(chemin) ? readFileSync(chemin, 'utf8') : '';

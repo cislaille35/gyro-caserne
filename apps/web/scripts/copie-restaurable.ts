@@ -1,4 +1,4 @@
-// Rend la copie de la base restaurable dans D1 (copie hebdomadaire, décision 0029).
+// Rend la copie de la base restaurable dans D1 (copie hebdomadaire, décision 0030).
 // L'export de D1 suit l'ordre de création des tables : une table y est remplie avant celle qu'elle cite, et D1 refuse
 // (« no such table », « FOREIGN KEY constraint failed »), car il ne diffère pas ce contrôle sur tout un fichier. On remet
 // les tables d'abord, puis les données, chaque table après celles qu'elle cite, et les compteurs AUTOINCREMENT à la fin.
