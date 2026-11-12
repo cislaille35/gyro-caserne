@@ -23,6 +23,9 @@ describe('page d’une manœuvre', () => {
 		const existante = page({ id: 3, debut: '2027-03-07T07:45', fin: '2027-03-07T12:00', theme: 'Feux', lieu: 'Bois', convoques: 'tous', petitDejeuner: false, annulee: false, publiee: false });
 		expect(existante).toMatch(/name="heure"[^>]*value="07:45"/);
 		expect(existante).toMatch(/name="fin"[^>]*value="12:00"/);
+		// Une ancienne du soir, finie le lendemain : la fin est à saisir.
+		const soir = page({ id: 4, debut: '2027-03-07T22:00', fin: '2027-03-08T01:00', theme: 'Nuit', lieu: 'Bois', convoques: 'tous', petitDejeuner: false, annulee: false, publiee: false });
+		expect(soir).toMatch(/name="fin"[^>]*value=""/);
 	});
 
 	it('annoncée : ses équipes cochées, « Annuler la manœuvre »', () => {

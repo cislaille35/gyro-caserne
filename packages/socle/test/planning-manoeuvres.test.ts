@@ -10,7 +10,7 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { enregistrerManoeuvre, planningDe, publierAnnee, reglerRoulement, supprimerManoeuvre } from '../src/planning/annee.ts';
 import { clotureSondage, manoeuvreChangee, mercrediDeRelance, planningDuMatin } from '../src/planning/manoeuvres.ts';
-import { abonnementPush, affectationEquipe, attribution, envoiPush, equipe, manoeuvre, notification, personne, profil, publication, responsabilite } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, attribution, envoiPush, equipe, manoeuvre, notification, personne, profil, publication, responsabilite, voteSondage } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const saisie = '2026-11-01T10:00';
@@ -262,5 +262,28 @@ describe('heure de fin et choix du petit-déjeuner', () => {
 		expect(vue.sondage).toMatchObject({ reponses: choix });
 		expect(vue.sondage!.resultats).toEqual([0, 1, 0, 1]);
 		expect(await planningDuMatin(base, '2026-11-25T08:00', choix)).toEqual({ publiees: 0, relances: 1 });
+	});
+
+	it('une manœuvre d’une heure, finie : plus sur l’accueil', async () => {
+		const { base, chef, alice, ids } = await jeu();
+		await base.delete(manoeuvre);
+		await enregistrerManoeuvre(base, chef, { debut: '2026-11-29T07:45', fin: '2026-11-29T08:45', theme: 'Sport', lieu: 'Caserne', convoques: [ids[0]!], petitDejeuner: false }, saisie);
+		await planningDuMatin(base, '2026-11-15T08:00');
+		expect((await aNePasManquer(base, alice, '2026-11-29', '2026-11-29T08:30')).evenements).toHaveLength(1);
+		expect((await aNePasManquer(base, alice, '2026-11-29', '2026-11-29T09:30')).evenements).toHaveLength(0);
+	});
+
+	it('petit-déjeuner retiré d’une manœuvre annoncée : ses votes partent avec le sondage', async () => {
+		const { base, chef, alice, ids, id } = await jeu();
+		await planningDuMatin(base, '2026-11-15T08:00');
+		const [p] = await base.select().from(publication);
+		await voter(base, alice, p!.id, 0, '2026-11-16T10:00');
+		const d = { id, debut: '2026-11-29T08:30', theme: 'Feux de forêt', lieu: 'Caserne', convoques: [ids[0]!], petitDejeuner: false };
+		await enregistrerManoeuvre(base, chef, d, '2026-11-16T11:00', choix);
+		expect(await base.select().from(voteSondage)).toHaveLength(0);
+		// Remis : les choix du centre, sans ancien vote qui changerait de sens.
+		await enregistrerManoeuvre(base, chef, { ...d, petitDejeuner: true }, '2026-11-16T12:00', choix);
+		expect(JSON.parse((await base.select().from(publication))[0]!.sondageReponses!)).toEqual(choix);
+		expect(await base.select().from(voteSondage)).toHaveLength(0);
 	});
 });

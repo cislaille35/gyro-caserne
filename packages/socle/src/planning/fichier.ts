@@ -74,7 +74,7 @@ export async function donneesFichierPlanning(base: Base, acteur: Acteur, annee: 
 				entetes: [...ENTETES_PLANNING.manoeuvres],
 				lignes: p.manoeuvres
 					.filter((m) => !m.annulee)
-					.map((m) => [String(m.id), dateFichier(m.debut.slice(0, 10)), m.debut.slice(11, 16), m.fin.slice(11, 16), m.theme, m.lieu, m.convoques === 'tous' ? TOUTES : m.convoques.map(numero).filter((n) => n !== '0').join(', '), m.petitDejeuner ? 'Oui' : 'Non']),
+					.map((m) => [String(m.id), dateFichier(m.debut.slice(0, 10)), m.debut.slice(11, 16), memeJour(m) ? m.fin.slice(11, 16) : '', m.theme, m.lieu, m.convoques === 'tous' ? TOUTES : m.convoques.map(numero).filter((n) => n !== '0').join(', '), m.petitDejeuner ? 'Oui' : 'Non']),
 				listes: { 'Petit-déjeuner': ['Oui', 'Non'] }
 			},
 			{ nom: FEUILLES.vacances, entetes: [...ENTETES_PLANNING.vacances], lignes: p.vacances.map((v) => [v.nom, dateFichier(v.debut), dateFichier(v.fin)]), listes: {} },
@@ -93,6 +93,7 @@ function heureDe(brut: string): string | null {
 	return h < 24 && min < 60 ? `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}` : null;
 }
 
+const memeJour = (m: { debut: string; fin: string }) => m.fin.slice(0, 10) === m.debut.slice(0, 10);
 const enMinutes = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
 // Au-delà de minuit : rendu tel quel (« 24:15 »), donc refusé comme fin.
 const minutesEnHeure = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
@@ -190,13 +191,19 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 			erreur(`Heure « ${h} » invalide (HH:MM)`);
 			continue;
 		}
-		// Fin vide : la durée réglée par le centre.
-		const fin = f.trim() === '' ? minutesEnHeure(enMinutes(heure) + enMinutes(reglageManoeuvres.fin) - enMinutes(reglageManoeuvres.debut)) : heureDe(f);
-		if (fin === null && f.trim() !== '') {
+		// Fin vide : celle d'une manœuvre déjà là (une ancienne du soir peut finir le lendemain), sinon la durée réglée par le centre.
+		const vide = f.trim() === '';
+		const garder = vide && existante && !memeJour(existante) && existante.debut === `${date}T${heure}`;
+		const fin = vide ? minutesEnHeure(enMinutes(heure) + enMinutes(reglageManoeuvres.fin) - enMinutes(reglageManoeuvres.debut)) : heureDe(f);
+		if (fin === null) {
 			erreur(`Fin « ${f} » invalide (HH:MM)`);
 			continue;
 		}
-		if (fin === null || fin <= heure || fin >= '24:00') {
+		if (!garder && vide && fin >= '24:00') {
+			erreur('Fin vide : la durée réglée par le centre passerait minuit, indiquez la fin');
+			continue;
+		}
+		if (!garder && (fin <= heure || fin >= '24:00')) {
 			erreur('La fin doit suivre le début, le même jour');
 			continue;
 		}
@@ -214,7 +221,7 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 		const petitDejeuner = /^oui$/i.test(pdj.trim()) ? 1 : 0;
 		let valeurs;
 		try {
-			valeurs = { debut: `${date}T${heure}`, fin: `${date}T${fin}`, theme: texte(theme, 'Thème', 100), lieu: texte(lieu, 'Lieu', 200), convoques: JSON.stringify(convoques), petitDejeuner };
+			valeurs = { debut: `${date}T${heure}`, fin: garder ? existante.fin : `${date}T${fin}`, theme: texte(theme, 'Thème', 100), lieu: texte(lieu, 'Lieu', 200), convoques: JSON.stringify(convoques), petitDejeuner };
 		} catch (e) {
 			erreur(e instanceof Error ? e.message : String(e));
 			continue;

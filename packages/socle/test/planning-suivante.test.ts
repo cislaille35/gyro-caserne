@@ -196,6 +196,11 @@ describe('reprendre les manœuvres', () => {
 		expect(r).toMatchObject({ tourDeRole: false, annulees: 0, passees: 0, deja: 0 });
 	});
 
+	it('une fin le lendemain (ancienne manœuvre du soir) : reprise sans fin', () => {
+		const r = reprendreManoeuvres([m('2026-03-08T22:00', 'tous', { fin: '2026-03-09T01:00' })], 2027, TOUS, maintenant, []);
+		expect(r.manoeuvres[0]).toMatchObject({ debut: '2027-03-14T22:00', fin: null });
+	});
+
 	it('les annulées ne sont pas reprises, mais comptent dans le tour', () => {
 		const r = reprendreManoeuvres([m('2026-01-11T08:30', [1]), m('2026-02-08T08:30', [2], { annulee: true }), m('2026-03-08T08:30', [1]), m('2026-04-12T08:30', [2]), m('2026-05-10T08:30', [1])], 2027, TOUS, maintenant, []);
 		expect(r.tourDeRole).toBe(true);

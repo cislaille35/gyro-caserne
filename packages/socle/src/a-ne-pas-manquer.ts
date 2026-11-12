@@ -93,7 +93,8 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	return {
 		annonces: annonces.map(item),
 		evenements: evenements
-			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi))
+			// La requête ramène aussi une manœuvre courte déjà finie (moins de 3 h) : écartée ici.
+			.filter((p) => estConvoque(appartenances, p.mur, JSON.parse(p.convoques ?? '"tous"'), moi) && momentEvenement(p.debut!, maintenant, p.fin) !== 'passe')
 			.map((p) => {
 				const enCours = momentEvenement(p.debut!, maintenant, p.fin) === 'enCours';
 				return { ...item(p), debut: p.debut!, demain: !enCours && p.debut!.slice(0, 10) === demain, enCours, reponse: p.reponse };

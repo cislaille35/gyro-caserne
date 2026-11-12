@@ -9,7 +9,7 @@ import { equipesConvoquees, type Convocation } from '../murs.ts';
 import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
-import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
+import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires, voteSondage } from '../schema.ts';
 import { MANOEUVRES_PAR_DEFAUT } from '@gyro-caserne/centre';
 import { colonnesPublication } from './manoeuvres.ts';
 import { avis } from './avis.ts';
@@ -323,7 +323,9 @@ export function ecrituresModification(base: Base, id: number, existante: Existan
 	if (!Array.isArray(avant) && avant !== 'tous' && v.convoques !== '"tous"') v.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(v.convoques) });
 	const cloture = memeDate ? existante.cloture : null;
 	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(v, maintenant, existante.reponses ? (JSON.parse(existante.reponses) as string[]) : choix, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
-	return [base.update(manoeuvre).set({ ...v, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, id)), ...suivre];
+	// Petit-déjeuner retiré : ses votes partent avec le sondage (remis, il reprendrait peut-être d'autres choix).
+	const votes = existante.publicationId !== null && existante.reponses !== null && v.petitDejeuner === 0 ? [base.delete(voteSondage).where(eq(voteSondage.publicationId, existante.publicationId))] : [];
+	return [base.update(manoeuvre).set({ ...v, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, id)), ...suivre, ...votes];
 }
 
 // Retirer : déjà annoncée, elle est annulée et sa publication le dit ; sinon, elle est effacée.

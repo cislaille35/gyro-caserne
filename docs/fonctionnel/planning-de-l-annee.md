@@ -37,7 +37,7 @@ Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouv
 
 ### Le fichier du planning
 
-« Exporter l'année ou importer un fichier » : tout préparer d'un coup dans Excel ou LibreOffice. Le fichier (.xlsx) a quatre onglets : Semaines, Manœuvres, Vacances scolaires, Été ; les fériés sont calculés. Une année vide donne un modèle avec le roulement calculé. À l'import, un **aperçu** montre ce qui change : rien n'est écrit avant « Valider », et rien n'est appliqué tant qu'il reste une erreur. Onglet Manœuvres, dans l'ordre : Réf., Date, Début, Fin, Thème, Lieu, Équipes, Petit-déjeuner ; une « Fin » vide prend la durée réglée par le centre (de 7 h 45 à 12 h : 4 h 15), une fin doit suivre le début le même jour. Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).
+« Exporter l'année ou importer un fichier » : tout préparer d'un coup dans Excel ou LibreOffice. Le fichier (.xlsx) a quatre onglets : Semaines, Manœuvres, Vacances scolaires, Été ; les fériés sont calculés. Une année vide donne un modèle avec le roulement calculé. À l'import, un **aperçu** montre ce qui change : rien n'est écrit avant « Valider », et rien n'est appliqué tant qu'il reste une erreur. Onglet Manœuvres, dans l'ordre : Réf., Date, Début, Fin, Thème, Lieu, Équipes, Petit-déjeuner ; une « Fin » vide prend la durée réglée par le centre (de 7 h 45 à 12 h : 4 h 15), une fin doit suivre le début le même jour (une ancienne manœuvre du soir sans fin, qui finirait le lendemain, s'exporte avec une « Fin » vide et la garde). Une manœuvre sans « Réf. » est nouvelle ; une ligne retirée retire la manœuvre (annulée si elle est déjà annoncée).
 
 ## Ce que voit l'agent
 
@@ -55,7 +55,7 @@ Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouv
 ## Manœuvres annoncées toutes seules
 
 - **Deux semaines avant**, à 8 h (ou tout de suite, entre 8 h et 21 h, pour une manœuvre ajoutée moins de deux semaines avant), l'appli publie la manœuvre sur « Le centre », signée « Planning du centre » : un événement (date, heures de début et de fin, lieu, thème : « 7 h 45 à 12 h · Caserne ») avec la réponse Présent / Absent / Incertain. Seuls les **convoqués** sont notifiés.
-- **Petit-déjeuner** : un sondage « Petit-déjeuner ? » dans la même publication, avec les choix du centre (à Laillé : Croissant, Pain au chocolat, Pain au raisin, Rien pour moi), ouvert jusqu'au **vendredi précédent, 18 h**. Une manœuvre déjà annoncée garde ses choix, même si le réglage change.
+- **Petit-déjeuner** : un sondage « Petit-déjeuner ? » dans la même publication, avec les choix du centre (à Laillé : Croissant, Pain au chocolat, Pain au raisin, Rien pour moi), ouvert jusqu'au **vendredi précédent, 18 h**. Une manœuvre déjà annoncée garde ses choix, même si le réglage change. Si le chef retire le petit-déjeuner, le sondage et ses votes disparaissent ; remis, il repart des choix du centre.
 - **Fin** : une manœuvre reste « En cours » sur l'accueil, le mur et le Planning jusqu'à son heure de fin. Une manœuvre saisie avant l'heure de fin (ou un autre événement) dure 3 h.
 - **Relance** : le mercredi qui précède la manœuvre d'au moins 2 jours, une notification aux convoqués qui n'ont pas répondu.
 - **Changement ou annulation** par le chef : la publication est mise à jour ou marquée « Annulée » (on n'y répond plus, le sondage non plus) ; les convoqués sont prévenus. Si la date ne change pas, le sondage garde sa clôture.

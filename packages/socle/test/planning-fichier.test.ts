@@ -194,17 +194,28 @@ describe('fichier du planning', () => {
 			f['Manœuvres'] = [
 				['', '07/03/2027', '07:45', 'midi', 'Feux', 'Caserne', 'Toutes', 'Non'],
 				['', '04/04/2027', '12:00', '07:45', 'Feux', 'Caserne', 'Toutes', 'Non'],
-				['', '02/05/2027', '22:00', '', 'Feux', 'Caserne', 'Toutes', 'Non']
+				['', '02/05/2027', '23:00', '23:30', 'Feux', 'Caserne', 'Toutes', 'Non']
 			];
 		});
 		expect((await apercuPlanning(base, chef, 2027, fautif, maintenant, reglage, reglageManoeuvres)).erreurs).toEqual([
 			{ feuille: 'Manœuvres', ligne: 2, message: 'Fin « midi » invalide (HH:MM)' },
-			{ feuille: 'Manœuvres', ligne: 3, message: 'La fin doit suivre le début, le même jour' },
-			{ feuille: 'Manœuvres', ligne: 4, message: 'La fin doit suivre le début, le même jour' }
+			{ feuille: 'Manœuvres', ligne: 3, message: 'La fin doit suivre le début, le même jour' }
 		]);
 		// Seule la fin change : c'est une modification.
 		const apres = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
 		const fin = relu(apres, (f) => (f['Manœuvres']![0]![3] = '11:00'));
 		expect((await apercuPlanning(base, chef, 2027, fin, maintenant, reglage, reglageManoeuvres)).manoeuvres.modifiees).toEqual([{ debut: '2027-03-07T07:45', theme: 'Feux de forêt' }]);
+	});
+
+	it('une ancienne manœuvre du soir sans fin (3 h, passé minuit) : « Fin » vide à l’export, et le fichier se relit sans erreur', async () => {
+		const { base, chef, ids } = await jeu();
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		const id = await enregistrerManoeuvre(base, chef, { debut: '2027-03-07T22:00', theme: 'Nuit', lieu: 'Caserne', convoques: 'tous', petitDejeuner: false }, maintenant);
+		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
+		expect(d.feuilles[1]!.lignes).toEqual([[String(id), '07/03/2027', '22:00', '', 'Nuit', 'Caserne', 'Toutes', 'Non']]);
+		expect(await apercuPlanning(base, chef, 2027, relu(d), maintenant, reglage)).toMatchObject({ erreurs: [], manoeuvres: { ajoutees: [], modifiees: [], retirees: [] } });
+		// Une nouvelle sans fin dont la durée du centre passerait minuit : un message qui le dit.
+		const nouvelle = relu(d, (f) => (f['Manœuvres'] = [['', '04/04/2027', '22:00', '', 'Nuit', 'Caserne', 'Toutes', 'Non']]));
+		expect((await apercuPlanning(base, chef, 2027, nouvelle, maintenant, reglage)).erreurs).toEqual([{ feuille: 'Manœuvres', ligne: 2, message: 'Fin vide : la durée réglée par le centre passerait minuit, indiquez la fin' }]);
 	});
 });

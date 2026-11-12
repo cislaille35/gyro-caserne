@@ -40,7 +40,7 @@
 			<Champ id="date" name="date" type="date" libelle="Date" requis valeur={saisi('date', m ? m.debut.slice(0, 10) : '')} />
 			<div class="deux">
 				<Champ id="heure" name="heure" type="time" libelle="Heure de début" requis valeur={saisi('heure', m ? m.debut.slice(11, 16) : centre.manoeuvres.debut)} />
-				<Champ id="fin" name="fin" type="time" libelle="Heure de fin" requis valeur={saisi('fin', m ? m.fin.slice(11, 16) : centre.manoeuvres.fin)} />
+				<Champ id="fin" name="fin" type="time" libelle="Heure de fin" requis valeur={saisi('fin', m ? (m.fin.slice(0, 10) === m.debut.slice(0, 10) ? m.fin.slice(11, 16) : '') : centre.manoeuvres.fin)} />
 			</div>
 			<Champ id="theme" name="theme" libelle="Thème" requis maxlength={100} aide="Par exemple « Feux de forêt » ou « Sport + SAP »." valeur={saisi('theme', m?.theme ?? '')} />
 			<Champ id="lieu" name="lieu" libelle="Lieu" requis maxlength={200} valeur={saisi('lieu', m?.lieu ?? 'Caserne')} />
