@@ -25,6 +25,16 @@ describe('/donnees', () => {
 		expect(page).toContain('gardées 3 mois');
 	});
 
+	it('qui voit quoi, sans dire plus que le code : aptitudes et fiche entière aux gestionnaires, anniversaire visible sauf s’il est masqué, message signalé lu par la modération', () => {
+		const page = html(Page, { connecte: true });
+		expect(page).not.toMatch(/photo\./);
+		expect(page).toContain('Les agents du centre : votre nom, votre équipe, votre grade et le planning.');
+		expect(page).toContain('Votre anniversaire, sauf si vous l’avez masqué');
+		expect(page).toContain('Le chef de centre, son adjoint et le responsable de l’appli : votre fiche entière');
+		expect(page).toContain('s’il est signalé, la personne chargée de la modération');
+		expect(page).toMatch(/Saisi par le centre :[^<]*date de naissance/);
+	});
+
 	it('effacement sur demande auprès du chef de centre ; profil corrigé soi-même', () => {
 		const page = html(Page, { connecte: true });
 		expect(page).toContain('chef de centre');

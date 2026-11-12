@@ -8,9 +8,9 @@ Dire aux agents, simplement, ce que l'appli garde sur eux, où, qui le voit et c
 
 | Rubrique | Contenu |
 |---|---|
-| Ce qui est gardé | Saisi par le centre : nom, prénom, adresse e-mail, équipe, grade, aptitudes, rôles et comités. Au choix de l'agent : téléphone, contact d'urgence, date de naissance, surnom, photo. Ce qu'il fait dans l'appli. Pas de mot de passe. |
-| Où | Chez Cloudflare, base dans l'Union européenne (juridiction `eu` de D1, voir [installer-un-centre.md](../technique/installer-un-centre.md)). Lien de connexion par Brevo ; notifications chiffrées par le service du téléphone. |
-| Qui les voit | Les agents : nom, équipe, grade, aptitudes, planning ; téléphone et anniversaire si l'agent l'a choisi. Le chef de centre et l'adjoint : la fiche entière. Un message : les membres de la conversation. |
+| Ce qui est gardé | Saisi par le centre : nom, prénom, adresse e-mail, date de naissance, équipe, grade et ses dates, statut, entrée au centre, aptitudes, rôles et comités. Saisi par l'agent s'il le veut (Mon profil) : téléphone, surnom, contact d'urgence. Ce qu'il fait dans l'appli. Pas de mot de passe. |
+| Où | Chez Cloudflare, base dans l'Union européenne (juridiction `eu` de D1, voir [installer-un-centre.md](../technique/installer-un-centre.md)). Lien de connexion par Brevo ; notifications chiffrées par le service de notification du navigateur (Google, Apple ou Mozilla). |
+| Qui les voit | Les agents : nom, équipe, grade, planning ; le téléphone si l'agent l'a choisi (masqué par défaut) ; l'anniversaire sauf s'il l'a masqué (visible par défaut). Le chef de centre, l'adjoint et le super administrateur : la fiche entière, aptitudes comprises. Un message : les membres de la conversation et, s'il est signalé, qui modère. |
 | Combien de temps | Messages et publications : durées du centre (`centres/<id>/centre.ts`, 12 et 24 mois par défaut, [0023](../decisions/0023-conservation-des-publications.md)). Réservations 12 mois, demandes de tenue 24 mois après leur fin, notifications 30 jours. Agent parti : naissance et contact d'urgence effacés au départ, le reste 12 mois après ([0029](../decisions/0029-effacement-des-agents-partis.md)). |
 | Copie de sécurité | Une copie chiffrée par semaine dans la boîte du centre, gardée 3 mois ([0030](../decisions/0030-copie-hebdomadaire.md)). |
 | Corriger ou effacer | Téléphone, surnom, contact d'urgence : « Mon profil ». Le reste, ou un effacement sans attendre : le chef de centre ([Données des agents](donnees-des-agents.md)). |

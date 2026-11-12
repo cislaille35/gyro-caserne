@@ -93,8 +93,4 @@
 		color: var(--encre);
 		font-weight: 600;
 	}
-	.donnees {
-		color: var(--doux);
-		font-weight: 400;
-	}
 </style>
