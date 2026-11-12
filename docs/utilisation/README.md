@@ -14,6 +14,7 @@ Format d'une page :
 - [Comment ajouter un agent ?](ajouter-un-agent.md)
 - [Comment compléter les fiches des agents ?](completer-les-fiches.md)
 - [Comment déclarer le départ d'un agent ?](declarer-un-depart.md)
+- [Comment effacer les données d'un agent ?](effacer-un-agent.md)
 - [Comment importer l'effectif ?](importer-l-effectif.md)
 - [Comment modifier mon profil ?](modifier-mon-profil.md)
 - [Comment me déconnecter ?](se-deconnecter.md)

@@ -66,12 +66,12 @@
 	const enCours = $derived(data.attributions.enCours);
 	const sousTitre = $derived([fiche.grade?.libelle, fiche.equipe?.nom].filter(Boolean).join(' · '));
 	const resumes = $derived({
-		identite: [fiche.email, fiche.telephone].filter(Boolean).join(' · '),
+		identite: [fiche.effaceLe ? null : fiche.email, fiche.telephone].filter(Boolean).join(' · '),
 		parcours: [fiche.grade?.libelle ?? 'Aucun grade', fiche.entreeCentre && `au centre depuis ${fiche.entreeCentre.slice(0, 4)}`].filter(Boolean).join(' · '),
 		equipe: `${fiche.equipe?.nom ?? 'Aucune équipe'} · ${LIBELLES_STATUT[fiche.statut]}`,
 		aptitudes: data.aptitudes.length ? data.aptitudes.map((a) => (a.valide ? a.nom : `${a.nom} (expirée)`)).join(', ') : 'Aucune aptitude',
 		roles: [enCours.length ? enCours.map(intitule).join(', ') : 'Aucun rôle en cours', data.attributions.aVenir.length && `${data.attributions.aVenir.length} à venir`].filter(Boolean).join(', '),
-		depart: fiche.statut === 'parti' ? 'A quitté le centre' : (data.raison ?? 'Fin des rôles, données personnelles effacées')
+		depart: fiche.statut === 'parti' ? (fiche.partiLe ? `Parti le ${date(fiche.partiLe)}` : 'A quitté le centre') : (data.raison ?? 'Fin des rôles, données personnelles effacées')
 	});
 
 	// Le bloc concerné par le dernier envoi s'ouvre seul : on y voit l'erreur ou le message.
@@ -80,6 +80,7 @@
 	const blocOuvert = $derived.by(() => {
 		if (form?.cible) return 'roles';
 		if (!generale) return null;
+		if (generale.bloc === 'effacement' || erreurs.effacement) return 'depart';
 		if (generale.succes || generale.bloc === 'aptitudes') return generale.bloc ?? null;
 		// Les champs en erreur, ou à défaut ceux envoyés, désignent le formulaire.
 		const champs = Object.keys({ ...valeurs, ...erreurs });
@@ -89,6 +90,8 @@
 		if (champs.includes('equipeId') || champs.includes('statut')) return 'equipe';
 		return null;
 	});
+	// Effacer ses données : « Plus » s'ouvre sur l'erreur ou le refus.
+	const plusOuvert = $derived(!!generale && !generale.succes && (generale.bloc === 'effacement' || !!erreurs.effacement));
 	const chiffres = (tel: string) => tel.replace(/[^\d+]/g, '');
 	const GESTES = {
 		message: 'M4 5h16v11H9l-5 4z',
@@ -174,7 +177,7 @@
 				</ul>
 				<ul class="contact" aria-label="Contacter">
 					{#if data.ecrire}<li><a href="/echanges/messages/a/{fiche.id}">{@render pictogramme(GESTES.message)}Message</a></li>{/if}
-					<li><a href="mailto:{fiche.email}">{@render pictogramme(GESTES.courriel)}Courriel</a></li>
+					{#if !fiche.effaceLe}<li><a href="mailto:{fiche.email}">{@render pictogramme(GESTES.courriel)}Courriel</a></li>{/if}
 					{#if fiche.telephone}<li><a href="tel:{chiffres(fiche.telephone)}">{@render pictogramme(GESTES.appeler)}Appeler</a></li>{/if}
 				</ul>
 			</div>
@@ -195,7 +198,7 @@
 				{#if data.raison}
 					<p class="raison">{data.raison}</p>
 					<dl>
-						<dt>E-mail</dt><dd>{fiche.email}</dd>
+						<dt>E-mail</dt><dd>{fiche.effaceLe ? '—' : fiche.email}</dd>
 						<dt>Téléphone</dt><dd>{fiche.telephone ?? '—'}</dd>
 						<dt>Date de naissance</dt><dd>{date(fiche.naissance)}</dd>
 					</dl>
@@ -393,7 +396,27 @@
 					<p class="raison">{data.raison}</p>
 				{:else if fiche.statut === 'parti'}
 					<p>A quitté le centre. Pour le réintégrer, changez son statut dans « Équipe et statut ».</p>
+					{#if data.effacementPrevu}<p>Ses données seront effacées le {date(data.effacementPrevu)}.</p>{/if}
 					{#if erreurs.confirmation}<p class="erreur">{erreurs.confirmation}</p>{/if}
+					<!-- Sur demande de l'agent, sans attendre : définitif, sous « Plus » et confirmé. -->
+					<details class="plus" open={plusOuvert || undefined}>
+						<summary>Plus</summary>
+						<form method="POST" action={action('effacer')}>
+							<p id="effacement-avertissement"><strong>Sur demande de l'agent :</strong> son nom, son adresse e-mail, son téléphone, son grade, ses aptitudes et son compte de connexion seront effacés. C'est définitif : dans l'historique, il devient « Ancien agent ».</p>
+							<label>
+								<input
+									type="checkbox"
+									name="confirmation"
+									value="oui"
+									aria-invalid={erreurs.effacement ? 'true' : undefined}
+									aria-describedby={erreurs.effacement ? 'effacement-avertissement effacement-erreur' : 'effacement-avertissement'}
+								/>
+								Je confirme
+							</label>
+							{#if erreurs.effacement}<p id="effacement-erreur" class="erreur">{erreurs.effacement}</p>{/if}
+							<Bouton type="submit" variante="grave">Effacer ses données</Bouton>
+						</form>
+					</details>
 				{:else}
 					<form method="POST" action={action('statut')}>
 						<input type="hidden" name="statut" value="parti" />

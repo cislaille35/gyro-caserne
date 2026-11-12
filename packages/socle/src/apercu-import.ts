@@ -85,7 +85,8 @@ export async function apercuImport(base: Base, acteur: Acteur, fichier: FichierL
 		base.select({ id: profil.id, nom: profil.nom }).from(profil),
 		base.select().from(responsabilite).where(isNull(responsabilite.archiveeLe)),
 		base.select({ id: comite.id, nom: comite.nom }).from(comite).where(isNull(comite.dissousLe)),
-		base.select().from(personne),
+		// Un agent effacé est inconnu du fichier : une ligne ancienne à son numéro ne le refait pas.
+		base.select().from(personne).where(isNull(personne.effaceLe)),
 		base.select().from(affectationEquipe),
 		base
 			.select({ id: attribution.id, personneId: attribution.personneId, responsabiliteId: attribution.responsabiliteId, type: attribution.perimetreType, perimetreId: attribution.perimetreId, debut: attribution.debut, fin: attribution.fin, systeme: responsabilite.systeme })

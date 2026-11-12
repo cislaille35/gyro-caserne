@@ -109,8 +109,9 @@ export async function aptitudesEtListe(base: Base, acteur: Acteur, personneId: n
 async function exigerFiches(base: Base, acteur: Acteur, personneId: number, maintenant: string) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (!(await estGestionnaire(base, acteur, aujourdhui))) throw new RefusDroit('GERER_ACCES', { type: 'centre' });
-	const [p] = await base.select({ id: personne.id }).from(personne).where(eq(personne.id, personneId));
+	const [p] = await base.select({ id: personne.id, effaceLe: personne.effaceLe }).from(personne).where(eq(personne.id, personneId));
 	if (!p) throw new DonneeInvalide('Personne inconnue');
+	if (p.effaceLe !== null) throw new DonneeInvalide('Agent effacé');
 }
 
 const journalAgent = (base: Base, acteur: Acteur, action: string, personneId: number, details: object, maintenant: string) =>

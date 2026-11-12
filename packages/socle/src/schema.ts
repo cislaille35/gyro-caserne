@@ -71,7 +71,11 @@ export const personne = sqliteTable(
 		contactUrgence: text('contact_urgence'),
 		// Messagerie : 0, la personne ne montre plus ses lectures et ne voit plus celles des autres.
 		cochesLecture: integer('coches_lecture').notNull().default(1),
-		creeLe: text('cree_le').notNull().default(sql`(datetime('now'))`)
+		creeLe: text('cree_le').notNull().default(sql`(datetime('now'))`),
+		// Date du dernier départ (statut « parti ») ; vide au retour. Ses données sont effacées 12 mois après (partis.ts).
+		partiLe: text('parti_le'),
+		// Date d'effacement de ses données : la fiche ne dit plus que « Ancien agent ».
+		effaceLe: text('efface_le')
 	},
 	(t) => [
 		check('personne_email_normalise', sql`${sql.identifier('email')} = lower(trim(${sql.identifier('email')}))`),
@@ -187,15 +191,20 @@ export const attribution = sqliteTable(
 	]
 );
 
-export const journal = sqliteTable('journal', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
-	quand: text('quand').notNull(),
-	acteur: text('acteur').notNull(),
-	action: text('action').notNull(),
-	cibleType: text('cible_type').notNull(),
-	cibleId: integer('cible_id'),
-	details: text('details').notNull().default('{}')
-});
+export const journal = sqliteTable(
+	'journal',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		quand: text('quand').notNull(),
+		acteur: text('acteur').notNull(),
+		action: text('action').notNull(),
+		cibleType: text('cible_type').notNull(),
+		cibleId: integer('cible_id'),
+		details: text('details').notNull().default('{}')
+	},
+	// L'effacement d'un agent (partis.ts) relit ses lignes sans parcourir tout le journal.
+	(t) => [index('journal_cible').on(t.cibleType, t.cibleId)]
+);
 
 // Dernier lien de connexion envoyé à chaque adresse : un lien par minute au plus.
 export const envoiLien = sqliteTable('envoi_lien', {

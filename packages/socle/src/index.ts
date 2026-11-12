@@ -25,6 +25,7 @@ export { ouvreQuiFaitQuoi, quiFaitQuoi, type QuiFaitQuoi, type RoleTenu } from '
 export { audiences, equipesConvoquees, exigerMur, mursDe, type CleMur, type Convocation, type Mur } from './murs.ts';
 export { TAILLE_PHOTO_MAX, type Photo } from './commun.ts';
 export { effacerPhotosOrphelines } from './photos-orphelines.ts';
+export { dateDEffacement, effacerAgent, effacerAgentsPartis, PARTIS_PAR_NUIT } from './partis.ts';
 export { deposerEcusson, ecussonDuCentre, octetsEcusson, retirerEcusson } from './ecusson.ts';
 export { effacerVieillesPublications, epingler, fermerCommentaires, lireMur, lirePublication, modifierPublication, photo, publier, remplissagePhotos, supprimerPublication, textePublication, type DonneesPublication, type RemplissagePhotos, type PublicationVue } from './actions/publications.ts';
 export { aimer, commenter, lireCommentaires, prendreConnaissance, repondreEvenement, suiviPublication, supprimerCommentaire, voter, type CommentaireVue, type Personne, type Suivi } from './actions/interactions.ts';
