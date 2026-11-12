@@ -48,7 +48,7 @@ export type PublicationVue = {
 	commentaires: number;
 	jaimeParMoi: boolean;
 	// `moment` : à venir, en cours (3 h après le début) ou passé ; on ne répond plus dès le début.
-	evenement: { debut: string; lieu: string; convoques: Convoques; convoque: boolean; moment: 'avenir' | 'enCours' | 'passe'; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number>; presents: { prenom: string; nom: string; couleur: string | null }[] } | null;
+	evenement: { debut: string; fin: string | null; lieu: string; convoques: Convoques; convoque: boolean; moment: 'avenir' | 'enCours' | 'passe'; reponse: ReponseEvenement | null; compte: Record<ReponseEvenement, number>; presents: { prenom: string; nom: string; couleur: string | null }[] } | null;
 	// `resultats` : null pour qui n'a pas voté, sauf l'auteur et les modérateurs ; donnés à tous une fois le sondage fermé, jamais avant l'ouverture.
 	sondage: { question: string; reponses: string[]; ouverture: string | null; cloture: string | null; etat: EtatSondage; resultats: number[] | null; vote: number | null } | null;
 	// `le` : quand l'acteur a pris connaissance, null s'il ne l'a pas encore fait. `faites` sur `attendues` : parmi les membres naturels du mur, sans l'auteur.
@@ -424,10 +424,11 @@ async function vuesDe(
 					? null
 					: {
 							debut: p.debut,
+							fin: p.fin,
 							lieu: p.lieu ?? '',
 							convoques,
 							convoque: estConvoque(appartenances, cle, convocation, moi),
-							moment: momentEvenement(p.debut, maintenant),
+							moment: momentEvenement(p.debut, maintenant, p.fin),
 							reponse: sesReponses.find((r) => r.deMoi === 1)?.reponse ?? null,
 							compte: Object.fromEntries(REPONSES_EVENEMENT.map((r) => [r, sesReponses.find((x) => x.reponse === r)?.n ?? 0])) as Record<ReponseEvenement, number>,
 							presents: presents

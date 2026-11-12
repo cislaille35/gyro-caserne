@@ -1,6 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
+import { MANOEUVRES_PAR_DEFAUT, type ReglageManoeuvres } from '@gyro-caserne/centre';
 import type { Base } from '../base.ts';
 import { texte } from '../commun.ts';
 import type { Acteur } from '../droits.ts';
@@ -20,7 +21,7 @@ export const FEUILLES = { semaines: 'Semaines', manoeuvres: 'Manœuvres', vacanc
 export const ENTETES_PLANNING = {
 	semaines: ['N°', 'Du', 'Au', 'Équipe'],
 	// « Réf. » : le numéro de la manœuvre dans l'appli ; vide pour une nouvelle.
-	manoeuvres: ['Réf.', 'Date', 'Heure', 'Thème', 'Lieu', 'Équipes', 'Petit-déjeuner'],
+	manoeuvres: ['Réf.', 'Date', 'Début', 'Fin', 'Thème', 'Lieu', 'Équipes', 'Petit-déjeuner'],
 	vacances: ['Nom', 'Du', 'Au']
 } as const;
 export const TOUTES = 'Toutes';
@@ -73,7 +74,7 @@ export async function donneesFichierPlanning(base: Base, acteur: Acteur, annee: 
 				entetes: [...ENTETES_PLANNING.manoeuvres],
 				lignes: p.manoeuvres
 					.filter((m) => !m.annulee)
-					.map((m) => [String(m.id), dateFichier(m.debut.slice(0, 10)), m.debut.slice(11, 16), m.theme, m.lieu, m.convoques === 'tous' ? TOUTES : m.convoques.map(numero).filter((n) => n !== '0').join(', '), m.petitDejeuner ? 'Oui' : 'Non']),
+					.map((m) => [String(m.id), dateFichier(m.debut.slice(0, 10)), m.debut.slice(11, 16), m.fin.slice(11, 16), m.theme, m.lieu, m.convoques === 'tous' ? TOUTES : m.convoques.map(numero).filter((n) => n !== '0').join(', '), m.petitDejeuner ? 'Oui' : 'Non']),
 				listes: { 'Petit-déjeuner': ['Oui', 'Non'] }
 			},
 			{ nom: FEUILLES.vacances, entetes: [...ENTETES_PLANNING.vacances], lignes: p.vacances.map((v) => [v.nom, dateFichier(v.debut), dateFichier(v.fin)]), listes: {} },
@@ -92,9 +93,13 @@ function heureDe(brut: string): string | null {
 	return h < 24 && min < 60 ? `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}` : null;
 }
 
+const enMinutes = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+// Au-delà de minuit : rendu tel quel (« 24:15 »), donc refusé comme fin.
+const minutesEnHeure = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+
 type Analyse = Awaited<ReturnType<typeof analyser>>;
 
-async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage) {
+async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage, reglageManoeuvres: ReglageManoeuvres) {
 	const p = await preparerAnnee(base, acteur, annee, maintenant, reglage);
 	const erreurs: ApercuPlanning['erreurs'] = [];
 	const equipes = actives(p);
@@ -159,10 +164,10 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 	// Manœuvres : une ligne avec Réf. modifie, sans Réf. ajoute ; une manœuvre à venir absente du fichier est retirée.
 	const existantes = new Map(p.manoeuvres.filter((x) => !x.annulee).map((x) => [x.id, x]));
 	const vues = new Set<number>();
-	const ajouts: { debut: string; theme: string; lieu: string; convoques: string; petitDejeuner: number }[] = [];
+	const ajouts: { debut: string; fin: string; theme: string; lieu: string; convoques: string; petitDejeuner: number }[] = [];
 	const modifications: (typeof ajouts[number] & { id: number })[] = [];
 	for (const l of lu.feuilles[FEUILLES.manoeuvres] ?? []) {
-		const [ref = '', jour = '', h = '', theme = '', lieu = '', pour = '', pdj = ''] = l.cellules;
+		const [ref = '', jour = '', h = '', f = '', theme = '', lieu = '', pour = '', pdj = ''] = l.cellules;
 		const erreur = (message: string) => erreurs.push({ feuille: FEUILLES.manoeuvres, ligne: l.numero, message });
 		const id = ref.trim() === '' ? null : Number(ref);
 		const existante = id === null ? undefined : existantes.get(id);
@@ -185,6 +190,16 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 			erreur(`Heure « ${h} » invalide (HH:MM)`);
 			continue;
 		}
+		// Fin vide : la durée réglée par le centre.
+		const fin = f.trim() === '' ? minutesEnHeure(enMinutes(heure) + enMinutes(reglageManoeuvres.fin) - enMinutes(reglageManoeuvres.debut)) : heureDe(f);
+		if (fin === null && f.trim() !== '') {
+			erreur(`Fin « ${f} » invalide (HH:MM)`);
+			continue;
+		}
+		if (fin === null || fin <= heure || fin >= '24:00') {
+			erreur('La fin doit suivre le début, le même jour');
+			continue;
+		}
 		let convoques: 'tous' | number[] = 'tous';
 		if (pour.trim() !== '' && pour.trim().toLocaleLowerCase('fr') !== TOUTES.toLocaleLowerCase('fr')) {
 			const morceaux = pour.split(',').map((x) => x.trim()).filter(Boolean);
@@ -199,13 +214,13 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 		const petitDejeuner = /^oui$/i.test(pdj.trim()) ? 1 : 0;
 		let valeurs;
 		try {
-			valeurs = { debut: `${date}T${heure}`, theme: texte(theme, 'Thème', 100), lieu: texte(lieu, 'Lieu', 200), convoques: JSON.stringify(convoques), petitDejeuner };
+			valeurs = { debut: `${date}T${heure}`, fin: `${date}T${fin}`, theme: texte(theme, 'Thème', 100), lieu: texte(lieu, 'Lieu', 200), convoques: JSON.stringify(convoques), petitDejeuner };
 		} catch (e) {
 			erreur(e instanceof Error ? e.message : String(e));
 			continue;
 		}
 		if (existante) {
-			const pareil = existante.debut === valeurs.debut && existante.theme === valeurs.theme && existante.lieu === valeurs.lieu && JSON.stringify(existante.convoques) === valeurs.convoques && Number(existante.petitDejeuner) === petitDejeuner;
+			const pareil = existante.debut === valeurs.debut && existante.fin === valeurs.fin && existante.theme === valeurs.theme && existante.lieu === valeurs.lieu && JSON.stringify(existante.convoques) === valeurs.convoques && Number(existante.petitDejeuner) === petitDejeuner;
 			if (pareil) continue;
 			if (existante.debut < m) erreur('Manœuvre passée : elle ne se modifie plus');
 			else if (valeurs.debut < m) erreur('Cette date est déjà passée');
@@ -253,13 +268,14 @@ async function analyser(base: Base, acteur: Acteur, annee: number, lu: FichierPl
 	return { p, apercu, changements, ecrituresEte: ete?.ecritures ?? (() => []), ordre, choix, semaines, ajouts, modifications, retraits, vacancesRetirees: [...enPlace].filter(([k]) => !voulues.has(k)).map(([, v]) => v.id) };
 }
 
-export async function apercuPlanning(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage): Promise<ApercuPlanning> {
-	return (await analyser(base, acteur, annee, lu, maintenant, reglage)).apercu;
+// `reglageManoeuvres` : celui du centre (durée d'une manœuvre sans fin, choix du petit-déjeuner).
+export async function apercuPlanning(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage, reglageManoeuvres: ReglageManoeuvres = MANOEUVRES_PAR_DEFAUT): Promise<ApercuPlanning> {
+	return (await analyser(base, acteur, annee, lu, maintenant, reglage, reglageManoeuvres)).apercu;
 }
 
 // Applique le fichier d'un bloc : tout ou rien. Rend les manœuvres annoncées qui ont changé, pour prévenir leurs convoqués.
-export async function appliquerPlanning(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage): Promise<{ changees: number[] }> {
-	const a: Analyse = await analyser(base, acteur, annee, lu, maintenant, reglage);
+export async function appliquerPlanning(base: Base, acteur: Acteur, annee: number, lu: FichierPlanningLu, maintenant: string, reglage: Reglage, reglageManoeuvres: ReglageManoeuvres = MANOEUVRES_PAR_DEFAUT): Promise<{ changees: number[] }> {
+	const a: Analyse = await analyser(base, acteur, annee, lu, maintenant, reglage, reglageManoeuvres);
 	if (a.apercu.erreurs.length > 0) throw new DonneeInvalide('Le fichier a des erreurs');
 	const ecritures = [];
 	// Année vide : le roulement proposé est enregistré.
@@ -275,7 +291,7 @@ export async function appliquerPlanning(base: Base, acteur: Acteur, annee: numbe
 	});
 	for (const v of a.ajouts) ecritures.push(base.insert(manoeuvre).values(v));
 	const lues = a.modifications.length ? await base.select({ id: manoeuvre.id, ...colonnesExistante }).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(inArray(manoeuvre.id, parmi(a.modifications.map((x) => x.id)))) : [];
-	for (const { id, ...v } of a.modifications) ecritures.push(...ecrituresModification(base, id, lues.find((x) => x.id === id)!, v, maintenant));
+	for (const { id, ...v } of a.modifications) ecritures.push(...ecrituresModification(base, id, lues.find((x) => x.id === id)!, v, maintenant, reglageManoeuvres.petitDejeuner));
 	for (const x of a.retraits) ecritures.push(...ecrituresRetrait(base, x.id, x.publicationId, maintenant));
 	for (const v of a.apercu.vacances.ajoutees) ecritures.push(base.insert(vacancesScolaires).values(v));
 	if (a.vacancesRetirees.length) ecritures.push(base.delete(vacancesScolaires).where(inArray(vacancesScolaires.id, parmi(a.vacancesRetirees))));

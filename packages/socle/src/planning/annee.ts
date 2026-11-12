@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { ajouterJours, enCours, exigerDate, exigerDateHeure, momentEvenement } from '../dates.ts';
+import { ajouterJours, enCours, exigerDate, exigerDateHeure, finEvenement, momentEvenement } from '../dates.ts';
 import { effectifs, requeteConclues } from '../remplacements/effectifs.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
@@ -10,6 +10,7 @@ import { ligneJournal } from '../journal.ts';
 import { texte } from '../commun.ts';
 import { nomActeur } from '../actions/personnes.ts';
 import { affectationEquipe, anneePlanning, demandeRemplacement, equipe, gardeFete, personne, manoeuvre, publication, reponseEvenement, semaineChangee, vacancesScolaires } from '../schema.ts';
+import { MANOEUVRES_PAR_DEFAUT } from '@gyro-caserne/centre';
 import { colonnesPublication } from './manoeuvres.ts';
 import { avis } from './avis.ts';
 import { jourEnLettres, texteDemande } from '../remplacements/tranches.ts';
@@ -18,9 +19,11 @@ import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 import { calculerAnnee, feries, fetes, semainesDe, tourDesFetes, type Fete, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 
 export type Convoques = 'tous' | number[];
-export type DonneesManoeuvre = { id?: number; debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
+// `fin` : le même jour que le début ; sans elle, la manœuvre dure 3 h.
+export type DonneesManoeuvre = { id?: number; debut: string; fin?: string | null; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
 // `convoques` : les équipes ; `convocation` : avec les agents ajoutés ou retirés par un échange.
-export type ManoeuvreVue = { id: number; debut: string; theme: string; lieu: string; convoques: Convoques; convocation: Convocation; petitDejeuner: boolean; annulee: boolean; publiee: boolean; publicationId: number | null };
+// `fin` : 3 h après le début pour une manœuvre saisie sans fin.
+export type ManoeuvreVue = { id: number; debut: string; fin: string; theme: string; lieu: string; convoques: Convoques; convocation: Convocation; petitDejeuner: boolean; annulee: boolean; publiee: boolean; publicationId: number | null };
 export type Vacances = { id: number; nom: string; debut: string; fin: string };
 export type EquipePlanning = { id: number; nom: string; couleur: string };
 
@@ -46,6 +49,7 @@ export const journalPlanning = (base: Base, acteur: Acteur, action: string, deta
 export const vueManoeuvre = (m: typeof manoeuvre.$inferSelect): ManoeuvreVue => ({
 	id: m.id,
 	debut: m.debut,
+	fin: finEvenement(m.debut, m.fin),
 	theme: m.theme,
 	lieu: m.lieu,
 	convoques: equipesConvoquees(JSON.parse(m.convoques) as Convocation),
@@ -269,6 +273,12 @@ export async function exigerManoeuvre(base: Base, d: DonneesManoeuvre, maintenan
 	exigerDateHeure(d.debut, 'Début');
 	const debut = d.debut.slice(0, 16);
 	if (debut < maintenant.slice(0, 16)) throw new DonneeInvalide('Manœuvre passée');
+	let fin: string | null = null;
+	if (d.fin !== undefined && d.fin !== null) {
+		exigerDateHeure(d.fin, 'Fin');
+		fin = d.fin.slice(0, 16);
+		if (fin.slice(0, 10) !== debut.slice(0, 10) || fin <= debut) throw new DonneeInvalide('La fin doit suivre le début, le même jour');
+	}
 	const theme = texte(d.theme, 'Thème', 100);
 	const lieu = texte(d.lieu, 'Lieu', 200);
 	let convoques: Convoques = 'tous';
@@ -277,10 +287,11 @@ export async function exigerManoeuvre(base: Base, d: DonneesManoeuvre, maintenan
 		convoques = [...new Set(d.convoques)];
 		await exigerEquipes(base, convoques);
 	}
-	return { debut, theme, lieu, convoques: JSON.stringify(convoques), petitDejeuner: d.petitDejeuner ? 1 : 0 };
+	return { debut, fin, theme, lieu, convoques: JSON.stringify(convoques), petitDejeuner: d.petitDejeuner ? 1 : 0 };
 }
 
-export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: DonneesManoeuvre, maintenant: string): Promise<number> {
+// `choix` : ceux du sondage petit-déjeuner du centre, pour une manœuvre annoncée qui en prend un.
+export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: DonneesManoeuvre, maintenant: string, choix: string[] = MANOEUVRES_PAR_DEFAUT.petitDejeuner): Promise<number> {
 	await exigerGestion(base, acteur, maintenant);
 	const valeurs = await exigerManoeuvre(base, d, maintenant);
 	if (d.id === undefined) {
@@ -292,17 +303,17 @@ export async function enregistrerManoeuvre(base: Base, acteur: Acteur, d: Donnee
 	}
 	const [existante] = await base.select(colonnesExistante).from(manoeuvre).leftJoin(publication, eq(publication.id, manoeuvre.publicationId)).where(eq(manoeuvre.id, d.id));
 	if (!existante || existante.annuleeLe !== null) throw new DonneeInvalide('Manœuvre inconnue');
-	await base.batch([journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id), ...ecrituresModification(base, d.id, existante, valeurs, maintenant)]);
+	await base.batch([journalPlanning(base, acteur, 'modifier_manoeuvre', { debut: valeurs.debut }, maintenant, d.id), ...ecrituresModification(base, d.id, existante, valeurs, maintenant, choix)]);
 	return d.id;
 }
 
 // Ce qu'il faut savoir d'une manœuvre enregistrée pour la modifier.
-export const colonnesExistante = { annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture };
-type Existante = { annuleeLe: string | null; publicationId: number | null; debut: string; convoques: string; ouverture: string | null; cloture: string | null };
+export const colonnesExistante = { annuleeLe: manoeuvre.annuleeLe, publicationId: manoeuvre.publicationId, debut: manoeuvre.debut, convoques: manoeuvre.convoques, ouverture: publication.sondageOuverture, cloture: publication.sondageCloture, reponses: publication.sondageReponses };
+type Existante = { annuleeLe: string | null; publicationId: number | null; debut: string; convoques: string; ouverture: string | null; cloture: string | null; reponses: string | null };
 type Valeurs = Awaited<ReturnType<typeof exigerManoeuvre>>;
 
-// Les écritures d'une modification (à la main ou par le fichier).
-export function ecrituresModification(base: Base, id: number, existante: Existante, valeurs: Valeurs, maintenant: string) {
+// Les écritures d'une modification (à la main ou par le fichier). Un sondage déjà publié garde ses choix.
+export function ecrituresModification(base: Base, id: number, existante: Existante, valeurs: Valeurs, maintenant: string, choix: string[]) {
 	// Déjà annoncée : sa publication suit (les convoqués sont prévenus par manoeuvreChangee). Même date : le sondage garde sa clôture ;
 	// nouvelle date : la clôture est recalculée et la relance pourra repartir.
 	const memeDate = existante.debut === valeurs.debut;
@@ -311,7 +322,7 @@ export function ecrituresModification(base: Base, id: number, existante: Existan
 	const v = { ...valeurs };
 	if (!Array.isArray(avant) && avant !== 'tous' && v.convoques !== '"tous"') v.convoques = JSON.stringify({ ...avant, equipes: JSON.parse(v.convoques) });
 	const cloture = memeDate ? existante.cloture : null;
-	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(v, maintenant, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
+	const suivre = existante.publicationId === null ? [] : [base.update(publication).set({ ...colonnesPublication(v, maintenant, existante.reponses ? (JSON.parse(existante.reponses) as string[]) : choix, existante.ouverture, cloture), modifieeLe: maintenant }).where(eq(publication.id, existante.publicationId))];
 	return [base.update(manoeuvre).set({ ...v, ...(memeDate ? {} : { relanceLe: null }) }).where(eq(manoeuvre.id, id)), ...suivre];
 }
 
@@ -372,7 +383,7 @@ export type PlanningAgent =
 			prochaine: {
 				astreinte: { debut: string; fin: string; equipeId: number; groupe: string | null; enCours: boolean; periodes: Periode[] } | null;
 				// `reponse` : la mienne, si la manœuvre est déjà annoncée.
-				// `enCours` : commencée, pas finie (3 h après le début) ; on ne peut plus y répondre ni échanger sa place.
+				// `enCours` : commencée, pas finie ; on ne peut plus y répondre ni échanger sa place.
 				manoeuvre: (ManoeuvreVue & { reponse: ReponseEvenement | null; enCours: boolean }) | null;
 				fete: { fete: Fete; date: string } | null;
 			};
@@ -430,7 +441,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	}
 	const vues = manoeuvres.map(vueManoeuvre).filter((m) => !m.annulee);
 	const convoqueA = (m: ManoeuvreVue) => convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), moi);
-	const prochaineManoeuvre = vues.find((m) => momentEvenement(m.debut, maintenant) !== 'passe' && convoqueA(m) && publiees.some((a) => a.annee === Number(m.debut.slice(0, 4))));
+	const prochaineManoeuvre = vues.find((m) => momentEvenement(m.debut, maintenant, m.fin) !== 'passe' && convoqueA(m) && publiees.some((a) => a.annee === Number(m.debut.slice(0, 4))));
 	const [reponse] = prochaineManoeuvre?.publicationId
 		? await base.select({ reponse: reponseEvenement.reponse }).from(reponseEvenement).where(and(eq(reponseEvenement.publicationId, prochaineManoeuvre.publicationId), eq(reponseEvenement.personneId, moi)))
 		: [];
@@ -466,7 +477,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 			astreinte: prochaineSemaine
 				? { debut: prochaineSemaine.periodes[0]!.debut, fin: prochaineSemaine.periodes.at(-1)!.fin, equipeId: prochaineSemaine.equipeId, groupe: prochaineSemaine.groupe, enCours: prochaineSemaine.periodes[0]!.debut <= maintenant.slice(0, 16), periodes: prochaineSemaine.periodes }
 				: null,
-			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null, enCours: momentEvenement(prochaineManoeuvre.debut, maintenant) === 'enCours' } : null,
+			manoeuvre: prochaineManoeuvre ? { ...prochaineManoeuvre, reponse: reponse?.reponse ?? null, enCours: momentEvenement(prochaineManoeuvre.debut, maintenant, prochaineManoeuvre.fin) === 'enCours' } : null,
 			fete
 		}
 	};

@@ -126,4 +126,12 @@ describe('momentEvenement (sans heure de fin, un événement dure 3 h)', () => {
 		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T16:59')).toBe('enCours');
 		expect(momentEvenement('2026-10-28T14:00', '2026-10-28T17:00')).toBe('passe');
 	});
+
+	it('avec une heure de fin (une manœuvre) : en cours jusqu’à cette fin', () => {
+		expect(finEvenement('2026-11-29T07:45', '2026-11-29T12:00')).toBe('2026-11-29T12:00');
+		expect(finEvenement('2026-11-29T07:45', null)).toBe('2026-11-29T10:45');
+		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T11:59', '2026-11-29T12:00')).toBe('enCours');
+		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T12:00', '2026-11-29T12:00')).toBe('passe');
+		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T08:30', '2026-11-29T08:00')).toBe('passe');
+	});
 });

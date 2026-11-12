@@ -51,16 +51,16 @@ export function exigerDateHeure(valeur: unknown, libelle: string): string {
 	return jour;
 }
 
-// Un événement n'a pas d'heure de fin : il dure 3 h. « AAAA-MM-JJTHH:MM », heure de Paris.
+// Un événement sans heure de fin dure 3 h ; une manœuvre a la sienne. « AAAA-MM-JJTHH:MM », heure de Paris.
 export const DUREE_EVENEMENT_HEURES = 3;
 
-export const finEvenement = (debut: string) => new Date(new Date(`${debut.slice(0, 16)}:00Z`).getTime() + DUREE_EVENEMENT_HEURES * 3_600_000).toISOString().slice(0, 16);
+export const finEvenement = (debut: string, fin: string | null = null) => fin?.slice(0, 16) ?? new Date(new Date(`${debut.slice(0, 16)}:00Z`).getTime() + DUREE_EVENEMENT_HEURES * 3_600_000).toISOString().slice(0, 16);
 
 // À venir avant son début, en cours jusqu'à sa fin. On ne répond plus dès le début (repondreEvenement).
-export function momentEvenement(debut: string, maintenant: string): 'avenir' | 'enCours' | 'passe' {
+export function momentEvenement(debut: string, maintenant: string, fin: string | null = null): 'avenir' | 'enCours' | 'passe' {
 	const m = maintenant.slice(0, 16);
 	if (debut.slice(0, 16) > m) return 'avenir';
-	return finEvenement(debut) > m ? 'enCours' : 'passe';
+	return finEvenement(debut, fin) > m ? 'enCours' : 'passe';
 }
 
 // Le plus ancien début d'un événement encore en cours ou à venir : `debut > debutMinimum`.

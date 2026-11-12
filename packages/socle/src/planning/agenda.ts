@@ -15,8 +15,6 @@ import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
 // La clé n'est jamais écrite au journal ; elle est comparée en temps constant.
 
 const FORME = /^([1-9]\d{0,9})-([A-Za-z0-9_-]{43})$/;
-// Durée affichée d'une manœuvre (seule l'heure de début est saisie).
-const DUREE_MANOEUVRE_H = 3;
 
 export function egaux(a: string, b: string): boolean {
 	const x = new TextEncoder().encode(a);
@@ -165,8 +163,7 @@ export async function agendaDe(base: Base, fichier: string, maintenant: string, 
 	}
 	for (const m of manoeuvres.map(vueManoeuvre)) {
 		if (m.annulee || !publiees.has(Number(m.debut.slice(0, 4))) || !convoque(m.convocation, equipeLe(affectations, m.debut.slice(0, 10)), id)) continue;
-		const fin = new Date(Date.parse(`${m.debut}:00Z`) + DUREE_MANOEUVRE_H * 3_600_000).toISOString().slice(0, 16);
-		evenements.push({ uid: `manoeuvre-${m.id}`, debut: m.debut, fin, titre: `Manœuvre : ${m.theme}`, lieu: m.lieu, description: m.petitDejeuner ? 'Petit-déjeuner prévu.' : undefined });
+		evenements.push({ uid: `manoeuvre-${m.id}`, debut: m.debut, fin: m.fin, titre: `Manœuvre : ${m.theme}`, lieu: m.lieu, description: m.petitDejeuner ? 'Petit-déjeuner prévu.' : undefined });
 	}
 
 	const stamp = versUtc(maintenant);

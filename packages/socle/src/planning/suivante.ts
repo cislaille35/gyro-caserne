@@ -94,8 +94,8 @@ export function periodeDuTour(suite: number[][]): number | null {
 	return null;
 }
 
-type ManoeuvreSource = { debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean; annulee: boolean };
-export type ManoeuvreReprise = { debut: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
+type ManoeuvreSource = { debut: string; fin: string; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean; annulee: boolean };
+export type ManoeuvreReprise = { debut: string; fin: string | null; theme: string; lieu: string; convoques: Convoques; petitDejeuner: boolean };
 
 // Les manœuvres de l'année précédente, pour `annee`. Les annulées gardent leur place dans le tour de rôle, mais ne reviennent pas.
 export function reprendreManoeuvres(precedentes: ManoeuvreSource[], annee: number, actives: number[], maintenant: string, existantes: string[]) {
@@ -121,7 +121,9 @@ export function reprendreManoeuvres(precedentes: ManoeuvreSource[], annee: numbe
 		else {
 			prises.add(debut);
 			const restantes = voulues === 'tous' ? [] : voulues.filter((id) => actives.includes(id));
-			manoeuvres.push({ debut, theme: m.theme, lieu: m.lieu, convoques: restantes.length ? restantes : 'tous', petitDejeuner: m.petitDejeuner });
+			// La même heure de fin, si elle tombe le même jour.
+			const fin = m.fin.slice(0, 10) === m.debut.slice(0, 10) ? `${debut.slice(0, 10)}T${m.fin.slice(11, 16)}` : null;
+			manoeuvres.push({ debut, fin, theme: m.theme, lieu: m.lieu, convoques: restantes.length ? restantes : 'tous', petitDejeuner: m.petitDejeuner });
 		}
 	}
 	return { manoeuvres, tourDeRole: periode !== null, annulees, passees, deja };
@@ -222,7 +224,7 @@ export async function accepterProposition(base: Base, acteur: Acteur, annee: num
 			base.insert(anneePlanning).values({ annee, ordre: JSON.stringify(p.ordre) }),
 			journalPlanning(base, acteur, 'accepter_proposition', { annee, ordre: p.ordre, semaines: p.changees.length, manoeuvres: p.manoeuvres.length }, maintenant),
 			...p.changees.map((c) => base.insert(semaineChangee).values({ debut: c.debut, equipeId: c.apres })),
-			...p.manoeuvres.map((m) => base.insert(manoeuvre).values({ debut: m.debut, theme: m.theme, lieu: m.lieu, convoques: JSON.stringify(m.convoques), petitDejeuner: m.petitDejeuner ? 1 : 0 }))
+			...p.manoeuvres.map((m) => base.insert(manoeuvre).values({ debut: m.debut, fin: m.fin, theme: m.theme, lieu: m.lieu, convoques: JSON.stringify(m.convoques), petitDejeuner: m.petitDejeuner ? 1 : 0 }))
 		]);
 	} catch (erreur) {
 		const [ligne] = await base.select({ annee: anneePlanning.annee }).from(anneePlanning).where(eq(anneePlanning.annee, annee));

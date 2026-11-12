@@ -61,8 +61,8 @@ describe('fichier du planning', () => {
 		await ajouterVacances(base, chef, { nom: 'Vacances d’hiver', debut: '2027-02-13', fin: '2027-03-01' }, maintenant);
 		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
 		expect(d.feuilles[1]!.lignes).toEqual([
-			[String(m1), '07/03/2027', '08:30', 'Feux de forêt', 'Caserne', 'Toutes', 'Non'],
-			[String(m2), '04/04/2027', '08:30', 'Secours routier', 'Caserne', '1', 'Non']
+			[String(m1), '07/03/2027', '08:30', '11:30', 'Feux de forêt', 'Caserne', 'Toutes', 'Non'],
+			[String(m2), '04/04/2027', '08:30', '11:30', 'Secours routier', 'Caserne', '1', 'Non']
 		]);
 		const prep = await preparerAnnee(base, chef, 2027, maintenant, reglage);
 		const noel = prep.semaines.findIndex((s) => s.debut === '2027-12-24');
@@ -72,8 +72,8 @@ describe('fichier du planning', () => {
 			f['Semaines']![noel]![3] = autre.nom;
 			f['Semaines']![1]![3] = f['Semaines']![2]![3]!;
 			f['Manœuvres'] = [
-				[String(m1), '07/03/2027', '9 h 00', 'Feux de forêt', 'Caserne', '1, 3', 'Oui'],
-				['', '02/05/2027', '08:30', 'Incendie', 'Caserne', 'Toutes', 'Non']
+				[String(m1), '07/03/2027', '9 h 00', '12:00', 'Feux de forêt', 'Caserne', '1, 3', 'Oui'],
+				['', '02/05/2027', '08:30', '11:30', 'Incendie', 'Caserne', 'Toutes', 'Non']
 			];
 			f['Vacances scolaires'] = [['Vacances de printemps', '10/04/2027', '26/04/2027']];
 		});
@@ -87,9 +87,9 @@ describe('fichier du planning', () => {
 		expect(await appliquerPlanning(base, chef, 2027, lu, maintenant, reglage)).toEqual({ changees: [] });
 		expect((await base.select().from(semaineChangee)).map((s) => s.debut).sort()).toEqual(['2027-01-08', '2027-12-24']);
 		const manoeuvres = await base.select().from(manoeuvre).orderBy(manoeuvre.debut);
-		expect(manoeuvres.map((x) => [x.debut, x.convoques, x.petitDejeuner])).toEqual([
-			['2027-03-07T09:00', JSON.stringify([ids[0], ids[2]]), 1],
-			['2027-05-02T08:30', '"tous"', 0]
+		expect(manoeuvres.map((x) => [x.debut, x.fin, x.convoques, x.petitDejeuner])).toEqual([
+			['2027-03-07T09:00', '2027-03-07T12:00', JSON.stringify([ids[0], ids[2]]), 1],
+			['2027-05-02T08:30', '2027-05-02T11:30', '"tous"', 0]
 		]);
 		expect((await base.select().from(vacancesScolaires)).map((v) => v.nom)).toEqual(['Vacances de printemps']);
 		// Relu après coup : plus rien à faire.
@@ -123,9 +123,9 @@ describe('fichier du planning', () => {
 					{ numero: 3, cellules: ['S2', '08/01/2027', '', 'Équipe 9'] }
 				],
 				Manœuvres: [
-					{ numero: 2, cellules: ['', '31/02/2027', '08:30', 'Incendie', 'Caserne', 'Toutes', 'Non'] },
-					{ numero: 3, cellules: ['', '02/05/2027', '08:30', '', 'Caserne', '7', 'Non'] },
-					{ numero: 4, cellules: ['99', '02/05/2027', '08:30', 'Incendie', 'Caserne', '', 'Non'] }
+					{ numero: 2, cellules: ['', '31/02/2027', '08:30', '', 'Incendie', 'Caserne', 'Toutes', 'Non'] },
+					{ numero: 3, cellules: ['', '02/05/2027', '08:30', '', '', 'Caserne', '7', 'Non'] },
+					{ numero: 4, cellules: ['99', '02/05/2027', '08:30', '', 'Incendie', 'Caserne', '', 'Non'] }
 				]
 			}
 		};
@@ -164,10 +164,47 @@ describe('fichier du planning', () => {
 		await reglerRoulement(base, chef, 2027, ids, maintenant);
 		const lu: FichierPlanningLu = {
 			feuilles: { Manœuvres: [{ numero: 2, cellules: ['', '02/05/2027', '08:30', 'Caserne', 'Incendie', 'Toutes', 'Non'] }] },
-			entetes: { Manœuvres: ['Réf.', 'Date', 'Heure', 'Lieu', 'Thème', 'Équipes', 'Petit-déjeuner'] }
+			entetes: { Manœuvres: ['Réf.', 'Date', 'Début', 'Fin', 'Lieu', 'Thème', 'Équipes', 'Petit-déjeuner'] }
 		};
 		const apercu = await apercuPlanning(base, chef, 2027, lu, maintenant, reglage);
-		expect(apercu.erreurs).toEqual([{ feuille: 'Manœuvres', ligne: 1, message: 'Colonnes attendues, dans l’ordre : Réf., Date, Heure, Thème, Lieu, Équipes, Petit-déjeuner' }]);
+		expect(apercu.erreurs).toEqual([{ feuille: 'Manœuvres', ligne: 1, message: 'Colonnes attendues, dans l’ordre : Réf., Date, Début, Fin, Thème, Lieu, Équipes, Petit-déjeuner' }]);
 		expect(apercu.manoeuvres.ajoutees).toEqual([]);
+	});
+
+	it('la fin des manœuvres : colonne « Fin » ; vide, la durée réglée par le centre ; contrôlée', async () => {
+		const { base, chef, ids } = await jeu();
+		await reglerRoulement(base, chef, 2027, ids, maintenant);
+		const reglageManoeuvres = { debut: '07:45', fin: '12:00', petitDejeuner: ['Croissant', 'Rien pour moi'] };
+		const d = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
+		expect(d.feuilles[1]!.entetes).toEqual(['Réf.', 'Date', 'Début', 'Fin', 'Thème', 'Lieu', 'Équipes', 'Petit-déjeuner']);
+		const lu = relu(d, (f) => {
+			f['Manœuvres'] = [
+				['', '07/03/2027', '07:45', '12:00', 'Feux de forêt', 'Caserne', 'Toutes', 'Oui'],
+				['', '04/04/2027', '08:00', '', 'Secours routier', 'Caserne', 'Toutes', 'Non']
+			];
+		});
+		expect((await apercuPlanning(base, chef, 2027, lu, maintenant, reglage, reglageManoeuvres)).erreurs).toEqual([]);
+		await appliquerPlanning(base, chef, 2027, lu, maintenant, reglage, reglageManoeuvres);
+		// Fin vide : 4 h 15, comme de 7 h 45 à 12 h.
+		expect((await base.select().from(manoeuvre).orderBy(manoeuvre.debut)).map((x) => [x.debut, x.fin])).toEqual([
+			['2027-03-07T07:45', '2027-03-07T12:00'],
+			['2027-04-04T08:00', '2027-04-04T12:15']
+		]);
+		const fautif = relu(d, (f) => {
+			f['Manœuvres'] = [
+				['', '07/03/2027', '07:45', 'midi', 'Feux', 'Caserne', 'Toutes', 'Non'],
+				['', '04/04/2027', '12:00', '07:45', 'Feux', 'Caserne', 'Toutes', 'Non'],
+				['', '02/05/2027', '22:00', '', 'Feux', 'Caserne', 'Toutes', 'Non']
+			];
+		});
+		expect((await apercuPlanning(base, chef, 2027, fautif, maintenant, reglage, reglageManoeuvres)).erreurs).toEqual([
+			{ feuille: 'Manœuvres', ligne: 2, message: 'Fin « midi » invalide (HH:MM)' },
+			{ feuille: 'Manœuvres', ligne: 3, message: 'La fin doit suivre le début, le même jour' },
+			{ feuille: 'Manœuvres', ligne: 4, message: 'La fin doit suivre le début, le même jour' }
+		]);
+		// Seule la fin change : c'est une modification.
+		const apres = await donneesFichierPlanning(base, chef, 2027, maintenant, reglage);
+		const fin = relu(apres, (f) => (f['Manœuvres']![0]![3] = '11:00'));
+		expect((await apercuPlanning(base, chef, 2027, fin, maintenant, reglage, reglageManoeuvres)).manoeuvres.modifiees).toEqual([{ debut: '2027-03-07T07:45', theme: 'Feux de forêt' }]);
 	});
 });
