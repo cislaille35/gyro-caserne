@@ -1,14 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
+import { parseSetCookieHeader } from 'better-auth/cookies';
 import { personne, session } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
-import { lireSession, sessionDuHook } from './session.ts';
+import { estAdresseDeBetterAuth, lireSession } from './session.ts';
 
-const env = { BETTER_AUTH_SECRET: 'secret-de-test-assez-long-pour-better-auth', BETTER_AUTH_URL: 'http://localhost' };
+const SECRET = 'secret-de-test-assez-long-pour-better-auth';
+const local = { BETTER_AUTH_SECRET: SECRET, BETTER_AUTH_URL: 'http://localhost' };
+const enLigne = { BETTER_AUTH_SECRET: SECRET, BETTER_AUTH_URL: 'https://caserne.exemple.fr' };
 const JOUR = 86_400_000;
 
-// Un agent connecté par son lien : l'en-tête Cookie que son navigateur renvoie.
-async function connecte() {
+// Les cookies d'une requête, comme SvelteKit les lit (valeurs décodées) ; set et delete espionnés.
+function bocal(entete: string) {
+	const valeurs = new Map(entete ? entete.split('; ').map((c) => [c.slice(0, c.indexOf('=')), decodeURIComponent(c.slice(c.indexOf('=') + 1))]) : []);
+	return { get: (nom: string) => valeurs.get(nom), set: vi.fn(), delete: vi.fn() };
+}
+
+// Signature d'un cookie comme Better Auth : HMAC-SHA256 du jeton, en base64.
+async function signer(valeur: string, secret = SECRET) {
+	const cle = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+	return `${valeur}.${btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', cle, new TextEncoder().encode(valeur)))))}`;
+}
+
+// Un agent connecté par Better Auth, par son lien ou par son code : l'en-tête Cookie que son navigateur renvoie.
+async function connecte(env = local, par: 'lien' | 'code' = 'lien') {
 	const base = await baseDeTest();
 	await base.insert(personne).values({ email: 'agent@exemple.fr', prenom: 'A', nom: 'G' });
 	const taches: Promise<unknown>[] = [];
@@ -16,54 +31,163 @@ async function connecte() {
 	const auth = creerAuth(env, base, (p) => taches.push(p), envoyer);
 	await auth.api.signInMagicLink({ body: { email: 'agent@exemple.fr', callbackURL: '/' }, headers: new Headers() });
 	await Promise.all(taches);
-	const jeton = new URL(envoyer.mock.calls[0]![1].texte.match(/https?:\/\/\S+/)![0]).searchParams.get('token')!;
-	const { headers } = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: new Headers(), returnHeaders: true });
-	const requete = new Request('http://localhost/', { headers: { cookie: headers.get('set-cookie')!.split(';')[0]! } });
-	const cookies = { set: vi.fn() };
-	return { base, auth, requete, cookies };
+	const texte = envoyer.mock.calls[0]![1].texte;
+	const { headers } =
+		par === 'lien'
+			? await auth.api.magicLinkVerify({ query: { token: new URL(texte.match(/https?:\/\/\S+/)![0]).searchParams.get('token')! }, headers: new Headers(), returnHeaders: true })
+			: await auth.api.signInEmailOTP({ body: { email: 'agent@exemple.fr', otp: texte.match(/code de connexion : (\d{6})/)![1]! }, headers: new Headers(), returnHeaders: true });
+	const cookie = headers.get('set-cookie')!.split(';')[0]!;
+	const [nom, valeur] = [cookie.slice(0, cookie.indexOf('=')), decodeURIComponent(cookie.slice(cookie.indexOf('=') + 1))];
+	return { base, auth, env, cookie, nom, valeur, jeton: valeur.slice(0, valeur.lastIndexOf('.')) };
 }
 
+const echeance = async (base: Awaited<ReturnType<typeof baseDeTest>>) => (await base.select({ e: session.expiresAt }).from(session))[0]?.e.getTime();
+
 describe('lireSession', () => {
-	it('rend la session, sans réécrire le cookie le jour même', async () => {
-		const { auth, requete, cookies } = await connecte();
-		expect((await lireSession(auth, requete, cookies))?.user.email).toBe('agent@exemple.fr');
+	it('un cookie posé par le lien de connexion : l’adresse de l’agent, sans cookie réécrit le jour même', async () => {
+		const { base, cookie } = await connecte();
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, local, cookies)).toEqual({ email: 'agent@exemple.fr' });
+		expect(cookies.set).not.toHaveBeenCalled();
+		expect(cookies.delete).not.toHaveBeenCalled();
+	});
+
+	it('un cookie posé par le code à 6 chiffres est lu aussi', async () => {
+		const { base, cookie } = await connecte(local, 'code');
+		expect(await lireSession(base, local, bocal(cookie))).toEqual({ email: 'agent@exemple.fr' });
+	});
+
+	it('en ligne (https) : cookie préfixé __Secure-, prolongé avec l’attribut Secure', async () => {
+		const { base, cookie, nom, valeur } = await connecte(enLigne);
+		expect(nom).toBe('__Secure-better-auth.session_token');
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, enLigne, cookies)).toEqual({ email: 'agent@exemple.fr' });
+		expect(cookies.set).toHaveBeenCalledWith(nom, valeur, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 90 * 86_400 });
+		// Le même cookie sans préfixe n'est pas lu en ligne.
+		expect(await lireSession(base, enLigne, bocal(`better-auth.session_token=${encodeURIComponent(valeur)}`))).toBeNull();
+	});
+
+	it('signature fausse, tronquée ou d’un autre secret : rien, sans lire la base', async () => {
+		const { valeur, jeton, nom } = await connecte();
+		const sansBase = {} as never;
+		const fausse = `${jeton}.${'A'.repeat(43)}=`;
+		for (const v of [fausse, jeton, `${jeton}.`, `${jeton}.${valeur.slice(-20)}`]) {
+			expect(await lireSession(sansBase, local, bocal(`${nom}=${encodeURIComponent(v)}`))).toBeNull();
+		}
+		const base = (await connecte()).base;
+		expect(await lireSession(base, local, bocal(`${nom}=${encodeURIComponent(await signer(jeton, 'un-autre-secret-assez-long-pour-better-auth'))}`))).toBeNull();
+	});
+
+	it('sans cookie : rien, sans lire la base', async () => {
+		const cookies = bocal('');
+		expect(await lireSession({} as never, local, cookies)).toBeNull();
 		expect(cookies.set).not.toHaveBeenCalled();
 	});
 
-	it('après un jour d’usage, renvoie au navigateur le cookie prolongé de 90 jours', async () => {
-		const { base, auth, requete, cookies } = await connecte();
-		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
-		await lireSession(auth, requete, cookies);
-		expect(cookies.set).toHaveBeenCalledTimes(1);
-		const [nom, valeur, options] = cookies.set.mock.calls[0]!;
-		expect(nom).toBe('better-auth.session_token');
-		expect(requete.headers.get('cookie')).toBe(`${nom}=${encodeURIComponent(valeur)}`);
-		expect(options).toMatchObject({ maxAge: 90 * 86_400, httpOnly: true, path: '/', sameSite: 'lax' });
+	it('jeton bien signé mais inconnu : rien, et les cookies de session effacés', async () => {
+		const { base, nom } = await connecte();
+		const cookies = bocal(`${nom}=${encodeURIComponent(await signer('jeton-inconnu'))}`);
+		expect(await lireSession(base, local, cookies)).toBeNull();
+		expect(cookies.delete).toHaveBeenCalledWith(nom, { httpOnly: true, secure: false, sameSite: 'lax', path: '/' });
+		expect(cookies.delete.mock.calls.map(([n]) => n)).toEqual([nom, 'better-auth.session_data', 'better-auth.dont_remember']);
 	});
 
-	it('sans cookie : null, rien d’écrit', async () => {
-		const { auth, cookies } = await connecte();
-		expect(await lireSession(auth, new Request('http://localhost/'), cookies)).toBeNull();
+	it('session expirée : rien, la session effacée de la base et les cookies aussi', async () => {
+		const { base, cookie, nom } = await connecte();
+		await base.update(session).set({ expiresAt: new Date(Date.now() - 1000) });
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, local, cookies)).toBeNull();
+		expect(await base.select().from(session)).toEqual([]);
+		expect(cookies.delete).toHaveBeenCalledWith(nom, expect.anything());
+	});
+
+	it('déconnexion par Better Auth, ou de tous les appareils : le cookie ne vaut plus rien', async () => {
+		const un = await connecte();
+		await un.auth.api.signOut({ headers: new Headers({ cookie: un.cookie }) });
+		expect(await lireSession(un.base, local, bocal(un.cookie))).toBeNull();
+
+		// Un second appareil : une autre session du même agent.
+		const telephone = await connecte();
+		const [{ userId, expiresAt }] = (await telephone.base.select().from(session)) as [typeof session.$inferSelect];
+		await telephone.base.insert(session).values({ id: 'ordinateur', token: 'jeton-ordinateur', userId, expiresAt, updatedAt: new Date() });
+		const ordinateur = `${telephone.nom}=${encodeURIComponent(await signer('jeton-ordinateur'))}`;
+		expect(await lireSession(telephone.base, local, bocal(ordinateur))).toEqual({ email: 'agent@exemple.fr' });
+		await telephone.auth.api.revokeSessions({ headers: new Headers({ cookie: telephone.cookie }) });
+		expect(await lireSession(telephone.base, local, bocal(telephone.cookie))).toBeNull();
+		expect(await lireSession(telephone.base, local, bocal(ordinateur))).toBeNull();
+	});
+
+	it('après plus d’un jour d’usage : échéance repoussée à 90 jours en base et cookie renvoyé', async () => {
+		const { base, cookie, nom, valeur } = await connecte();
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, local, cookies)).toEqual({ email: 'agent@exemple.fr' });
+		expect(cookies.set).toHaveBeenCalledExactlyOnceWith(nom, valeur, { httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 90 * 86_400 });
+		expect(await echeance(base)).toBeGreaterThan(Date.now() + 90 * JOUR - 5000);
+	});
+
+	it('moins d’un jour après la dernière prolongation : ni base ni cookie touchés', async () => {
+		const { base, cookie } = await connecte();
+		const avant = Date.now() + 89 * JOUR + JOUR / 2;
+		await base.update(session).set({ expiresAt: new Date(avant) });
+		const cookies = bocal(cookie);
+		await lireSession(base, local, cookies);
+		expect(cookies.set).not.toHaveBeenCalled();
+		expect(await echeance(base)).toBe(avant);
+	});
+
+	it('« ne pas se souvenir de moi » (cookie signé de Better Auth) : pas de prolongation', async () => {
+		const { base, cookie } = await connecte();
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		const cookies = bocal(`${cookie}; better-auth.dont_remember=${encodeURIComponent(await signer('true'))}`);
+		expect(await lireSession(base, local, cookies)).toEqual({ email: 'agent@exemple.fr' });
 		expect(cookies.set).not.toHaveBeenCalled();
 	});
 });
 
-describe('sessionDuHook', () => {
-	it('une page : la session, et le cookie prolongé recopié', async () => {
-		const { base, auth, requete, cookies } = await connecte();
+// Garde-fou à chaque mise à jour de Better Auth : notre lecture rend ce que rendait auth.api.getSession.
+describe('même résultat que getSession de Better Auth', () => {
+	const sesCookies = (h: Headers) => parseSetCookieHeader(h.get('set-cookie') ?? '');
+
+	it('session valable, puis à prolonger : même agent, même cookie renvoyé', async () => {
+		const { base, auth, cookie, nom } = await connecte();
+		const leur = await auth.api.getSession({ headers: new Headers({ cookie }) });
+		expect(await lireSession(base, local, bocal(cookie))).toEqual({ email: leur!.user.email });
+
 		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
-		const page = { request: requete, url: new URL('http://localhost/moi'), cookies } as never;
-		expect((await sessionDuHook(auth, page))?.user.email).toBe('agent@exemple.fr');
-		expect(cookies.set).toHaveBeenCalledTimes(1);
+		const { headers } = await auth.api.getSession({ headers: new Headers({ cookie }), returnHeaders: true });
+		const attendu = sesCookies(headers).get(nom)!;
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		const cookies = bocal(cookie);
+		await lireSession(base, local, cookies);
+		const [, valeur, options] = cookies.set.mock.calls[0]!;
+		expect(valeur).toBe(attendu.value);
+		expect(options).toEqual({ httpOnly: attendu.httponly, secure: attendu.secure ?? false, sameSite: attendu.samesite, path: attendu.path, maxAge: attendu['max-age'] });
 	});
 
-	it('une adresse de Better Auth : rien de lu, rien d’écrit', async () => {
-		const { base, auth, requete, cookies } = await connecte();
-		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
-		const lien = { request: requete, url: new URL('http://localhost/api/auth/magic-link/verify?token=x'), cookies } as never;
-		expect(await sessionDuHook(auth, lien)).toBeNull();
-		expect(cookies.set).not.toHaveBeenCalled();
-		const [s] = await base.select().from(session);
-		expect(s!.expiresAt.getTime()).toBeLessThan(Date.now() + 89 * JOUR);
+	it('jeton inconnu, session expirée, signature fausse : rien des deux côtés, mêmes cookies effacés', async () => {
+		for (const cas of ['inconnu', 'expiree', 'signature'] as const) {
+			const { base, auth, cookie, nom, jeton } = await connecte();
+			const entete = cas === 'inconnu' ? `${nom}=${encodeURIComponent(await signer('x'))}` : cas === 'signature' ? `${nom}=${jeton}.${'B'.repeat(43)}=` : cookie;
+			if (cas === 'expiree') await base.update(session).set({ expiresAt: new Date(Date.now() - 1000) });
+			const [ligne] = await base.select().from(session);
+			const { headers, response } = await auth.api.getSession({ headers: new Headers({ cookie: entete }), returnHeaders: true });
+			expect(response).toBeNull();
+			// Better Auth a effacé la session expirée : on la remet pour notre lecture.
+			await base.insert(session).values(ligne!).onConflictDoNothing();
+			const cookies = bocal(entete);
+			expect(await lireSession(base, local, cookies)).toBeNull();
+			expect(cookies.delete.mock.calls.map(([n]) => n)).toEqual([...sesCookies(headers).keys()]);
+		}
+	});
+});
+
+describe('estAdresseDeBetterAuth', () => {
+	it('les adresses /api/auth/ de l’appli seulement', () => {
+		expect(estAdresseDeBetterAuth(new URL('http://localhost/api/auth/magic-link/verify?token=x'), local)).toBe(true);
+		expect(estAdresseDeBetterAuth(new URL('http://localhost/api/authentique'), local)).toBe(false);
+		expect(estAdresseDeBetterAuth(new URL('http://localhost/moi'), local)).toBe(false);
+		expect(estAdresseDeBetterAuth(new URL('http://ailleurs/api/auth/ok'), local)).toBe(false);
 	});
 });

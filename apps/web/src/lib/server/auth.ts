@@ -8,6 +8,10 @@ import { envoyerCourriel, type EnvCourriel } from './courriel.ts';
 
 export type EnvAuth = EnvCourriel & { BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string; SUPER_ADMINS?: string };
 
+// 90 jours sans ouvrir l'appli avant d'être déconnecté ; chaque jour d'usage repousse l'échéance (décision 0032). En secondes.
+export const DUREE_SESSION = 90 * 86_400;
+export const PROLONGEE_APRES = 86_400;
+
 // SUPER_ADMINS : adresses séparées par des virgules.
 export function superAdmins(env: EnvAuth): string[] {
 	return (env.SUPER_ADMINS ?? '')
@@ -84,8 +88,8 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: { backgroundTasks: { handler: enArrierePlan } },
 		disabledPaths: ROUTES_DU_CODE_FERMEES,
-		// 90 jours sans ouvrir l'appli avant d'être déconnecté ; chaque jour d'usage repousse l'échéance (décision 0032).
-		session: { expiresIn: 90 * 86_400, updateAge: 86_400 },
+		// Lue sans Better Auth à chaque requête, dans le même format (session.ts, décision 0035).
+		session: { expiresIn: DUREE_SESSION, updateAge: PROLONGEE_APRES },
 		plugins: [
 			magicLink({
 				disableSignUp: false,

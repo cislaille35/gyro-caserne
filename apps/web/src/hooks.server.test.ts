@@ -1,7 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ENTETES } from '@gyro-caserne/socle';
+import { ENTETES, personne, session } from '@gyro-caserne/socle';
+import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
+import { creerAuth } from '#lib/server/auth.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
 import { handle } from './hooks.server.ts';
+
+const SECRET = 'secret-de-test-assez-long-pour-better-auth';
+const H = vi.hoisted(() => {
+	(globalThis as Record<string, unknown>).__sveltekit_cloudflare_platform = { env: { BETTER_AUTH_SECRET: 'secret-de-test-assez-long-pour-better-auth', BETTER_AUTH_URL: 'http://localhost', BASE: {}, PHOTOS: {} } };
+	return { base: null as unknown };
+});
+vi.mock('@gyro-caserne/socle', async (origine) => ({ ...(await origine<Record<string, unknown>>()), creerBaseD1: () => H.base, creerBasePhotos: () => ({}) }));
+vi.mock('#lib/server/auth.ts', async (origine) => {
+	const m = await origine<typeof import('#lib/server/auth.ts')>();
+	return { ...m, creerAuth: vi.fn(m.creerAuth) };
+});
 
 const MO = 1024 * 1024;
 const envoi = (longueur: number | null, type = 'application/x-www-form-urlencoded', methode = 'POST') => {
@@ -52,5 +65,73 @@ describe('taille des envois, pour toutes les routes', () => {
 		const reponse = await handle({ event: event as any, resolve });
 		expect(reponse.status).toBe(413);
 		expect(resolve).not.toHaveBeenCalled();
+	});
+});
+
+describe('session lue par le hook, sans créer Better Auth', () => {
+	// Un agent connecté par son lien : la base et l'en-tête Cookie de son navigateur.
+	async function connecte(statut: 'operationnel' | 'suspendu' | 'parti' = 'operationnel') {
+		const base = await baseDeTest();
+		H.base = base;
+		const [p] = await base.insert(personne).values({ email: 'agent@exemple.fr', prenom: 'A', nom: 'G' }).returning({ id: personne.id });
+		const taches: Promise<unknown>[] = [];
+		const envoyer = vi.fn(async (_env: unknown, _m: { a: string; sujet: string; texte: string }) => {});
+		const auth = creerAuth({ BETTER_AUTH_SECRET: SECRET, BETTER_AUTH_URL: 'http://localhost' }, base, (t) => taches.push(t), envoyer);
+		await auth.api.signInMagicLink({ body: { email: 'agent@exemple.fr', callbackURL: '/' }, headers: new Headers() });
+		await Promise.all(taches);
+		const jeton = new URL(envoyer.mock.calls[0]![1].texte.match(/https?:\/\/\S+/)![0]).searchParams.get('token')!;
+		const { headers } = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: new Headers(), returnHeaders: true });
+		if (statut !== 'operationnel') await base.update(personne).set({ statut });
+		vi.mocked(creerAuth).mockClear();
+		return { base, id: p!.id, cookie: headers.get('set-cookie')!.split(';')[0]! };
+	}
+
+	function requete(chemin: string, cookie: string) {
+		const request = new Request(`http://localhost${chemin}`, { headers: cookie ? { cookie } : {} });
+		const [nom, valeur] = [cookie.slice(0, cookie.indexOf('=')), decodeURIComponent(cookie.slice(cookie.indexOf('=') + 1))];
+		const locals = {} as App.Locals;
+		const cookies = { get: (n: string) => (cookie && n === nom ? valeur : undefined), set: vi.fn(), delete: vi.fn() };
+		return { event: { request, url: new URL(request.url), cookies, locals }, locals };
+	}
+
+	it('une page : l’agent reconnu, et Better Auth jamais créé', async () => {
+		const { cookie, id } = await connecte();
+		const { event, locals } = requete('/moi', cookie);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await handle({ event: event as any, resolve: async () => new Response('ok') });
+		expect(locals.acteur).toEqual({ type: 'personne', id });
+		expect(creerAuth).not.toHaveBeenCalled();
+	});
+
+	it('agent suspendu ou parti : pas d’acteur', async () => {
+		for (const statut of ['suspendu', 'parti'] as const) {
+			const { cookie } = await connecte(statut);
+			const { event, locals } = requete('/', cookie);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			await handle({ event: event as any, resolve: async () => new Response('ok') });
+			expect(locals.acteur).toBeNull();
+		}
+	});
+
+	it('Better Auth créé au premier usage de locals.auth seulement, une fois', async () => {
+		const { cookie } = await connecte();
+		const { event, locals } = requete('/connexion', cookie);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await handle({ event: event as any, resolve: async () => new Response(String(locals.auth === locals.auth)) });
+		expect(creerAuth).toHaveBeenCalledTimes(1);
+	});
+
+	it('une adresse de Better Auth : il répond lui-même, la session n’est pas lue ni prolongée', async () => {
+		const { base, cookie } = await connecte();
+		const echeance = new Date(Date.now() + 88 * 86_400_000);
+		await base.update(session).set({ expiresAt: echeance });
+		const { event, locals } = requete('/api/auth/ok', cookie);
+		const resolve = vi.fn();
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const reponse = await handle({ event: event as any, resolve });
+		expect(await reponse.json()).toEqual({ ok: true });
+		expect(resolve).not.toHaveBeenCalled();
+		expect(locals.acteur).toBeNull();
+		expect((await base.select().from(session))[0]!.expiresAt).toEqual(echeance);
 	});
 });
