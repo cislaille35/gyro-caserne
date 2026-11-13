@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { acteurDe, changerStatut, envoiLien, personne, user, verification } from '@gyro-caserne/socle';
+import { acteurDe, changerStatut, envoiLien, personne, session, user, verification } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
 
@@ -185,7 +185,7 @@ describe('connexion par le lien', () => {
 		expect(await base.select().from(user)).toHaveLength(0);
 	});
 
-	it('un agent suspendu après sa connexion n’a plus accès', async () => {
+	it.each(['suspendu', 'parti'] as const)('un agent %s après sa connexion n’a plus accès, malgré une session de 90 jours', async (statut) => {
 		const { base, auth, demander, dernierJeton } = await jeu();
 		await demander('agent@exemple.fr');
 		const { headers } = await auth.api.magicLinkVerify({ query: { token: dernierJeton() }, headers: entetes, returnHeaders: true });
@@ -193,8 +193,44 @@ describe('connexion par le lien', () => {
 		expect(await auth.api.getSession({ headers: cookie })).not.toBeNull();
 
 		const [agent] = await base.select().from(personne);
-		await changerStatut(base, base.photos, { type: 'super', email: 'admin@exemple.fr' }, agent!.id, 'suspendu', '2026-10-25T10:00');
+		await changerStatut(base, base.photos, { type: 'super', email: 'admin@exemple.fr' }, agent!.id, statut, '2026-10-25T10:00');
 		expect(await auth.api.getSession({ headers: cookie })).toBeNull();
 		expect(await acteurDe(base, 'agent@exemple.fr', [])).toBeNull();
+	});
+});
+
+describe('session de 90 jours, prolongée à l’usage', () => {
+	const JOUR = 86_400_000;
+	// Connexion par le lien : rend l'en-tête Cookie du navigateur et l'en-tête Set-Cookie reçu.
+	async function connecte() {
+		const j = await jeu();
+		await j.demander('agent@exemple.fr');
+		const { headers } = await j.auth.api.magicLinkVerify({ query: { token: j.dernierJeton() }, headers: entetes, returnHeaders: true });
+		const recu = headers.get('set-cookie')!;
+		return { ...j, recu, cookie: new Headers({ cookie: recu.split(';')[0]! }) };
+	}
+
+	it('à la connexion, le cookie et la session valent 90 jours', async () => {
+		const { base, recu } = await connecte();
+		expect(recu).toContain('Max-Age=7776000');
+		const [s] = await base.select().from(session);
+		expect(s!.expiresAt.getTime()).toBeGreaterThan(Date.now() + 89 * JOUR);
+	});
+
+	it('moins d’un jour après, rien n’est réécrit', async () => {
+		const { auth, cookie } = await connecte();
+		const { headers } = await auth.api.getSession({ headers: cookie, returnHeaders: true });
+		expect(headers.get('set-cookie')).toBeNull();
+	});
+
+	it('plus d’un jour après, la session et le cookie repartent pour 90 jours', async () => {
+		const { base, auth, cookie } = await connecte();
+		// La session a été ouverte il y a deux jours : il lui en reste 88.
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		const { headers, response } = await auth.api.getSession({ headers: cookie, returnHeaders: true });
+		expect(response).not.toBeNull();
+		expect(headers.get('set-cookie')).toContain('Max-Age=7776000');
+		const [s] = await base.select().from(session);
+		expect(s!.expiresAt.getTime()).toBeGreaterThan(Date.now() + 89 * JOUR);
 	});
 });
