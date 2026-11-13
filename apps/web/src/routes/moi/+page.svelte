@@ -24,10 +24,9 @@
 		partir = true;
 		formulaire.requestSubmit();
 	}
-	// Sans « Je confirme », le serveur refuse : rien n'est oublié ici.
-	function deconnecterPartout(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
-		if (e.currentTarget.querySelector<HTMLInputElement>('[name=confirmation]')?.checked) return deconnecter(e);
-	}
+	// Le dépliage de « Me déconnecter de tous mes appareils » : ouvert par son bouton, refermé par « Annuler ».
+	// Ouvert d'emblée quand le serveur a refusé, pour montrer pourquoi.
+	let partout = $derived(!!form?.message);
 
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
@@ -77,22 +76,26 @@
 		<li><Rangee href="/donnees" titre="Vos données" sous="Ce qui est gardé, où, combien de temps" /></li>
 	</ListeRangees>
 
-	<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
-		<button type="submit" class="sortir"
-			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.sortir} /></svg>Se déconnecter</button
-		>
-	</form>
-
-	<!-- Un téléphone perdu, prêté ou partagé : tous les appareils se déconnectent d'un coup. -->
-	<details class="plus" open={form?.message ? true : undefined}>
-		<summary>Plus</summary>
-		<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={deconnecterPartout}>
-			<p>Chaque téléphone et ordinateur devra redemander un lien de connexion, et ne recevra plus vos notifications d’ici là.</p>
-			{#if form?.message}<p class="erreur" role="alert">{form.message}</p>{/if}
-			<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
-			<Bouton type="submit" variante="grave">Me déconnecter de tous mes appareils</Bouton>
+	<!-- Un téléphone perdu, prêté ou partagé : tous les appareils se déconnectent d'un coup. Facile à défaire : on se reconnecte. -->
+	<div class="sorties">
+		<form method="POST" action="?/deconnecter" onsubmit={deconnecter}>
+			<button type="submit" class="sortir"
+				><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.sortir} /></svg>Se déconnecter</button
+			>
 		</form>
-	</details>
+		<details class="plus" open={partout} ontoggle={(e) => (partout = e.currentTarget.open)}>
+			<summary>Me déconnecter de tous mes appareils</summary>
+			<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={deconnecter}>
+				<p>Vous serez déconnecté de tous vos appareils, y compris celui-ci. Les notifications s’arrêteront sur chacun.</p>
+				{#if form?.message}<p class="erreur" role="alert">{form.message}</p>{/if}
+				<input type="hidden" name="confirmation" value="oui" />
+				<div class="choix">
+					<Bouton type="submit">Déconnecter partout</Bouton>
+					<Bouton variante="secondaire" onclick={() => (partout = false)}>Annuler</Bouton>
+				</div>
+			</form>
+		</details>
+	</div>
 </div>
 
 <style>
@@ -138,19 +141,26 @@
 			border-top: 0;
 		}
 	}
-	form {
+	/* Les deux sorties côte à côte ; la confirmation dépliée prend toute la largeur, en dessous. */
+	.sorties {
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: center;
-		margin-top: var(--espace-8);
-	}
-	.plus {
-		align-self: center;
-	}
-	.partout {
-		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--espace-12);
-		margin-top: 0;
+		margin-top: var(--espace-8);
+	}
+	.sorties > details[open] {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		flex-basis: 100%;
+	}
+	.partout {
+		display: flex;
+		flex-direction: column;
+		gap: var(--espace-12);
+		align-self: stretch;
 		padding: var(--espace-16);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
@@ -158,11 +168,10 @@
 	.partout p {
 		margin: 0;
 	}
-	.case {
+	.choix {
 		display: flex;
-		align-items: center;
+		flex-wrap: wrap;
 		gap: var(--espace-12);
-		min-height: var(--cible);
 	}
 	.erreur {
 		color: var(--statut-danger-texte);
