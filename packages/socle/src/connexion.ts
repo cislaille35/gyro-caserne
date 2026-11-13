@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, lte, or, sql } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import type { Acteur } from './droits.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
@@ -34,9 +34,18 @@ export async function adresseAutorisee(base: Base, adresse: string, superAdmins:
 	return (await acteurDe(base, adresse, superAdmins)) !== null;
 }
 
-// Liens de connexion vers cette adresse (Better Auth range l'adresse dans la valeur, en JSON ; les autres lignes sont ignorées).
+// Identifiant en base du code à 6 chiffres de cette adresse (plugin emailOTP de Better Auth, type « sign-in »).
+export function identifiantDuCode(adresse: string): string {
+	return `sign-in-otp-${normaliserAdresse(adresse)}`;
+}
+
+// Liens et code de connexion vers cette adresse. Better Auth range l'adresse d'un lien dans la valeur, en JSON,
+// et celle d'un code dans l'identifiant ; les autres lignes sont ignorées.
 function liensVers(adresse: string) {
-	return sql`json_valid(${verification.value}) and lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`;
+	return or(
+		sql`json_valid(${verification.value}) and lower(json_extract(${verification.value}, '$.email')) = ${normaliserAdresse(adresse)}`,
+		eq(verification.identifier, identifiantDuCode(adresse))
+	);
 }
 
 // Requête à passer dans un batch.
