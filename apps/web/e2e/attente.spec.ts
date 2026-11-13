@@ -111,7 +111,7 @@ test('un formulaire classique coupé : aucun renvoi, retour au formulaire', asyn
 	await page.goto('/connexion');
 	await controlee(page);
 	let envois = 0;
-	await context.route(/\/connexion$/, (r) => {
+	await context.route(/\/connexion\?\/envoyer$/, (r) => {
 		if (r.request().method() !== 'POST') return r.continue();
 		envois++;
 		return r.fulfill(COUPURE);

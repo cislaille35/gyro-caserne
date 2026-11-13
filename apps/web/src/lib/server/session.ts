@@ -3,13 +3,18 @@ import { isAuthPath } from 'better-auth/svelte-kit';
 import type { Cookies, RequestEvent } from '@sveltejs/kit';
 import type { Auth } from './auth.ts';
 
+// Recopie dans la réponse de SvelteKit les cookies posés par Better Auth lors d'un appel de son API.
+export function recopierCookies(entetes: Headers, cookies: Pick<Cookies, 'set'>) {
+	for (const [nom, attributs] of parseSetCookieHeader(entetes.get('set-cookie') ?? '')) {
+		cookies.set(nom, attributs.value, { ...toCookieOptions(attributs), path: attributs.path ?? '/' });
+	}
+}
+
 // La session de la requête. Une fois par jour d'usage, Better Auth la prolonge de 90 jours et réécrit son cookie :
 // ce cookie est recopié dans la réponse de SvelteKit, sans quoi le navigateur garderait l'ancienne échéance.
 export async function lireSession(auth: Auth, requete: Request, cookies: Pick<Cookies, 'set'>) {
 	const { headers, response } = await auth.api.getSession({ headers: requete.headers, returnHeaders: true });
-	for (const [nom, attributs] of parseSetCookieHeader(headers.get('set-cookie') ?? '')) {
-		cookies.set(nom, attributs.value, { ...toCookieOptions(attributs), path: attributs.path ?? '/' });
-	}
+	recopierCookies(headers, cookies);
 	return response;
 }
 
