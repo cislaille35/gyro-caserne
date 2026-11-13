@@ -20,6 +20,14 @@
 		}, 1000);
 		return () => clearInterval(minuteur);
 	});
+
+	// Code refusé : le focus va au champ, et le lecteur d'écran lit l'erreur qui lui est liée.
+	$effect(() => {
+		if (form?.erreur) document.getElementById('code')?.focus();
+	});
+
+	// Un second appui pendant l'envoi trouverait le code déjà utilisé : le bouton attend la réponse.
+	let connexionEnCours = $state(false);
 </script>
 
 <svelte:head>
@@ -31,8 +39,9 @@
 	{#if data?.ecusson != null}<img class="ecusson" src="/ecusson?v={data.ecusson}" alt="Écusson de {centre.nom}" width="72" height="72" />{/if}
 	<h1>Connexion</h1>
 	{#if form?.envoye}
-		<form method="post" action="?/code" class="carte">
-			<div class="annonce" role="status">
+		<form method="post" action="?/code" class="carte" onsubmit={() => (connexionEnCours = true)}>
+			<!-- L'annonce seulement à l'envoi : après un code refusé, rien n'est reparti. -->
+			<div class="annonce" role={form.erreur ? undefined : 'status'}>
 				<p class="titre">Lien envoyé</p>
 				<p>
 					Si cette adresse est autorisée, un courriel vient de partir{#if form.email}{' '}vers <strong class="adresse">{form.email}</strong>{/if}. Ouvrez son lien, ou tapez ici son code à 6 chiffres. Pensez à regarder dans vos courriers indésirables.
@@ -41,7 +50,7 @@
 			<input type="hidden" name="email" value={form.email} />
 			<input type="hidden" name="envoyeLe" value={form.envoyeLe} />
 			<Champ id="code" name="code" libelle="Code reçu par courriel" inputmode="numeric" autocomplete="one-time-code" maxlength={7} requis erreur={form.erreur} />
-			<Bouton type="submit">Me connecter</Bouton>
+			<Bouton type="submit" desactive={connexionEnCours}>Me connecter</Bouton>
 		</form>
 		<form method="post" action="?/envoyer" class="renvoi">
 			<input type="hidden" name="email" value={form.email} />

@@ -62,7 +62,7 @@ describe('connexion : taper le code', () => {
 		await expect(essai(agir, dernierCode())).rejects.toMatchObject({ status: 303, location: '/' });
 		const [nom, , options] = cookies.set.mock.calls.find(([n]) => n === 'better-auth.session_token')!;
 		expect(nom).toBe('better-auth.session_token');
-		expect(options).toMatchObject({ path: '/', httpOnly: true, maxAge: 7_776_000 });
+		expect(options).toMatchObject({ path: '/', httpOnly: true, sameSite: 'lax', maxAge: 7_776_000 });
 	});
 
 	it('les espaces tapés dans le code sont ignorés', async () => {
@@ -72,11 +72,13 @@ describe('connexion : taper le code', () => {
 		await expect(essai(agir, `${code.slice(0, 3)} ${code.slice(3)}`)).rejects.toMatchObject({ status: 303 });
 	});
 
+	const REFUS = /^Ce code ne marche pas : il est faux, a expiré \(5 minutes\) ou a déjà eu 3 essais\./;
+
 	it('un code faux : un message clair, l’écran du code reste ouvert', async () => {
 		const { cookies, agir, dernierCode } = await jeu();
 		await agir('envoyer', { email: 'agent@exemple.fr' });
 		const reponse = await essai(agir, autreQue(dernierCode()));
-		expect(reponse).toMatchObject({ status: 400, data: { envoye: true, email: 'agent@exemple.fr', erreur: expect.stringMatching(/^Code incorrect/) } });
+		expect(reponse).toMatchObject({ status: 400, data: { envoye: true, email: 'agent@exemple.fr', erreur: expect.stringMatching(REFUS) } });
 		expect(cookies.set).not.toHaveBeenCalled();
 	});
 
@@ -89,19 +91,33 @@ describe('connexion : taper le code', () => {
 		await expect(essai(agir, dernierCode())).rejects.toMatchObject({ status: 303 });
 	});
 
-	it('un code expiré : le dire, et proposer de renvoyer l’e-mail', async () => {
+	it('un code expiré : le même message', async () => {
 		const { base, agir, dernierCode } = await jeu();
 		await agir('envoyer', { email: 'agent@exemple.fr' });
 		await base.update(verification).set({ expiresAt: new Date(Date.now() - 1000) });
-		expect(await essai(agir, dernierCode())).toMatchObject({ status: 400, data: { erreur: expect.stringMatching(/^Ce code a expiré/) } });
+		expect(await essai(agir, dernierCode())).toMatchObject({ status: 400, data: { erreur: expect.stringMatching(REFUS) } });
 	});
 
-	it('trop d’essais : le dire, et proposer de renvoyer l’e-mail', async () => {
+	it('trop d’essais : le même message, même pour le bon code', async () => {
 		const { agir, dernierCode } = await jeu();
 		await agir('envoyer', { email: 'agent@exemple.fr' });
 		const code = dernierCode();
 		for (let i = 0; i < 3; i++) await essai(agir, autreQue(code));
-		expect(await essai(agir, code)).toMatchObject({ status: 400, data: { erreur: expect.stringMatching(/^Trop d’essais/) } });
+		expect(await essai(agir, code)).toMatchObject({ status: 400, data: { erreur: expect.stringMatching(REFUS) } });
+	});
+
+	it('adresse connue ou non, les refus sont les mêmes : ils ne disent pas qu’un code existe', async () => {
+		const { agir, dernierCode } = await jeu();
+		const envoyeLe = String(Date.now());
+		const quatreEssais = async (email: string, code: string) => {
+			const reponses = [];
+			for (let i = 0; i < 4; i++) reponses.push(await agir('code', { email, code, envoyeLe }));
+			return reponses;
+		};
+		await agir('envoyer', { email: 'agent@exemple.fr' });
+		await agir('envoyer', { email: 'inconnu@exemple.fr' });
+		const faux = autreQue(dernierCode());
+		expect(await quatreEssais('agent@exemple.fr', faux)).toEqual(await quatreEssais('inconnu@exemple.fr', faux).then((r) => r.map((x) => ({ ...x, data: { ...x.data, email: 'agent@exemple.fr' } }))));
 	});
 
 	it('le délai avant un renvoi suit l’heure d’envoi, de 60 s à 0', async () => {

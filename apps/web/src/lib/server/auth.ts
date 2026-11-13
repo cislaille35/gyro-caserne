@@ -31,8 +31,10 @@ async function empreinteDuCode(secret: string, code: string): Promise<string> {
 	return btoa(String.fromCharCode(...empreinte)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Le plugin emailOTP ne sert qu'à se connecter par le code reçu avec le lien : ses autres routes sont fermées.
+// Le plugin emailOTP ne sert qu'à se connecter par le code reçu avec le lien, par l'action de la page de connexion :
+// toutes ses routes HTTP sont fermées (auth.api reste utilisable côté serveur).
 const ROUTES_DU_CODE_FERMEES = [
+	'/sign-in/email-otp',
 	'/email-otp/send-verification-otp',
 	'/email-otp/check-verification-otp',
 	'/email-otp/verify-email',

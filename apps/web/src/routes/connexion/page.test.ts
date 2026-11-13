@@ -36,10 +36,12 @@ describe('page de connexion', () => {
 		expect(page).toMatch(/tapez ici son code à 6 chiffres/);
 	});
 
-	it('une erreur sur le code : dite sous le champ, sans humour', () => {
-		const page = html(envoye({ erreur: 'Code incorrect. Vérifiez les 6 chiffres.' }));
-		expect(page).toMatch(/<input[^>]*name="code"[^>]*aria-invalid="true"/);
-		expect(page).toMatch(/class="erreur[^"]*"[^>]*>Code incorrect\. Vérifiez les 6 chiffres\./);
+	it('une erreur sur le code : dite sous le champ, sans humour, et l’envoi n’est plus annoncé', () => {
+		const page = html(envoye({ erreur: 'Ce code ne marche pas.' }));
+		expect(page).toMatch(/<input[^>]*name="code"[^>]*aria-invalid="true"[^>]*aria-describedby="code-erreur"/);
+		expect(page).toMatch(/id="code-erreur" class="erreur[^"]*"[^>]*>Ce code ne marche pas\./);
+		expect(page).not.toContain('role="status"');
+		expect(html(envoye())).toContain('role="status"');
 	});
 
 	it('« Renvoyer l’e-mail » : un formulaire vers l’envoi, en attente tant que la minute n’est pas passée', () => {

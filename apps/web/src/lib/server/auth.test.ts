@@ -397,16 +397,24 @@ describe('code à 6 chiffres, dans le même courriel que le lien', () => {
 		expect((await saisir(dernierCode())).user.email).toBe('agent@exemple.fr');
 	});
 
-	it('par la route HTTP : seule la connexion par code est ouverte, pas les autres usages du plugin', async () => {
+	it('par la route HTTP : aucune route du plugin n’est ouverte, le code ne passe que par la page de connexion', async () => {
 		const { auth, envoyer, taches } = await jeu();
 		const appeler = (chemin: string, corps: object) =>
 			auth.handler(new Request(`http://localhost/api/auth${chemin}`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'http://localhost' }, body: JSON.stringify(corps) }));
-		for (const chemin of ['/email-otp/send-verification-otp', '/email-otp/check-verification-otp', '/email-otp/verify-email', '/email-otp/request-password-reset', '/forget-password/email-otp', '/email-otp/reset-password', '/email-otp/request-email-change', '/email-otp/change-email']) {
+		for (const chemin of ['/sign-in/email-otp', '/email-otp/send-verification-otp', '/email-otp/check-verification-otp', '/email-otp/verify-email', '/email-otp/request-password-reset', '/forget-password/email-otp', '/email-otp/reset-password', '/email-otp/request-email-change', '/email-otp/change-email']) {
 			expect((await appeler(chemin, { email: 'agent@exemple.fr', type: 'sign-in', otp: '000000' })).status, chemin).toBe(404);
 		}
 		await Promise.all(taches);
 		expect(envoyer).not.toHaveBeenCalled();
-		expect((await appeler('/sign-in/email-otp', { email: 'agent@exemple.fr', otp: '000000' })).status).toBe(400);
+	});
+
+	it('pas de compte créé par le code pour une adresse qui n’est plus autorisée', async () => {
+		const { base, demander, dernierCode, saisir } = await jeu();
+		await demander('agent@exemple.fr');
+		// La fiche change d'adresse hors de l'appli : le code en attente désigne une adresse inconnue.
+		await base.update(personne).set({ email: 'nouvelle@exemple.fr' });
+		await expect(saisir(dernierCode())).rejects.toThrow();
+		expect(await base.select().from(user)).toHaveLength(0);
 	});
 
 	it('un agent suspendu : son code en attente est effacé', async () => {

@@ -11,12 +11,9 @@ function renvoiDans(envoyeLe: number): number {
 	return Math.max(0, Math.min(60, 60 - Math.floor((Date.now() - envoyeLe) / 1000)));
 }
 
-// Les refus de Better Auth, dits simplement.
-const ERREURS_DU_CODE: Record<string, string> = {
-	INVALID_OTP: 'Code incorrect. Vérifiez les 6 chiffres du dernier courriel reçu.',
-	OTP_EXPIRED: 'Ce code a expiré : il ne vaut que 5 minutes. Renvoyez l’e-mail pour en recevoir un nouveau.',
-	TOO_MANY_ATTEMPTS: 'Trop d’essais : ce code ne marche plus. Renvoyez l’e-mail pour en recevoir un nouveau.'
-};
+// Code faux, expiré ou trop d'essais : un seul message. Les distinguer dirait qu'un code existe, donc que l'adresse est autorisée.
+const CODE_REFUSE = 'Ce code ne marche pas : il est faux, a expiré (5 minutes) ou a déjà eu 3 essais. Vérifiez les 6 chiffres du dernier courriel, ou renvoyez-le.';
+const REFUS_DE_BETTER_AUTH = ['INVALID_OTP', 'OTP_EXPIRED', 'TOO_MANY_ATTEMPTS'];
 
 export const actions: Actions = {
 	envoyer: async ({ request, locals }) => {
@@ -43,9 +40,8 @@ export const actions: Actions = {
 			const { headers } = await locals.auth.api.signInEmailOTP({ body: { email, otp: code }, headers: request.headers, returnHeaders: true });
 			recopierCookies(headers, cookies);
 		} catch (erreur) {
-			const raison = (erreur as { body?: { code?: string } }).body?.code ?? '';
-			if (!ERREURS_DU_CODE[raison]) console.error('Connexion par code en échec', erreur);
-			return refus(ERREURS_DU_CODE[raison] ?? 'La connexion n’a pas abouti. Réessayez dans un instant.');
+			if (!REFUS_DE_BETTER_AUTH.includes((erreur as { body?: { code?: string } }).body?.code ?? '')) console.error('Connexion par code en échec', erreur);
+			return refus(CODE_REFUSE);
 		}
 		redirect(303, '/');
 	}
