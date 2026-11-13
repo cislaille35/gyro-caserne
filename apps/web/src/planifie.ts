@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -66,6 +66,8 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerAnciens(base, photos, avant),
 					effacerVieillesPublications(base, photos, publications),
 					effacerVieillesNotifications(base, notifications),
+					// Les souhaits d'anniversaire ne passent pas la journée (décision 0033).
+					effacerSouhaitsPasses(base, aujourdhuiParis(quand)),
 					effacerVieillesReservations(base, reservations),
 					effacerVieillesDemandes(base, habillement),
 					// Les adresses des super administrateurs (séparées par des virgules) : leur compte n'est jamais touché.

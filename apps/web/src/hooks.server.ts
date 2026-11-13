@@ -6,6 +6,7 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins } from '#lib/server/auth.ts';
 import { envoisDuGeste } from '#lib/server/envoi-push.ts';
+import { sessionDuHook } from '#lib/server/session.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
 import { formulaireEgare } from '#lib/server/resoumission.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
@@ -33,7 +34,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.clePublique = cles?.publique ?? null;
 
 	try {
-		const connexion = await auth.api.getSession({ headers: event.request.headers });
+		const connexion = await sessionDuHook(auth, event);
 		event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, event.locals.superAdmins) : null;
 		return await svelteKitHandler({ event, resolve: resoudre, auth, building });
 	} finally {

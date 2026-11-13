@@ -25,7 +25,7 @@ Diffuser l'information du centre et organiser les événements, avec **peu de mu
 En haut, deux onglets : **« Murs »** et **« Messages »** (la [messagerie](messagerie.md), avec le nombre de messages non lus). Les murs sont rangés en sections, dans un ordre fixe (voir la [spec du lot 2](../superpowers/specs/2026-10-29-echanges-chaleureux-design.md)) :
 
 1. **En-tête** : Gyro et le nombre de nouveautés depuis la dernière visite ; le bouton **« Écrire »** ouvre le formulaire de publication.
-2. **« Aujourd'hui au centre »** : les anniversaires du jour (« Souhaiter » prépare un message dans Vie du centre) et le prochain événement où la personne est convoquée sans avoir répondu.
+2. **« Aujourd'hui au centre »** : les anniversaires du jour, chacun avec **« Souhaiter »** (voir Anniversaires plus bas) et le prochain événement où la personne est convoquée sans avoir répondu.
 3. **« Le centre »** : une grande carte rouge « Officiel », avec les annonces à confirmer et la dernière publication.
 4. **« Mes groupes »** : mon équipe, Vie du centre, puis mes comités. Plus de deux comités sans nouveauté : ils sont repliés sous « Autres comités ».
 5. **« Supervision »**, repliée : les équipes et comités que le chef, l'adjoint ou le super administrateur voient sans en être membres.
@@ -76,7 +76,13 @@ Sous « Bonjour », une phrase compte ce qui attend un geste (« 2 publications 
 
 ## Anniversaires
 
-« Vie du centre » souhaite chaque jour l'anniversaire des agents dont la date de naissance est inscrite, **sans l'âge**. Chacun peut le couper dans « Mon profil » (« Afficher mon anniversaire », coché par défaut).
+« Vie du centre » souhaite chaque jour l'anniversaire des agents dont la date de naissance est inscrite, **sans l'âge**. Chacun peut le couper dans « Mon profil » (« Afficher mon anniversaire », coché par défaut), où il peut aussi inscrire sa date de naissance.
+
+**« Souhaiter »** (décision [0033](../decisions/0033-souhaiter-un-anniversaire.md)) : à côté de chaque anniversaire du jour (« Aujourd'hui au centre », et sous le bandeau de Vie du centre au téléphone). Un appui, rien à écrire : l'agent fêté reçoit dans sa cloche, et sur son téléphone si les notifications sont activées, « Paul Martin vous souhaite un joyeux anniversaire 🎂 ». Le bouton devient « Souhaité ». Une fois par collègue et par anniversaire ; rien pour son propre anniversaire, ni pour le super administrateur, qui n'a pas de fiche. Rien n'est publié sur le mur.
+
+L'agent fêté voit sur son accueil, toute la journée, qui le lui a souhaité : « Paul Martin et Marc Petit vous l'ont souhaité. » (trois noms, puis « et 4 autres collègues »). Les souhaits sont effacés la nuit suivante, quand l'agent masque son anniversaire ou change sa date dans « Mon profil », et au départ de l'un ou l'autre.
+
+Exemple : Zoé a 30 ans. Paul ouvre Échanges, voit « Zoé Bernard fête son anniversaire » et appuie sur « Souhaiter ». Le téléphone de Zoé vibre ; sur son accueil, « Paul Martin vous l'a souhaité. »
 
 ## Photos
 

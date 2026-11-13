@@ -13,6 +13,7 @@ Tout ce qui concerne l'agent, et seulement cela, jamais à l'auteur lui-même :
 - **un message** dans une de ses conversations (au téléphone seulement : les messages ont déjà leur pastille sur Échanges) ;
 - **une réservation** : une demande à trancher chez qui gère la ressource, l'accord, le refus ou l'annulation chez le demandeur (voir [Réservations](reservations.md)) ;
 - **un avis** de remplacement, de l'été ou d'anomalie (voir [Remplacements](remplacements-et-echanges.md), [Planning d'été](planning-d-ete.md), [Anomalies](anomalies.md)) ;
+- **un souhait d'anniversaire** d'un collègue, le jour de son anniversaire (voir [Murs](salons.md#anniversaires)) ; seul « tout » le coupe ;
 - **la vigilance rouge**, à tous les agents, quand le département y passe (voir [Météo et vigilance](meteo-et-vigilance.md)).
 
 Seul qui peut lire la publication ou la conversation **au moment de l'envoi** est prévenu.

@@ -49,7 +49,7 @@ describe('un mur', () => {
 		const jour = aujourdhuiParis().slice(5);
 		await base.update(personne).set({ naissance: `1990-${jour}` }).where(eq(personne.id, alice.id));
 		await base.update(personne).set({ naissance: `1985-${jour}`, anniversaireVisible: 0 }).where(eq(personne.id, bruno.id));
-		expect((await charger(locaux(base, bruno), 'vie')).anniversaires).toEqual([{ prenom: 'Alice', nom: 'Test' }]);
+		expect((await charger(locaux(base, bruno), 'vie')).anniversaires).toEqual([{ id: alice.id, prenom: 'Alice', nom: 'Test', geste: 'souhaiter' }]);
 		expect((await charger(locaux(base, bruno), 'centre')).anniversaires).toEqual([]);
 	});
 

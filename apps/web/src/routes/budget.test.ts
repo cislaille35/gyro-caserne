@@ -10,6 +10,7 @@ import { load as racine } from './+layout.server';
 import { actions as actionsAccueil, load as accueil } from './+page.server';
 import { actions as actionsNotifications, load as notifications } from './notifications/+page.server';
 import { load as echanges } from './echanges/+layout.server';
+import { actions as actionsEchanges } from './echanges/+page.server';
 import { load as messages } from './echanges/messages/+page.server';
 import { load as layoutMessages } from './echanges/messages/+layout.server';
 import { GET as pastille } from './echanges/messages/pastille/+server';
@@ -481,6 +482,21 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await (racine as any)({ depends: () => {}, locals });
 			const data = await (echanges as any)({ locals, url: new URL('http://localhost/echanges') });
 			expect(data.sections.centre.derniere).not.toBeNull();
+		});
+		expect(n).toBeLessThanOrEqual(BUDGET);
+	});
+
+	it('/echanges?/souhaiter : 30 anniversaires du jour, un souhait puis la liste rechargée', async () => {
+		const { base, locals, compter } = await centreDe150();
+		const fetes = (await base.select({ id: personne.id }).from(personne)).slice(1, 31).map((p) => p.id);
+		for (const id of fetes) await base.update(personne).set({ naissance: `1990-${aujourdhuiParis().slice(5)}` }).where(eq(personne.id, id));
+		const request = new Request('http://localhost/echanges?/souhaiter', { method: 'POST', body: new URLSearchParams({ id: String(fetes[0]), retour: '/echanges' }) });
+		const n = await compter(async () => {
+			await expect((actionsEchanges.souhaiter as any)({ locals, request })).rejects.toMatchObject({ status: 303 });
+			await (racine as any)({ depends: () => {}, locals });
+			const data = await (echanges as any)({ locals, url: new URL('http://localhost/echanges') });
+			expect(data.aujourdhui.anniversaires).toHaveLength(30);
+			expect(data.aujourdhui.anniversaires.find((a: { id: number }) => a.id === fetes[0]).geste).toBe('souhaite');
 		});
 		expect(n).toBeLessThanOrEqual(BUDGET);
 	});

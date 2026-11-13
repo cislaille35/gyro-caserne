@@ -2,7 +2,7 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
 
-const profil = { surnom: null, telephone: null, telephoneVisible: false, contactUrgence: null, anniversaireVisible: true, cochesLecture: true };
+const profil = { surnom: null, telephone: null, telephoneVisible: false, contactUrgence: null, naissance: '1990-05-17', anniversaireVisible: true, cochesLecture: true };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const html = (data: Record<string, unknown>) => render(Page as any, { props: { data: { profil, messagerie: true, ...data }, form: null } }).body;
 
@@ -14,6 +14,15 @@ describe('page Mon profil', () => {
 		expect(page).toMatch(/id="aide-coches"[^>]*>[^<]*vous ne voyez plus non plus celles des autres/);
 		expect(page).toContain('<input type="hidden" name="avecCoches" value="1"');
 		expect(html({ profil: { ...profil, cochesLecture: false } })).not.toMatch(/name="cochesLecture"[^>]*checked/);
+	});
+
+	it('date de naissance : champ date, facultatif, qui dit qui la voit', () => {
+		const page = html({});
+		expect(page).toMatch(/<input[^>]*id="naissance"[^>]*>/);
+		expect(page).toMatch(/<input[^>]*type="date"[^>]*name="naissance"|<input[^>]*name="naissance"[^>]*type="date"/);
+		expect(page).toContain('value="1990-05-17"');
+		expect(page).not.toMatch(/name="naissance"[^>]*required/);
+		expect(page).toContain('Vue du chef de centre et de son adjoint seulement. Votre âge n’est jamais montré.');
 	});
 
 	it('sans messagerie : ni case ni repère', () => {

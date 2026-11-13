@@ -12,7 +12,7 @@ import { texteDemande } from './remplacements/tranches.ts';
 import { aValiderPar } from './remplacements/compte.ts';
 import { TITRES_AVIS } from './remplacements/titres.ts';
 import type { AvisEte, AvisRemplacement } from './listes.ts';
-import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource } from './schema.ts';
+import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -22,7 +22,9 @@ const FIL_MAX = 50;
 
 // `lue` : la ligne de la cloche que la notification touchée marque lue (voir mettreEnFile) ; absente pour un message ou une vigilance.
 export type DonneesPush = { titre: string; texte: string; url: string; tag: string; lue?: { genre: string; id: number | null } };
-export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie | LigneHabillement;
+export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie | LigneHabillement | LigneAnniversaire;
+// Un collègue souhaite son anniversaire à la personne (décision 0033).
+export type LigneAnniversaire = { id: number; type: 'anniversaire'; auteur: { prenom: string; nom: string; couleur: string | null }; creeLe: string; lue: boolean };
 export type LigneAnomalie = { id: number; type: 'anomalie'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export type LigneHabillement = Omit<LigneAnomalie, 'type'> & { type: 'habillement' };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
@@ -75,7 +77,7 @@ const moiDe = (acteur: Acteur) => {
 };
 
 // Les tables des lignes de la cloche, par genre.
-const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie, habillement: avisHabillement };
+const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie, habillement: avisHabillement, anniversaire: souhaitAnniversaire };
 
 // Écritures : le fil, puis un envoi par appareil des destinataires qui n'ont coupé ni tout, ni ce lieu.
 function ecrireFil(base: Base, ids: number[], publicationId: number, commentaireId: number | null, maintenant: string) {
@@ -98,7 +100,7 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 // `si` : une condition de plus, vérifiée au moment de l'écriture. `ligne` : le genre de la ligne de cloche écrite juste avant
 // dans le même batch, quand la page d'arrivée ne la marque pas lue (avis d'été), ou pour plus de sûreté (anomalies, habillement) ; chaque envoi porte celle de sa
 // personne (sa plus récente), pour que la toucher la marque lue. Les autres pages marquent déjà lu ce qu'elles montrent.
-export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: 'ete' | 'anomalie' | 'habillement') {
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: 'ete' | 'anomalie' | 'habillement' | 'anniversaire') {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
@@ -219,7 +221,7 @@ export async function notifierMessage(base: Base, id: number, maintenant: string
 
 // Les non-lues de `qui` (un identifiant, ou la colonne d'une requête) : publications et commentaires, et les avis.
 const nonLuesSql = (qui: number | SQL) =>
-	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null)`;
+	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null) + (select count(*) from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${qui} and ${souhaitAnniversaire.lueLe} is null)`;
 
 // Le chiffre de la cloche d'une personne (la colonne d'une requête), comme l'en-tête des pages le compose (+layout.server.ts) :
 // non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher.
@@ -257,6 +259,14 @@ const avisRemplacementsDe = (base: Base, moi: number) =>
 const avisEteDe = (base: Base, moi: number) => base.select().from(avisEte).where(eq(avisEte.personneId, moi)).orderBy(desc(avisEte.id)).limit(FIL_MAX);
 const avisAnomaliesDe = (base: Base, moi: number) => base.select().from(avisAnomalie).where(eq(avisAnomalie.personneId, moi)).orderBy(desc(avisAnomalie.id)).limit(FIL_MAX);
 const avisHabillementDe = (base: Base, moi: number) => base.select().from(avisHabillement).where(eq(avisHabillement.personneId, moi)).orderBy(desc(avisHabillement.id)).limit(FIL_MAX);
+const souhaitsDe = (base: Base, moi: number, aujourdhui: string) =>
+	base
+		.select({ id: souhaitAnniversaire.id, creeLe: souhaitAnniversaire.creeLe, lueLe: souhaitAnniversaire.lueLe, prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
+		.from(souhaitAnniversaire)
+		.innerJoin(personne, eq(personne.id, souhaitAnniversaire.auteurId))
+		.where(eq(souhaitAnniversaire.personneId, moi))
+		.orderBy(desc(souhaitAnniversaire.id))
+		.limit(FIL_MAX);
 
 // Écriture à placer dans le batch des écrans Remplacements : les avis sont vus.
 export const marquerAvisRemplacementLus = (base: Base, moi: number, maintenant: string) => base.update(avisRemplacement).set({ lueLe: maintenant }).where(and(eq(avisRemplacement.personneId, moi), isNull(avisRemplacement.lueLe)));
@@ -271,7 +281,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	const moi = acteur.id;
 	const auteur = sql<string>`coalesce(${commentaire.auteur}, ${publication.auteur})`;
 	const lesAuteurs = base.select({ auteur }).from(notification).innerJoin(publication, eq(publication.id, notification.publicationId)).leftJoin(commentaire, eq(commentaire.id, notification.commentaireId)).where(eq(notification.personneId, moi));
-	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete, anomalies, habillement] = await base.batch([
+	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete, anomalies, habillement, souhaits] = await base.batch([
 		base
 			.select({
 				id: notification.id,
@@ -299,10 +309,12 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 		avisRemplacementsDe(base, moi),
 		avisEteDe(base, moi),
 		avisAnomaliesDe(base, moi),
-		avisHabillementDe(base, moi)
+		avisHabillementDe(base, moi),
+		souhaitsDe(base, moi, aujourdhui)
 	]);
 	const dAnomalies: LigneFil[] = anomalies.map((a) => ({ id: a.id, type: 'anomalie', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dHabillement: LigneFil[] = habillement.map((a) => ({ id: a.id, type: 'habillement', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
+	const dAnniversaire: LigneFil[] = souhaits.map((a) => ({ id: a.id, type: 'anniversaire', auteur: { prenom: a.prenom, nom: a.nom, couleur: a.couleur }, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dEte: LigneFil[] = ete.map((a) => ({ id: a.id, type: 'ete', quoi: a.quoi, titre: TITRES_ETE[a.quoi], texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const deRemplacements: LigneFil[] = remplacements.map((a) => ({
 		id: a.id,
@@ -318,7 +330,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	return {
 		nonLues: compte?.n ?? 0,
 		remplacementsAValider: compte?.aValider ?? 0,
-		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies, ...dHabillement].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
+		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies, ...dHabillement, ...dAnniversaire].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
 	};
 }
 
@@ -364,7 +376,7 @@ export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, m
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return;
-	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe))), base.update(avisHabillement).set({ lueLe: maintenant }).where(and(eq(avisHabillement.personneId, acteur.id), isNull(avisHabillement.lueLe)))]);
+	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe))), base.update(avisHabillement).set({ lueLe: maintenant }).where(and(eq(avisHabillement.personneId, acteur.id), isNull(avisHabillement.lueLe))), base.update(souhaitAnniversaire).set({ lueLe: maintenant }).where(and(eq(souhaitAnniversaire.personneId, acteur.id), isNull(souhaitAnniversaire.lueLe)))]);
 }
 
 // Ouvrir une ligne de la cloche la marque lue, quelle que soit la page où elle mène. Une requête ; seulement les siennes.
@@ -500,6 +512,12 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 	await base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, acteur.id), eq(abonnementPush.endpoint, endpoint)));
 }
 
+// « Me déconnecter de tous mes appareils » : aucun ne reçoit plus ses notifications (envois en file compris, en cascade).
+export async function desabonnerPartout(base: Base, acteur: Acteur): Promise<void> {
+	if (acteur.type !== 'personne') return;
+	await base.delete(abonnementPush).where(eq(abonnementPush.personneId, acteur.id));
+}
+
 // `essais` : 1 au premier envoi, plus après une coupure. `pastille` : le chiffre de la cloche de la personne et ses messages non lus, au moment du lot.
 export type Envoi = { id: number; abonnementId: number; personneId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush; pastille: number };
 
@@ -561,4 +579,4 @@ export async function effacerVieillesNotifications(base: Base, avant: string): P
 
 // Au départ d'une personne : ses appareils, son fil et ses coupures. Écritures à placer dans un batch.
 export const effacerNotificationsDe = (base: Base, personneId: number) =>
-	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(avisAnomalie).where(eq(avisAnomalie.personneId, personneId)), base.delete(avisHabillement).where(eq(avisHabillement.personneId, personneId)), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;
+	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(avisAnomalie).where(eq(avisAnomalie.personneId, personneId)), base.delete(avisHabillement).where(eq(avisHabillement.personneId, personneId)), base.delete(souhaitAnniversaire).where(or(eq(souhaitAnniversaire.personneId, personneId), eq(souhaitAnniversaire.auteurId, personneId))), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;

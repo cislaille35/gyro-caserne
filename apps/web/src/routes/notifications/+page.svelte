@@ -185,6 +185,15 @@
 							</span>
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
+					{:else if l.type === 'anniversaire'}
+						<a class="ligne" class:non-lue={!l.lue} href={lien(l, '/')}>
+							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							<span class="corps">
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{`${nom(l.auteur)} vous souhaite un joyeux anniversaire 🎂`}</span>
+								<span class="moment">{moment(l)}</span>
+							</span>
+							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
+						</a>
 					{:else}
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/echanges/${l.cle}/${l.publicationId}`)}>
 							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />

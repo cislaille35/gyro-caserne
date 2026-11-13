@@ -679,9 +679,9 @@ describe('mon profil', () => {
 
 	it('lit et écrit ses propres champs', async () => {
 		const { base, id, moi } = await avecAgent();
-		expect(await monProfil(base, moi)).toEqual({ surnom: null, telephone: null, telephoneVisible: false, contactUrgence: null, anniversaireVisible: true, cochesLecture: true });
+		expect(await monProfil(base, moi)).toEqual({ surnom: null, telephone: null, telephoneVisible: false, contactUrgence: null, naissance: null, anniversaireVisible: true, cochesLecture: true });
 		await modifierMonProfil(base, moi, { surnom: 'Bru', telephone: '0600000000', telephoneVisible: true, contactUrgence: 'Alice 0611111111', anniversaireVisible: false, cochesLecture: false }, aujourdhui);
-		expect(await monProfil(base, moi)).toEqual({ surnom: 'Bru', telephone: '0600000000', telephoneVisible: true, contactUrgence: 'Alice 0611111111', anniversaireVisible: false, cochesLecture: false });
+		expect(await monProfil(base, moi)).toEqual({ surnom: 'Bru', telephone: '0600000000', telephoneVisible: true, contactUrgence: 'Alice 0611111111', naissance: null, anniversaireVisible: false, cochesLecture: false });
 		const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
 		expect(fiche).toMatchObject({ telephoneVisible: 1, anniversaireVisible: 0, cochesLecture: 0 });
 	});
@@ -699,6 +699,22 @@ describe('mon profil', () => {
 		await expect(modifierMonProfil(base, moi, { surnom: 5 as unknown as string }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(modifierMonProfil(base, moi, { telephoneVisible: 'oui' as unknown as boolean }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(modifierMonProfil(base, moi, { cochesLecture: 0 as unknown as boolean }, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
+	});
+
+	it('sa date de naissance : une date plausible, vidable', async () => {
+		const { base, id, moi } = await avecAgent();
+		await modifierMonProfil(base, moi, { naissance: '1990-05-17' }, aujourdhui);
+		expect(await monProfil(base, moi)).toMatchObject({ naissance: '1990-05-17' });
+		for (const naissance of ['1990-02-30', '1990-13-45', '17/05/1990', '1899-12-31', '2099-01-01'])
+			await expect(modifierMonProfil(base, moi, { naissance }, aujourdhui)).rejects.toThrow('Date de naissance invalide');
+		await expect(modifierMonProfil(base, moi, { naissance: 5 as unknown as string }, aujourdhui)).rejects.toThrow('Date de naissance invalide');
+		await modifierMonProfil(base, moi, { naissance: '' }, aujourdhui);
+		const [fiche] = await base.select().from(personne).where(eq(personne.id, id));
+		expect(fiche!.naissance).toBeNull();
+		// Le journal ne garde que le nom du champ.
+		const lignes = await base.select().from(journal).where(eq(journal.action, 'modifier_mon_profil'));
+		expect(lignes.map((l) => JSON.parse(l.details!))).toEqual([{ champs: ['naissance'] }, { champs: ['naissance'] }]);
+		expect(JSON.stringify(lignes)).not.toContain('1990');
 	});
 
 	it('refuse le super administrateur', async () => {

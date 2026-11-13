@@ -32,7 +32,7 @@ const sections = {
 	autres: [tuile('comite:1', 'Comité A', 'comite', { icone: 'groupe' }), tuile('comite:2', 'Comité B', 'comite', { icone: 'groupe' }), tuile('comite:3', 'Comité C', 'comite', { icone: 'groupe' })],
 	supervision: [tuile('equipe:2', 'Équipe 2', 'equipe', { membre: false, couleur: '#1565c0', numero: 2 })]
 };
-const aujourdhui = { anniversaires: [{ prenom: 'Thomas', nom: 'Aubry' }], evenement: { id: 7, cle: 'centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00' } };
+const aujourdhui = { anniversaires: [{ id: 12, prenom: 'Thomas', nom: 'Aubry', geste: 'souhaiter' }], evenement: { id: 7, cle: 'centre', titre: 'Manœuvre désincarcération', debut: '2026-11-05T19:00' } };
 const contenu = createRawSnippet(() => ({ render: () => '<h1>Vie du centre</h1>' }));
 
 const aVenir = [
@@ -84,7 +84,9 @@ describe('liste des murs', () => {
 		etat.page.params = {};
 		const page = html();
 		expect(texte(page)).toContain('Thomas Aubry fête son anniversaire');
-		expect(page).toContain('href="/echanges/publier?mur=vie&amp;texte=Joyeux%20anniversaire%20Thomas%20!"');
+		// Un appui, sans texte à saisir : le formulaire de l'action, qui revient sur la page.
+		expect(page).toMatch(/<form method="POST" action="\/echanges\?\/souhaiter"[^>]*>\s*<input type="hidden" name="id" value="12"\/?>\s*<input type="hidden" name="retour" value="\/echanges"\/?>[\s\S]*?<button type="submit" class="secondaire[^"]*"[^>]*>[\s\S]*?Souhaiter<span class="masque">[^<]*à Thomas Aubry<\/span>/);
+		expect(page).not.toContain('/echanges/publier?mur=vie');
 		expect(page).toContain('href="/echanges/centre/7"');
 		expect(texte(page)).toContain('vous n’avez pas répondu');
 	});
@@ -130,9 +132,21 @@ describe('liste des murs', () => {
 
 	it('deux anniversaires d’homonymes : deux lignes, deux liens « Souhaiter »', () => {
 		etat.page.params = {};
-		const page = html({ aujourdhui: { anniversaires: [{ prenom: 'Thomas', nom: 'Agent' }, { prenom: 'Thomas', nom: 'Agent' }], evenement: null } });
+		const page = html({ aujourdhui: { anniversaires: [{ id: 1, prenom: 'Thomas', nom: 'Agent', geste: 'souhaiter' }, { id: 2, prenom: 'Thomas', nom: 'Agent', geste: 'souhaiter' }], evenement: null } });
 		expect(texte(page).match(/Thomas Agent fête son anniversaire/g)).toHaveLength(2);
-		expect(page.match(/texte=Joyeux%20anniversaire%20Thomas%20!/g)).toHaveLength(2);
+		expect(page).toContain('name="id" value="1"');
+		expect(page).toContain('name="id" value="2"');
+	});
+
+	it('déjà souhaité : « Souhaité », sans bouton ; son propre anniversaire : ni l’un ni l’autre', () => {
+		etat.page.params = {};
+		const deja = html({ aujourdhui: { anniversaires: [{ id: 12, prenom: 'Thomas', nom: 'Aubry', geste: 'souhaite' }], evenement: null } });
+		expect(texte(deja)).toContain('Thomas Aubry fête son anniversaire Souhaité');
+		expect(deja).not.toContain('?/souhaiter');
+		const soi = html({ aujourdhui: { anniversaires: [{ id: 12, prenom: 'Thomas', nom: 'Aubry', geste: null }], evenement: null } });
+		expect(texte(soi)).toContain('Thomas Aubry fête son anniversaire');
+		expect(soi).not.toContain('?/souhaiter');
+		expect(texte(soi)).not.toContain('Souhaité');
 		// Une clé tirée du nom ferait planter la page dans le navigateur (each_key_duplicate) : la boucle est indexée.
 		const liste = compile(readFileSync(new URL('./+layout.svelte', import.meta.url), 'utf8'), { generate: 'client' }).js.code;
 		expect(liste).not.toMatch(/a\.prenom\} \$\{a\.nom/);
@@ -176,11 +190,14 @@ describe('liste des murs', () => {
 
 	it('sur un mur : la colonne Aujourd’hui après le mur, anniversaires et 3 prochains événements', () => {
 		etat.page.params = { mur: 'vie' };
+		etat.page.url = new URL('http://x/echanges/vie');
 		const page = html();
+		etat.page.url = new URL('http://x/echanges');
 		const colonne = page.slice(page.indexOf('<aside'));
 		expect(page.indexOf('<aside')).toBeGreaterThan(page.indexOf('<h1'));
 		expect(colonne).toMatch(/<aside[^>]*aria-label="Aujourd’hui"/);
-		expect(texte(colonne)).toContain('Aujourd’hui au centre TA Thomas Aubry fête son anniversaire Souhaiter à Thomas');
+		expect(texte(colonne)).toContain('Aujourd’hui au centre TA Thomas Aubry fête son anniversaire Souhaiter à Thomas Aubry');
+		expect(colonne).toContain('name="retour" value="/echanges/vie"');
 		expect(texte(colonne)).toContain('À venir');
 		expect(colonne).toContain('href="/echanges/centre/7"');
 		expect(texte(colonne)).toContain('Jeu. 5 nov., 19 h Manœuvre désincarcération');

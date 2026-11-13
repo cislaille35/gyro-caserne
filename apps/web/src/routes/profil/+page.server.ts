@@ -29,6 +29,8 @@ export const actions: Actions = {
 			surnom: texte('surnom'),
 			telephone: texte('telephone'),
 			contactUrgence: texte('contactUrgence'),
+			// Absente d'un formulaire ancien (page ouverte avant la mise à jour) : la date ne bouge pas.
+			...(formulaire.has('naissance') ? { naissance: texte('naissance') } : {}),
 			telephoneVisible: formulaire.has('telephoneVisible'),
 			anniversaireVisible: formulaire.has('anniversaireVisible'),
 			// La case n'est dans le formulaire (avec son repère) que pour qui a la messagerie.
@@ -37,7 +39,7 @@ export const actions: Actions = {
 		try {
 			await modifierMonProfil(locals.base, locals.acteur, champs, aujourdhuiParis());
 		} catch (erreur) {
-			return echec(erreur, { valeurs: { surnom: champs.surnom, telephone: champs.telephone, contactUrgence: champs.contactUrgence } });
+			return echec(erreur, { valeurs: { surnom: champs.surnom, telephone: champs.telephone, contactUrgence: champs.contactUrgence, naissance: champs.naissance ?? '' } });
 		}
 		return { succes: true, message: 'Profil enregistré' };
 	}

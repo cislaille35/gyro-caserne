@@ -165,11 +165,15 @@ describe('page d’un mur', () => {
 	});
 
 	it('anniversaires du jour en tête, sans l’âge ; rien s’il n’y en a pas', () => {
-		const vie = html({ anniversaires: [{ prenom: 'Alice', nom: 'Martin' }, { prenom: 'Bruno', nom: 'Petit' }, { prenom: 'Chloé', nom: 'Roux' }], epinglees: [pub({ epinglee: true })] });
+		const vie = html({ anniversaires: [{ id: 1, prenom: 'Alice', nom: 'Martin', geste: 'souhaiter' }, { id: 2, prenom: 'Bruno', nom: 'Petit', geste: 'souhaite' }, { id: 3, prenom: 'Chloé', nom: 'Roux', geste: null }], epinglees: [pub({ epinglee: true })] });
 		expect(vie).toContain('Bon anniversaire à Alice Martin, Bruno Petit et Chloé Roux !');
 		expect(vie.indexOf('Bon anniversaire')).toBeLessThan(vie.indexOf('Épinglées'));
 		expect(vie.indexOf('<h1')).toBeLessThan(vie.indexOf('Bon anniversaire'));
-		expect(html({ anniversaires: [{ prenom: 'Alice', nom: 'Martin' }] })).toContain('Bon anniversaire à Alice Martin !');
+		// Sous le bandeau, un geste par collègue : « Souhaiter », « Souhaité », rien pour soi-même.
+		expect(vie).toMatch(/Alice Martin<\/span>[\s\S]*?action="\/echanges\?\/souhaiter"[\s\S]*?name="id" value="1"/);
+		expect(vie).toMatch(/Bruno Petit<\/span>[\s\S]*?Souhaité/);
+		expect(vie).not.toMatch(/Chloé Roux<\/span>/);
+		expect(html({ anniversaires: [{ id: 1, prenom: 'Alice', nom: 'Martin', geste: null }] })).toContain('Bon anniversaire à Alice Martin !');
 		expect(html()).not.toContain('anniversaire');
 	});
 

@@ -22,8 +22,9 @@
 	<div class="pile">
 		<Carte titre="Ce qui est gardé">
 			<ul>
-				<li>Saisi par le centre : nom, prénom, adresse e-mail, date de naissance, équipe, grade et ses dates, statut, entrée au centre, aptitudes, rôles et comités.</li>
+				<li>Saisi par le centre : nom, prénom, adresse e-mail, équipe, grade et ses dates, statut, entrée au centre, aptitudes, rôles et comités.</li>
 				<li>Saisi par vous, si vous le voulez : téléphone, surnom, contact d’urgence.</li>
+				<li>Saisi par vous ou par le centre : date de naissance.</li>
 				<li>Ce que vous faites dans l’appli : disponibilités, remplacements, messages, publications, prises de garde, réservations, demandes de tenue.</li>
 			</ul>
 			<p class="doux">Pas de mot de passe : vous vous connectez par un lien reçu par e-mail.</p>
@@ -57,9 +58,9 @@
 
 		<Carte titre="Corriger ou effacer">
 			{#if connecte}
-				<p>Votre téléphone, votre surnom et votre contact d’urgence se corrigent dans <a href="/profil">Mon profil</a>.</p>
+				<p>Votre téléphone, votre surnom, votre date de naissance et votre contact d’urgence se corrigent dans <a href="/profil">Mon profil</a>.</p>
 			{:else}
-				<p>Votre téléphone, votre surnom et votre contact d’urgence se corrigent dans « Mon profil », une fois connecté.</p>
+				<p>Votre téléphone, votre surnom, votre date de naissance et votre contact d’urgence se corrigent dans « Mon profil », une fois connecté.</p>
 			{/if}
 			<p>Pour le reste, ou pour que vos données soient effacées sans attendre, demandez au chef de centre. Un effacement disparaît aussi des copies de sécurité au plus tard 3 mois après.</p>
 		</Carte>

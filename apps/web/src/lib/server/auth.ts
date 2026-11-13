@@ -51,6 +51,8 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 		// Fixée, pour que le lien envoyé pointe toujours vers l'appli, quelle que soit la requête.
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: { backgroundTasks: { handler: enArrierePlan } },
+		// 90 jours sans ouvrir l'appli avant d'être déconnecté ; chaque jour d'usage repousse l'échéance (décision 0032).
+		session: { expiresIn: 90 * 86_400, updateAge: 86_400 },
 		plugins: [
 			magicLink({
 				disableSignUp: false,

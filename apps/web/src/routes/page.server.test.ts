@@ -40,7 +40,7 @@ describe('load de /', () => {
 			choisie: 'astreinte',
 			contenu: { type: 'astreinte' },
 			aNePasManquer: { annonces: [], evenements: [], sondages: [], epinglees: [], nouveautes: [], remplacements: [] },
-			anniversaire: false,
+			anniversaire: null,
 			aujourdhui: aujourdhuiParis(),
 			astreinte: null,
 			priseOuverte: false,
@@ -96,7 +96,7 @@ describe('load de /', () => {
 	it('dit si c’est l’anniversaire de l’agent, pour la fête du jour', async () => {
 		const { base, alice } = await jeu();
 		await base.update(personne).set({ naissance: `1990${aujourdhuiParis().slice(4)}` }).where(eq(personne.id, alice.id));
-		expect(await appeler({ acteur: alice, base })).toMatchObject({ anniversaire: true, aujourdhui: aujourdhuiParis() });
+		expect(await appeler({ acteur: alice, base })).toMatchObject({ anniversaire: { souhaitePar: [] }, aujourdhui: aujourdhuiParis() });
 	});
 
 	it('super administrateur : pas de prénom, « Le centre »', async () => {

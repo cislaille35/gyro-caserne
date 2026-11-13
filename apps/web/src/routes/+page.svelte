@@ -4,6 +4,7 @@
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
+	import { phraseSouhaits } from '#lib/anniversaire.ts';
 	import TirerPourActualiser from '#lib/animations/TirerPourActualiser.svelte';
 	import GyroAccueil from '#lib/gyro/GyroAccueil.svelte';
 	import Installer from '#lib/ui/Installer.svelte';
@@ -133,6 +134,12 @@
 
 	<div class="colonnes" class:seule>
 		<div class="colonne">
+			<!-- Le jour de son anniversaire : les collègues qui le lui ont souhaité (Échanges, « Souhaiter »). -->
+			{#if data.anniversaire?.souhaitePar.length}
+				<ListeRangees titre="Joyeux anniversaire !">
+					<li><Rangee titre={phraseSouhaits(data.anniversaire.souhaitePar)} /></li>
+				</ListeRangees>
+			{/if}
 			{#if enTete.length > 0}{@render decider(enTete)}{/if}
 			<ANePasManquer a={data.aNePasManquer} casquette={data.choisie} {form} />
 		</div>
@@ -193,7 +200,7 @@
 		{/if}
 	</div>
 </div>
-<Celebration moment={momentAnniversaire(data.anniversaire === true, data.aujourdhui)} qui={data.qui} />
+<Celebration moment={momentAnniversaire(data.anniversaire !== null && data.anniversaire !== undefined, data.aujourdhui)} qui={data.qui} />
 
 <style>
 	.page {

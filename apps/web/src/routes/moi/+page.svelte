@@ -8,8 +8,9 @@
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
+	import Bouton from '#lib/ui/Bouton.svelte';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	const id = $derived(data.identite);
 	// En partant, ni les brouillons ni les notifications de ce compte ne restent sur l'appareil (il peut être partagé).
@@ -22,6 +23,10 @@
 		await oublierCetAppareil().catch(() => {});
 		partir = true;
 		formulaire.requestSubmit();
+	}
+	// Sans « Je confirme », le serveur refuse : rien n'est oublié ici.
+	function deconnecterPartout(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		if (e.currentTarget.querySelector<HTMLInputElement>('[name=confirmation]')?.checked) return deconnecter(e);
 	}
 
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
@@ -77,6 +82,17 @@
 			><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.sortir} /></svg>Se déconnecter</button
 		>
 	</form>
+
+	<!-- Un téléphone perdu, prêté ou partagé : tous les appareils se déconnectent d'un coup. -->
+	<details class="plus" open={form?.message ? true : undefined}>
+		<summary>Plus</summary>
+		<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={deconnecterPartout}>
+			<p>Chaque téléphone et ordinateur devra redemander un lien de connexion, et ne recevra plus vos notifications d’ici là.</p>
+			{#if form?.message}<p class="erreur" role="alert">{form.message}</p>{/if}
+			<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
+			<Bouton type="submit" variante="grave">Me déconnecter de tous mes appareils</Bouton>
+		</form>
+	</details>
 </div>
 
 <style>
@@ -126,6 +142,31 @@
 		display: flex;
 		justify-content: center;
 		margin-top: var(--espace-8);
+	}
+	.plus {
+		align-self: center;
+	}
+	.partout {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--espace-12);
+		margin-top: 0;
+		padding: var(--espace-16);
+		border-radius: var(--rayon-grand);
+		background: var(--surface);
+	}
+	.partout p {
+		margin: 0;
+	}
+	.case {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-12);
+		min-height: var(--cible);
+	}
+	.erreur {
+		color: var(--statut-danger-texte);
+		font-weight: 600;
 	}
 	.sortir {
 		min-height: var(--cible);

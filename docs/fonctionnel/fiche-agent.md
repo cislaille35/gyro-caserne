@@ -21,7 +21,7 @@ Ici, les **gestionnaires** sont ceux qui ont le droit `GERER_ACCES` sur le centr
 
 ## Ce que la fiche permet
 
-- **Anniversaires** : un mot sur l'accueil le jour J. L'agent peut le désactiver.
+- **Anniversaires** : le jour J, l'agent est fêté sur l'accueil et ses collègues peuvent le lui souhaiter (Échanges). L'agent peut le désactiver.
 - **Ancienneté** : un rappel des médailles d'honneur à 10, 20, 25 et 30 ans de service, pour préparer les dossiers à temps.
 - **Fin d'engagement** : l'engagement SPV dure 5 ans et se renouvelle. L'agent et le chef de centre sont prévenus avant l'échéance.
 - **Aptitudes et aptitude médicale** : un rappel avant expiration. Voir [Composition des gardes](composition-des-gardes.md).
@@ -49,7 +49,7 @@ Changer l'e-mail d'un agent ferme ses sessions et ses liens de connexion en atte
 
 Au départ, l'agent quitte aussi son équipe et ses groupes de messagerie ; ses réservations à venir et ses demandes de remplacement en cours sont annulées (son remplaçant ou le titulaire est prévenu) ; ses appareils de notification et son lien d'agenda sont retirés.
 
-« Mon profil » (sous « Moi »), pour chaque agent : surnom, téléphone (« Montrer mon téléphone au centre »), contact d'urgence, « Afficher mon anniversaire » et, si la messagerie est ouverte, « Montrer quand j'ai lu les messages ». Le super administrateur, sans fiche, n'a pas « Mon profil » dans « Moi ».
+« Mon profil » (sous « Moi »), pour chaque agent : surnom, téléphone (« Montrer mon téléphone au centre »), contact d'urgence, date de naissance (facultative, entre 1900 et aujourd'hui, vidable), « Afficher mon anniversaire » et, si la messagerie est ouverte, « Montrer quand j'ai lu les messages ». Le super administrateur, sans fiche, n'a pas « Mon profil » dans « Moi ».
 
 Bloc « Rôles » : rôles en cours, à venir et passés (repliés) de l'agent, avec période et auteur. « Attribuer » propose les seuls rôles que vous avez le droit de donner (la première équipe proposée est celle de l'agent), avec une date de début et une fin facultative. « Terminer » (case « Je confirme ») retire le rôle aujourd'hui, ou annule un rôle à venir. « Changer la date de fin » avance la fin d'un rôle en cours ou à venir (on ne peut pas la repousser). Une personne partie n'a plus de rôle, et on ne la nomme pas. Nommer deux fois la même personne au même rôle sur des périodes qui se chevauchent est refusé. Les mêmes nominations se font aussi depuis la page « Nominations » (voir [Accès et attributions](acces-et-attributions.md)).
 
