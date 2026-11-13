@@ -32,13 +32,14 @@ describe('/donnees', () => {
 		expect(page).toContain('Votre anniversaire, sauf si vous l’avez masqué');
 		expect(page).toContain('Le chef de centre, son adjoint et le responsable de l’appli : votre fiche entière');
 		expect(page).toContain('s’il est signalé, la personne chargée de la modération');
-		expect(page).toMatch(/Saisi par le centre :[^<]*date de naissance/);
+		expect(page).toContain('Saisi par vous ou par le centre : date de naissance.');
 	});
 
 	it('effacement sur demande auprès du chef de centre ; profil corrigé soi-même', () => {
 		const page = html(Page, { connecte: true });
 		expect(page).toContain('chef de centre');
 		expect(page).toMatch(/<a[^>]*href="\/profil"/);
+		expect(page).toContain('Votre téléphone, votre surnom, votre date de naissance et votre contact d’urgence se corrigent dans');
 	});
 
 	it('ouverte à tous : retour vers Moi une fois connecté, vers la connexion sinon, et pas de lien vers le profil sans connexion', () => {

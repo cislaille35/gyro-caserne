@@ -34,7 +34,7 @@ describe('/profil : load', () => {
 	it('charge les valeurs de l\'agent', async () => {
 		const { base, acteur } = await preparer();
 		expect(await charger({ base, acteur })).toEqual({
-			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, anniversaireVisible: true, cochesLecture: true },
+			profil: { surnom: 'Ali', telephone: '06 00 00 00 00', telephoneVisible: true, contactUrgence: null, naissance: null, anniversaireVisible: true, cochesLecture: true },
 			// Sans profil, pas de messagerie : pas de case pour les coches.
 			messagerie: false
 		});
@@ -47,6 +47,16 @@ describe('/profil : envoi', () => {
 		const resultat = await envoyer({ base, acteur }, { surnom: ' Lili ', telephone: '', contactUrgence: 'Maman', anniversaireVisible: 'on' });
 		expect(resultat).toEqual({ succes: true, message: 'Profil enregistré' });
 		expect(await lire(base, id)).toMatchObject({ surnom: 'Lili', telephone: null, telephoneVisible: 0, contactUrgence: 'Maman', anniversaireVisible: 1 });
+	});
+
+	it('la date de naissance : enregistrée, vidée, refusée sur le champ si elle n’est pas plausible', async () => {
+		const { base, id, acteur } = await preparer();
+		await envoyer({ base, acteur }, { naissance: '1990-05-17' });
+		expect((await lire(base, id)).naissance).toBe('1990-05-17');
+		expect(await envoyer({ base, acteur }, { naissance: '2999-01-01' })).toMatchObject({ status: 400, data: { erreurs: { naissance: 'Date de naissance invalide' }, valeurs: { naissance: '2999-01-01' } } });
+		expect((await lire(base, id)).naissance).toBe('1990-05-17');
+		await envoyer({ base, acteur }, { naissance: '' });
+		expect((await lire(base, id)).naissance).toBeNull();
 	});
 
 	it('ne touche pas au reste de la fiche', async () => {

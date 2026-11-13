@@ -51,6 +51,15 @@
 					valeur={texte('contactUrgence', profil.contactUrgence)}
 					erreur={erreurs.contactUrgence}
 				/>
+				<Champ
+					id="naissance"
+					name="naissance"
+					type="date"
+					libelle="Date de naissance"
+					aide="Vue du chef de centre et de son adjoint seulement. Votre âge n’est jamais montré."
+					valeur={texte('naissance', profil.naissance)}
+					erreur={erreurs.naissance}
+				/>
 				<label>
 					<input type="checkbox" name="anniversaireVisible" checked={profil.anniversaireVisible} />
 					Afficher mon anniversaire

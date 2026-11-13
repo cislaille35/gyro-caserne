@@ -308,9 +308,19 @@ export async function affecterEquipe(base: Base, acteur: Acteur, personneId: num
 }
 
 // `cochesLecture` : faux, l'agent ne montre plus ses lectures dans la messagerie et ne voit plus celles des autres.
-export type MonProfil = { surnom: string | null; telephone: string | null; telephoneVisible: boolean; contactUrgence: string | null; anniversaireVisible: boolean; cochesLecture: boolean };
+// `naissance` : AAAA-MM-JJ, vue des seuls gestionnaires ; l'anniversaire, s'il est affiché, sans l'âge.
+export type MonProfil = { surnom: string | null; telephone: string | null; telephoneVisible: boolean; contactUrgence: string | null; naissance: string | null; anniversaireVisible: boolean; cochesLecture: boolean };
 const TEXTES_PROFIL = ['surnom', 'telephone', 'contactUrgence'] as const;
 const BOOLEENS_PROFIL = ['telephoneVisible', 'anniversaireVisible', 'cochesLecture'] as const;
+
+// Vide : effacée. Sinon une vraie date, entre 1900 et aujourd'hui.
+function naissancePlausible(valeur: unknown, aujourdhui: string): string | null {
+	if (valeur === null || valeur === '') return null;
+	const jour = new Date(`${valeur}T00:00:00Z`);
+	const reelle = typeof valeur === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valeur) && !Number.isNaN(jour.getTime()) && jour.toISOString().slice(0, 10) === valeur;
+	if (!reelle || valeur < '1900-01-01' || valeur > aujourdhui) throw new DonneeInvalide('Date de naissance invalide');
+	return valeur;
+}
 
 function exigerPersonne(acteur: Acteur): number {
 	if (acteur.type === 'super') throw new DonneeInvalide('Pas de fiche pour le super administrateur');
@@ -321,7 +331,7 @@ export async function monProfil(base: Base, acteur: Acteur): Promise<MonProfil |
 	if (acteur.type === 'super') return null;
 	const [fiche] = await base.select().from(personne).where(eq(personne.id, acteur.id));
 	if (!fiche) return null;
-	return { surnom: fiche.surnom, telephone: fiche.telephone, telephoneVisible: fiche.telephoneVisible === 1, contactUrgence: fiche.contactUrgence, anniversaireVisible: fiche.anniversaireVisible === 1, cochesLecture: fiche.cochesLecture === 1 };
+	return { surnom: fiche.surnom, telephone: fiche.telephone, telephoneVisible: fiche.telephoneVisible === 1, contactUrgence: fiche.contactUrgence, naissance: fiche.naissance, anniversaireVisible: fiche.anniversaireVisible === 1, cochesLecture: fiche.cochesLecture === 1 };
 }
 
 export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Partial<MonProfil>, aujourdhui: string): Promise<void> {
@@ -331,10 +341,10 @@ export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Part
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 
 	// Seuls ces champs : le reste de la fiche relève de la gestion.
-	const permis: readonly string[] = [...TEXTES_PROFIL, ...BOOLEENS_PROFIL];
+	const permis: readonly string[] = [...TEXTES_PROFIL, 'naissance', ...BOOLEENS_PROFIL];
 	if (Object.keys(champs).some((cle) => !permis.includes(cle))) throw new DonneeInvalide('Champ non modifiable');
 
-	const nouveaux: Partial<Record<(typeof TEXTES_PROFIL)[number], string | null>> & Partial<Record<(typeof BOOLEENS_PROFIL)[number], number>> = {};
+	const nouveaux: Partial<Record<(typeof TEXTES_PROFIL)[number] | 'naissance', string | null>> & Partial<Record<(typeof BOOLEENS_PROFIL)[number], number>> = {};
 	for (const cle of TEXTES_PROFIL) {
 		const valeur: unknown = champs[cle];
 		if (valeur === undefined) continue;
@@ -347,6 +357,8 @@ export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Part
 		if (typeof valeur !== 'boolean') throw new DonneeInvalide(`Champ ${cle} invalide`);
 		nouveaux[cle] = valeur ? 1 : 0;
 	}
+
+	if (champs.naissance !== undefined) nouveaux.naissance = naissancePlausible(champs.naissance, aujourdhui);
 
 	exigerLongueurs(nouveaux);
 	const changes = Object.fromEntries(Object.entries(nouveaux).filter(([cle, valeur]) => valeur !== fiche[cle as keyof typeof fiche]));

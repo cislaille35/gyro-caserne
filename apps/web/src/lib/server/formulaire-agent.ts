@@ -81,6 +81,7 @@ const CHAMP_DE_L_ERREUR: Record<string, string> = {
 	'Téléphone trop long': 'telephone',
 	'Surnom trop long': 'surnom',
 	'Contact d’urgence trop long': 'contactUrgence',
+	'Date de naissance invalide': 'naissance',
 	'Statut impossible à la création': 'statut',
 	'Nom vide': 'nom',
 	'Nom invalide': 'nom',

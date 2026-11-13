@@ -5,8 +5,9 @@ Ouvert à tout agent connecté. Le super administrateur n'a pas de fiche.
 1. Appuyez sur votre visage (« Moi »), en haut à droite, puis sur « Mon profil ».
 2. Modifiez votre surnom, votre téléphone et votre contact d'urgence.
 3. Cochez « Montrer mon téléphone au centre » : vos collègues le voient dans les infos d'une conversation avec vous.
-4. Cochez « Afficher mon anniversaire » pour que votre anniversaire apparaisse au centre.
-5. Si vous avez la messagerie, décochez « Montrer quand j’ai lu les messages » pour que vos collègues ne voient plus ✓✓ sous leurs messages quand vous les avez lus. Vous ne voyez alors plus non plus celles des autres.
-6. Appuyez sur « Enregistrer ». Le message « Profil enregistré » apparaît.
+4. Inscrivez votre date de naissance, si vous le voulez (vide : effacée). Seuls le chef de centre et son adjoint la voient ; votre âge n'est jamais montré.
+5. Cochez « Afficher mon anniversaire » pour que votre anniversaire apparaisse au centre le jour venu, et que vos collègues puissent vous le souhaiter.
+6. Si vous avez la messagerie, décochez « Montrer quand j’ai lu les messages » pour que vos collègues ne voient plus ✓✓ sous leurs messages quand vous les avez lus. Vous ne voyez alors plus non plus celles des autres.
+7. Appuyez sur « Enregistrer ». Le message « Profil enregistré » apparaît.
 
 Un champ laissé vide est effacé. Les autres informations (nom, e-mail, grade, équipe) sont modifiées par le chef de centre ou son adjoint.
