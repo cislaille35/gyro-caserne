@@ -4,7 +4,7 @@ export { enCours } from './dates.ts';
 export { ligneJournal } from './journal.ts';
 export { aLeDroit, couvre, droitsDe, estChefDeCentre, type Acteur, type DroitAccorde, type Perimetre } from './droits.ts';
 export { DonneeInvalide, RefusDroit } from './erreurs.ts';
-export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';
+export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, effacerLiensVers, identifiantDuCode, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';
 export * from './listes.ts';
 export { chargerJeuDeDepart, GRADES_DE_DEPART, NOM_COMITE_CENTRE } from './jeu-de-depart.ts';
 export { chargerComptesDeTest, COMPTES_DE_TEST } from './comptes-de-test.ts';

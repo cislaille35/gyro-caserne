@@ -16,7 +16,7 @@ async function connecte() {
 	const auth = creerAuth(env, base, (p) => taches.push(p), envoyer);
 	await auth.api.signInMagicLink({ body: { email: 'agent@exemple.fr', callbackURL: '/' }, headers: new Headers() });
 	await Promise.all(taches);
-	const jeton = new URL(envoyer.mock.calls[0]![1].texte.split('\n')[1]!).searchParams.get('token')!;
+	const jeton = new URL(envoyer.mock.calls[0]![1].texte.match(/https?:\/\/\S+/)![0]).searchParams.get('token')!;
 	const { headers } = await auth.api.magicLinkVerify({ query: { token: jeton }, headers: new Headers(), returnHeaders: true });
 	const requete = new Request('http://localhost/', { headers: { cookie: headers.get('set-cookie')!.split(';')[0]! } });
 	const cookies = { set: vi.fn() };

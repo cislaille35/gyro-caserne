@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { acteurDe, adresseAutorisee, annulerEnvoi, normaliserAdresse, prenomDe, reserverEnvoi } from '../src/connexion.ts';
-import { envoiLien, personne } from '../src/schema.ts';
+import { acteurDe, adresseAutorisee, annulerEnvoi, effacerLiensVers, identifiantDuCode, normaliserAdresse, prenomDe, reserverEnvoi } from '../src/connexion.ts';
+import { envoiLien, personne, verification } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 async function jeu() {
@@ -133,5 +133,21 @@ describe('prenomDe', () => {
 	it('ne donne rien au super administrateur', async () => {
 		const base = await baseDeTest();
 		expect(await prenomDe(base, { type: 'super', email: 'admin@exemple.fr' })).toBeNull();
+	});
+});
+
+describe('effacerLiensVers', () => {
+	it('efface les liens et le code de connexion de cette adresse, et rien d’autre', async () => {
+		const base = await baseDeTest();
+		const dans5min = new Date(Date.now() + 300_000);
+		const lien = (id: string, email: string) => ({ id, identifier: id, value: JSON.stringify({ type: 'magic-link', email }), expiresAt: dans5min });
+		const code = (id: string, email: string) => ({ id, identifier: identifiantDuCode(email), value: 'empreinte:0', expiresAt: dans5min });
+		await base.insert(verification).values([lien('magic-link:1', 'a@exemple.fr'), code('c1', 'a@exemple.fr'), lien('magic-link:2', 'b@exemple.fr'), code('c2', 'b@exemple.fr')]);
+		await effacerLiensVers(base, ' A@exemple.fr');
+		expect((await base.select().from(verification)).map((v) => v.id).sort()).toEqual(['c2', 'magic-link:2']);
+	});
+
+	it('l’identifiant du code est celui de Better Auth, adresse normalisée', () => {
+		expect(identifiantDuCode(' A@Exemple.fr')).toBe('sign-in-otp-a@exemple.fr');
 	});
 });

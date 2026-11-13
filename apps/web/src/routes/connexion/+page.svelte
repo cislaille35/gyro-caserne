@@ -5,6 +5,29 @@
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 
 	let { data, form } = $props();
+
+	// Un courriel par minute : « Renvoyer l’e-mail » attend la fin de la minute, compte à rebours à l'appui.
+	let ecoule = $state(0);
+	const restant = $derived(Math.max(0, (form?.renvoiDans ?? 0) - ecoule));
+	$effect(() => {
+		const depart = Date.now();
+		const total = form?.renvoiDans ?? 0;
+		ecoule = 0;
+		if (total <= 0) return;
+		const minuteur = setInterval(() => {
+			ecoule = Math.floor((Date.now() - depart) / 1000);
+			if (ecoule >= total) clearInterval(minuteur);
+		}, 1000);
+		return () => clearInterval(minuteur);
+	});
+
+	// Code refusé : le focus va au champ, et le lecteur d'écran lit l'erreur qui lui est liée.
+	$effect(() => {
+		if (form?.erreur) document.getElementById('code')?.focus();
+	});
+
+	// Un second appui pendant l'envoi trouverait le code déjà utilisé : le bouton attend la réponse.
+	let connexionEnCours = $state(false);
 </script>
 
 <svelte:head>
@@ -16,16 +39,28 @@
 	{#if data?.ecusson != null}<img class="ecusson" src="/ecusson?v={data.ecusson}" alt="Écusson de {centre.nom}" width="72" height="72" />{/if}
 	<h1>Connexion</h1>
 	{#if form?.envoye}
-		<div class="carte" role="status">
-			<p class="titre">Regardez vos courriels</p>
-			<p>
-				Si cette adresse est autorisée, un lien vient de partir{#if form.email}{' '}vers <strong class="adresse">{form.email}</strong>{/if}. Pensez à regarder dans vos courriers indésirables.
-			</p>
-		</div>
+		<form method="post" action="?/code" class="carte" onsubmit={() => (connexionEnCours = true)}>
+			<!-- L'annonce seulement à l'envoi : après un code refusé, rien n'est reparti. -->
+			<div class="annonce" role={form.erreur ? undefined : 'status'}>
+				<p class="titre">Lien envoyé</p>
+				<p>
+					Si cette adresse est autorisée, un courriel vient de partir{#if form.email}{' '}vers <strong class="adresse">{form.email}</strong>{/if}. Ouvrez son lien, ou tapez ici son code à 6 chiffres. Pensez à regarder dans vos courriers indésirables.
+				</p>
+			</div>
+			<input type="hidden" name="email" value={form.email} />
+			<input type="hidden" name="envoyeLe" value={form.envoyeLe} />
+			<Champ id="code" name="code" libelle="Code reçu par courriel" inputmode="numeric" autocomplete="one-time-code" maxlength={7} requis erreur={form.erreur} />
+			<Bouton type="submit" desactive={connexionEnCours}>Me connecter</Bouton>
+		</form>
+		<form method="post" action="?/envoyer" class="renvoi">
+			<input type="hidden" name="email" value={form.email} />
+			<Bouton type="submit" variante="secondaire" desactive={restant > 0}>Renvoyer l’e-mail</Bouton>
+			{#if restant > 0}<p class="attente">Possible dans {restant} s</p>{/if}
+		</form>
 		<a class="changer" href="/connexion">Changer d’adresse</a>
 	{:else}
 		<p class="phrase">Pas de mot de passe : recevez un lien de connexion par courriel.</p>
-		<form method="post" class="carte">
+		<form method="post" action="?/envoyer" class="carte">
 			<Champ id="email" name="email" type="email" libelle="Adresse e-mail" autocomplete="email" requis />
 			<Bouton type="submit">Recevoir un lien de connexion</Bouton>
 		</form>
@@ -75,8 +110,20 @@
 	.carte :global(button) {
 		width: 100%;
 	}
-	div.carte {
+	.annonce {
+		display: flex;
+		flex-direction: column;
 		gap: var(--espace-6);
+	}
+	.renvoi {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--espace-6);
+	}
+	.attente {
+		color: var(--doux);
+		font-size: var(--texte-15);
 	}
 	.titre {
 		font: 700 var(--texte-20) var(--police-titre);

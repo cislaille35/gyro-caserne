@@ -8,6 +8,7 @@
 		erreur,
 		aide,
 		autocomplete,
+		inputmode,
 		requis = false,
 		maxlength,
 		lignes
@@ -20,6 +21,8 @@
 		erreur?: string;
 		aide?: string;
 		autocomplete?: AutoFill;
+		// Clavier proposé au téléphone (« numeric » pour un code).
+		inputmode?: 'numeric' | 'email' | 'tel' | 'text';
 		requis?: boolean;
 		maxlength?: number;
 		// Plusieurs lignes : une zone de texte de cette hauteur.
@@ -42,6 +45,7 @@
 		{name}
 		{type}
 		{autocomplete}
+		{inputmode}
 		required={requis}
 		{maxlength}
 		bind:value={valeur}
