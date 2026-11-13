@@ -58,6 +58,7 @@ async function valeurSignee(cookie: string | undefined, secret: string): Promise
 
 // L'adresse de l'agent connecté, ou null. Une seule lecture de la base, et une écriture une fois par jour d'usage.
 export async function lireSession(base: Base, env: EnvSession, cookies: CookiesDeLaRequete): Promise<{ email: string } | null> {
+	if (!env.BETTER_AUTH_SECRET) throw new Error('BETTER_AUTH_SECRET manquant');
 	const noms = cookiesDeBetterAuth(env);
 	const cookie = cookies.get(noms.session);
 	const jeton = await valeurSignee(cookie, env.BETTER_AUTH_SECRET);

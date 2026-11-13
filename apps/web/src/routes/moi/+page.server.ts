@@ -28,6 +28,7 @@ export const actions: Actions = {
 	// Toutes ses sessions, sur tous ses appareils, et aucun ne reçoit plus ses notifications (décision 0032).
 	deconnecterPartout: async ({ request, locals, cookies }) => {
 		if (!locals.acteur) redirect(303, '/connexion');
+		// Garde-fou : l'écran envoie toujours la confirmation, seul un envoi fabriqué arrive sans.
 		if ((await request.formData()).get('confirmation') !== 'oui') return fail(400, { message: 'Confirmez pour continuer.' });
 		// Les appareils d'abord : si la suite échoue, l'agent peut recommencer, encore connecté.
 		await desabonnerPartout(locals.base, locals.acteur);

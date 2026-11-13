@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseSetCookieHeader } from 'better-auth/cookies';
-import { personne, session } from '@gyro-caserne/socle';
+import { sql } from 'drizzle-orm';
+import { personne, session, user } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from './auth.ts';
 import { estAdresseDeBetterAuth, lireSession } from './session.ts';
@@ -102,6 +103,31 @@ describe('lireSession', () => {
 		expect(cookies.delete).toHaveBeenCalledWith(nom, expect.anything());
 	});
 
+	it('session dont l’utilisateur n’existe plus : rien, cookies effacés, la ligne gardée (comme Better Auth)', async () => {
+		const { base, cookie } = await connecte();
+		await base.run(sql`PRAGMA foreign_keys = OFF`);
+		await base.delete(user);
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, local, cookies)).toBeNull();
+		expect(cookies.delete).toHaveBeenCalledTimes(3);
+		expect(await base.select().from(session)).toHaveLength(1);
+	});
+
+	it('session effacée pendant sa prolongation (déconnexion au même instant ailleurs) : rien, cookies effacés', async () => {
+		const { base, cookie } = await connecte();
+		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+		// La mise à jour ne trouve plus la ligne.
+		await base.run(sql`create trigger disparue before update on session begin select raise(ignore); end`);
+		const cookies = bocal(cookie);
+		expect(await lireSession(base, local, cookies)).toBeNull();
+		expect(cookies.set).not.toHaveBeenCalled();
+		expect(cookies.delete).toHaveBeenCalledTimes(3);
+	});
+
+	it('secret vide : refusé net, plutôt que des sessions jamais reconnues sans bruit', async () => {
+		await expect(lireSession({} as never, { ...local, BETTER_AUTH_SECRET: '' }, bocal('better-auth.session_token=x.y'))).rejects.toThrow();
+	});
+
 	it('déconnexion par Better Auth, ou de tous les appareils : le cookie ne vaut plus rien', async () => {
 		const un = await connecte();
 		await un.auth.api.signOut({ headers: new Headers({ cookie: un.cookie }) });
@@ -143,6 +169,10 @@ describe('lireSession', () => {
 		const cookies = bocal(`${cookie}; better-auth.dont_remember=${encodeURIComponent(await signer('true'))}`);
 		expect(await lireSession(base, local, cookies)).toEqual({ email: 'agent@exemple.fr' });
 		expect(cookies.set).not.toHaveBeenCalled();
+		// Mal signé : ignoré, la session est prolongée.
+		const autres = bocal(`${cookie}; better-auth.dont_remember=${encodeURIComponent(await signer('true', 'un-autre-secret-assez-long-pour-better-auth'))}`);
+		await lireSession(base, local, autres);
+		expect(autres.set).toHaveBeenCalledOnce();
 	});
 });
 
@@ -150,37 +180,45 @@ describe('lireSession', () => {
 describe('même résultat que getSession de Better Auth', () => {
 	const sesCookies = (h: Headers) => parseSetCookieHeader(h.get('set-cookie') ?? '');
 
-	it('session valable, puis à prolonger : même agent, même cookie renvoyé', async () => {
-		const { base, auth, cookie, nom } = await connecte();
-		const leur = await auth.api.getSession({ headers: new Headers({ cookie }) });
-		expect(await lireSession(base, local, bocal(cookie))).toEqual({ email: leur!.user.email });
+	// Attributs d'un cookie, comme Better Auth les écrit ou comme SvelteKit les écrirait avec nos options.
+	const attributs = (a: { secure?: boolean; httponly?: boolean; samesite?: string; path?: string; 'max-age'?: number }) => ({ secure: a.secure ?? false, httpOnly: a.httponly, sameSite: a.samesite, path: a.path, maxAge: a['max-age'] });
 
-		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
-		const { headers } = await auth.api.getSession({ headers: new Headers({ cookie }), returnHeaders: true });
-		const attendu = sesCookies(headers).get(nom)!;
-		await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
-		const cookies = bocal(cookie);
-		await lireSession(base, local, cookies);
-		const [, valeur, options] = cookies.set.mock.calls[0]!;
-		expect(valeur).toBe(attendu.value);
-		expect(options).toEqual({ httpOnly: attendu.httponly, secure: attendu.secure ?? false, sameSite: attendu.samesite, path: attendu.path, maxAge: attendu['max-age'] });
-	});
+	for (const env of [local, enLigne]) {
+		it(`session valable, puis à prolonger : même agent, même cookie renvoyé (${env.BETTER_AUTH_URL})`, async () => {
+			const { base, auth, cookie, nom } = await connecte(env);
+			const leur = await auth.api.getSession({ headers: new Headers({ cookie }) });
+			expect(await lireSession(base, env, bocal(cookie))).toEqual({ email: leur!.user.email });
 
-	it('jeton inconnu, session expirée, signature fausse : rien des deux côtés, mêmes cookies effacés', async () => {
-		for (const cas of ['inconnu', 'expiree', 'signature'] as const) {
-			const { base, auth, cookie, nom, jeton } = await connecte();
-			const entete = cas === 'inconnu' ? `${nom}=${encodeURIComponent(await signer('x'))}` : cas === 'signature' ? `${nom}=${jeton}.${'B'.repeat(43)}=` : cookie;
-			if (cas === 'expiree') await base.update(session).set({ expiresAt: new Date(Date.now() - 1000) });
-			const [ligne] = await base.select().from(session);
-			const { headers, response } = await auth.api.getSession({ headers: new Headers({ cookie: entete }), returnHeaders: true });
-			expect(response).toBeNull();
-			// Better Auth a effacé la session expirée : on la remet pour notre lecture.
-			await base.insert(session).values(ligne!).onConflictDoNothing();
-			const cookies = bocal(entete);
-			expect(await lireSession(base, local, cookies)).toBeNull();
-			expect(cookies.delete.mock.calls.map(([n]) => n)).toEqual([...sesCookies(headers).keys()]);
-		}
-	});
+			await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+			const { headers } = await auth.api.getSession({ headers: new Headers({ cookie }), returnHeaders: true });
+			const attendu = sesCookies(headers).get(nom)!;
+			await base.update(session).set({ expiresAt: new Date(Date.now() + 88 * JOUR) });
+			const cookies = bocal(cookie);
+			await lireSession(base, env, cookies);
+			const [, valeur, options] = cookies.set.mock.calls[0]!;
+			expect(valeur).toBe(attendu.value);
+			expect(options).toEqual(attributs(attendu));
+		});
+
+		it(`jeton inconnu, session expirée, signature fausse : rien des deux côtés, mêmes cookies effacés (${env.BETTER_AUTH_URL})`, async () => {
+			for (const cas of ['inconnu', 'expiree', 'signature'] as const) {
+				const { base, auth, cookie, nom, jeton } = await connecte(env);
+				const entete = cas === 'inconnu' ? `${nom}=${encodeURIComponent(await signer('x'))}` : cas === 'signature' ? `${nom}=${jeton}.${'B'.repeat(43)}=` : cookie;
+				if (cas === 'expiree') await base.update(session).set({ expiresAt: new Date(Date.now() - 1000) });
+				const [ligne] = await base.select().from(session);
+				const { headers, response } = await auth.api.getSession({ headers: new Headers({ cookie: entete }), returnHeaders: true });
+				expect(response).toBeNull();
+				// Better Auth a effacé la session expirée : on la remet pour notre lecture.
+				await base.insert(session).values(ligne!).onConflictDoNothing();
+				const cookies = bocal(entete);
+				expect(await lireSession(base, env, cookies)).toBeNull();
+				// cookies.delete de SvelteKit pose Max-Age=0, comme Better Auth.
+				const effaces = [...sesCookies(headers)];
+				expect(effaces.every(([, a]) => a['max-age'] === 0 && a.value === '')).toBe(true);
+				expect(cookies.delete.mock.calls).toEqual(effaces.map(([n, a]) => [n, { ...attributs(a), maxAge: undefined }].map((x) => (typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined)) : x))));
+			}
+		});
+	}
 });
 
 describe('estAdresseDeBetterAuth', () => {

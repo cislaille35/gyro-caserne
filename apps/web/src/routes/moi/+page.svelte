@@ -27,6 +27,12 @@
 	// Le dépliage de « Me déconnecter de tous mes appareils » : ouvert par son bouton, refermé par « Annuler ».
 	// Ouvert d'emblée quand le serveur a refusé, pour montrer pourquoi.
 	let partout = $derived(!!form?.message);
+	let bouton: HTMLElement | undefined = $state();
+	// « Annuler » referme et rend le focus au bouton qui avait ouvert.
+	function annuler() {
+		partout = false;
+		bouton?.focus();
+	}
 
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
@@ -84,14 +90,14 @@
 			>
 		</form>
 		<details class="plus" open={partout} ontoggle={(e) => (partout = e.currentTarget.open)}>
-			<summary>Me déconnecter de tous mes appareils</summary>
+			<summary bind:this={bouton}>Me déconnecter de tous mes appareils</summary>
 			<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={deconnecter}>
 				<p>Vous serez déconnecté de tous vos appareils, y compris celui-ci. Les notifications s’arrêteront sur chacun.</p>
 				{#if form?.message}<p class="erreur" role="alert">{form.message}</p>{/if}
 				<input type="hidden" name="confirmation" value="oui" />
 				<div class="choix">
 					<Bouton type="submit">Déconnecter partout</Bouton>
-					<Bouton variante="secondaire" onclick={() => (partout = false)}>Annuler</Bouton>
+					<Bouton variante="secondaire" onclick={annuler}>Annuler</Bouton>
 				</div>
 			</form>
 		</details>

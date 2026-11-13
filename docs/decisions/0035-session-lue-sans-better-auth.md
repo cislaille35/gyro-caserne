@@ -10,5 +10,9 @@
 - **Risques** :
   - suivre le format de Better Auth à chaque mise à jour de la bibliothèque (nom et signature du cookie, règle de prolongation). Garanti par le test de compatibilité de `session.test.ts`, qui compare notre lecture à `auth.api.getSession` et lit des cookies posés par Better Auth : une mise à jour qui change le format le fait échouer ;
   - une vérification de sécurité refaite à la main : la signature est vérifiée par `crypto.subtle.verify` (temps constant), avant toute lecture de la base, et chaque refus a son test.
-- **Différence assumée** : si la session disparaît pendant sa prolongation (déconnexion au même instant sur un autre appareil), Better Auth renvoyait une erreur 401 ; nous effaçons le cookie et l'agent n'est simplement plus connecté.
-- **Validé par** : le porteur (le diagnostic et la lecture maison). Choix de Claude, à valider : la différence ci-dessus.
+- **Différences assumées**, toutes sans effet pour l'agent :
+  - session disparue pendant sa prolongation (déconnexion au même instant sur un autre appareil) : Better Auth renvoyait une erreur 401 ; nous effaçons le cookie et l'agent n'est simplement plus connecté ;
+  - Better Auth efface aussi, à chaque requête, un cookie de cache de session (`session_data` et ses morceaux) s'il en trouve un : l'appli n'en pose jamais, nous ne le cherchons pas ;
+  - un cookie de session entre guillemets serait accepté par Better Auth et refusé par nous : plus strict, aucun navigateur ne l'envoie ainsi ;
+  - un `BETTER_AUTH_SECRET` vide arrête la requête en erreur au lieu de ne reconnaître personne sans bruit.
+- **Validé par** : le porteur (le diagnostic et la lecture maison). Choix de Claude, à valider : les différences ci-dessus.
