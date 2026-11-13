@@ -92,15 +92,19 @@ describe('/moi', () => {
 		expect(supprimer).toHaveBeenCalledWith('better-auth.session_data', { path: '/' });
 	});
 
-	it('« Me déconnecter de tous mes appareils » : sous « Plus », avec « Je confirme » et un bouton grave', () => {
+	it('« Me déconnecter de tous mes appareils » : à côté de « Se déconnecter », bouton secondaire qui déplie sa confirmation', () => {
 		for (const estPersonne of [true, false]) {
 			const page = html({ estPersonne });
-			expect(page).toMatch(/<details class="plus[^"]*"[^>]*>\s*<summary>Plus<\/summary>[\s\S]*action="\?\/deconnecterPartout"[\s\S]*name="confirmation" value="oui"[\s\S]*class="grave[^"]*"[^>]*>(<!---->)?Me déconnecter de tous mes appareils/);
+			expect(page).not.toContain('<summary>Plus</summary>');
+			expect(page).not.toContain('class="grave');
+			const sorties = page.slice(page.indexOf('class="sorties'));
+			expect(sorties).toMatch(/^class="sorties[^"]*">\s*<form[^>]*action="\?\/deconnecter"[\s\S]*?Se déconnecter[\s\S]*?<\/form>\s*<details class="plus[^"]*">\s*<summary>Me déconnecter de tous mes appareils<\/summary>/);
+			expect(sorties).toMatch(/action="\?\/deconnecterPartout"[\s\S]*Vous serez déconnecté de tous vos appareils, y compris celui-ci\. Les notifications s’arrêteront sur chacun\.[\s\S]*name="confirmation" value="oui"[\s\S]*type="submit"[^>]*>(<!---->)?Déconnecter partout[\s\S]*type="button"[^>]*>(<!---->)?Annuler/);
 		}
-		// Refusé faute de confirmation : le pli reste ouvert, avec le message.
-		const refus = render(Page as any, { props: { data: { estPersonne: true }, form: { message: 'Cochez « Je confirme » pour continuer.' } } }).body;
+		// Refusé faute de confirmation : le dépliage reste ouvert, avec le message.
+		const refus = render(Page as any, { props: { data: { estPersonne: true }, form: { message: 'Confirmez pour continuer.' } } }).body;
 		expect(refus).toMatch(/<details class="plus[^"]*" open/);
-		expect(refus).toContain('Cochez « Je confirme » pour continuer.');
+		expect(refus).toContain('Confirmez pour continuer.');
 	});
 
 	it('« Me déconnecter de tous mes appareils » : sans confirmation, rien ne se passe', async () => {
@@ -108,7 +112,7 @@ describe('/moi', () => {
 		const request = new Request('http://x/moi?/deconnecterPartout', { method: 'POST', body: new URLSearchParams({}) });
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const reponse = await (actions.deconnecterPartout as any)({ request, locals: { acteur: { type: 'personne', id: 1 }, auth: { api: { revokeSessions } } }, cookies: { delete: vi.fn() } });
-		expect(reponse).toMatchObject({ status: 400, data: { message: 'Cochez « Je confirme » pour continuer.' } });
+		expect(reponse).toMatchObject({ status: 400, data: { message: 'Confirmez pour continuer.' } });
 		expect(revokeSessions).not.toHaveBeenCalled();
 	});
 

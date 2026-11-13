@@ -17,6 +17,6 @@ En partant, l'appli efface aussi de cet appareil vos brouillons de messages, et 
 Utile après avoir perdu un téléphone, ou si vous vous êtes connecté sur un appareil qui n'est pas le vôtre.
 
 1. Ouvrez « Moi ».
-2. En bas de la page, appuyez sur « Plus ».
-3. Cochez « Je confirme », puis appuyez sur « Me déconnecter de tous mes appareils ».
+2. En bas de la page, à côté de « Se déconnecter », appuyez sur « Me déconnecter de tous mes appareils ».
+3. L'appli rappelle ce qui va se passer. Appuyez sur « Déconnecter partout » (ou « Annuler » pour ne rien faire).
 4. Tous vos téléphones et ordinateurs sont déconnectés et ne reçoivent plus vos notifications. Sur chacun, demandez un nouveau courriel et tapez son code (dans l'appli installée) ou ouvrez son lien pour revenir, puis réactivez les notifications (Moi → Notifications).
