@@ -234,3 +234,24 @@ describe('session de 90 jours, prolongée à l’usage', () => {
 		expect(s!.expiresAt.getTime()).toBeGreaterThan(Date.now() + 89 * JOUR);
 	});
 });
+
+describe('se déconnecter de tous ses appareils', () => {
+	it('revokeSessions ferme toutes les sessions de l’agent, et seulement les siennes', async () => {
+		const { base, auth, demander, dernierJeton, envoyer } = await jeu();
+		await base.insert(personne).values({ email: 'autre@exemple.fr', prenom: 'B', nom: 'H' });
+		const connecter = async (email: string) => {
+			await base.delete(envoiLien);
+			await demander(email);
+			const { headers } = await auth.api.magicLinkVerify({ query: { token: dernierJeton() }, headers: entetes, returnHeaders: true });
+			return new Headers({ cookie: headers.get('set-cookie')!.split(';')[0]! });
+		};
+		const telephone = await connecter('agent@exemple.fr');
+		const ordinateur = await connecter('agent@exemple.fr');
+		const autre = await connecter('autre@exemple.fr');
+		expect(envoyer).toHaveBeenCalledTimes(3);
+		await auth.api.revokeSessions({ headers: telephone });
+		expect(await auth.api.getSession({ headers: telephone })).toBeNull();
+		expect(await auth.api.getSession({ headers: ordinateur })).toBeNull();
+		expect(await auth.api.getSession({ headers: autre })).not.toBeNull();
+	});
+});

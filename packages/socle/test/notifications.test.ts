@@ -15,6 +15,7 @@ import {
 	abonner,
 	couper,
 	desabonner,
+	desabonnerPartout,
 	effacerVieillesNotifications,
 	enTeteDe,
 	filDeNotifications,
@@ -335,6 +336,14 @@ describe('abonnements et file d’envoi', () => {
 		await desabonner(base, acteur(alice), 'https://fcm.googleapis.com/fcm/send/Bruno');
 		await desabonner(base, acteur(bruno), 'https://fcm.googleapis.com/fcm/send/Bruno');
 		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint.split('/').pop()).sort()).toEqual(['Alice', 'Chef', 'Chloe']);
+	});
+
+	it('désabonner partout : tous les appareils de la personne, et seulement les siens', async () => {
+		const { base, alice } = await jeu();
+		await abonner(base, acteur(alice), { endpoint: 'https://web.push.apple.com/Alice2', p256dh: 'BCle', auth: 'secret', appareil: 'iPad' }, maintenant);
+		await desabonnerPartout(base, acteur(alice));
+		await desabonnerPartout(base, superAdmin);
+		expect((await base.select().from(abonnementPush)).map((a) => a.endpoint.split('/').pop()).sort()).toEqual(['Bruno', 'Chef', 'Chloe']);
 	});
 
 	it('seuls les services push connus sont acceptés : le Worker ne poste jamais ailleurs', async () => {

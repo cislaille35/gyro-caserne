@@ -1,5 +1,5 @@
-import { redirect } from '@sveltejs/kit';
-import { aptitudesDe, vueEffectif } from '@gyro-caserne/socle';
+import { fail, redirect, type Cookies } from '@sveltejs/kit';
+import { aptitudesDe, desabonnerPartout, vueEffectif } from '@gyro-caserne/socle';
 import { aujourdhuiParis } from '#lib/aujourdhui.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,11 +16,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return { identite: null, aptitudes };
 };
 
+// Ferme la session de cet appareil : Better Auth demande d'effacer ses cookies, on le fait ici, la réponse étant celle de SvelteKit.
+async function sortir(request: Request, locals: App.Locals, cookies: Pick<Cookies, 'delete'>): Promise<never> {
+	const { headers } = await locals.auth.api.signOut({ headers: request.headers, returnHeaders: true });
+	for (const ligne of headers.getSetCookie()) cookies.delete(ligne.slice(0, ligne.indexOf('=')), { path: '/' });
+	redirect(303, '/connexion');
+}
+
 export const actions: Actions = {
-	deconnecter: async ({ request, locals, cookies }) => {
-		const { headers } = await locals.auth.api.signOut({ headers: request.headers, returnHeaders: true });
-		// Better Auth demande d'effacer ses cookies : on le fait ici, la réponse étant celle de SvelteKit.
-		for (const ligne of headers.getSetCookie()) cookies.delete(ligne.slice(0, ligne.indexOf('=')), { path: '/' });
-		redirect(303, '/connexion');
+	deconnecter: ({ request, locals, cookies }) => sortir(request, locals, cookies),
+	// Toutes ses sessions, sur tous ses appareils, et aucun ne reçoit plus ses notifications (décision 0032).
+	deconnecterPartout: async ({ request, locals, cookies }) => {
+		if (!locals.acteur) redirect(303, '/connexion');
+		if ((await request.formData()).get('confirmation') !== 'oui') return fail(400, { message: 'Cochez « Je confirme » pour continuer.' });
+		await locals.auth.api.revokeSessions({ headers: request.headers });
+		await desabonnerPartout(locals.base, locals.acteur);
+		return sortir(request, locals, cookies);
 	}
 };

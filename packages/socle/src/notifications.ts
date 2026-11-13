@@ -500,6 +500,12 @@ export async function desabonner(base: Base, acteur: Acteur, endpoint: string): 
 	await base.delete(abonnementPush).where(and(eq(abonnementPush.personneId, acteur.id), eq(abonnementPush.endpoint, endpoint)));
 }
 
+// « Me déconnecter de tous mes appareils » : aucun ne reçoit plus ses notifications (envois en file compris, en cascade).
+export async function desabonnerPartout(base: Base, acteur: Acteur): Promise<void> {
+	if (acteur.type !== 'personne') return;
+	await base.delete(abonnementPush).where(eq(abonnementPush.personneId, acteur.id));
+}
+
 // `essais` : 1 au premier envoi, plus après une coupure. `pastille` : le chiffre de la cloche de la personne et ses messages non lus, au moment du lot.
 export type Envoi = { id: number; abonnementId: number; personneId: number; endpoint: string; p256dh: string; auth: string; essais: number; donnees: DonneesPush; pastille: number };
 
