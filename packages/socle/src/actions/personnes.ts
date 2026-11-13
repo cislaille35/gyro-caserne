@@ -12,7 +12,7 @@ import { departDesGroupes } from '../messagerie.ts';
 import { effacerNotificationsDe } from '../notifications.ts';
 import { annulerAuDepart } from '../reservations.ts';
 import { remplacementsAuDepart } from '../remplacements/depart.ts';
-import { affectationEquipe, attribution, cleAgenda, equipe, grade, personne, profil, profilDroit, session, user } from '../schema.ts';
+import { affectationEquipe, attribution, cleAgenda, equipe, grade, personne, profil, profilDroit, session, souhaitAnniversaire, user } from '../schema.ts';
 
 const centre: Perimetre = { type: 'centre' };
 
@@ -363,9 +363,12 @@ export async function modifierMonProfil(base: Base, acteur: Acteur, champs: Part
 	exigerLongueurs(nouveaux);
 	const changes = Object.fromEntries(Object.entries(nouveaux).filter(([cle, valeur]) => valeur !== fiche[cle as keyof typeof fiche]));
 	if (Object.keys(changes).length === 0) return;
-	await base.batch([
+	const ecritures = [
 		base.update(personne).set(changes).where(eq(personne.id, id)),
 		// Les noms des champs seulement : aucune valeur personnelle dans le journal.
 		ligneJournal(base, { acteur: nomActeur(acteur), action: 'modifier_mon_profil', cibleType: 'personne', cibleId: id, details: { champs: Object.keys(changes) } }, aujourdhui)
-	]);
+	] as const;
+	// Anniversaire masqué ou date changée : les souhaits reçus partent avec.
+	const sansSouhaits = changes.anniversaireVisible === 0 || 'naissance' in changes;
+	await base.batch(sansSouhaits ? [...ecritures, base.delete(souhaitAnniversaire).where(eq(souhaitAnniversaire.personneId, id))] : ecritures);
 }

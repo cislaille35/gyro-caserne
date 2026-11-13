@@ -215,7 +215,7 @@ describe('à ne pas manquer', () => {
 		base.requetes = 0;
 		base.parametresMax = 0;
 		const vu = await aNePasManquer(base, acteur(agent), aujourdhui, maintenant);
-		const anniversaires = await anniversairesDuJour(base, aujourdhui);
+		const anniversaires = await anniversairesDuJour(base, superAdmin, aujourdhui);
 		// Deux requêtes pour « À ne pas manquer », une pour les anniversaires (12 permises).
 		expect(base.requetes).toBe(3);
 		expect(base.parametresMax).toBeLessThanOrEqual(100);
@@ -234,7 +234,7 @@ describe('anniversaires du jour', () => {
 		await nouvelle('Parti', { naissance: '1990-10-28', statut: 'parti' });
 		await nouvelle('Suspendu', { naissance: '1990-10-28', statut: 'suspendu' });
 		await nouvelle('Exterieur', { naissance: '1990-10-28' }, 'exterieur');
-		expect(await anniversairesDuJour(base, aujourdhui)).toEqual([
+		expect((await anniversairesDuJour(base, superAdmin, aujourdhui)).map(({ prenom, nom }) => ({ prenom, nom }))).toEqual([
 			{ prenom: 'Anne', nom: 'Bernard' },
 			{ prenom: 'Zoe', nom: 'Bernard' }
 		]);
@@ -244,9 +244,9 @@ describe('anniversaires du jour', () => {
 		const { base, nouvelle } = await jeu();
 		await nouvelle('Bissextile', { naissance: '2000-02-29' });
 		await nouvelle('Veille', { naissance: '2000-02-28' });
-		expect((await anniversairesDuJour(base, '2027-02-28')).map((p) => p.prenom).sort()).toEqual(['Bissextile', 'Veille']);
-		expect((await anniversairesDuJour(base, '2028-02-28')).map((p) => p.prenom)).toEqual(['Veille']);
-		expect((await anniversairesDuJour(base, '2028-02-29')).map((p) => p.prenom)).toEqual(['Bissextile']);
+		expect((await anniversairesDuJour(base, superAdmin, '2027-02-28')).map((p) => p.prenom).sort()).toEqual(['Bissextile', 'Veille']);
+		expect((await anniversairesDuJour(base, superAdmin, '2028-02-28')).map((p) => p.prenom)).toEqual(['Veille']);
+		expect((await anniversairesDuJour(base, superAdmin, '2028-02-29')).map((p) => p.prenom)).toEqual(['Bissextile']);
 	});
 });
 
@@ -256,18 +256,18 @@ describe('mon anniversaire', () => {
 		const fete = await nouvelle('Zoe', { naissance: '1990-10-28' });
 		const cache = await nouvelle('Cache', { naissance: '1990-10-28', anniversaireVisible: 0 });
 		const sansDate = await nouvelle('Sansdate');
-		expect(await monAnniversaire(base, acteur(fete), aujourdhui)).toBe(true);
-		expect(await monAnniversaire(base, acteur(fete), '2026-10-29')).toBe(false);
-		expect(await monAnniversaire(base, acteur(cache), aujourdhui)).toBe(false);
-		expect(await monAnniversaire(base, acteur(sansDate), aujourdhui)).toBe(false);
-		expect(await monAnniversaire(base, superAdmin, aujourdhui)).toBe(false);
+		expect(await monAnniversaire(base, acteur(fete), aujourdhui)).toEqual({ souhaitePar: [] });
+		expect(await monAnniversaire(base, acteur(fete), '2026-10-29')).toBeNull();
+		expect(await monAnniversaire(base, acteur(cache), aujourdhui)).toBeNull();
+		expect(await monAnniversaire(base, acteur(sansDate), aujourdhui)).toBeNull();
+		expect(await monAnniversaire(base, superAdmin, aujourdhui)).toBeNull();
 	});
 
 	it('29 février : fêté le 28 février les années non bissextiles', async () => {
 		const { base, nouvelle } = await jeu();
 		const ne = await nouvelle('Bissextile', { naissance: '2000-02-29' });
-		expect(await monAnniversaire(base, acteur(ne), '2027-02-28')).toBe(true);
-		expect(await monAnniversaire(base, acteur(ne), '2028-02-28')).toBe(false);
-		expect(await monAnniversaire(base, acteur(ne), '2028-02-29')).toBe(true);
+		expect(await monAnniversaire(base, acteur(ne), '2027-02-28')).toEqual({ souhaitePar: [] });
+		expect(await monAnniversaire(base, acteur(ne), '2028-02-28')).toBeNull();
+		expect(await monAnniversaire(base, acteur(ne), '2028-02-29')).toEqual({ souhaitePar: [] });
 	});
 });

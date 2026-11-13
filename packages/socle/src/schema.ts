@@ -1012,6 +1012,23 @@ export const avisHabillement = sqliteTable(
 	(t) => [index('avis_habillement_personne').on(t.personneId, t.lueLe)]
 );
 
+// Un collègue souhaite son anniversaire à un agent, le jour même : une fois par collègue. C'est aussi la ligne de la cloche
+// de l'agent fêté. Effacé la nuit suivante (décision 0033).
+export const souhaitAnniversaire = sqliteTable(
+	'souhait_anniversaire',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		auteurId: integer('auteur_id')
+			.notNull()
+			.references(() => personne.id),
+		jour: text('jour').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [uniqueIndex('souhait_anniversaire_unique').on(t.personneId, t.jour, t.auteurId)]
+);
+
 // Tables de connexion (Better Auth), dans la même base.
 export * from './schema-auth.ts';
 

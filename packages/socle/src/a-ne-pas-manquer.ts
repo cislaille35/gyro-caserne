@@ -1,3 +1,4 @@
+import { alias } from 'drizzle-orm/sqlite-core';
 import { and, asc, count, desc, eq, gt, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { nomActeur } from './actions/personnes.ts';
 import type { Base } from './base.ts';
@@ -7,7 +8,7 @@ import { STATUTS_AVEC_ACCES, type ReponseEvenement } from './listes.ts';
 import { estConvoque, estMembre, mursEtAppartenances, type CleMur, type Mur } from './murs.ts';
 import { requetePourMoi } from './remplacements/lectures.ts';
 import { texteDemande } from './remplacements/tranches.ts';
-import { personne, priseConnaissance, profil, publication, reponseEvenement, visiteMur, voteSondage } from './schema.ts';
+import { personne, priseConnaissance, profil, publication, reponseEvenement, souhaitAnniversaire, visiteMur, voteSondage } from './schema.ts';
 
 export type ItemANePasManquer = { id: number; cle: CleMur; nomMur: string; titre: string };
 export type ANePasManquer = {
@@ -114,34 +115,44 @@ export async function aNePasManquer(base: Base, acteur: Acteur, aujourdhui: stri
 	};
 }
 
-// Agents (ni partis, ni suspendus, ni extérieurs) dont la date de naissance est inscrite et l'affichage activé. Jamais l'âge.
-// Né un 29 février : fêté le 28 février les années non bissextiles.
-export async function anniversairesDuJour(base: Base, aujourdhui: string): Promise<{ prenom: string; nom: string }[]> {
-	const jours = joursFetes(aujourdhui);
-	return base
-		.select({ prenom: personne.prenom, nom: personne.nom })
+// Date de naissance inscrite et affichage activé. Né un 29 février : fêté le 28 février les années non bissextiles.
+const sonJour = (aujourdhui: string) => and(inArray(sql`substr(${personne.naissance}, 6, 5)`, joursFetes(aujourdhui)), eq(personne.anniversaireVisible, 1));
+// Qui le centre fête aujourd'hui : en plus, agents ni partis, ni suspendus, ni extérieurs (requête jointe à `profil`).
+export const fetesDuJour = (aujourdhui: string) => and(sonJour(aujourdhui), inArray(personne.statut, [...STATUTS_AVEC_ACCES]), or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur')));
+
+// `geste` : ce que la personne peut faire pour chacun ; rien pour elle-même ni pour le super administrateur (décision 0033). Jamais l'âge.
+export type AnniversaireDuJour = { id: number; prenom: string; nom: string; geste: 'souhaiter' | 'souhaite' | null };
+
+export async function anniversairesDuJour(base: Base, acteur: Acteur, aujourdhui: string): Promise<AnniversaireDuJour[]> {
+	const moi = acteur.type === 'personne' ? acteur.id : null;
+	const souhaite = sql<number>`exists (select 1 from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${personne.id} and ${souhaitAnniversaire.jour} = ${aujourdhui} and ${souhaitAnniversaire.auteurId} = ${moi ?? 0})`;
+	const lignes = await base
+		.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, souhaite: souhaite.as('souhaite') })
 		.from(personne)
 		.leftJoin(profil, eq(profil.id, personne.profilId))
-		.where(
-			and(
-				inArray(sql`substr(${personne.naissance}, 6, 5)`, jours),
-				eq(personne.anniversaireVisible, 1),
-				inArray(personne.statut, [...STATUTS_AVEC_ACCES]),
-				or(isNull(profil.typePersonne), ne(profil.typePersonne, 'exterieur'))
-			)
-		)
+		.where(fetesDuJour(aujourdhui))
 		.orderBy(asc(personne.nom), asc(personne.prenom));
+	return lignes.map(({ souhaite, ...p }) => ({ ...p, geste: moi === null || p.id === moi ? null : souhaite ? 'souhaite' : 'souhaiter' }));
 }
 
-// L'agent connecté fête-t-il son anniversaire aujourd'hui ? Mêmes règles : date inscrite et affichage activé.
-export async function monAnniversaire(base: Base, acteur: Acteur, aujourdhui: string): Promise<boolean> {
-	const jours = joursFetes(aujourdhui);
-	if (acteur.type !== 'personne') return false;
-	const [fiche] = await base
-		.select({ id: personne.id })
-		.from(personne)
-		.where(and(eq(personne.id, acteur.id), inArray(sql`substr(${personne.naissance}, 6, 5)`, jours), eq(personne.anniversaireVisible, 1)));
-	return fiche !== undefined;
+// L'agent connecté fête-t-il son anniversaire aujourd'hui ? Date inscrite et affichage activé. Si oui, les collègues qui le lui ont souhaité. Une requête.
+export async function monAnniversaire(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ souhaitePar: { prenom: string; nom: string }[] } | null> {
+	exigerDate(aujourdhui);
+	if (acteur.type !== 'personne') return null;
+	const auteur = alias(personne, 'auteur');
+	const [fete, souhaits] = await base.batch([
+		base
+			.select({ id: personne.id })
+			.from(personne)
+			.where(and(eq(personne.id, acteur.id), sonJour(aujourdhui))),
+		base
+			.select({ prenom: auteur.prenom, nom: auteur.nom })
+			.from(souhaitAnniversaire)
+			.innerJoin(auteur, eq(auteur.id, souhaitAnniversaire.auteurId))
+			.where(and(eq(souhaitAnniversaire.personneId, acteur.id), eq(souhaitAnniversaire.jour, aujourdhui)))
+			.orderBy(asc(souhaitAnniversaire.creeLe), asc(souhaitAnniversaire.id))
+	]);
+	return fete.length === 0 ? null : { souhaitePar: souhaits };
 }
 
 function joursFetes(aujourdhui: string): string[] {
