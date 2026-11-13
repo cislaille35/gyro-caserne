@@ -29,8 +29,9 @@ export const actions: Actions = {
 	deconnecterPartout: async ({ request, locals, cookies }) => {
 		if (!locals.acteur) redirect(303, '/connexion');
 		if ((await request.formData()).get('confirmation') !== 'oui') return fail(400, { message: 'Cochez « Je confirme » pour continuer.' });
-		await locals.auth.api.revokeSessions({ headers: request.headers });
+		// Les appareils d'abord : si la suite échoue, l'agent peut recommencer, encore connecté.
 		await desabonnerPartout(locals.base, locals.acteur);
+		await locals.auth.api.revokeSessions({ headers: request.headers });
 		return sortir(request, locals, cookies);
 	}
 };

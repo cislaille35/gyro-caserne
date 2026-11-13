@@ -1,4 +1,4 @@
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, lt, sql } from 'drizzle-orm';
 import { fetesDuJour } from './a-ne-pas-manquer.ts';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure } from './dates.ts';
@@ -29,9 +29,19 @@ export async function souhaiter(base: Base, acteur: Acteur, personneId: number, 
 	if (deja) return;
 	const texte = `${`${auteur.prenom} ${auteur.nom}`.trim()} vous souhaite un joyeux anniversaire 🎂`;
 	await base.batch([
-		base.insert(souhaitAnniversaire).values({ personneId, auteurId: acteur.id, jour: aujourdhui, creeLe: maintenant }).onConflictDoNothing(),
-		// Lieu « anniversaire » : seul « tout » le coupe.
-		mettreEnFile(base, [personneId], 'anniversaire', { titre: 'Joyeux anniversaire', texte, url: '/', tag: `anniversaire:${acteur.id}` }, maintenant, undefined, 'anniversaire')
+		// Revérifié à l'écriture : l'agent a pu masquer son anniversaire entre-temps ; deux appuis simultanés n'écrivent qu'une ligne.
+		base
+			.insert(souhaitAnniversaire)
+			.select(
+				base
+					.select({ id: sql<number | null>`null`.as('id'), personneId: personne.id, auteurId: sql<number>`${acteur.id}`.as('auteur_id'), jour: sql<string>`${aujourdhui}`.as('jour'), creeLe: sql<string>`${maintenant}`.as('cree_le'), lueLe: sql<string | null>`null`.as('lue_le') })
+					.from(personne)
+					.leftJoin(profil, eq(profil.id, personne.profilId))
+					.where(and(eq(personne.id, personneId), fetesDuJour(aujourdhui)))
+			)
+			.onConflictDoNothing(),
+		// Seulement si la ligne vient d'être écrite (changes() : l'instruction précédente du batch). Lieu « anniversaire » : seul « tout » le coupe.
+		mettreEnFile(base, [personneId], 'anniversaire', { titre: 'Joyeux anniversaire', texte, url: '/', tag: `anniversaire:${acteur.id}` }, maintenant, sql`changes() = 1`, 'anniversaire')
 	]);
 }
 

@@ -55,6 +55,9 @@ describe('/profil : envoi', () => {
 		expect((await lire(base, id)).naissance).toBe('1990-05-17');
 		expect(await envoyer({ base, acteur }, { naissance: '2999-01-01' })).toMatchObject({ status: 400, data: { erreurs: { naissance: 'Date de naissance invalide' }, valeurs: { naissance: '2999-01-01' } } });
 		expect((await lire(base, id)).naissance).toBe('1990-05-17');
+		// Un formulaire sans le champ (page ouverte avant la mise à jour) ne l'efface pas.
+		await envoyer({ base, acteur }, { surnom: 'Ali' });
+		expect((await lire(base, id)).naissance).toBe('1990-05-17');
 		await envoyer({ base, acteur }, { naissance: '' });
 		expect((await lire(base, id)).naissance).toBeNull();
 	});

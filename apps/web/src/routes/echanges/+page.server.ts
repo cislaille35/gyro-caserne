@@ -4,7 +4,7 @@ import { maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions } from './$types';
 
-// « Souhaiter » sous un anniversaire du jour, depuis la liste des murs ou un mur : on revient où l'on était,
+// « Souhaiter » sous un anniversaire du jour, depuis la liste des murs ou un mur : on revient sur cette page (son adresse, sans `?avant=`),
 // la page relue dit « Souhaité ». Un refus (plus d'anniversaire, déjà souhaité) revient aussi, sans rien écrire.
 export const actions: Actions = {
 	souhaiter: async ({ locals, request }) => {

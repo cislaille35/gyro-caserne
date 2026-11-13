@@ -329,7 +329,7 @@ Décision [0033](../decisions/0033-souhaiter-un-anniversaire.md). Migration `002
 |---|---|
 | `souhait_anniversaire` | `personne_id` (l'agent fêté), `auteur_id`, `jour`, `cree_le`, `lue_le`. Unique sur (fêté, jour, auteur). C'est aussi la ligne de cloche du fêté. |
 
-- `souhaits.ts` : `souhaiter` (une lecture en `batch` : le fêté l'est aujourd'hui, comme `fetesDuJour` ; l'auteur ; déjà souhaité ? puis un `batch` : la ligne et l'envoi au téléphone, lieu `anniversaire`, seul « tout » le coupe ; refus : soi-même, super administrateur, pas d'anniversaire) ; `effacerSouhaitsPasses` (nuit : `jour` avant aujourd'hui).
+- `souhaits.ts` : `souhaiter` (une lecture en `batch` : le fêté l'est aujourd'hui, comme `fetesDuJour` ; l'auteur ; déjà souhaité ? puis un `batch` : la ligne, revérifiée à l'écriture (`insert … select` avec `fetesDuJour`, unique), et l'envoi au téléphone seulement si elle vient d'être écrite (`changes() = 1`), lieu `anniversaire`, seul « tout » le coupe ; refus : soi-même, super administrateur, pas d'anniversaire) ; `effacerSouhaitsPasses` (nuit : `jour` avant aujourd'hui).
 - Cloche : compte dans `nonLuesSql` ; ligne `anniversaire` du fil (le visage de l'auteur) ; `marquerLue`, `toutMarquerLu`. Effacés aussi par `effacerNotificationsDe` (départ, effacement : fêté ou auteur) et par `modifierMonProfil` quand l'anniversaire est masqué ou la date changée.
 - Coût : `souhaiter` 2 requêtes ; la liste des anniversaires reste une requête ; l'accueil, une requête comme avant (`monAnniversaire` en `batch`).
 

@@ -80,7 +80,7 @@ Sous « Bonjour », une phrase compte ce qui attend un geste (« 2 publications 
 
 **« Souhaiter »** (décision [0033](../decisions/0033-souhaiter-un-anniversaire.md)) : à côté de chaque anniversaire du jour (« Aujourd'hui au centre », et sous le bandeau de Vie du centre au téléphone). Un appui, rien à écrire : l'agent fêté reçoit dans sa cloche, et sur son téléphone si les notifications sont activées, « Paul Martin vous souhaite un joyeux anniversaire 🎂 ». Le bouton devient « Souhaité ». Une fois par collègue et par anniversaire ; rien pour son propre anniversaire, ni pour le super administrateur, qui n'a pas de fiche. Rien n'est publié sur le mur.
 
-L'agent fêté voit sur son accueil, toute la journée, qui le lui a souhaité : « Paul Martin et Marc Petit vous l'ont souhaité. » (trois noms, puis « et 4 autres collègues »). Les souhaits sont effacés la nuit suivante, quand l'agent masque son anniversaire ou change sa date, et au départ de l'un ou l'autre.
+L'agent fêté voit sur son accueil, toute la journée, qui le lui a souhaité : « Paul Martin et Marc Petit vous l'ont souhaité. » (trois noms, puis « et 4 autres collègues »). Les souhaits sont effacés la nuit suivante, quand l'agent masque son anniversaire ou change sa date dans « Mon profil », et au départ de l'un ou l'autre.
 
 Exemple : Zoé a 30 ans. Paul ouvre Échanges, voit « Zoé Bernard fête son anniversaire » et appuie sur « Souhaiter ». Le téléphone de Zoé vibre ; sur son accueil, « Paul Martin vous l'a souhaité. »
 

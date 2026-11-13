@@ -52,6 +52,25 @@ describe('souhaiter un anniversaire', () => {
 		expect(await envois(paul)).toHaveLength(1);
 	});
 
+	it('deux appuis en même temps : une ligne, un envoi ; masqué entre la lecture et l’écriture : rien', async () => {
+		const { base, zoe, paul, marc, envois } = await jeu();
+		await Promise.all([souhaiter(base, acteur(paul), zoe, maintenant), souhaiter(base, acteur(paul), zoe, maintenant)]);
+		expect(await base.select().from(souhaitAnniversaire)).toHaveLength(1);
+		expect(await envois(paul)).toHaveLength(1);
+		// Marc lit (Zoé est fêtée), Zoé masque son anniversaire, puis l'écriture de Marc part.
+		const batch = base.batch.bind(base);
+		let premier = true;
+		base.batch = (async (ecritures: Parameters<typeof base.batch>[0]) => {
+			if (!premier) await base.update(personne).set({ anniversaireVisible: 0 }).where(eq(personne.id, zoe));
+			premier = false;
+			return batch(ecritures);
+		}) as unknown as typeof base.batch;
+		await souhaiter(base, acteur(marc), zoe, maintenant);
+		base.batch = batch;
+		expect((await base.select().from(souhaitAnniversaire)).map((s) => s.auteurId)).toEqual([paul]);
+		expect(await envois(marc)).toEqual([]);
+	});
+
 	it('refusé : à soi-même, sans anniversaire aujourd’hui, anniversaire masqué, agent parti, super administrateur', async () => {
 		const { base, nouvelle, zoe, paul } = await jeu();
 		const cache = await nouvelle('Cache', { naissance: '1990-10-28', anniversaireVisible: 0 });

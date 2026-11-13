@@ -1,12 +1,12 @@
 import { building } from '$app/env';
 import { env, waitUntil } from 'cloudflare:workers';
 import { acteurDe, creerBaseD1, creerBasePhotos } from '@gyro-caserne/socle';
-import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
+import { svelteKitHandler } from 'better-auth/svelte-kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins } from '#lib/server/auth.ts';
 import { envoisDuGeste } from '#lib/server/envoi-push.ts';
-import { lireSession } from '#lib/server/session.ts';
+import { sessionDuHook } from '#lib/server/session.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
 import { formulaireEgare } from '#lib/server/resoumission.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
@@ -34,8 +34,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.clePublique = cles?.publique ?? null;
 
 	try {
-		// Les adresses de Better Auth (lien de connexion) ont leur propre réponse : la session n'y est pas lue.
-		const connexion = isAuthPath(event.url.toString(), auth.options) ? null : await lireSession(auth, event.request, event.cookies);
+		const connexion = await sessionDuHook(auth, event);
 		event.locals.acteur = connexion ? await acteurDe(base, connexion.user.email, event.locals.superAdmins) : null;
 		return await svelteKitHandler({ event, resolve: resoudre, auth, building });
 	} finally {

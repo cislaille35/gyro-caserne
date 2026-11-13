@@ -237,7 +237,7 @@ describe('direction B', () => {
 		const s = style('routes/echanges/+layout.svelte');
 		expect(s).toMatch(/background: var\(--statut-neutre-fond\);\s*color: var\(--statut-neutre-texte\);/);
 		// « Souhaiter » : le bouton commun, secondaire (un contour), pas un lien refait à la main.
-		expect(source('lib/ui/Souhaiter.svelte')).toMatch(/<Bouton type="submit" variante="secondaire">Souhaiter/);
+		expect(source('lib/ui/Souhaiter.svelte')).toMatch(/<Bouton type="submit" variante="secondaire"[^>]*>Souhaiter/);
 	});
 
 	it('une option choisie ne saute pas : son bord plus épais est repris sur le retrait', () => {

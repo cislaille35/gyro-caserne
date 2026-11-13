@@ -24,6 +24,10 @@
 		partir = true;
 		formulaire.requestSubmit();
 	}
+	// Sans « Je confirme », le serveur refuse : rien n'est oublié ici.
+	function deconnecterPartout(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		if (e.currentTarget.querySelector<HTMLInputElement>('[name=confirmation]')?.checked) return deconnecter(e);
+	}
 
 	const details = $derived(id ? [id.grade, id.equipe?.nom].filter(Boolean).join(' · ') : '');
 </script>
@@ -82,8 +86,8 @@
 	<!-- Un téléphone perdu, prêté ou partagé : tous les appareils se déconnectent d'un coup. -->
 	<details class="plus" open={form?.message ? true : undefined}>
 		<summary>Plus</summary>
-		<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={oublierBrouillons}>
-			<p>Chaque téléphone et ordinateur devra redemander un lien de connexion. Aucun ne recevra plus vos notifications avant que vous les réactiviez.</p>
+		<form method="POST" action="?/deconnecterPartout" class="partout" onsubmit={deconnecterPartout}>
+			<p>Chaque téléphone et ordinateur devra redemander un lien de connexion, et ne recevra plus vos notifications d’ici là.</p>
 			{#if form?.message}<p class="erreur" role="alert">{form.message}</p>{/if}
 			<label class="case"><input type="checkbox" name="confirmation" value="oui" /> Je confirme</label>
 			<Bouton type="submit" variante="grave">Me déconnecter de tous mes appareils</Bouton>
@@ -153,6 +157,12 @@
 	}
 	.partout p {
 		margin: 0;
+	}
+	.case {
+		display: flex;
+		align-items: center;
+		gap: var(--espace-12);
+		min-height: var(--cible);
 	}
 	.erreur {
 		color: var(--statut-danger-texte);
