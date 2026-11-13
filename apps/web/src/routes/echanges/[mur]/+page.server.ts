@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		// Les équipes, pour nommer les convoqués et convoquer (les actives) ; sur un mur d'équipe, c'est l'équipe du mur.
 		const equipes = mur.mur.type === 'equipe' ? [] : await locals.base.select({ id: equipe.id, nom: equipe.nom, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation));
 		// « Vie du centre » souhaite les anniversaires du jour.
-		const anniversaires = mur.mur.type === 'vie' ? await anniversairesDuJour(locals.base, aujourdhuiParis()) : [];
+		const anniversaires = mur.mur.type === 'vie' ? await anniversairesDuJour(locals.base, acteur, aujourdhuiParis()) : [];
 		// Le bouton « couper » de l'en-tête : nul pour le super administrateur, qui ne reçoit rien.
 		const coupe = acteur.type === 'personne' ? await estCoupe(locals.base, acteur, `mur:${params.mur}`) : null;
 		return { ...mur, equipes, anniversaires, plusAnciennes: avant !== null, coupe };

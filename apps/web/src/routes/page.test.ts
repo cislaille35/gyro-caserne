@@ -109,6 +109,15 @@ describe('accueil', () => {
 		expect(html).not.toContain('Tout est à jour');
 	});
 
+	it('jour de son anniversaire : qui le lui a souhaité, en tête ; rien sans souhait ni un autre jour', () => {
+		const base = { casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } };
+		const html = page({ ...base, anniversaire: { souhaitePar: [{ prenom: 'Paul', nom: 'Martin' }, { prenom: 'Marc', nom: 'Petit' }] } });
+		expect(texte(html)).toMatch(/Joyeux anniversaire !\s*Paul Martin et Marc Petit vous l’ont souhaité\./);
+		expect(html.indexOf('Joyeux anniversaire !')).toBeLessThan(html.indexOf('À ne pas manquer') === -1 ? Infinity : html.indexOf('À ne pas manquer'));
+		expect(page({ ...base, anniversaire: { souhaitePar: [] } })).not.toContain('vous l’');
+		expect(texte(page({ ...base, anniversaire: null }))).not.toContain('Joyeux anniversaire');
+	});
+
 	it('une seule casquette : pas de rangée ; « Bonjour » en tête ; pas de fausse astreinte', () => {
 		const html = page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' } });
 		expect(html).toContain('Bonjour Alice');

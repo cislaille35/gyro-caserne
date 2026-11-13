@@ -14,6 +14,8 @@
 	import { ICONE_MAISON } from '#lib/ui/icones-roles.ts';
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import PastilleMur from '#lib/ui/PastilleMur.svelte';
+	import Souhaiter from '#lib/ui/Souhaiter.svelte';
+	import type { AnniversaireDuJour } from '@gyro-caserne/socle';
 	import type { TuileMur } from './+layout.server';
 
 	let { data, children } = $props();
@@ -48,7 +50,6 @@
 	const SORTES: Record<TuileMur['type'], string | null> = { centre: null, vie: 'tout le monde', equipe: 'équipe', comite: 'comité' };
 	const sorte = (t: TuileMur) => (t.type === 'equipe' && t.membre ? 'mon équipe' : SORTES[t.type]);
 	const apercu = (t: TuileMur) => (t.derniere ? `${t.derniere.auteur} : ${t.derniere.texte}` : 'Rien de publié pour l’instant');
-	const souhaiter = (prenom: string) => `/echanges/publier?mur=vie&texte=${encodeURIComponent(`Joyeux anniversaire ${prenom} !`)}`;
 	// Les dates sont enregistrées à l'heure de Paris : on les lit telles quelles.
 	const date = (iso: string, options: Intl.DateTimeFormatOptions) => formatDeDate({ ...options, timeZone: 'UTC' }).format(new Date(`${iso.slice(0, 16)}:00Z`));
 	const jourCourt = (iso: string) => {
@@ -84,11 +85,11 @@
 	</li>
 {/snippet}
 
-{#snippet anniversaire(a: { prenom: string; nom: string })}
+{#snippet anniversaire(a: AnniversaireDuJour)}
 	<div class="ligne-jour">
 		<span class="visage" aria-hidden="true">{`${a.prenom.charAt(0)}${a.nom.charAt(0)}`.toUpperCase()}</span>
 		<strong class="quoi">{a.prenom} {a.nom} fête son anniversaire</strong>
-		<a class="souhaiter" href={souhaiter(a.prenom)}>Souhaiter<span class="masque">{` à ${a.prenom}`}</span></a>
+		<span class="geste"><Souhaiter {a} retour={page.url.pathname} /></span>
 	</div>
 {/snippet}
 
@@ -317,18 +318,8 @@
 		color: var(--statut-neutre-texte);
 		font-weight: 700;
 	}
-	.souhaiter {
+	.geste {
 		flex: none;
-		min-height: 44px;
-		padding: 0 var(--espace-16);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
-		display: inline-flex;
-		align-items: center;
-		background: var(--surface);
-		color: var(--encre);
-		font-weight: 600;
-		text-decoration: none;
 	}
 	.evenement {
 		min-height: 44px;
@@ -397,7 +388,7 @@
 	.journee .ligne-jour .quoi {
 		flex-basis: calc(100% - 56px);
 	}
-	.journee .souhaiter {
+	.journee .geste {
 		margin-left: 56px;
 	}
 

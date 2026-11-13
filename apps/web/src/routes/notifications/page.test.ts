@@ -82,6 +82,13 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*>[\s\S]*?Non lu, [\s\S]*?Question sur votre demande[\s\S]*?Rémi Fictif : Quelle taille \?/);
 	});
 
+	it('un souhait d’anniversaire : le visage du collègue, sa phrase, vers l’accueil', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 9, type: 'anniversaire', auteur: { prenom: 'Paul', nom: 'Martin', couleur: '#1565c0' }, creeLe: '2026-10-31T09:15', lue: false }] });
+		expect(page).toContain(`href="${ouvre('anniversaire', 9, '/')}"`);
+		expect(page).toMatch(/class="visage[^"]*"[^>]*style="background: #1565c0;/);
+		expect(page).toMatch(/Non lu, [\s\S]*?Paul Martin vous souhaite un joyeux anniversaire 🎂/);
+	});
+
 	it('des demandes de réservation à trancher : une rangée en tête, vers « À valider »', () => {
 		const page = html({ aValider: 2 });
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/a-valider"[^>]*>[\s\S]*?2 demandes de réservation à valider/);

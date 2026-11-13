@@ -17,7 +17,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		mursDe(locals.base, acteur, aujourdhui),
 		apercusDesMurs(locals.base, acteur, aujourdhui),
 		aNePasManquer(locals.base, acteur, aujourdhui, maintenantParis()),
-		anniversairesDuJour(locals.base, aujourdhui),
+		anniversairesDuJour(locals.base, acteur, aujourdhui),
 		exigerMessagerie(locals.base, acteur, aujourdhui).then(
 			() => true,
 			(erreur) => {

@@ -79,7 +79,7 @@ describe('liste des murs', () => {
 		expect(data.sections.autres).toEqual([]);
 		expect(data.sections.supervision.map((t: Tuile) => t.cle)).toContain('vie');
 		expect(data.sections.supervision.length).toBeGreaterThan(3);
-		expect(data.aujourdhui).toEqual({ anniversaires: [{ prenom: 'Alice', nom: 'Test' }], evenement: null });
+		expect(data.aujourdhui).toEqual({ anniversaires: [{ id: alice.id, prenom: 'Alice', nom: 'Test', geste: null }], evenement: null });
 	});
 
 	it('Le centre : le nombre d’annonces à confirmer, sans celles des autres murs', async () => {

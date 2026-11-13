@@ -6,6 +6,7 @@
 	import Pastille from '#lib/ui/Pastille.svelte';
 	import PastilleMur from '#lib/ui/PastilleMur.svelte';
 	import Publication from '#lib/ui/Publication.svelte';
+	import Souhaiter from '#lib/ui/Souhaiter.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
@@ -50,7 +51,15 @@
 	</p>
 </header>
 
-{#if data.anniversaires.length > 0}<p class="anniversaires">Bon anniversaire à {fetes} !</p>{/if}
+{#if data.anniversaires.length > 0}
+	<div class="anniversaires">
+		<p>Bon anniversaire à {fetes} !</p>
+		<!-- À l'ordinateur, la colonne « Aujourd'hui » porte déjà ces gestes. -->
+		{#each data.anniversaires.filter((a) => a.geste !== null) as a (a.id)}
+			<div class="souhait"><span>{a.prenom} {a.nom}</span><Souhaiter {a} retour="/echanges/{data.mur.cle}" /></div>
+		{/each}
+	</div>
+{/if}
 
 <div class="annonce" role="status">{annonceSucces}</div>
 <div class="annonce" role="alert">{annonceEchec}</div>
@@ -176,6 +185,9 @@
 		color: var(--doux);
 	}
 	.anniversaires {
+		display: flex;
+		flex-direction: column;
+		gap: var(--espace-8);
 		margin: 0 0 var(--espace-16);
 		padding: var(--espace-12) var(--espace-16);
 		border-radius: var(--rayon-grand);
@@ -183,6 +195,20 @@
 		background: var(--statut-alerte-fond);
 		color: var(--statut-alerte-texte);
 		font-weight: 600;
+	}
+	.anniversaires p {
+		margin: 0;
+	}
+	.souhait {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--espace-12);
+	}
+	@media (min-width: 1024px) {
+		.souhait {
+			display: none;
+		}
 	}
 	.annonce {
 		position: absolute;
