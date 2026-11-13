@@ -5,7 +5,7 @@ import { DonneeInvalide } from '../erreurs.ts';
 import { STATUTS_AVEC_ACCES } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
 import type { Periode, Reglage, SemaineCalculee } from '../planning/calendrier.ts';
-import { anneesPubliees, equipeLe } from '../planning/annee.ts';
+import { equipeLe, semainesCalculees } from '../planning/annee.ts';
 import { validesLe } from '../aptitudes.ts';
 import { affectationEquipe, anneePlanning, aptitude, aptitudeAgent, attribution, demandeRemplacement, equipe, personne, responsabilite, semaineChangee, vacancesAgent } from '../schema.ts';
 import { enVacances, heuresDe, lirePlage, requetePlagesPubliees } from '../planning/plages.ts';
@@ -49,15 +49,14 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 	const du = ajouterJours(aujourdhui, -15);
 	const au = ajouterJours(aujourdhui, SEMAINES_PROPOSEES * 7 + 7);
 	let semaines: SemaineCalculee[] | null = null;
-	const utiles = annees.filter((a) => a.annee >= Number(du.slice(0, 4)) && a.annee <= Number(au.slice(0, 4)));
+	// Seules ces semaines-là sont calculées, pas les années entières : une quinzaine au lieu de 104.
+	const utiles = annees.filter((a) => a.publieeLe !== null && a.annee >= Number(du.slice(0, 4)) && a.annee <= Number(au.slice(0, 4))).sort((a, b) => a.annee - b.annee);
+	const fenetre = { debut: du, fin: ajouterJours(au, 1) };
 	return {
 		maintenant: maintenant.slice(0, 16),
 		reglage,
 		get semaines(): SemaineCalculee[] {
-			semaines ??= [...anneesPubliees(utiles, changees, reglage).entries()]
-				.sort(([a], [b]) => a - b)
-				.flatMap(([, s]) => s)
-				.filter((s) => s.debut >= du && s.debut <= au);
+			semaines ??= utiles.flatMap((a) => semainesCalculees(a.annee, a.ordre, changees, reglage, fenetre));
 			return semaines;
 		},
 		affectations,

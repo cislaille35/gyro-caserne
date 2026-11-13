@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { accueilDe } from '../src/casquettes.ts';
 import * as calendrier from '../src/planning/calendrier.ts';
@@ -8,9 +9,11 @@ import { astreinteDe } from '../src/planning/astreinte.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
 import { eteAPreparer, plageAPreparer } from '../src/planning/repartition.ts';
 import { lirePrise, prisesDeLaReleve } from '../src/prises.ts';
-import { manoeuvresEchangeables } from '../src/remplacements/demandes.ts';
+import { demanderRemplacement, manoeuvresEchangeables, proposerEchange } from '../src/remplacements/demandes.ts';
+import { lireContexte } from '../src/remplacements/contexte.ts';
+import { ajouterJours } from '../src/dates.ts';
 import { demandeVue, pourDemander, remplacementsDe } from '../src/remplacements/lectures.ts';
-import { demandeRemplacement, engin } from '../src/schema.ts';
+import { anneePlanning, demandeRemplacement, engin, semaineChangee } from '../src/schema.ts';
 import { jeuGrossi } from './jeu-grossi.ts';
 
 // Le garde-fou du temps de calcul (offre gratuite de Cloudflare : 10 ms par requête, décision 0021). On compte le travail, pas les
@@ -75,7 +78,8 @@ async function compter(f: () => Promise<unknown>) {
 		demandes = parse.mock.calls.filter(([texte]) => textes.has(texte as string)).length;
 		parse.mockRestore();
 	}
-	return { annees: vi.mocked(calendrier.calculerAnnee).mock.calls.length, heures: vi.mocked(plages.heuresDe).mock.calls.length, demandes, equipes: vi.mocked(annee.equipeLe).mock.calls.length };
+	const semaines = vi.mocked(calendrier.calculerAnnee).mock.results.reduce((n, r) => n + (r.value as unknown[]).length, 0);
+	return { semaines, annees: vi.mocked(calendrier.calculerAnnee).mock.calls.length, heures: vi.mocked(plages.heuresDe).mock.calls.length, demandes, equipes: vi.mocked(annee.equipeLe).mock.calls.length };
 }
 
 // Les chargements les plus exposés, tels que les pages les font (`maintenant` : un jour ordinaire, puis aux premiers jours de janvier,
@@ -124,6 +128,8 @@ describe('Le calcul reste borné, avec 60 agents, 6 années publiées et 50 dema
 			expect(n.heures, 'heures d’astreinte').toBeLessThanOrEqual(jeu.agents * 16);
 			// Le texte des demandes : quelques lectures par demande (contexte et affichage), jamais une par tranche vérifiée.
 			expect(n.demandes, 'textes des demandes').toBeLessThanOrEqual(4 * demandes);
+			// Remplacements et échange : les semaines de la fenêtre utile seulement, pas des années entières.
+			if (['une demande', 'demander : quand', 'demander : qui', 'échange : sienne'].includes(nom)) expect(n.semaines, 'semaines calculées').toBeLessThanOrEqual(16);
 		});
 
 	it.each(['2026-11-11T10:00', '2027-06-01T10:00'])('l’été et une plage : l’équipe de chacun cherchée une fois par semaine (%s)', async (m) => {
@@ -183,5 +189,102 @@ describe('Le calcul reste borné, avec 60 agents, 6 années publiées et 50 dema
 		}
 		expect(changee).toBeGreaterThan(0);
 		expect(vi.mocked(calendrier.calculerAnnee)).not.toHaveBeenCalled();
+	});
+});
+
+// Les remplacements et l'échange, étape par étape, et leurs envois : seules les semaines de la fenêtre utile (15 jours avant,
+// 13 semaines après) sont calculées, jamais des années entières. Les résultats restent ceux du calcul de toutes les années publiées.
+describe('Remplacements : seules les semaines de la fenêtre utile sont calculées', () => {
+	const referent = () => (jeu.acteurs.referent.type === 'personne' ? jeu.acteurs.referent.id : 0);
+	// Les semaines du contexte comme avant : toutes les années publiées calculées en entier, puis filtrées sur la fenêtre.
+	async function reference(m: string) {
+		const { base, reglage } = jeu;
+		const toutes = annee.anneesPubliees(await base.select().from(anneePlanning), await base.select().from(semaineChangee), reglage);
+		const du = ajouterJours(m.slice(0, 10), -15);
+		const au = ajouterJours(m.slice(0, 10), 12 * 7 + 7);
+		return [...toutes.entries()]
+			.sort(([a], [b]) => a - b)
+			.flatMap(([, s]) => s)
+			.filter((s) => s.debut >= du && s.debut <= au);
+	}
+
+	beforeAll(async () => {
+		const { base, reglage, acteurs } = jeu;
+		// Une année en brouillon (roulement réglé, non publiée) : invisible. Deux semaines changées autour du Nouvel An.
+		const equipes = JSON.parse((await base.select().from(anneePlanning)).find((a) => a.annee === 2027)!.ordre) as number[];
+		await annee.reglerRoulement(base, acteurs.chef, 2028, equipes, jeu.m);
+		await annee.changerSemaines(base, acteurs.chef, 2026, { '2026-12-25': equipes[0]! }, jeu.m, reglage);
+		await annee.changerSemaines(base, acteurs.chef, 2027, { '2027-01-01': equipes[1]! }, jeu.m, reglage);
+	});
+
+	// Jours ordinaires, autour du Nouvel An (semaine du 25/12 au 1/01, celle du 31/12/2027 au 7/01/2028), avant l'année en brouillon.
+	it.each(['2026-11-11T10:00', '2026-12-20T10:00', '2026-12-31T23:00', '2027-01-01T08:00', '2027-01-03T10:00', '2027-10-15T10:00', '2027-12-31T12:00', '2028-01-05T10:00'])(
+		'%s : les mêmes semaines qu’en calculant toutes les années, une quinzaine au plus',
+		async (m) => {
+			const attendues = await reference(m);
+			vi.mocked(calendrier.calculerAnnee).mockClear();
+			const ctx = await lireContexte(jeu.base, m, jeu.reglage);
+			expect(ctx.semaines).toEqual(attendues);
+			expect(ctx.semaines.some((s) => s.debut.startsWith('2028')), 'année en brouillon').toBe(false);
+			const calculees = vi.mocked(calendrier.calculerAnnee).mock.results.reduce((n, r) => n + (r.value as unknown[]).length, 0);
+			expect(calculees, 'semaines calculées').toBeLessThanOrEqual(16);
+		}
+	);
+
+	it('la semaine du 25 décembre court jusqu’au 1er janvier, changée par le chef ; celle du 1er janvier aussi', async () => {
+		const ctx = await lireContexte(jeu.base, '2026-12-31T23:00', jeu.reglage);
+		const noel = ctx.semaines.find((s) => s.debut === '2026-12-25')!;
+		expect(noel.changee).toBe(true);
+		expect(noel.periodes.at(-1)!.fin).toBe('2027-01-01T18:00');
+		expect(ctx.semaines.find((s) => s.debut === '2027-01-01')!.changee).toBe(true);
+	});
+
+	it('un échange d’une période de décembre contre une de janvier, et les étapes du parcours, sans calculer d’année entière', async () => {
+		const { base, reglage, acteurs } = jeu;
+		const m = '2026-12-01T10:00';
+		const lu = await pourDemander(base, acteurs.referent, m, reglage, { echange: true });
+		const decembre = lu.semaines.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre' && t.debut.startsWith('2026-12'));
+		expect(decembre.length).toBeGreaterThan(0);
+		// Le premier collègue qui a une tranche libre en janvier contre l'une de mes tranches de décembre.
+		let choix: { periodes: { debut: string; fin: string }[]; avec: number; siennes: { debut: string; fin: string }[] } | null = null;
+		for (const t of decembre) {
+			const periodes = [{ debut: t.debut, fin: t.fin }];
+			const avec = await pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true });
+			for (const c of avec.echangeables) {
+				const sienne = await pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true, avec: c.id });
+				const janvier = sienne.semainesAvec.flatMap((s) => s.tranches).find((x) => x.etat === 'libre' && x.debut.startsWith('2027-01'));
+				if (janvier) choix = { periodes, avec: c.id, siennes: [{ debut: janvier.debut, fin: janvier.fin }] };
+				if (choix) break;
+			}
+			if (choix) break;
+		}
+		expect(choix, 'un échange décembre contre janvier possible').not.toBeNull();
+		const { periodes, avec, siennes } = choix!;
+		const etapes: [string, () => Promise<unknown>][] = [
+			['quand', () => pourDemander(base, acteurs.referent, m, reglage, { echange: true })],
+			['avec', () => pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true })],
+			['sienne', () => pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true, avec })],
+			['vérifier', () => pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true, avec, periodesAvec: siennes })],
+			['qui', () => pourDemander(base, acteurs.referent, m, reglage, { periodes })]
+		];
+		for (const [nom, f] of etapes) {
+			const n = await compter(f);
+			expect(n.semaines, `${nom} : semaines calculées`).toBeLessThanOrEqual(16);
+			expect(n.heures, `${nom} : heures d’astreinte`).toBeLessThanOrEqual(jeu.agents * 16);
+			expect(n.demandes, `${nom} : textes des demandes`).toBeLessThanOrEqual(4 * demandes);
+		}
+		const verifie = await pourDemander(base, acteurs.referent, m, reglage, { periodes, echange: true, avec, periodesAvec: siennes });
+		expect(verifie.choisies).toEqual(periodes);
+		expect(verifie.avec?.id).toBe(avec);
+
+		// Les envois : la demande de remplacement, puis l'échange de décembre contre janvier.
+		let id = 0;
+		const envoi = await compter(async () => (id = await demanderRemplacement(base, acteurs.referent, { periodes, cibleId: null }, m, reglage)));
+		expect(envoi.semaines, 'remplacement envoyé : semaines calculées').toBeLessThanOrEqual(16);
+		await base.delete(demandeRemplacement).where(eq(demandeRemplacement.id, id));
+		const echange = await compter(async () => (id = await proposerEchange(base, acteurs.referent, { periodes, cibleId: avec, periodesCible: siennes }, m, reglage)));
+		expect(echange.semaines, 'échange envoyé : semaines calculées').toBeLessThanOrEqual(16);
+		const [ligne] = await base.select().from(demandeRemplacement).where(eq(demandeRemplacement.id, id));
+		expect(ligne).toMatchObject({ genre: 'echange', demandeurId: referent(), cibleId: avec, debut: periodes[0]!.debut, periodesCible: JSON.stringify(siennes) });
 	});
 });
