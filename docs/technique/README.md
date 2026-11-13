@@ -21,6 +21,7 @@ flowchart LR
 - Connexion par lien magique (Better Auth), réservée aux adresses autorisées : une personne du centre avec un statut qui donne accès, ou un super administrateur (`SUPER_ADMINS`). Une adresse inconnue reçoit le même message, sans lien.
 - Option Cloudflare `nodejs_compat` : Better Auth utilise des modules de Node (`node:async_hooks` notamment).
 - Le lien de connexion part en arrière-plan (`waitUntil`), au plus un par minute et par adresse (table `envoi_lien`, réservée en une seule requête) ; en base, seule l'empreinte du jeton est gardée.
+- Le même courriel porte un code à 6 chiffres (plugin `emailOTP` de Better Auth, type `sign-in`), créé dans l'envoi du lien, après la réservation : 5 minutes, 3 essais, usage unique, empreinte HMAC liée à `BETTER_AUTH_SECRET`. Le code utilisé efface le lien (crochet `after` sur `/sign-in/email-otp`). Les autres routes du plugin sont fermées (`disabledPaths`). Page de connexion : actions `envoyer` et `code` ([0034](../decisions/0034-code-de-connexion.md)).
 - Les tables de connexion gardent les noms de Better Auth (`user`, `session`, `account`, `verification`) : il les attend tels quels.
 - Tables et modèle des droits : [socle.md](socle.md).
 - Installer un nouveau centre : [installer-un-centre.md](installer-un-centre.md).
@@ -74,8 +75,8 @@ Versions exactes : dans les `package.json` (pnpm les fixe à chaque ajout, `save
 | Drizzle ORM | 0.45 | Accès à la base (D1 en production, SQLite en test) |
 | drizzle-kit | 0.31 | Génère les migrations de la base |
 | @fontsource/barlow, barlow-condensed | 5.3.0 | Polices servies par l'appli (la CSP interdit Google Fonts) |
-| Better Auth | 1.7 | Connexion par lien magique et sessions |
-| Brevo | API v3 | Envoi des courriels (liens de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
+| Better Auth | 1.7 | Connexion par lien magique ou code (plugins `magicLink`, `emailOTP`) et sessions |
+| Brevo | API v3 | Envoi des courriels (lien et code de connexion), par simple requête HTTP, sans bibliothèque ([0007](../decisions/0007-brevo.md)) |
 | write-excel-file | 4.1.1 | Écrit le fichier de l'effectif (`.xlsx`, listes déroulantes), dans le navigateur |
 | read-excel-file | 9.3.12 | Relit le fichier de l'effectif, dans le navigateur |
 | age | 1.3.2 | Chiffre la copie hebdomadaire de la base pour la clé publique du porteur. Binaire officiel téléchargé par le workflow à une adresse fixe, empreinte SHA-256 vérifiée (la même que celle publiée par GitHub pour la version). Choisi plutôt que gpg pour sa simplicité côté porteur ([0030](../decisions/0030-copie-hebdomadaire.md)) |

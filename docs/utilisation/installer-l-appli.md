@@ -7,7 +7,8 @@ Installée, Gyro Caserne s'ouvre d'un geste depuis l'écran d'accueil, en plein 
 1. Ouvrez Gyro Caserne dans **Safari**.
 2. Touchez **Partager** (le carré avec une flèche vers le haut), en bas de l'écran.
 3. Choisissez **Sur l'écran d'accueil**, puis **Ajouter**.
-4. Ouvrez Gyro Caserne depuis sa nouvelle icône, puis activez les notifications : Moi → Notifications → « Activer sur ce téléphone ».
+4. Ouvrez Gyro Caserne depuis sa nouvelle icône. Elle vous demande de vous connecter, même si Safari l'est déjà : demandez le courriel et **tapez son code dans l'appli** (le lien, lui, s'ouvrirait dans Safari). Voir [Comment me connecter ?](me-connecter.md).
+5. Activez les notifications : Moi → Notifications → « Activer sur ce téléphone ».
 
 ## Sur Android (ou un ordinateur, avec Chrome ou Edge)
 
@@ -16,5 +17,7 @@ Installée, Gyro Caserne s'ouvre d'un geste depuis l'écran d'accueil, en plein 
 3. Confirmez avec **Installer**.
 
 Pas de bouton ? Ouvrez le menu du navigateur (les trois points) et choisissez **Installer l'appli** ou **Ajouter à l'écran d'accueil**.
+
+Déconnectée un jour (90 jours sans l'ouvrir, « tous mes appareils »), l'appli installée se reconnecte de même, par le code : inutile de la supprimer.
 
 Déjà installée, l'appli ne vous propose plus rien. « Plus tard » sur l'Accueil cache l'encart quelques jours ; Moi → Installer l'appli reste là.

@@ -17,6 +17,7 @@ Format d'une page :
 - [Comment effacer les données d'un agent ?](effacer-un-agent.md)
 - [Comment importer l'effectif ?](importer-l-effectif.md)
 - [Comment modifier mon profil ?](modifier-mon-profil.md)
+- [Comment me connecter ?](me-connecter.md)
 - [Comment me déconnecter, ici ou de tous mes appareils ?](se-deconnecter.md)
 - [Que garde l'appli sur moi ?](que-garde-l-appli-sur-moi.md)
 - [À qui m'adresser ?](a-qui-m-adresser.md)
