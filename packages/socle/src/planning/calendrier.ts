@@ -54,14 +54,17 @@ export function numeroSemaine(date: string): number {
 
 // Les jours de relève de l'année : une semaine appartient à l'année où elle commence.
 export function semainesDe(annee: number, reglage: Reglage): { debut: string; numero: number }[] {
+	return relevesDe(annee, reglage).map((debut) => ({ debut, numero: numeroSemaine(debut) }));
+}
+function relevesDe(annee: number, reglage: Reglage): string[] {
 	const premier = `${annee}-01-01`;
 	let jour = ajouterJours(premier, (JOURS.indexOf(reglage.debut.jour) - rangDuJour(premier) + 7) % 7);
-	const semaines = [];
+	const releves = [];
 	while (jour.startsWith(String(annee))) {
-		semaines.push({ debut: jour, numero: numeroSemaine(jour) });
+		releves.push(jour);
 		jour = ajouterJours(jour, 7);
 	}
-	return semaines;
+	return releves;
 }
 
 // Le jour où finit la semaine commencée `debut`.
@@ -101,12 +104,12 @@ export function calculerAnnee(annee: number, reglage: Reglage, ordre: number[], 
 	const f = new Set(feries(annee).map((x) => x.date));
 	// La dernière semaine peut finir en janvier suivant.
 	for (const x of feries(annee + 1)) f.add(x.date);
-	return semainesDe(annee, reglage).flatMap((s, i) => {
-		if (entre && (s.debut < entre.debut || s.debut >= entre.fin)) return [];
+	return relevesDe(annee, reglage).flatMap((debut, i) => {
+		if (entre && (debut < entre.debut || debut >= entre.fin)) return [];
 		const prevue = ordre.length ? ordre[i % ordre.length]! : 0;
-		const choisie = changees.get(s.debut);
+		const choisie = changees.get(debut);
 		const equipeId = choisie ?? prevue;
-		return [{ ...s, equipeId, changee: choisie !== undefined && choisie !== prevue, periodes: periodesDeLaSemaine(s.debut, reglage, f) }];
+		return [{ debut, numero: numeroSemaine(debut), equipeId, changee: choisie !== undefined && choisie !== prevue, periodes: periodesDeLaSemaine(debut, reglage, f) }];
 	});
 }
 
