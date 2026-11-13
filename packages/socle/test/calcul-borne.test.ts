@@ -222,6 +222,8 @@ describe('Remplacements : seules les semaines de la fenêtre utile sont calculé
 		'%s : les mêmes semaines qu’en calculant toutes les années, une quinzaine au plus',
 		async (m) => {
 			const attendues = await reference(m);
+			// Jamais vide (fin 2027, seules les dernières semaines publiées restent : 2028 est en brouillon).
+			expect(attendues.length).toBeGreaterThan(0);
 			vi.mocked(calendrier.calculerAnnee).mockClear();
 			const ctx = await lireContexte(jeu.base, m, jeu.reglage);
 			expect(ctx.semaines).toEqual(attendues);
@@ -286,5 +288,6 @@ describe('Remplacements : seules les semaines de la fenêtre utile sont calculé
 		expect(echange.semaines, 'échange envoyé : semaines calculées').toBeLessThanOrEqual(16);
 		const [ligne] = await base.select().from(demandeRemplacement).where(eq(demandeRemplacement.id, id));
 		expect(ligne).toMatchObject({ genre: 'echange', demandeurId: referent(), cibleId: avec, debut: periodes[0]!.debut, periodesCible: JSON.stringify(siennes) });
+		await base.delete(demandeRemplacement).where(eq(demandeRemplacement.id, id));
 	});
 });

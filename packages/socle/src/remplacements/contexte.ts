@@ -49,7 +49,7 @@ export async function lireContexte(base: Base, maintenant: string, reglage: Regl
 	const du = ajouterJours(aujourdhui, -15);
 	const au = ajouterJours(aujourdhui, SEMAINES_PROPOSEES * 7 + 7);
 	let semaines: SemaineCalculee[] | null = null;
-	// Seules ces semaines-là sont calculées, pas les années entières : une quinzaine au lieu de 104.
+	// Seules ces semaines-là sont calculées, pas les années entières : une quinzaine au lieu de 52 à 104. Les autres années ne sont pas lues.
 	const utiles = annees.filter((a) => a.publieeLe !== null && a.annee >= Number(du.slice(0, 4)) && a.annee <= Number(au.slice(0, 4))).sort((a, b) => a.annee - b.annee);
 	const fenetre = { debut: du, fin: ajouterJours(au, 1) };
 	return {
