@@ -21,34 +21,26 @@ async function contexteDe(base: Base, acteur: Acteur, aujourdhui: string): Promi
 	return { acteur, droits: await droitsDe(base, acteur, aujourdhui), estChef };
 }
 
-// Seule définition de « qui peut attribuer ou retirer telle responsabilité sur tel périmètre ».
-function exigerAttribution(contexte: Contexte, laResponsabilite: Responsabilite, perimetre: Perimetre) {
+// Seule définition de « qui peut attribuer ou retirer telle responsabilité sur tel périmètre » : le motif du refus, ou null si permis.
+// Sans exception : le menu de chaque page juge ainsi de nombreux cas, et lancer une exception coûte du calcul.
+function refusDAttribution(contexte: Contexte, laResponsabilite: Responsabilite, perimetre: Perimetre): { vise: Perimetre; message?: string } | null {
 	// Exceptions aux droits : le chef de centre est nommé par un super administrateur, son adjoint par le chef de centre.
-	if (laResponsabilite.systeme === 'chef_centre') {
-		if (contexte.acteur.type !== 'super') throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' }, 'Seul un super administrateur nomme ou retire le chef de centre');
-		return;
-	}
-	if (laResponsabilite.systeme === 'chef_centre_adjoint') {
-		if (contexte.acteur.type !== 'super' && !contexte.estChef) {
-			throw new RefusDroit('ATTRIBUER_RESPONSABILITE', { type: 'centre' }, 'Seul le chef de centre nomme ou retire un adjoint');
-		}
-		return;
-	}
+	if (laResponsabilite.systeme === 'chef_centre') return contexte.acteur.type === 'super' ? null : { vise: { type: 'centre' }, message: 'Seul un super administrateur nomme ou retire le chef de centre' };
+	if (laResponsabilite.systeme === 'chef_centre_adjoint') return contexte.acteur.type === 'super' || contexte.estChef ? null : { vise: { type: 'centre' }, message: 'Seul le chef de centre nomme ou retire un adjoint' };
 	let vise: Perimetre;
 	if (laResponsabilite.comiteAttributeurId !== null) vise = { type: 'comite', id: laResponsabilite.comiteAttributeurId };
 	else if (perimetre.type === 'comite') vise = perimetre;
 	else vise = { type: 'centre' };
-	if (!accorde(contexte.droits, 'ATTRIBUER_RESPONSABILITE', vise)) throw new RefusDroit('ATTRIBUER_RESPONSABILITE', vise);
+	return accorde(contexte.droits, 'ATTRIBUER_RESPONSABILITE', vise) ? null : { vise };
+}
+
+function exigerAttribution(contexte: Contexte, laResponsabilite: Responsabilite, perimetre: Perimetre) {
+	const refus = refusDAttribution(contexte, laResponsabilite, perimetre);
+	if (refus) throw new RefusDroit('ATTRIBUER_RESPONSABILITE', refus.vise, refus.message);
 }
 
 function peutAttribuer(contexte: Contexte, laResponsabilite: Responsabilite, perimetre: Perimetre): boolean {
-	try {
-		exigerAttribution(contexte, laResponsabilite, perimetre);
-		return true;
-	} catch (erreur) {
-		if (erreur instanceof RefusDroit) return false;
-		throw erreur;
-	}
+	return refusDAttribution(contexte, laResponsabilite, perimetre) === null;
 }
 
 // La même règle, droits de l'acteur lus une seule fois : pour juger de nombreux cas (aperçu d'un import).
@@ -293,6 +285,8 @@ export async function peutAttribuerQuelqueChose(base: Base, acteur: Acteur, aujo
 	exigerDate(aujourdhui);
 	if (acteur.type === 'super') return true;
 	const contexte = await contexteDe(base, acteur, aujourdhui);
+	// Sans aucun droit d'attribuer, seul le chef de centre peut encore nommer quelqu'un (son adjoint) : sinon, rien à lire de plus.
+	if (!contexte.estChef && !contexte.droits.some((d) => d.droit === 'ATTRIBUER_RESPONSABILITE')) return false;
 	const { responsabilites, perimetres } = await candidats(base);
 	return responsabilites.some((r) => perimetres[r.typePerimetre].some((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id))));
 }
