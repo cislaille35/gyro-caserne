@@ -583,6 +583,11 @@ export async function prendreEnvois(base: Base, max: number, maintenant = new Da
 	return { jeton, envois: lignes.map((l) => ({ ...l, donnees: JSON.parse(l.donnees) as DonneesPush, pastille: pastille.get(l.personneId) ?? 0 })) };
 }
 
+// Aucun envoi en file, réservé ou non : le réveil n'a alors pas de lot à prendre (prendreEnvois n'aurait rien trouvé, rien retiré).
+export async function fileDEnvoisVide(base: Base): Promise<boolean> {
+	return (await base.select({ id: envoiPush.id }).from(envoiPush).limit(1)).length === 0;
+}
+
 // Le lot est parti : ses envois sont retirés de la file, qu'ils aient été reçus ou refusés (jamais renvoyés), et les abonnements
 // périmés (le service push répond 404 ou 410) supprimés, avec leurs envois. Une requête à la base.
 export async function finirEnvois(base: Base, jeton: string, perimes: number[]): Promise<void> {

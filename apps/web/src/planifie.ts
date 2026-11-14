@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, fileDEnvoisVide, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -30,8 +30,14 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
-			const base = creerBaseD1(env.BASE);
+			// Une tâche du réveil qui met des envois en file (annonce, relance, vigilance rouge) : le lot part ensuite.
+			let misEnFile = false;
+			const base = creerBaseD1(env.BASE, () => {
+				misEnFile = true;
+			});
 			if (controleur.cron !== CRON_NUIT) {
+				// La file, lue en même temps que les tâches : vide, et rien mis en file par elles, le lot n'est pas pris. Illisible : il l'est.
+				const fileVide = fileDEnvoisVide(base).catch(() => false);
 				const taches: Promise<unknown>[] = [];
 				// L'heure prévue du réveil (même s'il part en retard) : 8 h 00, 8 h 10…
 				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
@@ -48,7 +54,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				const lieu = { position: centre.position, departement: centre.departement };
 				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
 				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
-				ctx.waitUntil(Promise.allSettled(taches).then(() => envoyerLot(base, clesVapid(env))));
+				ctx.waitUntil(Promise.allSettled(taches).then(async () => (!misEnFile && (await fileVide) ? null : envoyerLot(base, clesVapid(env)))));
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);

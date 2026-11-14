@@ -27,6 +27,7 @@ import {
 	notifierPublication,
 	ESSAIS_MAX,
 	finirEnvois,
+	fileDEnvoisVide,
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
@@ -368,6 +369,16 @@ describe('abonnements et file d’envoi', () => {
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Pour Alice' }, maintenant), maintenant);
 		await abonner(base, acteur(bruno), { endpoint: 'https://fcm.googleapis.com/fcm/send/Alice', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant);
 		expect((await file()).map((e) => e.a)).toEqual(['Bruno', 'Chloe']);
+	});
+
+	it('fileDEnvoisVide : vrai seulement sans aucun envoi, réservé ou non', async () => {
+		const { base, chef } = await jeu();
+		expect(await fileDEnvoisVide(base)).toBe(true);
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		expect(await fileDEnvoisVide(base)).toBe(false);
+		// Réservé par un lot en vol (pas encore repris) : la file n'est pas vide pour autant.
+		await prendreEnvois(base, 40, heure('10:00'));
+		expect(await fileDEnvoisVide(base)).toBe(false);
 	});
 
 	it('prendreEnvois : les plus anciens d’abord, réservés sans être retirés ; finirEnvois les retire, avec les abonnements périmés', async () => {
