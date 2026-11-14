@@ -136,33 +136,38 @@ describe('load du layout', () => {
 	});
 
 	it('la cloche ne fait jamais tomber la page : 0 si sa lecture échoue', async () => {
-		const { base, alice } = await preparer();
-		const enPanne = new Proxy(base, { get: (cible, cle) => (cle === 'batch' ? () => Promise.reject(new Error('D1 indisponible')) : Reflect.get(cible, cle)) });
-		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
-		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, cloche: 0 });
-		expect(erreur).toHaveBeenCalled();
-		erreur.mockRestore();
-	});
-
-	it('compte les messages non lus pour la pastille d’Échanges ; 0 pour le super administrateur, le visiteur, ou si la lecture échoue', async () => {
 		const { base, alice, bruno } = await preparer();
 		await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, maintenantParis());
-		expect((await appeler(alice, base)).nonLus).toBe(1);
-		expect((await appeler(super_, base)).nonLus).toBe(0);
-		expect((await appeler(null, base)).nonLus).toBe(0);
-		// Seul le compte des non-lus (une sélection de « n ») tombe en panne.
+		// Seule la lecture de l'en-tête (cloche, messages, visage, écusson) tombe en panne.
 		const select = base.select.bind(base) as (champs?: object) => unknown;
 		const enPanne = new Proxy(base, {
 			get: (cible, cle) =>
 				cle === 'select'
 					? (champs?: object) => {
-							if (champs && 'n' in champs) throw new Error('D1 indisponible');
+							if (champs && 'nonLus' in champs) throw new Error('D1 indisponible');
 							return select(champs);
 						}
 					: Reflect.get(cible, cle)
 		});
 		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
-		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, nonLus: 0 });
+		expect(await appeler(alice, enPanne)).toMatchObject({ connecte: true, cloche: 0, nonLus: 0, visage: null, ecusson: null });
+		expect(erreur).toHaveBeenCalled();
 		erreur.mockRestore();
+	});
+
+	// Le cadre de chaque page : les droits (3 requêtes), « est-il chef de centre ? », puis l'en-tête en une requête.
+	it('pour un agent sans droit d’attribuer : 5 requêtes en tout', async () => {
+		const { base, alice } = await preparer();
+		const avant = base.requetes;
+		await appeler(alice, base);
+		expect(base.requetes - avant).toBe(5);
+	});
+
+	it('compte les messages non lus pour la pastille d’Échanges ; 0 pour le super administrateur ou le visiteur', async () => {
+		const { base, alice, bruno } = await preparer();
+		await envoyer(base, base.photos, bruno, { personne: alice.id }, { texte: 'Salut' }, maintenantParis());
+		expect((await appeler(alice, base)).nonLus).toBe(1);
+		expect((await appeler(super_, base)).nonLus).toBe(0);
+		expect((await appeler(null, base)).nonLus).toBe(0);
 	});
 });

@@ -1,18 +1,19 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
-import { ecussonDuCentre, requeteEcusson } from './ecusson.ts';
+import { ecussonDuCentre } from './ecusson.ts';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
 import { DonneeInvalide } from './erreurs.ts';
-import { aLaMessagerie, nonLusPour, signalementsPour } from './messagerie.ts';
+import { aLaMessagerie, nombreSignalements, nonLusPour, signalementsPour } from './messagerie.ts';
 import { aTrancherPar } from './reservations-gestion.ts';
+import { nombreAValider } from './reservations.ts';
 import { agentsDuJour, estConvoque, type Convocation, estMembre, exigerMur, lecturesAgents, type CleMur } from './murs.ts';
 import { periodeCourte } from './reservations-calcul.ts';
 import { texteDemande } from './remplacements/tranches.ts';
 import { aValiderPar } from './remplacements/compte.ts';
 import { TITRES_AVIS } from './remplacements/titres.ts';
 import type { AvisEte, AvisRemplacement } from './listes.ts';
-import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
+import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, ecusson, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -356,21 +357,40 @@ function deMurs(
 		});
 }
 
-// L'en-tête de chaque page : le nombre de non-lues, le visage de la personne et la version de l'écusson du centre (null sans écusson).
-// Une requête, l'écusson lu dans le même envoi ; pour le super administrateur, seulement l'écusson.
-// `remplacementsAValider` : les demandes de remplacement que la personne doit trancher (chef de garde, ou chef de centre à défaut).
-export async function enTeteDe(base: Base, acteur: Acteur, aujourdhui: string, maintenant = `${aujourdhui}T00:00`): Promise<{ nonLues: number; remplacementsAValider: number; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
+// L'en-tête de chaque page : de quoi composer la cloche (non-lues, remplacements à valider, messages signalés pour qui modère,
+// réservations à trancher), les messages non lus (la pastille d'Échanges), le visage de la personne et la version de l'écusson
+// du centre (null sans écusson). Une requête légère, les mêmes comptes en SQL que la pastille d'un envoi (prendreEnvois).
+// Pour le super administrateur, sans visage ni messages : les signalements et réservations par ses droits, et l'écusson.
+export async function enTeteDe(
+	base: Base,
+	acteur: Acteur,
+	aujourdhui: string,
+	maintenant = `${aujourdhui}T00:00`
+): Promise<{ nonLues: number; remplacementsAValider: number; signalements: number; aTrancher: number; nonLus: number; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
 	exigerDate(aujourdhui);
-	if (acteur.type !== 'personne') return { nonLues: 0, remplacementsAValider: 0, visage: null, ecusson: await ecussonDuCentre(base) };
-	const [[compte], [visage], [ecusson]] = await base.batch([
-		nonLuesDe(base, acteur.id, aValiderPar(acteur.id, aujourdhui, maintenant)),
-		base
-			.select({ prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
-			.from(personne)
-			.where(eq(personne.id, acteur.id)),
-		requeteEcusson(base)
-	]);
-	return { nonLues: compte?.n ?? 0, remplacementsAValider: compte?.aValider ?? 0, visage: visage ?? null, ecusson: ecusson?.photoId ?? null };
+	if (acteur.type !== 'personne') {
+		const [signalements, aTrancher, ecusson] = await Promise.all([nombreSignalements(base, acteur, aujourdhui), nombreAValider(base, acteur, aujourdhui), ecussonDuCentre(base)]);
+		return { nonLues: 0, remplacementsAValider: 0, signalements, aTrancher, nonLus: 0, visage: null, ecusson };
+	}
+	const qui = sql`"personne"."id"`;
+	const [l] = await base
+		.select({
+			prenom: personne.prenom,
+			nom: personne.nom,
+			couleur: couleurDe(aujourdhui),
+			// Chaque compte dans un sql`…` de plus, comme dans prendreEnvois : sinon drizzle écrirait les colonnes de ses sous-requêtes
+			// sans leur table (requête sur une seule table), et SQLite ne saurait pas de laquelle il s'agit.
+			nonLues: sql<number>`${nonLuesSql(qui)}`,
+			aValider: sql<number>`${aValiderPar(qui, aujourdhui, maintenant)}`,
+			signalements: sql<number>`${signalementsPour(qui, aujourdhui)}`,
+			aTrancher: sql<number>`${aTrancherPar(qui, aujourdhui)}`,
+			nonLus: sql<number>`${nonLusPour(qui, aujourdhui)}`,
+			ecusson: sql<number | null>`(select ${ecusson.photoId} from ${ecusson})`
+		})
+		.from(personne)
+		.where(eq(personne.id, acteur.id));
+	if (!l) return { nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: await ecussonDuCentre(base) };
+	return { nonLues: l.nonLues, remplacementsAValider: l.aValider, signalements: l.signalements, aTrancher: l.aTrancher, nonLus: l.nonLus, visage: { prenom: l.prenom, nom: l.nom, couleur: l.couleur }, ecusson: l.ecusson };
 }
 
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {
