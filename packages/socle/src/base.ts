@@ -2,13 +2,11 @@ import type { SQL } from 'drizzle-orm';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import { type DrizzleD1Database, drizzle } from 'drizzle-orm/d1';
 import { oublierDroits } from './droits.ts';
-import type * as schema from './schema.ts';
-import type * as schemaPhotos from './schema-photos.ts';
 
 // batch est propre à D1 et au proxy de test : il exécute plusieurs requêtes d'un bloc.
-// Le schéma ne sert qu'aux types : la base est créée sans lui, car drizzle en construirait alors à chaque requête son modèle
-// relationnel (base.query, inutilisé), soit environ 2 ms de calcul, 14 ms à froid. base.query reste donc vide.
-export type Base = BaseSQLiteDatabase<'async', unknown, typeof schema> & Pick<DrizzleD1Database<typeof schema>, 'batch'>;
+// La base est créée sans le schéma : drizzle en construirait sinon à chaque requête son modèle relationnel (base.query,
+// inutilisé), soit environ 2 ms de calcul, 14 ms à froid. Les requêtes passent par les tables de schema.ts.
+export type Base = BaseSQLiteDatabase<'async', unknown> & Pick<DrizzleD1Database, 'batch'>;
 
 // Une requête qui n'est pas une lecture peut changer des droits : ceux déjà lus sont oubliés.
 export const ecrit = (sql: string) => !/^\s*select\b/i.test(sql);
@@ -29,15 +27,15 @@ export function creerBaseD1(d1: D1Database, siEnFile?: () => void): Base {
 			return typeof valeur === 'function' ? valeur.bind(cible) : valeur;
 		}
 	});
-	const base = drizzle(surveillee) as unknown as Base;
+	const base: Base = drizzle(surveillee);
 	return base;
 }
 
 // La base des photos (liaison PHOTOS) : les octets seulement, aucun droit n'y est lu.
-export type BasePhotos = BaseSQLiteDatabase<'async', unknown, typeof schemaPhotos> & Pick<DrizzleD1Database<typeof schemaPhotos>, 'batch'>;
+export type BasePhotos = BaseSQLiteDatabase<'async', unknown> & Pick<DrizzleD1Database, 'batch'>;
 
 export function creerBasePhotos(d1: D1Database): BasePhotos {
-	return drizzle(d1) as unknown as BasePhotos;
+	return drizzle(d1);
 }
 
 // Une instruction SQL brute à placer dans un batch. Sur D1, drizzle attend dans un batch une requête préparée (`stmt`),

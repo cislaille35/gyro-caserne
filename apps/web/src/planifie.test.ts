@@ -67,10 +67,17 @@ describe('avecPlanifie', () => {
 	});
 
 	// Le plus souvent, la file est vide : le lot n'est alors pas même lu (sa lecture compte la cloche de chacun, coûteuse).
-	it('file vide au réveil et rien mis en file par ses tâches : pas de lot', async () => {
-		vi.mocked(fileDEnvoisVide).mockResolvedValueOnce(true);
+	it('file vide après les tâches du réveil, et rien mis en file par elles : pas de lot', async () => {
+		const ordre: string[] = [];
+		vi.mocked(fileDEnvoisVide).mockImplementationOnce(async () => (ordre.push('file'), true));
+		vi.mocked(remplacementsDuMoment).mockImplementationOnce((async () => {
+			await new Promise((r) => setTimeout(r, 5));
+			ordre.push('remplacements');
+			return { expirees: 0, relances: 0 };
+		}) as never);
 		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z');
-		expect(fileDEnvoisVide).toHaveBeenCalledOnce();
+		// Lue après les tâches : ce qu'un geste met en file pendant le réveil part encore avec son lot.
+		expect(ordre).toEqual(['remplacements', 'file']);
 		expect(envoyerLot).not.toHaveBeenCalled();
 	});
 
@@ -82,6 +89,9 @@ describe('avecPlanifie', () => {
 		}) as never);
 		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z', { BASE: { prepare: () => ({}) } });
 		expect(envoyerLot).toHaveBeenCalledOnce();
+		// La file n'a pas même été lue : sa réponse prévue reste à retirer.
+		expect(fileDEnvoisVide).not.toHaveBeenCalled();
+		vi.mocked(fileDEnvoisVide).mockReset();
 	});
 
 	it('la file illisible : le lot part quand même', async () => {

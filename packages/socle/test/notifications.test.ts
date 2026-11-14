@@ -257,6 +257,8 @@ describe('le fil et la cloche', () => {
 		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
 		await base.insert(signalementMessage).values({ par: bruno, le: maintenant, auteur: chef, envoyeLe: maintenant, texteCopie: 'x' });
 		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		// Une fiche introuvable : rien à compter, ni visage.
+		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
 	});
 
 	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {

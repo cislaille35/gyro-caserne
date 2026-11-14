@@ -36,8 +36,6 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				misEnFile = true;
 			});
 			if (controleur.cron !== CRON_NUIT) {
-				// La file, lue en même temps que les tâches : vide, et rien mis en file par elles, le lot n'est pas pris. Illisible : il l'est.
-				const fileVide = fileDEnvoisVide(base).catch(() => false);
 				const taches: Promise<unknown>[] = [];
 				// L'heure prévue du réveil (même s'il part en retard) : 8 h 00, 8 h 10…
 				const maintenant = maintenantParis(new Date(controleur.scheduledTime));
@@ -54,7 +52,9 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				const lieu = { position: centre.position, departement: centre.departement };
 				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
 				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
-				ctx.waitUntil(Promise.allSettled(taches).then(async () => (!misEnFile && (await fileVide) ? null : envoyerLot(base, clesVapid(env)))));
+				// La file, lue après les tâches : vide, et rien mis en file par elles, le lot n'est pas pris. Illisible : il l'est.
+				const fileVide = () => fileDEnvoisVide(base).catch(() => false);
+				ctx.waitUntil(Promise.allSettled(taches).then(async () => (!misEnFile && (await fileVide()) ? null : envoyerLot(base, clesVapid(env)))));
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);
