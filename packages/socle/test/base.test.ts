@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { personne } from '../src/schema.ts';
-import { creerBaseD1 } from '../src/base.ts';
+import { creerBaseD1, creerBasePhotos } from '../src/base.ts';
 import { mettreEnFile } from '../src/notifications.ts';
 import { baseDeTest } from './base-de-test.ts';
 
@@ -36,6 +36,13 @@ describe('base D1', () => {
 		return { requetes, d1: { prepare: (sql: string) => (requetes.push(sql), instruction), batch: async () => [] } as unknown as D1Database };
 	};
 	const donnees = { titre: 'T', texte: 'x', url: '/', tag: 't' };
+
+	// Le modèle relationnel de drizzle (base.query) n'est pas utilisé : le construire coûtait environ 2 ms à chaque requête, 14 ms à froid.
+	it('se crée sans construire le modèle relationnel de drizzle, pour la base principale comme pour les photos', () => {
+		const { d1 } = fausseD1();
+		expect(Object.keys(creerBaseD1(d1).query)).toEqual([]);
+		expect(Object.keys(creerBasePhotos(d1).query)).toEqual([]);
+	});
 
 	it('prévient quand une requête met des envois au téléphone en file (pour les faire partir tout de suite), pas pour le reste', async () => {
 		const { d1, requetes } = fausseD1();

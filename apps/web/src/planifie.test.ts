@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAgentsPartis, effacerAnciens, effacerPhotosOrphelines, effacerSouhaitsPasses, effacerVieillesDemandes, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { effacerAgentsPartis, effacerAnciens, fileDEnvoisVide, effacerPhotosOrphelines, effacerSouhaitsPasses, effacerVieillesDemandes, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAgentsPartis: vi.fn(async () => 0), effacerAnciens: vi.fn(async () => {}), effacerPhotosOrphelines: vi.fn(async () => 0), effacerSouhaitsPasses: vi.fn(async () => {}), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), effacerVieillesDemandes: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAgentsPartis: vi.fn(async () => 0), effacerAnciens: vi.fn(async () => {}), fileDEnvoisVide: vi.fn(async () => false), effacerPhotosOrphelines: vi.fn(async () => 0), effacerSouhaitsPasses: vi.fn(async () => {}), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), effacerVieillesDemandes: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -64,6 +64,40 @@ describe('avecPlanifie', () => {
 		expect(effacerVieillesPublications).not.toHaveBeenCalled();
 		expect(effacerPhotosOrphelines).not.toHaveBeenCalled();
 		expect(effacerAgentsPartis).not.toHaveBeenCalled();
+	});
+
+	// Le plus souvent, la file est vide : le lot n'est alors pas même lu (sa lecture compte la cloche de chacun, coûteuse).
+	it('file vide après les tâches du réveil, et rien mis en file par elles : pas de lot', async () => {
+		const ordre: string[] = [];
+		vi.mocked(fileDEnvoisVide).mockImplementationOnce(async () => (ordre.push('file'), true));
+		vi.mocked(remplacementsDuMoment).mockImplementationOnce((async () => {
+			await new Promise((r) => setTimeout(r, 5));
+			ordre.push('remplacements');
+			return { expirees: 0, relances: 0 };
+		}) as never);
+		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z');
+		// Lue après les tâches : ce qu'un geste met en file pendant le réveil part encore avec son lot.
+		expect(ordre).toEqual(['remplacements', 'file']);
+		expect(envoyerLot).not.toHaveBeenCalled();
+	});
+
+	it('file vide au réveil, mais une tâche du réveil met en file : le lot part', async () => {
+		vi.mocked(fileDEnvoisVide).mockResolvedValueOnce(true);
+		vi.mocked(remplacementsDuMoment).mockImplementationOnce((async (base: { $client: D1Database }) => {
+			base.$client.prepare('insert into "envoi_push" ("abonnement_id") values (1)');
+			return { expirees: 1, relances: 0 };
+		}) as never);
+		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z', { BASE: { prepare: () => ({}) } });
+		expect(envoyerLot).toHaveBeenCalledOnce();
+		// La file n'a pas même été lue : sa réponse prévue reste à retirer.
+		expect(fileDEnvoisVide).not.toHaveBeenCalled();
+		vi.mocked(fileDEnvoisVide).mockReset();
+	});
+
+	it('la file illisible : le lot part quand même', async () => {
+		vi.mocked(fileDEnvoisVide).mockRejectedValueOnce(new Error('D1 indisponible'));
+		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z');
+		expect(envoyerLot).toHaveBeenCalledOnce();
 	});
 
 	it('le lot part après le reste du réveil : les annonces de 8 h et les relances partent au téléphone tout de suite', async () => {

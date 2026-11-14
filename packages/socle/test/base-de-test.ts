@@ -1,8 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { drizzle, type SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
-import * as schema from '../src/schema.ts';
-import * as schemaPhotos from '../src/schema-photos.ts';
 import { ecrit, metEnFile, type Base, type BasePhotos } from '../src/base.ts';
 import { oublierDroits } from '../src/droits.ts';
 
@@ -15,16 +13,16 @@ type Compteurs = { requetes: number; parametresMax: number; misEnFile?: boolean;
 // `jouees` : les requêtes jouées sur la base principale ; `plan` donne le plan de SQLite d'une requête (EXPLAIN QUERY PLAN), pour vérifier les index.
 // Comme creerBaseD1, toute écriture dans la base principale fait oublier les droits lus.
 export async function baseDeTest(): Promise<Base & Compteurs & { photos: BasePhotos; plan: (r: Requete) => string[] }> {
-	const base = ouvrir(new URL('../migrations/', import.meta.url), schema, (requetes) => {
+	const base = ouvrir(new URL('../migrations/', import.meta.url), (requetes) => {
 		if (requetes.some(ecrit)) oublierDroits(base);
 		if (requetes.some(metEnFile)) base.misEnFile = true;
 	}) as Base & Compteurs & { photos: BasePhotos; plan: (r: Requete) => string[] };
-	base.photos = ouvrir(new URL('../migrations-photos/', import.meta.url), schemaPhotos, () => {}, base) as unknown as BasePhotos;
+	base.photos = ouvrir(new URL('../migrations-photos/', import.meta.url), () => {}, base) as unknown as BasePhotos;
 	return base;
 }
 
 // Une base SQLite en mémoire, migrations appliquées, derrière le pilote « proxy » de drizzle. `compteurs` : à qui ajouter les appels.
-function ouvrir<S extends Record<string, unknown>>(dossierMigrations: URL, schemaBase: S, avant: (requetes: string[]) => void, compteurs?: Compteurs) {
+function ouvrir(dossierMigrations: URL, avant: (requetes: string[]) => void, compteurs?: Compteurs) {
 	const sqlite = new DatabaseSync(':memory:');
 	sqlite.exec('PRAGMA foreign_keys = ON');
 	for (const fichier of readdirSync(dossierMigrations).filter((f) => f.endsWith('.sql')).sort()) {
@@ -65,9 +63,9 @@ function ouvrir<S extends Record<string, unknown>>(dossierMigrations: URL, schem
 				sqlite.exec('ROLLBACK');
 				throw erreur;
 			}
-		},
-		{ schema: schemaBase }
-	) as SqliteRemoteDatabase<S> & Compteurs;
+		}
+		// Sans schéma, comme creerBaseD1 : base.query reste vide.
+	) as SqliteRemoteDatabase & Compteurs;
 	const cpt = () => compteurs ?? base;
 	base.requetes = 0;
 	base.parametresMax = 0;

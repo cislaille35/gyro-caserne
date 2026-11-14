@@ -385,6 +385,18 @@ describe('cloche, accueil, tâche planifiée, départ', () => {
 		void n;
 	});
 
+	// Toutes les dix minutes, le plus souvent pour rien : les chefs et les noms ne sont lus que s'il y a une demande à traiter.
+	it('rien à expirer ni à relancer : une requête, qui ne lit que les demandes', async () => {
+		const { base, alice } = await jeu();
+		await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		for (const quand of ['2026-11-07T07:50', '2026-11-07T12:00']) {
+			const [requetes, jouees] = [base.requetes, base.jouees.length];
+			expect(await remplacementsDuMoment(base, quand)).toEqual({ expirees: 0, relances: 0 });
+			expect(base.requetes - requetes, quand).toBe(1);
+			expect(base.jouees.slice(jouees).every((r) => /^select .* from "demande_remplacement"/.test(r.sql)), quand).toBe(true);
+		}
+	});
+
 	it('expire au début de la période, prévenue une fois ; relancée une fois la veille', async () => {
 		const { base, alice, n, demande, avisDe } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);

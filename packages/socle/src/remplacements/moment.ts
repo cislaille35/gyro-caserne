@@ -16,7 +16,7 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 	const m = maintenant.slice(0, 16);
 	const demain = ajouterJours(aujourdhui, 1);
 	const sansRemplacant = inArray(demandeRemplacement.etat, ['attente', 'refusee']);
-	const [aExpirer, aRelancer, chefs, personnes] = await base.batch([
+	const [aExpirer, aRelancer] = await base.batch([
 		base
 			.select()
 			.from(demandeRemplacement)
@@ -26,10 +26,11 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 					.select()
 					.from(demandeRemplacement)
 					.where(and(sansRemplacant, eq(demandeRemplacement.genre, 'remplacement'), isNull(demandeRemplacement.relanceLe), sql`substr(${demandeRemplacement.debut}, 1, 10) = ${demain}`))
-			: base.select().from(demandeRemplacement).where(sql`0`),
-		requeteChefs(base, aujourdhui),
-		base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne)
+			: base.select().from(demandeRemplacement).where(sql`0`)
 	]);
+	// Le plus souvent, rien à faire : les chefs et les noms ne sont lus que s'il le faut.
+	if (aExpirer.length === 0 && aRelancer.length === 0) return { expirees: 0, relances: 0 };
+	const [chefs, personnes] = await base.batch([requeteChefs(base, aujourdhui), base.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom }).from(personne)]);
 	const nom = (id: number) => {
 		const p = personnes.find((x) => x.id === id);
 		return p ? `${p.prenom} ${p.nom}` : '';

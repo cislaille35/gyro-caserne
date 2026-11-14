@@ -176,6 +176,26 @@ describe('peutAttribuerQuelqueChose', () => {
 		expect(await peutAttribuerQuelqueChose(base, simple, aujourdhui)).toBe(false);
 	});
 
+	it('vrai exactement quand ceQueJePeuxAttribuer n’est pas vide, même sans adjoint à nommer', async () => {
+		const { base, r, chef, adjoint, rapporteur, simple } = await jeu();
+		const verifier = async () => {
+			for (const a of [superAdmin, chef, adjoint, rapporteur, simple]) expect(await peutAttribuerQuelqueChose(base, a, aujourdhui)).toBe((await ceQueJePeuxAttribuer(base, a, aujourdhui)).length > 0);
+		};
+		await verifier();
+		// Hors de l'appli (une responsabilité système ne s'archive pas) : le chef n'a alors plus rien à attribuer.
+		await base.update(responsabilite).set({ archiveeLe: aujourdhui }).where(eq(responsabilite.id, r('Chef de centre adjoint')));
+		await verifier();
+	});
+
+	// Le menu de chaque page le demande : pour qui n'a aucun droit d'attribuer, ni les responsabilités ni les périmètres ne sont lus.
+	it('pour un agent sans droit d’attribuer, une seule requête (est-il chef de centre ?) une fois ses droits lus', async () => {
+		const { base, simple } = await jeu();
+		await aLeDroit(base, simple, 'ATTRIBUER_RESPONSABILITE', centre, aujourdhui);
+		const avant = base.requetes;
+		expect(await peutAttribuerQuelqueChose(base, simple, aujourdhui)).toBe(false);
+		expect(base.requetes - avant).toBe(1);
+	});
+
 	it('faux pour le rapporteur d’un comité dissous', async () => {
 		const { base, rapporteur, amicale } = await jeu();
 		await dissoudreComite(base, superAdmin, amicale.id, aujourdhui);

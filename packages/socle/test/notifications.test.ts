@@ -27,6 +27,7 @@ import {
 	notifierPublication,
 	ESSAIS_MAX,
 	finirEnvois,
+	fileDEnvoisVide,
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
@@ -247,16 +248,17 @@ describe('le fil et la cloche', () => {
 		]);
 	});
 
-	it('enTeteDe : non-lues, visage et écusson en 1 requête ; super administrateur, l’écusson seul', async () => {
+	it('enTeteDe : non-lues, signalements, réservations à trancher, messages non lus, visage et écusson en 1 requête ; super administrateur, sans visage', async () => {
 		const { base, e2, chef, bruno } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const avant = base.requetes;
-		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
 		expect(base.requetes - avant).toBe(1);
-		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
-		const ensuite = base.requetes;
-		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, visage: null, ecusson: null });
-		expect(base.requetes).toBe(ensuite + 1);
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
+		await base.insert(signalementMessage).values({ par: bruno, le: maintenant, auteur: chef, envoyeLe: maintenant, texteCopie: 'x' });
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		// Une fiche introuvable : rien à compter, ni visage.
+		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
 	});
 
 	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {
@@ -371,6 +373,16 @@ describe('abonnements et file d’envoi', () => {
 		expect((await file()).map((e) => e.a)).toEqual(['Bruno', 'Chloe']);
 	});
 
+	it('fileDEnvoisVide : vrai seulement sans aucun envoi, réservé ou non', async () => {
+		const { base, chef } = await jeu();
+		expect(await fileDEnvoisVide(base)).toBe(true);
+		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
+		expect(await fileDEnvoisVide(base)).toBe(false);
+		// Réservé par un lot en vol (pas encore repris) : la file n'est pas vide pour autant.
+		await prendreEnvois(base, 40, heure('10:00'));
+		expect(await fileDEnvoisVide(base)).toBe(false);
+	});
+
 	it('prendreEnvois : les plus anciens d’abord, réservés sans être retirés ; finirEnvois les retire, avec les abonnements périmés', async () => {
 		const { base, chef, file } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
@@ -429,6 +441,8 @@ describe('abonnements et file d’envoi', () => {
 		// La cloche de l'en-tête des pages (+layout.server.ts) : non lues, remplacements à valider, signalements, réservations à trancher.
 		const cloche = async (id: number) => {
 			const e = await enTeteDe(base, acteur(id), aujourdhui, maintenant);
+			// Les signalements et les réservations à trancher de l'en-tête, comptés en SQL, valent ceux des droits.
+			expect([e.signalements, e.aTrancher], `personne ${id}`).toEqual([await nombreSignalements(base, acteur(id), aujourdhui), await nombreAValider(base, acteur(id), aujourdhui)]);
 			return e.nonLues + e.remplacementsAValider + (await nombreSignalements(base, acteur(id), aujourdhui)) + (await nombreAValider(base, acteur(id), aujourdhui));
 		};
 		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
@@ -451,6 +465,7 @@ describe('abonnements et file d’envoi', () => {
 		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
 		for (const id of [alice, bruno, chloe]) {
 			const e = await enTeteDe(base, acteur(id), aujourdhui, maintenant);
+			expect(e.nonLus, `personne ${id}`).toBe(await nonLusTotal(base, acteur(id), aujourdhui));
 			expect(pastilles[id], `personne ${id}`).toBe(e.nonLues + (await nonLusTotal(base, acteur(id), aujourdhui)));
 		}
 		expect(await nonLusTotal(base, acteur(chloe), aujourdhui)).toBe(3);
@@ -467,6 +482,7 @@ describe('abonnements et file d’envoi', () => {
 		const deChloe = lot.envois.find((e) => e.personneId === chloe);
 		expect(await nonLusTotal(base, acteur(chloe), aujourdhui)).toBe(0);
 		expect(deChloe?.pastille ?? 0).toBe((await enTeteDe(base, acteur(chloe), aujourdhui, maintenant)).nonLues);
+		expect((await enTeteDe(base, acteur(chloe), aujourdhui, maintenant)).nonLus).toBe(0);
 	});
 
 	it('avis d’été et d’anomalie (leur page ne les marque pas lus) : l’envoi porte la ligne de la cloche de sa personne ; ailleurs, rien', async () => {
