@@ -119,4 +119,4 @@ Le journal garde chaque ajout ou retrait d'adresse, chaque changement de profil 
 
 ## Exemple
 
-Une recrue arrive dans l'équipe 2. Le chef de centre l'ajoute (Caserne → Agents → « Ajouter ») avec le profil Agent, dans l'équipe 2. La recrue reçoit son lien de connexion. Trois mois plus tard, le comité du centre la nomme référente pharmacie : son rapporteur enregistre l'attribution, « du 1er février, sans date de fin ».
+Une recrue arrive dans l'équipe 2. Le chef de centre l'ajoute (Caserne → Agents → « Ajouter ») avec le profil Agent, dans l'équipe 2. Son adresse étant désormais autorisée, la recrue demande elle-même, sur la page de connexion, son lien ou son code à 6 chiffres, qu'elle reçoit par courriel. Trois mois plus tard, le comité du centre la nomme référente pharmacie : son rapporteur enregistre l'attribution, « du 1er février, sans date de fin ».

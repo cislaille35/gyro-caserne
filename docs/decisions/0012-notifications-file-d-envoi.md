@@ -68,3 +68,13 @@
   - Vigilance : relue à chaque réveil, donc toutes les 10 minutes (144 appels par jour au lieu de 96), pour tenir la décision du porteur du 4 novembre 2026 : 15 minutes au plus. Une vigilance rouge est connue au plus tard 10 minutes après sa publication par Météo-France.
 - **Conséquences** : 144 réveils par jour au lieu de 288 : deux fois moins de calcul fixe. Chaque réveil coûte toujours autant (il reste à froid). Délai d'une notification restée en file (au-delà des 20 envoyés dès le geste) : 10 minutes au plus, puis 10 de plus par tranche de 40. Un envoi coupé repart 5 à 15 minutes plus tard (plus tôt si un geste notifie entre-temps).
 - **Validé par** : le porteur, le 11 novembre 2026 (PR #84) : réveil toutes les dix minutes, vigilance relue à chaque réveil.
+
+## Révision du 14 novembre 2026 : un réveil sans rien à faire coûte moins
+
+- **Contexte** : mesuré au banc, à froid (un processus neuf par réveil), le coût du réveil venait pour beaucoup de son propre code : la création de la base (drizzle construisait son modèle relationnel, inutilisé : environ 14 ms à froid, 2 ms à chaud, à chaque requête de l'appli aussi), le lot d'envois (sa lecture compte la cloche de chacun, une grosse requête à construire) et les remplacements (chefs et noms lus pour rien).
+- **Choix** (rythme et travail fait inchangés) :
+  - la base est créée sans le modèle relationnel ;
+  - la file est regardée par une requête légère, en même temps que les tâches : vide, et rien mis en file par les tâches du réveil (annonces, relances, vigilance rouge), le lot n'est pas pris ; illisible, il l'est ;
+  - les chefs et les noms ne sont lus que s'il y a une demande à expirer ou à relancer.
+- **Conséquences** : au banc (Node, à froid, médiane de 9 réveils), 21 ms de calcul au lieu de 48 sans clé de vigilance, 28 au lieu de 53 avec (la production a la clé ; voir PR #99) ; à chaud, 3 ms au lieu de 7 à 12. Un réveil sans rien à faire : toujours 3 requêtes, plus légères. Les envois mis en file par un geste pendant les quelques millisecondes du réveil, au-delà des 20 envoyés dès ce geste, partent au réveil suivant (dix minutes plus tard). Reste à froid : la vigilance (lire la carte de Météo-France, quelques ms) et la compilation de drizzle à la première requête.
+- **Validé par** : à valider par le porteur (PR #99).
