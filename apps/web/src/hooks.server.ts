@@ -9,8 +9,11 @@ import { estAdresseDeBetterAuth, lireSession } from '#lib/server/session.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
 import { formulaireEgare } from '#lib/server/resoumission.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
+import { lignePage } from '#lib/server/page-au-journal.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Avant tout le travail, pour que la ligne reste même si Cloudflare coupe la requête (décision 0037). Une requête interne est déjà comptée.
+	if (!building && !event.isSubRequest) console.log(lignePage(event, estAdresseDeBetterAuth(event.url, env)));
 	const refus = envoiRefuse(event.request, event.url.pathname);
 	if (refus) return refus;
 	event.locals.affichage = lireAffichage(event.cookies);

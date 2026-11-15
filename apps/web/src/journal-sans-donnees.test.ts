@@ -14,6 +14,7 @@ const SURS = [/^'[^'$]*'$/, /^(resumeErreur|sansDonnees)\(.*\)$/s, /^[\w.]+\.(na
 // Exceptions relues une à une.
 const EXCEPTIONS: Record<string, string> = {
 	"event.route.id ?? 'page inconnue'": 'le modèle de la page (/agents/[id]), sans identifiant',
+	'lignePage(event, estAdresseDeBetterAuth(event.url, env))': 'le modèle de la page, la méthode et l’action, sans valeur de la requête (page-au-journal.test.ts)',
 	"url.split('?')[0]": "l'adresse de l'API météo, sans ses paramètres",
 	niveau: 'le niveau du message de Better Auth',
 	'...details.map((d) => (d instanceof Error ? resumeErreur(d) : typeof d))': 'les détails de Better Auth, résumés',
