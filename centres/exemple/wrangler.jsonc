@@ -11,6 +11,10 @@
 	// Adresse de la préprod : les liens de connexion pointent vers elle. En clair, ce n’est pas un secret (décision 0024) ; en local, .dev.vars l’emporte.
 	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-exemple.cis-laille.workers.dev" },
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
+	// Journal de Cloudflare (Workers Logs, décision 0036) : gardé 3 jours, peut-être hors de l’Union européenne. Préprod aux données fictives : gardé,
+	// chaque requête comprise, pour que le relevé quotidien compte coupures et erreurs par page. Un centre aux données réelles met "enabled": false
+	// tant que son porteur n’a pas tranché (voir docs/technique/journal.md).
+	"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": true } },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les dix minutes (décision 0012), les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/10 * * * *"] },
 	// Base de la préprod du CIS Laillé : un autre centre remplace ce database_id par celui de sa base.

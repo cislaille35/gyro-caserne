@@ -3,7 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
 import { emailOTP, magicLink } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
-import { account, adresseAutorisee, annulerEnvoi, effacerLien, effacerLiensVers, identifiantDuCode, reserverEnvoi, session, user, verification, type Base } from '@gyro-caserne/socle';
+import { account, adresseAutorisee, annulerEnvoi, effacerLien, effacerLiensVers, identifiantDuCode, reserverEnvoi, resumeErreur, sansDonnees, session, user, verification, type Base } from '@gyro-caserne/socle';
 import { envoyerCourriel, type EnvCourriel } from './courriel.ts';
 
 export type EnvAuth = EnvCourriel & { BETTER_AUTH_SECRET: string; BETTER_AUTH_URL: string; SUPER_ADMINS?: string };
@@ -71,7 +71,7 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 			});
 		} catch (erreur) {
 			// Courriel non reçu : on efface le lien et le code, et un nouvel essai est permis tout de suite.
-			console.error('Lien de connexion non envoyé', erreur);
+			console.error('Lien de connexion non envoyé', resumeErreur(erreur));
 			try {
 				await effacerLien(base, identifiant);
 				await base.delete(verification).where(eq(verification.identifier, identifiantDuCode(email)));
@@ -87,6 +87,11 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 		// Fixée, pour que le lien envoyé pointe toujours vers l'appli, quelle que soit la requête.
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: { backgroundTasks: { handler: enArrierePlan } },
+		// Le journal du Worker est gardé par Cloudflare (décision 0036) : ce que Better Auth y écrit part nettoyé.
+		logger: {
+			log: (niveau, message, ...details) =>
+				console.error('Better Auth', niveau, sansDonnees(message), ...details.map((d) => (d instanceof Error ? resumeErreur(d) : typeof d)))
+		},
 		disabledPaths: ROUTES_DU_CODE_FERMEES,
 		// Lue sans Better Auth à chaque requête, dans le même format (session.ts, décision 0035).
 		session: { expiresIn: DUREE_SESSION, updateAge: PROLONGEE_APRES },
@@ -98,7 +103,7 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 				// Un lien par minute et par adresse.
 				// Tout se fait après la réponse : son contenu et sa durée ne révèlent pas si l'adresse est connue.
 				sendMagicLink: ({ email, url, token }, ctx) => {
-					ctx!.context.runInBackground(envoyerLien(email, url, token).catch((erreur) => console.error('Lien de connexion non envoyé', erreur)));
+					ctx!.context.runInBackground(envoyerLien(email, url, token).catch((erreur) => console.error('Lien de connexion non envoyé', resumeErreur(erreur))));
 				}
 			}),
 			// Le code à 6 chiffres du même courriel : pour l'appli installée sur iPhone, que le lien n'atteint pas (il ouvre Safari).

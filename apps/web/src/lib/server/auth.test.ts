@@ -425,3 +425,18 @@ describe('code à 6 chiffres, dans le même courriel que le lien', () => {
 		await expect(saisir(dernierCode())).rejects.toMatchObject({ body: { code: 'INVALID_OTP' } });
 	});
 });
+
+// Le journal du Worker est gardé par Cloudflare (décision 0036) : ce que Better Auth y écrit part nettoyé.
+describe('journal de Better Auth', () => {
+	it('n’y écrit ni adresse, ni lien, ni valeur de la base', async () => {
+		const { auth } = await jeu();
+		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const erreur = new Error('Failed query: select 1\nparams: agent@exemple.fr');
+		auth.options.logger!.log!('error', 'Échec pour agent@exemple.fr sur http://localhost/api/auth/magic-link/verify?token=abc', erreur);
+		const ecrit = console_.mock.calls.flat().join(' ');
+		expect(ecrit).toContain('Better Auth');
+		expect(ecrit).toContain('Failed query');
+		expect(ecrit).not.toMatch(/agent@exemple|token=abc/);
+		console_.mockRestore();
+	});
+});

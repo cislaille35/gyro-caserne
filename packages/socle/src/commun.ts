@@ -2,6 +2,7 @@ import { eq, inArray } from 'drizzle-orm';
 import type { BasePhotos } from './base.ts';
 import { tenuesValides } from './casquettes.ts';
 import { DonneeInvalide } from './erreurs.ts';
+import { resumeErreur } from './erreur-anonyme.ts';
 import { TYPES_PHOTO } from './listes.ts';
 import { photo as octetsPhoto } from './schema-photos.ts';
 
@@ -73,7 +74,7 @@ export async function effacerPhotos(basePhotos: BasePhotos, ids: number[]): Prom
 	const paquets = [];
 	for (let i = 0; i < ids.length; i += 100) paquets.push(basePhotos.delete(octetsPhoto).where(inArray(octetsPhoto.id, ids.slice(i, i + 100))));
 	const [premier, ...autres] = paquets;
-	if (premier) await basePhotos.batch([premier, ...autres]).catch((e) => console.warn('Octets de photos non effacés', ids.length, e));
+	if (premier) await basePhotos.batch([premier, ...autres]).catch((e) => console.warn('Octets de photos non effacés', ids.length, resumeErreur(e)));
 }
 
 // Les octets d'une photo, une fois l'accès vérifié dans la base principale.

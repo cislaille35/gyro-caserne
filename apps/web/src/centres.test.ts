@@ -44,6 +44,13 @@ describe('centres du dépôt', () => {
 			expect(config.preview_urls, 'preview_urls').toBe(false);
 		});
 
+		// Le journal de Cloudflare est activé d'office sur un nouveau Worker, et peut être gardé hors de l'Union européenne (décision 0036) :
+		// chaque centre dit lui-même s'il le garde. Un centre aux données réelles le laisse coupé tant que le porteur n'a pas tranché.
+		it(`${dossier} dit lui-même s'il garde le journal de Cloudflare`, () => {
+			const { observability } = configCloudflare(chemin).config;
+			expect(observability?.enabled, 'observability.enabled').toBeTypeOf('boolean');
+		});
+
 		// L'adresse n'est pas un secret : elle est dans la config, pour qu'aucun déploiement ne la perde (décision 0024).
 		it(`${dossier} donne l'adresse de l'appli dans sa config (https, sans chemin)`, () => {
 			const adresse = configCloudflare(chemin).config.vars.BETTER_AUTH_URL;
@@ -67,6 +74,14 @@ describe('centres du dépôt', () => {
 			expect(base?.database_name, 'database_name').toBe(`gyro-caserne-${dossier}`);
 		});
 	}
+});
+
+// La préprod (données fictives) garde le journal, pages comprises : le relevé quotidien y compte coupures et erreurs par page.
+describe('journal de la préprod', () => {
+	it('garde chaque requête (invocation_logs), sans échantillonnage', () => {
+		const { observability } = configCloudflare('../../../centres/exemple/centre.ts').config;
+		expect(observability).toMatchObject({ enabled: true, head_sampling_rate: 1, logs: { invocation_logs: true } });
+	});
 });
 
 // En local (développement et tests), .dev.vars l'emporte sur l'adresse de la config : les liens de connexion restent sur localhost.

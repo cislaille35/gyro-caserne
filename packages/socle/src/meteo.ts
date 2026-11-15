@@ -1,6 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import type { Base } from './base.ts';
 import { ajouterJours } from './dates.ts';
+import { resumeErreur } from './erreur-anonyme.ts';
 import { STATUTS_AVEC_ACCES } from './listes.ts';
 import { mettreEnFile } from './notifications.ts';
 import { personne, releve } from './schema.ts';
@@ -159,7 +160,7 @@ async function demander(recuperer: typeof fetch, url: string, entetes: Record<st
 		console.warn('Météo refusée', url.split('?')[0], r.status);
 		return null;
 	} catch (e) {
-		console.warn('Météo indisponible', url.split('?')[0], e);
+		console.warn('Météo indisponible', url.split('?')[0], resumeErreur(e));
 		return null;
 	}
 }
