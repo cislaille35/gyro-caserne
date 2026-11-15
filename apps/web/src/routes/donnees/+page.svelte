@@ -57,7 +57,7 @@
 		</Carte>
 
 		<Carte titre="Journal technique">
-			<p>Cloudflare ne garde aucun journal technique de vos visites : il est coupé pour votre centre. Seule la version d’essai de l’appli, aux données fictives, en garde un pour repérer les pannes.</p>
+			<p>Pour les centres en service, Cloudflare ne garde aucun journal technique de vos visites. Seule la version d’essai de l’appli, aux données fictives, en garde un pour repérer les pannes.</p>
 		</Carte>
 
 		<Carte titre="Corriger ou effacer">

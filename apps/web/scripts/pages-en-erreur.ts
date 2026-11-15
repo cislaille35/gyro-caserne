@@ -24,10 +24,13 @@ const AU_PLUS = 10;
 const SANS_NOM = '(sans nom de page)';
 const TRONQUEE = '(non trouvée, liste tronquée)';
 
-// Le nom de la page tel que l'appli l'écrit (page-au-journal.ts, planifie.ts), sans chiffre ; tout autre texte est écarté.
-const LIGNE = /^Page ((?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|autre) (?:\/[A-Za-z_\-./[\]()]*|\(aucune\))(?:\?\/(?:[A-Za-z]+|\(inconnue\)))?|réveil|ménage de la nuit)$/;
-export function nomDePage(message: unknown): string {
-	return (typeof message === 'string' && LIGNE.exec(message)?.[1]) || '(illisible)';
+// Le nom de la page tel que l'appli l'écrit (page-au-journal.ts, planifie.ts), sans chiffre, et seulement pour une page de l'appli ; sinon (illisible).
+const LIGNE = /^Page ((?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|autre) (\/[A-Za-z_\-./[\]()]*?|\(aucune\))(?:\?\/(?:[A-Za-z]+|\(inconnue\)))?|réveil|ménage de la nuit)$/;
+export function nomDePage(message: unknown, modeles: string[]): string {
+	const lu = typeof message === 'string' ? LIGNE.exec(message) : null;
+	if (!lu) return '(illisible)';
+	const page = lu[2];
+	return page === undefined || page === '(aucune)' || page === '/api/auth' || modeles.includes(page) ? lu[1]! : '(illisible)';
 }
 
 function groupes(corps: unknown): Groupes {
@@ -38,7 +41,7 @@ function groupes(corps: unknown): Groupes {
 // Les modèles des pages de l'appli (/agents/[id]), lus dans son dossier de pages.
 export function modelesDesPages(dossier: string): string[] {
 	return [...new Set(readdirSync(dossier, { recursive: true, withFileTypes: true })
-		.filter((f) => /^\+(page|server)\.(ts|svelte)$/.test(f.name))
+		.filter((f) => /^\+(page(@[^.]*)?(\.server)?|server)\.(ts|js|svelte)$/.test(f.name))
 		.map((f) => f.parentPath.slice(dossier.length).replaceAll('\\', '/') || '/'))];
 }
 
@@ -127,7 +130,7 @@ export async function releverPages(workers: { preprod: string[]; production: str
 				continue;
 			}
 			tronquee = lues[0]!.length >= LIMITE;
-			for (const g of lues[0]!) if (typeof g[REQUETE] === 'string' && nomPar.has(g[REQUETE]) && nomPar.get(g[REQUETE]) === undefined) nomPar.set(g[REQUETE], nomDePage(g[MESSAGE]));
+			for (const g of lues[0]!) if (typeof g[REQUETE] === 'string' && nomPar.has(g[REQUETE]) && nomPar.get(g[REQUETE]) === undefined) nomPar.set(g[REQUETE], nomDePage(g[MESSAGE], modeles));
 		}
 		const totaux = new Map<string, [number, number]>();
 		for (const [requetes, rang] of [[coupees, 0], [enErreur, 1]] as const)
@@ -160,7 +163,8 @@ async function lancer() {
 		return { statut: r.status, corps: await r.json().catch(() => null) };
 	};
 	const liste = (centres = '') => centres.split(/\s+/).filter(Boolean).map((c) => `gyro-caserne-${c}`);
-	const modeles = modelesDesPages(fileURLToPath(new URL('../src/routes', import.meta.url)));
+	// Lus seulement s'il y a une préprod : sans eux, la ligne de la production est quand même écrite.
+	const modeles = PREPROD?.trim() ? modelesDesPages(fileURLToPath(new URL('../src/routes', import.meta.url))) : [];
 	for (const ligne of await releverPages({ preprod: liste(PREPROD), production: liste(PRODUCTION) }, JOUR ?? '', demander, modeles)) console.log(ligne);
 }
 

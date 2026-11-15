@@ -39,7 +39,7 @@ describe('/donnees', () => {
 	it('le journal technique : aucun gardé pour le centre, une phrase sobre', () => {
 		const page = html(Page, { connecte: true });
 		const carte = page.slice(page.indexOf('>Journal technique</h2>'), page.indexOf('>Corriger ou effacer</h2>'));
-		expect(carte).toContain('Cloudflare ne garde aucun journal technique de vos visites : il est coupé pour votre centre.');
+		expect(carte).toContain('Pour les centres en service, Cloudflare ne garde aucun journal technique de vos visites.');
 		expect(carte).toContain('Seule la version d’essai de l’appli, aux données fictives, en garde un pour repérer les pannes.');
 		expect(carte).not.toMatch(/adresse IP|clé de votre lien|7 jours/);
 	});

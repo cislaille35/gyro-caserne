@@ -95,5 +95,6 @@ jobs:
           PRODUCTION: ${{ vars.CENTRE_PRODUCTION }}
         run: |
           set -euo pipefail
-          export JOUR=$(date -u -d yesterday +%F)
+          JOUR=$(date -u -d yesterday +%F)
+          export JOUR
           node --experimental-transform-types --no-warnings apps/web/scripts/pages-en-erreur.ts | tee -a "$GITHUB_STEP_SUMMARY" || echo "::warning::Répartition par page impossible, le relevé continue."

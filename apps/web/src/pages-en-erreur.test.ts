@@ -5,28 +5,25 @@ import { modeleDeChemin, modelesDesPages, nomDePage, releverPages, type Demander
 
 // Le résumé du relevé est public : des noms génériques de pages et des nombres, jamais un identifiant, un jeton ou un paramètre.
 describe('nomDePage', () => {
+	const modeles = modelesDesPages(fileURLToPath(new URL('routes', import.meta.url)));
+
 	it('lit la ligne écrite par l’appli', () => {
-		expect(nomDePage('Page GET /agents/[id]')).toBe('GET /agents/[id]');
-		expect(nomDePage('Page POST /echanges?/souhaiter')).toBe('POST /echanges?/souhaiter');
-		expect(nomDePage('Page POST /echanges/[mur]?/(inconnue)')).toBe('POST /echanges/[mur]?/(inconnue)');
-		expect(nomDePage('Page GET /api/auth')).toBe('GET /api/auth');
-		expect(nomDePage('Page GET (aucune)')).toBe('GET (aucune)');
-		expect(nomDePage('Page réveil')).toBe('réveil');
-		expect(nomDePage('Page ménage de la nuit')).toBe('ménage de la nuit');
+		expect(nomDePage('Page GET /agents/[id]', modeles)).toBe('GET /agents/[id]');
+		expect(nomDePage('Page POST /echanges?/souhaiter', modeles)).toBe('POST /echanges?/souhaiter');
+		expect(nomDePage('Page POST /echanges/[mur]?/(inconnue)', modeles)).toBe('POST /echanges/[mur]?/(inconnue)');
+		expect(nomDePage('Page GET /api/auth', modeles)).toBe('GET /api/auth');
+		expect(nomDePage('Page GET (aucune)', modeles)).toBe('GET (aucune)');
+		expect(nomDePage('Page réveil', modeles)).toBe('réveil');
+		expect(nomDePage('Page ménage de la nuit', modeles)).toBe('ménage de la nuit');
 	});
 
 	it('lit toutes les pages de l’appli', () => {
-		const routes = fileURLToPath(new URL('routes', import.meta.url));
-		const modeles = readdirSync(routes, { recursive: true, withFileTypes: true })
-			.filter((f) => /^\+(page|server)\.(ts|svelte)$/.test(f.name))
-			.map((f) => f.parentPath.slice(routes.length) || '/');
-		expect(modeles.length).toBeGreaterThan(50);
-		for (const modele of modeles) expect(nomDePage(`Page POST ${modele}?/envoyer`)).toBe(`POST ${modele}?/envoyer`);
+		for (const modele of modeles) expect(nomDePage(`Page POST ${modele}?/envoyer`, modeles)).toBe(`POST ${modele}?/envoyer`);
 	});
 
-	it('ne laisse passer rien d’autre', () => {
-		for (const message of ['Page GET /agents/42', 'Page POST /echanges?/a1', 'Page GET /agents/42?courriel=alice@exemple.fr', 'Page GET /x y', 'Page JETON /', 'Page GET /a?/b c', 'Erreur imprévue /x', 42, undefined])
-			expect(nomDePage(message)).toBe('(illisible)');
+	it('ne laisse passer rien d’autre, ni une page qui n’est pas de l’appli', () => {
+		for (const message of ['Page GET /agents/42', 'Page POST /echanges?/a1', 'Page GET /agents/42?courriel=alice@exemple.fr', 'Page GET /x y', 'Page JETON /', 'Page GET /a?/b c', 'Page GET /agenda/clesecretedelagent', 'Page GET /agents', 'Erreur imprévue /x', 42, undefined])
+			expect(nomDePage(message, ['/agents/[id]', '/echanges'])).toBe('(illisible)');
 	});
 });
 
@@ -38,6 +35,10 @@ describe('modeleDeChemin', () => {
 		expect(modeles.length).toBeGreaterThan(50);
 		expect(modeles).toContain('/');
 		expect(modeles).toContain('/agents/[id]');
+		// Une page qui ignore le gabarit (+page@.svelte), ou faite d'un seul +page.server.ts.
+		expect(modeles).toContain('/echanges/publier');
+		// Seules formes comprises : segment fixe ou [nom]. Un groupe (…), [[facultatif]], [...reste] ou [id=controle] serait à ajouter à modeleDeChemin.
+		for (const modele of modeles) expect(modele, modele).toMatch(/^\/$|^(\/([\w.-]+|\[\w+\]))+$/);
 		// Chaque modèle se retrouve lui-même à partir d'une adresse.
 		for (const modele of modeles) expect(modeleDeChemin(modele.replace(/\[\w+\]/g, 'x1'), modeles)).toBe(modele);
 	});

@@ -92,6 +92,15 @@ describe('journal de la préprod', () => {
 	});
 });
 
+// Tout centre autre que la préprod a des données réelles : journal, traces et détection des problèmes coupés, comme la production de Laillé.
+// La page « Vos données » le dit à tous les agents.
+describe('journal des centres aux données réelles', () => {
+	for (const chemin of Object.keys(fichiers).filter((c) => !c.includes('/exemple/')))
+		it(`${chemin.split('/').at(-2)} coupe tout`, () => {
+			expect(configCloudflare(chemin).config.observability).toEqual(configCloudflare('../../../centres/laille/centre.ts').config.observability);
+		});
+});
+
 // La production (vraies personnes) : rien chez Cloudflare, ni journal, ni traces, ni détection des problèmes (choix (a) du porteur, révision du 15/11/2026 de la décision 0036).
 // Écrit en toutes lettres : Cloudflare active le journal d'office sur un nouveau Worker.
 describe('journal de la production', () => {
