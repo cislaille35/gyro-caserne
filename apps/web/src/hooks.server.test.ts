@@ -143,7 +143,7 @@ describe('erreur imprévue', () => {
 	it('écrit la page en cause et l’erreur sans ses valeurs', () => {
 		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const erreur = new Error('Failed query: select * from "personne" where "email" = ?\nparams: alice.martin@exemple.fr');
-		handleError({ error: erreur, event: evenement('/agents/[id]'), status: 500, message: 'Internal Error' });
+		handleError({ kind: 'unknown', error: erreur, event: evenement('/agents/[id]') });
 		expect(console_).toHaveBeenCalledTimes(1);
 		const ecrit = console_.mock.calls[0]!.join(' ');
 		expect(ecrit).toContain('/agents/[id]');
@@ -152,9 +152,10 @@ describe('erreur imprévue', () => {
 		console_.mockRestore();
 	});
 
-	it('n’écrit rien pour une page introuvable', () => {
+	it('n’écrit rien pour une page introuvable ou un refus voulu', () => {
 		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
-		handleError({ error: new Error('Not found: /agenda/cle-secrete.ics'), event: evenement(null), status: 404, message: 'Not Found' });
+		handleError({ kind: 'framework', error: { status: 404, message: 'Not found: /agenda/cle-secrete.ics' }, event: evenement(null) });
+		handleError({ kind: 'app', error: { status: 404, message: 'Introuvable' }, event: evenement('/agents/[id]') });
 		expect(console_).not.toHaveBeenCalled();
 		console_.mockRestore();
 	});

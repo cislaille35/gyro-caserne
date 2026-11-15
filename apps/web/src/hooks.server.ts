@@ -48,8 +48,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 // Le journal du Worker est gardé par Cloudflare (décision 0036) : la page en cause (son modèle, sans identifiant) et l'erreur résumée,
-// sans les valeurs de la requête. Une page introuvable n'est pas une erreur de l'appli.
-export const handleError: HandleServerError = ({ error, event, status }) => {
-	if (status === 404) return;
+// sans les valeurs de la requête. Seulement une erreur imprévue : une page introuvable ou un refus voulu (error(…)) n'en est pas une.
+export const handleError: HandleServerError = ({ kind, error, event }) => {
+	if (kind !== 'unknown') return;
 	console.error('Erreur imprévue', event.route.id ?? 'page inconnue', resumeErreur(error));
 };
