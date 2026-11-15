@@ -16,11 +16,24 @@ afterEach(() => {
 });
 
 describe('envoyerCourriel', () => {
-	it('écrit le lien dans la console sans clé Brevo', async () => {
+	it('écrit le lien dans la console sans clé Brevo, quand l’appli tourne en local', async () => {
 		const fetch_ = reponse(201, '{}');
 		const console_ = vi.spyOn(console, 'log').mockImplementation(() => {});
-		await envoyerCourriel({}, message);
+		await envoyerCourriel({ BETTER_AUTH_URL: 'http://localhost:5174' }, message);
+		await envoyerCourriel({ BETTER_AUTH_URL: 'http://127.0.0.1:5173' }, message);
+		expect(console_).toHaveBeenCalledTimes(2);
 		expect(console_).toHaveBeenCalledWith(expect.stringContaining('http://localhost/lien'));
+		expect(fetch_).not.toHaveBeenCalled();
+	});
+
+	// En ligne, le journal du Worker est gardé (décision 0036) : un lien ou un code écrit là servirait à se connecter à la place de l'agent.
+	it('n’écrit jamais le courriel au journal en ligne : sans clé Brevo, l’envoi échoue', async () => {
+		const fetch_ = reponse(201, '{}');
+		const console_ = vi.spyOn(console, 'log').mockImplementation(() => {});
+		for (const env of [{ BETTER_AUTH_URL: 'https://gyro-caserne-exemple.cis-laille.workers.dev' }, { BETTER_AUTH_URL: 'http://localhost.exemple.fr' }, { BETTER_AUTH_URL: 'pas une adresse' }, {}]) {
+			await expect(envoyerCourriel(env, message)).rejects.toThrow('BREVO_CLE manquante');
+		}
+		expect(console_).not.toHaveBeenCalled();
 		expect(fetch_).not.toHaveBeenCalled();
 	});
 

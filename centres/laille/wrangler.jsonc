@@ -11,6 +11,9 @@
 	// Adresse de la production (déduite du sous-domaine cis-laille du compte, à confirmer avant le premier tag) : les liens de connexion pointent vers elle. En clair, ce n’est pas un secret (décision 0024) ; en local, .dev.vars l’emporte.
 	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-laille.cis-laille.workers.dev" },
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
+	// Journal de Cloudflare (Workers Logs) : seulement les messages de l’appli, nettoyés de toute donnée personnelle ; pas le journal
+	// des requêtes, qui garderait l’adresse complète des pages (clé d’agenda comprise), peut-être hors de l’Union européenne (décision 0036, choix du porteur).
+	"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": false } },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les dix minutes (décision 0012), les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/10 * * * *"] },
 	// Bases créées le 12/11/2026 dans l’Union européenne (--jurisdiction eu).

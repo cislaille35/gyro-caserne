@@ -190,4 +190,16 @@ describe('envoisDuGeste (le suivi d’une requête dans les hooks)', () => {
 		expect(erreur).toHaveBeenCalledWith('Notifications non envoyées', 'TypeError');
 		erreur.mockRestore();
 	});
+
+	// Décision 0036 : sans cela, Cloudflare écrirait lui-même l'erreur brute (valeurs de la requête comprises) au journal.
+	it('une tâche en arrière-plan qui échoue est écrite résumée, sans rejet ni valeurs', async () => {
+		const attendus: Promise<unknown>[] = [];
+		const envois = envoisDuGeste((t) => attendus.push(t));
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		envois.enArrierePlan(Promise.reject(new Error('Failed query: select 1\nparams: alice@exemple.fr')));
+		await Promise.all(attendus);
+		expect(erreur).toHaveBeenCalledWith('Tâche après la réponse', expect.stringContaining('Failed query'));
+		expect(erreur.mock.calls.flat().join(' ')).not.toContain('alice');
+		erreur.mockRestore();
+	});
 });

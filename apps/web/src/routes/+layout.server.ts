@@ -1,4 +1,4 @@
-import { aLeDroit, enTeteDe, peutAttribuerQuelqueChose } from '@gyro-caserne/socle';
+import { aLeDroit, enTeteDe, peutAttribuerQuelqueChose, resumeErreur } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import type { LayoutServerLoad } from './$types';
 
@@ -43,7 +43,7 @@ async function lireEnTete(base: App.Locals['base'], acteur: NonNullable<App.Loca
 		const e = await enTeteDe(base, acteur, aujourdhui, maintenant);
 		return { cloche: e.nonLues + e.remplacementsAValider + e.signalements + e.aTrancher, visage: e.visage, ecusson: e.ecusson, nonLus: e.nonLus };
 	} catch (erreur) {
-		console.error('Cloche illisible', erreur);
+		console.error('Cloche illisible', resumeErreur(erreur));
 		return { cloche: 0, visage: null, ecusson: null, nonLus: 0 };
 	}
 }

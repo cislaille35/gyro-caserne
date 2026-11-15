@@ -56,6 +56,11 @@
 			<p>Chaque semaine, une copie chiffrée de la base part dans la boîte e-mail du centre. Seul le responsable de l’appli peut l’ouvrir. Les copies sont gardées 3 mois.</p>
 		</Carte>
 
+		<Carte titre="Journal technique">
+			<p>Pour repérer les pannes, Cloudflare peut garder un journal technique de chaque page ouverte : son adresse complète (qui peut contenir un numéro de fiche, la clé de votre lien d’agenda, ou un lien de connexion, valable 5 minutes et une seule fois), l’heure, la réponse, le temps de calcul et des informations de la connexion (navigateur, adresse IP, pays). L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.</p>
+			<p>Le responsable de l’appli choisit pour le centre de ne rien garder, de ne garder que les messages d’erreur de l’appli (sans l’adresse des pages), ou tout le journal. Ce qui est gardé l’est 7 jours au plus, chez Cloudflare, peut-être hors de l’Union européenne, et seul le responsable de l’appli le lit.</p>
+		</Carte>
+
 		<Carte titre="Corriger ou effacer">
 			{#if connecte}
 				<p>Votre téléphone, votre surnom, votre date de naissance et votre contact d’urgence se corrigent dans <a href="/profil">Mon profil</a>.</p>

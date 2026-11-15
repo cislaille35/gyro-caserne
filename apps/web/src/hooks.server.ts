@@ -1,7 +1,7 @@
 import { building } from '$app/env';
 import { env, waitUntil } from 'cloudflare:workers';
-import { acteurDe, creerBaseD1, creerBasePhotos } from '@gyro-caserne/socle';
-import type { Handle } from '@sveltejs/kit/hooks';
+import { acteurDe, creerBaseD1, creerBasePhotos, resumeErreur } from '@gyro-caserne/socle';
+import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins, type Auth } from '#lib/server/auth.ts';
 import { envoisDuGeste } from '#lib/server/envoi-push.ts';
@@ -45,4 +45,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	} finally {
 		envois.terminer(base, cles);
 	}
+};
+
+// Le journal du Worker est gardé par Cloudflare (décision 0036) : la page en cause (son modèle, sans identifiant) et l'erreur résumée,
+// sans les valeurs de la requête. Seulement une erreur imprévue : une page introuvable ou un refus voulu (error(…)) n'en est pas une.
+export const handleError: HandleServerError = ({ kind, error, event }) => {
+	if (kind !== 'unknown') return;
+	console.error('Erreur imprévue', event.route.id ?? 'page inconnue', resumeErreur(error));
 };

@@ -3,7 +3,7 @@ import { ENTETES, personne, session } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from '#lib/server/auth.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
-import { handle } from './hooks.server.ts';
+import { handle, handleError } from './hooks.server.ts';
 
 const SECRET = 'secret-de-test-assez-long-pour-better-auth';
 const H = vi.hoisted(() => {
@@ -133,5 +133,30 @@ describe('session lue par le hook, sans créer Better Auth', () => {
 		expect(resolve).not.toHaveBeenCalled();
 		expect(locals.acteur).toBeNull();
 		expect((await base.select().from(session))[0]!.expiresAt).toEqual(echeance);
+	});
+});
+
+// Le journal du Worker est gardé par Cloudflare (décision 0036) : une erreur imprévue y part résumée, sans les valeurs de la requête.
+describe('erreur imprévue', () => {
+	const evenement = (route: string | null) => ({ route: { id: route } }) as Parameters<typeof handleError>[0]['event'];
+
+	it('écrit la page en cause et l’erreur sans ses valeurs', () => {
+		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const erreur = new Error('Failed query: select * from "personne" where "email" = ?\nparams: alice.martin@exemple.fr');
+		handleError({ kind: 'unknown', error: erreur, event: evenement('/agents/[id]') });
+		expect(console_).toHaveBeenCalledTimes(1);
+		const ecrit = console_.mock.calls[0]!.join(' ');
+		expect(ecrit).toContain('/agents/[id]');
+		expect(ecrit).toContain('Failed query');
+		expect(ecrit).not.toContain('alice.martin');
+		console_.mockRestore();
+	});
+
+	it('n’écrit rien pour une page introuvable ou un refus voulu', () => {
+		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+		handleError({ kind: 'framework', error: { status: 404, message: 'Not found: /agenda/cle-secrete.ics' }, event: evenement(null) });
+		handleError({ kind: 'app', error: { status: 404, message: 'Introuvable' }, event: evenement('/agents/[id]') });
+		expect(console_).not.toHaveBeenCalled();
+		console_.mockRestore();
 	});
 });

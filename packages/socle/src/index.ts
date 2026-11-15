@@ -2,6 +2,7 @@ export { creerBaseD1, creerBasePhotos, type Base, type BasePhotos } from './base
 export * from './schema.ts';
 export { enCours } from './dates.ts';
 export { ligneJournal } from './journal.ts';
+export { resumeErreur, sansDonnees } from './erreur-anonyme.ts';
 export { aLeDroit, couvre, droitsDe, estChefDeCentre, type Acteur, type DroitAccorde, type Perimetre } from './droits.ts';
 export { DonneeInvalide, RefusDroit } from './erreurs.ts';
 export { acteurDe, adresseAutorisee, annulerEnvoi, effacerLien, effacerLiensVers, identifiantDuCode, normaliserAdresse, prenomDe, reserverEnvoi } from './connexion.ts';

@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, fileDEnvoisVide, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, fileDEnvoisVide, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment, resumeErreur } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -42,19 +42,23 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// Les manœuvres du planning s'annoncent le matin, pas en pleine nuit : à 8 h (Paris), et à 8 h 10 si le passage de 8 h a manqué.
 				// Une annonce faite n'est jamais refaite ; deux passages espacés ne se croisent pas.
 				if (['08:00', '08:10'].includes(maintenant.slice(11, 16))) {
-					taches.push(planningDuMatin(base, maintenant, centre.manoeuvres.petitDejeuner).catch((e) => console.error('Planning du matin', e)));
+					taches.push(planningDuMatin(base, maintenant, centre.manoeuvres.petitDejeuner).catch((e) => console.error('Planning du matin', resumeErreur(e))));
 					// Les rappels des vacances d'été : chacun n'est envoyé qu'une fois.
-					taches.push(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', e)));
+					taches.push(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', resumeErreur(e))));
 				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes, à chaque réveil.
-				if (maintenant[15] === '0') taches.push(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', e)));
+				if (maintenant[15] === '0') taches.push(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', resumeErreur(e))));
 				// La météo et la vigilance : regardées à chaque réveil, la météo redemandée si elle a plus d'une heure, la vigilance à chaque réveil (décision 0012).
 				const lieu = { position: centre.position, departement: centre.departement };
-				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', e)));
+				taches.push(mettreAJourReleves(base, lieu, maintenant.slice(0, 16), fetch, env.VIGILANCE_CLE).catch((e) => console.error('Météo', resumeErreur(e))));
 				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
 				// La file, lue après les tâches : vide, et rien mis en file par elles, le lot n'est pas pris. Illisible : il l'est.
 				const fileVide = () => fileDEnvoisVide(base).catch(() => false);
-				ctx.waitUntil(Promise.allSettled(taches).then(async () => (!misEnFile && (await fileVide()) ? null : envoyerLot(base, clesVapid(env)))));
+				ctx.waitUntil(
+					Promise.allSettled(taches)
+						.then(async () => (!misEnFile && (await fileVide()) ? null : envoyerLot(base, clesVapid(env))))
+						.catch((e) => console.error('Envois du réveil', resumeErreur(e)))
+				);
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);
@@ -80,7 +84,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerAgentsPartis(base, limiteDeConservation(quand, CONSERVATION_PARTIS_MOIS), aujourdhuiParis(quand), (env.SUPER_ADMINS ?? '').split(',').map((a) => a.trim()).filter(Boolean)),
 					// Les octets de PHOTOS que plus rien ne référence (un effacement raté) : une tranche par nuit.
 					effacerPhotosOrphelines(base, photos, maintenantParis(quand))
-				])
+				]).catch((e) => console.error('Ménage de la nuit', resumeErreur(e)))
 			);
 		}
 	};

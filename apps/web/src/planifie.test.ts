@@ -161,4 +161,20 @@ describe('avecPlanifie', () => {
 		await lancer('30 3 * * *', '2026-11-15T03:35:00Z');
 		expect(mettreAJourReleves).not.toHaveBeenCalled();
 	});
+
+	// Décision 0036 : une tâche planifiée qui échoue est écrite résumée, sans les valeurs de la requête (adresses des super administrateurs).
+	it('une erreur de la nuit ou du réveil est écrite résumée, sans rejet', async () => {
+		const erreur = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const panne = () => Promise.reject(new Error('Failed query: delete\nparams: a@b.fr'));
+		// lancer() remet les espions à zéro : chaque passage est vérifié tout de suite.
+		vi.mocked(effacerAgentsPartis).mockImplementationOnce(panne);
+		await lancer('30 3 * * *', '2026-10-29T03:30:00Z', { SUPER_ADMINS: 'a@b.fr' });
+		expect(erreur).toHaveBeenCalledWith('Ménage de la nuit', expect.stringContaining('Failed query'));
+		expect(erreur.mock.calls.flat().join(' ')).not.toContain('a@b.fr');
+		vi.mocked(envoyerLot).mockImplementationOnce(panne);
+		await lancer('*/10 * * * *', '2026-10-29T10:10:00Z');
+		expect(erreur).toHaveBeenCalledWith('Envois du réveil', expect.stringContaining('Failed query'));
+		expect(erreur.mock.calls.flat().join(' ')).not.toContain('a@b.fr');
+		erreur.mockRestore();
+	});
 });

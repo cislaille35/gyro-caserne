@@ -11,7 +11,7 @@ describe('/donnees', () => {
 	it('le titre, et ce qui est gardé, où, qui le voit, combien de temps', () => {
 		const page = html(Page, { connecte: true });
 		expect(page).toMatch(/<h1[^>]*>Vos données dans Gyro Caserne<\/h1>/);
-		for (const titre of ['Ce qui est gardé', 'Où', 'Qui les voit', 'Combien de temps', 'Copie de sécurité', 'Corriger ou effacer']) expect(page).toMatch(new RegExp(`<h2[^>]*>${titre}</h2>`));
+		for (const titre of ['Ce qui est gardé', 'Où', 'Qui les voit', 'Combien de temps', 'Copie de sécurité', 'Journal technique', 'Corriger ou effacer']) expect(page).toMatch(new RegExp(`<h2[^>]*>${titre}</h2>`));
 		expect(page).toContain('Cloudflare');
 		expect(page).toContain('Union européenne');
 	});
@@ -33,6 +33,16 @@ describe('/donnees', () => {
 		expect(page).toContain('Le chef de centre, son adjoint et le responsable de l’appli : votre fiche entière');
 		expect(page).toContain('s’il est signalé, la personne chargée de la modération');
 		expect(page).toContain('Saisi par vous ou par le centre : date de naissance.');
+	});
+
+	// Décision 0036 : le journal de Cloudflare, adresse des pages comprise, sans nom ni adresse e-mail ajoutés par l'appli, gardé 7 jours au plus, peut-être hors de l'Union européenne.
+	it('le journal technique : ce qu’il contient, ce qu’il ne contient jamais, combien de temps et où', () => {
+		const page = html(Page, { connecte: true });
+		expect(page).toContain('son adresse complète (qui peut contenir un numéro de fiche, la clé de votre lien d’agenda, ou un lien de connexion');
+		expect(page).toContain('adresse IP, pays');
+		expect(page).toContain('L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.');
+		expect(page).toContain('7 jours au plus');
+		expect(page).toContain('peut-être hors de l’Union européenne');
 	});
 
 	it('effacement sur demande auprès du chef de centre ; profil corrigé soi-même', () => {
