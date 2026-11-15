@@ -54,7 +54,11 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 				// Puis un lot d'envois au téléphone : ce que ce réveil a mis en file, et ce qui reste en file au-delà du lot envoyé dès le geste.
 				// La file, lue après les tâches : vide, et rien mis en file par elles, le lot n'est pas pris. Illisible : il l'est.
 				const fileVide = () => fileDEnvoisVide(base).catch(() => false);
-				ctx.waitUntil(Promise.allSettled(taches).then(async () => (!misEnFile && (await fileVide()) ? null : envoyerLot(base, clesVapid(env)))));
+				ctx.waitUntil(
+					Promise.allSettled(taches)
+						.then(async () => (!misEnFile && (await fileVide()) ? null : envoyerLot(base, clesVapid(env))))
+						.catch((e) => console.error('Envois du réveil', resumeErreur(e)))
+				);
 				return;
 			}
 			const quand = new Date(controleur.scheduledTime);
@@ -80,7 +84,7 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					effacerAgentsPartis(base, limiteDeConservation(quand, CONSERVATION_PARTIS_MOIS), aujourdhuiParis(quand), (env.SUPER_ADMINS ?? '').split(',').map((a) => a.trim()).filter(Boolean)),
 					// Les octets de PHOTOS que plus rien ne référence (un effacement raté) : une tranche par nuit.
 					effacerPhotosOrphelines(base, photos, maintenantParis(quand))
-				])
+				]).catch((e) => console.error('Ménage de la nuit', resumeErreur(e)))
 			);
 		}
 	};

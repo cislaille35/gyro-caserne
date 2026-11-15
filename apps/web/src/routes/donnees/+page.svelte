@@ -57,7 +57,7 @@
 		</Carte>
 
 		<Carte titre="Journal technique">
-			<p>Pour repérer les pannes, Cloudflare peut garder un journal technique : la page ouverte, l’heure, la réponse, le temps de calcul et des informations de la connexion (navigateur, adresse IP). L’appli n’y écrit jamais votre nom, votre adresse e-mail, ni un lien ou un code de connexion.</p>
+			<p>Pour repérer les pannes, Cloudflare peut garder un journal technique de chaque page ouverte : son adresse complète (qui peut contenir un numéro de fiche, la clé de votre lien d’agenda, ou un lien de connexion, valable 5 minutes et une seule fois), l’heure, la réponse, le temps de calcul et des informations de la connexion (navigateur, adresse IP, pays). L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.</p>
 			<p>Le responsable de l’appli choisit de le garder ou non pour le centre. S’il est gardé, il l’est 7 jours au plus, chez Cloudflare, peut-être hors de l’Union européenne, et seul le responsable de l’appli le lit.</p>
 		</Carte>
 

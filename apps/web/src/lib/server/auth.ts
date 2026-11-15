@@ -86,11 +86,11 @@ export function creerAuth(env: EnvAuth, base: Base, enArrierePlan: (tache: Promi
 		secret: env.BETTER_AUTH_SECRET,
 		// Fixée, pour que le lien envoyé pointe toujours vers l'appli, quelle que soit la requête.
 		baseURL: env.BETTER_AUTH_URL,
-		advanced: { backgroundTasks: { handler: enArrierePlan } },
-		// Le journal du Worker est gardé par Cloudflare (décision 0036) : ce que Better Auth y écrit part nettoyé.
+		// Le journal du Worker est gardé par Cloudflare (décision 0036) : ce que Better Auth y écrit part nettoyé, même une tâche de fond en échec.
+		advanced: { backgroundTasks: { handler: (tache) => enArrierePlan(tache.catch((e) => console.error('Tâche de Better Auth', resumeErreur(e)))) } },
 		logger: {
 			log: (niveau, message, ...details) =>
-				console.error('Better Auth', niveau, sansDonnees(message), ...details.map((d) => (d instanceof Error ? resumeErreur(d) : typeof d)))
+				console[niveau === 'error' ? 'error' : 'warn']('Better Auth', niveau, sansDonnees(message), ...details.map((d) => (d instanceof Error ? resumeErreur(d) : typeof d)))
 		},
 		disabledPaths: ROUTES_DU_CODE_FERMEES,
 		// Lue sans Better Auth à chaque requête, dans le même format (session.ts, décision 0035).

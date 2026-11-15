@@ -35,11 +35,12 @@ describe('/donnees', () => {
 		expect(page).toContain('Saisi par vous ou par le centre : date de naissance.');
 	});
 
-	// Décision 0036 : le journal de Cloudflare, sans nom, adresse ni code de connexion, gardé 7 jours au plus, peut-être hors de l'Union européenne.
+	// Décision 0036 : le journal de Cloudflare, adresse des pages comprise, sans nom ni adresse e-mail ajoutés par l'appli, gardé 7 jours au plus, peut-être hors de l'Union européenne.
 	it('le journal technique : ce qu’il contient, ce qu’il ne contient jamais, combien de temps et où', () => {
 		const page = html(Page, { connecte: true });
-		expect(page).toContain('la page ouverte, l’heure, la réponse');
-		expect(page).toContain('jamais votre nom, votre adresse e-mail, ni un lien ou un code de connexion');
+		expect(page).toContain('son adresse complète (qui peut contenir un numéro de fiche, la clé de votre lien d’agenda, ou un lien de connexion');
+		expect(page).toContain('adresse IP, pays');
+		expect(page).toContain('L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.');
 		expect(page).toContain('7 jours au plus');
 		expect(page).toContain('peut-être hors de l’Union européenne');
 	});

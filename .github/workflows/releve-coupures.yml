@@ -68,20 +68,23 @@ jobs:
           done
           [ "$coupures" -eq 0 ]
 
-      # Même en cas de coupures (étape précédente en échec) : c'est là que la page en cause sert.
+      # Même en cas de coupures (étape précédente en échec) : c'est là que la page en cause sert. Ces étapes ne font jamais échouer le relevé.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: always()
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           persist-credentials: false
           sparse-checkout: |
             .nvmrc
             apps/web/scripts/pages-en-erreur.ts
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: always()
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           node-version-file: .nvmrc
       - name: Pages en cause
-        if: always()
+        if: ${{ !cancelled() }}
+        continue-on-error: true
         env:
           JETON: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           COMPTE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

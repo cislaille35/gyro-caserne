@@ -1,4 +1,4 @@
-import { finirEnvois, prendreEnvois, type Base, type Envoi } from '@gyro-caserne/socle';
+import { finirEnvois, prendreEnvois, resumeErreur, type Base, type Envoi } from '@gyro-caserne/socle';
 import { requetePush, type ClesVapid } from './webpush.ts';
 
 // Un lot d'envois au téléphone, pris dans la file. 40 au plus : l'offre gratuite de Cloudflare permet 50 sous-requêtes par appel.
@@ -71,7 +71,8 @@ export function envoisDuGeste(waitUntil: (tache: Promise<unknown>) => void) {
 		},
 		enArrierePlan: (tache: Promise<unknown>) => {
 			taches.push(tache);
-			waitUntil(tache);
+			// Une erreur non rattrapée serait écrite brute au journal par Cloudflare (décision 0036).
+			waitUntil(tache.catch((e) => console.error('Tâche après la réponse', resumeErreur(e))));
 		},
 		terminer: (base: Base, cles: ClesVapid | null, envoyer?: (url: string, init: RequestInit) => Promise<Response>) =>
 			waitUntil(envoyerApres(base, cles, taches, () => misEnFile, envoyer).catch((e) => console.error('Notifications non envoyées', e instanceof Error ? e.name : typeof e)))

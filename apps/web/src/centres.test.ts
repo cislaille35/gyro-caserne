@@ -84,6 +84,13 @@ describe('journal de la préprod', () => {
 	});
 });
 
+// La production (vraies personnes) : journal coupé tant que le porteur n'a pas tranché (décision 0036). À changer avec sa décision.
+describe('journal de la production', () => {
+	it('est coupé', () => {
+		expect(configCloudflare('../../../centres/laille/centre.ts').config.observability).toEqual({ enabled: false });
+	});
+});
+
 // En local (développement et tests), .dev.vars l'emporte sur l'adresse de la config : les liens de connexion restent sur localhost.
 describe('adresse en local', () => {
 	it('vient de .dev.vars, pas de la config du centre', () => {

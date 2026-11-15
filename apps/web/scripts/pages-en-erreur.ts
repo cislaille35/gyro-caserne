@@ -70,7 +70,7 @@ export async function releverPages(workers: string[], jour: string, demander: De
 			.map((page) => [page, coupures!.get(page) ?? 0, erreurs!.get(page) ?? 0] as const)
 			.sort((a, b) => b[1] + b[2] - (a[1] + a[2]) || a[0].localeCompare(b[0]));
 		if (pages.length === 0) {
-			lignes.push(`${worker} : aucune coupure ni erreur au journal (ou journal coupé pour ce Worker).`);
+			lignes.push(`${worker} : rien au journal (journal coupé, ou aucune coupure ni erreur).`);
 			continue;
 		}
 		lignes.push('', `${worker}`, '', '| Page | Coupures | Erreurs (500 et plus) |', '|---|---|---|');

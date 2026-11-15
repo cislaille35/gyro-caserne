@@ -16,6 +16,16 @@ describe('sansDonnees', () => {
 		expect(sansDonnees('clé xkeysib-0123456789abcdef0123 et agenda/Zx9kQ2mP7vR4tL8wB1nC.ics')).toBe('clé [jeton] et agenda/[jeton].ics');
 	});
 
+	it('masque aussi une adresse accentuée ou encodée, et les paramètres d’un chemin sans domaine', () => {
+		expect(sansDonnees('pour andré.dupont@exemple.fr')).toBe('pour [adresse]');
+		expect(sansDonnees('/echanges/messages/a/alice%40exemple.fr')).toBe('/echanges/messages/a/[adresse]');
+		expect(sansDonnees('vers /api/auth/magic-link/verify?token=court&x=1')).toBe('vers /api/auth/magic-link/verify?[…]');
+	});
+
+	it('garde les noms de colonnes, même longs', () => {
+		expect(sansDonnees('select "attribution_perimetre_type", "access_token_expires_at"')).toBe('select "attribution_perimetre_type", "access_token_expires_at"');
+	});
+
 	it('garde un texte ordinaire', () => {
 		expect(sansDonnees('D1_ERROR: UNIQUE constraint failed: personne.email')).toBe('D1_ERROR: UNIQUE constraint failed: personne.email');
 	});
@@ -42,6 +52,11 @@ describe('resumeErreur', () => {
 		erreur.stack = 'Error: Panne pour a@exemple.fr\n    at envoyer (courriel.ts:12:3)\n    at auth.ts:40:1';
 		const resume = resumeErreur(erreur);
 		expect(resume).toContain('at envoyer (courriel.ts:12:3)');
+		expect(resume).not.toContain('a@exemple.fr');
+	});
+
+	it('ne recopie pas une fausse ligne de pile glissée dans le message', () => {
+		const resume = resumeErreur(new Error('Panne\n    at faux a@exemple.fr'));
 		expect(resume).not.toContain('a@exemple.fr');
 	});
 

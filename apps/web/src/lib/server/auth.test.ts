@@ -439,4 +439,22 @@ describe('journal de Better Auth', () => {
 		expect(ecrit).not.toMatch(/agent@exemple|token=abc/);
 		console_.mockRestore();
 	});
+
+	it('écrit les avertissements en avertissement, et ne recopie d’un détail qui n’est pas une erreur que son type', async () => {
+		const { auth } = await jeu();
+		const avertir = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		auth.options.logger!.log!('warn', 'Attention', { email: 'agent@exemple.fr' });
+		expect(avertir).toHaveBeenCalledWith('Better Auth', 'warn', 'Attention', 'object');
+		avertir.mockRestore();
+	});
+
+	it('une tâche de fond qui échoue est écrite résumée, sans rejet', async () => {
+		const { auth, taches } = await jeu();
+		const console_ = vi.spyOn(console, 'error').mockImplementation(() => {});
+		auth.options.advanced!.backgroundTasks!.handler!(Promise.reject(new Error('Failed query: x\nparams: agent@exemple.fr')));
+		await Promise.all(taches.splice(0));
+		expect(console_).toHaveBeenCalledWith('Tâche de Better Auth', expect.stringContaining('Failed query'));
+		expect(console_.mock.calls.flat().join(' ')).not.toContain('agent@exemple');
+		console_.mockRestore();
+	});
 });

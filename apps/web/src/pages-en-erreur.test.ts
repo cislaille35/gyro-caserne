@@ -64,7 +64,7 @@ describe('releverPages', () => {
 
 	it('dit quand rien n’est en cause', async () => {
 		const lignes = await releverPages(['gyro-caserne-exemple'], jour, async () => ({ statut: 200, corps: reponse([]) }));
-		expect(lignes.join('\n')).toContain('aucune coupure ni erreur au journal');
+		expect(lignes.join('\n')).toContain('rien au journal (journal coupé, ou aucune coupure ni erreur)');
 	});
 
 	it('ne fait pas échouer le relevé sans le droit de lire le journal : il le dit', async () => {
@@ -85,7 +85,9 @@ describe('relevé quotidien', () => {
 
 	it('ajoute les pages en cause même un jour de coupures, sans jamais échouer pour elles', () => {
 		const etape = texte.slice(texte.indexOf('- name: Pages en cause'));
-		expect(etape).toMatch(/if: always\(\)/);
+		const ajout = texte.slice(texte.indexOf('# Même en cas de coupures'));
+		// Chacune des trois étapes ajoutées (checkout, Node, relevé) : après des coupures, et sans pouvoir faire échouer le relevé.
+		expect(ajout.match(/if: \$\{\{ !cancelled\(\) \}\}\n\s+continue-on-error: true/g)).toHaveLength(3);
 		expect(etape).toMatch(/pages-en-erreur\.ts \| tee -a "\$GITHUB_STEP_SUMMARY" \|\| echo "::warning::/);
 	});
 });
