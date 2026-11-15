@@ -10,7 +10,10 @@ const H = vi.hoisted(() => {
 	(globalThis as Record<string, unknown>).__sveltekit_cloudflare_platform = { env: { BETTER_AUTH_SECRET: 'secret-de-test-assez-long-pour-better-auth', BETTER_AUTH_URL: 'http://localhost', BASE: {}, PHOTOS: {} } };
 	return { base: null as unknown };
 });
-vi.mock('@gyro-caserne/socle', async (origine) => ({ ...(await origine<Record<string, unknown>>()), creerBaseD1: () => H.base, creerBasePhotos: () => ({}) }));
+vi.mock('@gyro-caserne/socle', async (origine) => ({ ...(await origine<Record<string, unknown>>()), creerBaseD1: () => {
+		if (H.base === 'en panne') throw new Error('base en panne');
+		return H.base;
+	}, creerBasePhotos: () => ({}) }));
 vi.mock('#lib/server/auth.ts', async (origine) => {
 	const m = await origine<typeof import('#lib/server/auth.ts')>();
 	return { ...m, creerAuth: vi.fn(m.creerAuth) };
@@ -60,7 +63,7 @@ describe('taille des envois, pour toutes les routes', () => {
 
 	it('appliquée par les hooks avant la session et la route', async () => {
 		const resolve = vi.fn();
-		const event = { request: envoi(5 * MO), url: new URL('http://x/echanges/vie'), cookies: { get: () => undefined }, locals: {} };
+		const event = { request: envoi(5 * MO), url: new URL('http://x/echanges/vie'), route: { id: '/echanges/[mur]' }, cookies: { get: () => undefined }, locals: {} };
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const reponse = await handle({ event: event as any, resolve });
 		expect(reponse.status).toBe(413);
@@ -91,7 +94,7 @@ describe('session lue par le hook, sans créer Better Auth', () => {
 		const [nom, valeur] = [cookie.slice(0, cookie.indexOf('=')), decodeURIComponent(cookie.slice(cookie.indexOf('=') + 1))];
 		const locals = {} as App.Locals;
 		const cookies = { get: (n: string) => (cookie && n === nom ? valeur : undefined), set: vi.fn(), delete: vi.fn() };
-		return { event: { request, url: new URL(request.url), cookies, locals }, locals };
+		return { event: { request, url: new URL(request.url), route: { id: null }, cookies, locals }, locals };
 	}
 
 	it('une page : l’agent reconnu, et Better Auth jamais créé', async () => {
@@ -133,6 +136,49 @@ describe('session lue par le hook, sans créer Better Auth', () => {
 		expect(resolve).not.toHaveBeenCalled();
 		expect(locals.acteur).toBeNull();
 		expect((await base.select().from(session))[0]!.expiresAt).toEqual(echeance);
+	});
+});
+
+// Une ligne par requête au journal de Cloudflare (décision 0037), écrite avant le travail : la page, même si Cloudflare coupe ensuite.
+describe('page au journal', () => {
+	const evenement = (chemin: string, route: string | null, options: { method?: string; isSubRequest?: boolean } = {}) => {
+		const request = new Request(`http://localhost${chemin}`, { method: options.method ?? 'GET' });
+		const cookies = { get: () => undefined, set: vi.fn(), delete: vi.fn() };
+		return { request, url: new URL(request.url), route: { id: route }, isSubRequest: options.isSubRequest ?? false, cookies, locals: {} as App.Locals };
+	};
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const traiter = (event: object, resolve = async () => new Response('ok')) => handle({ event: event as any, resolve });
+
+	it('écrit le modèle de la page avant d’ouvrir la base, même si la suite échoue', async () => {
+		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
+		// La base ne s'ouvre pas : rien d'autre n'a lieu, ni session ni page.
+		H.base = 'en panne';
+		const resolve = vi.fn();
+		await expect(traiter(evenement('/agents/42?courriel=alice@exemple.fr', '/agents/[id]'), resolve)).rejects.toThrow('base en panne');
+		expect(resolve).not.toHaveBeenCalled();
+		expect(journal.mock.calls).toEqual([['Page GET /agents/[id]']]);
+		journal.mockRestore();
+	});
+
+	it('écrit aussi l’action d’un formulaire, une adresse de Better Auth et un envoi refusé, sans le reste de l’adresse', async () => {
+		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
+		H.base = await baseDeTest();
+		await traiter(evenement('/echanges?/souhaiter', '/echanges', { method: 'POST' }));
+		await traiter(evenement('/api/auth/ok?token=jeton-secret', null));
+		// Un envoi trop lourd, refusé avant tout le reste.
+		const lourd = evenement('/echanges/vie?/publier', '/echanges/[mur]', { method: 'POST' });
+		lourd.request = new Request(lourd.request.url, { method: 'POST', body: 'x', headers: { 'content-length': String(3 * MO) } });
+		expect((await traiter(lourd)).status).toBe(413);
+		expect(journal.mock.calls).toEqual([['Page POST /echanges?/souhaiter'], ['Page GET /api/auth'], ['Page POST /echanges/[mur]?/publier']]);
+		journal.mockRestore();
+	});
+
+	it('rien pour une requête interne de l’appli à elle-même : elle est déjà comptée', async () => {
+		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
+		H.base = await baseDeTest();
+		await traiter(evenement('/moi', '/moi', { isSubRequest: true }));
+		expect(journal).not.toHaveBeenCalled();
+		journal.mockRestore();
 	});
 });
 

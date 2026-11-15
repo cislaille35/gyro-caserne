@@ -9,8 +9,12 @@ import { estAdresseDeBetterAuth, lireSession } from '#lib/server/session.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
 import { formulaireEgare } from '#lib/server/resoumission.ts';
 import { envoiRefuse } from '#lib/server/taille-envoi.ts';
+import { lignePage } from '#lib/server/page-au-journal.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Au début de handle, avant le travail, pour que la ligne reste même si Cloudflare coupe la requête (décision 0037). Une requête interne est déjà comptée.
+	const deBetterAuth = !building && estAdresseDeBetterAuth(event.url, env);
+	if (!building && !event.isSubRequest) console.log(lignePage(event, deBetterAuth));
 	const refus = envoiRefuse(event.request, event.url.pathname);
 	if (refus) return refus;
 	event.locals.affichage = lireAffichage(event.cookies);
@@ -35,7 +39,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		// Ses adresses répondent elles-mêmes et posent leurs cookies : la session n'y est pas lue.
-		if (estAdresseDeBetterAuth(event.url, env)) {
+		if (deBetterAuth) {
 			event.locals.acteur = null;
 			return await event.locals.auth.handler(event.request);
 		}

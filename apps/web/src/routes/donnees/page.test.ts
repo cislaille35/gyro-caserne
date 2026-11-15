@@ -43,6 +43,8 @@ describe('/donnees', () => {
 		expect(page).toContain('L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.');
 		expect(page).toContain('7 jours au plus');
 		expect(page).toContain('peut-être hors de l’Union européenne');
+		// Décision 0037 : le nom générique de la page ouverte, jamais son adresse.
+		expect(page).toContain('de ne garder que le nom des pages ouvertes (« fiche d’un agent », sans son adresse) et les messages d’erreur de l’appli');
 	});
 
 	it('effacement sur demande auprès du chef de centre ; profil corrigé soi-même', () => {

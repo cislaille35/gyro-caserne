@@ -1,70 +1,102 @@
 import { describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { cheminGenerique, regrouper, releverPages } from '../scripts/pages-en-erreur.ts';
+import { nomDePage, releverPages, type Demander } from '../scripts/pages-en-erreur.ts';
 
-// Le résumé du relevé est public : des chemins génériques et des nombres, jamais un identifiant, un jeton ou un paramètre.
-describe('cheminGenerique', () => {
-	it('remplace les identifiants et les jetons par :id', () => {
-		expect(cheminGenerique('/agents/123')).toBe('/agents/:id');
-		expect(cheminGenerique('/echanges/messages/42/photo/7')).toBe('/echanges/messages/:id/photo/:id');
-		expect(cheminGenerique('/agenda/ZxkQmPvRtLwBnCaaaaaaaaaa.ics')).toBe('/agenda/:id');
-		expect(cheminGenerique('/planning/2027')).toBe('/planning/:id');
+// Le résumé du relevé est public : des noms génériques de pages et des nombres, jamais un identifiant, un jeton ou un paramètre.
+describe('nomDePage', () => {
+	it('lit la ligne écrite par l’appli', () => {
+		expect(nomDePage('Page GET /agents/[id]')).toBe('GET /agents/[id]');
+		expect(nomDePage('Page POST /echanges?/souhaiter')).toBe('POST /echanges?/souhaiter');
+		expect(nomDePage('Page POST /echanges/[mur]?/(inconnue)')).toBe('POST /echanges/[mur]?/(inconnue)');
+		expect(nomDePage('Page GET /api/auth')).toBe('GET /api/auth');
+		expect(nomDePage('Page GET (aucune)')).toBe('GET (aucune)');
+		expect(nomDePage('Page réveil')).toBe('réveil');
+		expect(nomDePage('Page ménage de la nuit')).toBe('ménage de la nuit');
 	});
 
-	it('retire les paramètres', () => {
-		expect(cheminGenerique('/api/auth/magic-link/verify?token=abc&callbackURL=%2F')).toBe('/api/auth/magic-link/verify');
+	it('lit toutes les pages de l’appli', () => {
+		const routes = fileURLToPath(new URL('routes', import.meta.url));
+		const modeles = readdirSync(routes, { recursive: true, withFileTypes: true })
+			.filter((f) => /^\+(page|server)\.(ts|svelte)$/.test(f.name))
+			.map((f) => f.parentPath.slice(routes.length) || '/');
+		expect(modeles.length).toBeGreaterThan(50);
+		for (const modele of modeles) expect(nomDePage(`Page POST ${modele}?/envoyer`)).toBe(`POST ${modele}?/envoyer`);
 	});
 
-	it('ne laisse passer aucun morceau inhabituel (adresse, caractère encodé)', () => {
-		expect(cheminGenerique('/echanges/messages/a/alice%40exemple.fr')).toBe('/echanges/messages/a/:id');
-		expect(cheminGenerique('/x/a@b.fr')).toBe('/x/:id');
-	});
-
-	it('garde la racine', () => {
-		expect(cheminGenerique('/')).toBe('/');
-	});
-});
-
-const reponse = (groupes: [string, number][]) => ({
-	success: true,
-	result: { calculations: [{ aggregates: groupes.map(([chemin, nombre]) => ({ count: nombre, value: nombre, groups: [{ key: '$workers.event.request.path', value: chemin }] })) }] }
-});
-
-describe('regrouper', () => {
-	it('additionne les chemins qui ne diffèrent que par un identifiant, du plus fréquent au moins fréquent', () => {
-		expect(regrouper(reponse([['/agents/1', 2], ['/agents/2', 3], ['/planning', 1]]))).toEqual([
-			['/agents/:id', 5],
-			['/planning', 1]
-		]);
-	});
-
-	it('rend une liste vide pour une réponse sans résultat', () => {
-		expect(regrouper({ success: true, result: { calculations: [] } })).toEqual([]);
+	it('ne laisse passer rien d’autre', () => {
+		for (const message of ['Page GET /agents/42', 'Page POST /echanges?/a1', 'Page GET /agents/42?courriel=alice@exemple.fr', 'Page GET /x y', 'Page JETON /', 'Page GET /a?/b c', 'Erreur imprévue /x', 42, undefined])
+			expect(nomDePage(message)).toBe('(illisible)');
 	});
 });
+
+type Corps = Parameters<Demander>[0];
+const cle = (corps: Corps) => corps.parameters.filters[1]!.key;
+// Une réponse de l'API : des groupes (clé → valeur) et leur nombre.
+const reponse = (groupes: Record<string, string>[]) => ({
+	statut: 200,
+	corps: { success: true, result: { calculations: [{ aggregates: groupes.map((g) => ({ count: 1, groups: Object.entries(g).map(([key, value]) => ({ key, value })) })) }] } }
+});
+const id = (requestId: string) => ({ '$metadata.requestId': requestId });
+const page = (requestId: string, message: string) => ({ '$metadata.requestId': requestId, '$metadata.message': message });
 
 describe('releverPages', () => {
 	const jour = '2026-11-14';
+	// r1 coupée sur /agents/[id], r2 en erreur 500 sur /agents/[id], r3 erreur imprévue sur /planning, r4 coupée sans ligne, r5 coupée au réveil.
+	const journal = (corps: Corps) => {
+		switch (cle(corps)) {
+			case '$workers.outcome':
+				return reponse([id('r1'), id('r4'), id('r5')]);
+			case '$workers.event.response.status':
+				return reponse([id('r2'), id('r3')]);
+			case '$metadata.message':
+				if ((corps.parameters.filters[1]!.value as string).startsWith('Erreur')) return reponse([id('r3')]);
+				return reponse([page('r1', 'Page GET /agents/[id]'), page('r2', 'Page POST /agents/[id]?/aptitude'), page('r3', 'Page GET /planning'), page('r5', 'Page réveil'), page('r9', 'Page GET /moi')]);
+		}
+		throw new Error('requête inattendue');
+	};
 
-	it('écrit un tableau par Worker, coupures et erreurs par page', async () => {
-		const demander = vi.fn(async (corps: { parameters: { filters: { key: string }[] } }) => {
-			const coupures = corps.parameters.filters.some((f) => f.key === '$workers.outcome');
-			return { statut: 200, corps: coupures ? reponse([['/planning/2027', 2]]) : reponse([['/agents/9', 1], ['/planning/2026', 1]]) };
-		});
-		const lignes = await releverPages(['gyro-caserne-exemple'], jour, demander);
-		const texte = lignes.join('\n');
-		expect(texte).toContain('| /planning/:id | 2 | 1 |');
-		expect(texte).toContain('| /agents/:id | 0 | 1 |');
-		expect(texte).not.toMatch(/2027|\/9\b/);
-		// La veille, de minuit à minuit (UTC).
-		const corps = demander.mock.calls[0]![0] as unknown as { timeframe: { from: number; to: number } };
+	it('rattache coupures et erreurs à la page de leur requête', async () => {
+		const demander = vi.fn(async (corps: Corps) => journal(corps));
+		const texte = (await releverPages(['gyro-caserne-laille'], jour, demander)).join('\n');
+		expect(texte).toContain('| GET /agents/[id] | 1 | 0 |');
+		expect(texte).toContain('| POST /agents/[id]?/aptitude | 0 | 1 |');
+		expect(texte).toContain('| GET /planning | 0 | 1 |');
+		expect(texte).toContain('| réveil | 1 | 0 |');
+		expect(texte).toContain('| (sans nom de page) | 1 | 0 |');
+		// Une page sans coupure ni erreur n'est pas citée ; aucun identifiant de requête dans le résumé.
+		expect(texte).not.toMatch(/\/moi|r\d/);
+		// La veille, de minuit à minuit (UTC), pour ce Worker.
+		const corps = demander.mock.calls[0]![0];
 		expect(corps.timeframe).toEqual({ from: Date.parse('2026-11-14T00:00:00Z'), to: Date.parse('2026-11-15T00:00:00Z') });
+		expect(corps.parameters.filters[0]).toEqual({ key: '$metadata.service', operation: 'eq', type: 'string', value: 'gyro-caserne-laille' });
 	});
 
-	it('dit quand rien n’est en cause', async () => {
-		const lignes = await releverPages(['gyro-caserne-exemple'], jour, async () => ({ statut: 200, corps: reponse([]) }));
-		expect(lignes.join('\n')).toContain('rien au journal (journal coupé, ou aucune coupure ni erreur)');
+	it('ne demande pas les pages quand rien n’est en cause, et le dit', async () => {
+		const demander = vi.fn(async () => reponse([]));
+		const lignes = await releverPages(['gyro-caserne-exemple'], jour, demander);
+		expect(lignes.join('\n')).toContain('aucune coupure ni erreur trouvée au journal');
+		expect(demander).toHaveBeenCalledTimes(3);
+	});
+
+	it('prévient quand la liste des pages est tronquée', async () => {
+		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? reponse(Array.from({ length: 2000 }, (_, i) => page(`p${i}`, 'Page GET /'))) : reponse([id('r1')]));
+		const texte = (await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n');
+		expect(texte).toContain('Plus de 2000 requêtes');
+		// Une requête en cause absente de la liste tronquée n'est pas une ligne perdue.
+		expect(texte).toContain('| (non trouvée, liste tronquée) | 1 | 1 |');
+	});
+
+	it('écarte une ligne qui n’a pas la forme écrite par l’appli', async () => {
+		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? reponse([page('r1', 'Page GET /agents/42')]) : reponse([id('r1')]));
+		const texte = (await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n');
+		expect(texte).toContain('| (illisible) | 1 | 1 |');
+		expect(texte).not.toContain('42');
+	});
+
+	it('dit quand seules les pages sont indisponibles', async () => {
+		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? { statut: 500, corps: { success: false } } : reponse([id('r1')]));
+		expect((await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n')).toContain('gyro-caserne-exemple : répartition par page indisponible (réponse inattendue de Cloudflare, HTTP 500).');
 	});
 
 	it('ne fait pas échouer le relevé sans le droit de lire le journal : il le dit', async () => {

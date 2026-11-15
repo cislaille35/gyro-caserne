@@ -32,6 +32,16 @@ describe('avecPlanifie', () => {
 		return attendus;
 	};
 
+	// Une ligne fixe au journal de Cloudflare (décision 0037) : une coupure du réveil ou du ménage y est nommée.
+	it('écrit au journal « Page réveil » ou « Page ménage de la nuit », avant le travail', async () => {
+		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
+		await lancer('*/10 * * * *', '2026-11-15T07:00:00Z');
+		expect(journal.mock.calls).toEqual([['Page réveil']]);
+		await lancer('30 3 * * *', '2026-10-29T03:30:00Z');
+		expect(journal.mock.calls).toEqual([['Page ménage de la nuit']]);
+		journal.mockRestore();
+	});
+
 	it('chaque nuit : messages et publications plus anciens que la durée du centre, notifications de plus de 30 jours ; rien n’est envoyé', async () => {
 		expect(await lancer('30 3 * * *', '2026-10-29T03:30:00Z')).toHaveLength(1);
 		expect(vi.mocked(effacerAnciens).mock.calls[0]![2]).toBe('2026-04-29');

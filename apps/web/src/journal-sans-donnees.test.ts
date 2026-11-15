@@ -14,6 +14,7 @@ const SURS = [/^'[^'$]*'$/, /^(resumeErreur|sansDonnees)\(.*\)$/s, /^[\w.]+\.(na
 // Exceptions relues une à une.
 const EXCEPTIONS: Record<string, string> = {
 	"event.route.id ?? 'page inconnue'": 'le modèle de la page (/agents/[id]), sans identifiant',
+	'lignePage(event, deBetterAuth)': 'le modèle de la page, la méthode et l’action, sans valeur de la requête (page-au-journal.test.ts)',
 	"url.split('?')[0]": "l'adresse de l'API météo, sans ses paramètres",
 	niveau: 'le niveau du message de Better Auth',
 	'...details.map((d) => (d instanceof Error ? resumeErreur(d) : typeof d))': 'les détails de Better Auth, résumés',
@@ -72,6 +73,11 @@ describe('journal du Worker', () => {
 	it('ne reçoit que des arguments sûrs', () => {
 		const trouvees = racines.flatMap(fichiers).flatMap((fichier) => fautes(readFileSync(fichier, 'utf8')).map((arg) => `${relative(appli, fichier)} : ${arg}`));
 		expect(trouvees).toEqual([]);
+	});
+
+	it('la ligne de la page n’est écrite qu’à un endroit, le début de handle', () => {
+		const ou = racines.flatMap(fichiers).filter((fichier) => readFileSync(fichier, 'utf8').includes('lignePage(event, deBetterAuth)'));
+		expect(ou.map((fichier) => relative(appli, fichier))).toEqual(['src/hooks.server.ts']);
 	});
 
 	it('refuse une erreur brute, son message, un texte composé, un objet ou un appel sur plusieurs lignes qui en porte', () => {
