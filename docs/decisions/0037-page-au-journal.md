@@ -1,5 +1,7 @@
 # 0037 — Le nom de la page au journal, à chaque requête
 
+> **Révisée le 15/11/2026 (soir)** : la ligne « Page » n'est écrite **que là où le journal des requêtes est gardé** (la préprod). L'essai de la condition du tag (plus bas) a répondu oui : sans le journal des requêtes, chaque ligne de l'appli porte encore l'adresse de la requête, et pas son issue. La production est donc coupée en entier ([0036, révision](0036-journal-cloudflare.md#révision-du-15112026-soir--production-coupée-choix-a)). Le réglage est `"JOURNAL_DES_PAGES": true` dans les `vars` de `centres/<id>/wrangler.jsonc`, lu par `hooks.server.ts` et `planifie.ts` ; `centres.test.ts` exige qu'il aille avec le journal des requêtes (`observability.enabled` et `invocation_logs`). En préprod, le relevé nomme d'abord une coupure par l'événement de requête de Cloudflare (`$workers.outcome`, `$workers.event.request.path` ramené au modèle de la page) ; la ligne « Page » ne sert qu'en appoint, surtout pour le réveil et le ménage, qui n'ont pas d'adresse. Le reste ci-dessous est la décision d'origine.
+
 - **Contexte** : en production, le journal de Cloudflare ne garde que les messages de l'appli, pas les requêtes (choix (b) de la [0036](0036-journal-cloudflare.md)). Le relevé quotidien ne peut donc pas dire quelle page une coupure (erreur 1102) a frappée. Une nouvelle décision plutôt qu'une révision de la 0036 : la 0036 garde le choix du porteur sur ce que Cloudflare enregistre ; celle-ci ajoute ce que l'appli y écrit.
 - **Options** :
   - remettre le journal des requêtes en production (choix (c) de la 0036) : écarté, il garde l'adresse des pages (clé d'agenda, jeton de connexion) ;
@@ -16,4 +18,4 @@
   2. ouvrir une page de la préprod, puis, dans Observability, ouvrir la ligne `Page …` et lire ses champs ;
   3. remettre le réglage (ou redéployer la préprod) ;
   4. si `$workers.event` porte l'adresse ou l'IP : pas de tag, chercher une autre voie. Sinon, vérifier aussi que `$workers.outcome` y figure : sans lui, le relevé ne trouverait pas les coupures en production.
-- **Validé par** : le porteur, le 15/11/2026 (but et format) ; ce document, à valider dans la PR.
+- **Validé par** : le porteur, le 15/11/2026 (but et format) ; révision (préprod seulement) décidée par le porteur le 15/11/2026, détail à valider dans la PR.
