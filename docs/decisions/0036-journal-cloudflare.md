@@ -21,3 +21,4 @@
   5. **chaque centre dit lui-même** s'il garde le journal (test de `centres.test.ts`), puisque Cloudflare l'active d'office.
 - **Relevé quotidien** : l'API de requête du journal ([Telemetry query](https://developers.cloudflare.com/api/resources/workers/subresources/observability/subresources/telemetry/methods/query/)) demande le droit **« Workers Observability » en écriture** sur le jeton `CLOUDFLARE_API_TOKEN` (c'est le seul droit que Cloudflare accepte pour lire, même pour une simple requête). Sans lui, le relevé le dit et continue. Le résumé est public : chemins génériques (`/agents/:id`) et nombres seulement.
 - **Validé par** : le porteur, le 15/11/2026 (production : choix (b)).
+- **Suite** : [0037](0037-page-au-journal.md) ajoute en production une ligne par requête, le nom générique de la page, pour que le relevé nomme la page d'une coupure.
