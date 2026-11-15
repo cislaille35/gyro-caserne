@@ -3,8 +3,8 @@ name: Relevé des coupures
 # Chaque matin : la veille, combien de requêtes Cloudflare a coupées (erreur 1102, limite de calcul de l'offre gratuite) et le temps de calcul.
 # Le passage échoue, et GitHub prévient par courriel, s'il y a eu des coupures la veille (statuts « exceeded… »). Le résumé donne les chiffres,
 # dont le pire temps du jour (p99 et maximum, toutes requêtes et réveils compris) ; un p99 au-delà de 150 ms ajoute un avertissement, sans échec.
-# Rien de personnel n'est lu : des nombres par Worker et par statut. Puis, du journal de Cloudflare (décision 0036), coupures et erreurs
-# par page : chemins génériques (/agents/:id) et nombres seulement, le résumé est public. Sans droit de lecture du journal, il le dit et continue.
+# Rien de personnel n'est lu : des nombres par Worker et par statut. Puis, du journal de Cloudflare (décisions 0036 et 0037), coupures et erreurs
+# par page : noms génériques (GET /agents/[id]) et nombres seulement, le résumé est public. Sans droit de lecture du journal, il le dit et continue.
 on:
   schedule:
     - cron: '17 5 * * *'
