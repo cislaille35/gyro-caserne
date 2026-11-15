@@ -51,6 +51,13 @@ describe('centres du dépôt', () => {
 			expect(observability?.enabled, 'observability.enabled').toBeTypeOf('boolean');
 		});
 
+		// La ligne « Page … » de l'appli (décision 0037) : seulement là où le journal des requêtes est gardé, sinon elle porterait l'adresse sans servir.
+		it(`${dossier} n'écrit la page au journal que s'il garde le journal des requêtes`, () => {
+			const { observability, vars } = configCloudflare(chemin).config;
+			const requetesGardees = observability?.enabled === true && observability.logs?.invocation_logs !== false;
+			expect(vars.JOURNAL_DES_PAGES ?? false, 'vars.JOURNAL_DES_PAGES').toBe(requetesGardees);
+		});
+
 		// L'adresse n'est pas un secret : elle est dans la config, pour qu'aucun déploiement ne la perde (décision 0024).
 		it(`${dossier} donne l'adresse de l'appli dans sa config (https, sans chemin)`, () => {
 			const adresse = configCloudflare(chemin).config.vars.BETTER_AUTH_URL;
@@ -76,19 +83,22 @@ describe('centres du dépôt', () => {
 	}
 });
 
-// La préprod (données fictives) garde le journal, pages comprises : le relevé quotidien y compte coupures et erreurs par page.
+// La préprod (données fictives) garde tout : chaque requête, la page au journal, les traces et la détection des problèmes (décision 0036).
 describe('journal de la préprod', () => {
-	it('garde chaque requête (invocation_logs), sans échantillonnage', () => {
-		const { observability } = configCloudflare('../../../centres/exemple/centre.ts').config;
-		expect(observability).toMatchObject({ enabled: true, head_sampling_rate: 1, logs: { invocation_logs: true } });
+	it('garde chaque requête (invocation_logs), sans échantillonnage, avec les traces et la détection des problèmes', () => {
+		const { observability, vars } = configCloudflare('../../../centres/exemple/centre.ts').config;
+		expect(observability).toEqual({ enabled: true, head_sampling_rate: 1, logs: { invocation_logs: true }, traces: { enabled: true, head_sampling_rate: 1 }, issues: { enabled: true } });
+		expect(vars.JOURNAL_DES_PAGES).toBe(true);
 	});
 });
 
-// La production (vraies personnes) : seulement les messages de l'appli, nettoyés, sans le journal des requêtes
-// et donc sans les adresses des pages (choix (b) du porteur, décision 0036).
+// La production (vraies personnes) : rien chez Cloudflare, ni journal, ni traces, ni détection des problèmes (choix (a) du porteur, révision du 15/11/2026 de la décision 0036).
+// Écrit en toutes lettres : Cloudflare active le journal d'office sur un nouveau Worker.
 describe('journal de la production', () => {
-	it('garde les messages de l’appli, pas les requêtes', () => {
-		expect(configCloudflare('../../../centres/laille/centre.ts').config.observability).toEqual({ enabled: true, head_sampling_rate: 1, logs: { invocation_logs: false } });
+	it('est coupé, journal, traces et détection des problèmes', () => {
+		const { observability, vars } = configCloudflare('../../../centres/laille/centre.ts').config;
+		expect(observability).toEqual({ enabled: false, logs: { enabled: false, invocation_logs: false }, traces: { enabled: false }, issues: { enabled: false } });
+		expect(vars.JOURNAL_DES_PAGES).toBeUndefined();
 	});
 });
 

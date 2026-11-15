@@ -9,12 +9,13 @@
 	// Pas de version d’essai en ligne : chaque déploiement coupe les adresses de prévisualisation (décisions 0022, 0026).
 	"preview_urls": false,
 	// Adresse de la préprod : les liens de connexion pointent vers elle. En clair, ce n’est pas un secret (décision 0024) ; en local, .dev.vars l’emporte.
-	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-exemple.cis-laille.workers.dev" },
+	// JOURNAL_DES_PAGES : l'appli écrit au journal le nom générique de chaque page (décision 0037). Seulement avec le journal des requêtes ci-dessous.
+	"vars": { "BETTER_AUTH_URL": "https://gyro-caserne-exemple.cis-laille.workers.dev", "JOURNAL_DES_PAGES": true },
 	"assets": { "binding": "ASSETS", "directory": "../../apps/web/.svelte-kit/cloudflare" },
-	// Journal de Cloudflare (Workers Logs, décision 0036) : gardé 3 jours, peut-être hors de l’Union européenne. Préprod aux données fictives : gardé,
-	// chaque requête comprise, pour que le relevé quotidien compte coupures et erreurs par page. Un centre aux données réelles met "enabled": false
-	// tant que son porteur n’a pas tranché (voir docs/technique/journal.md).
-	"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": true } },
+	// Journal de Cloudflare (Workers Logs, décision 0036) : gardé 3 jours (7 à partir du 1er décembre 2026), peut-être hors de l'Union européenne.
+	// Préprod aux données fictives : tout est gardé, chaque requête comprise, les traces et la détection des problèmes (issues), pour que le relevé
+	// quotidien nomme coupures et erreurs par page. Un centre aux données réelles coupe tout, comme centres/laille (voir docs/technique/journal.md).
+	"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": true }, "traces": { "enabled": true, "head_sampling_rate": 1 }, "issues": { "enabled": true } },
 	// Chaque nuit à 3 h 30 (UTC), les vieux messages et notifications sont effacés ; toutes les dix minutes (décision 0012), les notifications restées en file partent au téléphone (elles partent d’habitude dès le geste qui les crée), la météo, les remplacements, les annonces de 8 h.
 	"triggers": { "crons": ["30 3 * * *", "*/10 * * * *"] },
 	// Base de la préprod du CIS Laillé : un autre centre remplace ce database_id par celui de sa base.
