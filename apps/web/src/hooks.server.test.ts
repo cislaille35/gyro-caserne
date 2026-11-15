@@ -10,7 +10,10 @@ const H = vi.hoisted(() => {
 	(globalThis as Record<string, unknown>).__sveltekit_cloudflare_platform = { env: { BETTER_AUTH_SECRET: 'secret-de-test-assez-long-pour-better-auth', BETTER_AUTH_URL: 'http://localhost', BASE: {}, PHOTOS: {} } };
 	return { base: null as unknown };
 });
-vi.mock('@gyro-caserne/socle', async (origine) => ({ ...(await origine<Record<string, unknown>>()), creerBaseD1: () => H.base, creerBasePhotos: () => ({}) }));
+vi.mock('@gyro-caserne/socle', async (origine) => ({ ...(await origine<Record<string, unknown>>()), creerBaseD1: () => {
+		if (H.base === 'en panne') throw new Error('base en panne');
+		return H.base;
+	}, creerBasePhotos: () => ({}) }));
 vi.mock('#lib/server/auth.ts', async (origine) => {
 	const m = await origine<typeof import('#lib/server/auth.ts')>();
 	return { ...m, creerAuth: vi.fn(m.creerAuth) };
@@ -146,13 +149,13 @@ describe('page au journal', () => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const traiter = (event: object, resolve = async () => new Response('ok')) => handle({ event: event as any, resolve });
 
-	it('écrit le modèle de la page avant de lire la session, même si la suite échoue', async () => {
+	it('écrit le modèle de la page avant d’ouvrir la base, même si la suite échoue', async () => {
 		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
-		H.base = await baseDeTest();
-		const page = async (): Promise<Response> => {
-			throw new Error('coupée');
-		};
-		await expect(traiter(evenement('/agents/42?courriel=alice@exemple.fr', '/agents/[id]'), page)).rejects.toThrow('coupée');
+		// La base ne s'ouvre pas : rien d'autre n'a lieu, ni session ni page.
+		H.base = 'en panne';
+		const resolve = vi.fn();
+		await expect(traiter(evenement('/agents/42?courriel=alice@exemple.fr', '/agents/[id]'), resolve)).rejects.toThrow('base en panne');
+		expect(resolve).not.toHaveBeenCalled();
 		expect(journal.mock.calls).toEqual([['Page GET /agents/[id]']]);
 		journal.mockRestore();
 	});

@@ -75,6 +75,11 @@ describe('journal du Worker', () => {
 		expect(trouvees).toEqual([]);
 	});
 
+	it('la ligne de la page n’est écrite qu’à un endroit, le début de handle', () => {
+		const ou = racines.flatMap(fichiers).filter((fichier) => readFileSync(fichier, 'utf8').includes('lignePage(event, deBetterAuth)'));
+		expect(ou.map((fichier) => relative(appli, fichier))).toEqual(['src/hooks.server.ts']);
+	});
+
 	it('refuse une erreur brute, son message, un texte composé, un objet ou un appel sur plusieurs lignes qui en porte', () => {
 		expect(fautes("console.error('Échec', e);")).toEqual(['e']);
 		expect(fautes("console.warn('x', erreur.message)")).toEqual(['erreur.message']);

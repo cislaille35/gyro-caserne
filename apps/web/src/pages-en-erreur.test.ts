@@ -25,7 +25,7 @@ describe('nomDePage', () => {
 	});
 
 	it('ne laisse passer rien d’autre', () => {
-		for (const message of ['Page GET /agents/42?courriel=alice@exemple.fr', 'Page GET /x y', 'Page JETON /', 'Page GET /a?/b c', 'Erreur imprévue /x', 42, undefined])
+		for (const message of ['Page GET /agents/42', 'Page POST /echanges?/a1', 'Page GET /agents/42?courriel=alice@exemple.fr', 'Page GET /x y', 'Page JETON /', 'Page GET /a?/b c', 'Erreur imprévue /x', 42, undefined])
 			expect(nomDePage(message)).toBe('(illisible)');
 	});
 });
@@ -75,13 +75,28 @@ describe('releverPages', () => {
 	it('ne demande pas les pages quand rien n’est en cause, et le dit', async () => {
 		const demander = vi.fn(async () => reponse([]));
 		const lignes = await releverPages(['gyro-caserne-exemple'], jour, demander);
-		expect(lignes.join('\n')).toContain('aucune coupure ni erreur au journal');
+		expect(lignes.join('\n')).toContain('aucune coupure ni erreur trouvée au journal');
 		expect(demander).toHaveBeenCalledTimes(3);
 	});
 
 	it('prévient quand la liste des pages est tronquée', async () => {
 		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? reponse(Array.from({ length: 2000 }, (_, i) => page(`p${i}`, 'Page GET /'))) : reponse([id('r1')]));
-		expect((await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n')).toContain('Plus de 2000 requêtes');
+		const texte = (await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n');
+		expect(texte).toContain('Plus de 2000 requêtes');
+		// Une requête en cause absente de la liste tronquée n'est pas une ligne perdue.
+		expect(texte).toContain('| (non trouvée, liste tronquée) | 1 | 1 |');
+	});
+
+	it('écarte une ligne qui n’a pas la forme écrite par l’appli', async () => {
+		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? reponse([page('r1', 'Page GET /agents/42')]) : reponse([id('r1')]));
+		const texte = (await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n');
+		expect(texte).toContain('| (illisible) | 1 | 1 |');
+		expect(texte).not.toContain('42');
+	});
+
+	it('dit quand seules les pages sont indisponibles', async () => {
+		const demander = async (corps: Corps) => (corps.parameters.groupBys.length === 2 ? { statut: 500, corps: { success: false } } : reponse([id('r1')]));
+		expect((await releverPages(['gyro-caserne-exemple'], jour, demander)).join('\n')).toContain('gyro-caserne-exemple : répartition par page indisponible (réponse inattendue de Cloudflare, HTTP 500).');
 	});
 
 	it('ne fait pas échouer le relevé sans le droit de lire le journal : il le dit', async () => {

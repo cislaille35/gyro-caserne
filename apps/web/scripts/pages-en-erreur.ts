@@ -14,9 +14,10 @@ const MESSAGE = '$metadata.message';
 const LIMITE = 2000;
 const AU_PLUS = 10;
 const SANS_NOM = '(sans nom de page)';
+const TRONQUEE = '(non trouvée, liste tronquée)';
 
-// Le nom de la page tel que l'appli l'écrit (page-au-journal.ts, planifie.ts) ; tout autre texte est écarté.
-const LIGNE = /^Page ((?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|autre) (?:\/[\w\-./[\]()]*|\(aucune\))(?:\?\/(?:\w+|\(inconnue\)))?|réveil|ménage de la nuit)$/;
+// Le nom de la page tel que l'appli l'écrit (page-au-journal.ts, planifie.ts), sans chiffre ; tout autre texte est écarté.
+const LIGNE = /^Page ((?:GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS|autre) (?:\/[A-Za-z_\-./[\]()]*|\(aucune\))(?:\?\/(?:[A-Za-z]+|\(inconnue\)))?|réveil|ménage de la nuit)$/;
 export function nomDePage(message: unknown): string {
 	return (typeof message === 'string' && LIGNE.exec(message)?.[1]) || '(illisible)';
 }
@@ -72,7 +73,7 @@ export async function releverPages(workers: string[], jour: string, demander: De
 		const coupees = ids(enCause[0]!);
 		const enErreur = ids([...enCause[1]!, ...enCause[2]!]);
 		if (coupees.size + enErreur.size === 0) {
-			lignes.push(`${worker} : aucune coupure ni erreur au journal.`);
+			lignes.push(`${worker} : aucune coupure ni erreur trouvée au journal.`);
 			continue;
 		}
 		const lues = await interroger(demander, [requete(worker, jour, { key: MESSAGE, operation: 'starts_with', type: 'string', value: 'Page ' }, [REQUETE, MESSAGE])]);
@@ -80,11 +81,12 @@ export async function releverPages(workers: string[], jour: string, demander: De
 			lignes.push(`${worker} : ${lues}`);
 			continue;
 		}
+		const tronquee = lues[0]!.length >= LIMITE;
 		const pageDe = new Map(lues[0]!.map((g) => [g[REQUETE], nomDePage(g[MESSAGE])]));
 		const totaux = new Map<string, [number, number]>();
 		for (const [requetes, rang] of [[coupees, 0], [enErreur, 1]] as const)
 			for (const r of requetes) {
-				const page = pageDe.get(r) ?? SANS_NOM;
+				const page = pageDe.get(r) ?? (tronquee ? TRONQUEE : SANS_NOM);
 				const t = totaux.get(page) ?? [0, 0];
 				t[rang]++;
 				totaux.set(page, t);
@@ -93,7 +95,7 @@ export async function releverPages(workers: string[], jour: string, demander: De
 		lignes.push('', `${worker}`, '', '| Page | Coupures | Erreurs (500 et plus) |', '|---|---|---|');
 		for (const [page, [c, e]] of pages.slice(0, AU_PLUS)) lignes.push(`| ${page} | ${c} | ${e} |`);
 		if (pages.length > AU_PLUS) lignes.push(`| … ${pages.length - AU_PLUS} autres pages | | |`);
-		if (lues[0]!.length >= LIMITE) lignes.push('', `Plus de ${LIMITE} requêtes ce jour-là : certaines pages en cause peuvent manquer.`);
+		if (tronquee || enCause.some((g) => g.length >= LIMITE)) lignes.push('', `Plus de ${LIMITE} requêtes ce jour-là : liste tronquée, des requêtes en cause peuvent manquer.`);
 	}
 	return lignes;
 }
