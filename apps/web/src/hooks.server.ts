@@ -13,8 +13,9 @@ import { lignePage } from '#lib/server/page-au-journal.ts';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	// Au début de handle, avant le travail, pour que la ligne reste même si Cloudflare coupe la requête (décision 0037). Une requête interne est déjà comptée.
+	// Seulement là où le journal des requêtes est gardé : ailleurs, elle porterait l'adresse de la page sans servir.
 	const deBetterAuth = !building && estAdresseDeBetterAuth(event.url, env);
-	if (!building && !event.isSubRequest) console.log(lignePage(event, deBetterAuth));
+	if (!building && !event.isSubRequest && env.JOURNAL_DES_PAGES === true) console.log(lignePage(event, deBetterAuth));
 	const refus = envoiRefuse(event.request, event.url.pathname);
 	if (refus) return refus;
 	event.locals.affichage = lireAffichage(event.cookies);

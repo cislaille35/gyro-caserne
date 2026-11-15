@@ -35,16 +35,13 @@ describe('/donnees', () => {
 		expect(page).toContain('Saisi par vous ou par le centre : date de naissance.');
 	});
 
-	// Décision 0036 : le journal de Cloudflare, adresse des pages comprise, sans nom ni adresse e-mail ajoutés par l'appli, gardé 7 jours au plus, peut-être hors de l'Union européenne.
-	it('le journal technique : ce qu’il contient, ce qu’il ne contient jamais, combien de temps et où', () => {
+	// Décision 0036, révisée le 15/11/2026 : en production, journal de Cloudflare coupé ; seule la préprod, aux données fictives, en garde un.
+	it('le journal technique : aucun gardé pour le centre, une phrase sobre', () => {
 		const page = html(Page, { connecte: true });
-		expect(page).toContain('son adresse complète (qui peut contenir un numéro de fiche, la clé de votre lien d’agenda, ou un lien de connexion');
-		expect(page).toContain('adresse IP, pays');
-		expect(page).toContain('L’appli n’y ajoute jamais votre nom ni votre adresse e-mail.');
-		expect(page).toContain('7 jours au plus');
-		expect(page).toContain('peut-être hors de l’Union européenne');
-		// Décision 0037 : le nom générique de la page ouverte, jamais son adresse.
-		expect(page).toContain('de ne garder que le nom des pages ouvertes (« fiche d’un agent », sans son adresse) et les messages d’erreur de l’appli');
+		const carte = page.slice(page.indexOf('>Journal technique</h2>'), page.indexOf('>Corriger ou effacer</h2>'));
+		expect(carte).toContain('Pour les centres en service, Cloudflare ne garde aucun journal technique de vos visites.');
+		expect(carte).toContain('Seule la version d’essai de l’appli, aux données fictives, en garde un pour repérer les pannes.');
+		expect(carte).not.toMatch(/adresse IP|clé de votre lien|7 jours/);
 	});
 
 	it('effacement sur demande auprès du chef de centre ; profil corrigé soi-même', () => {

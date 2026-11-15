@@ -28,6 +28,8 @@ declare global {
 			PHOTOS: D1Database;
 			// Clé de l'API Vigilance de Météo-France (secret) ; sans elle, pas de bandeau de vigilance.
 			VIGILANCE_CLE?: string;
+			// La ligne « Page … » au journal de Cloudflare, là où celui des requêtes est gardé (décision 0037) ; dans wrangler.jsonc.
+			JOURNAL_DES_PAGES?: boolean;
 		}
 	}
 }

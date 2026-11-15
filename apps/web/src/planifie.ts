@@ -14,7 +14,7 @@ export function limiteDeConservation(quand: Date, mois: number): string {
 	return vise.toISOString().slice(0, 10);
 }
 
-type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: string; SUPER_ADMINS?: string };
+type Env = EnvVapid & { BASE: D1Database; PHOTOS: D1Database; VIGILANCE_CLE?: string; SUPER_ADMINS?: string; JOURNAL_DES_PAGES?: boolean };
 
 // Les notifications du fil sont gardées 30 jours.
 const CONSERVATION_NOTIFICATIONS_JOURS = 30;
@@ -30,9 +30,11 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
-			// Une ligne fixe au journal, avant le travail : une coupure y est nommée (décision 0037).
-			if (controleur.cron === CRON_NUIT) console.log('Page ménage de la nuit');
-			else console.log('Page réveil');
+			// Une ligne fixe au journal, avant le travail : une coupure y est nommée (décision 0037). Seulement là où le journal des requêtes est gardé.
+			if (env.JOURNAL_DES_PAGES === true) {
+				if (controleur.cron === CRON_NUIT) console.log('Page ménage de la nuit');
+				else console.log('Page réveil');
+			}
 			// Une tâche du réveil qui met des envois en file (annonce, relance, vigilance rouge) : le lot part ensuite.
 			let misEnFile = false;
 			const base = creerBaseD1(env.BASE, () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ENTETES, personne, session } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { creerAuth } from '#lib/server/auth.ts';
@@ -140,7 +140,15 @@ describe('session lue par le hook, sans créer Better Auth', () => {
 });
 
 // Une ligne par requête au journal de Cloudflare (décision 0037), écrite avant le travail : la page, même si Cloudflare coupe ensuite.
+// Seulement là où le journal des requêtes est gardé (JOURNAL_DES_PAGES, dans la config du centre) : en production, il est coupé.
 describe('page au journal', () => {
+	const plateforme = (globalThis as unknown as { __sveltekit_cloudflare_platform: { env: Record<string, unknown> } }).__sveltekit_cloudflare_platform;
+	beforeEach(() => {
+		plateforme.env.JOURNAL_DES_PAGES = true;
+	});
+	afterEach(() => {
+		delete plateforme.env.JOURNAL_DES_PAGES;
+	});
 	const evenement = (chemin: string, route: string | null, options: { method?: string; isSubRequest?: boolean } = {}) => {
 		const request = new Request(`http://localhost${chemin}`, { method: options.method ?? 'GET' });
 		const cookies = { get: () => undefined, set: vi.fn(), delete: vi.fn() };
@@ -170,6 +178,18 @@ describe('page au journal', () => {
 		lourd.request = new Request(lourd.request.url, { method: 'POST', body: 'x', headers: { 'content-length': String(3 * MO) } });
 		expect((await traiter(lourd)).status).toBe(413);
 		expect(journal.mock.calls).toEqual([['Page POST /echanges?/souhaiter'], ['Page GET /api/auth'], ['Page POST /echanges/[mur]?/publier']]);
+		journal.mockRestore();
+	});
+
+	it('rien là où le journal des requêtes est coupé', async () => {
+		const journal = vi.spyOn(console, 'log').mockImplementation(() => {});
+		H.base = await baseDeTest();
+		for (const valeur of [undefined, false, 'oui']) {
+			if (valeur === undefined) delete plateforme.env.JOURNAL_DES_PAGES;
+			else plateforme.env.JOURNAL_DES_PAGES = valeur;
+			await traiter(evenement('/agents/42', '/agents/[id]'));
+		}
+		expect(journal).not.toHaveBeenCalled();
 		journal.mockRestore();
 	});
 
