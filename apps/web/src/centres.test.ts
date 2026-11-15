@@ -84,10 +84,11 @@ describe('journal de la préprod', () => {
 	});
 });
 
-// La production (vraies personnes) : journal coupé tant que le porteur n'a pas tranché (décision 0036). À changer avec sa décision.
+// La production (vraies personnes) : seulement les messages de l'appli, nettoyés, sans le journal des requêtes
+// et donc sans les adresses des pages (choix (b) du porteur, décision 0036).
 describe('journal de la production', () => {
-	it('est coupé', () => {
-		expect(configCloudflare('../../../centres/laille/centre.ts').config.observability).toEqual({ enabled: false });
+	it('garde les messages de l’appli, pas les requêtes', () => {
+		expect(configCloudflare('../../../centres/laille/centre.ts').config.observability).toEqual({ enabled: true, head_sampling_rate: 1, logs: { invocation_logs: false } });
 	});
 });
 

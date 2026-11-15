@@ -7,7 +7,7 @@ Décision : [0036](../decisions/0036-journal-cloudflare.md).
 | Centre | Réglage (`centres/<id>/wrangler.jsonc`) | Contenu |
 |---|---|---|
 | `exemple` (préprod, données fictives) | `"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": true } }` | chaque requête et nos messages d'erreur |
-| `laille` (production) | `"observability": { "enabled": false }` | rien, en attendant la décision du porteur |
+| `laille` (production) | `"observability": { "enabled": true, "head_sampling_rate": 1, "logs": { "invocation_logs": false } }` | seulement les messages de l'appli, nettoyés ; pas les requêtes ni l'adresse des pages (choix (b) du porteur, décision 0036) |
 
 Chaque centre écrit le réglage en toutes lettres (`centres.test.ts`) : sans lui, Cloudflare active le journal d'office sur un nouveau Worker. Le réglage s'applique au déploiement ; le tableau de bord (Workers & Pages › le Worker › Settings › Observability) le change tout de suite, jusqu'au déploiement suivant.
 
