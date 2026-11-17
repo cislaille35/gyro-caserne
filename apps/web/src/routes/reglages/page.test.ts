@@ -26,9 +26,9 @@ const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => 
 const responsabilites = [
 	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
 	role(2, 'Chef de garde', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
-	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
 	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
+	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(5, 'Rapporteur de comité', { portee: 'comite', attributeur: { type: 'comite_vise' } }),
 	role(6, 'Ancien rôle', { archiveeLe: '2026-04-02' })
 ];
