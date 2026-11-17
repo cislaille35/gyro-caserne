@@ -11,11 +11,13 @@ const titulaire = (id: number, prenom: string, perimetre: { type: string; id: nu
 	fin: null
 });
 const roles = [
-	{ responsabiliteId: 5, nom: 'Référent engins', portee: 'centre', icone: 'camion', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }], titulaires: [titulaire(1, 'Alice', { type: 'centre', id: null, nom: null })] },
-	{ responsabiliteId: 6, nom: 'Membre de comité', portee: 'comite', icone: 'groupe', perimetres: [{ type: 'comite', id: 2, nom: 'Amicale' }], titulaires: [] },
+	{ responsabiliteId: 5, nom: 'Référent engins', nature: 'mission', portee: 'centre', icone: 'camion', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }], titulaires: [titulaire(1, 'Alice', { type: 'centre', id: null, nom: null })] },
+	{ responsabiliteId: 6, nom: 'Membre de comité', nature: 'mission', portee: 'comite', icone: 'groupe', perimetres: [{ type: 'comite', id: 2, nom: 'Amicale' }], titulaires: [] },
+	{ responsabiliteId: 8, nom: 'Référent technique', nature: 'fonction', portee: 'centre', icone: 'cle', perimetres: [{ type: 'centre', id: null, nom: 'Centre' }], titulaires: [] },
 	{
 		responsabiliteId: 7,
 		nom: 'Chef de garde',
+		nature: 'fonction',
 		portee: 'equipe',
 		icone: 'casque',
 		perimetres: [
@@ -60,7 +62,7 @@ describe('/nominations : cartes', () => {
 		const role = carte(html({ data, form: null }), 'Référent engins');
 		expect(role.indexOf('name="nommer"')).toBeLessThan(role.indexOf('aria-label="Titulaires"'));
 		const vide = carte(html({ data, form: null }), 'Membre de comité');
-		expect(vide.indexOf('name="nommer"')).toBeLessThan(vide.indexOf('À pourvoir'));
+		expect(vide.indexOf('name="nommer"')).toBeLessThan(vide.indexOf('Sans titulaire'));
 	});
 
 	it('la recherche : libellé lu, aide reliée au champ', () => {
@@ -70,16 +72,22 @@ describe('/nominations : cartes', () => {
 		expect(page).toMatch(new RegExp(`id="${aide}"[^>]*>Un rôle ou un agent : pharmacie, Martin…<`));
 	});
 
-	it('signale « Aucun titulaire » en alerte', () => {
-		const vide = carte(html({ data, form: null }), 'Membre de comité');
-		expect(vide).toMatch(/--statut-alerte-fond[^>]*>(<!--[^>]*-->)*À pourvoir</);
-		expect(vide).not.toContain('Retirer');
+	it('une fonction vide : « À pourvoir » en alerte ; une mission vide : « Sans titulaire » en neutre ; seules les fonctions sont comptées', () => {
+		const page = html({ data, form: null });
+		const fonction = carte(page, 'Référent technique');
+		expect(fonction).toMatch(/--statut-alerte-fond[^>]*>(<!--[^>]*-->)*À pourvoir</);
+		const mission = carte(page, 'Membre de comité');
+		expect(mission).toMatch(/--statut-neutre-fond[^>]*>(<!--[^>]*-->)*Sans titulaire</);
+		expect(mission).not.toContain('À pourvoir');
+		expect(mission).not.toContain('Retirer');
+		expect(page).toContain('1 fonction à pourvoir.');
+		expect(html({ data: { ...data, roles: roles.filter((r) => r.nature === 'mission') }, form: null })).toContain('Chaque fonction a son titulaire.');
 	});
 
 	it('a une zone d’annonce par carte dès le chargement, et des boutons actifs', () => {
 		const page = html({ data, form: null });
-		// Trois cartes, plus le résultat de la recherche.
-		expect(page.match(/role="status"/g)).toHaveLength(4);
+		// Quatre cartes, plus le résultat de la recherche.
+		expect(page.match(/role="status"/g)).toHaveLength(5);
 		expect(page).not.toMatch(/<button[^>]*disabled/);
 	});
 });
@@ -193,7 +201,7 @@ describe('/nominations : recherche', () => {
 	it('annonce le nombre de cartes trouvées dans une zone de statut, présente dès le chargement (RGAA 7.5)', () => {
 		const statut = (recherche: string) => html({ data: { ...data, recherche }, form: null }).match(/<p role="status"[^>]*>([^<]*)<\/p>/)?.[1];
 		expect(statut('')).toBe('');
-		expect(statut('referent')).toBe('1 rôle correspond.');
+		expect(statut('engins')).toBe('1 rôle correspond.');
 		expect(statut('martin')).toBe('2 rôles correspondent.');
 	});
 });

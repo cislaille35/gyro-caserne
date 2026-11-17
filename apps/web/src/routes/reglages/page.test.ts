@@ -56,10 +56,11 @@ describe('page Réglages', () => {
 		expect(groupe(page, 'Chefs de garde')).toContain('Chef de garde');
 	});
 
-	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte pour une fonction, neutre pour une mission, « Personnalisé » en pastille', () => {
+	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte pour une fonction, « Sans titulaire » en neutre pour une mission, « Personnalisé » en pastille', () => {
 		const page = html(Page, { data });
 		expect(ligne(page, 1)).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?À pourvoir/);
-		expect(page).toMatch(/<a[^>]*href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-neutre-fond\)[^>]*>(<!---->)?À pourvoir/);
+		expect(page).toMatch(/<a[^>]*href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-neutre-fond\)[^>]*>(<!---->)?Sans titulaire/);
+		expect(ligne(page, 4)).not.toContain('À pourvoir');
 		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
 		expect(engins).toContain('2 titulaires');
 		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);

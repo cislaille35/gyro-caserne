@@ -175,6 +175,15 @@ describe('aDecider', () => {
 		]);
 	});
 
+	it('un rôle d’équipe hors système, de nature fonction, sans titulaire, est à traiter', async () => {
+		const { base } = await jeu();
+		await base.insert(responsabilite).values({ nom: 'Adjoint de garde', nature: 'fonction', typePerimetre: 'equipe' });
+		await base.insert(responsabilite).values({ nom: 'Référent sport d’équipe', nature: 'mission', typePerimetre: 'equipe' });
+		const textes = (await aDecider(base, superAdmin, '2026-09-25')).map((e) => e.texte);
+		expect(textes).toContain('Adjoint de garde : aucun titulaire');
+		expect(textes).not.toContain('Référent sport d’équipe : aucun titulaire');
+	});
+
 	it('une fonction archivée n’est pas listée', async () => {
 		const { base, role } = await jeu();
 		await base.update(responsabilite).set({ archiveeLe: '2026-06-01' }).where(eq(responsabilite.id, role('Référent technique')));

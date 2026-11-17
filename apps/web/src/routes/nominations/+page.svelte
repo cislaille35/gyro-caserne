@@ -36,7 +36,7 @@
 	const annonce = (role: number) => (form?.succes && (form.role === role || concerne(`attribuer-${role}`)) ? form.message : null);
 
 	const vides = $derived(aPourvoir(data.roles));
-	const phrase = $derived(vides === 0 ? 'Chaque rôle a son titulaire.' : `${pluriel(vides, 'rôle')} à pourvoir.`);
+	const phrase = $derived(vides === 0 ? 'Chaque fonction a son titulaire.' : `${pluriel(vides, 'fonction')} à pourvoir.`);
 
 	// Recherche d'un rôle ou d'un agent, sans accents ni majuscules.
 	let recherche = $derived(data.recherche);
@@ -155,7 +155,7 @@
 					</div>
 					<button id="nommer-{id}" form="choix" name="nommer" value={id} class="nommer" aria-describedby="role-{id}" onclick={(e) => ouvrirNommer(e, id)}>Nommer</button>
 					{#if r.titulaires.length === 0}
-						<div class="titulaires"><Pastille ton="alerte">À pourvoir</Pastille></div>
+						<div class="titulaires">{#if r.nature === 'fonction'}<Pastille ton="alerte">À pourvoir</Pastille>{:else}<Pastille ton="neutre">Sans titulaire</Pastille>{/if}</div>
 					{:else}
 						<ul class="titulaires" aria-label="Titulaires">
 							{#each r.titulaires as t (t.id)}

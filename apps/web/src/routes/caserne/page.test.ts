@@ -27,8 +27,10 @@ describe('/caserne', () => {
 		expect(pourLeChef.agents).toBe(3);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { roles } = await (nominations as any)({ locals: { base, acteur: chef }, url: new URL('http://x/nominations') });
-		const vides = roles.filter((r: { titulaires: unknown[] }) => r.titulaires.length === 0).length;
+		// Seules les fonctions sans titulaire sont à pourvoir : pas les missions.
+		const vides = roles.filter((r: { nature: string; titulaires: unknown[] }) => r.nature === 'fonction' && r.titulaires.length === 0).length;
 		expect(vides).toBeGreaterThan(0);
+		expect(roles.some((r: { nature: string; titulaires: unknown[] }) => r.nature === 'mission' && r.titulaires.length === 0)).toBe(true);
 		expect(pourLeChef.aPourvoir).toBe(vides);
 	});
 

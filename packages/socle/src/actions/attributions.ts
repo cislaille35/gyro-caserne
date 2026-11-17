@@ -185,6 +185,7 @@ export type Titulaire = {
 export type CeQueJePeuxAttribuer = {
 	responsabiliteId: number;
 	nom: string;
+	nature: 'fonction' | 'mission';
 	portee: TypePerimetre;
 	icone: NomIcone;
 	perimetres: { type: TypePerimetre; id: number | null; nom: string }[];
@@ -273,6 +274,7 @@ export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhu
 		.map((r) => ({
 			responsabiliteId: r.id,
 			nom: r.nom,
+			nature: r.nature,
 			portee: r.typePerimetre,
 			icone: iconeDuRole({ ...r, portee: r.typePerimetre }),
 			perimetres: perimetres[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))

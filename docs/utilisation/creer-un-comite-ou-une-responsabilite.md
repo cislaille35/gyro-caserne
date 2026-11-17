@@ -15,8 +15,8 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 2. Appuyez sur « + Nouveau rôle », en haut.
 3. Choisissez un modèle : Référent matériel, Référent pharmacie, Vierge… Le rôle en reprend les droits. Le centre a déjà ses rôles natifs (Membre de comité, Rapporteur de comité…) : un modèle sert à en créer un autre, sous un autre nom. Dans les réglages, un rôle créé porte « Créé ».
 4. Vérifiez le nom, la nature, la portée (tout le centre, une équipe ou un comité), qui l'attribue, et choisissez une icône.
-   - **Fonction** : le rôle doit toujours être tenu (comme le référent technique). Sans titulaire, il est rappelé au chef de centre.
-   - **Mission** : le rôle est confié quand il y a besoin (comme le référent pharmacie). Sans titulaire, rien n'est rappelé.
+   - **Fonction** : le rôle doit toujours être tenu (comme le référent technique). Sans titulaire, il est rappelé au chef de centre, sauf si c'est un rôle de comité, et marqué « À pourvoir ».
+   - **Mission** : le rôle est confié quand il y a besoin (comme le référent pharmacie). Sans titulaire, rien n'est rappelé ; il est marqué « Sans titulaire ».
 5. Appuyez sur « Créer le rôle ». La page du rôle s'ouvre.
 
 ## Régler les droits d'un rôle

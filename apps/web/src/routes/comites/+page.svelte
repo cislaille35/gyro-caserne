@@ -95,7 +95,7 @@
 			{/each}
 		</section>
 
-		<div class="colonne">
+		<div class="colonne roles">
 			{#if data.commandement.length > 0 || fonctionsEquipe.length > 0 || data.fonctions.length > 0}
 				<section class="colonne" aria-labelledby="titre-fonctions">
 					<h2 id="titre-fonctions" class="titre-section">Fonctions</h2>
@@ -143,6 +143,10 @@
 	.colonnes {
 		display: flex;
 		flex-direction: column;
+		gap: var(--espace-32);
+	}
+	/* Entre Fonctions et Missions, le même écart qu'entre deux sections. */
+	.roles {
 		gap: var(--espace-32);
 	}
 	/* Les parties d'une carte de comité. */
