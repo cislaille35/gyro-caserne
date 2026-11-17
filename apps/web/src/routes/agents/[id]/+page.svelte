@@ -106,8 +106,22 @@
 	<noscript><style>.groupe > [hidden] { display: block !important; } .groupe .chevron { display: none; }</style></noscript>
 </svelte:head>
 
+<!-- Les fonctions puis les missions ; un intertitre seulement s'il y a les deux. -->
 {#snippet liste(titre: string, lignes: typeof data.attributions.enCours)}
+	{@const fonctions = lignes.filter((l) => l.responsabilite.nature === 'fonction')}
+	{@const missions = lignes.filter((l) => l.responsabilite.nature !== 'fonction')}
 	<h3>{titre}</h3>
+	{#if fonctions.length > 0 && missions.length > 0}
+		<h4>Fonctions</h4>
+		{@render rangees(fonctions)}
+		<h4>Missions</h4>
+		{@render rangees(missions)}
+	{:else}
+		{@render rangees(lignes)}
+	{/if}
+{/snippet}
+
+{#snippet rangees(lignes: typeof data.attributions.enCours)}
 	<ul class="roles">
 		{#each lignes as l (l.id)}
 			{@const cible = `terminer-${l.id}`}
@@ -622,6 +636,10 @@
 	h3 {
 		margin: var(--espace-8) 0 0;
 		font: 700 var(--texte-18) var(--police-titre);
+	}
+	h4 {
+		margin: 0;
+		font: 600 var(--texte-16) var(--police-titre);
 	}
 	.roles {
 		list-style: none;

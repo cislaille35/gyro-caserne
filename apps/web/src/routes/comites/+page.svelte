@@ -11,6 +11,9 @@
 	type Titulaire = { id: number; nom: string; grade: string | null; ecrire: boolean };
 	const PERSONNE = 'Personne pour l’instant';
 	// Nommer est ce qui change le plus souvent ; à défaut, les réglages (comités, rôles).
+	const avecEquipes = $derived(data.equipes.filter((r) => r.parEquipe.length > 0));
+	const fonctionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'fonction'));
+	const missionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'mission'));
 	const gerer = $derived(data.peutNominations ? { href: '/nominations', quoi: 'les nominations' } : data.peutReglages ? { href: '/reglages', quoi: 'les réglages du centre' } : null);
 </script>
 
@@ -33,6 +36,13 @@
 {/snippet}
 
 <!-- Un titulaire : « Écrire » à droite ; plusieurs : un « Écrire à … » par titulaire, sous les noms. -->
+<!-- Un rôle tenu équipe par équipe. -->
+{#snippet parEquipe(r: (typeof data.equipes)[number])}
+	<ListeRangees titre={r.systeme === 'chef_equipe' ? 'Chefs de garde' : r.nom} niveau={3}>
+		{#each r.parEquipe as e (e.equipe)}{@render role(e.equipe, e.titulaires)}{/each}
+	</ListeRangees>
+{/snippet}
+
 {#snippet role(titre: string, titulaires: Titulaire[], icone?: NomIcone)}
 	{@const ecrits = titulaires.filter((t) => t.ecrire)}
 	{#snippet sousNoms()}{@render noms(titulaires)}{/snippet}
@@ -82,26 +92,35 @@
 			{/each}
 		</section>
 
-		<section class="colonne" aria-labelledby="titre-roles">
-			<h2 id="titre-roles" class="titre-section">Référents et rôles</h2>
-			{#if data.commandement.length > 0}
-				<ListeRangees titre="Chef de centre et adjoint" niveau={3}>
-					{#each data.commandement as r (r.id)}{@render role(r.nom, r.titulaires)}{/each}
-				</ListeRangees>
+		<div class="colonne">
+			{#if data.commandement.length > 0 || fonctionsEquipe.length > 0 || data.fonctions.length > 0}
+				<section class="colonne" aria-labelledby="titre-fonctions">
+					<h2 id="titre-fonctions" class="titre-section">Fonctions</h2>
+					{#if data.commandement.length > 0}
+						<ListeRangees titre="Chef de centre et adjoint" niveau={3}>
+							{#each data.commandement as r (r.id)}{@render role(r.nom, r.titulaires)}{/each}
+						</ListeRangees>
+					{/if}
+					{#each fonctionsEquipe as r (r.id)}{@render parEquipe(r)}{/each}
+					{#if data.fonctions.length > 0}
+						<ListeRangees titre="Autres fonctions" niveau={3}>
+							{#each data.fonctions as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
+						</ListeRangees>
+					{/if}
+				</section>
 			{/if}
-			{#each data.equipes as r (r.id)}
-				{#if r.parEquipe.length > 0}
-					<ListeRangees titre={r.systeme === 'chef_equipe' ? 'Chefs de garde' : r.nom} niveau={3}>
-						{#each r.parEquipe as e (e.equipe)}{@render role(e.equipe, e.titulaires)}{/each}
-					</ListeRangees>
-				{/if}
-			{/each}
-			{#if data.referents.length > 0}
-				<ListeRangees titre="Référents" compte={data.referents.length} niveau={3}>
-					{#each data.referents as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
-				</ListeRangees>
+			{#if data.missions.length > 0 || missionsEquipe.length > 0}
+				<section class="colonne" aria-labelledby="titre-missions">
+					<h2 id="titre-missions" class="titre-section">Missions</h2>
+					{#if data.missions.length > 0}
+						<ListeRangees>
+							{#each data.missions as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
+						</ListeRangees>
+					{/if}
+					{#each missionsEquipe as r (r.id)}{@render parEquipe(r)}{/each}
+				</section>
 			{/if}
-		</section>
+		</div>
 	</div>
 </div>
 

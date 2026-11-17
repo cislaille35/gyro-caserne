@@ -125,7 +125,7 @@ describe('quiFaitQuoi', () => {
 		expect(vue.equipes[0]!.parEquipe[0]!.titulaires).toMatchObject([{ nom: 'Bruno Petit', grade: 'Sergent' }]);
 	});
 
-	it('les référents avec leurs titulaires, « personne » pour un rôle vide ; ni archivé ni rôle de comité', async () => {
+	it('les fonctions et les missions avec leurs titulaires, « personne » pour un rôle vide ; ni archivé ni rôle de comité', async () => {
 		const { base, alice, nommer, nouvelle, role } = await jeu();
 		const [ancien] = await base.insert(responsabilite).values({ nom: 'Référent ancien', nature: 'mission', typePerimetre: 'centre', archiveeLe: '2026-02-01' }).returning();
 		await nommer(alice, ancien!.id, { type: 'centre' });
@@ -137,13 +137,14 @@ describe('quiFaitQuoi', () => {
 		await nommer(await nouvelle('Hors', 'Type'), role('Référent engins'), { type: 'equipe', id: 1 });
 		await nommer(await nouvelle('Horsc', 'Comite'), role('Membre de comité'), { type: 'centre' });
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
-		expect(vue.referents.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([
+		// Le référent technique est une fonction sans rôle système : avec les fonctions.
+		expect(vue.fonctions.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([['Référent technique', []]]);
+		expect(vue.missions.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([
 			['Référent engins', []],
 			['Référent habillement', []],
-			['Référent pharmacie', ['Alice Bernard']],
-			['Référent technique', []]
+			['Référent pharmacie', ['Alice Bernard']]
 		]);
-		expect(vue.referents.find((r) => r.nom === 'Référent pharmacie')!.icone).toBe('croix');
+		expect(vue.missions.find((r) => r.nom === 'Référent pharmacie')!.icone).toBe('croix');
 		expect(vue.comites.flatMap((c) => c.membres.map((m) => m.nom))).not.toContain('Horsc Comite');
 		expect(vue.commandement.map((r) => [r.nom, r.titulaires.map((t) => t.nom)])).toEqual([
 			['Chef de centre', ['Claire Martin']],
@@ -157,7 +158,7 @@ describe('quiFaitQuoi', () => {
 		const vue = await quiFaitQuoi(base, acteur(alice), aujourdhui);
 		expect(vue.equipes).toHaveLength(1);
 		const [chefs] = vue.equipes;
-		expect(chefs!.nom).toBe('Chef de garde');
+		expect(chefs!).toMatchObject({ nom: 'Chef de garde', nature: 'fonction' });
 		expect(chefs!.parEquipe[0]).toEqual({ equipe: equipes[0]!.nom, titulaires: [{ id: expect.any(Number), nom: 'Bruno Petit', grade: null, ecrire: true }] });
 		expect(chefs!.parEquipe.map((l) => l.equipe)).toEqual(equipes.slice(0, -1).map((e) => e.nom));
 		expect(chefs!.parEquipe[1]!.titulaires).toEqual([]);
@@ -173,7 +174,7 @@ describe('quiFaitQuoi', () => {
 		const ecrire = async (qui: Acteur) => {
 			const vue = await quiFaitQuoi(base, qui, aujourdhui);
 			return Object.fromEntries(
-				[...vue.commandement, ...vue.referents].flatMap((r) => r.titulaires).concat(vue.comites.flatMap((c) => c.membres), vue.equipes.flatMap((e) => e.parEquipe.flatMap((l) => l.titulaires))).map((t) => [t.nom, t.ecrire])
+				[...vue.commandement, ...vue.fonctions, ...vue.missions].flatMap((r) => r.titulaires).concat(vue.comites.flatMap((c) => c.membres), vue.equipes.flatMap((e) => e.parEquipe.flatMap((l) => l.titulaires))).map((t) => [t.nom, t.ecrire])
 			);
 		};
 		expect(await ecrire(acteur(alice))).toEqual({ 'Claire Martin': true, 'Alice Bernard': false, 'Denis Roux': false, 'Bruno Petit': true });
