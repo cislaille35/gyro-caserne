@@ -197,6 +197,13 @@
       "when": 1794570334502,
       "tag": "0027_souhaits_anniversaire",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1794923486705,
+      "tag": "0028_habillement_natif",
+      "breakpoints": true
     }
   ]
 }

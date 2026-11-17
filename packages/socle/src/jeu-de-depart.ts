@@ -47,7 +47,6 @@ const RESPONSABILITES: {
 	parComiteCentre: boolean;
 	verrouilles: boolean;
 	droits: Droit[];
-	modele?: string;
 }[] = [
 	{
 		nom: 'Chef de centre',
@@ -66,7 +65,7 @@ const RESPONSABILITES: {
 	{ nom: 'Référent engins', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['TRAITER_ANOMALIE', 'GERER_FICHES'] },
 	{ nom: 'Référent pharmacie', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_STOCK'] },
 	// La migration 0022 l'ajoute aux bases déjà remplies.
-	{ nom: 'Référent habillement', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_HABILLEMENT'], modele: 'referent_habillement' },
+	{ nom: 'Référent habillement', nature: 'mission', typePerimetre: 'centre', parComiteCentre: true, verrouilles: false, droits: ['GERER_HABILLEMENT'] },
 	// Attribué par le chef de centre. La migration 0001 l'ajoute aux bases déjà remplies.
 	{ nom: 'Référent technique', nature: 'fonction', typePerimetre: 'centre', parComiteCentre: false, verrouilles: false, droits: ['GERER_LISTES', 'GERER_COMITES'] }
 ];
@@ -101,7 +100,6 @@ export async function chargerJeuDeDepart(base: Base, centre: Centre): Promise<vo
 				nature: r.nature,
 				typePerimetre: r.typePerimetre,
 				systeme: r.systeme ?? null,
-				modele: r.modele ?? null,
 				comiteAttributeurId: r.parComiteCentre ? idComiteCentre : null
 			}))
 		),

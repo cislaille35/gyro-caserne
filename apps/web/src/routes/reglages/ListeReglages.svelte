@@ -15,7 +15,8 @@
 	let { data, niveauTitre = 2 }: { data: LayoutData; niveauTitre?: 2 | 3 } = $props();
 
 	type Resp = NonNullable<LayoutData['responsabilites']>[number];
-	const actifs = $derived((data.responsabilites ?? []).filter((r) => r.archiveeLe === null));
+	// Dans chaque thème, les rôles natifs (installés avec le centre, sans modèle) d'abord, puis ceux créés par le centre.
+	const actifs = $derived((data.responsabilites ?? []).filter((r) => r.archiveeLe === null).sort((a, b) => Number(a.modele !== null) - Number(b.modele !== null)));
 	const commandement = $derived(actifs.filter((r) => r.systeme === 'chef_centre' || r.systeme === 'chef_centre_adjoint'));
 	const equipes = $derived(actifs.filter((r) => r.portee === 'equipe'));
 	const referents = $derived(actifs.filter((r) => r.portee === 'centre' && r.systeme === null));
@@ -42,6 +43,7 @@
 	<li>
 		<Rangee href="/reglages/roles/{r.id}" courant={courant(`/reglages/roles/${r.id}`)} icone={iconeDuRole(r)} titre={r.nom} sous={r.titulaires === 0 ? undefined : titulaires(r.titulaires)}>
 			{#snippet droite()}
+				{#if r.modele !== null}<Pastille ton="neutre">Créé</Pastille>{/if}
 				{#if r.titulaires === 0}<Pastille ton="alerte">À pourvoir</Pastille>{/if}
 				{#if estPersonnalise(r.droits.map((d) => d.droit as Droit), r.modele)}<Pastille ton="alerte">Personnalisé</Pastille>{/if}
 			{/snippet}

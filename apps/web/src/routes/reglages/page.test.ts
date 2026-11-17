@@ -68,6 +68,18 @@ describe('page Réglages', () => {
 		expect(pharmacie).not.toContain('Personnalisé');
 	});
 
+	it('dans chaque thème, les rôles natifs d’abord, puis ceux créés par le centre, marqués « Créé »', () => {
+		const page = html(Page, { data });
+		const referents = groupe(page, 'Référents');
+		// 7 est natif (sans modèle) ; 3 et 4 sont créés à partir d'un modèle.
+		expect(referents.indexOf('/reglages/roles/7')).toBeLessThan(referents.indexOf('/reglages/roles/3'));
+		expect(referents.indexOf('/reglages/roles/7')).toBeLessThan(referents.indexOf('/reglages/roles/4'));
+		expect(ligne(page, 3)).toMatch(/>(<!---->)?Créé</);
+		expect(ligne(page, 4)).toMatch(/>(<!---->)?Créé</);
+		expect(ligne(page, 7)).not.toContain('Créé');
+		expect(ligne(page, 1)).not.toContain('Créé');
+	});
+
 	it('comités en cours avec membres et rapporteur, et les rôles de portée comité', () => {
 		const comitesHtml = groupe(html(Page, { data }), 'Comités');
 		expect(comitesHtml).toMatch(/href="\/reglages\/comites\/1"[\s\S]*4 membres · rapporteur : Alice Martin/);
