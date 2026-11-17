@@ -91,6 +91,13 @@ describe('/comites', () => {
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum/);
 	});
 
+	it('une carte de comité en trois parties : « Membres », le lien du mur, « À réserver » ; pas d’intertitre pour une partie vide', () => {
+		const page = html({});
+		const carte = (nom: string) => page.slice(page.indexOf(`>${nom}`), page.indexOf('</ul>', page.indexOf(`>${nom}`)));
+		expect(carte('Amicale')).toMatch(/<h4[^>]*>Membres<\/h4>[\s\S]*?Bruno Petit[\s\S]*?href="\/echanges\/comite:2"[\s\S]*?<h4[^>]*>À réserver<\/h4>[\s\S]*?Barnum/);
+		expect(carte('Comité du centre')).not.toContain('<h4');
+	});
+
 	it('pas de lien vers un mur qu’on ne lit pas ; un comité vide le dit', () => {
 		const page = html({});
 		expect(page).not.toContain('href="/echanges/comite:1"');

@@ -71,6 +71,7 @@
 			<h2 id="titre-comites" class="titre-section">Comités</h2>
 			{#each data.comites as c (c.id)}
 				<ListeRangees titre={c.nom} compte={c.membres.length} niveau={3}>
+					{#if c.membres.length > 0}<li class="intertitre"><h4>Membres</h4></li>{/if}
 					{#each c.membres as m (m.id)}
 						<li>
 							<Rangee titre={m.nom} grade={m.grade} sous={m.roles.join(', ')}>
@@ -83,6 +84,7 @@
 					{#if c.mur}
 						<li><Rangee href="/echanges/comite:{c.id}" titre={murDuComite(c.nom)} /></li>
 					{/if}
+					{#if c.ressources.length > 0}<li class="intertitre"><h4>À réserver</h4></li>{/if}
 					{#each c.ressources as r (r.id)}
 						<li><Rangee href="/reservations/{r.id}" titre={r.nom} /></li>
 					{/each}
@@ -141,6 +143,16 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-32);
+	}
+	/* Les parties d'une carte de comité. */
+	.intertitre h4 {
+		margin: 0;
+		padding: var(--espace-12) var(--espace-16) var(--espace-4);
+		font: 600 var(--texte-15)/1.2 var(--police-titre);
+		color: var(--doux);
+	}
+	.intertitre + li {
+		border-top: none;
 	}
 	.titre-section {
 		margin: 0;
