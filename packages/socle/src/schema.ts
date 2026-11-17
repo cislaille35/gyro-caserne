@@ -138,7 +138,7 @@ export const responsabilite = sqliteTable(
 		systeme: text('systeme', { enum: RESPONSABILITES_SYSTEME }).unique(),
 		// Date ISO d'archivage ; nul tant que la responsabilité sert.
 		archiveeLe: text('archivee_le'),
-		// Identifiant du modèle d'origine (modeles.ts) ; nul pour un rôle fait à la main.
+		// Identifiant du modèle d'origine (modeles.ts) d'un rôle créé par le centre ; nul pour un rôle natif (installé avec le centre).
 		modele: text('modele'),
 		// Nom d'icône (icones.ts) ; nul : l'appli choisit.
 		icone: text('icone')

@@ -23,7 +23,7 @@ erDiagram
 | `personne` | Une adresse autorisée : nom, grade, profil, statut opérationnel ; `parti_le` (dernier départ, vide au retour), `efface_le` (données effacées) |
 | `profil`, `profil_droit` | Droits de base d'un type de personne (agent, réserve citoyenne…), chacun sur un périmètre |
 | `equipe`, `affectation_equipe` | Équipes du centre et qui y est, avec dates |
-| `responsabilite`, `responsabilite_droit` | Fonctions (chef de centre…) et missions (référent pharmacie…), avec leurs droits ; `archivee_le` : date d'archivage, vide tant qu'elle sert ; `modele` : modèle d'origine (vide pour un rôle fait à la main) ; `icone` : icône choisie (vide : l'appli choisit) |
+| `responsabilite`, `responsabilite_droit` | Fonctions (chef de centre…) et missions (référent pharmacie…), avec leurs droits ; `archivee_le` : date d'archivage, vide tant qu'elle sert ; `modele` : modèle d'origine d'un rôle créé par le centre (vide pour un rôle natif, installé avec le centre ; migration 0028) ; `icone` : icône choisie (vide : l'appli choisit) |
 | `attribution` | Qui occupe quelle responsabilité, sur quel périmètre, de quand à quand |
 | `comite` | Comités du centre ; un comité peut attribuer des responsabilités ; `dissous_le` : date de dissolution, vide tant qu'il existe |
 | `grade`, `champ_centre`, `valeur_champ` | Grades, et champs de fiche propres au centre |

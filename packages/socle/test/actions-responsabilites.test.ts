@@ -415,10 +415,10 @@ describe('modèles et icônes', () => {
 		expect(await base.select().from(responsabilite)).toHaveLength(avant);
 	});
 
-	it('les responsabilités du jeu de départ n’ont ni icône ni modèle, sauf le référent habillement (son modèle)', async () => {
+	it('les responsabilités du jeu de départ (natives) n’ont ni icône ni modèle', async () => {
 		const { base, chef } = await jeu();
 		const liste = await listerResponsabilites(base, chef, aujourdhui);
 		expect(liste.every((r) => r.icone === null)).toBe(true);
-		expect(liste.filter((r) => r.modele !== null).map((r) => [r.nom, r.modele])).toEqual([['Référent habillement', 'referent_habillement']]);
+		expect(liste.filter((r) => r.modele !== null)).toEqual([]);
 	});
 });

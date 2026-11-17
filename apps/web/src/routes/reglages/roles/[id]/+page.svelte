@@ -100,7 +100,7 @@
 		{#snippet tete()}<IconeRole icone={iconeDuRole(role)} taille={48} />{/snippet}
 	</EnTetePage>
 	<div class="pastilles">
-		{#if data.modele}<Pastille ton="neutre">Modèle : {data.modele.nom}</Pastille>{/if}
+		{#if data.modele}<Pastille ton="neutre">Créé · modèle {data.modele.nom}</Pastille>{/if}
 		{#if personnalise}<Pastille ton="alerte">Personnalisé</Pastille>{/if}
 		{#if role.systeme !== null}<Pastille ton="neutre">Rôle système</Pastille>{/if}
 		{#if role.archiveeLe !== null}<Pastille ton="neutre">Archivé</Pastille>{/if}

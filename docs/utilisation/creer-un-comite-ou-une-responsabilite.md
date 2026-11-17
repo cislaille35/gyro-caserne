@@ -13,7 +13,7 @@ Réservé au chef de centre, à son adjoint, au référent technique et au super
 
 1. Ouvrez l'onglet « Caserne », puis « Réglages ».
 2. Appuyez sur « + Nouveau rôle », en haut.
-3. Choisissez un modèle : Référent matériel, Référent pharmacie, Vierge… Le rôle en reprend les droits.
+3. Choisissez un modèle : Référent matériel, Référent pharmacie, Vierge… Le rôle en reprend les droits. Le centre a déjà ses rôles natifs (Membre de comité, Rapporteur de comité…) : un modèle sert à en créer un autre, sous un autre nom. Dans les réglages, un rôle créé porte « Créé ».
 4. Vérifiez le nom, la nature, la portée (tout le centre, une équipe ou un comité), qui l'attribue, et choisissez une icône.
 5. Appuyez sur « Créer le rôle ». La page du rôle s'ouvre.
 

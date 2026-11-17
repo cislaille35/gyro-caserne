@@ -1331,7 +1331,7 @@ test.describe('réglages', () => {
 		await page.getByRole('button', { name: 'Créer le rôle' }).click();
 		await expect(page).toHaveURL(/\/reglages\/roles\/\d+$/);
 		await expect(page.getByRole('heading', { level: 1, name: role })).toBeVisible();
-		await expect(entete.getByText('Modèle : Référent pharmacie')).toBeVisible();
+		await expect(entete.getByText('Créé · modèle Référent pharmacie')).toBeVisible();
 		await expect(entete.getByText('Personnalisé', { exact: true })).toHaveCount(0);
 
 		const { groupe: stock } = await domaineOuvert(page, 'Stock et pharmacie');
@@ -1349,7 +1349,7 @@ test.describe('réglages', () => {
 		await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 		await expect(page.getByText(`Le rôle « ${role} » est enregistré.`)).toBeVisible();
 		await page.reload();
-		await expect(entete.getByText('Modèle : Référent pharmacie')).toBeVisible();
+		await expect(entete.getByText('Créé · modèle Référent pharmacie')).toBeVisible();
 		await expect(entete.getByText('Personnalisé', { exact: true })).toHaveCount(0);
 		await page.context().close();
 	});

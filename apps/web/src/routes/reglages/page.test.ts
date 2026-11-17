@@ -26,9 +26,9 @@ const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => 
 const responsabilites = [
 	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
 	role(2, 'Chef de garde', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
-	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
 	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
+	role(7, 'Référent engins 2', { titulaires: 1 }),
 	role(5, 'Rapporteur de comité', { portee: 'comite', attributeur: { type: 'comite_vise' } }),
 	role(6, 'Ancien rôle', { archiveeLe: '2026-04-02' })
 ];
@@ -66,6 +66,18 @@ describe('page Réglages', () => {
 		expect(ligne(page, 1)).toContain(`d="${ICONES_ROLES.etoile}"`);
 		const pharmacie = page.slice(page.indexOf('href="/reglages/roles/4"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/4"')));
 		expect(pharmacie).not.toContain('Personnalisé');
+	});
+
+	it('dans chaque thème, les rôles natifs d’abord, puis ceux créés par le centre, marqués « Créé »', () => {
+		const page = html(Page, { data });
+		const referents = groupe(page, 'Référents');
+		// 7 est natif (sans modèle) ; 3 et 4 sont créés à partir d'un modèle.
+		expect(referents.indexOf('/reglages/roles/7')).toBeLessThan(referents.indexOf('/reglages/roles/3'));
+		expect(referents.indexOf('/reglages/roles/7')).toBeLessThan(referents.indexOf('/reglages/roles/4'));
+		expect(ligne(page, 3)).toMatch(/>(<!---->)?Créé</);
+		expect(ligne(page, 4)).toMatch(/>(<!---->)?Créé</);
+		expect(ligne(page, 7)).not.toContain('Créé');
+		expect(ligne(page, 1)).not.toContain('Créé');
 	});
 
 	it('comités en cours avec membres et rapporteur, et les rôles de portée comité', () => {
