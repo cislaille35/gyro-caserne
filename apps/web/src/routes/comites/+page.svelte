@@ -10,10 +10,11 @@
 
 	type Titulaire = { id: number; nom: string; grade: string | null; ecrire: boolean };
 	const PERSONNE = 'Personne pour l’instant';
-	// Nommer est ce qui change le plus souvent ; à défaut, les réglages (comités, rôles).
+	// Les rôles d'équipe, rangés selon leur nature.
 	const avecEquipes = $derived(data.equipes.filter((r) => r.parEquipe.length > 0));
 	const fonctionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'fonction'));
 	const missionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'mission'));
+	// Nommer est ce qui change le plus souvent ; à défaut, les réglages (comités, rôles).
 	const gerer = $derived(data.peutNominations ? { href: '/nominations', quoi: 'les nominations' } : data.peutReglages ? { href: '/reglages', quoi: 'les réglages du centre' } : null);
 </script>
 
@@ -35,7 +36,6 @@
 	{#each titulaires as t, i (t.id)}{#if i > 0}{', '}{/if}{t.nom}<Insigne grade={t.grade} />{:else}{PERSONNE}{/each}
 {/snippet}
 
-<!-- Un titulaire : « Écrire » à droite ; plusieurs : un « Écrire à … » par titulaire, sous les noms. -->
 <!-- Un rôle tenu équipe par équipe. -->
 {#snippet parEquipe(r: (typeof data.equipes)[number])}
 	<ListeRangees titre={r.systeme === 'chef_equipe' ? 'Chefs de garde' : r.nom} niveau={3}>
@@ -43,6 +43,7 @@
 	</ListeRangees>
 {/snippet}
 
+<!-- Un titulaire : « Écrire » à droite ; plusieurs : un « Écrire à … » par titulaire, sous les noms. -->
 {#snippet role(titre: string, titulaires: Titulaire[], icone?: NomIcone)}
 	{@const ecrits = titulaires.filter((t) => t.ecrire)}
 	{#snippet sousNoms()}{@render noms(titulaires)}{/snippet}
