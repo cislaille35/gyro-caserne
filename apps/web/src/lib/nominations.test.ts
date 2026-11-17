@@ -10,8 +10,8 @@ describe('nominations', () => {
 		]);
 	});
 
-	it('compte les rôles sans titulaire', () => {
-		expect(aPourvoir([{ titulaires: [] }, { titulaires: ['Alice'] }, { titulaires: [] }])).toBe(2);
+	it('compte les fonctions sans titulaire, pas les missions', () => {
+		expect(aPourvoir([{ nature: 'fonction', titulaires: [] }, { nature: 'fonction', titulaires: ['Alice'] }, { nature: 'fonction', titulaires: [] }, { nature: 'mission', titulaires: [] }])).toBe(2);
 		expect(aPourvoir([])).toBe(0);
 	});
 });

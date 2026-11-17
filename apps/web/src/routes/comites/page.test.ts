@@ -28,8 +28,9 @@ const vue = {
 		{ id: 1, nom: 'Chef de centre', icone: 'etoile', titulaires: [{ id: 1, nom: 'Claire Martin', grade: 'Lieutenant', ecrire: true }] },
 		{ id: 2, nom: 'Chef de centre adjoint', icone: 'etoile', titulaires: [] }
 	],
-	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', parEquipe: [{ equipe: 'Équipe 1', titulaires: [{ id: 5, nom: 'Bruno Petit', grade: 'Sergent', ecrire: true }] }, { equipe: 'Équipe 2', titulaires: [] }] }],
-	referents: [
+	equipes: [{ id: 3, nom: 'Chef de garde', systeme: 'chef_equipe', nature: 'fonction', parEquipe: [{ equipe: 'Équipe 1', titulaires: [{ id: 5, nom: 'Bruno Petit', grade: 'Sergent', ecrire: true }] }, { equipe: 'Équipe 2', titulaires: [] }] }],
+	fonctions: [{ id: 9, nom: 'Référent technique', icone: 'cle', titulaires: [] }],
+	missions: [
 		{
 			id: 6,
 			nom: 'Référent pharmacie',
@@ -66,10 +67,21 @@ describe('/comites', () => {
 		const page = html({});
 		expect(page).toMatch(/<h1[^>]*>Comités et référents<\/h1>/);
 		expect(page).toMatch(/<h2[^>]*>Comités<\/h2>/);
-		expect(page).toMatch(/<h2[^>]*>Référents et rôles<\/h2>/);
-		for (const titre of ['Amicale', 'Comité du centre', 'Chef de centre et adjoint', 'Chefs de garde', 'Référents']) expect(page).toMatch(new RegExp(`<h3[^>]*>${titre}`));
+		for (const titre of ['Amicale', 'Comité du centre', 'Chef de centre et adjoint', 'Chefs de garde', 'Autres fonctions']) expect(page).toMatch(new RegExp(`<h3[^>]*>${titre}`));
 		// Une carte par groupe, pas une par ligne.
-		expect(page.match(/<ul role="list" class="lignes"/g)).toHaveLength(5);
+		expect(page.match(/<ul role="list" class="lignes"/g)).toHaveLength(6);
+	});
+
+	it('les fonctions (chef de centre et adjoint, chefs de garde, autres fonctions) puis les missions', () => {
+		const page = html({});
+		expect(page).toMatch(/<h2[^>]*>Fonctions<\/h2>[\s\S]*?Chef de centre et adjoint[\s\S]*?Chefs de garde[\s\S]*?Autres fonctions[\s\S]*?Référent technique[\s\S]*?<h2[^>]*>Missions<\/h2>[\s\S]*?Référent pharmacie/);
+		// Un rôle d'équipe de nature mission se range avec les missions.
+		const avecMission = html({ equipes: [...vue.equipes, { id: 10, nom: 'Référent sport', systeme: null, nature: 'mission', parEquipe: [{ equipe: 'Équipe 1', titulaires: [] }] }] });
+		expect(avecMission).toMatch(/<h2[^>]*>Missions<\/h2>[\s\S]*?<h3[^>]*>Référent sport/);
+		// Une partie vide n'apparaît pas.
+		const sansMission = html({ missions: [] });
+		expect(sansMission).not.toMatch(/<h2[^>]*>Missions/);
+		expect(html({ fonctions: [] })).not.toContain('Autres fonctions');
 	});
 
 	it('un comité : ses membres et leur rôle, son mur, son matériel', () => {
@@ -77,6 +89,13 @@ describe('/comites', () => {
 		expect(page).toMatch(/Bruno Petit[\s\S]*?Rapporteur[\s\S]*?Alice Bernard[\s\S]*?Membre, Trésorière/);
 		expect(page).toMatch(/<a[^>]*href="\/echanges\/comite:2"[^>]*>[\s\S]*?Le mur de l’Amicale/);
 		expect(page).toMatch(/<a[^>]*href="\/reservations\/7"[^>]*>[\s\S]*?Barnum/);
+	});
+
+	it('une carte de comité en trois parties : « Membres », le lien du mur, « À réserver » ; pas d’intertitre pour une partie vide', () => {
+		const page = html({});
+		const carte = (nom: string) => page.slice(page.indexOf(`>${nom}`), page.indexOf('</ul>', page.indexOf(`>${nom}`)));
+		expect(carte('Amicale')).toMatch(/<h4[^>]*>Membres<\/h4>[\s\S]*?Bruno Petit[\s\S]*?href="\/echanges\/comite:2"[\s\S]*?<h4[^>]*>À réserver<\/h4>[\s\S]*?Barnum/);
+		expect(carte('Comité du centre')).not.toContain('<h4');
 	});
 
 	it('pas de lien vers un mur qu’on ne lit pas ; un comité vide le dit', () => {

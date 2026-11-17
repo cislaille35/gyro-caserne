@@ -16,7 +16,19 @@ export const NOMS_ICONES: Record<IconeRole, string> = {
 	veste: 'Veste',
 	banc: 'Banc',
 	table: 'Table',
-	tente: 'Tente'
+	tente: 'Tente',
+	barbecue: 'Barbecue',
+	musique: 'Musique',
+	sifflet: 'Sifflet',
+	trophee: 'Trophée',
+	calendrier: 'Calendrier',
+	secourisme: 'Secourisme',
+	photo: 'Appareil photo',
+	ordinateur: 'Ordinateur',
+	drapeau: 'Drapeau',
+	haltere: 'Haltère',
+	megaphone: 'Mégaphone',
+	euro: 'Euro'
 };
 
 export const PORTEES = [

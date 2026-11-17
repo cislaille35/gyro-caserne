@@ -258,9 +258,9 @@ describe('page fiche agent', () => {
 	});
 
 	describe('bloc Rôles', () => {
-		const ligne = (id: number, nom: string, peutTerminer: boolean, perimetre: { type: string; id: number | null; nom: string | null } = { type: 'centre', id: null, nom: null }) => ({
+		const ligne = (id: number, nom: string, peutTerminer: boolean, perimetre: { type: string; id: number | null; nom: string | null } = { type: 'centre', id: null, nom: null }, nature = 'mission') => ({
 			id,
-			responsabilite: { id: 1, nom, icone: 'outil' },
+			responsabilite: { id: 1, nom, nature, icone: 'outil' },
 			perimetre,
 			debut: '2026-01-01',
 			fin: null,
@@ -285,6 +285,16 @@ describe('page fiche agent', () => {
 			expect(page).toMatch(/<details(?![^>]*open)[^>]*>(<!--[^>]*-->)*\s*<summary[^>]*>Passées/);
 			expect(page.match(/action="\?\/terminer"/g)).toHaveLength(2);
 			expect(page.match(/name="attributionId"/g)).toHaveLength(4);
+		});
+
+		it('les fonctions puis les missions, avec un intertitre seulement si l’agent a les deux', () => {
+			const deux = { enCours: [ligne(1, 'Référent engins', false), ligne(2, 'Chef de garde', false, { type: 'equipe', id: 1, nom: 'Équipe 1' }, 'fonction')], aVenir: [], passees: [] };
+			const roles = (page: string) => page.slice(page.indexOf('>En cours<'), page.indexOf('>Aptitudes<'));
+			const page = roles(html({ data: { ...data, attributions: deux }, form: null }));
+			expect(page).toMatch(/<h4[^>]*>Fonctions<\/h4>[\s\S]*?Chef de garde — Équipe 1[\s\S]*?<h4[^>]*>Missions<\/h4>[\s\S]*?Référent engins/);
+			const missions = roles(html({ data: { ...data, attributions: { enCours: [ligne(1, 'Référent engins', false)], aVenir: [], passees: [] } }, form: null }));
+			expect(missions).toContain('Référent engins');
+			expect(missions).not.toContain('<h4');
 		});
 
 		it('ne montre « Terminer » que pour les rôles qu\'on peut retirer, et relie l\'erreur de confirmation à sa case', () => {

@@ -7,15 +7,19 @@ Savoir à qui s'adresser : qui est dans quel comité, qui est référent de quoi
 ## Ce qu'on y voit
 
 **Comités** (en cours, pas les dissous), un bloc par comité :
-- ses membres, avec leur rôle dans le comité (« Rapporteur », « Membre », ou le nom donné au rôle dans Réglages) ; le rapporteur d'abord ;
-- « Aucun membre pour l'instant » s'il est vide ;
+- **Membres** : ses membres, avec leur rôle dans le comité (« Rapporteur », « Membre », ou le nom donné au rôle dans Réglages) ; le rapporteur d'abord ;
+- « Aucun membre pour l'instant » s'il est vide (sans l'intertitre « Membres ») ;
 - le lien vers son mur, **seulement pour qui peut le lire** : ses membres, le chef de centre, l'adjoint et le super administrateur. Les autres ne voient pas de lien qui mènerait à un refus ;
-- son matériel, s'il en gère (le barnum de l'amicale…), avec un lien vers son calendrier : seulement pour qui peut le réserver ou le gère, comme dans Réservations.
+- **À réserver** : son matériel, s'il en gère (le barnum de l'amicale…), avec un lien vers son calendrier : seulement pour qui peut le réserver ou le gère, comme dans Réservations.
 
-**Référents et rôles**, rangés comme dans Réglages :
+Les trois parties sont dans le même bloc, chacune sous son intertitre ; une partie vide n'en a pas.
+
+**Fonctions**, les rôles qui doivent toujours être tenus :
 - « Chef de centre et adjoint » ;
 - « Chefs de garde », une ligne par équipe active ;
-- « Référents » (pharmacie, engins, habillement, technique…), chacun avec son icône.
+- « Autres fonctions » (référent technique…), chacune avec son icône.
+
+**Missions**, les rôles confiés quand le centre en a besoin (pharmacie, engins, habillement…), chacune avec son icône ; une mission tenue par équipe a son propre bloc, une ligne par équipe. Une partie sans rôle n'apparaît pas. La nature d'un rôle se choisit dans Réglages (voir [Accès et attributions](acces-et-attributions.md)).
 
 Chaque rôle montre ses titulaires du jour, ou « Personne pour l'instant ». Chaque nom porte l'insigne de son grade, lu par les lecteurs d'écran (« Sergent ») ; rien pour un agent sans grade ou d'un grade sans insigne. Les droits techniques ne sont pas affichés.
 

@@ -13,12 +13,14 @@ import { comite, equipe, grade, personne, profil, responsabilite, ressource } fr
 // `ecrire` : l'acteur peut lui écrire par la messagerie (tous deux l'ont, et ce n'est pas lui-même).
 // `grade` : le libellé de son grade, pour l'insigne à côté du nom (null sans grade).
 export type Titulaire = { id: number; nom: string; grade: string | null; ecrire: boolean };
+type Nature = 'fonction' | 'mission';
 export type RoleTenu = { id: number; nom: string; icone: NomIcone; titulaires: Titulaire[] };
 export type QuiFaitQuoi = {
 	comites: { id: number; nom: string; icone: NomIcone; mur: boolean; membres: (Titulaire & { roles: string[] })[]; ressources: { id: number; nom: string; icone: NomIcone }[] }[];
 	commandement: RoleTenu[];
-	equipes: { id: number; nom: string; systeme: string | null; parEquipe: { equipe: string; titulaires: Titulaire[] }[] }[];
-	referents: RoleTenu[];
+	equipes: { id: number; nom: string; systeme: string | null; nature: Nature; parEquipe: { equipe: string; titulaires: Titulaire[] }[] }[];
+	fonctions: RoleTenu[];
+	missions: RoleTenu[];
 };
 
 // « Rapporteur de comité » se lit « Rapporteur » sous le nom du comité.
@@ -32,7 +34,7 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 		...lecturesAgents(base, aujourdhui),
 		base.select({ id: comite.id, nom: comite.nom, theme: comite.theme, icone: comite.icone }).from(comite).where(isNull(comite.dissousLe)).orderBy(asc(comite.nom)),
 		base
-			.select({ id: responsabilite.id, nom: responsabilite.nom, portee: responsabilite.typePerimetre, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele })
+			.select({ id: responsabilite.id, nom: responsabilite.nom, portee: responsabilite.typePerimetre, nature: responsabilite.nature, systeme: responsabilite.systeme, icone: responsabilite.icone, modele: responsabilite.modele })
 			.from(responsabilite)
 			.where(isNull(responsabilite.archiveeLe))
 			.orderBy(asc(responsabilite.nom)),
@@ -92,9 +94,12 @@ export async function quiFaitQuoi(base: Base, acteur: Acteur, aujourdhui: string
 				id: r.id,
 				nom: r.nom,
 				systeme: r.systeme,
+				nature: r.nature,
 				parEquipe: equipes.map((e) => ({ equipe: e.nom, titulaires: titulaires((t) => t.responsabiliteId === r.id && t.perimetreId === e.id) }))
 			})),
-		referents: roles.filter((r) => r.portee === 'centre' && r.systeme === null).map(roleTenu)
+		// Les autres rôles du centre, rangés selon leur nature.
+		fonctions: roles.filter((r) => r.portee === 'centre' && r.systeme === null && r.nature === 'fonction').map(roleTenu),
+		missions: roles.filter((r) => r.portee === 'centre' && r.systeme === null && r.nature === 'mission').map(roleTenu)
 	};
 }
 

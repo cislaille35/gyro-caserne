@@ -10,6 +10,10 @@
 
 	type Titulaire = { id: number; nom: string; grade: string | null; ecrire: boolean };
 	const PERSONNE = 'Personne pour l’instant';
+	// Les rôles d'équipe, rangés selon leur nature.
+	const avecEquipes = $derived(data.equipes.filter((r) => r.parEquipe.length > 0));
+	const fonctionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'fonction'));
+	const missionsEquipe = $derived(avecEquipes.filter((r) => r.nature === 'mission'));
 	// Nommer est ce qui change le plus souvent ; à défaut, les réglages (comités, rôles).
 	const gerer = $derived(data.peutNominations ? { href: '/nominations', quoi: 'les nominations' } : data.peutReglages ? { href: '/reglages', quoi: 'les réglages du centre' } : null);
 </script>
@@ -30,6 +34,13 @@
 <!-- Les titulaires, chacun avec l'insigne de son grade. -->
 {#snippet noms(titulaires: Titulaire[])}
 	{#each titulaires as t, i (t.id)}{#if i > 0}{', '}{/if}{t.nom}<Insigne grade={t.grade} />{:else}{PERSONNE}{/each}
+{/snippet}
+
+<!-- Un rôle tenu équipe par équipe. -->
+{#snippet parEquipe(r: (typeof data.equipes)[number])}
+	<ListeRangees titre={r.systeme === 'chef_equipe' ? 'Chefs de garde' : r.nom} niveau={3}>
+		{#each r.parEquipe as e (e.equipe)}{@render role(e.equipe, e.titulaires)}{/each}
+	</ListeRangees>
 {/snippet}
 
 <!-- Un titulaire : « Écrire » à droite ; plusieurs : un « Écrire à … » par titulaire, sous les noms. -->
@@ -61,6 +72,7 @@
 			<h2 id="titre-comites" class="titre-section">Comités</h2>
 			{#each data.comites as c (c.id)}
 				<ListeRangees titre={c.nom} compte={c.membres.length} niveau={3}>
+					{#if c.membres.length > 0}<li class="intertitre"><h4>Membres</h4></li>{/if}
 					{#each c.membres as m (m.id)}
 						<li>
 							<Rangee titre={m.nom} grade={m.grade} sous={m.roles.join(', ')}>
@@ -73,6 +85,7 @@
 					{#if c.mur}
 						<li><Rangee href="/echanges/comite:{c.id}" titre={murDuComite(c.nom)} /></li>
 					{/if}
+					{#if c.ressources.length > 0}<li class="intertitre"><h4>À réserver</h4></li>{/if}
 					{#each c.ressources as r (r.id)}
 						<li><Rangee href="/reservations/{r.id}" titre={r.nom} /></li>
 					{/each}
@@ -82,26 +95,35 @@
 			{/each}
 		</section>
 
-		<section class="colonne" aria-labelledby="titre-roles">
-			<h2 id="titre-roles" class="titre-section">Référents et rôles</h2>
-			{#if data.commandement.length > 0}
-				<ListeRangees titre="Chef de centre et adjoint" niveau={3}>
-					{#each data.commandement as r (r.id)}{@render role(r.nom, r.titulaires)}{/each}
-				</ListeRangees>
+		<div class="colonne roles">
+			{#if data.commandement.length > 0 || fonctionsEquipe.length > 0 || data.fonctions.length > 0}
+				<section class="colonne" aria-labelledby="titre-fonctions">
+					<h2 id="titre-fonctions" class="titre-section">Fonctions</h2>
+					{#if data.commandement.length > 0}
+						<ListeRangees titre="Chef de centre et adjoint" niveau={3}>
+							{#each data.commandement as r (r.id)}{@render role(r.nom, r.titulaires)}{/each}
+						</ListeRangees>
+					{/if}
+					{#each fonctionsEquipe as r (r.id)}{@render parEquipe(r)}{/each}
+					{#if data.fonctions.length > 0}
+						<ListeRangees titre="Autres fonctions" niveau={3}>
+							{#each data.fonctions as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
+						</ListeRangees>
+					{/if}
+				</section>
 			{/if}
-			{#each data.equipes as r (r.id)}
-				{#if r.parEquipe.length > 0}
-					<ListeRangees titre={r.systeme === 'chef_equipe' ? 'Chefs de garde' : r.nom} niveau={3}>
-						{#each r.parEquipe as e (e.equipe)}{@render role(e.equipe, e.titulaires)}{/each}
-					</ListeRangees>
-				{/if}
-			{/each}
-			{#if data.referents.length > 0}
-				<ListeRangees titre="Référents" compte={data.referents.length} niveau={3}>
-					{#each data.referents as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
-				</ListeRangees>
+			{#if data.missions.length > 0 || missionsEquipe.length > 0}
+				<section class="colonne" aria-labelledby="titre-missions">
+					<h2 id="titre-missions" class="titre-section">Missions</h2>
+					{#if data.missions.length > 0}
+						<ListeRangees>
+							{#each data.missions as r (r.id)}{@render role(r.nom, r.titulaires, r.icone)}{/each}
+						</ListeRangees>
+					{/if}
+					{#each missionsEquipe as r (r.id)}{@render parEquipe(r)}{/each}
+				</section>
 			{/if}
-		</section>
+		</div>
 	</div>
 </div>
 
@@ -122,6 +144,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-32);
+	}
+	/* Entre Fonctions et Missions, le même écart qu'entre deux sections. */
+	.roles {
+		gap: var(--espace-32);
+	}
+	/* Les parties d'une carte de comité. */
+	.intertitre h4 {
+		margin: 0;
+		padding: var(--espace-12) var(--espace-16) var(--espace-4);
+		font: 600 var(--texte-15)/1.2 var(--police-titre);
+		color: var(--doux);
+	}
+	.intertitre + li {
+		border-top: none;
 	}
 	.titre-section {
 		margin: 0;

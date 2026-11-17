@@ -13,7 +13,19 @@ export const ICONES_ROLES = {
 	groupe: 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 20a6 6 0 0 1 12 0M17 11a3 3 0 1 0 0-6M16 14a5 5 0 0 1 5 6',
 	coeur: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',
 	veste: 'M9 3l3 3 3-3 5 3-2 5h-2v10H8V11H6L4 6z M12 6v15',
-	outil: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z'
+	outil: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z',
+	barbecue: 'M4 10h16a8 6 0 0 1-16 0zM8 15.2 6.5 21M16 15.2l1.5 5.8M10 3c-1 1.3 1 2.2 0 4M14 3c-1 1.3 1 2.2 0 4',
+	musique: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+	sifflet: 'M3 14a5 5 0 1 0 10 0 5 5 0 1 0-10 0M8 9h13v4h-8.4M4.5 10.5 3 8',
+	trophee: 'M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8l-1-3H9z',
+	calendrier: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5',
+	secourisme: 'M3 7h18v13H3zM9 7V4h6v3M12 10v7M8.5 13.5h7',
+	photo: 'M4 8h3.5l2-3h5l2 3H20v11H4zM12 16.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+	ordinateur: 'M5 5h14v10H5zM2 19h20l-3-4H5z',
+	drapeau: 'M5 21V4h13l-2.5 4 2.5 4H5',
+	haltere: 'M5 7h3v10H5zM16 7h3v10h-3zM8 12h8M3 10v4M21 10v4',
+	megaphone: 'M3 10v4h3l11 5V5L6 10zM6 14l1.5 5h3l-1-4.2M20 9.5v5',
+	euro: 'M18 7a7 7 0 1 0 0 10M4 10h9M4 14h9'
 } as const;
 
 export type IconeRole = keyof typeof ICONES_ROLES;

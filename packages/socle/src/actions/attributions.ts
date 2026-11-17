@@ -166,7 +166,7 @@ export type PerimetreNomme = { type: TypePerimetre; id: number | null; nom: stri
 
 export type LigneAttribution = {
 	id: number;
-	responsabilite: { id: number; nom: string; icone: NomIcone };
+	responsabilite: { id: number; nom: string; nature: 'fonction' | 'mission'; icone: NomIcone };
 	perimetre: PerimetreNomme;
 	debut: string;
 	fin: string | null;
@@ -185,6 +185,7 @@ export type Titulaire = {
 export type CeQueJePeuxAttribuer = {
 	responsabiliteId: number;
 	nom: string;
+	nature: 'fonction' | 'mission';
 	portee: TypePerimetre;
 	icone: NomIcone;
 	perimetres: { type: TypePerimetre; id: number | null; nom: string }[];
@@ -230,7 +231,7 @@ export async function attributionsDe(
 		const passee = a.fin !== null && a.fin < aujourdhui;
 		const ligne: LigneAttribution = {
 			id: a.id,
-			responsabilite: { id: r.id, nom: r.nom, icone: iconeDuRole({ ...r, portee: r.typePerimetre }) },
+			responsabilite: { id: r.id, nom: r.nom, nature: r.nature, icone: iconeDuRole({ ...r, portee: r.typePerimetre }) },
 			perimetre: nommer(a.perimetreType, a.perimetreId),
 			debut: a.debut,
 			fin: a.fin,
@@ -273,6 +274,7 @@ export async function ceQueJePeuxAttribuer(base: Base, acteur: Acteur, aujourdhu
 		.map((r) => ({
 			responsabiliteId: r.id,
 			nom: r.nom,
+			nature: r.nature,
 			portee: r.typePerimetre,
 			icone: iconeDuRole({ ...r, portee: r.typePerimetre }),
 			perimetres: perimetres[r.typePerimetre].filter((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id)))
