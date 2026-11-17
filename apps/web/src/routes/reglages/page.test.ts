@@ -24,7 +24,7 @@ const role = (id: number, nom: string, champs: Record<string, unknown> = {}) => 
 	...champs
 });
 const responsabilites = [
-	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction' }),
+	role(1, 'Chef de centre', { systeme: 'chef_centre', nature: 'fonction', titulaires: 0 }),
 	role(2, 'Chef de garde', { systeme: 'chef_equipe', portee: 'equipe', titulaires: 3 }),
 	role(3, 'Référent engins', { droits: [{ droit: 'TRAITER_ANOMALIE', verrouille: false }, { droit: 'GERER_FICHES', verrouille: false }, { droit: 'GERER_STOCK', verrouille: false }], modele: 'referent_materiel', titulaires: 2 }),
 	role(4, 'Référent pharmacie', { modele: 'referent_pharmacie', droits: [{ droit: 'GERER_STOCK', verrouille: false }], titulaires: 0 }),
@@ -56,9 +56,10 @@ describe('page Réglages', () => {
 		expect(groupe(page, 'Chefs de garde')).toContain('Chef de garde');
 	});
 
-	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte, « Personnalisé » en pastille', () => {
+	it('une rangée par rôle, qui ouvre sa page : « À pourvoir » en alerte pour une fonction, neutre pour une mission, « Personnalisé » en pastille', () => {
 		const page = html(Page, { data });
-		expect(page).toMatch(/<a[^>]*href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-alerte-fond\)[^>]*>(<!---->)?À pourvoir/);
+		expect(ligne(page, 1)).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?À pourvoir/);
+		expect(page).toMatch(/<a[^>]*href="\/reglages\/roles\/4"[\s\S]*?Référent pharmacie[\s\S]*?var\(--statut-neutre-fond\)[^>]*>(<!---->)?À pourvoir/);
 		const engins = page.slice(page.indexOf('href="/reglages/roles/3"'), page.indexOf('</a>', page.indexOf('href="/reglages/roles/3"')));
 		expect(engins).toContain('2 titulaires');
 		expect(engins).toMatch(/var\(--statut-alerte-fond\)[^>]*>(<!---->)?Personnalisé/);

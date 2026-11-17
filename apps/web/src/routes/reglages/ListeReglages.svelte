@@ -44,7 +44,7 @@
 		<Rangee href="/reglages/roles/{r.id}" courant={courant(`/reglages/roles/${r.id}`)} icone={iconeDuRole(r)} titre={r.nom} sous={r.titulaires === 0 ? undefined : titulaires(r.titulaires)}>
 			{#snippet droite()}
 				{#if r.modele !== null}<Pastille ton="neutre">Créé</Pastille>{/if}
-				{#if r.titulaires === 0}<Pastille ton="alerte">À pourvoir</Pastille>{/if}
+				{#if r.titulaires === 0}<Pastille ton={r.nature === 'fonction' ? 'alerte' : 'neutre'}>À pourvoir</Pastille>{/if}
 				{#if estPersonnalise(r.droits.map((d) => d.droit as Droit), r.modele)}<Pastille ton="alerte">Personnalisé</Pastille>{/if}
 			{/snippet}
 		</Rangee>

@@ -197,11 +197,11 @@ async function lireADecider(base: Base, aujourdhui: string, reglage?: Reglage): 
 			.innerJoin(responsabilite, eq(responsabilite.id, attribution.responsabiliteId))
 			.innerJoin(personne, eq(personne.id, attribution.personneId))
 			.where(and(enCoursLe(aujourdhui), present)),
-		// Hors système et hors comités (un rôle de comité vide par comité serait du bruit).
+		// Fonctions seulement : une mission vacante n'est pas à traiter. Hors système et hors comités.
 		base
 			.select({ id: responsabilite.id, nom: responsabilite.nom })
 			.from(responsabilite)
-			.where(and(isNull(responsabilite.archiveeLe), isNull(responsabilite.systeme), ne(responsabilite.typePerimetre, 'comite')))
+			.where(and(isNull(responsabilite.archiveeLe), isNull(responsabilite.systeme), eq(responsabilite.nature, 'fonction'), ne(responsabilite.typePerimetre, 'comite')))
 			.orderBy(asc(responsabilite.nom)),
 		base
 			.select({ gradeId: personne.gradeId, entreeCentre: personne.entreeCentre, statut: personne.statut, typePersonne: profil.typePersonne })
