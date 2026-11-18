@@ -432,14 +432,14 @@ export const marquerLueLaPublication = (base: Base, moi: number, id: number, mai
 		.set({ lueLe: maintenant })
 		.where(and(eq(notification.personneId, moi), isNull(notification.lueLe), eq(notification.publicationId, id)));
 
-// Couper (oui) ou réactiver un lieu : « tout », « urgences » (celles du centre, pour le chef et l'adjoint), « mur:<clé> » (un mur que la personne lit) ou « conversation:<id> » (dont elle est membre).
+// Couper (oui) ou réactiver un lieu : « tout », « urgences » (celles du centre, pour le chef et l'adjoint), « courriel » (les demandes par e-mail), « mur:<clé> » (un mur que la personne lit) ou « conversation:<id> » (dont elle est membre).
 // Réactiver ne vérifie que la forme : on peut toujours retirer une coupure.
 export async function couper(base: Base, acteur: Acteur, lieu: string, oui: boolean, maintenant: string): Promise<void> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = moiDe(acteur);
 	const mur = /^mur:(.+)$/.exec(lieu)?.[1];
 	const conv = /^conversation:([1-9]\d*)$/.exec(lieu)?.[1];
-	if (lieu !== 'tout' && lieu !== 'urgences' && mur === undefined && conv === undefined) throw new DonneeInvalide('Lieu inconnu');
+	if (lieu !== 'tout' && lieu !== 'urgences' && lieu !== 'courriel' && mur === undefined && conv === undefined) throw new DonneeInvalide('Lieu inconnu');
 	if (!oui) {
 		await base.delete(coupure).where(and(eq(coupure.personneId, moi), eq(coupure.lieu, lieu)));
 		return;
@@ -467,10 +467,11 @@ export async function estCoupe(base: Base, acteur: Acteur, lieu: string): Promis
 const RANG_MUR: Record<string, number> = { centre: 0, vie: 1, equipe: 2, comite: 3 };
 
 // Moi → Notifications : « tout » coupé ou non, les lieux coupés (murs puis conversations, nommés), le nombre d'appareils ;
-// pour le chef de centre et l'adjoint, s'ils reçoivent les urgences du centre (nul pour les autres). Une requête.
-export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ tout: boolean; coupes: { lieu: string; nom: string }[]; appareils: number; urgences: boolean | null }> {
+// pour le chef de centre et l'adjoint, s'ils reçoivent les urgences du centre ; pour qui tient un rôle (et peut recevoir des demandes),
+// s'il les reçoit par e-mail (nuls pour les autres). Une requête.
+export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ tout: boolean; coupes: { lieu: string; nom: string }[]; appareils: number; urgences: boolean | null; courriel: boolean | null }> {
 	exigerDate(aujourdhui);
-	if (acteur.type !== 'personne') return { tout: false, coupes: [], appareils: 0, urgences: null };
+	if (acteur.type !== 'personne') return { tout: false, coupes: [], appareils: 0, urgences: null, courriel: null };
 	const moi = acteur.id;
 	const conversationsCoupees = base
 		.select({ id: sql<number>`cast(substr(${coupure.lieu}, 14) as integer)` })
@@ -478,7 +479,14 @@ export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: s
 		.where(and(eq(coupure.personneId, moi), sql`${coupure.lieu} like 'conversation:%'`));
 	const [lieux, [appareils], equipes, comites, conversations, autres] = await base.batch([
 		base.select({ lieu: coupure.lieu }).from(coupure).where(eq(coupure.personneId, moi)),
-		base.select({ n: count(), chef: sql<number>`${estChefOuAdjointSql(moi, aujourdhui)}` }).from(abonnementPush).where(eq(abonnementPush.personneId, moi)),
+		base
+			.select({
+				n: count(),
+				chef: sql<number>`${estChefOuAdjointSql(moi, aujourdhui)}`,
+				role: sql<number>`exists (select 1 from attribution a join responsabilite r on r.id = a.responsabilite_id where a.personne_id = ${moi} and r.archivee_le is null and a.debut <= ${aujourdhui} and (a.fin is null or a.fin >= ${aujourdhui}))`
+			})
+			.from(abonnementPush)
+			.where(eq(abonnementPush.personneId, moi)),
 		...nomsDesMurs(base),
 		base.select({ id: conversation.id, type: conversation.type, nom: conversation.nom }).from(conversation).where(inArray(conversation.id, conversationsCoupees)),
 		base
@@ -499,7 +507,7 @@ export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: s
 			return { lieu: `conversation:${c.id}`, nom: c.type === 'deux' ? `${autre?.prenom ?? ''} ${autre?.nom ?? ''}`.trim() : (c.nom ?? '') };
 		})
 		.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-	return { tout: lieux.some((l) => l.lieu === 'tout'), coupes: [...murs, ...convs], appareils: appareils?.n ?? 0, urgences: appareils?.chef ? !lieux.some((l) => l.lieu === 'urgences') : null };
+	return { tout: lieux.some((l) => l.lieu === 'tout'), coupes: [...murs, ...convs], appareils: appareils?.n ?? 0, urgences: appareils?.chef ? !lieux.some((l) => l.lieu === 'urgences') : null, courriel: appareils?.role ? !lieux.some((l) => l.lieu === 'courriel') : null };
 }
 
 export type Abonnement = { endpoint: string; p256dh: string; auth: string; appareil: string };

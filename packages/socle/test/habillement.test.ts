@@ -5,6 +5,8 @@ import { accueilDe } from '../src/casquettes.ts';
 import type { Acteur } from '../src/droits.ts';
 import { chargerHabillementFictif, demanderTenue, effacerVieillesDemandes, gesteHabillement, gestesHabillement, habillementADecider, lireDemande, mesDemandes, toutesLesDemandes, type EtatDemandeHabillement } from '../src/habillement.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
+import { courrielsDeDemande } from '../src/courriels.ts';
+import { couper } from '../src/notifications.ts';
 import { enTeteDe, filDeNotifications, marquerLue } from '../src/notifications.ts';
 import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -79,6 +81,26 @@ describe('demander une tenue', () => {
 		await demanderTenue(j.base, j.alice, 'Veste', QUAND);
 		await demanderTenue(j.base, j.alice, 'Gants', QUAND);
 		expect((await mesDemandes(j.base, j.alice)).enCours.map((d) => d.texte).sort()).toEqual(['Gants', 'Veste']);
+	});
+});
+
+describe('l’e-mail d’une nouvelle demande', () => {
+	it('à ceux qui la reçoivent en notification (le référent, pas le chef) : titre, deux lignes, lien ; sauf s’ils l’ont coupé', async () => {
+		const j = await jeu();
+		const id = await demanderTenue(j.base, j.alice, 'Rangers 43', QUAND);
+		expect(await courrielsDeDemande(j.base, { genre: 'habillement', id })).toEqual([{ a: 'rémi@exemple.fr', titre: 'Nouvelle demande d’habillement', texte: 'Alice Fictif : Rangers 43', url: `/habillement/${id}` }]);
+		await couper(j.base, j.remi, 'courriel', true, QUAND);
+		expect(await courrielsDeDemande(j.base, { genre: 'habillement', id })).toEqual([]);
+		// La suite d'une demande ne part pas par e-mail.
+		await couper(j.base, j.remi, 'courriel', false, QUAND);
+		await j.geste(j.ids.remi, id, { quoi: 'question', texte: 'Montantes ?' });
+		expect((await courrielsDeDemande(j.base, { genre: 'habillement', id })).map((c) => c.titre)).toEqual(['Nouvelle demande d’habillement']);
+	});
+
+	it('sans référent nommé : au chef de centre, comme la notification', async () => {
+		const j = await jeu({ referent: false });
+		const id = await demanderTenue(j.base, j.alice, 'Gants', QUAND);
+		expect((await courrielsDeDemande(j.base, { genre: 'habillement', id })).map((c) => c.a)).toEqual(['claire@exemple.fr']);
 	});
 });
 

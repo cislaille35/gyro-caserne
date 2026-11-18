@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { anomaliesADecider, bloquanteClose, gesteAnomalie, gestesPermis, lireAnomalie, listerAnomalies, REGLAGE_ANOMALIES, signalerAnomalie, traiteLesAnomalies, type EtatAnomalie } from '../src/anomalies.ts';
 import { accueilDe } from '../src/casquettes.ts';
+import { courrielsDeDemande } from '../src/courriels.ts';
 import { enregistrerEngin } from '../src/engins.ts';
 import { lireFiche } from '../src/fiches.ts';
 import { filDeNotifications } from '../src/notifications.ts';
@@ -68,6 +69,16 @@ describe('signalement direct', () => {
 		await j.signaler(j.alice, 'Rétroviseur');
 		expect(await j.avis(claire)).toHaveLength(1);
 		expect(await j.avis(paul)).toHaveLength(1);
+	});
+
+	it('l’e-mail : une anomalie signalée, à ceux qui la reçoivent ; une prise de garde, ses nouvelles anomalies', async () => {
+		const j = await jeu();
+		const id = await j.signaler();
+		expect(await courrielsDeDemande(j.base, { genre: 'anomalie', id })).toEqual([{ a: 'ref@exemple.fr', titre: 'Anomalie signalée · VTU', texte: 'Treuil HS, abîmé (Alice Fictif)', url: `/engins/anomalies/${id}` }]);
+		// Un geste du suivi n'en envoie pas.
+		await gesteAnomalie(j.base, j.referent, id, { quoi: 'prendre' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		expect(await courrielsDeDemande(j.base, { genre: 'anomalie', id })).toHaveLength(1);
+		expect(await courrielsDeDemande(j.base, { genre: 'prise', enginId: j.vtu, quand: PLUS_TARD })).toEqual([]);
 	});
 
 	it('le chef de garde de l’équipe d’astreinte est prévenu', async () => {

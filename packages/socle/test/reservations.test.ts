@@ -25,6 +25,7 @@ import {
 } from '../src/reservations.ts';
 import { couper, effacerVieillesNotifications, enTeteDe, filDeNotifications, toutMarquerLu } from '../src/notifications.ts';
 import { chevauche, periodeCourte } from '../src/reservations-calcul.ts';
+import { courrielsDeDemande } from '../src/courriels.ts';
 const chevaucheCreneau = (a: { debut: string; fin: string }, b: { debut: string; fin: string }) => chevauche(a, b, 'creneau');
 import { abonnementPush, attribution, avisReservation, comite, envoiPush, personne, profil, profilDroit, reservation, ressource, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
@@ -130,6 +131,19 @@ describe('réserver', () => {
 		const { base, alice, vl } = await preparer();
 		const { id } = await reserver(base, alice, vl, { debut: '2026-11-07T09:00', fin: '2026-11-07T12:00', nomDemandeur: 'Autre', telephone: '01' }, maintenant);
 		expect(await etat(base, id)).toMatchObject({ nomDemandeur: null, telephone: null });
+	});
+});
+
+describe('l’e-mail d’une réservation à valider', () => {
+	it('à qui gère la ressource, pas au demandeur ; rien pour une réservation acceptée d’office', async () => {
+		const { base, alice, romain, bancs, vl } = await preparer();
+		const { id } = await reserver(base, alice, bancs, { debut: '2026-11-12', fin: '2026-11-12', quantite: 5 }, maintenant);
+		expect(await courrielsDeDemande(base, { genre: 'reservation', id }, aujourdhui)).toEqual([{ a: 'romain@exemple.fr', titre: 'Demande de réservation · Bancs', texte: expect.stringMatching(/^Alice Test, 5, /), url: '/reservations/a-valider' }]);
+		const parRomain = await reserver(base, romain, bancs, { debut: '2026-11-15', fin: '2026-11-15', quantite: 1 }, maintenant);
+		expect(await courrielsDeDemande(base, { genre: 'reservation', id: parRomain.id }, aujourdhui)).toEqual([]);
+		const libre = await reserver(base, alice, vl, { debut: '2026-11-20T08:00', fin: '2026-11-20T10:00' }, maintenant);
+		expect(libre.etat).toBe('acceptee');
+		expect(await courrielsDeDemande(base, { genre: 'reservation', id: libre.id }, aujourdhui)).toEqual([]);
 	});
 });
 

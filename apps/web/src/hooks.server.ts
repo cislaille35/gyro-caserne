@@ -5,6 +5,7 @@ import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { appliquerAffichage, lireAffichage } from '#lib/affichage.ts';
 import { creerAuth, superAdmins, type Auth } from '#lib/server/auth.ts';
 import { envoisDuGeste } from '#lib/server/envoi-push.ts';
+import { envoyerCourriel } from '#lib/server/courriel.ts';
 import { estAdresseDeBetterAuth, lireSession } from '#lib/server/session.ts';
 import { clesVapid } from '#lib/server/webpush.ts';
 import { formulaireEgare } from '#lib/server/resoumission.ts';
@@ -35,6 +36,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	Object.defineProperty(event.locals, 'auth', { get: () => (auth ??= creerAuth(env, base, waitUntil)) });
 	event.locals.superAdmins = superAdmins(env);
 	event.locals.enArrierePlan = envois.enArrierePlan;
+	event.locals.courriel = (m) => envoyerCourriel(env, m);
 	const cles = clesVapid(env);
 	event.locals.clePublique = cles?.publique ?? null;
 

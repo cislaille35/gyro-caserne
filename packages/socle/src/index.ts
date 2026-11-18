@@ -36,6 +36,7 @@ export { ajouterMembres, annuaire, conversationAvec, creerGroupe, envoyer, exige
 export { abonner, notifierConvoques, couper, desabonner, desabonnerPartout, effacerVieillesNotifications, enTeteDe, estCoupe, filDeNotifications, marquerAvisRemplacementLus, marquerLue, mesNotifications, notifierCommentaire, notifierMessage, notifierPublication, fileDEnvoisVide, finirEnvois, prendreEnvois, toutMarquerLu, type Abonnement, type DonneesPush, type Envoi, type LigneAnniversaire, type LigneFil, type LigneRemplacement } from './notifications.ts';
 export { ACTIONS_SUIVI, suiviDuCentre, type LigneSuivi } from './suivi.ts';
 export { avisUrgence, chefsDuCentre, equipeSansChefDemain } from './urgences.ts';
+export { courrielsDeDemande, type Courriel, type DemandeACourriel } from './courriels.ts';
 export { accepter, acceptees, ajouterRessource, annuler, aValider, calendrier, chargerMaterielFictif, effacerVieillesReservations, mesReservations, modifierRessource, nombreAValider, refuser, reserver, ressourcesAGerer, ressourcesDe, retirerRessource, type DemandeReservation, type Ressource, type VueReservation } from './reservations.ts';
 export { chevauche, jourCourt, joursEntre, periodeCourte, restantParJour, tientUnePlace, type Periode, type Prise } from './reservations-calcul.ts';
 export { calculerAnnee, equipeA, feries, fetes, numeroSemaine, periodesDeLaSemaine, rangDuJour, semainesDe, tourDesFetes, type Fete, type Periode as PeriodePlanning, type Reglage, type SemaineCalculee } from './planning/calendrier.ts';

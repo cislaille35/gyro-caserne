@@ -5,7 +5,7 @@ import Page from './+page.svelte';
 import CeTelephone from './CeTelephone.svelte';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const html = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { clePublique: 'BPub', tout: false, coupes: [], appareils: 0, urgences: null, ...data }, form } }).body;
+const html = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { clePublique: 'BPub', tout: false, coupes: [], appareils: 0, urgences: null, courriel: null, ...data }, form } }).body;
 const telephone = (etat: string, appareils = 0) => render(CeTelephone as any, { props: { etat, appareils, activer: () => {}, desactiver: () => {} } }).body;
 
 describe('page Moi → Notifications', () => {
@@ -28,6 +28,12 @@ describe('page Moi → Notifications', () => {
 		expect(html({ urgences: true, tout: true })).toContain('Vous ne recevrez plus les urgences du centre (engin indisponible…)');
 		expect(html({ urgences: true })).not.toContain('Vous ne recevrez plus les urgences');
 		expect(html({ tout: true })).not.toContain('Vous ne recevrez plus les urgences');
+	});
+
+	it('« Recevoir les demandes par e-mail » pour qui tient un rôle, coché par défaut ; pas pour les autres', () => {
+		expect(html({ courriel: true })).toMatch(/<form[^>]*action="\?\/courriel"[\s\S]*?role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"[\s\S]*?Recevoir les demandes par e-mail/);
+		expect(html({ courriel: false })).toMatch(/action="\?\/courriel"[\s\S]*?aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
+		expect(html({})).not.toContain('Recevoir les demandes par e-mail');
 	});
 
 	it('les lieux coupés, chacun avec « Réactiver » nommé ; rien de coupé : comment couper', () => {

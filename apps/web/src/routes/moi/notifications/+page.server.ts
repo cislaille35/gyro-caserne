@@ -32,6 +32,11 @@ export const actions: Actions = {
 		const recevoir = (await request.formData()).get('oui') === '1';
 		return changer(locals, 'urgences', !recevoir, recevoir ? 'Les urgences du centre sonnent à nouveau.' : 'Les urgences du centre ne sonnent plus.');
 	},
+	// Les nouvelles demandes adressées à ses rôles, aussi par e-mail : `oui` = les recevoir.
+	courriel: async ({ locals, request }) => {
+		const recevoir = (await request.formData()).get('oui') === '1';
+		return changer(locals, 'courriel', !recevoir, recevoir ? 'Les nouvelles demandes arrivent aussi par e-mail.' : 'Plus d’e-mail pour les nouvelles demandes.');
+	},
 	reactiver: async ({ locals, request }) => {
 		const lieu = (await request.formData()).get('lieu');
 		return changer(locals, typeof lieu === 'string' ? lieu : '', false, 'Réactivé.');

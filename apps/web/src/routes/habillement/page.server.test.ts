@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { attribution, demandeHabillement, responsabilite } from '@gyro-caserne/socle';
+import { attribution, demandeHabillement, personne, responsabilite } from '@gyro-caserne/socle';
 import { describe, expect, it } from 'vitest';
 import { locaux, preparer, requeteFormulaire } from '../echanges/de-test.ts';
 import { actions, load } from './+page.server';
@@ -23,6 +23,17 @@ const idDe = async (promesse: Promise<unknown>) => {
 };
 
 describe('/habillement', () => {
+	it('une nouvelle demande part aussi par e-mail au référent, après la réponse, avec le lien absolu', async () => {
+		const { base, alice, bruno } = await jeu();
+		const envoyes: { a: string; sujet: string; texte: string }[] = [];
+		const taches: Promise<unknown>[] = [];
+		const locals = { ...locaux(base, alice), courriel: async (m: { a: string; sujet: string; texte: string }) => void envoyes.push(m), enArrierePlan: (t: Promise<unknown>) => taches.push(t) };
+		const r = await (actions.default as any)({ locals, request: await requeteFormulaire([['texte', 'Rangers 43']]), url: new URL('https://caserne.exemple.fr/habillement') }).catch((e: unknown) => e);
+		await Promise.all(taches);
+		const [bob] = await base.select().from(personne).where(eq(personne.id, bruno.id));
+		expect(envoyes).toEqual([{ a: bob!.email, sujet: 'Nouvelle demande d’habillement', texte: expect.stringContaining(`https://caserne.exemple.fr${r.location.replace('?envoyee', '')}`) }]);
+	});
+
 	it('demande la connexion ; le super administrateur va à toutes les demandes', async () => {
 		const { base } = await jeu();
 		await expect((load as any)({ locals: locaux(base, null) })).rejects.toMatchObject({ status: 303, location: '/connexion' });

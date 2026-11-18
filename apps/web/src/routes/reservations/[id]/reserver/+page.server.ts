@@ -4,6 +4,7 @@ import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { decaler } from '#lib/reservations.ts';
 import { champ, exigerConnecte, idDe, refus } from '#lib/server/reservations.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { envoyerDemandeParCourriel } from '#lib/server/courriel-demandes.ts';
 
 // Ce qui est déjà pris d'ici un peu plus d'un an : la page dit la disponibilité sans revenir au serveur.
 export const load: PageServerLoad = async ({ locals, params, url }) => {
@@ -25,14 +26,17 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ locals, params, request }) => {
+	default: async ({ locals, params, request, url }) => {
 		const acteur = exigerConnecte(locals);
 		const formulaire = await request.formData();
 		const valeurs = Object.fromEntries(['debut', 'fin', 'quantite', 'mot', 'nom', 'telephone'].map((n) => [n, champ(formulaire, n)]));
 		let etat: string;
 		try {
 			const d = { debut: valeurs.debut!, fin: valeurs.fin!, quantite: Number(valeurs.quantite || '1'), mot: valeurs.mot, nomDemandeur: valeurs.nom, telephone: valeurs.telephone };
-			etat = (await reserver(locals.base, acteur, idDe(params.id), d, maintenantParis())).etat;
+			const faite = await reserver(locals.base, acteur, idDe(params.id), d, maintenantParis());
+			etat = faite.etat;
+			// À valider : aussi par e-mail à qui gère la ressource, après la réponse.
+			if (etat === 'attente') envoyerDemandeParCourriel(locals, url, { genre: 'reservation', id: faite.id });
 		} catch (erreur) {
 			return refus(erreur, valeurs);
 		}

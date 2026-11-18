@@ -60,6 +60,18 @@
 		<CeTelephone etat={data.clePublique ? etat : 'sans-cles'} appareils={data.appareils} {echec} {activer} {desactiver} />
 	</Carte>
 
+	{#if data.courriel !== null && data.courriel !== undefined}
+		<Carte titre="Par e-mail">
+			<form method="POST" action="?/courriel" use:enhance class="interrupteur">
+				<p id="aide-courriel">Une nouvelle demande adressée à vos rôles (habillement, anomalie, réservation à valider) arrive aussi dans votre boîte. La suite reste dans l’appli.</p>
+				<button type="submit" role="switch" aria-checked={data.courriel ? 'true' : 'false'} name="oui" value={data.courriel ? '0' : '1'} aria-describedby="aide-courriel">
+					<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
+					<span>Recevoir les demandes par e-mail</span>
+				</button>
+			</form>
+		</Carte>
+	{/if}
+
 	<Carte titre="Tout couper">
 		<form method="POST" action="?/toutCouper" use:enhance class="interrupteur">
 			<p id="aide-tout">Plus rien ne sonne, sur aucun appareil. La cloche de l’appli montre toujours tout.</p>

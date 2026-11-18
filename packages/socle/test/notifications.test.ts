@@ -221,6 +221,7 @@ describe('couper', () => {
 			tout: false,
 			appareils: 2,
 			urgences: null,
+			courriel: null,
 			coupes: [
 				{ lieu: 'mur:vie', nom: 'Vie du centre' },
 				{ lieu: `mur:equipe:${e2.id}`, nom: e2.nom },

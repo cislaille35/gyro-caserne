@@ -4,6 +4,7 @@ import { aLeDroit, DonneeInvalide, listerEngins, RefusDroit, signalerAnomalie, T
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { accesEngins, champ, idDe, phraseDe } from '#lib/server/engins.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { envoyerDemandeParCourriel } from '#lib/server/courriel-demandes.ts';
 
 // Signaler un problème hors prise de garde : l'engin (choisi d'avance depuis sa page), le problème, une note et une photo.
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ locals, request }) => {
+	default: async ({ locals, request, url }) => {
 		const { acteur, base } = await accesEngins(locals);
 		const f = await request.formData();
 		const saisie = { engin: champ(f, 'engin'), libelle: champ(f, 'libelle'), genre: champ(f, 'genre'), note: champ(f, 'note') };
@@ -31,6 +32,7 @@ export const actions: Actions = {
 			if (erreur instanceof DonneeInvalide) return fail(400, { ...saisie, message: phraseDe(erreur.message) });
 			throw erreur;
 		}
+		envoyerDemandeParCourriel(locals, url, { genre: 'anomalie', id });
 		redirect(303, `/engins/anomalies/${id}?signalee`);
 	}
 };
