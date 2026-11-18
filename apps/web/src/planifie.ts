@@ -1,4 +1,4 @@
-import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, fileDEnvoisVide, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment, resumeErreur } from '@gyro-caserne/socle';
+import { creerBaseD1, creerBasePhotos, effacerAgentsPartis, equipeSansChefDemain, effacerAnciens, effacerSouhaitsPasses, effacerVieillesDemandes, effacerPhotosOrphelines, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, fileDEnvoisVide, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment, resumeErreur } from '@gyro-caserne/socle';
 import { aujourdhuiParis, maintenantParis } from './lib/aujourdhui.ts';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { clesVapid, type EnvVapid } from './lib/server/webpush.ts';
@@ -26,7 +26,7 @@ export const CRON_NUIT = '30 3 * * *';
 export const CRON_REVEIL = '*/10 * * * *';
 
 // Le worker de SvelteKit, plus le gestionnaire planifié.
-export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; conservationPublicationsMois: number; position: { latitude: number; longitude: number }; departement?: string; manoeuvres: { petitDejeuner: string[] } }) {
+export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { conservationMessagesMois: number; conservationPublicationsMois: number; position: { latitude: number; longitude: number }; departement?: string; manoeuvres: { petitDejeuner: string[] }; astreinte: Parameters<typeof equipeSansChefDemain>[2] }) {
 	return {
 		fetch: kit.fetch,
 		scheduled(controleur: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -50,6 +50,8 @@ export function avecPlanifie<K extends { fetch: unknown }>(kit: K, centre: { con
 					taches.push(planningDuMatin(base, maintenant, centre.manoeuvres.petitDejeuner).catch((e) => console.error('Planning du matin', resumeErreur(e))));
 					// Les rappels des vacances d'été : chacun n'est envoyé qu'une fois.
 					taches.push(rappelsEte(base, maintenant).catch((e) => console.error('Rappels de l’été', resumeErreur(e))));
+					// La veille d'une relève : l'équipe d'astreinte sans chef de garde, en urgence au chef de centre et à l'adjoint (rien n'est lu les autres jours).
+					taches.push(equipeSansChefDemain(base, maintenant, centre.astreinte).catch((e) => console.error('Équipe sans chef', resumeErreur(e))));
 				}
 				// Les remplacements : expirés au début de leur période, relancés la veille. Toutes les dix minutes, à chaque réveil.
 				if (maintenant[15] === '0') taches.push(remplacementsDuMoment(base, maintenant).catch((e) => console.error('Remplacements du moment', resumeErreur(e))));

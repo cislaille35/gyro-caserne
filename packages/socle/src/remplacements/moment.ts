@@ -9,7 +9,8 @@ import { texteDemande } from './tranches.ts';
 const RELANCE = '08:00';
 
 // Toutes les dix minutes (voir planifie.ts) : une demande non conclue expire au début de sa première période ;
-// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef de garde.
+// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef de garde,
+// et en urgence au chef de centre et à l'adjoint.
 // Expirée à valider : le remplaçant et le chef sont prévenus aussi.
 export async function remplacementsDuMoment(base: Base, maintenant: string): Promise<{ expirees: number; relances: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
@@ -46,12 +47,17 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 			...avis(base, [d.demandeurId, ...(d.etat === 'a_valider' && d.remplacantId !== null ? [d.remplacantId, ...valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId)] : [])], d.id, 'expiree', `${texteDemande(periodesDe(d.periodes)) || 'Échange de manœuvre'} · le titulaire reste responsable`, `/remplacements/${d.id}`, maintenant, si)
 		);
 	}
+	// Le chef de centre et l'adjoint l'apprennent aussi, en urgence (une seule fois, même s'ils valident pour l'équipe).
+	const duCentre = [...new Set(chefs.filter((c) => c.systeme === 'chef_centre' || c.systeme === 'chef_centre_adjoint').map((c) => c.personneId))];
 	for (const d of aRelancer) {
 		const texte = texteDemande(periodesDe(d.periodes));
+		const phrase = `${nom(d.demandeurId)} n’a pas encore de remplaçant demain · ${texte}`;
+		const urgence = duCentre.filter((id) => id !== d.demandeurId);
 		ecritures.push(
 			base.update(demandeRemplacement).set({ relanceLe: maintenant }).where(and(eq(demandeRemplacement.id, d.id), isNull(demandeRemplacement.relanceLe))),
 			...avis(base, [d.demandeurId], d.id, 'relance', `Personne n’a encore accepté : ${texte}`, `/remplacements/${d.id}`, maintenant),
-			...avis(base, valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId), d.id, 'relance', `${nom(d.demandeurId)} n’a pas encore de remplaçant demain · ${texte}`, `/remplacements/${d.id}`, maintenant)
+			...avis(base, valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).filter((id) => !urgence.includes(id)), d.id, 'relance', phrase, `/remplacements/${d.id}`, maintenant),
+			...avis(base, urgence, d.id, 'relance', phrase, `/remplacements/${d.id}`, maintenant, undefined, 'urgences')
 		);
 	}
 	const [premiere, ...autres] = ecritures;

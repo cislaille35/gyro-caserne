@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { effacerAgentsPartis, effacerAnciens, fileDEnvoisVide, effacerPhotosOrphelines, effacerSouhaitsPasses, effacerVieillesDemandes, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
+import { effacerAgentsPartis, effacerAnciens, equipeSansChefDemain, fileDEnvoisVide, effacerPhotosOrphelines, effacerSouhaitsPasses, effacerVieillesDemandes, effacerVieillesNotifications, effacerVieillesPublications, effacerVieillesReservations, mettreAJourReleves, planningDuMatin, rappelsEte, remplacementsDuMoment } from '@gyro-caserne/socle';
 import { envoyerLot } from './lib/server/envoi-push.ts';
 import { avecPlanifie, limiteDeConservation } from './planifie.ts';
 
-vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAgentsPartis: vi.fn(async () => 0), effacerAnciens: vi.fn(async () => {}), fileDEnvoisVide: vi.fn(async () => false), effacerPhotosOrphelines: vi.fn(async () => 0), effacerSouhaitsPasses: vi.fn(async () => {}), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), effacerVieillesDemandes: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })) }));
+vi.mock('@gyro-caserne/socle', async (original) => ({ ...(await original<typeof import('@gyro-caserne/socle')>()), effacerAgentsPartis: vi.fn(async () => 0), effacerAnciens: vi.fn(async () => {}), fileDEnvoisVide: vi.fn(async () => false), effacerPhotosOrphelines: vi.fn(async () => 0), effacerSouhaitsPasses: vi.fn(async () => {}), effacerVieillesPublications: vi.fn(async () => 0), effacerVieillesNotifications: vi.fn(async () => {}), effacerVieillesReservations: vi.fn(async () => {}), effacerVieillesDemandes: vi.fn(async () => {}), mettreAJourReleves: vi.fn(async () => {}), planningDuMatin: vi.fn(async () => ({ publiees: 0, relances: 0 })), rappelsEte: vi.fn(async () => 0), remplacementsDuMoment: vi.fn(async () => ({ expirees: 0, relances: 0 })), equipeSansChefDemain: vi.fn(async () => 0) }));
 vi.mock('./lib/server/envoi-push.ts', () => ({ envoyerLot: vi.fn(async () => ({ envoyes: 0, perimes: 0 })) }));
 
 describe('limiteDeConservation', () => {
@@ -20,11 +20,13 @@ describe('limiteDeConservation', () => {
 	});
 });
 
+const ASTREINTE = { debut: { jour: 'vendredi', heure: '18:00' }, fin: { jour: 'vendredi', heure: '06:00' }, reference: { date: '2026-01-02', equipe: 1 } } as const;
+
 describe('avecPlanifie', () => {
 	const lancer = async (cron: string, quand: string, env: Record<string, unknown> = {}) => {
 		vi.clearAllMocks();
 		const kit = { fetch: vi.fn() };
-		const worker = avecPlanifie(kit, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, departement: '35', manoeuvres: { petitDejeuner: ['Croissant', 'Rien pour moi'] } });
+		const worker = avecPlanifie(kit, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, departement: '35', manoeuvres: { petitDejeuner: ['Croissant', 'Rien pour moi'] }, astreinte: ASTREINTE });
 		expect(worker.fetch).toBe(kit.fetch);
 		const attendus: Promise<unknown>[] = [];
 		worker.scheduled({ cron, scheduledTime: Date.parse(quand) } as never, { BASE: {}, PHOTOS: {}, ...env } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
@@ -155,6 +157,13 @@ describe('avecPlanifie', () => {
 		}
 		await lancer('30 3 * * *', '2026-11-15T03:30:00Z');
 		expect(planningDuMatin).not.toHaveBeenCalled();
+	});
+
+	it('à 8 h et 8 h 10 : l’urgence « équipe sans chef de garde demain », avec le réglage d’astreinte du centre ; pas aux autres réveils', async () => {
+		await lancer('*/10 * * * *', '2026-11-15T07:00:00Z');
+		expect(vi.mocked(equipeSansChefDemain).mock.calls[0]!.slice(1)).toEqual(['2026-11-15T08:00:00', ASTREINTE]);
+		await lancer('*/10 * * * *', '2026-11-15T09:20:00Z');
+		expect(equipeSansChefDemain).not.toHaveBeenCalled();
 	});
 
 	it('à chaque réveil, toutes les dix minutes : les remplacements (expirés, relancés la veille) ; un réveil à 5 ne les fait pas', async () => {

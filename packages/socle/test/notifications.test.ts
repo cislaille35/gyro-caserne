@@ -220,6 +220,7 @@ describe('couper', () => {
 		expect(await mesNotifications(base, acteur(bruno), aujourdhui)).toEqual({
 			tout: false,
 			appareils: 2,
+			urgences: null,
 			coupes: [
 				{ lieu: 'mur:vie', nom: 'Vie du centre' },
 				{ lieu: `mur:equipe:${e2.id}`, nom: e2.nom },

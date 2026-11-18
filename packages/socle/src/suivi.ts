@@ -80,6 +80,8 @@ const PHRASES = {
 	clore_anomalie: (c) => nomme(c, 'a clos une anomalie :'),
 	accepter_reservation: (c) => nomme(c, 'a accepté une réservation :'),
 	refuser_reservation: (c) => nomme(c, 'a refusé une réservation :'),
+	// Les urgences signalées par l'appli
+	alerter_sans_chef: (c) => `signale ${c.nom ? `l’équipe ${c.nom.replace(/^Équipe /, '')}` : 'une équipe'} sans chef de garde pour la relève de demain`,
 	// Remplacements validés ou refusés par le chef de garde
 	valider_remplacement: (c) => `a validé le remplacement ${deAgent(c)}`,
 	refuser_validation: (c) => `a refusé le remplacement ${deAgent(c)}`
@@ -121,6 +123,7 @@ const cibleSql = sql<string | null>`case "journal"."cible_type"
 	when 'aptitude' then (select a.nom from aptitude a where a.id = "journal"."cible_id")
 	when 'demande_remplacement' then (select p.prenom || ' ' || p.nom from demande_remplacement d join personne p on p.id = d.demandeur_id where d.id = "journal"."cible_id")
 	when 'demande_habillement' then (select p.prenom || ' ' || p.nom from demande_habillement d join personne p on p.id = d.demandeur_id where d.id = "journal"."cible_id")
+	when 'equipe' then (select e.nom from equipe e where e.id = "journal"."cible_id")
 	when 'anomalie' then (select e.nom || ' · ' || a.libelle from anomalie a join engin e on e.id = a.engin_id where a.id = "journal"."cible_id")
 end`;
 const roleSql = sql<string | null>`case when "journal"."cible_type" = 'attribution' then (select r.nom from attribution a join responsabilite r on r.id = a.responsabilite_id where a.id = "journal"."cible_id") end`;
@@ -161,6 +164,8 @@ function lienDe(l: { cibleType: string; cibleId: number | null; agent: number | 
 			return id === null ? '/engins/anomalies' : `/engins/anomalies/${id}`;
 		case 'centre':
 			return '/reglages';
+		case 'equipe':
+			return '/nominations';
 		default:
 			return null;
 	}

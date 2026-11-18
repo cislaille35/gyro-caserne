@@ -43,6 +43,19 @@
 	<p class="masque" role="status">{form?.succes ?? ''}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
+	{#if data.urgences !== null && data.urgences !== undefined}
+		<!-- Le chef de centre et l'adjoint : en premier, ce qui sonne à toute heure. -->
+		<Carte titre="Urgences du centre">
+			<form method="POST" action="?/urgences" use:enhance class="interrupteur">
+				<p id="aide-urgences">Un engin indisponible, un remplacement sans remplaçant la veille, une équipe sans chef de garde la veille de sa relève : votre téléphone sonne, à toute heure.</p>
+				<button type="submit" role="switch" aria-checked={data.urgences ? 'true' : 'false'} name="oui" value={data.urgences ? '0' : '1'} aria-describedby="aide-urgences">
+					<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
+					<span>Recevoir les urgences au téléphone</span>
+				</button>
+			</form>
+		</Carte>
+	{/if}
+
 	<Carte titre="Ce téléphone">
 		<CeTelephone etat={data.clePublique ? etat : 'sans-cles'} appareils={data.appareils} {echec} {activer} {desactiver} />
 	</Carte>
@@ -50,6 +63,7 @@
 	<Carte titre="Tout couper">
 		<form method="POST" action="?/toutCouper" use:enhance class="interrupteur">
 			<p id="aide-tout">Plus rien ne sonne, sur aucun appareil. La cloche de l’appli montre toujours tout.</p>
+			{#if data.tout && data.urgences !== null && data.urgences !== undefined}<p class="avertissement">Vous ne recevrez plus les urgences du centre (engin indisponible…).</p>{/if}
 			<button type="submit" role="switch" aria-checked={data.tout ? 'true' : 'false'} name="oui" value={data.tout ? '0' : '1'} aria-describedby="aide-tout">
 				<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
 				<span>Tout couper au téléphone</span>
@@ -107,6 +121,10 @@
 	}
 	.interrupteur p {
 		margin: 0;
+	}
+	.avertissement {
+		font-weight: 600;
+		color: var(--statut-alerte-texte);
 	}
 	[role='switch'] {
 		align-self: flex-start;

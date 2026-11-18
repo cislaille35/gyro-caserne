@@ -10,8 +10,8 @@ import { avisRemplacement, personne } from '../schema.ts';
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
 
 // Écritures à placer dans le batch de l'action. `demandeId` : un nombre, ou la demande créée dans le même batch.
-// `si` : une condition vérifiée à l'écriture (la décision a bien été prise).
-export function avis(base: Base, ids: number[], demandeId: number | SQL, quoi: AvisRemplacement, texte: string, url: string, maintenant: string, si?: SQL) {
+// `si` : une condition vérifiée à l'écriture (la décision a bien été prise). `lieu` : « urgences » pour le chef de centre et l'adjoint.
+export function avis(base: Base, ids: number[], demandeId: number | SQL, quoi: AvisRemplacement, texte: string, url: string, maintenant: string, si?: SQL, lieu: 'remplacements' | 'urgences' = 'remplacements') {
 	if (ids.length === 0) return [];
 	const qui = and(inArray(personne.id, parmi(ids)), si);
 	return [
@@ -28,6 +28,6 @@ export function avis(base: Base, ids: number[], demandeId: number | SQL, quoi: A
 				.from(personne)
 				.where(qui)
 		),
-		mettreEnFile(base, ids, 'remplacements', { titre: TITRES_AVIS[quoi], texte, url, tag: `remplacement:${typeof demandeId === 'number' ? demandeId : 'nouvelle'}:${quoi}` }, maintenant, si)
+		mettreEnFile(base, ids, lieu, { titre: TITRES_AVIS[quoi], texte, url, tag: `${lieu === 'urgences' ? 'urgence:' : ''}remplacement:${typeof demandeId === 'number' ? demandeId : 'nouvelle'}:${quoi}` }, maintenant, si)
 	] as const;
 }

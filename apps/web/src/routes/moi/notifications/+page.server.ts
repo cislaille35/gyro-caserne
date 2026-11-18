@@ -4,7 +4,7 @@ import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { exigerActeur } from '#lib/server/formulaire-mur.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-// Moi → Notifications : ce téléphone, « Tout couper », et ce qui est coupé. Le super administrateur n'a ni murs ni messagerie.
+// Moi → Notifications : les urgences du centre (chef, adjoint), ce téléphone, « Tout couper », et ce qui est coupé. Le super administrateur n'a ni murs ni messagerie.
 export const load: PageServerLoad = async ({ locals }) => {
 	const acteur = exigerActeur(locals);
 	if (acteur.type !== 'personne') redirect(303, '/moi');
@@ -26,6 +26,11 @@ export const actions: Actions = {
 	toutCouper: async ({ locals, request }) => {
 		const oui = (await request.formData()).get('oui') === '1';
 		return changer(locals, 'tout', oui, oui ? 'Plus rien ne sonne au téléphone.' : 'Les notifications sonnent à nouveau.');
+	},
+	// Les urgences du centre (chef, adjoint) : `oui` = les recevoir.
+	urgences: async ({ locals, request }) => {
+		const recevoir = (await request.formData()).get('oui') === '1';
+		return changer(locals, 'urgences', !recevoir, recevoir ? 'Les urgences du centre sonnent à nouveau.' : 'Les urgences du centre ne sonnent plus.');
 	},
 	reactiver: async ({ locals, request }) => {
 		const lieu = (await request.formData()).get('lieu');
