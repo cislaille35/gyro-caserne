@@ -38,7 +38,8 @@ type LigneMur = {
 	cle: CleMur;
 	nomMur: string;
 	publicationId: number;
-	auteur: { prenom: string; nom: string; couleur: string | null };
+	// `appli` : publiée par l'appli (le planning), montrée avec son icône.
+	auteur: { prenom: string; nom: string; couleur: string | null; appli?: true };
 	extrait: string;
 	creeLe: string;
 	lue: boolean;
@@ -349,7 +350,7 @@ function deMurs(
 				cle: l.mur as CleMur,
 				nomMur: nomDuMur(l.mur, equipes, comites),
 				publicationId: l.publicationId,
-				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur === 'planning' ? { prenom: 'Planning', nom: 'du centre', couleur: null } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
+				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur === 'planning' ? { prenom: 'Planning', nom: '', couleur: null, appli: true } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
 				extrait: extrait(l.texte),
 				creeLe: l.creeLe,
 				lue: l.lueLe !== null

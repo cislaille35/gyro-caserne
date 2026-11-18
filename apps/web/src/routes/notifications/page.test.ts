@@ -44,6 +44,13 @@ describe('page des notifications', () => {
 		expect(page).toContain('1 notification non lue.');
 	});
 
+	it('une publication du planning : l’icône du calendrier et « Planning », jamais d’initiales', () => {
+		const page = html({ lignes: [ligne({ auteur: { prenom: 'Planning', nom: '', couleur: null, appli: true }, extrait: 'Manœuvre : Feux' })] });
+		expect(page).toContain('Planning a publié dans Le centre');
+		expect(page).toMatch(/class="pictogramme[^"]*" aria-hidden="true"><svg[^>]*><path d="M4 6h16v14H4z/);
+		expect(page).not.toContain('class="visage');
+	});
+
 	it('non lue : le point, « Non lu, » écrit pour les lecteurs d’écran et le titre en gras ; pas de bande à gauche', () => {
 		expect(html({ nonLues: 1, lignes: [ligne({})] })).toMatch(/class="ligne[^"]*non-lue[\s\S]*?Non lu, [\s\S]*?<span class="point[^"]*" aria-hidden="true">/);
 		expect(source).toMatch(/\.non-lue \.quoi \{\s*font-weight: 700;/);

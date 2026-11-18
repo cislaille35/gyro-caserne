@@ -7,7 +7,7 @@ import { ligneJournal } from '../journal.ts';
 import { REPONSES_EVENEMENT, TYPES_PUBLICATION, type ReponseEvenement, type TypePublication } from '../listes.ts';
 import { avecPhotos, effacerPhotos, exigerPhotos, lireOctets, roleDe, texte, type Photo } from '../commun.ts';
 import { accesMur, agentsDuJour, equipesConvoquees, estConvoque, type Convocation, exigerMur, lecturesAgents, membresDe, refusMur, type AgentsLus, type Appartenances, type CleMur, type Mur } from '../murs.ts';
-import { commentaire, equipe, jaime, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
+import { commentaire, equipe, jaime, journal, manoeuvre, personne, photoPublication, priseConnaissance, publication, reponseEvenement, visiteMur, voteSondage } from '../schema.ts';
 import { photo as octetsPhoto } from '../schema-photos.ts';
 import type { CommentaireVue } from './interactions.ts';
 import { aLaMessagerie } from '../messagerie.ts';
@@ -34,11 +34,14 @@ export type PublicationVue = {
 	cle: CleMur;
 	// `couleur` : celle de son équipe en cours ; `role` : Chef de centre, Adjoint ou Chef de garde. Null pour un auteur parti ou le super administrateur.
 	// `ecrireA` : l'auteur, à qui l'acteur peut répondre en privé (il a la messagerie, et ce n'est pas l'acteur) ; null sinon.
-	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null; ecrireA: number | null };
+	// `appli` : publiée par l'appli (le planning), signée de son icône, sans initiales.
+	auteur: { prenom: string; nom: string; couleur: string | null; role: string | null; ecrireA: number | null; appli?: true };
 	type: TypePublication;
 	texte: string;
 	creeLe: string;
 	modifieeLe: string | null;
+	// Ce que l'appli a publié, changé par une personne (manœuvre modifiée ou annulée) : son nom et quand.
+	modifieePar: { nom: string; le: string } | null;
 	epinglee: boolean;
 	commentairesFermes: boolean;
 	// Une manœuvre annulée par le planning : la publication reste, on n'y répond plus.
@@ -277,7 +280,10 @@ export async function lirePublication(base: Base, acteur: Acteur, id: number, ma
 }
 
 export const auteurVu = (auteur: string, fiche: { prenom: string | null; nom: string | null } | undefined) =>
-	auteur === 'planning' ? { prenom: 'Planning', nom: 'du centre' } : auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
+	auteur === 'planning' ? { prenom: 'Planning', nom: '', appli: true as const } : auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur' } : !fiche?.nom ? { prenom: '', nom: 'Personne inconnue' } : { prenom: fiche.prenom ?? '', nom: fiche.nom };
+
+const modifieePar = (c: { quand: string; acteur: string; prenom: string | null; nom: string | null } | undefined) =>
+	c === undefined ? null : { nom: c.acteur.startsWith('super:') ? 'Super administrateur' : c.nom === null ? 'Ancien agent' : `${c.prenom ?? ''} ${c.nom}`.trim(), le: c.quand };
 
 // Couleur de l'équipe en cours et premier rôle tenu, pour un agent qui a accès ; rien sinon (parti, super administrateur).
 function visage([agents, affectations, tenues]: AgentsLus, equipes: { id: number; couleur: string }[], personneId: number | null) {
@@ -360,7 +366,15 @@ async function vuesDe(
 					options.tous ? undefined : sql`${commentaire.id} in (select d.id from ${commentaire} d where d.publication_id = ${commentaire.publicationId} order by d.id desc limit 2)`
 				)
 			)
-			.orderBy(asc(commentaire.id))
+			.orderBy(asc(commentaire.id)),
+		// Qui a changé en dernier ce que l'appli a publié : le journal des manœuvres modifiées ou annulées.
+		base
+			.select({ publicationId: manoeuvre.publicationId, quand: journal.quand, acteur: journal.acteur, prenom: personne.prenom, nom: personne.nom })
+			.from(manoeuvre)
+			.innerJoin(journal, and(eq(journal.cibleType, 'planning'), eq(journal.cibleId, manoeuvre.id), inArray(journal.action, ['modifier_manoeuvre', 'annuler_manoeuvre'])))
+			.leftJoin(personne, sql`${journal.acteur} = 'personne:' || ${personne.id}`)
+			.where(inArray(manoeuvre.publicationId, lignes.filter((p) => p.auteur === 'planning').map((p) => p.id)))
+			.orderBy(desc(journal.id))
 	] as const;
 	const { maintenant } = options;
 	const ecritures =
@@ -377,7 +391,7 @@ async function vuesDe(
 				: options.lue !== undefined
 					? [marquerLueLaPublication(base, moi, options.lue, maintenant)]
 					: [];
-	const [agents, affectations, tenues, equipes, jaimes, commentaires, reponses, votes, prises, presents, photos, auteurs, derniers] = await base.batch([...lectures, ...ecritures]);
+	const [agents, affectations, tenues, equipes, jaimes, commentaires, reponses, votes, prises, presents, photos, auteurs, derniers, changements] = await base.batch([...lectures, ...ecritures]);
 	const lus: AgentsLus = [agents, affectations, tenues];
 	const membres = membresDe(agentsDuJour(lus, aujourdhui), cle);
 	const vusCommentaires = derniers.map((c) => ({ ...commentaireVu(acteur, mur, c), publicationId: c.publicationId }));
@@ -412,6 +426,7 @@ async function vuesDe(
 			texte: p.texte,
 			creeLe: p.creeLe,
 			modifieeLe: p.modifieeLe,
+			modifieePar: modifieePar(changements.find((c) => c.publicationId === p.id)),
 			epinglee: p.epinglee === 1,
 			commentairesFermes: p.commentairesFermes === 1,
 			annulee: p.annuleeLe !== null,

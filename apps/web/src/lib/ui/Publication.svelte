@@ -5,7 +5,8 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import GyroDuMoment from '#lib/gyro/GyroDuMoment.svelte';
 	import { lireAffichageContexte } from '#lib/gyro/niveau.ts';
-	import { heure, quand as quandBref } from '#lib/murs/quand.ts';
+	import { heure, leEtHeure, quand as quandBref } from '#lib/murs/quand.ts';
+	import { ICONES_ROLES } from './icones-roles.ts';
 	import Bouton from './Bouton.svelte';
 	import Pastille from './Pastille.svelte';
 	import Sondage from './Sondage.svelte';
@@ -71,7 +72,7 @@
 </script>
 
 {#snippet signature()}
-	<span class="doux">{p.auteur.role ? `${p.auteur.role} · ` : ''}<time datetime={p.creeLe}>{quandBref(p.creeLe)}</time>{p.modifieeLe ? ' · modifiée' : ''}</span>
+	<span class="doux">{p.auteur.role ? `${p.auteur.role} · ` : ''}<time datetime={p.creeLe}>{quandBref(p.creeLe)}</time>{p.modifieeLe && !p.modifieePar ? ' · modifiée' : ''}</span>
 {/snippet}
 
 <article id="publication-{p.id}" class="publication {p.type}" class:a-confirmer={prise} aria-labelledby="auteur-{p.id}" tabindex="-1" bind:this={carte}>
@@ -101,10 +102,16 @@
 			</div>
 		{:else}
 			<p class="entete">
-				<Visage prenom={p.auteur.prenom} nom={p.auteur.nom} couleur={p.auteur.couleur} />
+				{#if p.auteur.appli}
+					<!-- L'appli signe de son icône, jamais d'initiales. -->
+					<span class="icone-appli" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={ICONES_ROLES.calendrier} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+				{:else}
+					<Visage prenom={p.auteur.prenom} nom={p.auteur.nom} couleur={p.auteur.couleur} />
+				{/if}
 				<span class="colonne">
 					<strong id="auteur-{p.id}">{auteur}</strong>
 					{@render signature()}
+					{#if p.modifieePar}<span class="doux">Modifiée par {p.modifieePar.nom}, {leEtHeure(p.modifieePar.le)}</span>{/if}
 				</span>
 				{#if p.epinglee && !prise}<Pastille ton="info">Épinglée</Pastille>{/if}
 				{#if p.annulee}<Pastille ton="danger">Annulée</Pastille>{:else if p.type === 'evenement'}<Pastille ton="info">Événement</Pastille>{:else if p.type === 'annonce' && !prise}<Pastille ton="alerte">Annonce</Pastille>{/if}
@@ -300,6 +307,17 @@
 	}
 	.entete .colonne {
 		flex: 1;
+	}
+	/* À la place du visage, la même place : l'icône du calendrier à l'encre. */
+	.icone-appli {
+		flex: none;
+		width: 40px;
+		height: 40px;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: var(--fond);
+		color: var(--encre);
 	}
 	.auteur {
 		font-weight: 700;

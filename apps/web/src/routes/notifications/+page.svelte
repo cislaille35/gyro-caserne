@@ -196,7 +196,11 @@
 						</a>
 					{:else}
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/echanges/${l.cle}/${l.publicationId}`)}>
-							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							{#if l.auteur.appli}
+								<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={ICONES_ROLES.calendrier} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							{:else}
+								<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							{/if}
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{`${l.auteur.prenom} ${l.auteur.nom}`.trim()}{l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`}</span>
 								{#if l.extrait}<span class="extrait">{l.extrait}</span>{/if}
