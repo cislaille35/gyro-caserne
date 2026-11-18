@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "712af186-c7ad-4620-87a4-3fdd6c706ab2",
+  "id": "d9251511-c3af-415d-9001-fda6a7087e1a",
   "prevId": "eec943bb-60bf-425f-88b8-12a362ed3bd9",
   "tables": {
     "abonnement_push": {
@@ -1015,6 +1015,88 @@
         "avis_habillement_personne_id_personne_id_fk": {
           "name": "avis_habillement_personne_id_personne_id_fk",
           "tableFrom": "avis_habillement",
+          "tableTo": "personne",
+          "columnsFrom": [
+            "personne_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "avis_nomination": {
+      "name": "avis_nomination",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "personne_id": {
+          "name": "personne_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "titre": {
+          "name": "titre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "texte": {
+          "name": "texte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lue_le": {
+          "name": "lue_le",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "avis_nomination_personne": {
+          "name": "avis_nomination_personne",
+          "columns": [
+            "personne_id",
+            "lue_le"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "avis_nomination_personne_id_personne_id_fk": {
+          "name": "avis_nomination_personne_id_personne_id_fk",
+          "tableFrom": "avis_nomination",
           "tableTo": "personne",
           "columnsFrom": [
             "personne_id"

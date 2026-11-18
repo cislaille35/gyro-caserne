@@ -1,1 +1,0 @@
-ALTER TABLE `personne` ADD `suivi_vu` integer;

@@ -999,6 +999,21 @@ export const filHabillement = sqliteTable(
 	(t) => [index('fil_habillement_demande').on(t.demandeId), check('fil_habillement_quoi', checkDans('quoi', FIL_HABILLEMENT))]
 );
 
+// La cloche d'une nomination : l'agent nommé à un rôle, à la main (fiche, Nominations).
+export const avisNomination = sqliteTable(
+	'avis_nomination',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		titre: text('titre').notNull(),
+		texte: text('texte').notNull(),
+		url: text('url').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [index('avis_nomination_personne').on(t.personneId, t.lueLe)]
+);
+
 // La cloche de l'habillement : nouvelle demande, question, réponse, changement d'étape.
 export const avisHabillement = sqliteTable(
 	'avis_habillement',

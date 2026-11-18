@@ -8,7 +8,8 @@ import { finirOuSupprimer } from '../fin-de-periode.ts';
 import { iconeDuRole, type NomIcone } from '../icones.ts';
 import { ligneJournal } from '../journal.ts';
 import type { TypePerimetre } from '../listes.ts';
-import { attribution, comite, equipe, personne, responsabilite } from '../schema.ts';
+import { attribution, avisNomination as avisNominationTable, comite, equipe, personne, responsabilite } from '../schema.ts';
+import { mettreEnFile } from '../notifications.ts';
 import { nomActeur } from './personnes.ts';
 
 type Responsabilite = typeof responsabilite.$inferSelect;
@@ -63,7 +64,9 @@ export async function attribuer(
 	base: Base,
 	acteur: Acteur,
 	a: { personneId: number; responsabiliteId: number; perimetre: Perimetre; debut: string; fin?: string; compteRendu?: string },
-	aujourdhui: string
+	aujourdhui: string,
+	// `prevenir` : l'agent nommé l'apprend (au téléphone et dans la cloche) ; pas pour l'import du fichier de l'effectif.
+	{ prevenir = true, maintenant = `${aujourdhui}T00:00` }: { prevenir?: boolean; maintenant?: string } = {}
 ): Promise<number> {
 	exigerDate(aujourdhui);
 	exigerDate(a.debut);
@@ -75,14 +78,17 @@ export async function attribuer(
 	const [fiche] = await base.select({ id: personne.id, statut: personne.statut }).from(personne).where(eq(personne.id, a.personneId));
 	if (!fiche) throw new DonneeInvalide('Personne inconnue');
 	if (fiche.statut === 'parti') throw new DonneeInvalide('Cette personne est partie');
+	let nomPerimetre = 'Le centre';
 	if (a.perimetre.type === 'equipe') {
-		const [uneEquipe] = await base.select({ id: equipe.id }).from(equipe).where(eq(equipe.id, a.perimetre.id));
+		const [uneEquipe] = await base.select({ id: equipe.id, nom: equipe.nom }).from(equipe).where(eq(equipe.id, a.perimetre.id));
 		if (!uneEquipe) throw new DonneeInvalide('Équipe inconnue');
+		nomPerimetre = uneEquipe.nom;
 	}
 	if (a.perimetre.type === 'comite') {
-		const [unComite] = await base.select({ id: comite.id, dissousLe: comite.dissousLe }).from(comite).where(eq(comite.id, a.perimetre.id));
+		const [unComite] = await base.select({ id: comite.id, nom: comite.nom, dissousLe: comite.dissousLe }).from(comite).where(eq(comite.id, a.perimetre.id));
 		if (!unComite) throw new DonneeInvalide('Comité inconnu');
 		if (unComite.dissousLe !== null) throw new DonneeInvalide('Comité dissous');
+		nomPerimetre = unComite.nom;
 	}
 
 	exigerAttribution(await contexteDe(base, acteur, aujourdhui), laResponsabilite, a.perimetre);
@@ -122,7 +128,8 @@ export async function attribuer(
 			})
 			.returning({ id: attribution.id }),
 		// L'ordre compte : le journal suit l'insertion, last_insert_rowid() est l'id de l'attribution.
-		ligneJournal(base, { acteur: qui, action: 'attribuer', cibleType: 'attribution', cibleId: sql`last_insert_rowid()`, details: { personneId: a.personneId, responsabiliteId: a.responsabiliteId, perimetre: a.perimetre, debut: a.debut, fin: a.fin ?? null } }, aujourdhui)
+		ligneJournal(base, { acteur: qui, action: 'attribuer', cibleType: 'attribution', cibleId: sql`last_insert_rowid()`, details: { personneId: a.personneId, responsabiliteId: a.responsabiliteId, perimetre: a.perimetre, debut: a.debut, fin: a.fin ?? null } }, aujourdhui),
+		...(prevenir && !(acteur.type === 'personne' && acteur.id === a.personneId) ? avisNomination(base, a.personneId, laResponsabilite.nom, nomPerimetre, acteur, maintenant) : [])
 	]);
 	return lignes[0]!.id;
 }
@@ -326,4 +333,29 @@ export async function titulairesDesMiens(base: Base, acteur: Acteur, aujourdhui:
 	const { responsabilites, perimetres } = await candidats(base);
 	const miennes = responsabilites.filter((r) => perimetres[r.typePerimetre].some((p) => peutAttribuer(contexte, r, perimetreDeLigne(p.type, p.id))));
 	return titulaires(base, contexte, miennes, aujourdhui);
+}
+
+// L'agent nommé : une ligne dans sa cloche et un envoi au téléphone (lieu « nominations » : seul « tout » le coupe).
+// Écritures à placer dans le batch de l'attribution ; le nom de l'auteur est lu à l'écriture.
+function avisNomination(base: Base, personneId: number, role: string, perimetre: string, acteur: Acteur, maintenant: string) {
+	const par = acteur.type === 'super' ? sql<string>`'Super administrateur'` : sql<string>`coalesce((select p.prenom || ' ' || p.nom from personne p where p.id = ${acteur.id}), 'un ancien agent')`;
+	const titre = `Vous êtes nommé ${role}`;
+	const url = `/agents/${personneId}`;
+	return [
+		base.insert(avisNominationTable).select(
+			base
+				.select({
+					id: sql<number | null>`null`.as('id'),
+					personneId: personne.id,
+					titre: sql<string>`${titre}`.as('titre'),
+					texte: sql<string>`${perimetre} || ' · par ' || ${par}`.as('texte'),
+					url: sql<string>`${url}`.as('url'),
+					creeLe: sql<string>`${maintenant}`.as('cree_le'),
+					lueLe: sql<string | null>`null`.as('lue_le')
+				})
+				.from(personne)
+				.where(eq(personne.id, personneId))
+		),
+		mettreEnFile(base, [personneId], 'nominations', { titre, texte: perimetre, url, tag: `nomination:${maintenant}` }, maintenant, undefined, 'nomination')
+	] as const;
 }

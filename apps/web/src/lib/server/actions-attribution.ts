@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { attribuer, DonneeInvalide, finirAttribution, responsabilite, terminerAttribution, type Acteur, type Perimetre } from '@gyro-caserne/socle';
 import { echecAttribution } from './erreurs-attribution.ts';
 import { dateValide, type Reponse } from './formulaire-agent.ts';
+import { maintenantParis } from '#lib/aujourdhui.ts';
 
 type Contexte = { base: App.Locals['base']; acteur: Acteur; aujourdhui: string; formulaire: FormData; cible: string };
 
@@ -28,7 +29,7 @@ export async function nommer({ base, acteur, aujourdhui, formulaire, cible }: Co
 	else if (laResponsabilite) erreurs.perimetreId = 'Choix inconnu';
 	if (Object.keys(erreurs).length > 0 || !perimetre || personneId === null) return fail<Reponse>(400, { cible, erreurs, valeurs });
 	try {
-		await attribuer(base, acteur, { personneId, responsabiliteId: Number(valeurs.responsabiliteId), perimetre, debut: valeurs.debut, ...(valeurs.fin && { fin: valeurs.fin }) }, aujourdhui);
+		await attribuer(base, acteur, { personneId, responsabiliteId: Number(valeurs.responsabiliteId), perimetre, debut: valeurs.debut, ...(valeurs.fin && { fin: valeurs.fin }) }, aujourdhui, { maintenant: maintenantParis() });
 	} catch (erreur) {
 		return echecAttribution(erreur, { cible, valeurs });
 	}

@@ -60,6 +60,12 @@ describe('page des notifications', () => {
 		expect(html({ suivi: 0 })).not.toContain('href="/suivi"');
 	});
 
+	it('une nomination : « Vous êtes nommé … », le périmètre, vers la fiche de l’agent', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 4, type: 'nomination', titre: 'Vous êtes nommé Chef de garde', texte: 'Équipe 2 · par Claire Martin', url: '/agents/7', creeLe: '2026-10-31T09:00', lue: false }] });
+		expect(page).toContain(`href="${ouvre('nomination', 4, '/agents/7')}"`);
+		expect(page).toMatch(/Non lu, [\s\S]*?Vous êtes nommé Chef de garde[\s\S]*?Équipe 2 · par Claire Martin/);
+	});
+
 	it('non lue : le point, « Non lu, » écrit pour les lecteurs d’écran et le titre en gras ; pas de bande à gauche', () => {
 		expect(html({ nonLues: 1, lignes: [ligne({})] })).toMatch(/class="ligne[^"]*non-lue[\s\S]*?Non lu, [\s\S]*?<span class="point[^"]*" aria-hidden="true">/);
 		expect(source).toMatch(/\.non-lue \.quoi \{\s*font-weight: 700;/);

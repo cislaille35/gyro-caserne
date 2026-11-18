@@ -7,7 +7,7 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { donneesFichier } from '../src/fichier-effectif.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { affectationEquipe, aptitude, aptitudeAgent, attribution, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, aptitude, aptitudeAgent, attribution, avisNomination, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-27';
@@ -98,6 +98,8 @@ describe('appliquerOperation : chaque type', () => {
 		expect(lignes.find((a) => a.personneId === nina)).toMatchObject({ responsabiliteId: resp('Membre de comité'), perimetreId: amicale.id, debut: aujourdhui, fin: null });
 		const journaux = await base.select().from(journal).where(eq(journal.action, 'attribuer'));
 		expect(journaux).toHaveLength(2);
+		// Pas de rafale : l'import ne prévient pas les agents nommés.
+		expect(await base.select().from(avisNomination)).toEqual([]);
 	});
 
 	it('attribuer : agent de la ligne non créé', async () => {

@@ -1,14 +1,15 @@
 import { count, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
-import { attribuer, attributionsDe, ceQueJePeuxAttribuer, peutAttribuerQuelqueChose, terminerAttribution, titulairesDe, titulairesDesMiens } from '../src/actions/attributions.ts';
+import { attribuer, attributionsDe, finirAttribution, ceQueJePeuxAttribuer, peutAttribuerQuelqueChose, terminerAttribution, titulairesDe, titulairesDesMiens } from '../src/actions/attributions.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
 import { dissoudreComite } from '../src/actions/comites.ts';
 import { archiverResponsabilite } from '../src/actions/responsabilites.ts';
 import { aLeDroit, estChefDeCentre, type Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
-import { attribution, comite, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, attribution, avisNomination, comite, envoiPush, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
+import { filDeNotifications } from '../src/notifications.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-10-25';
@@ -338,5 +339,35 @@ describe('terminerAttribution', () => {
 		const id = await nommer(simpleId, 'Référent engins', centre, '2025-01-01', '2025-12-31');
 		await expect(terminerAttribution(base, superAdmin, 999, aujourdhui)).rejects.toBeInstanceOf(DonneeInvalide);
 		await expect(terminerAttribution(base, superAdmin, id, aujourdhui)).rejects.toThrow('Attribution déjà terminée');
+	});
+});
+
+describe('attribuer : l’agent nommé est prévenu', () => {
+	it('au téléphone et dans la cloche : « Vous êtes nommé <rôle> » et le périmètre ; pas l’auteur de sa propre nomination ; pas au retrait', async () => {
+		const { base, chef, simpleId, nouvelle, r, equipes } = await jeu();
+		await base.delete(avisNomination);
+		await base.insert(abonnementPush).values({ personneId: simpleId, endpoint: 'https://fcm.googleapis.com/simple', p256dh: 'a', auth: 'b', creeLe: midi });
+		const id = await attribuer(base, chef, { personneId: simpleId, responsabiliteId: r('Chef de garde'), perimetre: { type: 'equipe', id: equipes[1]!.id }, debut: aujourdhui }, aujourdhui, { maintenant: midi });
+		const avis = await base.select().from(avisNomination).where(eq(avisNomination.personneId, simpleId));
+		expect(avis).toMatchObject([{ titre: 'Vous êtes nommé Chef de garde', texte: `${equipes[1]!.nom} · par Chef Test`, url: `/agents/${simpleId}`, creeLe: midi, lueLe: null }]);
+		const [envoi] = await base.select().from(envoiPush);
+		expect(JSON.parse(envoi!.donnees)).toMatchObject({ titre: 'Vous êtes nommé Chef de garde', url: `/agents/${simpleId}` });
+		expect((await filDeNotifications(base, { type: 'personne', id: simpleId }, midi)).lignes[0]).toMatchObject({ type: 'nomination', titre: 'Vous êtes nommé Chef de garde' });
+		// Un retrait ne prévient pas l'agent.
+		await finirAttribution(base, chef, id, aujourdhui, aujourdhui);
+		expect(await base.select().from(avisNomination)).toHaveLength(1);
+		// Se nommer soi-même : rien.
+		await attribuer(base, chef, { personneId: chef.type === 'personne' ? chef.id : 0, responsabiliteId: r('Référent engins'), perimetre: { type: 'centre' }, debut: aujourdhui }, aujourdhui, { maintenant: midi });
+		expect(await base.select().from(avisNomination)).toHaveLength(1);
+		void nouvelle;
+	});
+
+	it('l’import du fichier de l’effectif ne prévient personne', async () => {
+		const { base, chef, simpleId, r } = await jeu();
+		await base.delete(avisNomination);
+		await base.insert(abonnementPush).values({ personneId: simpleId, endpoint: 'https://fcm.googleapis.com/simple', p256dh: 'a', auth: 'b', creeLe: midi });
+		await attribuer(base, chef, { personneId: simpleId, responsabiliteId: r('Référent engins'), perimetre: { type: 'centre' }, debut: aujourdhui }, aujourdhui, { prevenir: false });
+		expect(await base.select().from(avisNomination)).toEqual([]);
+		expect(await base.select().from(envoiPush)).toEqual([]);
 	});
 });
