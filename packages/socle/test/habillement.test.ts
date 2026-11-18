@@ -6,7 +6,7 @@ import type { Acteur } from '../src/droits.ts';
 import { chargerHabillementFictif, demanderTenue, effacerVieillesDemandes, gesteHabillement, gestesHabillement, habillementADecider, lireDemande, mesDemandes, toutesLesDemandes, type EtatDemandeHabillement } from '../src/habillement.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { enTeteDe, filDeNotifications, marquerLue } from '../src/notifications.ts';
-import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const QUAND = '2026-11-08T10:00';
@@ -158,6 +158,28 @@ describe('le suivi', () => {
 		expect(await j.demande(b)).toMatchObject({ etape: 'refusee', finLe: PLUS_TARD });
 		expect((await j.avis(j.ids.alice)).at(-1)).toMatchObject({ titre: 'Demande refusée', texte: 'Rémi Fictif : La vôtre a moins d’un an.' });
 		await expect(j.geste(j.ids.alice, b, { quoi: 'repondre', texte: 'Dommage' })).rejects.toThrow('Geste impossible');
+	});
+
+	it('les décisions vont au journal (suivi du centre) : prise, traitement, refus, livraison ; pas les questions ni l’annulation, ni un geste refusé', async () => {
+		const j = await jeu();
+		const a = await demanderTenue(j.base, j.alice, 'Gants', QUAND);
+		await j.geste(j.ids.remi, a, { quoi: 'prendre' });
+		await j.geste(j.ids.remi, a, { quoi: 'question', texte: 'Taille ?' });
+		await j.geste(j.ids.alice, a, { quoi: 'repondre', texte: '9' });
+		await j.geste(j.ids.remi, a, { quoi: 'traiter', issue: 'commande', texte: '' });
+		await j.geste(j.ids.remi, a, { quoi: 'livrer', texte: 'Au bureau' });
+		const b = await demanderTenue(j.base, j.alice, 'Veste', QUAND);
+		await j.geste(j.ids.remi, b, { quoi: 'traiter', issue: 'refus', texte: 'Trop tôt.' });
+		await expect(j.geste(j.ids.remi, b, { quoi: 'livrer', texte: 'x' })).rejects.toThrow();
+		const c = await demanderTenue(j.base, j.alice, 'Casque', QUAND);
+		await j.geste(j.ids.alice, c, { quoi: 'annuler' });
+		const lignes = await j.base.select().from(journal).orderBy(journal.id);
+		expect(lignes.map((l) => [l.acteur, l.action, l.cibleType, l.cibleId])).toEqual([
+			[`personne:${j.ids.remi}`, 'prendre_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'traiter_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'livrer_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'refuser_habillement', 'demande_habillement', b]
+		]);
 	});
 
 	it('livrer exige l’info de récupération ; une question exige un texte', async () => {

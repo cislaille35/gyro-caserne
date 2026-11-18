@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { ecussonDuCentre } from './ecusson.ts';
+import { nouveautesSuiviSql } from './suivi.ts';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
@@ -230,9 +231,9 @@ const nonLuesSql = (qui: number | SQL) =>
 const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)}`;
 
 // Les non-lues, et les remplacements à valider. Une requête.
-const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`) =>
+const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`, suivi: SQL<number | null> = sql<number>`0`) =>
 	base
-		.select({ aValider: aValider.as('a_valider'), n: nonLuesSql(moi) })
+		.select({ aValider: aValider.as('a_valider'), n: nonLuesSql(moi), suivi: sql<number | null>`${suivi}`.as('suivi') })
 		.from(personne)
 		.where(eq(personne.id, moi));
 
@@ -277,9 +278,10 @@ export const marquerAvisRemplacementLus = (base: Base, moi: number, maintenant: 
 export const marquerAvisLus = (base: Base, moi: number, maintenant: string) => base.update(avisReservation).set({ lueLe: maintenant }).where(and(eq(avisReservation.personneId, moi), isNull(avisReservation.lueLe)));
 
 // Le fil de la cloche : les 50 plus récentes, et le nombre de non-lues. Une requête.
-export async function filDeNotifications(base: Base, acteur: Acteur, maintenant: string): Promise<{ lignes: LigneFil[]; nonLues: number; remplacementsAValider: number }> {
+// `suivi` : les nouveautés du suivi du centre (chef, adjoint), une seule ligne de la cloche.
+export async function filDeNotifications(base: Base, acteur: Acteur, maintenant: string): Promise<{ lignes: LigneFil[]; nonLues: number; remplacementsAValider: number; suivi: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
-	if (acteur.type !== 'personne') return { lignes: [], nonLues: 0, remplacementsAValider: 0 };
+	if (acteur.type !== 'personne') return { lignes: [], nonLues: 0, remplacementsAValider: 0, suivi: 0 };
 	const moi = acteur.id;
 	const auteur = sql<string>`coalesce(${commentaire.auteur}, ${publication.auteur})`;
 	const lesAuteurs = base.select({ auteur }).from(notification).innerJoin(publication, eq(publication.id, notification.publicationId)).leftJoin(commentaire, eq(commentaire.id, notification.commentaireId)).where(eq(notification.personneId, moi));
@@ -301,7 +303,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 			.where(eq(notification.personneId, moi))
 			.orderBy(desc(notification.id))
 			.limit(FIL_MAX),
-		nonLuesDe(base, moi, aValiderPar(moi, aujourdhui, maintenant)),
+		nonLuesDe(base, moi, aValiderPar(moi, aujourdhui, maintenant), nouveautesSuiviSql(aujourdhui)),
 		...nomsDesMurs(base),
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
@@ -332,6 +334,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	return {
 		nonLues: compte?.n ?? 0,
 		remplacementsAValider: compte?.aValider ?? 0,
+		suivi: compte?.suivi ?? 0,
 		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies, ...dHabillement, ...dAnniversaire].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
 	};
 }
@@ -358,6 +361,7 @@ function deMurs(
 		});
 }
 
+// `suivi` : les nouveautés du suivi du centre (nul pour qui n'y a pas accès ; 0 pour le super administrateur, sans compteur).
 // L'en-tête de chaque page : de quoi composer la cloche (non-lues, remplacements à valider, messages signalés pour qui modère,
 // réservations à trancher), les messages non lus (la pastille d'Échanges), le visage de la personne et la version de l'écusson
 // du centre (null sans écusson). Une requête légère, les mêmes comptes en SQL que la pastille d'un envoi (prendreEnvois).
@@ -367,11 +371,11 @@ export async function enTeteDe(
 	acteur: Acteur,
 	aujourdhui: string,
 	maintenant = `${aujourdhui}T00:00`
-): Promise<{ nonLues: number; remplacementsAValider: number; signalements: number; aTrancher: number; nonLus: number; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
+): Promise<{ nonLues: number; remplacementsAValider: number; signalements: number; aTrancher: number; nonLus: number; suivi: number | null; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
 	exigerDate(aujourdhui);
 	if (acteur.type !== 'personne') {
 		const [signalements, aTrancher, ecusson] = await Promise.all([nombreSignalements(base, acteur, aujourdhui), nombreAValider(base, acteur, aujourdhui), ecussonDuCentre(base)]);
-		return { nonLues: 0, remplacementsAValider: 0, signalements, aTrancher, nonLus: 0, visage: null, ecusson };
+		return { nonLues: 0, remplacementsAValider: 0, signalements, aTrancher, nonLus: 0, suivi: 0, visage: null, ecusson };
 	}
 	const qui = sql`"personne"."id"`;
 	const [l] = await base
@@ -386,12 +390,14 @@ export async function enTeteDe(
 			signalements: sql<number>`${signalementsPour(qui, aujourdhui)}`,
 			aTrancher: sql<number>`${aTrancherPar(qui, aujourdhui)}`,
 			nonLus: sql<number>`${nonLusPour(qui, aujourdhui)}`,
+			// Les nouveautés du suivi du centre (chef, adjoint) : une ligne de la cloche, sans envoi au téléphone.
+			suivi: sql<number | null>`${nouveautesSuiviSql(aujourdhui)}`,
 			ecusson: sql<number | null>`(select ${ecusson.photoId} from ${ecusson})`
 		})
 		.from(personne)
 		.where(eq(personne.id, acteur.id));
-	if (!l) return { nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: await ecussonDuCentre(base) };
-	return { nonLues: l.nonLues, remplacementsAValider: l.aValider, signalements: l.signalements, aTrancher: l.aTrancher, nonLus: l.nonLus, visage: { prenom: l.prenom, nom: l.nom, couleur: l.couleur }, ecusson: l.ecusson };
+	if (!l) return { nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: null, ecusson: await ecussonDuCentre(base) };
+	return { nonLues: l.nonLues, remplacementsAValider: l.aValider, signalements: l.signalements, aTrancher: l.aTrancher, nonLus: l.nonLus, suivi: l.suivi, visage: { prenom: l.prenom, nom: l.nom, couleur: l.couleur }, ecusson: l.ecusson };
 }
 
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {

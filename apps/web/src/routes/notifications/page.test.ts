@@ -51,6 +51,15 @@ describe('page des notifications', () => {
 		expect(page).not.toContain('class="visage');
 	});
 
+	it('le suivi du centre : une seule ligne, vers /suivi, avec le nombre de nouveautés ; rien sans nouveauté', () => {
+		const page = html({ suivi: 12 });
+		expect(page).toMatch(/<a[^>]*href="\/suivi"[^>]*>[\s\S]*?Suivi du centre : 12 nouveautés depuis votre dernière visite/);
+		expect(page.match(/href="\/suivi"/g)).toHaveLength(1);
+		expect(page).not.toContain('Rien de nouveau pour vous.');
+		expect(html({ suivi: 1 })).toContain('Suivi du centre : 1 nouveauté depuis votre dernière visite');
+		expect(html({ suivi: 0 })).not.toContain('href="/suivi"');
+	});
+
 	it('non lue : le point, « Non lu, » écrit pour les lecteurs d’écran et le titre en gras ; pas de bande à gauche', () => {
 		expect(html({ nonLues: 1, lignes: [ligne({})] })).toMatch(/class="ligne[^"]*non-lue[\s\S]*?Non lu, [\s\S]*?<span class="point[^"]*" aria-hidden="true">/);
 		expect(source).toMatch(/\.non-lue \.quoi \{\s*font-weight: 700;/);

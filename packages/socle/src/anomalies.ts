@@ -8,6 +8,7 @@ import { exigerDateHeure } from './dates.ts';
 import { aLeDroit, droitsDe, occupe, type Acteur } from './droits.ts';
 import { voitLesEngins } from './engins.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
+import { ligneJournal, ligneJournalSi } from './journal.ts';
 import { ETAPES_ANOMALIE, GENRES_ECART, MOTIFS_ATTENTE, type EtapeAnomalie, type EtatEngin, type GenreEcart, type MotifAttente, type SituationEngin, type SuiviAnomalie } from './listes.ts';
 import type { Reglage } from './planning/calendrier.ts';
 import { equipeAstreinte } from './prises.ts';
@@ -155,6 +156,8 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 	};
 	const prevenus = [...new Set([a.signaleePar, geste.quoi === 'prendre' ? null : a.priseEnChargePar].filter((x): x is number => x !== null && x !== moi))];
 
+	// Au journal (suivi du centre) : l'engin rendu indisponible ou remis en service, l'anomalie close.
+	const action = geste.quoi === 'indisponible' ? 'rendre_indisponible' : geste.quoi === 'remettre' ? 'remettre_en_service' : changement && 'closeLe' in changement ? 'clore_anomalie' : null;
 	// Rendre indisponible, remettre en service : l'engin change ; la remise en service lève toutes ses anomalies bloquantes.
 	const etatEngin = geste.quoi === 'indisponible' ? 'indisponible' : geste.quoi === 'remettre' ? 'disponible' : null;
 	const resultats = await base.batch([
@@ -168,6 +171,7 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 			.set({ etat: etatEngin ?? lu.etatEngin })
 			.where(and(eq(engin.id, a.enginId), etatEngin ? fait : sql`0`)),
 		...avisAnomalies(base, prevenus, { titre, texte: textes[geste.quoi], url: lien }, maintenant, fait),
+		...(action ? [ligneJournalSi(base, { acteur: `personne:${moi}`, action, cibleType: 'anomalie', cibleId: id }, maintenant, fait)] : []),
 		base.select({ ok: sql<number>`${fait}` }).from(anomalie).where(eq(anomalie.id, id))
 	]);
 	const [verif] = resultats.at(-1) as { ok: number }[];
@@ -198,10 +202,13 @@ export async function signalerAnomalie(base: Base, basePhotos: BasePhotos, acteu
 	if (e.situation === 'parti') throw new DonneeInvalide('Engin parti');
 	const prevenus = (await quiTraite(base, aujourdhui, await equipeAstreinte(base, maintenant, reglage))).filter((id) => id !== moi);
 	return avecPhotos(basePhotos, photos, maintenant, async ([photo]) => {
-		const [cree] = await base
-			.insert(anomalie)
-			.values({ enginId: s.enginId, ref: null, zone: '', libelle, genre: s.genre, manque: null, note: note || null, photoId: photo ?? null, priseId: null, signaleePar: moi, signaleeLe: maintenant })
-			.returning({ id: anomalie.id });
+		const [[cree]] = await base.batch([
+			base
+				.insert(anomalie)
+				.values({ enginId: s.enginId, ref: null, zone: '', libelle, genre: s.genre, manque: null, note: note || null, photoId: photo ?? null, priseId: null, signaleePar: moi, signaleeLe: maintenant })
+				.returning({ id: anomalie.id }),
+			ligneJournal(base, { acteur: `personne:${moi}`, action: 'signaler_anomalie', cibleType: 'anomalie', cibleId: sql`last_insert_rowid()` }, maintenant)
+		]);
 		const avis = avisAnomalies(base, prevenus, { titre: `Anomalie signalée · ${e.nom}`, texte: `${libelle}, ${GENRES[s.genre]} (${nomDe(auteur)})`, url: `/engins/anomalies/${cree!.id}` }, maintenant);
 		// La cloche après coup : un échec n'annule pas le signalement.
 		if (avis.length) await base.batch([avis[0]!, avis[1]!]).catch(() => {});

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import centre from '$centre';
-import { affectationEquipe, engin, typeEngin, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { journal, affectationEquipe, engin, typeEngin, ajouterRessource, pourDemander, attribution, chargerJeuDeDepart, semaineChangee, comite, periodeParDefaut, plageEte, reglerEte, enregistrerManoeuvre, equipe, preparerAnnee, publierAnnee, reglerRoulement, reserver, ressource, commentaire, creerGroupe, envoyer, message, personne, prendreConnaissance, profil, publication, publier, responsabilite, signaler } from '@gyro-caserne/socle';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { aujourdhuiParis, maintenantParis, septJoursPlusTard } from '#lib/aujourdhui.ts';
 import { jpeg, requeteFormulaire } from './echanges/de-test.ts';
@@ -66,6 +66,7 @@ import { actions as actionsAnomalie, load as pageAnomalie } from './engins/anoma
 import { actions as actionsHabillement, load as pageHabillement } from './habillement/+page.server';
 import { actions as actionsDemande, load as pageDemande } from './habillement/[id]/+page.server';
 import { load as toutesDemandes } from './habillement/toutes/+page.server';
+import { load as pageSuivi } from './suivi/+page.server';
 
 const datesSondage = (m: string) => ({ ouverture: m.slice(0, 16), cloture: septJoursPlusTard(m) });
 
@@ -793,5 +794,16 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			await (demandeRemplacementPage as any)({ locals: deLAgent, params: { id }, url: new URL(`http://localhost/remplacements/${id}?envoyee`) });
 		});
 		expect(detail, 'détail').toBeLessThanOrEqual(BUDGET);
+	});
+});
+
+describe('le suivi du centre', () => {
+	it('une page du journal à la fois, en une requête, même avec un long journal ; la cloche du chef reste dans la requête de l’en-tête', async () => {
+		const { base, locals, agent, compter } = await centreDe150();
+		const enTete = await compter(() => (racine as any)({ depends: () => {}, locals }));
+		const lignes = Array.from({ length: 2000 }, (_, i) => ({ quand: `2026-11-18T10:${String(i % 60).padStart(2, '0')}`, acteur: `personne:${agent.id}`, action: i % 3 ? 'changer_statut' : 'creer_conversation', cibleType: 'personne', cibleId: agent.id }));
+		for (let i = 0; i < lignes.length; i += 50) await base.insert(journal).values(lignes.slice(i, i + 50));
+		expect(await compter(async () => { expect((await (racine as any)({ depends: () => {}, locals })).cloche).toBe(1); })).toBe(enTete);
+		expect(await compter(async () => { expect((await (pageSuivi as any)({ locals, url: new URL('http://x/suivi') })).lignes).toHaveLength(25); })).toBe(1);
 	});
 });

@@ -75,7 +75,9 @@ export const personne = sqliteTable(
 		// Date du dernier départ (statut « parti ») ; vide au retour. Ses données sont effacées 12 mois après (partis.ts).
 		partiLe: text('parti_le'),
 		// Date d'effacement de ses données : la fiche ne dit plus que « Ancien agent ».
-		effaceLe: text('efface_le')
+		effaceLe: text('efface_le'),
+		// Suivi du centre (chef, adjoint) : la dernière ligne du journal vue ; les plus récentes sont ses nouveautés.
+		suiviVu: integer('suivi_vu')
 	},
 	(t) => [
 		check('personne_email_normalise', sql`${sql.identifier('email')} = lower(trim(${sql.identifier('email')}))`),

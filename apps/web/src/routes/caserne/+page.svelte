@@ -13,6 +13,8 @@
 		...(data.peutNominations
 			? [{ href: '/nominations', titre: 'Nominations', texte: 'Qui tient quel rôle', valeur: data.aPourvoir ? `${data.aPourvoir} à pourvoir` : undefined }]
 			: []),
+		// Le suivi du centre : pour le chef, l'adjoint et le super administrateur (lu avec la cloche, sans requête de plus).
+		...(data.suivi === null || data.suivi === undefined ? [] : [{ href: '/suivi', titre: 'Suivi du centre', texte: 'Ce que les autres ont fait au centre', valeur: data.suivi ? pluriel(data.suivi, 'nouveauté') : undefined }]),
 		...(data.peutReglages ? [{ href: '/reglages', titre: 'Réglages', texte: 'Créer les comités et les rôles, régler leurs droits' }] : [])
 	]);
 	const materiel: Lien[] = $derived([

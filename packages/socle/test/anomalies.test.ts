@@ -8,7 +8,7 @@ import { lireFiche } from '../src/fiches.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { commencerPrise, gestePrise, prisesDeLaReleve, validerPrise } from '../src/prises.ts';
-import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, responsabilite } from '../src/schema.ts';
+import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, journal, responsabilite } from '../src/schema.ts';
 import { jeuEngins } from './de-test-engins.ts';
 
 const reglage = centreExemple.astreinte;
@@ -158,6 +158,29 @@ describe('le suivi', () => {
 		const vue = await lireAnomalie(j.base, j.referent, id, PLUS_TARD, REGLAGE_ANOMALIES);
 		expect(vue.bloquante).toBe(false);
 		expect(vue.historique.map((h) => h.quoi)).toEqual(['signalee', 'indisponible', 'reparee', 'remise_en_service']);
+	});
+
+	it('au journal (suivi du centre) : signalée, indisponible, remise en service, close ; pas la prise en charge ni un geste refusé', async () => {
+		const j = await jeu();
+		await j.base.delete(journal);
+		const id = await j.signaler();
+		await gesteAnomalie(j.base, j.alice, id, { quoi: 'prendre' }, QUAND, REGLAGE_ANOMALIES);
+		await gesteAnomalie(j.base, j.referent, id, { quoi: 'indisponible' }, QUAND, REGLAGE_ANOMALIES);
+		await expect(gesteAnomalie(j.base, j.referent, id, { quoi: 'indisponible' }, QUAND, REGLAGE_ANOMALIES)).rejects.toThrow();
+		await gesteAnomalie(j.base, j.alice, id, { quoi: 'reparee', texte: '' }, QUAND, REGLAGE_ANOMALIES);
+		await gesteAnomalie(j.base, j.chefDeGarde, id, { quoi: 'remettre' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		const autre = await j.signaler(j.alice, 'Rétroviseur');
+		await gesteAnomalie(j.base, j.referent, autre, { quoi: 'clore', texte: 'Doublon' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		const lignes = await j.base.select().from(journal).orderBy(journal.id);
+		expect(lignes.map((l) => [l.acteur, l.action, l.cibleId])).toEqual([
+			[`personne:${idDe(j.alice)}`, 'signaler_anomalie', id],
+			[`personne:${idDe(j.referent)}`, 'rendre_indisponible', id],
+			[`personne:${idDe(j.alice)}`, 'clore_anomalie', id],
+			[`personne:${idDe(j.chefDeGarde)}`, 'remettre_en_service', id],
+			[`personne:${idDe(j.alice)}`, 'signaler_anomalie', autre],
+			[`personne:${idDe(j.referent)}`, 'clore_anomalie', autre]
+		]);
+		expect(lignes.every((l) => l.cibleType === 'anomalie')).toBe(true);
 	});
 
 	it('deux gestes croisés : le second est refusé, rien n’est écrit deux fois', async () => {

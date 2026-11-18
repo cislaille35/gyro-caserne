@@ -252,13 +252,13 @@ describe('le fil et la cloche', () => {
 		const { base, e2, chef, bruno } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const avant = base.requetes;
-		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
 		expect(base.requetes - avant).toBe(1);
-		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
 		await base.insert(signalementMessage).values({ par: bruno, le: maintenant, auteur: chef, envoyeLe: maintenant, texteCopie: 'x' });
-		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, suivi: 0, visage: null, ecusson: null });
 		// Une fiche introuvable : rien à compter, ni visage.
-		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: null, ecusson: null });
 	});
 
 	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {

@@ -105,4 +105,9 @@ describe('/caserne', () => {
 		expect(html({ engins: 3, anomalies: 0 })).toMatch(lien('/engins/anomalies', 'Aucune ouverte'));
 		expect(html({ engins: null, anomalies: null })).not.toContain('href="/engins/anomalies"');
 	});
+	it('« Suivi du centre » pour le chef, l’adjoint et le super administrateur (donné par l’en-tête), avec ses nouveautés ; pas pour un agent', () => {
+		expect(html({ agents: 3, suivi: 4 })).toMatch(/<a[^>]*href="\/suivi"[^>]*>[\s\S]*?Suivi du centre[\s\S]*?4 nouveautés/);
+		expect(html({ agents: 3, suivi: 0 })).toMatch(lien('/suivi', 'Suivi du centre'));
+		expect(html({ agents: 3, suivi: null })).not.toContain('href="/suivi"');
+	});
 });

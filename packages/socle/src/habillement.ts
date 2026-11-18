@@ -5,6 +5,7 @@ import { enCours, exigerDate, exigerDateHeure } from './dates.ts';
 import { aLeDroit, type Acteur } from './droits.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
 import { STATUTS_AVEC_ACCES, type EtapeHabillement, type FilHabillement, type IssueHabillement } from './listes.ts';
+import { ligneJournalSi } from './journal.ts';
 import { mettreEnFile } from './notifications.ts';
 import { attribution, avisHabillement, demandeHabillement, filHabillement, personne, profil, responsabilite, responsabiliteDroit } from './schema.ts';
 
@@ -197,6 +198,8 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 		livraison: { titre: 'Tenue livrée', texte: `${texte} : ${ex}` },
 		annulation: { titre: 'Demande annulée', texte: `${nom} : ${ex}` }
 	};
+	// Les décisions de qui gère vont au journal, donc au suivi du centre.
+	const JOURNAL: Partial<Record<FilHabillement, string>> = { prise: 'prendre_habillement', stock: 'traiter_habillement', commande: 'traiter_habillement', refus: 'refuser_habillement', livraison: 'livrer_habillement' };
 	// L'agent apprend chaque étape et chaque question ; l'ancien suiveur, la reprise. Les réponses, précisions et annulations de l'agent
 	// vont à qui s'en occupe ; tant que personne ne la suit, ses précisions vont aux référents (jamais au chef : il ne reçoit que les
 	// réponses sur les demandes qu'il suit lui-même).
@@ -217,6 +220,7 @@ export async function gesteHabillement(base: Base, acteur: Acteur, id: number, g
 			.set({ ...changement, majLe: maintenant })
 			.where(and(eq(demandeHabillement.id, id), fait)),
 		...(AVIS[quoi] ? avis(base, prevenus, { ...AVIS[quoi]!, url: lien(id) }, maintenant, fait) : []),
+		...(JOURNAL[quoi] ? [ligneJournalSi(base, { acteur: `personne:${moi}`, action: JOURNAL[quoi]!, cibleType: 'demande_habillement', cibleId: id }, maintenant, fait)] : []),
 		base.select({ ok: sql<number>`${fait}` }).from(demandeHabillement).where(eq(demandeHabillement.id, id))
 	]);
 	const [verif] = resultats.at(-1) as { ok: number }[];

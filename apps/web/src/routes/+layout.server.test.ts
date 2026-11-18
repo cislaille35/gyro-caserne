@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { ajouterRessource, attribuer, deposerEcusson, chargerJeuDeDepart, reserver, comite, envoyer, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler } from '@gyro-caserne/socle';
+import { ajouterRessource, attribuer, deposerEcusson, chargerJeuDeDepart, reserver, comite, envoyer, journal, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler, suiviDuCentre } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -94,6 +94,17 @@ describe('load du layout', () => {
 		expect(await appeler(null, base)).toMatchObject({ cloche: 0, visage: null });
 	});
 
+	it('la cloche du chef : une seule de plus pour les nouveautés du suivi du centre, quel que soit leur nombre ; remise à zéro par la visite', async () => {
+		const { base, chef, alice } = await preparer();
+		const avant = (await appeler(chef, base)).cloche;
+		const ligne = { quand: maintenantParis(), acteur: `personne:${alice.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id };
+		await base.insert(journal).values([ligne, ligne, ligne]);
+		expect((await appeler(chef, base)).cloche).toBe(avant + 1);
+		expect((await appeler(alice, base)).cloche).toBe(0);
+		await suiviDuCentre(base, chef, aujourdhuiParis());
+		expect((await appeler(chef, base)).cloche).toBe(avant);
+	});
+
 	it('l’écusson du centre : sa version, lue avec la cloche ; aucun pour le visiteur ou sans écusson', async () => {
 		const { base, alice } = await preparer();
 		expect((await appeler(alice, base)).ecusson).toBeNull();
@@ -131,6 +142,8 @@ describe('load du layout', () => {
 		const bancs = await ajouterRessource(base, chef, { nom: 'Bancs', stock: 12, icone: 'groupe', comiteId: amicale!.id }, maintenantParis());
 		const demain = new Date(Date.parse(`${aujourdhuiParis()}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 		await reserver(base, alice, bancs, { debut: demain, fin: demain, quantite: 2 }, maintenantParis());
+		// Sa nomination par le super administrateur n'est pas ce qu'on compte ici (suivi du centre).
+		await base.delete(journal);
 		expect((await appeler(chef, base)).cloche).toBe(1);
 		expect((await appeler(alice, base)).cloche).toBe(0);
 	});

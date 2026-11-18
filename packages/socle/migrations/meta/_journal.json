@@ -204,6 +204,13 @@
       "when": 1794923486705,
       "tag": "0028_habillement_natif",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1795043708561,
+      "tag": "0029_suivi_du_centre",
+      "breakpoints": true
     }
   ]
 }

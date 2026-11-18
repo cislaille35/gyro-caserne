@@ -12,7 +12,7 @@
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
-	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; remplacementsAValider?: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; remplacementsAValider?: number; suivi?: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// Le fil, du plus récent au plus ancien : « Aujourd'hui », puis « Plus tôt ».
 	const groupes = $derived(
@@ -81,6 +81,13 @@
 </EnTetePage>
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
+
+{#if data.suivi}
+	<!-- Le suivi du centre (chef, adjoint) : une seule ligne, quel que soit le nombre de nouveautés. -->
+	<ListeRangees>
+		<li><Rangee href="/suivi" titre="Suivi du centre : {pluriel(data.suivi, 'nouveauté')} depuis votre dernière visite" /></li>
+	</ListeRangees>
+{/if}
 
 {#if data.aValider > 0 || (data.remplacementsAValider ?? 0) > 0}
 	<ListeRangees titre="À trancher">
@@ -214,7 +221,7 @@
 		</ul>
 	</section>
 {:else}
-	{#if data.signalements.length === 0 && data.aValider === 0 && !data.remplacementsAValider}
+	{#if data.signalements.length === 0 && data.aValider === 0 && !data.remplacementsAValider && !data.suivi}
 		<Vide titre="Rien de nouveau pour vous." texte="Les publications de vos murs et les commentaires sous les vôtres arriveront ici." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
 	{/if}
 {/each}
