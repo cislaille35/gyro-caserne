@@ -8,7 +8,7 @@ import { lireFiche } from '../src/fiches.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { commencerPrise, gestePrise, prisesDeLaReleve, validerPrise } from '../src/prises.ts';
-import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, journal, responsabilite } from '../src/schema.ts';
+import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { jeuEngins } from './de-test-engins.ts';
 
 const reglage = centreExemple.astreinte;
@@ -47,6 +47,27 @@ describe('signalement direct', () => {
 		expect(await j.avis(j.alice)).toEqual([]);
 		// Sans planning publié, l'équipe d'astreinte n'est pas connue : son chef de garde n'est pas prévenu.
 		expect(await j.avis(j.chefDeGarde)).toEqual([]);
+	});
+
+	it('le chef de centre et l’adjoint ne sont prévenus que sans référent engins nommé ; le chef de garde, toujours', async () => {
+		const j = await jeu();
+		const nommer = async (prenom: string, systeme: string) => {
+			const [p] = await j.base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Fictif', profilId: (await j.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+			const [r] = await j.base.select().from(responsabilite).where(eq(responsabilite.systeme, systeme as 'chef_centre'));
+			await j.base.insert(attribution).values({ personneId: p!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+			return { type: 'personne' as const, id: p!.id };
+		};
+		const claire = await nommer('Claire', 'chef_centre');
+		const paul = await nommer('Paul', 'chef_centre_adjoint');
+		await j.signaler();
+		expect(await j.avis(j.referent)).toHaveLength(1);
+		expect(await j.avis(claire)).toEqual([]);
+		expect(await j.avis(paul)).toEqual([]);
+		// Le référent n'est plus en fonction : le chef et l'adjoint reprennent.
+		await j.base.update(attribution).set({ fin: '2026-10-01' }).where(eq(attribution.personneId, idDe(j.referent)));
+		await j.signaler(j.alice, 'Rétroviseur');
+		expect(await j.avis(claire)).toHaveLength(1);
+		expect(await j.avis(paul)).toHaveLength(1);
 	});
 
 	it('le chef de garde de l’équipe d’astreinte est prévenu', async () => {

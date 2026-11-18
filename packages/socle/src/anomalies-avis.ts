@@ -7,7 +7,7 @@ import { attribution, avisAnomalie, personne, profilDroit, responsabilite, respo
 
 // Qui est prévenu d'une anomalie, et la ligne de la cloche. Partagé par la prise de garde et le suivi des anomalies.
 
-// Ceux qui traitent les anomalies au centre (TRAITER_ANOMALIE sur le centre : chef de centre, adjoint, référent engins…)
+// Ceux qui traitent les anomalies au centre (TRAITER_ANOMALIE sur le centre : référent engins…, ou à défaut chef de centre et adjoint)
 // et le chef de garde de l'équipe d'astreinte. Une requête.
 export async function quiTraite(base: Base, aujourdhui: string, equipeAstreinte: number | null): Promise<number[]> {
 	const avecAcces = inArray(personne.statut, [...STATUTS_AVEC_ACCES]);
@@ -26,11 +26,14 @@ export async function quiTraite(base: Base, aujourdhui: string, equipeAstreinte:
 			.where(and(avecAcces, isNull(responsabilite.archiveeLe)))
 	]);
 	const valides = tenues.filter((t) => t.type === t.portee && enCours(t.debut, t.fin, aujourdhui));
-	const ids = [
-		...duProfil.map((p) => p.id),
-		...valides.filter((t) => t.type === 'centre' || (t.systeme === 'chef_equipe' && equipeAstreinte !== null && t.perimetreId === equipeAstreinte)).map((t) => t.id)
-	];
-	return [...new Set(ids)];
+	const chefDeGarde = valides.filter((t) => t.systeme === 'chef_equipe' && equipeAstreinte !== null && t.perimetreId === equipeAstreinte).map((t) => t.id);
+	const ids = [...duProfil.map((p) => p.id), ...valides.filter((t) => t.type === 'centre').map((t) => t.id), ...chefDeGarde];
+	// Un référent nommé (un rôle du centre hors système) : le chef de centre et l'adjoint ne sont plus prévenus, sauf de garde.
+	// La demande passe dans leur suivi du centre ; sans référent, ce sont eux qui traitent.
+	const centre = valides.filter((t) => t.type === 'centre');
+	const chefs = centre.filter((t) => t.systeme === 'chef_centre' || t.systeme === 'chef_centre_adjoint').map((t) => t.id);
+	const avecReferent = centre.some((t) => t.systeme === null && !chefs.includes(t.id));
+	return [...new Set(ids)].filter((id) => !avecReferent || !chefs.includes(id) || chefDeGarde.includes(id));
 }
 
 const parmi = (ids: number[]) => sql`(select value from json_each(${JSON.stringify(ids)}))`;
