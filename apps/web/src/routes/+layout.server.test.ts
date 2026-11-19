@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import centre from '$centre';
-import { ajouterRessource, attribuer, deposerEcusson, chargerJeuDeDepart, reserver, comite, envoyer, journal, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler, suiviDuCentre } from '@gyro-caserne/socle';
+import { ajouterRessource, attribuer, deposerEcusson, chargerJeuDeDepart, reserver, comite, envoyer, avisNomination, journal, lirePublication, notifierPublication, personne, profil, publier, responsabilite, signaler, suiviDuCentre } from '@gyro-caserne/socle';
 import { preparer } from './echanges/de-test.ts';
 import { baseDeTest } from '@gyro-caserne/socle/base-de-test';
 import { eq } from 'drizzle-orm';
@@ -142,8 +142,8 @@ describe('load du layout', () => {
 		const bancs = await ajouterRessource(base, chef, { nom: 'Bancs', stock: 12, icone: 'groupe', comiteId: amicale!.id }, maintenantParis());
 		const demain = new Date(Date.parse(`${aujourdhuiParis()}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 		await reserver(base, alice, bancs, { debut: demain, fin: demain, quantite: 2 }, maintenantParis());
-		// Sa nomination par le super administrateur n'est pas ce qu'on compte ici (suivi du centre).
-		await base.delete(journal);
+		// Sa nomination par le super administrateur n'est pas ce qu'on compte ici (suivi du centre, avis de nomination).
+		await base.batch([base.delete(journal), base.delete(avisNomination)]);
 		expect((await appeler(chef, base)).cloche).toBe(1);
 		expect((await appeler(alice, base)).cloche).toBe(0);
 	});
