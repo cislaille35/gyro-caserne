@@ -122,7 +122,7 @@ describe('le suivi : sujet, dernière visite, trois mois', () => {
 		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'planning' })).lignes).toEqual([]);
 	});
 
-	it('la dernière visite est lue avant d’être marquée, sur la première page sans filtre seulement', async () => {
+	it('la dernière visite est lue avant d’être marquée, à l’arrivée seulement ; ensuite, la marque voyage par l’adresse', async () => {
 		const { base, claire, remi, alice } = await jeu();
 		const ligne = { quand: '2026-11-18T10:00', acteur: `personne:${remi.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id };
 		expect((await suiviDuCentre(base, claire, aujourdhui)).vu).toBeNull();
@@ -134,13 +134,17 @@ describe('le suivi : sujet, dernière visite, trois mois', () => {
 		expect(seconde.vu).toBe(premiere.lignes[0]!.id);
 		expect(seconde.lignes.filter((l) => l.id > seconde.vu!)).toHaveLength(1);
 		expect((await suiviDuCentre(base, claire, aujourdhui, { avant: 999 })).vu).toBeNull();
-		// Un filtre lit la dernière visite sans la marquer : les nouveautés des autres sujets restent.
+		// La marque de l'arrivée, donnée par l'adresse (filtre, suite) : elle place le repère et rien n'est marqué.
 		await base.insert(journal).values([ligne]);
-		const vuAvant = (await base.select({ vu: personne.suiviVu }).from(personne).where(eq(personne.id, claire.id)))[0]!.vu;
-		const filtree = await suiviDuCentre(base, claire, aujourdhui, { sujet: 'reglages' });
-		expect(filtree.vu).toBe(vuAvant);
+		const vuAvant = (await base.select({ vu: personne.suiviVu }).from(personne).where(eq(personne.id, claire.id)))[0]!.vu!;
+		const arrivee = await suiviDuCentre(base, claire, aujourdhui, { vu: vuAvant - 1 });
+		expect(arrivee.vu).toBe(vuAvant - 1);
 		expect((await base.select({ vu: personne.suiviVu }).from(personne).where(eq(personne.id, claire.id)))[0]!.vu).toBe(vuAvant);
 		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(1);
+		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'agents', vu: 0, avant: 999 })).vu).toBe(0);
+		// Sans marque, c'est une arrivée, même filtrée : lue, puis marquée.
+		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'reglages' })).vu).toBe(vuAvant);
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(0);
 		expect((await suiviDuCentre(base, superAdmin, aujourdhui)).vu).toBeNull();
 	});
 

@@ -46,7 +46,9 @@
 			return groupes;
 		}, [])
 	);
-	const lienSuite = $derived(`?${data.sujet ? `sujet=${data.sujet}&` : ''}avant=${suite}`);
+	// La marque de l'arrivée voyage dans les liens (0 : jamais venu, tout est nouveau) : un filtre ou la suite ne comptent pas pour une visite.
+	const marque = $derived(data.vu ?? 0);
+	const lienSuite = $derived(`?${data.sujet ? `sujet=${data.sujet}&` : ''}vu=${marque}&avant=${suite}`);
 
 	// Avec JavaScript, la suite s'ajoute sous la liste ; le focus va à sa première ligne. Sans, le lien ouvre la page suivante.
 	async function voirPlus(e: MouseEvent & { currentTarget: HTMLAnchorElement }) {
@@ -86,7 +88,7 @@
 	<EnTetePage titre="Suivi du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} />
 	<nav class="filtres-defilants" aria-label="Filtrer le suivi" bind:this={filtres}>
 		{#each SUJETS as s (s.libelle)}
-			<a class="filtre" href={s.id ? `?sujet=${s.id}` : '/suivi'} aria-current={data.sujet === s.id ? 'page' : undefined}>{s.libelle}</a>
+			<a class="filtre" href={s.id ? `?sujet=${s.id}&vu=${marque}` : `/suivi?vu=${marque}`} aria-current={data.sujet === s.id ? 'page' : undefined}>{s.libelle}</a>
 		{/each}
 	</nav>
 	{#if lignes.length === 0 && data.sujet}

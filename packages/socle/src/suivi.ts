@@ -200,19 +200,19 @@ function lienDe(l: { action: string; cibleType: string; cibleId: number | null; 
 const quiDe = (acteur: string, nom: string | null) => (acteur.startsWith('super:') ? 'Super administrateur' : acteur === 'planning' ? 'Planning' : acteur === 'nuit' ? 'Ménage de nuit' : (nom ?? 'Ancien agent'));
 
 // Une page du suivi, du plus récent au plus ancien, sur trois mois (`avant` : la suite, sous cet identifiant ; `sujet` : un filtre).
-// Une requête. La première page lit la dernière visite (`vu` : la dernière ligne vue, nulle sans visite) ; sans filtre, elle la
-// marque ensuite : les nouveautés de l'en-tête repartent de zéro.
+// Une requête. L'arrivée (sans `vu` ni `avant`) lit la dernière visite (`vu` : la dernière ligne vue, nulle sans visite) puis la
+// marque : les nouveautés de l'en-tête repartent de zéro. Ensuite, filtres et suite redonnent cette marque (`vu`) : elle place le
+// repère, et rien n'est marqué.
 export async function suiviDuCentre(
 	base: Base,
 	acteur: Acteur,
 	aujourdhui: string,
-	{ avant, sujet }: { avant?: number; sujet?: SujetSuivi } = {}
+	{ avant, sujet, vu }: { avant?: number; sujet?: SujetSuivi; vu?: number } = {}
 ): Promise<{ lignes: LigneSuivi[]; suite: number | null; vu: number | null }> {
 	exigerDate(aujourdhui);
 	const moi = acteur.type === 'personne' ? acteur.id : 0;
-	// Seule l'ouverture du suivi, sans filtre ni suite, compte pour une visite : filtrer ne vide pas les nouveautés des autres sujets.
-	const premiere = acteur.type === 'personne' && avant === undefined;
-	const visite = premiere && sujet === undefined ? [base.update(personne).set({ suiviVu: sql`(select max(${journal.id}) from ${journal})` }).where(and(eq(personne.id, moi), estChefOuAdjointSql(moi, aujourdhui)))] : [];
+	const arrivee = acteur.type === 'personne' && avant === undefined && vu === undefined;
+	const visite = arrivee ? [base.update(personne).set({ suiviVu: sql`(select max(${journal.id}) from ${journal})` }).where(and(eq(personne.id, moi), estChefOuAdjointSql(moi, aujourdhui)))] : [];
 	const [roles, lignes] = await base.batch([
 		base
 			// Lue avant d'être marquée : le lot s'exécute dans l'ordre.
@@ -253,6 +253,6 @@ export async function suiviDuCentre(
 			lien: lienDe(l)
 		})),
 		suite: lignes.length > PAGE ? page.at(-1)!.id : null,
-		vu: premiere ? (roles[0]?.vu ?? null) : null
+		vu: vu ?? (arrivee ? (roles[0]?.vu ?? null) : null)
 	};
 }

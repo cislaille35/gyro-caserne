@@ -36,6 +36,9 @@ test.describe('suivi du centre', () => {
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByRole('navigation', { name: 'Filtrer le suivi' }).getByRole('link', { name: 'Agents' })).toHaveAttribute('aria-current', 'page');
 		await sansViolation(page);
+		// La marque de l'arrivée voyage dans les filtres et la suite : ils ne comptent pas pour une visite.
+		await expect(page.getByRole('navigation', { name: 'Filtrer le suivi' }).getByRole('link', { name: 'Planning' })).toHaveAttribute('href', /^\?sujet=planning&vu=\d+$/);
+		await expect(page.getByRole('link', { name: 'Voir les plus anciennes' })).toHaveAttribute('href', /^\?sujet=agents&vu=\d+&avant=\d+$/);
 
 		// Une marque posée sur la page : un rechargement l'effacerait.
 		await page.evaluate(() => ((window as unknown as { marque: boolean }).marque = true));

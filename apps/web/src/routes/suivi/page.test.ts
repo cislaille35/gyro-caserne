@@ -27,25 +27,28 @@ describe('/suivi', () => {
 	});
 
 	it('la suite : un lien qui marche sans JavaScript, dans le sujet choisi ; l’ajout est annoncé', () => {
-		expect(html({ lignes: [ligne()], suite: 9 })).toMatch(/<a[^>]*href="\?avant=9"[^>]*>Voir les plus anciennes<\/a>/);
-		expect(html({ lignes: [ligne()], suite: 9, sujet: 'planning' })).toMatch(/<a[^>]*href="\?sujet=planning&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+		expect(html({ lignes: [ligne()], suite: 9 })).toMatch(/<a[^>]*href="\?vu=0&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+		expect(html({ lignes: [ligne()], suite: 9, sujet: 'planning' })).toMatch(/<a[^>]*href="\?sujet=planning&amp;vu=0&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+		// La marque de l'arrivée voyage avec la suite (avec JavaScript, la même adresse est lue).
+		expect(html({ lignes: [ligne()], suite: 9, vu: 7 })).toMatch(/<a[^>]*href="\?vu=7&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
 		expect(html({ lignes: [ligne()] })).not.toContain('Voir les plus anciennes');
 		expect(html({ lignes: [ligne()] })).toMatch(/<p class="masque" role="status" aria-live="polite"><\/p>/);
 	});
 
 	it('les filtres en haut, en ligne qui défile comme ceux des agents, par l’adresse ; le choisi est marqué', () => {
-		const page = html({ sujet: 'demandes' });
+		const page = html({ sujet: 'demandes', vu: 41 });
 		expect(page).toMatch(/<nav class="filtres-defilants" aria-label="Filtrer le suivi">/);
 		const liens = [...page.matchAll(/<a class="filtre" href="([^"]*)"( aria-current="page")?>([^<]+)<\/a>/g)].map((m) => [m[3], m[1], !!m[2]]);
 		expect(liens.slice(0, 6)).toEqual([
-			['Tout', '/suivi', false],
-			['Planning', '?sujet=planning', false],
-			['Nominations', '?sujet=nominations', false],
-			['Demandes', '?sujet=demandes', true],
-			['Agents', '?sujet=agents', false],
-			['Réglages', '?sujet=reglages', false]
+			['Tout', '/suivi?vu=41', false],
+			['Planning', '?sujet=planning&amp;vu=41', false],
+			['Nominations', '?sujet=nominations&amp;vu=41', false],
+			['Demandes', '?sujet=demandes&amp;vu=41', true],
+			['Agents', '?sujet=agents&amp;vu=41', false],
+			['Réglages', '?sujet=reglages&amp;vu=41', false]
 		]);
-		expect(html({})).toMatch(/<a class="filtre" href="\/suivi" aria-current="page">Tout<\/a>/);
+		// Jamais venu : la marque 0 (tout est nouveau), pour qu'un filtre ne compte pas pour une arrivée.
+		expect(html({})).toMatch(/<a class="filtre" href="\/suivi\?vu=0" aria-current="page">Tout<\/a>/);
 		// Un sujet vide : les filtres restent, un vide discret.
 		expect(page).toContain('Rien dans ce sujet ces trois derniers mois.');
 		expect(page).not.toContain('Rien de nouveau au centre');
