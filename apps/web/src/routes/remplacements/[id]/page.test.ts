@@ -103,4 +103,22 @@ describe('page d’une demande', () => {
 		expect(html).toContain('Le chef de garde sera prévenu');
 		expect(html).not.toContain('À faire valider par le chef');
 	});
+
+	describe('demande tranchée, vue par un ancien destinataire', () => {
+		const reduite = (r: Record<string, unknown>) => render(Page as any, { props: { data: { reduite: { id: 7, demandeur: null, texte: 'nuit du lundi 9 novembre', ...r } }, form: null } }).body; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+		it('l’issue, la période et le lien vers les remplacements ; ni erreur ni Gyro', () => {
+			const html = reduite({ issue: 'annulee', demandeur: { id: 1, prenom: 'Julie', nom: 'Martin' } });
+			expect(html).toContain('Julie Martin a annulé sa demande.');
+			expect(html).toContain('Nuit du lundi 9 novembre');
+			expect(html).toMatch(/<a[^>]*href="\/remplacements"[^>]*>Voir les remplacements<\/a>/);
+			expect(html).not.toMatch(/Réessayer|role="alert"|class="gyro/);
+		});
+
+		it('chaque issue a sa phrase, sans nommer le remplaçant', () => {
+			expect(reduite({ issue: 'prise' })).toContain('Un collègue a déjà pris ce remplacement.');
+			expect(reduite({ issue: 'expiree' })).toContain('Cette demande a expiré.');
+			expect(reduite({ issue: 'close' })).toContain('Cette demande n’est plus ouverte.');
+		});
+	});
 });

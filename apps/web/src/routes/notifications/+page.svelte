@@ -7,6 +7,7 @@
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Pastille from '#lib/ui/Pastille.svelte';
 	import { ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
@@ -166,7 +167,7 @@
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/remplacements/${l.demandeId}`)}>
 							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 8h13l-3-3 M20 16H7l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
-								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
+								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}{#if l.issue}{' '}<Pastille ton="neutre">{l.issue}</Pastille>{/if}</span>
 								<span class="extrait">{l.texte}</span>
 								<span class="moment">{moment(l)}</span>
 							</span>

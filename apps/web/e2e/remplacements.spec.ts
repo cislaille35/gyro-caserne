@@ -66,6 +66,40 @@ test.describe('remplacements', () => {
 	});
 });
 
+// Une demande annulée reste dans la cloche de ceux qui l'ont reçue : la ligne le dit, la page aussi, sans erreur.
+test('David annule une demande ouverte ; un collègue qui l’a reçue le lit depuis sa cloche', async ({ page, browser }, info) => {
+	test.skip(info.project.name !== 'telephone', 'Un seul parcours, au téléphone.');
+	test.setTimeout(180_000);
+	const EMAILS: Record<string, string> = { 'Alice Martin': 'alice.martin@exemple.fr', 'Bruno Petit': 'bruno.petit@exemple.fr', 'Chloé Durand': 'chloe.durand@exemple.fr' };
+	await connecter(page, 'david.leroy@exemple.fr');
+	await page.goto('/planning');
+	await page.getByRole('link', { name: 'Me faire remplacer' }).first().click();
+	await page.getByRole('list', { name: 'Mes semaines d’astreinte' }).getByRole('link', { name: /\d+ jours? libres?/ }).first().click();
+	await page.locator('input[name="p"]:not([disabled])').first().check();
+	await page.getByRole('button', { name: 'Continuer' }).click();
+	await page.getByRole('button', { name: 'Continuer' }).click();
+	await page.getByRole('button', { name: 'Envoyer la demande' }).click();
+	await expect(page.getByText('Demande envoyée.', { exact: false })).toBeVisible();
+	// Un collègue fictif parmi ceux qui l'ont reçue.
+	const recus = await page.locator('.disponibles li').allTextContents();
+	const collegue = recus.map((t) => t.trim()).find((t) => t in EMAILS);
+	expect(collegue).toBeDefined();
+	await page.getByRole('button', { name: /^Annuler la demande/ }).click();
+	await expect(page.getByText('Annulée', { exact: true })).toBeVisible();
+
+	const autre = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+	await connecter(autre, EMAILS[collegue!]!);
+	await autre.goto('/notifications');
+	const ligne = autre.getByRole('link', { name: /Demande de remplacement Annulée David Leroy/ }).first();
+	await expect(ligne).toBeVisible();
+	await ligne.click();
+	await expect(autre.getByText('David Leroy a annulé sa demande.')).toBeVisible();
+	await expect(autre.getByRole('link', { name: 'Voir les remplacements' })).toBeVisible();
+	await expect(autre.getByText('Page indisponible')).toHaveCount(0);
+	await sansViolation(autre);
+	await autre.context().close();
+});
+
 test.describe('chef : aptitudes', () => {
 	test.use({ storageState: ETAT_SUPER });
 

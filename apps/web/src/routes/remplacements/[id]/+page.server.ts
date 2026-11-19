@@ -6,6 +6,7 @@ import { exigerConnecte, gestesRemplacement, RESULTATS } from '#lib/server/rempl
 import type { Actions, PageServerLoad } from './$types';
 
 // Une demande (`?envoyee` : juste après l'envoi) : pour qui y a part (demandeur, destinataire, remplaçant, chef qui valide).
+// Un collègue qui l'avait reçue, une fois tranchée sans lui, n'en voit que l'issue (`reduite`).
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const acteur = exigerConnecte(locals);
 	const id = /^\d{1,9}$/.test(params.id) ? Number(params.id) : 0;
@@ -13,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		return { ...(await demandeVue(locals.base, acteur, id, maintenantParis(), centre.astreinte)), envoyee: url.searchParams.has('envoyee') };
 	} catch (erreur) {
 		if (erreur instanceof DonneeInvalide) error(404, 'Demande introuvable');
-		if (erreur instanceof RefusDroit) error(403, 'Cette demande ne vous concerne pas, ou elle a déjà été prise par un collègue.');
+		if (erreur instanceof RefusDroit) error(403, erreur.message);
 		throw erreur;
 	}
 };
@@ -28,7 +29,8 @@ function puisListeSiPlusConcerne(nom: keyof typeof RESULTATS) {
 		if ('succes' in resultat) {
 			const id = /^\d{1,9}$/.test(evenement.params.id) ? Number(evenement.params.id) : 0;
 			try {
-				await demandeVue(evenement.locals.base, exigerConnecte(evenement.locals), id, maintenantParis(), centre.astreinte);
+				const lue = await demandeVue(evenement.locals.base, exigerConnecte(evenement.locals), id, maintenantParis(), centre.astreinte);
+				if ('reduite' in lue) redirect(303, `/remplacements?fait=${nom}`);
 			} catch (erreur) {
 				if (erreur instanceof RefusDroit) redirect(303, `/remplacements?fait=${nom}`);
 				throw erreur;
