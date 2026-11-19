@@ -120,9 +120,9 @@
 			<form method="GET" role="search" class="filtres">
 				<!-- Premier bouton du formulaire : Entrée dans la recherche garde le filtre en cours. -->
 				<Recherche id="filtre-texte" name="texte" valeur={data.filtres.texte} libelle="Rechercher un agent" aide="Nom, prénom ou e-mail" bouton={{ name: 'filtre', value: filtre }} />
-				<div class="puces" role="group" aria-label="Filtrer la liste">
+				<div class="filtres-defilants" role="group" aria-label="Filtrer la liste">
 					{#each filtres as f (f.valeur)}
-						<button type="submit" class="puce" name="filtre" value={f.valeur} aria-pressed={filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
+						<button type="submit" class="filtre" name="filtre" value={f.valeur} aria-pressed={filtre === f.valeur ? 'true' : 'false'}>{f.libelle}</button>
 					{/each}
 				</div>
 			</form>
@@ -197,39 +197,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--espace-12);
-	}
-	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
-	.puces {
-		display: flex;
-		gap: var(--espace-8);
-		margin: -4px -16px;
-		padding: var(--espace-4) var(--espace-16);
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-	.puce {
-		flex: none;
-		min-height: var(--cible);
-		padding: 0 var(--espace-16);
-		border: 1px solid var(--trait);
-		border-radius: var(--rayon-bouton);
-		background: var(--surface);
-		color: var(--encre);
-		font: 600 var(--texte-15) var(--police);
-		white-space: nowrap;
-		cursor: pointer;
-	}
-	@media (hover: hover) and (pointer: fine) {
-		.puce:hover {
-			border-color: var(--encre);
-		}
-	}
-	/* Pressé : fond plein et gras, pas seulement une teinte. */
-	.puce[aria-pressed='true'] {
-		background: var(--encre);
-		color: var(--surface);
-		border-color: var(--encre);
-		font-weight: 700;
 	}
 	ul {
 		margin: 0;
@@ -393,7 +360,7 @@
 		.page:not(.a-cote) .filtres > :global(.recherche) {
 			flex: 0 1 26rem;
 		}
-		.page:not(.a-cote) .puces {
+		.page:not(.a-cote) .filtres-defilants {
 			flex: 1 1 auto;
 			margin: -4px 0;
 			padding: var(--espace-4);

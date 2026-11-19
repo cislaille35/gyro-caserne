@@ -805,5 +805,7 @@ describe('le suivi du centre', () => {
 		for (let i = 0; i < lignes.length; i += 50) await base.insert(journal).values(lignes.slice(i, i + 50));
 		expect(await compter(async () => { expect((await (racine as any)({ depends: () => {}, locals })).cloche).toBe(1); })).toBe(enTete);
 		expect(await compter(async () => { expect((await (pageSuivi as any)({ locals, url: new URL('http://x/suivi') })).lignes).toHaveLength(25); })).toBe(1);
+		// Filtrée par sujet, ou la suite : toujours une requête et 25 lignes.
+		expect(await compter(async () => { expect((await (pageSuivi as any)({ locals, url: new URL('http://x/suivi?sujet=agents&avant=1500') })).lignes).toHaveLength(25); })).toBe(1);
 	});
 });

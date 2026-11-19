@@ -5,7 +5,7 @@ const { default: Page } = await import('./+page.svelte');
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const propre = (html: string) => html.replace(/<!--[^>]*-->/g, '').replace(/ ?svelte-[a-z0-9]+/g, '').replace(/ class=""/g, '');
-const html = (data: Record<string, unknown>) => propre(render(Page as any, { props: { data: { lignes: [], suite: null, aujourdhui: '2026-11-18', ...data } } }).body);
+const html = (data: Record<string, unknown>) => propre(render(Page as any, { props: { data: { lignes: [], suite: null, vu: null, sujet: null, aujourdhui: '2026-11-18', ...data } } }).body);
 const ligne = (l: Record<string, unknown> = {}) => ({ id: 9, quand: '2026-11-18T19:02', qui: 'Claire Martin', phrase: 'a modifié la manœuvre Feux de forêt', lien: '/planning/preparer/manoeuvre?id=3', ...l });
 
 describe('/suivi', () => {
@@ -14,7 +14,7 @@ describe('/suivi', () => {
 		expect(page).toMatch(/<h1[^>]*>Suivi du centre<\/h1>/);
 		expect(page).toContain('href="/caserne"');
 		expect(page).toContain('Rien de nouveau au centre');
-		expect(page).toContain('Ce qui s’est passé au centre (planning');
+		expect(page).toContain('Ce qui s’est passé au centre ces trois derniers mois (planning');
 	});
 
 	it('une ligne par action, groupée par jour, du plus récent : qui, quoi, l’heure, et le lien vers l’élément', () => {
@@ -26,8 +26,44 @@ describe('/suivi', () => {
 		expect(page).not.toMatch(/Ancien agent a réglé[\s\S]*?0 h/);
 	});
 
-	it('la suite, page par page', () => {
-		expect(html({ lignes: [ligne()], suite: 9 })).toMatch(/<a[^>]*href="\?avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+	it('la suite : un lien qui marche sans JavaScript, dans le sujet choisi ; l’ajout est annoncé', () => {
+		expect(html({ lignes: [ligne()], suite: 9 })).toMatch(/<a[^>]*href="\?vu=0&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+		expect(html({ lignes: [ligne()], suite: 9, sujet: 'planning' })).toMatch(/<a[^>]*href="\?sujet=planning&amp;vu=0&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
+		// La marque de l'arrivée voyage avec la suite (avec JavaScript, la même adresse est lue).
+		expect(html({ lignes: [ligne()], suite: 9, vu: 7 })).toMatch(/<a[^>]*href="\?vu=7&amp;avant=9"[^>]*>Voir les plus anciennes<\/a>/);
 		expect(html({ lignes: [ligne()] })).not.toContain('Voir les plus anciennes');
+		expect(html({ lignes: [ligne()] })).toMatch(/<p class="masque" role="status" aria-live="polite"><\/p>/);
+	});
+
+	it('les filtres en haut, en ligne qui défile comme ceux des agents, par l’adresse ; le choisi est marqué', () => {
+		const page = html({ sujet: 'demandes', vu: 41 });
+		expect(page).toMatch(/<nav class="filtres-defilants" aria-label="Filtrer le suivi">/);
+		const liens = [...page.matchAll(/<a class="filtre" href="([^"]*)"( aria-current="page")?>([^<]+)<\/a>/g)].map((m) => [m[3], m[1], !!m[2]]);
+		expect(liens.slice(0, 6)).toEqual([
+			['Tout', '/suivi?vu=41', false],
+			['Planning', '?sujet=planning&amp;vu=41', false],
+			['Nominations', '?sujet=nominations&amp;vu=41', false],
+			['Demandes', '?sujet=demandes&amp;vu=41', true],
+			['Agents', '?sujet=agents&amp;vu=41', false],
+			['Réglages', '?sujet=reglages&amp;vu=41', false]
+		]);
+		// Jamais venu : la marque 0 (tout est nouveau), pour qu'un filtre ne compte pas pour une arrivée.
+		expect(html({})).toMatch(/<a class="filtre" href="\/suivi\?vu=0" aria-current="page">Tout<\/a>/);
+		// Un sujet vide : les filtres restent, un vide discret.
+		expect(page).toContain('Rien dans ce sujet ces trois derniers mois.');
+		expect(page).not.toContain('Rien de nouveau au centre');
+	});
+
+	it('le repère de la dernière visite, entre les nouveautés et le reste ; chaque carte garde son jour', () => {
+		const lignes = [ligne({ id: 9 }), ligne({ id: 8, quand: '2026-11-18T08:00', qui: 'Rémi Leroy' }), ligne({ id: 7, quand: '2026-11-17T08:00', qui: 'Ancien agent' })];
+		const page = html({ lignes, vu: 8 });
+		// Chaque carte a son jour : celui que le repère coupe est redonné dessous.
+		expect(page).toMatch(/<h2[^>]*>Aujourd’hui<\/h2>[\s\S]*Claire Martin[\s\S]*<p class="repere">Avant votre dernière visite<\/p>\s*<section[^>]*><h2[^>]*>Aujourd’hui<\/h2>[\s\S]*Rémi Leroy[\s\S]*Hier[\s\S]*Ancien agent/);
+		expect(page.match(/<h2[^>]*>Aujourd’hui<\/h2>/g)).toHaveLength(2);
+		expect(page).not.toContain('suite');
+		// Rien de nouveau, tout est nouveau, ou jamais venu : pas de repère.
+		expect(html({ lignes, vu: 9 })).not.toContain('Avant votre dernière visite');
+		expect(html({ lignes, vu: 6 })).not.toContain('Avant votre dernière visite');
+		expect(html({ lignes, vu: null })).not.toContain('Avant votre dernière visite');
 	});
 });

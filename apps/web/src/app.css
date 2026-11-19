@@ -367,6 +367,43 @@ body {
 		max-width: 100%;
 	}
 }
+/* Une ligne de filtres (agents, suivi du centre) : elle défile sans barre et déborde jusqu'au bord de l'écran, une puce coupée
+   montre la suite ; la marge laisse voir le contour du focus. Les filtres sont des boutons à bascule (aria-pressed) ou des liens (aria-current). */
+.filtres-defilants {
+	display: flex;
+	gap: var(--espace-8);
+	margin: -4px -16px;
+	padding: var(--espace-4) var(--espace-16);
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.filtre {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--cible);
+	padding: 0 var(--espace-16);
+	border: 1px solid var(--trait);
+	border-radius: var(--rayon-bouton);
+	background: var(--surface);
+	color: var(--encre);
+	font: 600 var(--texte-15) var(--police);
+	text-decoration: none;
+	white-space: nowrap;
+	cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+	.filtre:hover {
+		border-color: var(--encre);
+	}
+}
+/* Choisi : fond plein et gras, pas seulement une teinte. */
+.filtre:is([aria-pressed='true'], [aria-current='page']) {
+	background: var(--encre);
+	color: var(--surface);
+	border-color: var(--encre);
+	font-weight: 700;
+}
 /* Un groupe de lignes : un vrai titre au-dessus, en condensé, à l'encre ; puis une seule carte. */
 .titre-groupe {
 	margin: 0;

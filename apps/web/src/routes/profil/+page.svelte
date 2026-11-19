@@ -3,6 +3,7 @@
 	import Carte from '#lib/ui/Carte.svelte';
 	import Champ from '#lib/ui/Champ.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import Interrupteur from '#lib/ui/Interrupteur.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
@@ -38,10 +39,7 @@
 			<form method="POST">
 				<Champ id="surnom" name="surnom" libelle="Surnom" maxlength={60} valeur={texte('surnom', profil.surnom)} erreur={erreurs.surnom} />
 				<Champ id="telephone" name="telephone" type="tel" autocomplete="tel" libelle="Téléphone" maxlength={20} valeur={texte('telephone', profil.telephone)} erreur={erreurs.telephone} />
-				<label>
-					<input type="checkbox" name="telephoneVisible" checked={profil.telephoneVisible} />
-					Montrer mon téléphone au centre
-				</label>
+				<Interrupteur libelle="Montrer mon téléphone au centre" nom="telephoneVisible" coche={profil.telephoneVisible} />
 				<Champ
 					id="contact-urgence"
 					name="contactUrgence"
@@ -60,19 +58,15 @@
 					valeur={texte('naissance', profil.naissance)}
 					erreur={erreurs.naissance}
 				/>
-				<label>
-					<input type="checkbox" name="anniversaireVisible" checked={profil.anniversaireVisible} />
-					Afficher mon anniversaire
-				</label>
+				<Interrupteur libelle="Afficher mon anniversaire" nom="anniversaireVisible" coche={profil.anniversaireVisible} />
 				{#if data.messagerie}
-					<div class="case">
-						<input type="hidden" name="avecCoches" value="1" />
-						<label>
-							<input type="checkbox" name="cochesLecture" checked={profil.cochesLecture} aria-describedby="aide-coches" />
-							Montrer quand j’ai lu les messages
-						</label>
-						<p class="aide" id="aide-coches">Vos collègues voient ✓✓ quand vous avez lu. Sans cette case, vous ne voyez plus non plus celles des autres.</p>
-					</div>
+					<input type="hidden" name="avecCoches" value="1" />
+					<Interrupteur
+						libelle="Montrer quand j’ai lu les messages"
+						description="Vos collègues voient ✓✓ quand vous avez lu. Sans ce réglage, vous ne voyez plus non plus celles des autres."
+						nom="cochesLecture"
+						coche={profil.cochesLecture}
+					/>
 				{/if}
 				<Bouton type="submit">Enregistrer</Bouton>
 			</form>
@@ -118,22 +112,5 @@
 		border-color: var(--statut-danger-trait);
 		background: var(--statut-danger-fond);
 		color: var(--statut-danger-texte);
-	}
-	label {
-		display: flex;
-		align-items: center;
-		gap: var(--espace-12);
-		min-height: var(--cible);
-		font-weight: 600;
-	}
-	.case {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-	.aide {
-		margin-left: calc(1.5rem + var(--espace-12));
-		color: var(--doux);
-		font-size: var(--texte-14);
 	}
 </style>
