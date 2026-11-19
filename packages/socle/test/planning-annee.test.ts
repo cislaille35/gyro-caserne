@@ -193,6 +193,7 @@ describe('le planning vu par l’agent', () => {
 		const { base, chef, alice, bruno } = await publiee();
 		await publierAnnee(base, chef, 2026, maintenant);
 		const plage = { debut: '2027-01-01T00:15', fin: '2027-01-01T02:15' };
+		if (alice.type !== 'personne' || bruno.type !== 'personne') throw new Error('attendu des agents');
 		await base.insert(demandeRemplacement).values({ genre: 'remplacement', demandeurId: alice.id, remplacantId: bruno.id, periodes: JSON.stringify([plage]), debut: plage.debut, etat: 'conclue', creeLe: '2026-12-31T23:50', court: 1 });
 		const p = await planningDe(base, bruno, 2026, '2026-12-31T23:55', reglage);
 		if (!p.publiee) throw new Error('attendu publié');
