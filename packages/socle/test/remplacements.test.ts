@@ -7,7 +7,7 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { enregistrerManoeuvre, planningDe, publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { planningDuMatin } from '../src/planning/manoeuvres.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
-import { enTeteDe, filDeNotifications, toutMarquerLu } from '../src/notifications.ts';
+import { abonner, enTeteDe, filDeNotifications, prendreEnvois, toutMarquerLu } from '../src/notifications.ts';
 import { aNePasManquer } from '../src/a-ne-pas-manquer.ts';
 import { accueilDe } from '../src/casquettes.ts';
 import { changerStatut } from '../src/actions/personnes.ts';
@@ -761,5 +761,19 @@ describe('ancien destinataire', () => {
 		await forcer(j, prise, { etat: 'expiree' });
 		expect((await filDeNotifications(j.base, j.chloe, maintenant)).lignes.find((l) => l.type === 'remplacement' && l.demandeId === prise)).toMatchObject({ issue: 'Expirée', lue: true });
 		expect((await enTeteDe(j.base, j.chloe, '2026-11-01', maintenant)).nonLues).toBe(0);
+	});
+
+	it('la pastille d’un envoi au téléphone (clocheSql) compte comme l’en-tête : la demande annulée n’y est plus', async () => {
+		const j = await jeu();
+		await abonner(j.base, j.bruno, { endpoint: 'https://fcm.googleapis.com/fcm/send/Bruno', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenant);
+		const annulee = await demanderRemplacement(j.base, j.alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await demanderRemplacement(j.base, j.alice, { periodes: [nuitMardi10], cibleId: null }, maintenant, reglage);
+		await annulerDemande(j.base, j.alice, annulee, maintenant, reglage);
+		const { envois } = await prendreEnvois(j.base, 40, new Date('2026-11-01T09:00:00Z'));
+		const pourBruno = envois.filter((e) => e.personneId === j.n.bruno);
+		expect(pourBruno.length).toBeGreaterThan(0);
+		const enTete = await enTeteDe(j.base, j.bruno, '2026-11-01', maintenant);
+		expect(enTete.nonLues).toBe(1);
+		for (const e of pourBruno) expect(e.pastille).toBe(enTete.nonLues + enTete.remplacementsAValider + enTete.signalements + enTete.aTrancher + enTete.nonLus);
 	});
 });

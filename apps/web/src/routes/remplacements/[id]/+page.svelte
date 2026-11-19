@@ -34,7 +34,6 @@
 			<p class="phrase">{phraseIssue(data.reduite)}</p>
 			{#if data.reduite.texte}<p class="doux">{majuscule(data.reduite.texte)}</p>{/if}
 		</section>
-		<a class="lien-secondaire" href="/remplacements">Voir les remplacements</a>
 	</div>
 {:else}
 	<div class="page">
@@ -100,9 +99,6 @@
 	}
 	.phrase {
 		font-weight: 600;
-	}
-	.lien-secondaire {
-		align-self: flex-start;
 	}
 	.carte {
 		padding: var(--espace-16);

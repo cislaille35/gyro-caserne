@@ -107,11 +107,12 @@ describe('page d’une demande', () => {
 	describe('demande tranchée, vue par un ancien destinataire', () => {
 		const reduite = (r: Record<string, unknown>) => render(Page as any, { props: { data: { reduite: { id: 7, demandeur: null, texte: 'nuit du lundi 9 novembre', ...r } }, form: null } }).body; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-		it('l’issue, la période et le lien vers les remplacements ; ni erreur ni Gyro', () => {
+		it('l’issue et la période, le seul retour de l’en-tête ; ni erreur ni Gyro', () => {
 			const html = reduite({ issue: 'annulee', demandeur: { id: 1, prenom: 'Julie', nom: 'Martin' } });
 			expect(html).toContain('Julie Martin a annulé sa demande.');
 			expect(html).toContain('Nuit du lundi 9 novembre');
-			expect(html).toMatch(/<a[^>]*href="\/remplacements"[^>]*>Voir les remplacements<\/a>/);
+			expect(html.match(/href="\/remplacements"/g)).toHaveLength(1);
+			expect(html).not.toContain('Voir les remplacements');
 			expect(html).not.toMatch(/Réessayer|role="alert"|class="gyro/);
 		});
 
