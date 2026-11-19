@@ -82,7 +82,7 @@ test('David annule une demande ouverte ; un collègue qui l’a reçue le lit de
 	await expect(page.getByText('Demande envoyée.', { exact: false })).toBeVisible();
 	// Un collègue fictif parmi ceux qui l'ont reçue.
 	const recus = await page.locator('.disponibles li').allTextContents();
-	const collegue = recus.map((t) => t.trim()).find((t) => t in EMAILS);
+	const collegue = Object.keys(EMAILS).find((nom) => recus.some((t) => t.trim().endsWith(nom)));
 	expect(collegue).toBeDefined();
 	await page.getByRole('button', { name: /^Annuler la demande/ }).click();
 	await expect(page.getByText('Annulée', { exact: true })).toBeVisible();

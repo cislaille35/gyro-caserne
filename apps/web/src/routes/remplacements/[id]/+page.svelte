@@ -7,7 +7,8 @@
 	import { pluriel } from '#lib/pluriel.ts';
 
 	let { data, form } = $props();
-	const v = $derived(data.demande);
+	// Sans `reduite`, la demande est là : `v` n'est lu que dans ce cas.
+	const v = $derived(data.demande!);
 	const nom = (q: { prenom: string; nom: string }) => `${q.prenom} ${q.nom}`.trim();
 	const envoyee = $derived(data.envoyee && v.moi === 'demandeur');
 	const groupes = $derived(

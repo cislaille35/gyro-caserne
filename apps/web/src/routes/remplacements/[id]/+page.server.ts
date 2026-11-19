@@ -11,7 +11,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const acteur = exigerConnecte(locals);
 	const id = /^\d{1,9}$/.test(params.id) ? Number(params.id) : 0;
 	try {
-		return { ...(await demandeVue(locals.base, acteur, id, maintenantParis(), centre.astreinte)), envoyee: url.searchParams.has('envoyee') };
+		const lue = await demandeVue(locals.base, acteur, id, maintenantParis(), centre.astreinte);
+		if ('reduite' in lue) return { reduite: lue.reduite, demande: null, disponibles: [], recue: null, valideurs: [], envoyee: false };
+		return { reduite: null, ...lue, envoyee: url.searchParams.has('envoyee') };
 	} catch (erreur) {
 		if (erreur instanceof DonneeInvalide) error(404, 'Demande introuvable');
 		if (erreur instanceof RefusDroit) error(403, erreur.message);
