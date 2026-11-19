@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { DESSINS, ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const t = (debut: string, fin: string, etat = 'libre') => ({ debut, fin, etat });
 const semaine = {
@@ -31,22 +32,22 @@ describe('Me faire remplacer : le choix', () => {
 			.replace(/<!--[\s\S]*?-->/g, '')
 			.split('<a class="rangee')
 			.slice(1)
-			.map((a) => [a.match(/href="([^"]+)"/)?.[1], a.match(/class="titre[^"]*">([^<]+)/)?.[1], a.match(/class="sous[^"]*">([^<]+)/)?.[1]]);
+			.map((a) => [a.match(/href="([^"]+)"/)?.[1], a.match(/class="titre[^"]*">([^<]+)/)?.[1], a.match(/class="sous[^"]*">([^<]+)/)?.[1], a.match(/<span class="tuile[^"]*" aria-hidden="true"[\s\S]*?<path d="([^"]+)"/)?.[1]]);
 
 	it('d’astreinte aujourd’hui : quatre lignes, quelques heures en tête', () => {
 		const html = choix(true);
 		expect(html).toMatch(/<h1[^>]*>Me faire remplacer<\/h1>/);
 		expect(lignes(html)).toEqual([
-			['/remplacements/court', 'Quelques heures aujourd’hui', '2 ou 3 h de votre astreinte du jour'],
-			['/remplacements/demander?gardes', 'Une ou plusieurs gardes', 'Choisir la semaine, puis les jours'],
-			['/remplacements/demander?mode=echange', 'Échanger avec un collègue', 'Sa garde contre la vôtre'],
-			['/remplacements/manoeuvre', 'Échanger ma place à une manœuvre', undefined]
+			['/remplacements/court', 'Quelques heures aujourd’hui', '2 ou 3 h de votre astreinte du jour', DESSINS.horloge],
+			['/remplacements/demander?gardes', 'Une ou plusieurs gardes', 'Choisir la semaine, puis les jours', ICONES_ROLES.calendrier],
+			['/remplacements/demander?mode=echange', 'Échanger avec un collègue', 'Sa garde contre la vôtre', DESSINS.remplacer],
+			['/remplacements/manoeuvre', 'Échanger ma place à une manœuvre', 'Votre place contre celle d’un collègue', ICONES_ROLES.casque]
 		]);
 		expect(html.match(/class="lignes/g)).toHaveLength(1);
-		// Ni étapes, ni phrase d'introduction, ni icône.
+		// Ni étapes, ni phrase d'introduction ; les icônes, à l'encre, sont décoratives : le texte porte le sens.
 		expect(html).not.toContain('Étape');
 		expect(html).not.toContain('class="phrase');
-		expect(html).not.toContain('class="tuile');
+		expect(html.match(/<span class="tuile[^"]*" aria-hidden="true"/g)).toHaveLength(4);
 		expect(html).toMatch(/href="\/remplacements"[^>]*>[\s\S]*?Remplacements/);
 	});
 

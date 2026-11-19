@@ -25,7 +25,9 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 - **Quelques heures aujourd'hui** (2 ou 3 h de son astreinte du jour), seulement le jour de son astreinte, tant qu'il reste une plage libre ;
 - **Une ou plusieurs gardes** : le parcours en 3 étapes ;
 - **Échanger avec un collègue** : sa garde contre la vôtre ;
-- **Échanger ma place à une manœuvre**.
+- **Échanger ma place à une manœuvre** : votre place contre celle d'un collègue.
+
+Chaque ligne a son icône à l'encre (horloge, calendrier, flèches d'échange, casque), décorative : le texte porte le sens.
 
 Les liens précis vont droit au parcours : une semaine ou un jour de la vue Semaine, une semaine de la vue Année (parcours des gardes, semaine ouverte, jour pré-choisi), « Je ne peux pas : échanger ma place » sous la prochaine manœuvre du Planning. Chaque parcours ramène au choix par son retour « ‹ Me faire remplacer » (celui lancé depuis une manœuvre du Planning ramène au Planning).
 

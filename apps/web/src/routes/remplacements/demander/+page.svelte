@@ -8,6 +8,7 @@
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
@@ -111,10 +112,10 @@
 	<div class="page choix">
 		<EnTetePage titre="Me faire remplacer" retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
 		<ListeRangees>
-			{#if data.court}<li><Rangee href="/remplacements/court" titre="Quelques heures aujourd’hui" sous="2 ou 3 h de votre astreinte du jour" /></li>{/if}
-			<li><Rangee href="/remplacements/demander?gardes" titre="Une ou plusieurs gardes" sous="Choisir la semaine, puis les jours" /></li>
-			<li><Rangee href="/remplacements/demander?mode=echange" titre="Échanger avec un collègue" sous="Sa garde contre la vôtre" /></li>
-			<li><Rangee href="/remplacements/manoeuvre" titre="Échanger ma place à une manœuvre" /></li>
+			{#if data.court}<li><Rangee href="/remplacements/court" icone="calendrier" dessin={DESSINS.horloge} titre="Quelques heures aujourd’hui" sous="2 ou 3 h de votre astreinte du jour" /></li>{/if}
+			<li><Rangee href="/remplacements/demander?gardes" icone="calendrier" titre="Une ou plusieurs gardes" sous="Choisir la semaine, puis les jours" /></li>
+			<li><Rangee href="/remplacements/demander?mode=echange" icone="groupe" dessin={DESSINS.remplacer} titre="Échanger avec un collègue" sous="Sa garde contre la vôtre" /></li>
+			<li><Rangee href="/remplacements/manoeuvre" icone="casque" titre="Échanger ma place à une manœuvre" sous="Votre place contre celle d’un collègue" /></li>
 		</ListeRangees>
 	</div>
 {:else}

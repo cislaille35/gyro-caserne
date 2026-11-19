@@ -2,6 +2,7 @@
 	import type { Astreinte } from '@gyro-caserne/socle';
 	import { encreSur } from '../couleurs.ts';
 	import { bornesAstreinte, phraseAstreinte, quandRelatif } from './astreinte.ts';
+	import { DESSINS } from '../ui/icones-roles.ts';
 
 	// La plaque d'astreinte : un à-plat à la couleur de l'équipe (toujours nommée), le texte en noir ou en blanc selon cette couleur.
 	// À l'Accueil (`compacte`) : le grand compte à rebours, ou l'heure de la relève, et les gestes dans une bande en dessous.
@@ -22,7 +23,7 @@
 	const semaine = $derived(`/planning?annee=${a.debut.slice(0, 4)}&vue=semaine&semaine=${a.debut.slice(0, 10)}`);
 	const PRISE = 'M9 4h6v3H9z M9 5.5H5V21h14V5.5h-4 M9 14l2 2 4-4';
 	const AGENDA = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M12 13v5 M9.5 15.5h5';
-	const REMPLACER = 'M7 7h11l-3-3 M17 17H6l3 3';
+	const REMPLACER = DESSINS.remplacer;
 	const PLANNING = 'M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4';
 	const SUITE = 'M9 6l6 6-6 6';
 </script>
