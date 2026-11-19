@@ -37,6 +37,7 @@ Chacun ne voit et ne propose que les rôles et les périmètres qu'il a le droit
 - **Changer la date de fin** : on avance la fin d'un rôle en cours ou à venir ; on ne la repousse pas (« Une attribution ne peut qu’être raccourcie »). Mêmes droits que « Terminer ».
 - **Personne partie** : on ne la nomme pas (« Cette personne est partie »).
 - **Doublon refusé** : même personne, même rôle, même périmètre, périodes qui se chevauchent → « Cette personne tient déjà ce rôle sur cette période ».
+- **L'agent nommé est prévenu** (au téléphone et dans la cloche) : « Vous êtes nommé Chef de garde », le périmètre et qui l'a nommé. Pas s'il s'est nommé lui-même, pas pour un retrait, pas pour l'import du fichier de l'effectif (pas de rafale). Une affectation d'équipe n'est pas une nomination. Le chef de centre et l'adjoint qui n'ont pas nommé le voient dans leur suivi du centre (voir [Notifications](notifications.md#suivi-du-centre-chef-de-centre-adjoint)).
 - **Tout le centre voit** les rôles en cours de chacun dans la liste des agents (« Rôles : Chef de garde (Équipe 1) »), sans dates ni auteur.
 
 ## Comités et responsabilités (page « Réglages du centre »)
@@ -116,7 +117,7 @@ Exemple : le comité « Sport » attribue « Référent sport », avec le droit 
 
 ## Ce qui est tracé
 
-Le journal garde chaque ajout ou retrait d'adresse, chaque changement de profil ou de statut opérationnel, chaque attribution, et chaque création, modification, dissolution ou archivage d'un comité ou d'une responsabilité, avec son auteur et sa date.
+Le journal garde chaque ajout ou retrait d'adresse, chaque changement de profil ou de statut opérationnel, chaque attribution, et chaque création, modification, dissolution ou archivage d'un comité ou d'une responsabilité, avec son auteur et sa date. Le chef de centre et l'adjoint le lisent dans le suivi du centre.
 
 ## Ce que la fonction ne fait pas
 

@@ -3,12 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { anomaliesADecider, bloquanteClose, gesteAnomalie, gestesPermis, lireAnomalie, listerAnomalies, REGLAGE_ANOMALIES, signalerAnomalie, traiteLesAnomalies, type EtatAnomalie } from '../src/anomalies.ts';
 import { accueilDe } from '../src/casquettes.ts';
+import { courrielsDeDemande } from '../src/courriels.ts';
 import { enregistrerEngin } from '../src/engins.ts';
 import { lireFiche } from '../src/fiches.ts';
 import { filDeNotifications } from '../src/notifications.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { commencerPrise, gestePrise, prisesDeLaReleve, validerPrise } from '../src/prises.ts';
-import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, responsabilite } from '../src/schema.ts';
+import { anomalie, anomalieSuivi, attribution, avisAnomalie, engin, equipe, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { jeuEngins } from './de-test-engins.ts';
 
 const reglage = centreExemple.astreinte;
@@ -47,6 +48,53 @@ describe('signalement direct', () => {
 		expect(await j.avis(j.alice)).toEqual([]);
 		// Sans planning publié, l'équipe d'astreinte n'est pas connue : son chef de garde n'est pas prévenu.
 		expect(await j.avis(j.chefDeGarde)).toEqual([]);
+	});
+
+	it('le chef de centre et l’adjoint ne sont prévenus que sans référent engins nommé ; le chef de garde, toujours', async () => {
+		const j = await jeu();
+		const nommer = async (prenom: string, systeme: string) => {
+			const [p] = await j.base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Fictif', profilId: (await j.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+			const [r] = await j.base.select().from(responsabilite).where(eq(responsabilite.systeme, systeme as 'chef_centre'));
+			await j.base.insert(attribution).values({ personneId: p!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+			return { type: 'personne' as const, id: p!.id };
+		};
+		const claire = await nommer('Claire', 'chef_centre');
+		const paul = await nommer('Paul', 'chef_centre_adjoint');
+		await j.signaler();
+		expect(await j.avis(j.referent)).toHaveLength(1);
+		expect(await j.avis(claire)).toEqual([]);
+		expect(await j.avis(paul)).toEqual([]);
+		// Le référent n'est plus en fonction : le chef et l'adjoint reprennent.
+		await j.base.update(attribution).set({ fin: '2026-10-01' }).where(eq(attribution.personneId, idDe(j.referent)));
+		await j.signaler(j.alice, 'Rétroviseur');
+		expect(await j.avis(claire)).toHaveLength(1);
+		expect(await j.avis(paul)).toHaveLength(1);
+	});
+
+	it('l’e-mail : une anomalie signalée, à ceux qui la reçoivent ; une prise de garde, ses nouvelles anomalies', async () => {
+		const j = await jeu();
+		const id = await j.signaler();
+		expect(await courrielsDeDemande(j.base, { genre: 'anomalie', id })).toEqual([{ a: 'ref@exemple.fr', titre: 'Anomalie signalée · VTU', texte: 'Treuil HS, abîmé (Alice Fictif)', url: `/engins/anomalies/${id}` }]);
+		// Un geste du suivi n'en envoie pas.
+		await gesteAnomalie(j.base, j.referent, id, { quoi: 'prendre' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		expect(await courrielsDeDemande(j.base, { genre: 'anomalie', id })).toHaveLength(1);
+		expect(await courrielsDeDemande(j.base, { genre: 'prise', enginId: j.vtu, quand: PLUS_TARD })).toEqual([]);
+	});
+
+	it('le seul référent signale lui-même : le chef de centre et l’adjoint sont prévenus à sa place', async () => {
+		const j = await jeu();
+		const nommer = async (prenom: string, systeme: string) => {
+			const [p] = await j.base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Fictif', profilId: (await j.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+			const [r] = await j.base.select().from(responsabilite).where(eq(responsabilite.systeme, systeme as 'chef_centre'));
+			await j.base.insert(attribution).values({ personneId: p!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+			return { type: 'personne' as const, id: p!.id };
+		};
+		const claire = await nommer('Claire', 'chef_centre');
+		const paul = await nommer('Paul', 'chef_centre_adjoint');
+		await j.signaler(j.referent);
+		expect(await j.avis(claire)).toHaveLength(1);
+		expect(await j.avis(paul)).toHaveLength(1);
+		expect(await j.avis(j.referent)).toEqual([]);
 	});
 
 	it('le chef de garde de l’équipe d’astreinte est prévenu', async () => {
@@ -158,6 +206,29 @@ describe('le suivi', () => {
 		const vue = await lireAnomalie(j.base, j.referent, id, PLUS_TARD, REGLAGE_ANOMALIES);
 		expect(vue.bloquante).toBe(false);
 		expect(vue.historique.map((h) => h.quoi)).toEqual(['signalee', 'indisponible', 'reparee', 'remise_en_service']);
+	});
+
+	it('au journal (suivi du centre) : signalée, indisponible, remise en service, close ; pas la prise en charge ni un geste refusé', async () => {
+		const j = await jeu();
+		await j.base.delete(journal);
+		const id = await j.signaler();
+		await gesteAnomalie(j.base, j.alice, id, { quoi: 'prendre' }, QUAND, REGLAGE_ANOMALIES);
+		await gesteAnomalie(j.base, j.referent, id, { quoi: 'indisponible' }, QUAND, REGLAGE_ANOMALIES);
+		await expect(gesteAnomalie(j.base, j.referent, id, { quoi: 'indisponible' }, QUAND, REGLAGE_ANOMALIES)).rejects.toThrow();
+		await gesteAnomalie(j.base, j.alice, id, { quoi: 'reparee', texte: '' }, QUAND, REGLAGE_ANOMALIES);
+		await gesteAnomalie(j.base, j.chefDeGarde, id, { quoi: 'remettre' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		const autre = await j.signaler(j.alice, 'Rétroviseur');
+		await gesteAnomalie(j.base, j.referent, autre, { quoi: 'clore', texte: 'Doublon' }, PLUS_TARD, REGLAGE_ANOMALIES);
+		const lignes = await j.base.select().from(journal).orderBy(journal.id);
+		expect(lignes.map((l) => [l.acteur, l.action, l.cibleId])).toEqual([
+			[`personne:${idDe(j.alice)}`, 'signaler_anomalie', id],
+			[`personne:${idDe(j.referent)}`, 'rendre_indisponible', id],
+			[`personne:${idDe(j.alice)}`, 'clore_anomalie', id],
+			[`personne:${idDe(j.chefDeGarde)}`, 'remettre_en_service', id],
+			[`personne:${idDe(j.alice)}`, 'signaler_anomalie', autre],
+			[`personne:${idDe(j.referent)}`, 'clore_anomalie', autre]
+		]);
+		expect(lignes.every((l) => l.cibleType === 'anomalie')).toBe(true);
 	});
 
 	it('deux gestes croisés : le second est refusé, rien n’est écrit deux fois', async () => {

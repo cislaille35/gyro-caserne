@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, lt, lte, ne, notExists, notInArray, or, sql, type SQL, type SQLWrapper } from 'drizzle-orm';
 import { ecussonDuCentre } from './ecusson.ts';
+import { estChefOuAdjointSql, nouveautesSuiviSql } from './suivi.ts';
 import type { Base } from './base.ts';
 import { exigerDate, exigerDateHeure, heureDeParis } from './dates.ts';
 import type { Acteur } from './droits.ts';
@@ -13,7 +14,7 @@ import { texteDemande } from './remplacements/tranches.ts';
 import { aValiderPar } from './remplacements/compte.ts';
 import { TITRES_AVIS } from './remplacements/titres.ts';
 import type { AvisEte, AvisRemplacement } from './listes.ts';
-import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, ecusson, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
+import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisNomination, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, ecusson, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
 // et la file des envois au téléphone. Les destinataires sont ceux qui peuvent lire au moment de l'envoi, jamais l'auteur.
@@ -23,11 +24,12 @@ const FIL_MAX = 50;
 
 // `lue` : la ligne de la cloche que la notification touchée marque lue (voir mettreEnFile) ; absente pour un message ou une vigilance.
 export type DonneesPush = { titre: string; texte: string; url: string; tag: string; lue?: { genre: string; id: number | null } };
-export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie | LigneHabillement | LigneAnniversaire;
+export type LigneFil = LigneMur | LigneReservation | LigneRemplacement | LigneEte | LigneAnomalie | LigneHabillement | LigneNomination | LigneAnniversaire;
 // Un collègue souhaite son anniversaire à la personne (décision 0033).
 export type LigneAnniversaire = { id: number; type: 'anniversaire'; auteur: { prenom: string; nom: string; couleur: string | null }; creeLe: string; lue: boolean };
 export type LigneAnomalie = { id: number; type: 'anomalie'; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export type LigneHabillement = Omit<LigneAnomalie, 'type'> & { type: 'habillement' };
+export type LigneNomination = Omit<LigneAnomalie, 'type'> & { type: 'nomination' };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export const TITRES_ETE: Record<AvisEte, string> = { rappel: 'Vos vacances d’été', repartition: 'Planning d’été', vacances_changees: 'Vacances changées', semaine: 'Planning' };
 export type LigneRemplacement = { id: number; type: 'remplacement'; demandeId: number; quoi: AvisRemplacement; titre: string; texte: string; creeLe: string; lue: boolean };
@@ -38,7 +40,8 @@ type LigneMur = {
 	cle: CleMur;
 	nomMur: string;
 	publicationId: number;
-	auteur: { prenom: string; nom: string; couleur: string | null };
+	// `appli` : publiée par l'appli (le planning), montrée avec son icône.
+	auteur: { prenom: string; nom: string; couleur: string | null; appli?: true };
 	extrait: string;
 	creeLe: string;
 	lue: boolean;
@@ -78,7 +81,7 @@ const moiDe = (acteur: Acteur) => {
 };
 
 // Les tables des lignes de la cloche, par genre.
-const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie, habillement: avisHabillement, anniversaire: souhaitAnniversaire };
+const TABLES = { publication: notification, commentaire: notification, reservation: avisReservation, remplacement: avisRemplacement, ete: avisEte, anomalie: avisAnomalie, habillement: avisHabillement, nomination: avisNomination, anniversaire: souhaitAnniversaire };
 
 // Écritures : le fil, puis un envoi par appareil des destinataires qui n'ont coupé ni tout, ni ce lieu.
 function ecrireFil(base: Base, ids: number[], publicationId: number, commentaireId: number | null, maintenant: string) {
@@ -101,7 +104,7 @@ function ecrireFil(base: Base, ids: number[], publicationId: number, commentaire
 // `si` : une condition de plus, vérifiée au moment de l'écriture. `ligne` : le genre de la ligne de cloche écrite juste avant
 // dans le même batch, quand la page d'arrivée ne la marque pas lue (avis d'été), ou pour plus de sûreté (anomalies, habillement) ; chaque envoi porte celle de sa
 // personne (sa plus récente), pour que la toucher la marque lue. Les autres pages marquent déjà lu ce qu'elles montrent.
-export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: 'ete' | 'anomalie' | 'habillement' | 'anniversaire') {
+export function mettreEnFile(base: Base, ids: number[] | SQLWrapper, lieu: string, donnees: DonneesPush, maintenant: string, si?: SQL, ligne?: 'ete' | 'anomalie' | 'habillement' | 'nomination' | 'anniversaire') {
 	const coupe = base
 		.select({ un: sql`1` })
 		.from(coupure)
@@ -222,16 +225,17 @@ export async function notifierMessage(base: Base, id: number, maintenant: string
 
 // Les non-lues de `qui` (un identifiant, ou la colonne d'une requête) : publications et commentaires, et les avis.
 const nonLuesSql = (qui: number | SQL) =>
-	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null) + (select count(*) from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${qui} and ${souhaitAnniversaire.lueLe} is null)`;
+	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null) + (select count(*) from ${avisNomination} where ${avisNomination.personneId} = ${qui} and ${avisNomination.lueLe} is null) + (select count(*) from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${qui} and ${souhaitAnniversaire.lueLe} is null)`;
 
 // Le chiffre de la cloche d'une personne (la colonne d'une requête), comme l'en-tête des pages le compose (+layout.server.ts) :
 // non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher.
-const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)}`;
+// Et une ligne pour les nouveautés du suivi du centre (chef, adjoint), comme l'en-tête. `qui` : la colonne "personne"."id" (le suivi lit sa ligne).
+const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)} + (coalesce(${nouveautesSuiviSql(aujourdhui)}, 0) > 0)`;
 
 // Les non-lues, et les remplacements à valider. Une requête.
-const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`) =>
+const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`, suivi: SQL<number | null> = sql<number>`0`) =>
 	base
-		.select({ aValider: aValider.as('a_valider'), n: nonLuesSql(moi) })
+		.select({ aValider: aValider.as('a_valider'), n: nonLuesSql(moi), suivi: sql<number | null>`${suivi}`.as('suivi') })
 		.from(personne)
 		.where(eq(personne.id, moi));
 
@@ -260,6 +264,7 @@ const avisRemplacementsDe = (base: Base, moi: number) =>
 const avisEteDe = (base: Base, moi: number) => base.select().from(avisEte).where(eq(avisEte.personneId, moi)).orderBy(desc(avisEte.id)).limit(FIL_MAX);
 const avisAnomaliesDe = (base: Base, moi: number) => base.select().from(avisAnomalie).where(eq(avisAnomalie.personneId, moi)).orderBy(desc(avisAnomalie.id)).limit(FIL_MAX);
 const avisHabillementDe = (base: Base, moi: number) => base.select().from(avisHabillement).where(eq(avisHabillement.personneId, moi)).orderBy(desc(avisHabillement.id)).limit(FIL_MAX);
+const avisNominationsDe = (base: Base, moi: number) => base.select().from(avisNomination).where(eq(avisNomination.personneId, moi)).orderBy(desc(avisNomination.id)).limit(FIL_MAX);
 const souhaitsDe = (base: Base, moi: number, aujourdhui: string) =>
 	base
 		.select({ id: souhaitAnniversaire.id, creeLe: souhaitAnniversaire.creeLe, lueLe: souhaitAnniversaire.lueLe, prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
@@ -276,13 +281,14 @@ export const marquerAvisRemplacementLus = (base: Base, moi: number, maintenant: 
 export const marquerAvisLus = (base: Base, moi: number, maintenant: string) => base.update(avisReservation).set({ lueLe: maintenant }).where(and(eq(avisReservation.personneId, moi), isNull(avisReservation.lueLe)));
 
 // Le fil de la cloche : les 50 plus récentes, et le nombre de non-lues. Une requête.
-export async function filDeNotifications(base: Base, acteur: Acteur, maintenant: string): Promise<{ lignes: LigneFil[]; nonLues: number; remplacementsAValider: number }> {
+// `suivi` : les nouveautés du suivi du centre (chef, adjoint), une seule ligne de la cloche.
+export async function filDeNotifications(base: Base, acteur: Acteur, maintenant: string): Promise<{ lignes: LigneFil[]; nonLues: number; remplacementsAValider: number; suivi: number }> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
-	if (acteur.type !== 'personne') return { lignes: [], nonLues: 0, remplacementsAValider: 0 };
+	if (acteur.type !== 'personne') return { lignes: [], nonLues: 0, remplacementsAValider: 0, suivi: 0 };
 	const moi = acteur.id;
 	const auteur = sql<string>`coalesce(${commentaire.auteur}, ${publication.auteur})`;
 	const lesAuteurs = base.select({ auteur }).from(notification).innerJoin(publication, eq(publication.id, notification.publicationId)).leftJoin(commentaire, eq(commentaire.id, notification.commentaireId)).where(eq(notification.personneId, moi));
-	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete, anomalies, habillement, souhaits] = await base.batch([
+	const [lignes, [compte], equipes, comites, personnes, avis, remplacements, ete, anomalies, habillement, souhaits, nominations] = await base.batch([
 		base
 			.select({
 				id: notification.id,
@@ -300,7 +306,7 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 			.where(eq(notification.personneId, moi))
 			.orderBy(desc(notification.id))
 			.limit(FIL_MAX),
-		nonLuesDe(base, moi, aValiderPar(moi, aujourdhui, maintenant)),
+		nonLuesDe(base, moi, aValiderPar(moi, aujourdhui, maintenant), nouveautesSuiviSql(aujourdhui)),
 		...nomsDesMurs(base),
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom, couleur: couleurDe(aujourdhui).as('couleur') })
@@ -311,8 +317,10 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 		avisEteDe(base, moi),
 		avisAnomaliesDe(base, moi),
 		avisHabillementDe(base, moi),
-		souhaitsDe(base, moi, aujourdhui)
+		souhaitsDe(base, moi, aujourdhui),
+		avisNominationsDe(base, moi)
 	]);
+	const dNominations: LigneFil[] = nominations.map((a) => ({ id: a.id, type: 'nomination', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dAnomalies: LigneFil[] = anomalies.map((a) => ({ id: a.id, type: 'anomalie', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dHabillement: LigneFil[] = habillement.map((a) => ({ id: a.id, type: 'habillement', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dAnniversaire: LigneFil[] = souhaits.map((a) => ({ id: a.id, type: 'anniversaire', auteur: { prenom: a.prenom, nom: a.nom, couleur: a.couleur }, creeLe: a.creeLe, lue: a.lueLe !== null }));
@@ -331,7 +339,8 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	return {
 		nonLues: compte?.n ?? 0,
 		remplacementsAValider: compte?.aValider ?? 0,
-		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies, ...dHabillement, ...dAnniversaire].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
+		suivi: compte?.suivi ?? 0,
+		lignes: [...deMurs(lignes, personnes, equipes, comites), ...deReservations, ...deRemplacements, ...dEte, ...dAnomalies, ...dHabillement, ...dNominations, ...dAnniversaire].sort((a, b) => b.creeLe.localeCompare(a.creeLe)).slice(0, FIL_MAX)
 	};
 }
 
@@ -349,7 +358,7 @@ function deMurs(
 				cle: l.mur as CleMur,
 				nomMur: nomDuMur(l.mur, equipes, comites),
 				publicationId: l.publicationId,
-				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur === 'planning' ? { prenom: 'Planning', nom: 'du centre', couleur: null } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
+				auteur: p ? { prenom: p.prenom, nom: p.nom, couleur: p.couleur } : l.auteur === 'planning' ? { prenom: 'Planning', nom: '', couleur: null, appli: true } : l.auteur.startsWith('super:') ? { prenom: 'Super', nom: 'administrateur', couleur: null } : { prenom: '', nom: 'Personne inconnue', couleur: null },
 				extrait: extrait(l.texte),
 				creeLe: l.creeLe,
 				lue: l.lueLe !== null
@@ -357,6 +366,7 @@ function deMurs(
 		});
 }
 
+// `suivi` : les nouveautés du suivi du centre (nul pour qui n'y a pas accès ; 0 pour le super administrateur, sans compteur).
 // L'en-tête de chaque page : de quoi composer la cloche (non-lues, remplacements à valider, messages signalés pour qui modère,
 // réservations à trancher), les messages non lus (la pastille d'Échanges), le visage de la personne et la version de l'écusson
 // du centre (null sans écusson). Une requête légère, les mêmes comptes en SQL que la pastille d'un envoi (prendreEnvois).
@@ -366,11 +376,11 @@ export async function enTeteDe(
 	acteur: Acteur,
 	aujourdhui: string,
 	maintenant = `${aujourdhui}T00:00`
-): Promise<{ nonLues: number; remplacementsAValider: number; signalements: number; aTrancher: number; nonLus: number; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
+): Promise<{ nonLues: number; remplacementsAValider: number; signalements: number; aTrancher: number; nonLus: number; suivi: number | null; visage: { prenom: string; nom: string; couleur: string | null } | null; ecusson: number | null }> {
 	exigerDate(aujourdhui);
 	if (acteur.type !== 'personne') {
 		const [signalements, aTrancher, ecusson] = await Promise.all([nombreSignalements(base, acteur, aujourdhui), nombreAValider(base, acteur, aujourdhui), ecussonDuCentre(base)]);
-		return { nonLues: 0, remplacementsAValider: 0, signalements, aTrancher, nonLus: 0, visage: null, ecusson };
+		return { nonLues: 0, remplacementsAValider: 0, signalements, aTrancher, nonLus: 0, suivi: 0, visage: null, ecusson };
 	}
 	const qui = sql`"personne"."id"`;
 	const [l] = await base
@@ -385,18 +395,20 @@ export async function enTeteDe(
 			signalements: sql<number>`${signalementsPour(qui, aujourdhui)}`,
 			aTrancher: sql<number>`${aTrancherPar(qui, aujourdhui)}`,
 			nonLus: sql<number>`${nonLusPour(qui, aujourdhui)}`,
+			// Les nouveautés du suivi du centre (chef, adjoint) : une ligne de la cloche, sans envoi au téléphone.
+			suivi: sql<number | null>`${nouveautesSuiviSql(aujourdhui)}`,
 			ecusson: sql<number | null>`(select ${ecusson.photoId} from ${ecusson})`
 		})
 		.from(personne)
 		.where(eq(personne.id, acteur.id));
-	if (!l) return { nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: await ecussonDuCentre(base) };
-	return { nonLues: l.nonLues, remplacementsAValider: l.aValider, signalements: l.signalements, aTrancher: l.aTrancher, nonLus: l.nonLus, visage: { prenom: l.prenom, nom: l.nom, couleur: l.couleur }, ecusson: l.ecusson };
+	if (!l) return { nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: null, ecusson: await ecussonDuCentre(base) };
+	return { nonLues: l.nonLues, remplacementsAValider: l.aValider, signalements: l.signalements, aTrancher: l.aTrancher, nonLus: l.nonLus, suivi: l.suivi, visage: { prenom: l.prenom, nom: l.nom, couleur: l.couleur }, ecusson: l.ecusson };
 }
 
 export async function toutMarquerLu(base: Base, acteur: Acteur, maintenant: string): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return;
-	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe))), base.update(avisHabillement).set({ lueLe: maintenant }).where(and(eq(avisHabillement.personneId, acteur.id), isNull(avisHabillement.lueLe))), base.update(souhaitAnniversaire).set({ lueLe: maintenant }).where(and(eq(souhaitAnniversaire.personneId, acteur.id), isNull(souhaitAnniversaire.lueLe)))]);
+	await base.batch([base.update(notification).set({ lueLe: maintenant }).where(and(eq(notification.personneId, acteur.id), isNull(notification.lueLe))), marquerAvisLus(base, acteur.id, maintenant), marquerAvisRemplacementLus(base, acteur.id, maintenant), base.update(avisEte).set({ lueLe: maintenant }).where(and(eq(avisEte.personneId, acteur.id), isNull(avisEte.lueLe))), base.update(avisAnomalie).set({ lueLe: maintenant }).where(and(eq(avisAnomalie.personneId, acteur.id), isNull(avisAnomalie.lueLe))), base.update(avisHabillement).set({ lueLe: maintenant }).where(and(eq(avisHabillement.personneId, acteur.id), isNull(avisHabillement.lueLe))), base.update(avisNomination).set({ lueLe: maintenant }).where(and(eq(avisNomination.personneId, acteur.id), isNull(avisNomination.lueLe))), base.update(souhaitAnniversaire).set({ lueLe: maintenant }).where(and(eq(souhaitAnniversaire.personneId, acteur.id), isNull(souhaitAnniversaire.lueLe)))]);
 }
 
 // Ouvrir une ligne de la cloche la marque lue, quelle que soit la page où elle mène. Une requête ; seulement les siennes.
@@ -421,14 +433,14 @@ export const marquerLueLaPublication = (base: Base, moi: number, id: number, mai
 		.set({ lueLe: maintenant })
 		.where(and(eq(notification.personneId, moi), isNull(notification.lueLe), eq(notification.publicationId, id)));
 
-// Couper (oui) ou réactiver un lieu : « tout », « mur:<clé> » (un mur que la personne lit) ou « conversation:<id> » (dont elle est membre).
+// Couper (oui) ou réactiver un lieu : « tout », « urgences » (celles du centre, pour le chef et l'adjoint), « courriel » (les demandes par e-mail), « mur:<clé> » (un mur que la personne lit) ou « conversation:<id> » (dont elle est membre).
 // Réactiver ne vérifie que la forme : on peut toujours retirer une coupure.
 export async function couper(base: Base, acteur: Acteur, lieu: string, oui: boolean, maintenant: string): Promise<void> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	const moi = moiDe(acteur);
 	const mur = /^mur:(.+)$/.exec(lieu)?.[1];
 	const conv = /^conversation:([1-9]\d*)$/.exec(lieu)?.[1];
-	if (lieu !== 'tout' && mur === undefined && conv === undefined) throw new DonneeInvalide('Lieu inconnu');
+	if (lieu !== 'tout' && lieu !== 'urgences' && lieu !== 'courriel' && mur === undefined && conv === undefined) throw new DonneeInvalide('Lieu inconnu');
 	if (!oui) {
 		await base.delete(coupure).where(and(eq(coupure.personneId, moi), eq(coupure.lieu, lieu)));
 		return;
@@ -455,10 +467,12 @@ export async function estCoupe(base: Base, acteur: Acteur, lieu: string): Promis
 
 const RANG_MUR: Record<string, number> = { centre: 0, vie: 1, equipe: 2, comite: 3 };
 
-// Moi → Notifications : « tout » coupé ou non, les lieux coupés (murs puis conversations, nommés), le nombre d'appareils. Une requête.
-export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ tout: boolean; coupes: { lieu: string; nom: string }[]; appareils: number }> {
+// Moi → Notifications : « tout » coupé ou non, les lieux coupés (murs puis conversations, nommés), le nombre d'appareils ;
+// pour le chef de centre et l'adjoint, s'ils reçoivent les urgences du centre ; pour qui tient un rôle (et peut recevoir des demandes),
+// s'il les reçoit par e-mail (nuls pour les autres). Une requête.
+export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: string): Promise<{ tout: boolean; coupes: { lieu: string; nom: string }[]; appareils: number; urgences: boolean | null; courriel: boolean | null }> {
 	exigerDate(aujourdhui);
-	if (acteur.type !== 'personne') return { tout: false, coupes: [], appareils: 0 };
+	if (acteur.type !== 'personne') return { tout: false, coupes: [], appareils: 0, urgences: null, courriel: null };
 	const moi = acteur.id;
 	const conversationsCoupees = base
 		.select({ id: sql<number>`cast(substr(${coupure.lieu}, 14) as integer)` })
@@ -466,7 +480,14 @@ export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: s
 		.where(and(eq(coupure.personneId, moi), sql`${coupure.lieu} like 'conversation:%'`));
 	const [lieux, [appareils], equipes, comites, conversations, autres] = await base.batch([
 		base.select({ lieu: coupure.lieu }).from(coupure).where(eq(coupure.personneId, moi)),
-		base.select({ n: count() }).from(abonnementPush).where(eq(abonnementPush.personneId, moi)),
+		base
+			.select({
+				n: count(),
+				chef: sql<number>`${estChefOuAdjointSql(moi, aujourdhui)}`,
+				role: sql<number>`exists (select 1 from attribution a join responsabilite r on r.id = a.responsabilite_id where a.personne_id = ${moi} and r.archivee_le is null and a.debut <= ${aujourdhui} and (a.fin is null or a.fin >= ${aujourdhui}))`
+			})
+			.from(abonnementPush)
+			.where(eq(abonnementPush.personneId, moi)),
 		...nomsDesMurs(base),
 		base.select({ id: conversation.id, type: conversation.type, nom: conversation.nom }).from(conversation).where(inArray(conversation.id, conversationsCoupees)),
 		base
@@ -487,7 +508,7 @@ export async function mesNotifications(base: Base, acteur: Acteur, aujourdhui: s
 			return { lieu: `conversation:${c.id}`, nom: c.type === 'deux' ? `${autre?.prenom ?? ''} ${autre?.nom ?? ''}`.trim() : (c.nom ?? '') };
 		})
 		.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-	return { tout: lieux.some((l) => l.lieu === 'tout'), coupes: [...murs, ...convs], appareils: appareils?.n ?? 0 };
+	return { tout: lieux.some((l) => l.lieu === 'tout'), coupes: [...murs, ...convs], appareils: appareils?.n ?? 0, urgences: appareils?.chef ? !lieux.some((l) => l.lieu === 'urgences') : null, courriel: appareils?.role ? !lieux.some((l) => l.lieu === 'courriel') : null };
 }
 
 export type Abonnement = { endpoint: string; p256dh: string; auth: string; appareil: string };
@@ -599,9 +620,9 @@ export async function finirEnvois(base: Base, jeton: string, perimes: number[]):
 // Ménage de nuit : notifications et envois restés en file créés avant `avant` (AAAA-MM-JJ).
 export async function effacerVieillesNotifications(base: Base, avant: string): Promise<void> {
 	exigerDate(avant);
-	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(avisReservation).where(lt(avisReservation.creeLe, avant)), base.delete(avisRemplacement).where(lt(avisRemplacement.creeLe, avant)), base.delete(avisEte).where(lt(avisEte.creeLe, avant)), base.delete(avisAnomalie).where(lt(avisAnomalie.creeLe, avant)), base.delete(avisHabillement).where(lt(avisHabillement.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
+	await base.batch([base.delete(notification).where(lt(notification.creeLe, avant)), base.delete(avisReservation).where(lt(avisReservation.creeLe, avant)), base.delete(avisRemplacement).where(lt(avisRemplacement.creeLe, avant)), base.delete(avisEte).where(lt(avisEte.creeLe, avant)), base.delete(avisAnomalie).where(lt(avisAnomalie.creeLe, avant)), base.delete(avisHabillement).where(lt(avisHabillement.creeLe, avant)), base.delete(avisNomination).where(lt(avisNomination.creeLe, avant)), base.delete(envoiPush).where(lt(envoiPush.creeLe, avant))]);
 }
 
 // Au départ d'une personne : ses appareils, son fil et ses coupures. Écritures à placer dans un batch.
 export const effacerNotificationsDe = (base: Base, personneId: number) =>
-	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(avisAnomalie).where(eq(avisAnomalie.personneId, personneId)), base.delete(avisHabillement).where(eq(avisHabillement.personneId, personneId)), base.delete(souhaitAnniversaire).where(or(eq(souhaitAnniversaire.personneId, personneId), eq(souhaitAnniversaire.auteurId, personneId))), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;
+	[base.delete(abonnementPush).where(eq(abonnementPush.personneId, personneId)), base.delete(notification).where(eq(notification.personneId, personneId)), base.delete(avisReservation).where(eq(avisReservation.personneId, personneId)), base.delete(avisRemplacement).where(eq(avisRemplacement.personneId, personneId)), base.delete(avisEte).where(eq(avisEte.personneId, personneId)), base.delete(avisAnomalie).where(eq(avisAnomalie.personneId, personneId)), base.delete(avisHabillement).where(eq(avisHabillement.personneId, personneId)), base.delete(avisNomination).where(eq(avisNomination.personneId, personneId)), base.delete(souhaitAnniversaire).where(or(eq(souhaitAnniversaire.personneId, personneId), eq(souhaitAnniversaire.auteurId, personneId))), base.delete(coupure).where(eq(coupure.personneId, personneId))] as const;

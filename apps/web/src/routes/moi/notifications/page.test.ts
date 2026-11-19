@@ -5,7 +5,7 @@ import Page from './+page.svelte';
 import CeTelephone from './CeTelephone.svelte';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const html = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { clePublique: 'BPub', tout: false, coupes: [], appareils: 0, ...data }, form } }).body;
+const html = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { clePublique: 'BPub', tout: false, coupes: [], appareils: 0, urgences: null, courriel: null, ...data }, form } }).body;
 const telephone = (etat: string, appareils = 0) => render(CeTelephone as any, { props: { etat, appareils, activer: () => {}, desactiver: () => {} } }).body;
 
 describe('page Moi → Notifications', () => {
@@ -13,6 +13,27 @@ describe('page Moi → Notifications', () => {
 		expect(html({})).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/toutCouper"[\s\S]*?<button[^>]*role="switch"[^>]*aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
 		expect(html({ tout: true })).toMatch(/role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"/);
 		expect(html({})).toContain('La cloche de l’appli montre toujours tout.');
+	});
+
+	it('pour le chef et l’adjoint : « Urgences du centre » en premier, expliquées, avec leur interrupteur ; pas pour un agent', () => {
+		const page = html({ urgences: true });
+		expect(page).toMatch(/Urgences du centre[\s\S]*Ce téléphone[\s\S]*Tout couper/);
+		expect(page).toContain('engin indisponible');
+		expect(page).toMatch(/<form[^>]*action="\?\/urgences"[\s\S]*?role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"/);
+		expect(html({ urgences: false })).toMatch(/action="\?\/urgences"[\s\S]*?role="switch"[^>]*aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
+		expect(html({})).not.toContain('Urgences du centre');
+	});
+
+	it('« Tout couper » coupe aussi les urgences : l’écran prévient le chef', () => {
+		expect(html({ urgences: true, tout: true })).toContain('Vous ne recevrez plus les urgences du centre (engin indisponible…)');
+		expect(html({ urgences: true })).not.toContain('Vous ne recevrez plus les urgences');
+		expect(html({ tout: true })).not.toContain('Vous ne recevrez plus les urgences');
+	});
+
+	it('« Recevoir les demandes par e-mail » pour qui tient un rôle, coché par défaut ; pas pour les autres', () => {
+		expect(html({ courriel: true })).toMatch(/<form[^>]*action="\?\/courriel"[\s\S]*?role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"[\s\S]*?Recevoir les demandes par e-mail/);
+		expect(html({ courriel: false })).toMatch(/action="\?\/courriel"[\s\S]*?aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
+		expect(html({})).not.toContain('Recevoir les demandes par e-mail');
 	});
 
 	it('les lieux coupés, chacun avec « Réactiver » nommé ; rien de coupé : comment couper', () => {

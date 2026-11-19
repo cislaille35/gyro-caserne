@@ -411,6 +411,23 @@ describe('cloche, accueil, tâche planifiée, départ', () => {
 		expect(await avisDe(n.alice)).toEqual(['relance', 'expiree']);
 	});
 
+	it('la relance de la veille va aussi au chef de centre et à l’adjoint, en urgence ; pas au demandeur deux fois', async () => {
+		const { base, alice, n, avisDe, nommer } = await jeu();
+		const [agent] = await base.select().from(profil).where(eq(profil.nom, 'Agent'));
+		const [adjoint] = await base.insert(personne).values({ email: 'adj@exemple.fr', prenom: 'Paul', nom: 'Test', profilId: agent!.id }).returning();
+		await nommer(adjoint!.id, 'chef_centre_adjoint', null);
+		for (const id of [n.chef, adjoint!.id, n.elodie]) await base.insert(abonnementPush).values({ personneId: id, endpoint: `https://fcm.googleapis.com/${id}`, p256dh: 'a', auth: 'b', creeLe: maintenant });
+		await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await base.delete(envoiPush);
+		expect(await remplacementsDuMoment(base, '2026-11-08T08:00')).toEqual({ expirees: 0, relances: 1 });
+		const relances = async (id: number) => (await avisDe(id)).filter((q) => q === 'relance');
+		for (const id of [n.chef, adjoint!.id, n.elodie]) expect(await relances(id)).toEqual(['relance']);
+		const urgences = (await base.select().from(envoiPush)).map((e) => JSON.parse(e.donnees) as { tag: string; texte: string });
+		expect(urgences.filter((u) => u.tag.endsWith(':relance'))).toHaveLength(3);
+		expect(urgences.filter((u) => u.tag.startsWith('urgence:')).length).toBe(2);
+		expect(urgences.find((u) => u.tag.startsWith('urgence:'))!.texte).toMatch(/^Alice Test n’a pas encore de remplaçant demain/);
+	});
+
 	it('départ : ses demandes sont annulées ; celles où il remplaçait repartent', async () => {
 		const { base, alice, chloe, n, demande, chef } = await jeu();
 		const ouverte = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);

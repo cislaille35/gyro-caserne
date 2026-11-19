@@ -4,10 +4,11 @@ import { MANOEUVRES_PAR_DEFAUT } from '@gyro-caserne/centre';
 import { ajouterJours, exigerDateHeure, finEvenement } from '../dates.ts';
 import { ligneJournal } from '../journal.ts';
 import { notifierConvoques } from '../notifications.ts';
-import { anneePlanning, manoeuvre, publication } from '../schema.ts';
+import type { Acteur } from '../droits.ts';
+import { anneePlanning, manoeuvre, personne, publication } from '../schema.ts';
 import { rangDuJour } from './calendrier.ts';
 
-// Les manœuvres s'annoncent seules sur « Le centre », deux semaines avant, signées « Planning du centre » (auteur `planning`).
+// Les manœuvres s'annoncent seules sur « Le centre », deux semaines avant, signées « Planning » (auteur `planning`).
 // Le petit-déjeuner est un sondage dans la même publication. Le mercredi d'avant, une relance aux convoqués sans réponse.
 
 export const AUTEUR_PLANNING = 'planning';
@@ -110,11 +111,12 @@ export async function planningDuMatin(base: Base, maintenant: string, choix: str
 // Le batch est une transaction : la publication insérée juste avant a le plus grand identifiant.
 const sqlDernierePublication = () => sql<number>`(select max(${publication.id}) from ${publication})`;
 
-// Après un changement ou une annulation par le chef : les convoqués d'une manœuvre déjà annoncée sont prévenus.
-export async function manoeuvreChangee(base: Base, id: number, maintenant: string): Promise<void> {
+// Après un changement ou une annulation par le chef (`par`) : les convoqués d'une manœuvre déjà annoncée sont prévenus, avec son nom.
+export async function manoeuvreChangee(base: Base, id: number, maintenant: string, par: Acteur): Promise<void> {
 	exigerDateHeure(maintenant, 'Date');
-	const [m] = await base.select().from(manoeuvre).where(eq(manoeuvre.id, id));
+	const [[m], fiches] = await base.batch([base.select().from(manoeuvre).where(eq(manoeuvre.id, id)), base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, par.type === 'personne' ? par.id : 0))]);
 	if (!m || m.publicationId === null) return;
-	const titre = m.annuleeLe !== null ? `Manœuvre annulée : ${m.theme}` : `Manœuvre modifiée : ${m.theme}`;
+	const qui = par.type === 'super' ? 'Super administrateur' : fiches[0] ? `${fiches[0].prenom} ${fiches[0].nom}` : 'Ancien agent';
+	const titre = `Manœuvre ${m.annuleeLe !== null ? 'annulée' : 'modifiée'} par ${qui} : ${m.theme}`;
 	await notifierConvoques(base, m.publicationId, maintenant, { titre, texte: `${quand(m)} · ${m.lieu}.`, seulementSansReponse: false });
 }

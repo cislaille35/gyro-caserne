@@ -75,7 +75,9 @@ export const personne = sqliteTable(
 		// Date du dernier départ (statut « parti ») ; vide au retour. Ses données sont effacées 12 mois après (partis.ts).
 		partiLe: text('parti_le'),
 		// Date d'effacement de ses données : la fiche ne dit plus que « Ancien agent ».
-		effaceLe: text('efface_le')
+		effaceLe: text('efface_le'),
+		// Suivi du centre (chef, adjoint) : la dernière ligne du journal vue ; les plus récentes sont ses nouveautés.
+		suiviVu: integer('suivi_vu')
 	},
 	(t) => [
 		check('personne_email_normalise', sql`${sql.identifier('email')} = lower(trim(${sql.identifier('email')}))`),
@@ -995,6 +997,21 @@ export const filHabillement = sqliteTable(
 		jeton: text('jeton')
 	},
 	(t) => [index('fil_habillement_demande').on(t.demandeId), check('fil_habillement_quoi', checkDans('quoi', FIL_HABILLEMENT))]
+);
+
+// La cloche d'une nomination : l'agent nommé à un rôle, à la main (fiche, Nominations).
+export const avisNomination = sqliteTable(
+	'avis_nomination',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		personneId: versPersonne(),
+		titre: text('titre').notNull(),
+		texte: text('texte').notNull(),
+		url: text('url').notNull(),
+		creeLe: text('cree_le').notNull(),
+		lueLe: text('lue_le')
+	},
+	(t) => [index('avis_nomination_personne').on(t.personneId, t.lueLe)]
 );
 
 // La cloche de l'habillement : nouvelle demande, question, réponse, changement d'étape.

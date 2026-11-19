@@ -4,6 +4,7 @@ import { abandonnerPrise, commencerPrise, DonneeInvalide, gestePrise, lirePrise,
 import { maintenantParis } from '#lib/aujourdhui.ts';
 import { accesEngins, champ, idDe, phraseDe } from '#lib/server/engins.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { envoyerDemandeParCourriel } from '#lib/server/courriel-demandes.ts';
 
 const REFUS_PRISE = 'La prise de garde est faite par les agents du centre.';
 
@@ -96,14 +97,17 @@ export const actions: Actions = {
 		if (geste.quoi === 'zone' && geste.vue) return { cible, zone: null, zoneFaite: geste.zone, succes: 'Zone complète.' };
 		return { cible, zone, succes: SUCCES[geste.quoi] };
 	},
-	valider: async ({ locals, params, request }) => {
+	valider: async ({ locals, params, request, url }) => {
 		const { acteur, base } = await accesEngins(locals);
 		const f = await request.formData();
+		const quand = maintenantParis();
 		try {
-			await validerPrise(base, acteur, idDe(champ(f, 'prise')), maintenantParis(), centre.astreinte, idDe(params.id));
+			await validerPrise(base, acteur, idDe(champ(f, 'prise')), quand, centre.astreinte, idDe(params.id));
 		} catch (erreur) {
 			return refusPrise(erreur, { cible: 'valider' });
 		}
+		// Les nouvelles anomalies : aussi par e-mail à ceux qui les reçoivent, après la réponse.
+		envoyerDemandeParCourriel(locals, url, { genre: 'prise', enginId: idDe(params.id), quand });
 		redirect(303, `/engins/${params.id}/prise?validee`);
 	},
 	abandonner: async ({ locals, params, request }) => {

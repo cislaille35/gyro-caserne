@@ -121,6 +121,10 @@ Les règles de lecture et d'écriture sont dans le socle (`effectif.ts`, `action
 
 `lib/droits.ts` : `LIBELLES_DROIT`, le libellé en français de chaque droit (« Gérer le stock »), pour les cases à cocher et le tableau. Un droit ajouté au socle doit y recevoir son libellé (le typage l'exige).
 
+### Suivi du centre
+
+`routes/suivi` : une carte (`ListeRangees`) par jour, une `Rangee` par action (« qui » et la phrase, l'heure en sous-ligne, le lien), `--largeur-liste`, « Voir les plus anciennes » (`?avant=`). Entrée dans Caserne (Organisation) d'après `suivi` de l'en-tête, sans requête de plus. Une publication de l'appli (`auteur.appli`) montre l'icône du calendrier (`.icone-appli`) à la place du `Visage`.
+
 ## Messagerie
 
 Spec : [2026-10-29-messagerie-design.md](../superpowers/specs/2026-10-29-messagerie-design.md) ; règles et requêtes dans le socle ([socle.md](socle.md)).

@@ -57,7 +57,7 @@ const refusGestion = (id: number) => new RefusDroit('GERER_RESERVATIONS', { type
 const jeGereSql = (acteur: Acteur, aujourdhui: string): SQL => (acteur.type === 'super' ? sql`1` : gere(acteur.id, aujourdhui));
 
 // Les personnes qui gèrent une ressource : sous-requête d'identifiants, à passer aux notifications.
-export const gestionnairesDe = (base: Base, ressourceId: number, aujourdhui: string) =>
+export const gestionnairesDe = (base: Base, ressourceId: number | SQL, aujourdhui: string) =>
 	base
 		.select({ id: personne.id })
 		.from(personne)

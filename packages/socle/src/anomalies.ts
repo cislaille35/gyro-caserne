@@ -8,6 +8,8 @@ import { exigerDateHeure } from './dates.ts';
 import { aLeDroit, droitsDe, occupe, type Acteur } from './droits.ts';
 import { voitLesEngins } from './engins.ts';
 import { DonneeInvalide, RefusDroit } from './erreurs.ts';
+import { ligneJournal, ligneJournalSi } from './journal.ts';
+import { chefsDuCentre } from './urgences.ts';
 import { ETAPES_ANOMALIE, GENRES_ECART, MOTIFS_ATTENTE, type EtapeAnomalie, type EtatEngin, type GenreEcart, type MotifAttente, type SituationEngin, type SuiviAnomalie } from './listes.ts';
 import type { Reglage } from './planning/calendrier.ts';
 import { equipeAstreinte } from './prises.ts';
@@ -76,9 +78,9 @@ export function gestesPermis(a: EtatAnomalie, qui: Qui, r: ReglageAnomalies): Qu
 }
 
 // Une anomalie et ce qu'il faut pour en vérifier un geste : une requête.
-async function lireEtat(base: Base, id: number, moi: number) {
+async function lireEtat(base: Base, id: number, moi: number, aujourdhui: string) {
 	const bloquantes = sql<number>`(SELECT count(*) FROM ${anomalie} b WHERE b.engin_id = ${engin.id} AND b.bloquante = 1 AND b.close_le IS NULL)`;
-	const [[a], [reparation], [compte], [auteur]] = await base.batch([
+	const [[a], [reparation], [compte], [auteur], chefs] = await base.batch([
 		base
 			.select({ anomalie, nomEngin: sql<string>`${engin.nom}`.as('nom_engin'), etatEngin: engin.etat, situation: engin.situation, bloquantes: bloquantes.as('bloquantes') })
 			.from(anomalie)
@@ -86,7 +88,8 @@ async function lireEtat(base: Base, id: number, moi: number) {
 			.where(eq(anomalie.id, id)),
 		base.select({ par: anomalieSuivi.par }).from(anomalieSuivi).where(and(eq(anomalieSuivi.anomalieId, id), eq(anomalieSuivi.quoi, 'reparee'))).orderBy(desc(anomalieSuivi.id)).limit(1),
 		base.select({ n: sql<number>`count(*)` }).from(anomalieSuivi).where(eq(anomalieSuivi.anomalieId, id)),
-		base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, moi))
+		base.select({ prenom: personne.prenom, nom: personne.nom }).from(personne).where(eq(personne.id, moi)),
+		chefsDuCentre(base, aujourdhui)
 	]);
 	if (!a) throw new DonneeInvalide('Anomalie inconnue');
 	const etat: EtatAnomalie = {
@@ -98,7 +101,7 @@ async function lireEtat(base: Base, id: number, moi: number) {
 		enginIndisponible: a.etatEngin === 'indisponible',
 		enginParti: a.situation === 'parti'
 	};
-	return { a: a.anomalie, nomEngin: a.nomEngin, etatEngin: a.etatEngin, bloquantes: a.bloquantes, etat, suivis: compte?.n ?? 0, nom: nomDe(auteur) };
+	return { a: a.anomalie, nomEngin: a.nomEngin, etatEngin: a.etatEngin, bloquantes: a.bloquantes, etat, suivis: compte?.n ?? 0, nom: nomDe(auteur), chefs: chefs.map((c) => c.id) };
 }
 
 const SUIVI: Record<QuoiGeste, SuiviAnomalie> = { prendre: 'prise_en_charge', attente: 'en_attente', reparee: 'reparee', verifiee: 'verifiee', clore: 'close', indisponible: 'indisponible', remettre: 'remise_en_service' };
@@ -110,7 +113,7 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 	if (acteur.type !== 'personne') throw new DonneeInvalide('Réservé aux agents');
 	const moi = acteur.id;
 	const qui = await droitsAnomalie(base, acteur, aujourdhui);
-	const lu = await lireEtat(base, id, moi);
+	const lu = await lireEtat(base, id, moi, aujourdhui);
 	if (!gestesPermis(lu.etat, qui, r).includes(geste.quoi)) {
 		if (['clore', 'indisponible', 'remettre'].includes(geste.quoi) && !qui.traite) throw new RefusDroit('TRAITER_ANOMALIE', { type: 'centre' });
 		if (!qui.prend) throw new RefusDroit('PRENDRE_EN_CHARGE_ANOMALIE', { type: 'centre' });
@@ -153,8 +156,13 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 		indisponible: `Engin rendu indisponible par ${lu.nom}`,
 		remettre: `Engin remis en service par ${lu.nom}`
 	};
-	const prevenus = [...new Set([a.signaleePar, geste.quoi === 'prendre' ? null : a.priseEnChargePar].filter((x): x is number => x !== null && x !== moi))];
+	const prevenusHabituels = [...new Set([a.signaleePar, geste.quoi === 'prendre' ? null : a.priseEnChargePar].filter((x): x is number => x !== null && x !== moi))];
+	// Engin rendu indisponible : une urgence au chef de centre et à l'adjoint (sauf l'auteur), qui ne reçoivent pas l'avis habituel en double.
+	const urgence = geste.quoi === 'indisponible';
+	const prevenus = urgence ? prevenusHabituels.filter((x) => !lu.chefs.includes(x)) : prevenusHabituels;
 
+	// Au journal (suivi du centre) : l'engin rendu indisponible ou remis en service, l'anomalie close.
+	const action = geste.quoi === 'indisponible' ? 'rendre_indisponible' : geste.quoi === 'remettre' ? 'remettre_en_service' : changement && 'closeLe' in changement ? 'clore_anomalie' : null;
 	// Rendre indisponible, remettre en service : l'engin change ; la remise en service lève toutes ses anomalies bloquantes.
 	const etatEngin = geste.quoi === 'indisponible' ? 'indisponible' : geste.quoi === 'remettre' ? 'disponible' : null;
 	const resultats = await base.batch([
@@ -168,6 +176,8 @@ export async function gesteAnomalie(base: Base, acteur: Acteur, id: number, gest
 			.set({ etat: etatEngin ?? lu.etatEngin })
 			.where(and(eq(engin.id, a.enginId), etatEngin ? fait : sql`0`)),
 		...avisAnomalies(base, prevenus, { titre, texte: textes[geste.quoi], url: lien }, maintenant, fait),
+		...(urgence ? avisAnomalies(base, chefsDuCentre(base, aujourdhui, moi), { titre: `${lu.nomEngin} indisponible`, texte: `${a.libelle} · décidé par ${lu.nom}`, url: `/engins/${a.enginId}` }, maintenant, fait, 'urgences') : []),
+		...(action ? [ligneJournalSi(base, { acteur: `personne:${moi}`, action, cibleType: 'anomalie', cibleId: id }, maintenant, fait)] : []),
 		base.select({ ok: sql<number>`${fait}` }).from(anomalie).where(eq(anomalie.id, id))
 	]);
 	const [verif] = resultats.at(-1) as { ok: number }[];
@@ -196,12 +206,15 @@ export async function signalerAnomalie(base: Base, basePhotos: BasePhotos, acteu
 	]);
 	if (!e) throw new DonneeInvalide('Engin inconnu');
 	if (e.situation === 'parti') throw new DonneeInvalide('Engin parti');
-	const prevenus = (await quiTraite(base, aujourdhui, await equipeAstreinte(base, maintenant, reglage))).filter((id) => id !== moi);
+	const prevenus = (await quiTraite(base, aujourdhui, await equipeAstreinte(base, maintenant, reglage), moi)).filter((id) => id !== moi);
 	return avecPhotos(basePhotos, photos, maintenant, async ([photo]) => {
-		const [cree] = await base
-			.insert(anomalie)
-			.values({ enginId: s.enginId, ref: null, zone: '', libelle, genre: s.genre, manque: null, note: note || null, photoId: photo ?? null, priseId: null, signaleePar: moi, signaleeLe: maintenant })
-			.returning({ id: anomalie.id });
+		const [[cree]] = await base.batch([
+			base
+				.insert(anomalie)
+				.values({ enginId: s.enginId, ref: null, zone: '', libelle, genre: s.genre, manque: null, note: note || null, photoId: photo ?? null, priseId: null, signaleePar: moi, signaleeLe: maintenant })
+				.returning({ id: anomalie.id }),
+			ligneJournal(base, { acteur: `personne:${moi}`, action: 'signaler_anomalie', cibleType: 'anomalie', cibleId: sql`last_insert_rowid()` }, maintenant)
+		]);
 		const avis = avisAnomalies(base, prevenus, { titre: `Anomalie signalée · ${e.nom}`, texte: `${libelle}, ${GENRES[s.genre]} (${nomDe(auteur)})`, url: `/engins/anomalies/${cree!.id}` }, maintenant);
 		// La cloche après coup : un échec n'annule pas le signalement.
 		if (avis.length) await base.batch([avis[0]!, avis[1]!]).catch(() => {});

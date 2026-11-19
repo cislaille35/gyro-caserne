@@ -54,7 +54,7 @@ Pour une année sans roulement, le bouton **« Partir d'une proposition »** ouv
 
 ## Manœuvres annoncées toutes seules
 
-- **Deux semaines avant**, à 8 h (ou tout de suite, entre 8 h et 21 h, pour une manœuvre ajoutée moins de deux semaines avant), l'appli publie la manœuvre sur « Le centre », signée « Planning du centre » : un événement (date, heures de début et de fin, lieu, thème : « 7 h 45 à 12 h · Caserne ») avec la réponse Présent / Absent / Incertain. Seuls les **convoqués** sont notifiés.
+- **Deux semaines avant**, à 8 h (ou tout de suite, entre 8 h et 21 h, pour une manœuvre ajoutée moins de deux semaines avant), l'appli publie la manœuvre sur « Le centre », signée « Planning » (son icône, jamais des initiales ; « Modifiée par… » quand une personne la change) : un événement (date, heures de début et de fin, lieu, thème : « 7 h 45 à 12 h · Caserne ») avec la réponse Présent / Absent / Incertain. Seuls les **convoqués** sont notifiés.
 - **Petit-déjeuner** : un sondage « Petit-déjeuner ? » dans la même publication, avec les choix du centre (à Laillé : Croissant, Pain au chocolat, Pain au raisin, Rien pour moi), ouvert jusqu'au **vendredi précédent, 18 h**. Une manœuvre déjà annoncée garde ses choix, même si le réglage change. Si le chef retire le petit-déjeuner, le sondage et ses votes disparaissent ; remis, il repart des choix du centre.
 - **Fin** : une manœuvre reste « En cours » sur l'accueil, le mur et le Planning jusqu'à son heure de fin. Une manœuvre saisie avant l'heure de fin (ou un autre événement) dure 3 h.
 - **Relance** : le mercredi qui précède la manœuvre d'au moins 2 jours, une notification aux convoqués qui n'ont pas répondu.

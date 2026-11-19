@@ -412,6 +412,7 @@ describe('lireMur', () => {
 			texte: 'Repas',
 			creeLe: maintenant,
 			modifieeLe: null,
+			modifieePar: null,
 			epinglee: false,
 			commentairesFermes: false,
 			annulee: false,

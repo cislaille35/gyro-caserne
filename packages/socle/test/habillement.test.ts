@@ -5,8 +5,10 @@ import { accueilDe } from '../src/casquettes.ts';
 import type { Acteur } from '../src/droits.ts';
 import { chargerHabillementFictif, demanderTenue, effacerVieillesDemandes, gesteHabillement, gestesHabillement, habillementADecider, lireDemande, mesDemandes, toutesLesDemandes, type EtatDemandeHabillement } from '../src/habillement.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
+import { courrielsDeDemande } from '../src/courriels.ts';
+import { couper } from '../src/notifications.ts';
 import { enTeteDe, filDeNotifications, marquerLue } from '../src/notifications.ts';
-import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, attribution, avisHabillement, demandeHabillement, envoiPush, filHabillement, journal, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const QUAND = '2026-11-08T10:00';
@@ -79,6 +81,26 @@ describe('demander une tenue', () => {
 		await demanderTenue(j.base, j.alice, 'Veste', QUAND);
 		await demanderTenue(j.base, j.alice, 'Gants', QUAND);
 		expect((await mesDemandes(j.base, j.alice)).enCours.map((d) => d.texte).sort()).toEqual(['Gants', 'Veste']);
+	});
+});
+
+describe('l’e-mail d’une nouvelle demande', () => {
+	it('à ceux qui la reçoivent en notification (le référent, pas le chef) : titre, deux lignes, lien ; sauf s’ils l’ont coupé', async () => {
+		const j = await jeu();
+		const id = await demanderTenue(j.base, j.alice, 'Rangers 43', QUAND);
+		expect(await courrielsDeDemande(j.base, { genre: 'habillement', id })).toEqual([{ a: 'rémi@exemple.fr', titre: 'Nouvelle demande d’habillement', texte: 'Alice Fictif : Rangers 43', url: `/habillement/${id}` }]);
+		await couper(j.base, j.remi, 'courriel', true, QUAND);
+		expect(await courrielsDeDemande(j.base, { genre: 'habillement', id })).toEqual([]);
+		// La suite d'une demande ne part pas par e-mail.
+		await couper(j.base, j.remi, 'courriel', false, QUAND);
+		await j.geste(j.ids.remi, id, { quoi: 'question', texte: 'Montantes ?' });
+		expect((await courrielsDeDemande(j.base, { genre: 'habillement', id })).map((c) => c.titre)).toEqual(['Nouvelle demande d’habillement']);
+	});
+
+	it('sans référent nommé : au chef de centre, comme la notification', async () => {
+		const j = await jeu({ referent: false });
+		const id = await demanderTenue(j.base, j.alice, 'Gants', QUAND);
+		expect((await courrielsDeDemande(j.base, { genre: 'habillement', id })).map((c) => c.a)).toEqual(['claire@exemple.fr']);
 	});
 });
 
@@ -158,6 +180,28 @@ describe('le suivi', () => {
 		expect(await j.demande(b)).toMatchObject({ etape: 'refusee', finLe: PLUS_TARD });
 		expect((await j.avis(j.ids.alice)).at(-1)).toMatchObject({ titre: 'Demande refusée', texte: 'Rémi Fictif : La vôtre a moins d’un an.' });
 		await expect(j.geste(j.ids.alice, b, { quoi: 'repondre', texte: 'Dommage' })).rejects.toThrow('Geste impossible');
+	});
+
+	it('les décisions vont au journal (suivi du centre) : prise, traitement, refus, livraison ; pas les questions ni l’annulation, ni un geste refusé', async () => {
+		const j = await jeu();
+		const a = await demanderTenue(j.base, j.alice, 'Gants', QUAND);
+		await j.geste(j.ids.remi, a, { quoi: 'prendre' });
+		await j.geste(j.ids.remi, a, { quoi: 'question', texte: 'Taille ?' });
+		await j.geste(j.ids.alice, a, { quoi: 'repondre', texte: '9' });
+		await j.geste(j.ids.remi, a, { quoi: 'traiter', issue: 'commande', texte: '' });
+		await j.geste(j.ids.remi, a, { quoi: 'livrer', texte: 'Au bureau' });
+		const b = await demanderTenue(j.base, j.alice, 'Veste', QUAND);
+		await j.geste(j.ids.remi, b, { quoi: 'traiter', issue: 'refus', texte: 'Trop tôt.' });
+		await expect(j.geste(j.ids.remi, b, { quoi: 'livrer', texte: 'x' })).rejects.toThrow();
+		const c = await demanderTenue(j.base, j.alice, 'Casque', QUAND);
+		await j.geste(j.ids.alice, c, { quoi: 'annuler' });
+		const lignes = await j.base.select().from(journal).orderBy(journal.id);
+		expect(lignes.map((l) => [l.acteur, l.action, l.cibleType, l.cibleId])).toEqual([
+			[`personne:${j.ids.remi}`, 'prendre_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'traiter_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'livrer_habillement', 'demande_habillement', a],
+			[`personne:${j.ids.remi}`, 'refuser_habillement', 'demande_habillement', b]
+		]);
 	});
 
 	it('livrer exige l’info de récupération ; une question exige un texte', async () => {

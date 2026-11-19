@@ -13,6 +13,9 @@ export function heure(iso: string): string {
 	return m === '00' ? `${Number(h)} h` : `${Number(h)} h ${m}`;
 }
 
+// « le 18/11 à 19 h 02 »
+export const leEtHeure = (iso: string) => `le ${iso.slice(8, 10)}/${iso.slice(5, 7)} à ${heure(iso)}`;
+
 // « jeudi 5 nov., 19 h », l'heure jamais coupée en fin de ligne (espaces insécables).
 export function jourEtHeure(iso: string): string {
 	return `${format({ weekday: 'long', day: 'numeric', month: 'short' }, iso)}, ${heure(iso).replaceAll(' ', '\u00a0')}`;

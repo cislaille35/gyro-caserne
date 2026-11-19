@@ -95,7 +95,8 @@ Exemple : Zoé a 30 ans. Paul ouvre Échanges, voit « Zoé Bernard fête son an
 
 - Les publications sont **effacées après 24 mois** (réglage du centre, `conservationPublicationsMois`), chaque nuit : avec leurs photos, commentaires, « J'aime », réponses aux événements, votes, prises de connaissance et les lignes de la cloche qui y mènent. Les **épinglées** restent ; un événement reste 24 mois après sa date.
 - Une publication **épinglée** est gardée tant qu'elle l'est ; désépinglée, elle part la nuit suivante si elle a passé l'âge. Un événement daté après la limite est gardé jusqu'à ce que sa date la passe.
-- Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part. Le journal des gestes (qui a publié, supprimé…) reste.
+- Une manœuvre du planning reste au planning ; seule son annonce sur « Le centre » part.
+- Ce que l'appli publie (les manœuvres annoncées) est signé **« Planning »**, avec l'icône du calendrier, jamais des initiales ; pareil dans la cloche. Quand une personne modifie ou annule la manœuvre, la publication dit « Modifiée par Claire Martin, le 18/11 à 19 h 02 », et la notification « Manœuvre modifiée par Claire Martin : Feux de forêt » (« annulée par » pour une annulation). Le journal des gestes (qui a publié, supprimé…) reste.
 - Pourquoi : voir [0023](../decisions/0023-conservation-des-publications.md).
 
 Exemple : le 7 novembre 2026, la nuit efface ce qui a été publié avant le 7 novembre 2024, sauf les consignes épinglées sur « Le centre ».

@@ -19,6 +19,8 @@ declare global {
 			enArrierePlan?: (tache: Promise<unknown>) => void;
 			// Clé publique VAPID du centre, pour abonner un appareil ; nulle sans secrets.
 			clePublique?: string | null;
+			// Envoyer un e-mail (Brevo) ; absent hors du Worker (tests).
+			courriel?: (m: { a: string; sujet: string; texte: string }) => Promise<void>;
 		}
 	}
 	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`

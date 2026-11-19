@@ -6,6 +6,7 @@ Format d'une page :
 - titre : la question telle qu'un agent la pose (« Comment me faire remplacer ? ») ;
 - réponse : étapes numérotées, sans jargon.
 
+- [Comment recevoir les urgences du centre ?](recevoir-les-urgences-du-centre.md)
 - [Comment changer l'affichage ?](changer-l-affichage.md)
 - [Comment actualiser une page ?](actualiser-une-page.md)
 - [D'où vient la météo de l'Accueil ?](meteo-de-l-accueil.md)

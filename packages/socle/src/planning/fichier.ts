@@ -306,6 +306,11 @@ export async function appliquerPlanning(base: Base, acteur: Acteur, annee: numbe
 	if (a.p.publiee) ecritures.push(...(await avisSemainesChangees(base, a.changements, maintenant)));
 	const { semaines, manoeuvres, vacances } = a.apercu;
 	const details = { annee, ete: a.apercu.ete.ajouts + a.apercu.ete.retraits, semaines: semaines.length, manoeuvres: manoeuvres.ajoutees.length + manoeuvres.modifiees.length + manoeuvres.retirees.length, vacances: vacances.ajoutees.length + vacances.retirees.length };
-	await base.batch([ligneJournal(base, { acteur: nomActeur(acteur), action: 'importer_planning', cibleType: 'planning', cibleId: null, details }, maintenant), ...ecritures]);
-	return { changees: [...a.modifications.map((x) => x.id), ...a.retraits.map((x) => x.id)].filter((id) => a.p.manoeuvres.find((x) => x.id === id)?.publiee) };
+	const annoncee = (id: number) => a.p.manoeuvres.find((x) => x.id === id)?.publiee === true;
+	// Chaque manœuvre annoncée qui change est journalisée : sa publication dit qui l'a modifiée ou annulée.
+	const parManoeuvre = [...a.modifications.filter((x) => annoncee(x.id)).map((x) => ['modifier_manoeuvre', x.id] as const), ...a.retraits.filter((x) => annoncee(x.id)).map((x) => ['annuler_manoeuvre', x.id] as const)].map(([action, id]) =>
+		ligneJournal(base, { acteur: nomActeur(acteur), action, cibleType: 'planning', cibleId: id, details: { fichier: true } }, maintenant)
+	);
+	await base.batch([ligneJournal(base, { acteur: nomActeur(acteur), action: 'importer_planning', cibleType: 'planning', cibleId: null, details }, maintenant), ...parManoeuvre, ...ecritures]);
+	return { changees: [...a.modifications.map((x) => x.id), ...a.retraits.map((x) => x.id)].filter(annoncee) };
 }

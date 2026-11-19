@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import type { Acteur } from '../src/droits.ts';
@@ -31,7 +31,7 @@ import {
 	prendreEnvois,
 	toutMarquerLu
 } from '../src/notifications.ts';
-import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, demandeRemplacement, envoiPush, equipe, notification, personne, profil, reservation, responsabilite, ressource, signalementMessage } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, attribution, avisAnomalie, avisEte, coupure, demandeRemplacement, envoiPush, equipe, journal, notification, personne, profil, reservation, responsabilite, ressource, signalementMessage } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const maintenant = '2026-10-31T10:00';
@@ -220,6 +220,8 @@ describe('couper', () => {
 		expect(await mesNotifications(base, acteur(bruno), aujourdhui)).toEqual({
 			tout: false,
 			appareils: 2,
+			urgences: null,
+			courriel: null,
 			coupes: [
 				{ lieu: 'mur:vie', nom: 'Vie du centre' },
 				{ lieu: `mur:equipe:${e2.id}`, nom: e2.nom },
@@ -252,13 +254,13 @@ describe('le fil et la cloche', () => {
 		const { base, e2, chef, bruno } = await jeu();
 		await notifierPublication(base, await publier(base, base.photos, acteur(chef), 'centre', { type: 'message', texte: 'Note' }, maintenant), maintenant);
 		const avant = base.requetes;
-		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
+		expect(await enTeteDe(base, acteur(bruno), aujourdhui)).toEqual({ nonLues: 1, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: { prenom: 'Bruno', nom: 'Test', couleur: e2.couleur }, ecusson: null });
 		expect(base.requetes - avant).toBe(1);
-		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
+		expect(await enTeteDe(base, acteur(chef), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: 0, visage: { prenom: 'Chef', nom: 'Test', couleur: null }, ecusson: null });
 		await base.insert(signalementMessage).values({ par: bruno, le: maintenant, auteur: chef, envoyeLe: maintenant, texteCopie: 'x' });
-		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		expect(await enTeteDe(base, superAdmin, aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 1, aTrancher: 0, nonLus: 0, suivi: 0, visage: null, ecusson: null });
 		// Une fiche introuvable : rien à compter, ni visage.
-		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, visage: null, ecusson: null });
+		expect(await enTeteDe(base, acteur(9999), aujourdhui)).toEqual({ nonLues: 0, remplacementsAValider: 0, signalements: 0, aTrancher: 0, nonLus: 0, suivi: null, visage: null, ecusson: null });
 	});
 
 	it('ouvrir le mur marque lues ses publications, pas les commentaires ; ouvrir la publication marque tout', async () => {
@@ -448,6 +450,20 @@ describe('abonnements et file d’envoi', () => {
 		const pastilles = Object.fromEntries(lot.envois.map((e) => [e.personneId, e.pastille]));
 		expect(pastilles).toEqual({ [chef]: 4, [alice]: 2, [bruno]: 0, [chloe]: 2 });
 		for (const id of [chef, alice, bruno, chloe]) expect(pastilles[id], `personne ${id}`).toBe(await cloche(id));
+	});
+
+	it('prendreEnvois : la pastille du chef compte la ligne du suivi du centre (une, quel que soit le nombre de nouveautés), comme la cloche de l’en-tête', async () => {
+		const { base, chef, alice } = await jeu();
+		await base.delete(journal);
+		const ligne = { quand: maintenant, acteur: `personne:${alice}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice };
+		await base.insert(journal).values([ligne, ligne, ligne]);
+		await base.insert(envoiPush).select(base.select({ id: sql<number | null>`null`.as('id'), abonnementId: abonnementPush.id, donnees: sql<string>`'{}'`.as('donnees'), creeLe: sql<string>`${maintenant}`.as('cree_le'), jeton: sql<string | null>`null`.as('jeton'), reserveeLe: sql<string | null>`null`.as('reservee_le'), essais: sql<number>`0`.as('essais') }).from(abonnementPush).where(eq(abonnementPush.personneId, chef)));
+		const lot = await prendreEnvois(base, 40, heure('10:00'), maintenant);
+		const e = await enTeteDe(base, acteur(chef), aujourdhui, maintenant);
+		expect(e.suivi).toBe(3);
+		const attendu = e.nonLues + e.remplacementsAValider + e.signalements + e.aTrancher + e.nonLus + 1;
+		expect(lot.envois.filter((x) => x.personneId === chef).map((x) => x.pastille)).toContain(attendu);
+		expect(lot.envois.filter((x) => x.personneId === chef).every((x) => x.pastille === attendu)).toBe(true);
 	});
 
 	it('prendreEnvois : la pastille compte aussi les messages non lus, comme la pastille d’Échanges (conversations coupées comprises), dans la même requête', async () => {

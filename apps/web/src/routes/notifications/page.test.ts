@@ -44,6 +44,28 @@ describe('page des notifications', () => {
 		expect(page).toContain('1 notification non lue.');
 	});
 
+	it('une publication du planning : l’icône du calendrier et « Planning », jamais d’initiales', () => {
+		const page = html({ lignes: [ligne({ auteur: { prenom: 'Planning', nom: '', couleur: null, appli: true }, extrait: 'Manœuvre : Feux' })] });
+		expect(page).toContain('Planning a publié dans Le centre');
+		expect(page).toMatch(/class="pictogramme[^"]*" aria-hidden="true"><svg[^>]*><path d="M4 6h16v14H4z/);
+		expect(page).not.toContain('class="visage');
+	});
+
+	it('le suivi du centre : une seule ligne, vers /suivi, avec le nombre de nouveautés ; rien sans nouveauté', () => {
+		const page = html({ suivi: 12 });
+		expect(page).toMatch(/<a[^>]*href="\/suivi"[^>]*>[\s\S]*?Suivi du centre : 12 nouveautés depuis votre dernière visite/);
+		expect(page.match(/href="\/suivi"/g)).toHaveLength(1);
+		expect(page).not.toContain('Rien de nouveau pour vous.');
+		expect(html({ suivi: 1 })).toContain('Suivi du centre : 1 nouveauté depuis votre dernière visite');
+		expect(html({ suivi: 0 })).not.toContain('href="/suivi"');
+	});
+
+	it('une nomination : « Vous êtes nommé … », le périmètre, vers la fiche de l’agent', () => {
+		const page = html({ nonLues: 1, lignes: [{ id: 4, type: 'nomination', titre: 'Vous êtes nommé Chef de garde', texte: 'Équipe 2 · par Claire Martin', url: '/agents/7', creeLe: '2026-10-31T09:00', lue: false }] });
+		expect(page).toContain(`href="${ouvre('nomination', 4, '/agents/7')}"`);
+		expect(page).toMatch(/Non lu, [\s\S]*?Vous êtes nommé Chef de garde[\s\S]*?Équipe 2 · par Claire Martin/);
+	});
+
 	it('non lue : le point, « Non lu, » écrit pour les lecteurs d’écran et le titre en gras ; pas de bande à gauche', () => {
 		expect(html({ nonLues: 1, lignes: [ligne({})] })).toMatch(/class="ligne[^"]*non-lue[\s\S]*?Non lu, [\s\S]*?<span class="point[^"]*" aria-hidden="true">/);
 		expect(source).toMatch(/\.non-lue \.quoi \{\s*font-weight: 700;/);

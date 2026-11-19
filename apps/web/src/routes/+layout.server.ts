@@ -15,8 +15,8 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
 	// La cloche : les notifications non lues, les messages signalés pour qui modère (super administrateur compris)
 	// les demandes de réservation à trancher pour qui gère et les remplacements à valider pour les chefs ; le visage de « Moi » ;
 	// la version de l'écusson du centre (null sans écusson : l'en-tête reste comme avant) ; la pastille d'Échanges,
-	// les messages non lus, ensuite suivis toutes les 30 s par la page. Une requête.
-	const { cloche, visage, ecusson, nonLus } = acteur === null ? { cloche: 0, visage: null, ecusson: null, nonLus: 0 } : await lireEnTete(base, acteur, aujourdhui, maintenant);
+	// les messages non lus, ensuite suivis toutes les 30 s par la page ; une ligne pour les nouveautés du suivi du centre (chef, adjoint). Une requête.
+	const { cloche, visage, ecusson, nonLus, suivi } = acteur === null ? { cloche: 0, visage: null, ecusson: null, nonLus: 0, suivi: null } : await lireEnTete(base, acteur, aujourdhui, maintenant);
 	return {
 		affichage: locals.affichage,
 		connecte: acteur !== null,
@@ -28,7 +28,9 @@ export const load: LayoutServerLoad = async ({ locals, depends }) => {
 		cloche,
 		visage,
 		ecusson,
-		nonLus
+		nonLus,
+		// Le suivi du centre (chef, adjoint, super administrateur) : ses nouveautés, nul pour qui n'y a pas accès.
+		suivi
 	};
 };
 
@@ -41,9 +43,10 @@ async function peutReglerLeCentre(base: App.Locals['base'], acteur: NonNullable<
 async function lireEnTete(base: App.Locals['base'], acteur: NonNullable<App.Locals['acteur']>, aujourdhui: string, maintenant: string) {
 	try {
 		const e = await enTeteDe(base, acteur, aujourdhui, maintenant);
-		return { cloche: e.nonLues + e.remplacementsAValider + e.signalements + e.aTrancher, visage: e.visage, ecusson: e.ecusson, nonLus: e.nonLus };
+		// Le suivi du centre ne compte que pour une ligne, quel que soit le nombre de ses nouveautés.
+		return { cloche: e.nonLues + e.remplacementsAValider + e.signalements + e.aTrancher + (e.suivi ? 1 : 0), visage: e.visage, ecusson: e.ecusson, nonLus: e.nonLus, suivi: e.suivi };
 	} catch (erreur) {
 		console.error('Cloche illisible', resumeErreur(erreur));
-		return { cloche: 0, visage: null, ecusson: null, nonLus: 0 };
+		return { cloche: 0, visage: null, ecusson: null, nonLus: 0, suivi: null };
 	}
 }

@@ -11,6 +11,7 @@ const pub = (p: Partial<PublicationVue> = {}): PublicationVue => ({
 	texte: 'Bonjour',
 	creeLe: '2026-10-28T14:05:00',
 	modifieeLe: null,
+	modifieePar: null,
 	epinglee: false,
 	commentairesFermes: false,
 	annulee: false,
@@ -92,14 +93,18 @@ describe('page d’un mur', () => {
 		expect(page).toContain('2 j’aime · 1 commentaire');
 	});
 
-	it('une manœuvre annulée par le planning : « Annulée », plus de réponse ; signée « Planning du centre »', () => {
+	it('une manœuvre annulée par le planning : « Annulée », plus de réponse ; signée « Planning » avec l’icône du calendrier, jamais d’initiales', () => {
 		const evenement = { debut: '2026-11-05T19:30', fin: null, lieu: 'Caserne', convoques: [2], convoque: true, moment: 'avenir' as const, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] };
-		const auteur = { prenom: 'Planning', nom: 'du centre', couleur: null, role: null, ecrireA: null };
+		const auteur = { prenom: 'Planning', nom: '', couleur: null, role: null, ecrireA: null, appli: true as const };
 		const ouverte = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement })] });
-		expect(ouverte).toContain('Planning du centre');
+		expect(ouverte).toMatch(/<strong id="auteur-\d+">Planning<\/strong>/);
+		expect(ouverte).toMatch(/class="icone-appli[^"]*" aria-hidden="true"><svg[^>]*><path d="M4 6h16v14H4z/);
+		expect(ouverte).not.toContain('class="visage');
+		expect(ouverte).not.toContain('Modifiée par');
 		expect(ouverte).toContain('aria-label="Votre réponse"');
-		const annulee = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement, annulee: true })] });
+		const annulee = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement, annulee: true, modifieeLe: '2026-11-18T19:02', modifieePar: { nom: 'Claire Martin', le: '2026-11-18T19:02' } })] });
 		expect(annulee).toContain('Annulée');
+		expect(annulee).toContain('Modifiée par Claire Martin, le 18/11 à 19 h 02');
 		expect(annulee).not.toContain('aria-label="Votre réponse"');
 	});
 

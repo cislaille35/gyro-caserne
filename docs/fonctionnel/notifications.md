@@ -14,9 +14,45 @@ Tout ce qui concerne l'agent, et seulement cela, jamais à l'auteur lui-même :
 - **une réservation** : une demande à trancher chez qui gère la ressource, l'accord, le refus ou l'annulation chez le demandeur (voir [Réservations](reservations.md)) ;
 - **un avis** de remplacement, de l'été ou d'anomalie (voir [Remplacements](remplacements-et-echanges.md), [Planning d'été](planning-d-ete.md), [Anomalies](anomalies.md)) ;
 - **un souhait d'anniversaire** d'un collègue, le jour de son anniversaire (voir [Murs](salons.md#anniversaires)) ; seul « tout » le coupe ;
-- **la vigilance rouge**, à tous les agents, quand le département y passe (voir [Météo et vigilance](meteo-et-vigilance.md)).
+- **la vigilance rouge**, à tous les agents, quand le département y passe (voir [Météo et vigilance](meteo-et-vigilance.md)) ;
+- **une nomination** faite à la main (fiche de l'agent, Nominations) : « Vous êtes nommé Chef de garde », le périmètre et qui a nommé. Pas pour l'import du fichier de l'effectif, ni pour un retrait (voir [Accès et attributions](acces-et-attributions.md)) ;
+- **une urgence du centre**, pour le chef de centre et l'adjoint (plus bas).
 
 Seul qui peut lire la publication ou la conversation **au moment de l'envoi** est prévenu.
+
+## Urgences du centre (chef de centre, adjoint)
+
+Le chef de centre et l'adjoint en fonction ne sont dérangés que pour l'urgent, à toute heure, jamais pour leur propre geste :
+
+| Urgence | Quand | Lien |
+|---|---|---|
+| « VTU indisponible » | un engin rendu indisponible (anomalie bloquante) | la page de l'engin |
+| Remplacement sans remplaçant | la relance de la veille, à 8 h, d'une demande sans remplaçant | la demande |
+| « Équipe 2 sans chef de garde demain » | la veille de la relève, à 8 h, quand l'équipe d'astreinte n'a pas de chef de garde nommé (d'après le roulement et le planning publié, sans tenir compte des groupes d'été) | Nominations |
+
+- Chaque urgence a aussi sa ligne dans la cloche (anomalie, remplacement, ou suivi du centre pour l'équipe sans chef).
+- Moi → Notifications, en premier : « Urgences du centre », avec son interrupteur. « Tout couper » les coupe aussi ; l'écran prévient alors : « Vous ne recevrez plus les urgences du centre (engin indisponible…) ».
+- La liste est fixée par l'appli, sans réglage. Une équipe sans chef n'est signalée qu'une fois par relève.
+
+## Suivi du centre (chef de centre, adjoint)
+
+- Caserne → **Suivi du centre** : ce qui s'est passé au centre, du plus récent au plus ancien, une ligne par action, avec le lien (« Claire Martin a modifié la manœuvre Feux de forêt », « Rémi Leroy a pris en compte la demande d'habillement d'Alice Martin »). 25 lignes par page, puis « Voir les plus anciennes ». Le super administrateur y a accès aussi.
+- Ce qui est suivi : le planning et les manœuvres, les nominations et retraits, les réglages (rôles, comités, profils, engins, ressources, armement, écusson, aptitudes), les fiches des agents, les décisions sur les demandes (habillement, anomalies, réservations à valider), les remplacements validés ou refusés par le chef de garde. Rien de privé : ni les conversations, ni « mon profil », ni les publications, commentaires ou réservations d'un agent.
+- Dans la cloche, **une seule ligne** : « Suivi du centre : 3 nouveautés depuis votre dernière visite », sans envoi au téléphone ; ses propres actions ne comptent pas. Elle compte pour 1 dans le chiffre de la cloche et sur la pastille de l'icône ; ouvrir le suivi la remet à zéro. Au-delà de 99, le compte s'arrête ; seules les 1 000 dernières actions du journal comptent.
+- Un agent effacé y reste « Ancien agent ».
+
+## Chefs et demandes adressées aux référents
+
+- Dès qu'un référent est nommé (référent engins pour les anomalies, référent habillement, gestionnaire d'une ressource), le chef de centre et l'adjoint ne reçoivent plus la demande au téléphone ni par e-mail : elle passe dans leur suivi. Le chef de garde de l'équipe d'astreinte reste prévenu des anomalies.
+- Sans référent nommé, le chef et l'adjoint restent prévenus : ce sont eux qui traitent.
+- Les urgences leur arrivent toujours.
+
+## E-mail aux référents
+
+- Une **nouvelle** demande adressée à un référent part aussi par e-mail à chacun de ceux qui la reçoivent en notification : nouvelle demande d'habillement, anomalie signalée (et nouvelles anomalies d'une prise de garde), réservation à valider. Un rôle créé par le chef avec ce droit reçoit donc les e-mails.
+- Texte simple : le titre, ses deux lignes et le lien vers la demande. La suite de la demande (questions, prise en compte) reste dans l'appli.
+- Moi → Notifications → « Recevoir les demandes par e-mail », activé par défaut, pour qui tient un rôle. « Tout couper » ne coupe pas les e-mails.
+- L'e-mail part après la réponse : un échec (adresse refusée, Brevo en panne) n'empêche jamais la demande. Brevo, offre gratuite : 300 e-mails par jour.
 
 ## Au téléphone
 
@@ -45,14 +81,16 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 ## Couper
 
 - **Un mur ou une conversation** : le haut-parleur dans son en-tête (barré quand c'est coupé). Une seule cloche à l'écran : celle de l'appli. Une coupure vaut pour tout ce qui vient de ce lieu, commentaires sous ses propres publications compris.
-- **Tout** : l'interrupteur « Tout couper au téléphone » de Moi → Notifications, qui liste aussi ce qui est coupé, avec « Réactiver ».
+- **Tout** : l'interrupteur « Tout couper au téléphone » de Moi → Notifications, qui liste aussi ce qui est coupé, avec « Réactiver ». Il coupe aussi les urgences du centre.
+- **Les urgences du centre** (chef, adjoint) et **les e-mails des demandes** (qui tient un rôle) : leurs interrupteurs dans Moi → Notifications.
 - Couper ne retire que le son du téléphone : la cloche de l'appli montre toujours tout. Aucune notification n'est impossible à couper.
 
 ## La cloche
 
-- Un fil : une ligne par publication, commentaire, réponse à une réservation, avis de remplacement, de l'été ou d'anomalie, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
+- Un fil : une ligne par publication, commentaire, réponse à une réservation, avis de remplacement, de l'été, d'anomalie ou de nomination, du plus récent au plus ancien, « Aujourd'hui » puis « Plus tôt » (50 lignes au plus).
 - Le chiffre compte les **non lues**. Toucher une ligne de la cloche la marque lue, quelle qu'elle soit, puis ouvre sa page. Ouvrir un mur marque lues ses publications ; ouvrir une publication la marque lue avec ses commentaires. Ouvrir une demande de remplacement marque lus ses avis ; ouvrir l'été (chef) marque lus les avis qui y mènent (« vacances changées »), pas le rappel de donner ses vacances, qui mène à « Mes vacances ». Le chiffre baisse dès la page ouverte. Une ligne non lue se reconnaît à son titre en gras et à son point ; les lecteurs d'écran disent « Non lu ». « Tout marquer comme lu » en haut du fil.
-- En tête, **« À trancher »** : les remplacements à valider (une aptitude contrôlée manque au remplaçant) pour qui valide, et les demandes de réservation pour qui gère la ressource. Ils comptent tant que personne n'a tranché (une demande de réservation sonne une fois au téléphone).
+- En tête, pour le chef et l'adjoint, la ligne du **suivi du centre** quand il y a du nouveau.
+- Puis **« À trancher »** : les remplacements à valider (une aptitude contrôlée manque au remplaçant) pour qui valide, et les demandes de réservation pour qui gère la ressource. Ils comptent tant que personne n'a tranché (une demande de réservation sonne une fois au téléphone).
 - Pour qui modère, les messages signalés restent en tête et comptent tant qu'ils ne sont pas traités (sans notification au téléphone). Le super administrateur ne voit qu'eux.
 - « À ne pas manquer » (répondre à un sondage, à un événement) reste sur l'Accueil.
 
@@ -64,7 +102,7 @@ Seul qui peut lire la publication ou la conversation **au moment de l'envoi** es
 
 ## Ce que la fonction ne fait pas (encore)
 
-Rappels programmés, courriels, réactions qui notifient.
+Rappels programmés, e-mail pour la suite d'une demande, récapitulatif quotidien, réglage de ce qui est urgent, urgence « garde sous l'armement minimum » (lot à part), réactions qui notifient.
 
 ## Exemple
 

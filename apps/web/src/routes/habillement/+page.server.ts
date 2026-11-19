@@ -4,6 +4,7 @@ import { aujourdhuiParis, maintenantParis } from '#lib/aujourdhui.ts';
 import { phraseHabillement } from '#lib/habillement.ts';
 import { champ } from '#lib/server/engins.ts';
 import type { Actions, PageServerLoad } from './$types';
+import { envoyerDemandeParCourriel } from '#lib/server/courriel-demandes.ts';
 
 // Caserne → Habillement : faire une demande, et mes demandes. Le super administrateur ne demande rien : il voit toutes les demandes.
 export const load: PageServerLoad = async ({ locals }) => {
@@ -15,7 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ locals, request }) => {
+	default: async ({ locals, request, url }) => {
 		const { acteur, base } = locals;
 		if (!acteur) redirect(303, '/connexion');
 		const texte = champ(await request.formData(), 'texte');
@@ -26,6 +27,8 @@ export const actions: Actions = {
 			if (erreur instanceof DonneeInvalide) return fail(400, { texte, message: phraseHabillement(erreur.message) });
 			throw erreur;
 		}
+		// Aussi par e-mail à ceux qui la reçoivent, après la réponse.
+		envoyerDemandeParCourriel(locals, url, { genre: 'habillement', id });
 		redirect(303, `/habillement/${id}?envoyee`);
 	}
 };

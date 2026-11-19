@@ -62,7 +62,7 @@ export function lienPriseOuvert(debutAstreinte: string, maintenant: string, regl
 }
 
 // L'équipe d'astreinte d'une relève, d'après le planning publié de son année : trois lectures à placer dans un batch.
-function lecturesEquipe(base: Base, releve: string) {
+export function lecturesEquipe(base: Base, releve: string) {
 	const annee = Number(releve.slice(0, 4));
 	return [
 		base.select().from(anneePlanning).where(eq(anneePlanning.annee, annee)),
@@ -78,7 +78,7 @@ export async function equipeAstreinte(base: Base, maintenant: string, reglage: R
 }
 // Seulement la semaine de la relève, comme `calculerAnnee` la donnerait : celle choisie par le chef, sinon le roulement. L'accueil du chef
 // la demande deux fois ; calculer toute l'année pour une semaine coûtait (décision 0021).
-function equipeDe(releve: string, annees: (typeof anneePlanning.$inferSelect)[], changees: { debut: string; equipeId: number }[], equipes: EquipeReleve[], reglage: Reglage): EquipeReleve | null {
+export function equipeDe(releve: string, annees: (typeof anneePlanning.$inferSelect)[], changees: { debut: string; equipeId: number }[], equipes: EquipeReleve[], reglage: Reglage): EquipeReleve | null {
 	const annee = Number(releve.slice(0, 4));
 	const jour = releve.slice(0, 10);
 	const ligne = annees.find((a) => a.annee === annee && a.publieeLe !== null);
@@ -358,7 +358,7 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 	const enginId = b.prise.enginId;
 	// Un écart sur un élément encore signalé (et non retrouvé) ne crée pas d'anomalie.
 	const nouvelles = b.zones.flatMap((z) => z.elements).filter((e) => saisie.ecarts[String(e.ref)] && !b.ouvertes.some((o) => o.ref === e.ref && !saisie.retrouves.includes(o.id)));
-	const traitent = nouvelles.length ? (await quiTraite(base, maintenant.slice(0, 10), b.prise.equipeId)).filter((x) => x !== moi) : [];
+	const traitent = nouvelles.length ? (await quiTraite(base, maintenant.slice(0, 10), b.prise.equipeId, moi)).filter((x) => x !== moi) : [];
 	const qui = b.noms.get(moi) ?? 'un agent';
 	const avis = [
 		...avisAnomalies(

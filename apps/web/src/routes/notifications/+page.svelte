@@ -12,7 +12,7 @@
 	import Vide from '#lib/ui/Vide.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 
-	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; remplacementsAValider?: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
+	let { data, form }: { data: { lignes: LigneFil[]; nonLues: number; aujourdhui: string; signalements: Signalement[]; aValider: number; remplacementsAValider?: number; suivi?: number; confirmer: number | null }; form?: { message?: string; succes?: string } | null } = $props();
 
 	// Le fil, du plus récent au plus ancien : « Aujourd'hui », puis « Plus tôt ».
 	const groupes = $derived(
@@ -81,6 +81,13 @@
 </EnTetePage>
 <p class="masque" role="status">{succes}</p>
 <p class="erreur" class:masque={!refus} role="alert">{refus}</p>
+
+{#if data.suivi}
+	<!-- Le suivi du centre (chef, adjoint) : une seule ligne, quel que soit le nombre de nouveautés. -->
+	<ListeRangees>
+		<li><Rangee href="/suivi" titre="Suivi du centre : {pluriel(data.suivi, 'nouveauté')} depuis votre dernière visite" /></li>
+	</ListeRangees>
+{/if}
 
 {#if data.aValider > 0 || (data.remplacementsAValider ?? 0) > 0}
 	<ListeRangees titre="À trancher">
@@ -175,9 +182,9 @@
 							</span>
 							{#if !l.lue}<span class="point" aria-hidden="true"></span>{/if}
 						</a>
-					{:else if l.type === 'anomalie' || l.type === 'habillement'}
+					{:else if l.type === 'anomalie' || l.type === 'habillement' || l.type === 'nomination'}
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, l.url)}>
-							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={l.type === 'habillement' ? ICONES_ROLES.veste : ICONES_ROLES.outil} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={l.type === 'habillement' ? ICONES_ROLES.veste : l.type === 'nomination' ? ICONES_ROLES.etoile : ICONES_ROLES.outil} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{l.titre}</span>
 								<span class="extrait">{l.texte}</span>
@@ -196,7 +203,11 @@
 						</a>
 					{:else}
 						<a class="ligne" class:non-lue={!l.lue} href={lien(l, `/echanges/${l.cle}/${l.publicationId}`)}>
-							<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							{#if l.auteur.appli}
+								<span class="pictogramme" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d={ICONES_ROLES.calendrier} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+							{:else}
+								<Visage prenom={l.auteur.prenom} nom={l.auteur.nom} couleur={l.auteur.couleur} taille={44} />
+							{/if}
 							<span class="corps">
 								<span class="quoi">{#if !l.lue}<span class="masque">{'Non lu, '}</span>{/if}{`${l.auteur.prenom} ${l.auteur.nom}`.trim()}{l.type === 'commentaire' ? ' a commenté votre publication' : ` a publié dans ${l.nomMur}`}</span>
 								{#if l.extrait}<span class="extrait">{l.extrait}</span>{/if}
@@ -210,7 +221,7 @@
 		</ul>
 	</section>
 {:else}
-	{#if data.signalements.length === 0 && data.aValider === 0 && !data.remplacementsAValider}
+	{#if data.signalements.length === 0 && data.aValider === 0 && !data.remplacementsAValider && !data.suivi}
 		<Vide titre="Rien de nouveau pour vous." texte="Les publications de vos murs et les commentaires sous les vôtres arriveront ici." action={{ href: '/echanges', libelle: 'Voir les échanges' }} />
 	{/if}
 {/each}

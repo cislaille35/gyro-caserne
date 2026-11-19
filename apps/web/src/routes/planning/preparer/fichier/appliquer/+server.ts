@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!estFichierPlanningLu(corps?.lu)) return json({ message: 'Fichier mal formé' }, { status: 400 });
 	try {
 		const { changees } = await appliquerPlanning(locals.base, acteur, anneeValide(corps.annee), corps.lu, maintenantParis(), centre.astreinte, centre.manoeuvres);
-		for (const id of changees) enArrierePlan(locals, () => manoeuvreChangee(locals.base, id, maintenantParis()));
+		for (const id of changees) enArrierePlan(locals, () => manoeuvreChangee(locals.base, id, maintenantParis(), acteur));
 		annoncerSiJournee(locals);
 		return json({ ok: true });
 	} catch (erreur) {

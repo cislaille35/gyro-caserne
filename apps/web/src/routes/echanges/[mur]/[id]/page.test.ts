@@ -11,6 +11,7 @@ const publication: PublicationVue = {
 	texte: 'Note de service',
 	creeLe: '2026-10-28T14:05:00',
 	modifieeLe: null,
+	modifieePar: null,
 	epinglee: false,
 	commentairesFermes: false,
 	annulee: false,

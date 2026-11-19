@@ -6,7 +6,7 @@ import { actions, load } from './+page.server';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const charger = (locals: unknown) => (load as any)({ locals });
-const agir = async (nom: 'toutCouper' | 'reactiver', locals: unknown, champs: [string, string][]) => (actions[nom] as any)({ locals, request: await requeteFormulaire(champs) });
+const agir = async (nom: 'toutCouper' | 'reactiver' | 'urgences' | 'courriel', locals: unknown, champs: [string, string][]) => (actions[nom] as any)({ locals, request: await requeteFormulaire(champs) });
 
 describe('/moi/notifications', () => {
 	it('demande la connexion ; le super administrateur, sans fiche, retourne à Moi', async () => {
@@ -18,7 +18,7 @@ describe('/moi/notifications', () => {
 		const { base, e1, alice } = await preparer();
 		await couper(base, alice, `mur:equipe:${e1.id}`, true, maintenantParis());
 		await abonner(base, alice, { endpoint: 'https://fcm.googleapis.com/fcm/send/a', p256dh: 'BCle', auth: 'secret', appareil: '' }, maintenantParis());
-		expect(await charger({ ...locaux(base, alice), clePublique: 'BPub' })).toEqual({ clePublique: 'BPub', tout: false, coupes: [{ lieu: `mur:equipe:${e1.id}`, nom: e1.nom }], appareils: 1 });
+		expect(await charger({ ...locaux(base, alice), clePublique: 'BPub' })).toEqual({ clePublique: 'BPub', tout: false, coupes: [{ lieu: `mur:equipe:${e1.id}`, nom: e1.nom }], appareils: 1, urgences: null, courriel: null });
 		expect((await charger(locaux(base, alice))).clePublique).toBeNull();
 	});
 
@@ -33,5 +33,22 @@ describe('/moi/notifications', () => {
 		expect(await agir('reactiver', locals, [['lieu', `mur:equipe:${e1.id}`]])).toEqual({ succes: 'Réactivé.' });
 		expect((await mesNotifications(base, alice, aujourdhuiParis())).coupes).toEqual([]);
 		expect(await agir('reactiver', locals, [['lieu', 'ailleurs']])).toMatchObject({ status: 400 });
+	});
+	it('le chef coupe puis rallume les urgences du centre ; elles ne sont pas dans la liste des lieux coupés', async () => {
+		const { base, chef } = await preparer();
+		expect((await charger(locaux(base, chef))).urgences).toBe(true);
+		expect(await agir('urgences', locaux(base, chef), [['oui', '0']])).toMatchObject({ succes: expect.any(String) });
+		expect(await charger(locaux(base, chef))).toMatchObject({ urgences: false, coupes: [] });
+		await agir('urgences', locaux(base, chef), [['oui', '1']]);
+		expect((await charger(locaux(base, chef))).urgences).toBe(true);
+	});
+	it('qui tient un rôle reçoit les demandes par e-mail, par défaut ; il peut le couper puis le rallumer ; pas un agent sans rôle', async () => {
+		const { base, chef, alice } = await preparer();
+		expect((await charger(locaux(base, chef))).courriel).toBe(true);
+		expect((await charger(locaux(base, alice))).courriel).toBeNull();
+		await agir('courriel', locaux(base, chef), [['oui', '0']]);
+		expect(await charger(locaux(base, chef))).toMatchObject({ courriel: false, coupes: [] });
+		await agir('courriel', locaux(base, chef), [['oui', '1']]);
+		expect((await charger(locaux(base, chef))).courriel).toBe(true);
 	});
 });

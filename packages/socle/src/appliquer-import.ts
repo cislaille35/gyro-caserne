@@ -141,7 +141,7 @@ export async function appliquerOperation(
 		case 'attribuer': {
 			const [role] = await base.select({ systeme: responsabilite.systeme }).from(responsabilite).where(eq(responsabilite.id, op.responsabiliteId));
 			exigerRoleOrdinaire(role?.systeme);
-			await attribuer(base, acteur, { personneId: vise!, responsabiliteId: op.responsabiliteId, perimetre: op.perimetre, debut: aujourdhui }, aujourdhui);
+			await attribuer(base, acteur, { personneId: vise!, responsabiliteId: op.responsabiliteId, perimetre: op.perimetre, debut: aujourdhui }, aujourdhui, { prevenir: false });
 			break;
 		}
 		case 'aptitude':

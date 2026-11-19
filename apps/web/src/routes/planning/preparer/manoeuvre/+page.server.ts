@@ -42,7 +42,7 @@ export const actions: Actions = {
 			return echecPlanning(erreur, 'manoeuvre', valeurs);
 		}
 		// Déjà annoncée : les convoqués sont prévenus du changement, après la réponse. Sinon, annoncée tout de suite si elle est proche.
-		if (valeurs.id) enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis()));
+		if (valeurs.id) enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis(), acteur));
 		annoncerSiJournee(locals);
 		redirect(303, `/planning/preparer?annee=${valeurs.date.slice(0, 4)}&etape=manoeuvres`);
 	},
@@ -57,7 +57,7 @@ export const actions: Actions = {
 		} catch (erreur) {
 			return echecPlanning(erreur, 'supprimer');
 		}
-		enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis()));
+		enArrierePlan(locals, () => manoeuvreChangee(base, id, maintenantParis(), acteur));
 		redirect(303, `/planning/preparer?annee=${annee}&etape=manoeuvres`);
 	}
 };
