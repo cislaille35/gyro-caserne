@@ -22,6 +22,10 @@ declare global {
 			// Envoyer un e-mail (Brevo) ; absent hors du Worker (tests).
 			courriel?: (m: { a: string; sujet: string; texte: string }) => Promise<void>;
 		}
+		// Une photo ouverte en grand (Visionneuse) : un pas d'historique, que le retour du téléphone referme.
+		interface PageState {
+			photo?: { src: string; alt: string };
+		}
 	}
 	// Variables Cloudflare de l'appli, lues avec `import { env } from 'cloudflare:workers'`
 	namespace Cloudflare {

@@ -42,6 +42,10 @@
 	--entete-doux: #c3ccd5;
 	--entete-bouton: #2b3642;
 	--entete-focus: #7ab8ff;
+	/* Le fond de la visionneuse : presque noir, dans tous les thèmes. */
+	--fond-photo: #0b1016;
+	--encre-photo: #ffffff;
+	--voile-photo: rgb(0 0 0 / 50%);
 	--menu-fond: #ffffff;
 	--menu-actif: #e1e5ea;
 	--segment-fond: #e1e5ea;

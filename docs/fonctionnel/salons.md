@@ -89,6 +89,7 @@ Exemple : Zoé a 30 ans. Paul ouvre Échanges, voit « Zoé Bernard fête son an
 - Réduites dans le navigateur avant l'envoi (côté long 1 600 px, moins pour une photo très détaillée), en JPEG ou WebP, **200 Ko au plus** chacune.
 - Rangées dans **une base à part**, réservée aux photos, sans coût : elle tient 500 Mo, environ 2 500 photos. La page Réglages montre la place prise (« Photos : 120 Mo sur 500 Mo ») au chef de centre, à l'adjoint et au super administrateur, avec une alerte à partir de 80 %. Voir [0010](../decisions/0010-photos-dans-leur-base.md).
 - **Privées** : servies seulement à qui peut lire le mur, jamais par une adresse publique.
+- Un appui sur une photo l'ouvre en grand, sans quitter la page ; « Fermer » ou le retour du téléphone y ramène. De même pour les photos des messages, de la prise de garde et des anomalies.
 - Supprimer une publication supprime ses photos.
 
 ## Conservation

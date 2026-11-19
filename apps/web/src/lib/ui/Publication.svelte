@@ -175,7 +175,7 @@
 	{#if p.photos.length > 0}
 		<ul class="photos" class:une={p.photos.length === 1}>
 			{#each p.photos as id, i (id)}
-				<li><img src="/echanges/photo/{id}" alt="Photo {i + 1} sur {p.photos.length}, publiée par {auteur}" loading="lazy" /></li>
+				<li><a href="/echanges/photo/{id}" data-visionneuse><img src="/echanges/photo/{id}" alt="Photo {i + 1} sur {p.photos.length}, publiée par {auteur}" loading="lazy" /></a></li>
 			{/each}
 		</ul>
 	{/if}
@@ -499,6 +499,13 @@
 	.photos.une {
 		padding: 0;
 		grid-template-columns: 1fr;
+	}
+	.photos a {
+		display: block;
+		border-radius: var(--rayon-bouton);
+	}
+	.photos.une a {
+		border-radius: 0;
 	}
 	.photos img {
 		display: block;

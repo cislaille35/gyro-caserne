@@ -181,7 +181,7 @@
 					</div>
 					{#if a.prisePar}<div><dt>Prise en charge</dt><dd>{a.prisePar}</dd></div>{/if}
 				</dl>
-				{#if a.photo}<a class="photo" href="/engins/photo/{a.photo}"><img src="/engins/photo/{a.photo}" alt="Photo du problème : {a.libelle}" width="160" height="160" loading="lazy" /></a>{/if}
+				{#if a.photo}<a class="photo" href="/engins/photo/{a.photo}" data-visionneuse><img src="/engins/photo/{a.photo}" alt="Photo du problème : {a.libelle}" width="160" height="160" loading="lazy" /></a>{/if}
 				<a class="lien-secondaire" href="/engins/{e.id}">Voir {e.nom}</a>
 			</section>
 

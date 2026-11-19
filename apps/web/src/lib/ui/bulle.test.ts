@@ -83,6 +83,10 @@ describe('Bulle', () => {
 		expect(html(message({ photos: [12] }))).toMatch(/alt="Photo"/);
 	});
 
+	it('une photo s’ouvre en grand dans la visionneuse ; sans JavaScript, le lien mène à la photo', () => {
+		expect(html(message({ photos: [12] }))).toMatch(/<a href="\/echanges\/messages\/7\/photo\/12" data-visionneuse=""[^>]*><img/);
+	});
+
 	it('les réactions, en texte : des boutons qui ajoutent ou retirent la mienne', () => {
 		const m = message({
 			reactions: [
