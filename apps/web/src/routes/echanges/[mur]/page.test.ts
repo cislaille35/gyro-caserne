@@ -95,7 +95,7 @@ describe('page d’un mur', () => {
 
 	it('une manœuvre annulée par le planning : « Annulée », plus de réponse ; signée « Planning » avec l’icône du calendrier, jamais d’initiales', () => {
 		const evenement = { debut: '2026-11-05T19:30', fin: null, lieu: 'Caserne', convoques: [2], convoque: true, moment: 'avenir' as const, reponse: null, compte: { present: 0, absent: 0, incertain: 0 }, presents: [] };
-		const auteur = { prenom: 'Planning', nom: '', couleur: null, role: null, ecrireA: null, appli: true };
+		const auteur = { prenom: 'Planning', nom: '', couleur: null, role: null, ecrireA: null, appli: true as const };
 		const ouverte = html({ estPersonne: true, publications: [pub({ type: 'evenement', auteur, texte: 'Manœuvre : Feux de forêt', evenement })] });
 		expect(ouverte).toMatch(/<strong id="auteur-\d+">Planning<\/strong>/);
 		expect(ouverte).toMatch(/class="icone-appli[^"]*" aria-hidden="true"><svg[^>]*><path d="M4 6h16v14H4z/);

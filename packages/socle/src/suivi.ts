@@ -98,7 +98,9 @@ const phrase = (action: string, cibleType: string, c: Cible) => (action === 'mod
 export type LigneSuivi = { id: number; quand: string; qui: string; phrase: string; lien: string | null };
 
 const SYSTEMES_SUIVI = sql.raw(`'chef_centre', 'chef_centre_adjoint'`);
-const actions = () => sql.raw(ACTIONS_SUIVI.map((a) => `'${a}'`).join(', '));
+// Écrite une fois : la liste des actions suivies, en clair dans le SQL.
+const ACTIONS_SQL = sql.raw(ACTIONS_SUIVI.map((a) => `'${a}'`).join(', '));
+const actions = () => ACTIONS_SQL;
 
 // Le chef de centre ou l'adjoint en fonction (`qui` : un identifiant ou la colonne d'une requête).
 export const estChefOuAdjointSql = (qui: SQL | number, aujourdhui: string) =>

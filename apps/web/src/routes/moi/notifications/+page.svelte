@@ -50,7 +50,7 @@
 				<p id="aide-urgences">Un engin indisponible, un remplacement sans remplaçant la veille, une équipe sans chef de garde la veille de sa relève : votre téléphone sonne, à toute heure.</p>
 				<button type="submit" role="switch" aria-checked={data.urgences ? 'true' : 'false'} name="oui" value={data.urgences ? '0' : '1'} aria-describedby="aide-urgences">
 					<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
-					<span>Recevoir les urgences au téléphone</span>
+					<span>Recevoir les urgences</span>
 				</button>
 			</form>
 		</Carte>

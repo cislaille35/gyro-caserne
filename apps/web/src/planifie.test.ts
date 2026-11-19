@@ -132,7 +132,7 @@ describe('avecPlanifie', () => {
 		vi.mocked(remplacementsDuMoment).mockImplementationOnce(plusTard('remplacements') as never);
 		vi.mocked(envoyerLot).mockImplementationOnce(async () => (ordre.push('envoi'), { envoyes: 0, perimes: 0 }));
 		const attendus: Promise<unknown>[] = [];
-		const worker = avecPlanifie({ fetch: vi.fn() }, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, manoeuvres: { petitDejeuner: ['Oui', 'Non'] } });
+		const worker = avecPlanifie({ fetch: vi.fn() }, { conservationMessagesMois: 6, conservationPublicationsMois: 24, position: { latitude: 48.1, longitude: -1.7 }, manoeuvres: { petitDejeuner: ['Oui', 'Non'] }, astreinte: ASTREINTE });
 		worker.scheduled({ cron: '*/10 * * * *', scheduledTime: Date.parse('2026-11-15T07:00:00Z') } as never, { BASE: {}, PHOTOS: {} } as never, { waitUntil: (p: Promise<unknown>) => attendus.push(p) } as never);
 		await Promise.all(attendus);
 		expect(ordre).toHaveLength(3);
