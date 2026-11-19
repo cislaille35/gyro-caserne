@@ -8,7 +8,7 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { enTeteDe, filDeNotifications } from '../src/notifications.ts';
 import { enregistrerManoeuvre } from '../src/planning/annee.ts';
 import { journal, personne, profil, responsabilite } from '../src/schema.ts';
-import { ACTIONS_SUIVI, suiviDuCentre } from '../src/suivi.ts';
+import { ACTIONS_SUIVI, actionsDuSujet, SUJETS_SUIVI, suiviDuCentre } from '../src/suivi.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const aujourdhui = '2026-11-18';
@@ -36,6 +36,19 @@ describe('la liste des actions suivies', () => {
 		for (const a of ['modifier_manoeuvre', 'annuler_manoeuvre', 'publier_annee', 'attribuer', 'terminer_attribution', 'creer_responsabilite', 'creer_comite', 'modifier_droits_profil', 'modifier_engin', 'modifier_ressource', 'regler_armement', 'deposer_ecusson', 'ajouter_personne', 'modifier_fiche', 'changer_statut', 'affecter_equipe', 'effacer_agent', 'prendre_habillement', 'refuser_habillement', 'livrer_habillement', 'signaler_anomalie', 'rendre_indisponible', 'remettre_en_service', 'clore_anomalie', 'accepter_reservation', 'refuser_reservation', 'valider_remplacement', 'refuser_validation'])
 			expect(ACTIONS_SUIVI, a).toContain(a);
 		for (const a of ['creer_conversation', 'modifier_mon_profil', 'publier', 'reserver', 'supprimer_commentaire', 'annuler_reservation', 'demander_remplacement', 'signaler_message', 'annoncer_manoeuvre']) expect(ACTIONS_SUIVI, a).not.toContain(a);
+	});
+});
+
+describe('les sujets du suivi', () => {
+	it('chaque action suivie a un sujet, un seul', () => {
+		expect([...SUJETS_SUIVI]).toEqual(['planning', 'nominations', 'demandes', 'agents', 'reglages']);
+		const toutes = SUJETS_SUIVI.flatMap((s) => actionsDuSujet(s));
+		expect([...toutes].sort()).toEqual([...ACTIONS_SUIVI].sort());
+		expect(actionsDuSujet('planning')).toContain('modifier_manoeuvre');
+		expect(actionsDuSujet('nominations')).toContain('attribuer');
+		expect(actionsDuSujet('demandes')).toEqual(expect.arrayContaining(['prendre_habillement', 'clore_anomalie', 'accepter_reservation', 'valider_remplacement']));
+		expect(actionsDuSujet('agents')).toContain('changer_statut');
+		expect(actionsDuSujet('reglages')).toContain('creer_comite');
 	});
 });
 
@@ -91,6 +104,51 @@ describe('suiviDuCentre', () => {
 		expect(suite.lignes).toHaveLength(5);
 		expect(suite.suite).toBeNull();
 		expect(base.parametresMax).toBeLessThan(100);
+	});
+});
+
+describe('le suivi : sujet, dernière visite, trois mois', () => {
+	it('filtré par sujet en SQL : toujours 25 lignes, et la suite dans le sujet', async () => {
+		const { base, claire, remi, alice } = await jeu();
+		const ligne = (action: string, cibleType = 'personne') => ({ quand: '2026-11-18T10:00', acteur: `personne:${remi.id}`, action, cibleType, cibleId: alice.id });
+		for (let i = 0; i < 3; i++) await base.insert(journal).values([...Array.from({ length: 10 }, () => ligne('changer_statut')), ligne('creer_comite', 'comite')]);
+		const agents = await suiviDuCentre(base, claire, aujourdhui, { sujet: 'agents' });
+		expect(agents.lignes).toHaveLength(25);
+		expect(agents.lignes.every((l) => l.phrase.startsWith('a changé le statut'))).toBe(true);
+		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'agents', avant: agents.suite! })).lignes).toHaveLength(5);
+		const reglages = await suiviDuCentre(base, claire, aujourdhui, { sujet: 'reglages' });
+		expect(reglages.lignes).toHaveLength(3);
+		expect(reglages.suite).toBeNull();
+		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'planning' })).lignes).toEqual([]);
+	});
+
+	it('la dernière visite est lue avant d’être marquée, sur la première page seulement', async () => {
+		const { base, claire, remi, alice } = await jeu();
+		const ligne = { quand: '2026-11-18T10:00', acteur: `personne:${remi.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id };
+		expect((await suiviDuCentre(base, claire, aujourdhui)).vu).toBeNull();
+		await base.insert(journal).values([ligne, ligne]);
+		const premiere = await suiviDuCentre(base, claire, aujourdhui);
+		expect(premiere.vu).toBeNull();
+		await base.insert(journal).values([ligne]);
+		const seconde = await suiviDuCentre(base, claire, aujourdhui);
+		expect(seconde.vu).toBe(premiere.lignes[0]!.id);
+		expect(seconde.lignes.filter((l) => l.id > seconde.vu!)).toHaveLength(1);
+		expect((await suiviDuCentre(base, claire, aujourdhui, { avant: 999 })).vu).toBeNull();
+		expect((await suiviDuCentre(base, superAdmin, aujourdhui)).vu).toBeNull();
+	});
+
+	it('trois derniers mois seulement, dans la page comme dans la cloche ; le journal garde tout', async () => {
+		const { base, claire, remi, alice } = await jeu();
+		const ligne = (quand: string) => ({ quand, acteur: `personne:${remi.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id });
+		await base.insert(journal).values([ligne('2026-08-17T23:59'), ligne('2026-08-18'), ligne('2026-11-18T10:00')]);
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(2);
+		expect((await suiviDuCentre(base, claire, aujourdhui)).lignes.map((l) => l.quand)).toEqual(['2026-11-18T10:00', '2026-08-18']);
+		expect(await base.select().from(journal)).toHaveLength(3);
+		// Le 31 mai : trois mois plus tôt, c'est le dernier jour de février.
+		await base.insert(journal).values([ligne('2026-02-27'), ligne('2026-02-28')]);
+		const quand = (await suiviDuCentre(base, superAdmin, '2026-05-31')).lignes.map((l) => l.quand);
+		expect(quand).toContain('2026-02-28');
+		expect(quand).not.toContain('2026-02-27');
 	});
 });
 

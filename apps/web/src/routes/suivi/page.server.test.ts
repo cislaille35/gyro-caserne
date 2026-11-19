@@ -14,6 +14,11 @@ describe('/suivi (serveur)', () => {
 		expect(premiere.lignes).toHaveLength(25);
 		expect(premiere.suite).not.toBeNull();
 		expect((await appeler(chef, base, `http://x/suivi?avant=${premiere.suite}`)).lignes.length).toBeGreaterThan(0);
+		// Le filtre passe par l'adresse ; un sujet inconnu montre tout.
+		expect((await appeler(chef, base, 'http://x/suivi?sujet=agents')).sujet).toBe('agents');
+		expect((await appeler(chef, base, 'http://x/suivi?sujet=reglages')).lignes).toEqual([]);
+		expect((await appeler(chef, base, 'http://x/suivi?sujet=nimporte')).sujet).toBeNull();
+		expect((await appeler(chef, base, 'http://x/suivi?sujet=nimporte')).lignes).toHaveLength(25);
 		await expect(appeler(alice, base)).rejects.toMatchObject({ status: 403 });
 		await expect(appeler(null, base)).rejects.toMatchObject({ status: 303, location: '/connexion' });
 	});

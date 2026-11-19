@@ -123,7 +123,7 @@ Les règles de lecture et d'écriture sont dans le socle (`effectif.ts`, `action
 
 ### Suivi du centre
 
-`routes/suivi` : une carte (`ListeRangees`) par jour, une `Rangee` par action (« qui » et la phrase, l'heure en sous-ligne, le lien), `--largeur-liste`, « Voir les plus anciennes » (`?avant=`). Entrée dans Caserne (Organisation) d'après `suivi` de l'en-tête, sans requête de plus. Une publication de l'appli (`auteur.appli`) montre l'icône du calendrier (`.icone-appli`) à la place du `Visage`.
+`routes/suivi` : une carte (`ListeRangees`) par jour, une `Rangee` par action (« qui » et la phrase, l'heure en sous-ligne, le lien), `--largeur-liste`. En haut, les filtres (`.segments`, liens `?sujet=`, `aria-current`). Le repère « Avant votre dernière visite » (`.repere`, un trait et le texte en `--doux`) coupe la liste à la première ligne déjà vue (`vu`) ; la suite du même jour continue dans une carte sans titre. « Voir les plus anciennes » (`?sujet=…&avant=`) : avec JavaScript, `preloadData` lit la page suivante, qui s'ajoute sous la liste ; le focus va à sa première ligne et `role="status"` annonce « 25 actions de plus ». Sans JavaScript, la page suivante remplace la liste. Entrée dans Caserne (Organisation) d'après `suivi` de l'en-tête, sans requête de plus. Une publication de l'appli (`auteur.appli`) montre l'icône du calendrier (`.icone-appli`) à la place du `Visage`.
 
 ## Messagerie
 
