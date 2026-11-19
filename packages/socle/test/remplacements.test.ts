@@ -235,9 +235,9 @@ describe('lectures', () => {
 		expect(pourAlice.miennes.map((v) => [v.id, v.etat, v.gestes.annuler])).toEqual([[ouverte, 'attente', true]]);
 		expect(pourAlice.historique.map((v) => [v.id, v.etat])).toEqual([[annulee, 'annulee']]);
 		const detail = await demandeVue(base, alice, ouverte, maintenant, reglage);
-		expect(detail.disponibles.map((x) => x.prenom)).toEqual(['Chloe', 'Bruno', 'Chef']);
+		expect(detail.disponibles!.map((x) => x.prenom)).toEqual(['Chloe', 'Bruno', 'Chef']);
 		expect(detail.recue).toBe(3);
-		expect(detail.valideurs.map((x) => x.prenom)).toEqual(['Elodie']);
+		expect(detail.valideurs!.map((x) => x.prenom)).toEqual(['Elodie']);
 		await expect(demandeVue(base, david, ouverte, maintenant, reglage)).rejects.toThrow(RefusDroit);
 
 		await accepterDemande(base, bruno, ouverte, maintenant, reglage);
@@ -482,12 +482,12 @@ describe('retours de revue', () => {
 		expect(await avisDe(n.chloe)).toEqual(['recue']);
 	});
 
-	it('après acceptation, un destinataire qui ne l’a pas prise ne voit plus la demande', async () => {
+	it('après acceptation, un destinataire qui ne l’a pas prise n’en voit plus que l’issue', async () => {
 		const { base, alice, bruno, chloe } = await jeu();
 		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
 		await demandeVue(base, bruno, id, maintenant, reglage);
 		await accepterDemande(base, chloe, id, maintenant, reglage);
-		await expect(demandeVue(base, bruno, id, maintenant, reglage)).rejects.toThrow(RefusDroit);
+		expect(await demandeVue(base, bruno, id, maintenant, reglage)).toEqual({ reduite: { id, issue: 'prise', demandeur: null, texte: 'nuit du lundi 9 novembre' } });
 	});
 
 	it('annulée par le demandeur, la cible est prévenue ; annulée par le chef, le remplaçant et le demandeur le sont', async () => {
@@ -708,5 +708,58 @@ describe.each([
 		const id = await demanderRemplacement(base, { type: 'personne', id: theo }, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
 		expect(await destinataires(id)).toEqual([n.chef, n.bruno, n.chloe].sort());
 		expect(await accepterDemande(base, chloe, id, maintenant, reglage)).toBe('conclue');
+	});
+});
+
+describe('ancien destinataire', () => {
+	// Une demande ouverte d'Alice, reçue par le chef, Bruno et Chloé ; puis tranchée.
+	async function tranchee(trancher: (j: Awaited<ReturnType<typeof jeu>>, id: number) => Promise<unknown>) {
+		const j = await jeu();
+		const id = await demanderRemplacement(j.base, j.alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await trancher(j, id);
+		return { ...j, id, vue: await demandeVue(j.base, j.bruno, id, maintenant, reglage) };
+	}
+	const forcer = (j: Awaited<ReturnType<typeof jeu>>, id: number, champs: Partial<typeof demandeRemplacement.$inferInsert>) => j.base.update(demandeRemplacement).set(champs).where(eq(demandeRemplacement.id, id));
+
+	it('annulée par le demandeur : son nom et la période', async () => {
+		const { vue, id } = await tranchee((j, id) => annulerDemande(j.base, j.alice, id, maintenant, reglage));
+		expect(vue).toEqual({ reduite: { id, issue: 'annulee', demandeur: { id: expect.any(Number), prenom: 'Alice', nom: 'Test' }, texte: 'nuit du lundi 9 novembre' } });
+	});
+
+	it('expirée, ou close (annulée par le chef, refusée après coup)', async () => {
+		expect((await tranchee((j, id) => forcer(j, id, { etat: 'expiree', trancheePar: 'planning' }))).vue).toMatchObject({ reduite: { issue: 'expiree', demandeur: null } });
+		expect((await tranchee((j, id) => annulerDemande(j.base, j.elodie, id, maintenant, reglage))).vue).toMatchObject({ reduite: { issue: 'close', demandeur: null } });
+		expect((await tranchee((j, id) => forcer(j, id, { etat: 'annulee', motif: 'Refusé par le demandeur', trancheePar: `personne:${j.n.alice}` }))).vue).toMatchObject({ reduite: { issue: 'close' } });
+	});
+
+	it('jamais reçue, ou refusée par lui et encore en attente : refus, au texte neutre', async () => {
+		const { base, alice, bruno, david } = await jeu();
+		const id = await demanderRemplacement(base, alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		await expect(demandeVue(base, david, id, maintenant, reglage)).rejects.toThrow(new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous concerne pas.'));
+		await refuserDemande(base, bruno, id, maintenant, reglage);
+		await expect(demandeVue(base, bruno, id, maintenant, reglage)).rejects.toThrow(RefusDroit);
+	});
+
+	it('la cloche : la ligne reçue dit l’issue et ne compte plus dans les non lues', async () => {
+		const j = await jeu();
+		const annulee = await demanderRemplacement(j.base, j.alice, { periodes: [nuitLundi9], cibleId: null }, maintenant, reglage);
+		const prise = await demanderRemplacement(j.base, j.alice, { periodes: [nuitMardi10], cibleId: null }, maintenant, reglage);
+		expect((await enTeteDe(j.base, j.bruno, '2026-11-01', maintenant)).nonLues).toBe(2);
+		await annulerDemande(j.base, j.alice, annulee, maintenant, reglage);
+		await accepterDemande(j.base, j.chloe, prise, maintenant, reglage);
+		expect((await enTeteDe(j.base, j.bruno, '2026-11-01', maintenant)).nonLues).toBe(0);
+		const fil = await filDeNotifications(j.base, j.bruno, maintenant);
+		expect(fil.nonLues).toBe(0);
+		expect(fil.lignes.map((l) => (l.type === 'remplacement' ? [l.demandeId, l.issue, l.lue] : null))).toEqual([
+			[prise, 'Prise', true],
+			[annulee, 'Annulée', true]
+		]);
+		// Pour qui l'a prise, la ligne reste telle quelle.
+		const deChloe = (await filDeNotifications(j.base, j.chloe, maintenant)).lignes.find((l) => l.type === 'remplacement' && l.demandeId === prise);
+		expect(deChloe).toMatchObject({ issue: null, lue: false });
+		expect((await enTeteDe(j.base, j.chloe, '2026-11-01', maintenant)).nonLues).toBe(1);
+		await forcer(j, prise, { etat: 'expiree' });
+		expect((await filDeNotifications(j.base, j.chloe, maintenant)).lignes.find((l) => l.type === 'remplacement' && l.demandeId === prise)).toMatchObject({ issue: 'Expirée', lue: true });
+		expect((await enTeteDe(j.base, j.chloe, '2026-11-01', maintenant)).nonLues).toBe(0);
 	});
 });

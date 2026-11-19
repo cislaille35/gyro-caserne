@@ -218,7 +218,7 @@ describe('remplacement court : pour les écrans', () => {
 		await accepterDemande(base, chloe, avec, maintenant, reglage);
 		const sans = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
 		await accepterDemande(base, bruno, sans, maintenant, reglage);
-		const vue = async (qui: Acteur, id: number, quand = maintenant) => (await demandeVue(base, qui, id, quand, reglage)).demande;
+		const vue = async (qui: Acteur, id: number, quand = maintenant) => (await demandeVue(base, qui, id, quand, reglage)).demande!;
 		expect(await vue(alice, avec)).toMatchObject({ court: true, etat: 'conclue', gestes: { refuserApresCoup: true } });
 		expect((await vue(elodie, avec)).gestes.refuserApresCoup).toBe(false);
 		expect((await vue(elodie, sans)).gestes.refuserApresCoup).toBe(true);
@@ -294,7 +294,7 @@ describe('remplacement court : revue', () => {
 		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
 		await accepterDemande(base, chloe, id, maintenant, reglage);
 		await expect(annulerDemande(base, elodie, id, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('Un remplacement court conclu ne s’annule pas : refusez le remplaçant'));
-		expect((await demandeVue(base, elodie, id, maintenant, reglage)).demande.gestes.annuler).toBe(false);
+		expect((await demandeVue(base, elodie, id, maintenant, reglage)).demande!.gestes.annuler).toBe(false);
 		// En attente, le chef peut toujours l'annuler.
 		const autre = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
 		await annulerDemande(base, elodie, autre, maintenant, reglage);
