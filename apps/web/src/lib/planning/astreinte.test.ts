@@ -61,4 +61,9 @@ describe('remplacements courts sur la plaque', () => {
 		expect(remplacantsCourts(a, liste, '2026-11-09T19:10')).toEqual(['Marc Petit de 20 h à 22 h', 'Marc Petit mardi 10 novembre, de 22 h à minuit']);
 		expect(remplacantsCourts(a, [], '2026-11-09T19:10')).toEqual([]);
 	});
+	it('après minuit, la dernière nuit : la veille au soir avec son jour, puis l’heure seule', () => {
+		const apresMinuit = [r('2026-11-13T00:15', '2026-11-13T02:15')];
+		expect(remplacantsCourts(a, apresMinuit, '2026-11-12T23:30')).toEqual(['Marc Petit vendredi 13 novembre, de 0 h 15 à 2 h 15']);
+		expect(remplacantsCourts(a, apresMinuit, '2026-11-13T00:02')).toEqual(['Marc Petit de 0 h 15 à 2 h 15']);
+	});
 });
