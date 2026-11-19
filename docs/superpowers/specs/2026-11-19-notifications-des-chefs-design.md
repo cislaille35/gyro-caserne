@@ -48,7 +48,7 @@ Cadré avec le porteur le 18/11/2026, après la présentation à Laillé.
 - Destinataires : chef de centre et adjoint en fonction, sauf l'auteur du geste.
 - Lieu de coupure nouveau, « urgences » : on peut le couper dans « Mes notifications », mais il est présenté en premier et expliqué.
 - « Tout couper » coupe aussi les urgences (décision du porteur, 19/11) ; l'écran prévient alors : « Vous ne recevrez plus les urgences du centre (engin indisponible…) ».
-- « La veille » d'une garde : la veille de la relève de l'équipe d'astreinte, d'après le calcul d'astreinte existant (été compris) ; une alerte par relève (choix de Claude).
+- « La veille » d'une garde : la veille de la relève de l'équipe d'astreinte, d'après le roulement et le planning publié, sans tenir compte des groupes d'été ; une alerte par relève (choix de Claude).
 - Chaque urgence a aussi sa ligne dans la cloche (liste existante du sujet ou ligne de suivi), pour qui n'a pas de téléphone abonné.
 
 ### 2. Suivi du centre (choix A du porteur)

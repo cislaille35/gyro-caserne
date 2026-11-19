@@ -91,8 +91,8 @@ export const ACTIONS_SUIVI = Object.keys(PHRASES) as readonly string[];
 const PAGE = 25;
 // Au-delà, l'en-tête n'en dit pas plus : la lecture s'arrête là.
 export const NOUVEAUTES_MAX = 99;
-// Jamais visité : seules les dernières lignes du journal comptent (lecture bornée).
-const JAMAIS_VU = 200;
+// Seules les 1 000 dernières lignes du journal comptent, même pour qui n'a jamais visité ou est parti longtemps (lecture bornée).
+const FENETRE = 1000;
 
 // Les fiches d'engins sont journalisées « modifier_fiche » sur un type d'engin.
 const phrase = (action: string, cibleType: string, c: Cible) => (action === 'modifier_fiche' && cibleType === 'type_engin' ? nomme(c, 'a modifié la fiche de') : (PHRASES[action as keyof typeof PHRASES]?.(c) ?? action));
@@ -110,7 +110,7 @@ export const estChefOuAdjointSql = (qui: SQL | number, aujourdhui: string) =>
 
 // Les nouveautés du suivi de `qui` (la colonne « personne » d'une requête sur personne), au plus NOUVEAUTES_MAX ; nul hors chefs.
 export const nouveautesSuiviSql = (aujourdhui: string) =>
-	sql<number | null>`case when ${estChefOuAdjointSql(sql`"personne"."id"`, aujourdhui)} then (select count(*) from (select 1 from journal j where j.id > coalesce("personne"."suivi_vu", (select max(id) from journal) - ${JAMAIS_VU}) and j.action in (${actions()}) and j.acteur <> 'personne:' || "personne"."id" order by j.id desc limit ${NOUVEAUTES_MAX})) end`;
+	sql<number | null>`case when ${estChefOuAdjointSql(sql`"personne"."id"`, aujourdhui)} then (select count(*) from (select 1 from journal j where j.id > max(coalesce("personne"."suivi_vu", 0), coalesce((select max(id) from journal), 0) - ${FENETRE}) and j.action in (${actions()}) and j.acteur <> 'personne:' || "personne"."id" order by j.id desc limit ${NOUVEAUTES_MAX})) end`;
 
 // Le nom de ce que vise une ligne du journal, selon sa cible ; et, pour une nomination, le rôle et l'agent (pour le lien).
 const cibleSql = sql<string | null>`case "journal"."cible_type"
@@ -135,8 +135,9 @@ const agentDeLAttributionSql = sql<number | null>`case when "journal"."cible_typ
 // L'engin de l'anomalie, pour « rendu indisponible » et « remis en service ».
 const enginDeLAnomalieSql = sql<string | null>`case when "journal"."cible_type" = 'anomalie' then (select e.nom from anomalie a join engin e on e.id = a.engin_id where a.id = "journal"."cible_id") end`;
 
-function lienDe(l: { cibleType: string; cibleId: number | null; agent: number | null }): string | null {
-	const id = l.cibleId;
+function lienDe(l: { action: string; cibleType: string; cibleId: number | null; agent: number | null }): string | null {
+	// Une manœuvre retirée n'existe plus : le planning à préparer.
+	const id = l.action === 'supprimer_manoeuvre' ? null : l.cibleId;
 	switch (l.cibleType) {
 		case 'personne':
 			return id === null ? '/agents' : `/agents/${id}`;

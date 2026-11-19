@@ -206,7 +206,7 @@ export async function signalerAnomalie(base: Base, basePhotos: BasePhotos, acteu
 	]);
 	if (!e) throw new DonneeInvalide('Engin inconnu');
 	if (e.situation === 'parti') throw new DonneeInvalide('Engin parti');
-	const prevenus = (await quiTraite(base, aujourdhui, await equipeAstreinte(base, maintenant, reglage))).filter((id) => id !== moi);
+	const prevenus = (await quiTraite(base, aujourdhui, await equipeAstreinte(base, maintenant, reglage), moi)).filter((id) => id !== moi);
 	return avecPhotos(basePhotos, photos, maintenant, async ([photo]) => {
 		const [[cree]] = await base.batch([
 			base

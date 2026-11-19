@@ -81,6 +81,22 @@ describe('signalement direct', () => {
 		expect(await courrielsDeDemande(j.base, { genre: 'prise', enginId: j.vtu, quand: PLUS_TARD })).toEqual([]);
 	});
 
+	it('le seul référent signale lui-même : le chef de centre et l’adjoint sont prévenus à sa place', async () => {
+		const j = await jeu();
+		const nommer = async (prenom: string, systeme: string) => {
+			const [p] = await j.base.insert(personne).values({ email: `${prenom.toLowerCase()}@exemple.fr`, prenom, nom: 'Fictif', profilId: (await j.base.select().from(profil).where(eq(profil.nom, 'Agent')))[0]!.id }).returning();
+			const [r] = await j.base.select().from(responsabilite).where(eq(responsabilite.systeme, systeme as 'chef_centre'));
+			await j.base.insert(attribution).values({ personneId: p!.id, responsabiliteId: r!.id, perimetreType: 'centre', perimetreId: null, debut: '2026-01-01', saisiePar: 'super:a@b.fr', saisieLe: '2026-01-01' });
+			return { type: 'personne' as const, id: p!.id };
+		};
+		const claire = await nommer('Claire', 'chef_centre');
+		const paul = await nommer('Paul', 'chef_centre_adjoint');
+		await j.signaler(j.referent);
+		expect(await j.avis(claire)).toHaveLength(1);
+		expect(await j.avis(paul)).toHaveLength(1);
+		expect(await j.avis(j.referent)).toEqual([]);
+	});
+
 	it('le chef de garde de l’équipe d’astreinte est prévenu', async () => {
 		const j = await jeu();
 		const equipes = await j.base.select().from(equipe);

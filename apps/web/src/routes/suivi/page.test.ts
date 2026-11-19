@@ -14,6 +14,7 @@ describe('/suivi', () => {
 		expect(page).toMatch(/<h1[^>]*>Suivi du centre<\/h1>/);
 		expect(page).toContain('href="/caserne"');
 		expect(page).toContain('Rien de nouveau au centre');
+		expect(page).toContain('Ce qui s’est passé au centre (planning');
 	});
 
 	it('une ligne par action, groupée par jour, du plus récent : qui, quoi, l’heure, et le lien vers l’élément', () => {

@@ -32,7 +32,7 @@
 <div class="page">
 	<EnTetePage titre="Suivi du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} />
 	{#if data.lignes.length === 0}
-		<Vide titre="Rien de nouveau au centre" texte="Ce que font les autres au centre (planning, nominations, réglages, fiches, décisions sur les demandes) s’affichera ici." />
+		<Vide titre="Rien de nouveau au centre" texte="Ce qui s’est passé au centre (planning, nominations, réglages, fiches, décisions sur les demandes) s’affichera ici." />
 	{:else}
 		{#each jours as g (g.jour)}
 			<ListeRangees titre={nomDuJour(g.jour)}>

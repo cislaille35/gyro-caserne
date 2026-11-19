@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import centreExemple from '../../../centres/exemple/centre.ts';
 import { attribuer } from '../src/actions/attributions.ts';
@@ -113,12 +113,30 @@ describe('les nouveautés du suivi dans l’en-tête', () => {
 		await suiviDuCentre(base, remi, aujourdhui, { avant: 1 });
 		expect((await enTeteDe(base, remi, aujourdhui)).suivi).toBe(1);
 	});
-	it('jamais visité : seules les 200 dernières lignes du journal sont regardées (lecture bornée)', async () => {
+	it('lecture bornée : jamais visité, ou visité il y a longtemps, seules les 1 000 dernières lignes du journal comptent', async () => {
 		const { base, claire, remi, alice } = await jeu();
 		const ligne = (qui: { id: number }) => ({ quand: '2026-11-18T10:00', acteur: `personne:${qui.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id });
 		await base.insert(journal).values([ligne(remi)]);
-		for (let i = 0; i < 5; i++) await base.insert(journal).values(Array.from({ length: 50 }, () => ligne(claire)));
+		const [premiere] = await base.select().from(journal);
+		for (let i = 0; i < 20; i++) await base.insert(journal).values(Array.from({ length: 50 }, () => ligne(claire)));
+		// 1 001 lignes : celle de Rémi est hors de la fenêtre.
 		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(0);
+		await base.update(personne).set({ suiviVu: premiere!.id - 1 }).where(eq(personne.id, claire.id));
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(0);
+		// Dans la fenêtre, la dernière visite fait foi.
+		await base.insert(journal).values([ligne(remi), ligne(remi)]);
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(2);
+		const [derniere] = await base.select({ id: journal.id }).from(journal).orderBy(desc(journal.id)).limit(1);
+		await base.update(personne).set({ suiviVu: derniere!.id - 1 }).where(eq(personne.id, claire.id));
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(1);
+	});
+});
+
+describe('les liens du suivi', () => {
+	it('une manœuvre retirée (elle n’existe plus) mène au planning à préparer', async () => {
+		const { base, claire } = await jeu();
+		await base.insert(journal).values([{ quand: '2026-11-18T10:00', acteur: `personne:${claire.id}`, action: 'supprimer_manoeuvre', cibleType: 'planning', cibleId: 42 }]);
+		expect((await suiviDuCentre(base, claire, aujourdhui)).lignes[0]!.lien).toBe('/planning/preparer');
 	});
 });
 

@@ -229,7 +229,8 @@ const nonLuesSql = (qui: number | SQL) =>
 
 // Le chiffre de la cloche d'une personne (la colonne d'une requête), comme l'en-tête des pages le compose (+layout.server.ts) :
 // non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher.
-const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)}`;
+// Et une ligne pour les nouveautés du suivi du centre (chef, adjoint), comme l'en-tête. `qui` : la colonne "personne"."id" (le suivi lit sa ligne).
+const clocheSql = (qui: SQL, aujourdhui: string, maintenant: string) => sql<number>`${nonLuesSql(qui)} + ${aValiderPar(qui, aujourdhui, maintenant)} + ${signalementsPour(qui, aujourdhui)} + ${aTrancherPar(qui, aujourdhui)} + (coalesce(${nouveautesSuiviSql(aujourdhui)}, 0) > 0)`;
 
 // Les non-lues, et les remplacements à valider. Une requête.
 const nonLuesDe = (base: Base, moi: number, aValider: SQL<number> = sql<number>`0`, suivi: SQL<number | null> = sql<number>`0`) =>

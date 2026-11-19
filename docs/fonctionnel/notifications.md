@@ -28,7 +28,7 @@ Le chef de centre et l'adjoint en fonction ne sont dérangés que pour l'urgent,
 |---|---|---|
 | « VTU indisponible » | un engin rendu indisponible (anomalie bloquante) | la page de l'engin |
 | Remplacement sans remplaçant | la relance de la veille, à 8 h, d'une demande sans remplaçant | la demande |
-| « Équipe 2 sans chef de garde demain » | la veille de la relève, à 8 h, quand l'équipe d'astreinte n'a pas de chef de garde nommé | Nominations |
+| « Équipe 2 sans chef de garde demain » | la veille de la relève, à 8 h, quand l'équipe d'astreinte n'a pas de chef de garde nommé (d'après le roulement et le planning publié, sans tenir compte des groupes d'été) | Nominations |
 
 - Chaque urgence a aussi sa ligne dans la cloche (anomalie, remplacement, ou suivi du centre pour l'équipe sans chef).
 - Moi → Notifications, en premier : « Urgences du centre », avec son interrupteur. « Tout couper » les coupe aussi ; l'écran prévient alors : « Vous ne recevrez plus les urgences du centre (engin indisponible…) ».
@@ -36,9 +36,9 @@ Le chef de centre et l'adjoint en fonction ne sont dérangés que pour l'urgent,
 
 ## Suivi du centre (chef de centre, adjoint)
 
-- Caserne → **Suivi du centre** : ce que les autres ont fait au centre, du plus récent au plus ancien, une ligne par action, avec le lien (« Claire Martin a modifié la manœuvre Feux de forêt », « Rémi Leroy a pris en compte la demande d'habillement d'Alice Martin »). 25 lignes par page, puis « Voir les plus anciennes ». Le super administrateur y a accès aussi.
+- Caserne → **Suivi du centre** : ce qui s'est passé au centre, du plus récent au plus ancien, une ligne par action, avec le lien (« Claire Martin a modifié la manœuvre Feux de forêt », « Rémi Leroy a pris en compte la demande d'habillement d'Alice Martin »). 25 lignes par page, puis « Voir les plus anciennes ». Le super administrateur y a accès aussi.
 - Ce qui est suivi : le planning et les manœuvres, les nominations et retraits, les réglages (rôles, comités, profils, engins, ressources, armement, écusson, aptitudes), les fiches des agents, les décisions sur les demandes (habillement, anomalies, réservations à valider), les remplacements validés ou refusés par le chef de garde. Rien de privé : ni les conversations, ni « mon profil », ni les publications, commentaires ou réservations d'un agent.
-- Dans la cloche, **une seule ligne** : « Suivi du centre : 3 nouveautés depuis votre dernière visite », sans envoi au téléphone ; ses propres actions ne comptent pas. Elle compte pour 1 dans le chiffre de la cloche ; ouvrir le suivi la remet à zéro. Au-delà de 99, le compte s'arrête.
+- Dans la cloche, **une seule ligne** : « Suivi du centre : 3 nouveautés depuis votre dernière visite », sans envoi au téléphone ; ses propres actions ne comptent pas. Elle compte pour 1 dans le chiffre de la cloche et sur la pastille de l'icône ; ouvrir le suivi la remet à zéro. Au-delà de 99, le compte s'arrête ; seules les 1 000 dernières actions du journal comptent.
 - Un agent effacé y reste « Ancien agent ».
 
 ## Chefs et demandes adressées aux référents

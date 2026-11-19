@@ -8,8 +8,8 @@ import { attribution, avisAnomalie, personne, profilDroit, responsabilite, respo
 // Qui est prévenu d'une anomalie, et la ligne de la cloche. Partagé par la prise de garde et le suivi des anomalies.
 
 // Ceux qui traitent les anomalies au centre (TRAITER_ANOMALIE sur le centre : référent engins…, ou à défaut chef de centre et adjoint)
-// et le chef de garde de l'équipe d'astreinte. Une requête.
-export async function quiTraite(base: Base, aujourdhui: string, equipeAstreinte: number | null): Promise<number[]> {
+// et le chef de garde de l'équipe d'astreinte. `auteur` : qui signale ; seul référent, il ne compte pas (le chef et l'adjoint sont prévenus). Une requête.
+export async function quiTraite(base: Base, aujourdhui: string, equipeAstreinte: number | null, auteur: number | null = null): Promise<number[]> {
 	const avecAcces = inArray(personne.statut, [...STATUTS_AVEC_ACCES]);
 	const [duProfil, tenues] = await base.batch([
 		base
@@ -32,7 +32,7 @@ export async function quiTraite(base: Base, aujourdhui: string, equipeAstreinte:
 	// La demande passe dans leur suivi du centre ; sans référent, ce sont eux qui traitent.
 	const centre = valides.filter((t) => t.type === 'centre');
 	const chefs = centre.filter((t) => t.systeme === 'chef_centre' || t.systeme === 'chef_centre_adjoint').map((t) => t.id);
-	const avecReferent = centre.some((t) => t.systeme === null && !chefs.includes(t.id));
+	const avecReferent = centre.some((t) => t.systeme === null && !chefs.includes(t.id) && t.id !== auteur);
 	return [...new Set(ids)].filter((id) => !avecReferent || !chefs.includes(id) || chefDeGarde.includes(id));
 }
 

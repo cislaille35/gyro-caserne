@@ -358,7 +358,7 @@ export async function validerPrise(base: Base, acteur: Acteur, id: number, maint
 	const enginId = b.prise.enginId;
 	// Un écart sur un élément encore signalé (et non retrouvé) ne crée pas d'anomalie.
 	const nouvelles = b.zones.flatMap((z) => z.elements).filter((e) => saisie.ecarts[String(e.ref)] && !b.ouvertes.some((o) => o.ref === e.ref && !saisie.retrouves.includes(o.id)));
-	const traitent = nouvelles.length ? (await quiTraite(base, maintenant.slice(0, 10), b.prise.equipeId)).filter((x) => x !== moi) : [];
+	const traitent = nouvelles.length ? (await quiTraite(base, maintenant.slice(0, 10), b.prise.equipeId, moi)).filter((x) => x !== moi) : [];
 	const qui = b.noms.get(moi) ?? 'un agent';
 	const avis = [
 		...avisAnomalies(
