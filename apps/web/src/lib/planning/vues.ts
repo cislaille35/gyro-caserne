@@ -14,6 +14,8 @@ export const SIGNES: Record<Repere['genre'], string> = { ferie: 'Férié', vacan
 
 const lendemain = (date: string) => ajouterJours(date, 1);
 const contient = (s: SemaineCalculee, moment: string) => s.periodes.some((p) => p.debut <= moment && moment < p.fin);
+// Une nuit : elle finit avant midi le lendemain de son début, et se dit le jour où elle commence.
+const estNuit = (p: PeriodePlanning) => p.fin <= `${lendemain(p.debut.slice(0, 10))}T12:00`;
 
 function texteRemplacement(r: Remplacement, avecQuand: boolean): string {
 	const quand = avecQuand ? `, ${texteTranche(r)}` : '';
@@ -34,9 +36,10 @@ export function reperesDe(s: SemaineCalculee, d: Donnees, mode: Mode, jour = fal
 		liste.push({ genre: 'manoeuvre', texte: jour ? `« ${m.theme} », ${heure(m.debut)}` : `« ${m.theme} », ${jourLong(m.debut)}, ${heure(m.debut)}`, date: m.debut.slice(0, 10) });
 	}
 	for (const r of d.remplacements) {
-		if (!s.periodes.some((p) => p.debut <= r.debut && r.debut < p.fin)) continue;
-		if (mode === 'moi' && r.moi === null) continue;
-		liste.push({ genre: 'remplacement', texte: texteRemplacement(r, true), date: r.debut.slice(0, 10) });
+		const p = s.periodes.find((x) => x.debut <= r.debut && r.debut < x.fin);
+		if (!p || (mode === 'moi' && r.moi === null)) continue;
+		// Une plage après minuit va au jour de sa nuit, celui où la nuit est dite.
+		liste.push({ genre: 'remplacement', texte: texteRemplacement(r, true), date: (estNuit(p) ? p.debut : r.debut).slice(0, 10) });
 	}
 	if (contient(s, `${d.annee}-12-25T12:00`)) liste.push({ genre: 'fete', texte: 'Garde de Noël', date: `${d.annee}-12-25` });
 	if (contient(s, `${d.annee}-12-31T23:00`)) liste.push({ genre: 'fete', texte: 'Garde du Nouvel An', date: `${d.annee}-12-31` });
@@ -50,8 +53,7 @@ export function plagesDuJour(date: string, periodes: PeriodePlanning[]): string[
 	const plages: string[] = [];
 	for (const p of periodes) {
 		if (p.fin <= debutJour || p.debut >= finJour) continue;
-		// Une nuit : elle finit avant midi le lendemain de son début, et se dit le jour où elle commence.
-		const nuit = p.fin <= `${lendemain(p.debut.slice(0, 10))}T12:00`;
+		const nuit = estNuit(p);
 		if (p.debut >= debutJour) plages.push(nuit ? `${heure(p.debut)} – ${heure(p.fin)}` : `dès ${heure(p.debut)}`);
 		else if (p.fin >= finJour) plages.push('24 h');
 		else if (!nuit) plages.push(`jusqu’à ${heure(p.fin)}`);

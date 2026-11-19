@@ -40,6 +40,20 @@ describe('vues du planning', () => {
 		expect(reperesDe(semaine('2026-11-06'), court, 'moi').find((x) => x.genre === 'remplacement')).toEqual({ genre: 'remplacement', texte: 'Bruno Petit me remplace, lundi 9 novembre, de 20 h à 22 h', date: '2026-11-09' });
 	});
 
+	it('un court après minuit est rangé sous le jour de sa nuit, même la dernière nuit de la semaine', () => {
+		const court = (debut: string, fin: string) => ({ ...d, remplacements: [{ debut, fin, titulaire: 'Alice Martin', remplacant: 'Chloé Durand', moi: 'prend' as const }] });
+		const repereDu = (donnees: Donnees) => joursDeLaSemaine(semaine('2026-11-13'), donnees, 'equipes').flatMap((j) => j.reperes.filter((r) => r.genre === 'remplacement').map((r) => ({ jour: j.date, texte: r.texte })));
+		// Nuit du jeudi 19 au vendredi 20, la dernière : le vendredi n'a pas de ligne.
+		expect(repereDu(court('2026-11-20T00:15', '2026-11-20T02:15'))).toEqual([{ jour: '2026-11-19', texte: 'je remplace Alice Martin, vendredi 20 novembre, de 0 h 15 à 2 h 15' }]);
+		// En milieu de semaine : sous le lundi, jour de la nuit, pas sous le mardi.
+		expect(repereDu(court('2026-11-17T01:00', '2026-11-17T03:00'))).toEqual([{ jour: '2026-11-16', texte: 'je remplace Alice Martin, mardi 17 novembre, de 1 h à 3 h' }]);
+		// À cheval sur minuit, ou jusqu'à minuit : le jour du début.
+		expect(repereDu(court('2026-11-17T23:00', '2026-11-18T01:00'))).toEqual([{ jour: '2026-11-17', texte: 'je remplace Alice Martin, mardi 17 novembre, de 23 h à 1 h' }]);
+		expect(repereDu(court('2026-11-18T22:00', '2026-11-19T00:00'))).toEqual([{ jour: '2026-11-18', texte: 'je remplace Alice Martin, mercredi 18 novembre, de 22 h à minuit' }]);
+		// Le week-end (24 h sur 24), après minuit : le jour même.
+		expect(repereDu(court('2026-11-15T01:00', '2026-11-15T03:00'))).toEqual([{ jour: '2026-11-15', texte: 'je remplace Alice Martin, dimanche 15 novembre, de 1 h à 3 h' }]);
+	});
+
 	it('mes repères : seulement mes manœuvres et mes remplacements', () => {
 		const r = reperesDe(semaine('2026-11-06'), d, 'moi');
 		expect(r.map((x) => x.genre)).toEqual(['ferie', 'manoeuvre']);
