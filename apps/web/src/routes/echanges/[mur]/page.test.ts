@@ -90,6 +90,8 @@ describe('page d’un mur', () => {
 		expect(page).toContain('Oui : 3 voix, 75 % (votre choix)');
 		expect(page).toContain('src="/echanges/photo/7"');
 		expect(page).toContain('alt="Photo 2 sur 2, publiée par Alice Martin"');
+		// Chaque photo s'ouvre en grand dans la visionneuse ; sans JavaScript, le lien mène à la photo.
+		expect(page).toMatch(/<a href="\/echanges\/photo\/7" data-visionneuse=""[^>]*><img src="\/echanges\/photo\/7"/);
 		expect(page).toContain('2 j’aime · 1 commentaire');
 	});
 

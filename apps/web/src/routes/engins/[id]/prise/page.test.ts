@@ -248,4 +248,13 @@ describe('/engins/[id]/prise', () => {
 		expect(page).not.toContain('[object Object]');
 		expect(page).toMatch(/class="pastille[^"]*"[^>]*>(<!---->)?Prise faite par l’équipe 4, ven\. 19 h/);
 	});
+
+	it('les photos d’écart, signalé ou noté pendant la prise, s’ouvrent en grand dans la visionneuse', () => {
+		adresse.url = new URL('http://x/engins/1/prise');
+		const ouverte = { ...surRadio, photo: 8 };
+		expect(html(lecture({ ouvertes: [ouverte] }))).toMatch(/<a class="vignette[^"]*" href="\/engins\/photo\/8" data-visionneuse=""><img/);
+		adresse.url = new URL('http://x/engins/1/prise?zone=1');
+		const page = html(data({ ecarts: { '10': { genre: 'abime', manque: null, note: '', photo: 6 } } }));
+		expect(page).toMatch(/<a class="vignette[^"]*" href="\/engins\/photo\/6" data-visionneuse=""><img/);
+	});
 });

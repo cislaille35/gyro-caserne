@@ -98,7 +98,7 @@
 		{#if m.photos.length > 0}
 			<span class="photos" class:plusieurs={m.photos.length > 1}>
 				{#each m.photos as p, i (p)}
-					<a href="/echanges/messages/{conversation}/photo/{p}"
+					<a href="/echanges/messages/{conversation}/photo/{p}" data-visionneuse
 						><img src="/echanges/messages/{conversation}/photo/{p}" alt={m.photos.length > 1 ? `Photo ${i + 1} sur ${m.photos.length}` : 'Photo'} loading="lazy" /></a
 					>
 				{/each}

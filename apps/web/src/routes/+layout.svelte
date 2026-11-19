@@ -8,6 +8,7 @@
 	import { definirNonLus, suivreNonLus } from '#lib/messagerie/pastille.ts';
 	import EnvoiCoupe from '#lib/attente/EnvoiCoupe.svelte';
 	import Coquille from '#lib/ui/Coquille.svelte';
+	import Visionneuse from '#lib/ui/Visionneuse.svelte';
 	import { dansUneConversation, marqueDesLues } from '#lib/ui/navigation.ts';
 	import { chiffreIcone, poserPastille } from '#lib/pastille.ts';
 	// Dès le chargement : l'invitation à installer de Chrome et Edge n'arrive qu'une fois, tôt.
@@ -62,3 +63,4 @@
 	{@render children()}
 	<EnvoiCoupe />
 </Coquille>
+<Visionneuse />

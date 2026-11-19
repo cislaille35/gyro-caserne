@@ -143,7 +143,7 @@
 		<strong>{texteEcart(o)}</strong>
 		<span class="doux">Signalé le {dateCourte(o.signaleeLe)} par {o.signaleePar} · <a href="/engins/anomalies/{o.id}">{texteEtape(o)}<span class="masque">{' '}: suivi de l’anomalie {o.libelle}</span></a></span>
 	</span>
-	{#if o.photo}<a class="vignette" href="/engins/photo/{o.photo}"><img src="/engins/photo/{o.photo}" alt="Photo de l’écart : {o.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
+	{#if o.photo}<a class="vignette" href="/engins/photo/{o.photo}" data-visionneuse><img src="/engins/photo/{o.photo}" alt="Photo de l’écart : {o.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
 {/snippet}
 
 <div class="page">
@@ -332,7 +332,7 @@
 								{#if ecart && (!o || s?.retrouves.includes(o.id))}
 									<div class="encadre">
 										<span class="signale"><strong>{texteEcart(ecart, el.quantite)}</strong></span>
-										{#if ecart.photo}<a class="vignette" href="/engins/photo/{ecart.photo}"><img src="/engins/photo/{ecart.photo}" alt="Photo de l’écart : {el.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
+										{#if ecart.photo}<a class="vignette" href="/engins/photo/{ecart.photo}" data-visionneuse><img src="/engins/photo/{ecart.photo}" alt="Photo de l’écart : {el.libelle}" width="56" height="56" loading="lazy" /></a>{/if}
 										{#if data.peutFaire}
 											<form method="POST" action="?/geste" use:enhance={envoi} class="gestes">
 												<input type="hidden" name="prise" value={p?.id ?? ''} />

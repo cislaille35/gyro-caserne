@@ -89,4 +89,8 @@ describe('/engins/anomalies/[id] : les gestes en panneaux', () => {
 		expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Je la prends en charge<\/button>/);
 		expect(html).not.toContain('<dialog');
 	});
+
+	it('la photo du problème s’ouvre en grand dans la visionneuse ; sans JavaScript, le lien mène à la photo', () => {
+		expect(page('', null, anomalie({ photo: 9 }))).toMatch(/<a class="photo" href="\/engins\/photo\/9" data-visionneuse=""><img/);
+	});
 });
