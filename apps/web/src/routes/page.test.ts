@@ -128,7 +128,7 @@ describe('accueil', () => {
 
 	describe('la plaque d’astreinte', () => {
 		const periodes = [{ debut: '2026-11-20T18:00', fin: '2026-11-23T06:00' }, { debut: '2026-11-23T18:00', fin: '2026-11-27T06:00' }];
-		const carte = (autres = {}) => ({ debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes, ...autres });
+		const carte = (autres = {}) => ({ debut: '2026-11-20T18:00', fin: '2026-11-27T06:00', equipe: { id: 3, nom: 'Équipe 3', couleur: '#1565c0' }, enCours: false, mienne: true, periodes, courtsCedes: [], ...autres });
 		const accueil = (a: unknown, maintenant: string, priseOuverte = false) => page({ casquettes: [astreinte], choisie: 'astreinte', contenu: { type: 'astreinte' }, astreinte: a, maintenant, priseOuverte });
 		const texte = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 		const grand = (html: string) => html.match(/<p class="grand[^"]*">([\s\S]*?)<\/p>/)![1]!.replace(/<[^>]+>/g, '').trim();
@@ -169,6 +169,15 @@ describe('accueil', () => {
 			// Pendant l'astreinte, dans la fenêtre de la relève (jusqu'24 h après), la prise reste à portée.
 			expect(accueil(carte({ enCours: true }), '2026-11-20T18:30', true)).toMatch(/class="aplat[\s\S]*?<a class="prise[^"]*" href="\/engins\/prise">/);
 			expect(accueil(carte({ enCours: true }), '2026-11-21T10:00', false)).not.toContain('/engins/prise');
+		});
+
+		it('une plage courte cédée aujourd’hui : « Remplacé par Marc Petit de 20 h à 22 h », comme au Planning', () => {
+			const courtsCedes = [{ debut: '2026-11-21T20:00', fin: '2026-11-21T22:00', remplacant: 'Marc Petit' }];
+			const html = accueil(carte({ enCours: true, courtsCedes }), '2026-11-21T10:00');
+			expect(html).toMatch(/class="aplat[\s\S]*?<p class="plage[^"]*">Remplacé par Marc Petit de 20 h à 22 h<\/p>/);
+			// Le soir de la relève aussi.
+			expect(texte(accueil(carte({ courtsCedes: [{ debut: '2026-11-20T20:00', fin: '2026-11-20T22:00', remplacant: 'Marc Petit' }] }), '2026-11-20T16:30'))).toContain('Remplacé par Marc Petit de 20 h à 22 h');
+			expect(accueil(carte({ enCours: true }), '2026-11-21T10:00')).not.toContain('Remplacé par');
 		});
 
 		it('une autre équipe : son nom en grand, « Voir le planning », ni remplacement ni prise', () => {

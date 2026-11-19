@@ -26,6 +26,18 @@ export function requeteConclues(base: Base, du: string, au: string, personneId: 
 		);
 }
 
+// Mes plages courtes cédées (2 ou 3 h, conclues) qui commencent aujourd'hui, ou hier soir et courent encore. Pour la plaque de l'Accueil.
+export function requeteCourtsCedes(base: Base, personneId: number, jour: string, veille: string) {
+	return base
+		.select({ periodes: demandeRemplacement.periodes, remplacant: sql<string>`coalesce((select p.prenom || ' ' || p.nom from personne p where p.id = ${demandeRemplacement.remplacantId}), '')` })
+		.from(demandeRemplacement)
+		.where(and(eq(demandeRemplacement.demandeurId, personneId), eq(demandeRemplacement.etat, 'conclue'), eq(demandeRemplacement.court, 1), gte(demandeRemplacement.debut, `${veille}T21:00`), lte(demandeRemplacement.debut, `${jour}T23:59`)));
+}
+
+// Les plages pas encore finies, avec qui les tient.
+export const courtsCedes = (lignes: { periodes: string; remplacant: string }[], maintenant: string) =>
+	lignes.flatMap((l) => periodes(l.periodes).filter((p) => p.fin > maintenant).map((p) => ({ ...p, remplacant: l.remplacant })));
+
 type Conclue = Awaited<ReturnType<typeof requeteConclues>>[number];
 
 // Remplacement : le remplaçant tient les périodes du demandeur. Échange : en plus, le demandeur tient celles du collègue.
