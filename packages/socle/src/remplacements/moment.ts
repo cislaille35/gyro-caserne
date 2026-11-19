@@ -9,7 +9,7 @@ import { texteDemande } from './tranches.ts';
 const RELANCE = '08:00';
 
 // Toutes les dix minutes (voir planifie.ts) : une demande non conclue expire au début de sa première période ;
-// la veille, à partir de 8 h, une demande de remplacement sans remplaçant est relancée une fois, au demandeur et au chef de garde,
+// la veille, à partir de 8 h, une demande de remplacement sans remplaçant (sauf un court, du jour même) est relancée une fois, au demandeur et au chef de garde,
 // et en urgence au chef de centre et à l'adjoint.
 // Expirée à valider : le remplaçant et le chef sont prévenus aussi.
 export async function remplacementsDuMoment(base: Base, maintenant: string): Promise<{ expirees: number; relances: number }> {
@@ -26,7 +26,7 @@ export async function remplacementsDuMoment(base: Base, maintenant: string): Pro
 			? base
 					.select()
 					.from(demandeRemplacement)
-					.where(and(sansRemplacant, eq(demandeRemplacement.genre, 'remplacement'), isNull(demandeRemplacement.relanceLe), sql`substr(${demandeRemplacement.debut}, 1, 10) = ${demain}`))
+					.where(and(sansRemplacant, eq(demandeRemplacement.genre, 'remplacement'), isNull(demandeRemplacement.court), isNull(demandeRemplacement.relanceLe), sql`substr(${demandeRemplacement.debut}, 1, 10) = ${demain}`))
 			: base.select().from(demandeRemplacement).where(sql`0`)
 	]);
 	// Le plus souvent, rien à faire : les chefs et les noms ne sont lus que s'il le faut.

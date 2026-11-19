@@ -502,6 +502,33 @@ export async function refuserValidation(base: Base, acteur: Acteur, id: number, 
 	]);
 }
 
+// Remplacement court conclu : le demandeur, ou le chef de garde si une aptitude contrôlée manque, refuse le remplaçant avant le début.
+// Le titulaire reste d'astreinte ; la demande est close (« annulée », avec le motif) et ne repart pas d'elle-même.
+export async function refuserApresCoup(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage): Promise<void> {
+	const moi = moiDe(acteur);
+	exigerDateHeure(maintenant, 'Date');
+	const { d, ctx } = await lireDemande(base, id, maintenant, reglage);
+	if (d.court !== 1 || d.etat !== 'conclue' || d.remplacantId === null) throw dejaTraitee();
+	const parLeDemandeur = d.demandeurId === moi;
+	if (!parLeDemandeur) {
+		exigerValideur(ctx, d, moi);
+		if (d.manque === null) throw new RefusDroit('VALIDER_REMPLACEMENT', d.equipeId === null ? { type: 'centre' } : { type: 'equipe', id: d.equipeId }, 'Rien ne manque au remplaçant');
+	}
+	if (commencee(d, maintenant)) throw new DonneeInvalide('Période déjà commencée');
+	const quoi = parLeDemandeur ? 'refusee' : 'refus_chef';
+	const si = decidee(id, 'annulee', maintenant);
+	const auRemplacant = `${parLeDemandeur ? nomDe(ctx, moi) : 'Le chef de garde'} refuse votre remplacement · ${texteDe(ctx, d)}`;
+	await base.batch([
+		base
+			.update(demandeRemplacement)
+			.set({ etat: 'annulee', motif: parLeDemandeur ? 'Refusé par le demandeur' : 'Refusé par le chef de garde', trancheePar: `personne:${moi}`, trancheeLe: maintenant })
+			.where(and(eq(demandeRemplacement.id, id), eq(demandeRemplacement.etat, 'conclue'))),
+		journalDemande(base, moi, 'refuser_apres_coup', id, { parLeDemandeur }, maintenant),
+		...avis(base, [d.remplacantId], id, quoi, auRemplacant, url(id), maintenant, si, 'urgences'),
+		...(parLeDemandeur ? [] : avis(base, [d.demandeurId], id, quoi, `${nomDe(ctx, d.remplacantId)} ne vous remplacera pas ${texteDe(ctx, d)} · vous restez d’astreinte`, url(id), maintenant, si, 'urgences'))
+	]);
+}
+
 // Annuler : le demandeur tant que personne n'a accepté ; un valideur, à tout moment avant le début.
 export async function annulerDemande(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage): Promise<void> {
 	const moi = moiDe(acteur);
