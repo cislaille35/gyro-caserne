@@ -77,7 +77,7 @@ test.describe.serial('remplacement court', () => {
 		// Alice voit son remplaçant ; elle peut le refuser jusqu'au début.
 		await page.reload();
 		await expect(page.getByRole('heading', { level: 2, name: 'Remplacé par Chloé Durand' })).toBeVisible();
-		await page.getByText('Refuser ce remplaçant').click();
+		await page.locator('summary', { hasText: 'Refuser ce remplaçant' }).click();
 		await expect(page.getByRole('button', { name: 'Je confirme : refuser ce remplaçant' })).toBeVisible();
 		await sansViolation(page);
 	});
