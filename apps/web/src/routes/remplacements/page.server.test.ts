@@ -6,6 +6,7 @@ import { actions, load } from './+page.server';
 import { actions as actionsDetail, load as detail } from './[id]/+page.server';
 import { actions as actionsDemander, load as demander } from './demander/+page.server';
 import { load as manoeuvre } from './manoeuvre/+page.server';
+import { actions as actionsCourt, load as court } from './court/+page.server';
 import { charger, envoyer, locaux, preparer } from './de-test.ts';
 
 // La première nuit libre d'Alice.
@@ -137,5 +138,16 @@ describe('/remplacements', () => {
 	it('super administrateur : pas de demande, page sans liste', async () => {
 		const jeu = await preparer();
 		expect(await charger(load, locaux(jeu.base, { type: 'super', email: 'a@b.fr' }))).toEqual({ personne: false });
+	});
+});
+
+describe('/remplacements/court', () => {
+	it('les débuts possibles de l’agent ; un envoi sans début ou hors du quart d’heure est refusé sur la page', async () => {
+		const jeu = await preparer();
+		const page = await charger(court, locaux(jeu.base, jeu.alice), '/remplacements/court');
+		expect(Array.isArray(page.debuts)).toBe(true);
+		expect(await envoyer(actionsCourt, 'default', locaux(jeu.base, jeu.alice), [['duree', '2']])).toMatchObject({ status: 400, data: { message: 'Choisissez l’heure de début.' } });
+		expect(await envoyer(actionsCourt, 'default', locaux(jeu.base, jeu.alice), [['debut', '2026-11-09T20:10'], ['duree', '2']])).toMatchObject({ status: 400, data: { message: 'Début au quart d’heure.' } });
+		await expect(charger(court, locaux(jeu.base, jeu.chef), '/remplacements/court')).resolves.toBeDefined();
 	});
 });

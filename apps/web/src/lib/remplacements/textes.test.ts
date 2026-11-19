@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { VueDemande } from '@gyro-caserne/socle';
-import { frise, majuscule } from './textes.ts';
+import { frise, majuscule, suite } from './textes.ts';
 
 const bruno = { id: 2, prenom: 'Bruno', nom: 'Test' };
 const v = (o: Partial<VueDemande>) => ({ genre: 'remplacement', etat: 'attente', cible: null, remplacant: null, manque: [], gestes: { ouvrir: false }, ...o }) as VueDemande;
@@ -22,5 +22,12 @@ describe('textes des remplacements', () => {
 		expect(lire(v({ etat: 'refusee', cible: bruno, gestes: { ouvrir: true } as VueDemande['gestes'] }))).toEqual(['Envoyée (fait)', 'Refusée par Bruno Test : vous pouvez l’ouvrir à tous (en-cours)']);
 		expect(lire(v({ etat: 'annulee' }))).toEqual(['Envoyée (fait)', 'Annulée (arret)']);
 		expect(lire(v({ etat: 'expiree', genre: 'echange', cible: bruno }))).toEqual(['Proposée (fait)', 'Expirée (arret)']);
+	});
+
+	it('remplacement court : conclu sans validation du chef, même s’il manque une aptitude ; refusé après coup, le motif le dit', () => {
+		expect(lire(v({ court: true, etat: 'conclue', remplacant: bruno, manque: ['CA1'] }))).toEqual(['Envoyée (fait)', 'Acceptée par Bruno Test (fait)', 'Conclue (fait)']);
+		expect(lire(v({ court: true, etat: 'annulee', remplacant: bruno, motif: 'Refusé par le chef de garde' }))).toEqual(['Envoyée (fait)', 'Acceptée par Bruno Test (fait)', 'Refusé par le chef de garde (arret)']);
+		expect(suite(v({ court: true, etat: 'conclue', remplacant: bruno, manque: ['CA1'], gestes: { refuserApresCoup: true } as VueDemande['gestes'] }))).toBe('Il manque CA1 au remplaçant : le chef de garde peut refuser jusqu’au début.');
+		expect(suite(v({ court: true, etat: 'conclue', remplacant: bruno, manque: ['CA1'], gestes: { refuserApresCoup: false } as VueDemande['gestes'] }))).toBeNull();
 	});
 });

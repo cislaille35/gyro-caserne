@@ -5,7 +5,7 @@ import type { VueDemande } from '@gyro-caserne/socle';
 vi.mock('$app/forms', () => ({ enhance: () => ({}) }));
 const { default: Page } = await import('./+page.svelte');
 
-const gestes = { accepter: false, refuser: false, ouvrir: false, annuler: false, desister: false, valider: false };
+const gestes = { accepter: false, refuser: false, ouvrir: false, annuler: false, desister: false, valider: false, refuserApresCoup: false };
 const demande = (v: Partial<VueDemande> = {}): VueDemande => ({
 	id: 7,
 	genre: 'remplacement',
@@ -54,6 +54,13 @@ describe('page Remplacements', () => {
 		expect(html).toContain('il vous manque CA1');
 		expect(html).toMatch(/<form[^>]*action="\?\/accepter"[\s\S]*?Accepter/);
 		expect(html).toMatch(/<form[^>]*action="\?\/refuser"[\s\S]*?Refuser/);
+	});
+
+	it('un remplacement court reçu : l’aptitude manquante ne demande pas de validation, le chef peut refuser', () => {
+		const html = page({ pourMoi: [demande({ court: true, texte: 'lundi 9 novembre, de 20 h à 22 h', manquePourMoi: ['CA1'], gestes: { ...gestes, accepter: true, refuser: true } })] });
+		expect(html).toContain('Lundi 9 novembre, de 20 h à 22 h');
+		expect(html).toContain('le chef de garde en est prévenu et peut refuser jusqu’au début');
+		expect(html).not.toContain('devra valider');
 	});
 
 	it('à valider : le manque dit en texte, Valider et Refuser avec un motif', () => {

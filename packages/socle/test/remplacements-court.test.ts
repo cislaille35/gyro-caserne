@@ -5,7 +5,9 @@ import type { Acteur } from '../src/droits.ts';
 import { DonneeInvalide, RefusDroit } from '../src/erreurs.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
-import { disponibles, lireContexte } from '../src/remplacements/contexte.ts';
+import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
+import { debutsCourts, disponibles, lireContexte } from '../src/remplacements/contexte.ts';
+import { demandeVue, pourDemander } from '../src/remplacements/lectures.ts';
 import { accepterDemande, demanderRemplacement, demanderRemplacementCourt, refuserApresCoup } from '../src/remplacements/demandes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { effectifs, requeteConclues } from '../src/remplacements/effectifs.ts';
@@ -185,5 +187,53 @@ describe('remplacement court : délais', () => {
 		const { base, alice } = await jeu();
 		await demanderRemplacementCourt(base, alice, { debut: '2026-11-10T01:00', duree: 2 }, '2026-11-09T23:10', reglage);
 		expect(await remplacementsDuMoment(base, '2026-11-09T23:20')).toEqual({ expirees: 0, relances: 0 });
+	});
+});
+
+describe('remplacement court : pour les écrans', () => {
+	it('les débuts possibles : au quart d’heure, à venir, dans la tranche, 3 h seulement si elles tiennent ; rien sans astreinte du jour', async () => {
+		const { base, alice, n } = await jeu();
+		const ctx = await lireContexte(base, maintenant, reglage);
+		const debuts = debutsCourts(ctx, n.alice);
+		expect(debuts[0]).toEqual({ debut: '2026-11-09T19:15', max: 3 });
+		expect(debuts.at(-1)).toEqual({ debut: '2026-11-10T04:00', max: 2 });
+		expect(debuts.find((x) => x.debut === '2026-11-10T03:00')).toEqual({ debut: '2026-11-10T03:00', max: 3 });
+		expect(debuts.find((x) => x.debut === '2026-11-10T03:15')).toEqual({ debut: '2026-11-10T03:15', max: 2 });
+		expect(debutsCourts(ctx, n.bruno)).toEqual([]);
+		expect((await pourDemander(base, alice, maintenant, reglage)).court).toBe(true);
+		// Une plage déjà demandée n'est plus proposée, ni ce qui la chevauche.
+		await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T20:00', duree: 2 }, maintenant, reglage);
+		const apres = debutsCourts(await lireContexte(base, maintenant, reglage), n.alice);
+		expect(apres.find((x) => x.debut === '2026-11-09T19:15')).toBeUndefined();
+		expect(apres.find((x) => x.debut === '2026-11-09T22:00')).toEqual({ debut: '2026-11-09T22:00', max: 3 });
+	});
+
+	it('la page de la demande : court, et le refus offert au demandeur, au chef seulement si une aptitude manque', async () => {
+		const { base, alice, bruno, chloe, elodie } = await jeu();
+		const avec = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T20:00', duree: 2 }, maintenant, reglage);
+		await accepterDemande(base, chloe, avec, maintenant, reglage);
+		const sans = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
+		await accepterDemande(base, bruno, sans, maintenant, reglage);
+		const vue = async (qui: Acteur, id: number, quand = maintenant) => (await demandeVue(base, qui, id, quand, reglage)).demande;
+		expect(await vue(alice, avec)).toMatchObject({ court: true, etat: 'conclue', gestes: { refuserApresCoup: true } });
+		expect((await vue(elodie, avec)).gestes.refuserApresCoup).toBe(false);
+		expect((await vue(elodie, sans)).gestes.refuserApresCoup).toBe(true);
+		expect((await vue(bruno, sans)).gestes.refuserApresCoup).toBe(false);
+		expect((await vue(alice, avec, '2026-11-09T20:00')).gestes.refuserApresCoup).toBe(false);
+	});
+});
+
+describe('remplacement court : agenda du téléphone', () => {
+	it('le remplaçant a la plage ; le titulaire garde son astreinte autour', async () => {
+		const { base, alice, chloe } = await jeu();
+		const id = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T20:00', duree: 2 }, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		const agenda = async (qui: Acteur) => (await agendaDe(base, await monLienAgenda(base, qui, maintenant), maintenant, reglage))!;
+		const deChloe = await agenda(chloe);
+		expect(deChloe).toMatch(/DTSTART:20261109T190000Z\r?\nDTEND:20261109T210000Z\r?\nSUMMARY:Remplacement de Alice Test/);
+		const deAlice = await agenda(alice);
+		// 18 h – 20 h, puis 22 h – 6 h (heure de Paris).
+		expect(deAlice).toMatch(/DTSTART:20261109T170000Z\r?\nDTEND:20261109T190000Z/);
+		expect(deAlice).toMatch(/DTSTART:20261109T210000Z\r?\nDTEND:20261110T050000Z/);
 	});
 });

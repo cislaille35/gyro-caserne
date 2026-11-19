@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import centre from '$centre';
-import { accepterDemande, annulerDemande, desister, DonneeInvalide, ouvrirATous, RefusDroit, refuserDemande, refuserValidation, valider, type Acteur } from '@gyro-caserne/socle';
+import { accepterDemande, annulerDemande, desister, DonneeInvalide, ouvrirATous, RefusDroit, refuserApresCoup, refuserDemande, refuserValidation, valider, type Acteur } from '@gyro-caserne/socle';
 import { maintenantParis } from '#lib/aujourdhui.ts';
 
 export function exigerConnecte(locals: App.Locals): Acteur {
@@ -58,6 +58,8 @@ export const gestesRemplacement = {
 	annuler: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => annulerDemande(b, a, id, m(), r), 'Demande annulée.'),
 	desister: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => desister(b, a, id, m(), r), RESULTATS.desister),
 	valider: ({ locals, request }: { locals: App.Locals; request: Request }) => geste(locals, request, (b, a, id) => valider(b, a, id, m(), r), 'Remplacement validé : les deux agents sont prévenus.'),
+	refuserApresCoup: ({ locals, request }: { locals: App.Locals; request: Request }) =>
+		geste(locals, request, (b, a, id, f) => (f.get('confirmation') === 'oui' ? refuserApresCoup(b, a, id, m(), r) : Promise.reject(new DonneeInvalide('Confirmez le refus'))), 'Remplaçant refusé : le titulaire reste d’astreinte, le remplaçant est prévenu.'),
 	refuserValidation: ({ locals, request }: { locals: App.Locals; request: Request }) =>
 		geste(locals, request, (b, a, id, f) => refuserValidation(b, a, id, typeof f.get('motif') === 'string' ? (f.get('motif') as string) : null, m(), r), RESULTATS.refuserValidation)
 };

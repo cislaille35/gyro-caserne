@@ -226,6 +226,26 @@ export function tranchesDuJour(ctx: Contexte, id: number): Periode[] {
 		.filter((t) => t.fin > ctx.maintenant && t.debut < demain);
 }
 
+const QUART = 15 * 60_000;
+const decaler = (moment: string, ms: number) => new Date(Date.parse(`${moment}:00Z`) + ms).toISOString().slice(0, 16);
+
+// Les débuts possibles d'un remplacement court, au quart d'heure : à venir, dans une tranche du jour, libres de toute demande.
+// `max` : 3 si trois heures tiennent, sinon 2.
+export function debutsCourts(ctx: Contexte, id: number): { debut: string; max: 2 | 3 }[] {
+	const libre = (debut: string, heures: number) => sansEngagement(ctx, id, [{ debut, fin: decaler(debut, heures * 3_600_000) }]);
+	// Le premier quart d'heure qui suit maintenant.
+	const premier = new Date(Math.floor(Date.parse(`${ctx.maintenant}:00Z`) / QUART) * QUART + QUART).toISOString().slice(0, 16);
+	const debuts: { debut: string; max: 2 | 3 }[] = [];
+	for (const t of tranchesDuJour(ctx, id)) {
+		const depart = new Date(Math.ceil(Date.parse(`${t.debut}:00Z`) / QUART) * QUART).toISOString().slice(0, 16);
+		for (let d = depart > premier ? depart : premier; decaler(d, 2 * 3_600_000) <= t.fin; d = decaler(d, QUART)) {
+			if (!libre(d, 2)) continue;
+			debuts.push({ debut: d, max: decaler(d, 3 * 3_600_000) <= t.fin && libre(d, 3) ? 3 : 2 });
+		}
+	}
+	return debuts;
+}
+
 export type EtatTranche = 'libre' | 'prise' | 'passee' | 'occupe';
 
 // Le parcours guidé : ses semaines d'astreinte des douze prochaines semaines, avec toutes leurs tranches, même passées ou

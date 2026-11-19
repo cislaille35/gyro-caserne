@@ -13,7 +13,9 @@
 	const groupes = $derived(
 		[
 			{ titre: 'Sans validation', phrase: 'Ont vos aptitudes contrôlées.', agents: data.disponibles.filter((a) => a.aptitudes) },
-			{ titre: 'À faire valider par le chef', phrase: 'Il leur manque une de vos aptitudes contrôlées.', agents: data.disponibles.filter((a) => !a.aptitudes) }
+			v.court
+				? { titre: 'Le chef de garde sera prévenu', phrase: 'Il leur manque une de vos aptitudes contrôlées : il pourra refuser.', agents: data.disponibles.filter((a) => !a.aptitudes) }
+				: { titre: 'À faire valider par le chef', phrase: 'Il leur manque une de vos aptitudes contrôlées.', agents: data.disponibles.filter((a) => !a.aptitudes) }
 		].filter((g) => g.agents.length > 0)
 	);
 	const sdis = $derived(v.etat === 'conclue' && v.genre !== 'manoeuvre' && (v.moi === 'demandeur' || v.moi === 'remplacant'));
@@ -24,7 +26,7 @@
 </svelte:head>
 
 <div class="page">
-	<EnTetePage titre={v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+	<EnTetePage titre={v.court ? 'Remplacement court' : v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
 	<p class="reussite" class:masque={!form?.succes && !envoyee} role="status">{form?.succes ?? (envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
 	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
