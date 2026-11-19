@@ -53,7 +53,7 @@ test('une photo s’ouvre en grand sans quitter la page ; retour, Fermer, Échap
 		await expect(ouverte.locator('img')).toHaveAttribute('alt', alt);
 		await expect(fermer).toBeFocused();
 	};
-	// Fermée, et toujours sur la page : un recul de trop se verrait à l'adresse (laissé le temps d'arriver).
+	// Fermée, et toujours sur la page : la même adresse, fragment compris ; un recul de trop s'y verrait (laissé le temps d'arriver).
 	const fermeeSurLaPage = async () => {
 		await expect(ouverte).toHaveCount(0);
 		await page.waitForTimeout(500);
@@ -74,9 +74,13 @@ test('une photo s’ouvre en grand sans quitter la page ; retour, Fermer, Échap
 		await expect(lien).toBeFocused();
 	}
 
-	// Un double appui sur Fermer ne recule qu'une fois.
+	// Un double appui sur Fermer ne recule qu'une fois. Les deux appuis partent d'un coup, la fenêtre encore ouverte :
+	// un second clic à l'écran tomberait sinon sur la page, une fois la fenêtre fermée.
 	await ouvrir();
-	await fermer.dblclick();
+	await fermer.evaluate((bouton) => {
+		(bouton as HTMLButtonElement).click();
+		(bouton as HTMLButtonElement).click();
+	});
 	await fermeeSurLaPage();
 
 	// Rechargée photo ouverte, la page revient sans la visionneuse.

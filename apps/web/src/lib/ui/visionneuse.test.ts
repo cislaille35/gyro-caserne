@@ -33,7 +33,9 @@ const appui = (autres: Record<string, unknown> = {}, cible: unknown = lien()) =>
 describe('Visionneuse', () => {
 	it('fermée : une fenêtre native vide, rien ne s’affiche', () => {
 		const page = html();
-		expect(page).toMatch(/<dialog class="visionneuse[^"]*"[^>]*aria-label="Photo en grand"/);
+		// Un nom sans « photo » : getByLabel('Photo') (le champ d'un formulaire) ne doit trouver que le champ.
+		expect(page).toMatch(/<dialog class="visionneuse[^"]*"[^>]*aria-label="Image en grand"/);
+		expect(page.match(/<dialog[^>]*>/)![0]).not.toMatch(/photo/i);
 		expect(page).not.toMatch(/<dialog[^>]* open/);
 		expect(page).not.toContain('<img');
 	});
@@ -65,7 +67,8 @@ describe('Visionneuse', () => {
 	});
 
 	it('s’ouvre et se ferme par l’historique : retour du téléphone, Échap, appui hors de la photo', () => {
-		expect(source).toMatch(/pushState\('', \{ photo:/);
+		// L'adresse entière, fragment compris (#publication-…) : fermée, la page revient à la même adresse.
+		expect(source).toMatch(/pushState\(location\.href, \{ photo:/);
 		expect(source).toMatch(/history\.back\(\)/);
 		// Deux fermetures rapprochées (double appui, Échap puis le fond) ne reculent qu'une fois : sinon on quitte la page, et l'appli sur iPhone.
 		expect(source).toMatch(/if \(ferme\) return;\s*ferme = true;\s*history\.back\(\)/);
