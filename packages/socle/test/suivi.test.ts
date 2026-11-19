@@ -113,4 +113,22 @@ describe('les nouveautés du suivi dans l’en-tête', () => {
 		await suiviDuCentre(base, remi, aujourdhui, { avant: 1 });
 		expect((await enTeteDe(base, remi, aujourdhui)).suivi).toBe(1);
 	});
+	it('jamais visité : seules les 200 dernières lignes du journal sont regardées (lecture bornée)', async () => {
+		const { base, claire, remi, alice } = await jeu();
+		const ligne = (qui: { id: number }) => ({ quand: '2026-11-18T10:00', acteur: `personne:${qui.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id });
+		await base.insert(journal).values([ligne(remi)]);
+		for (let i = 0; i < 5; i++) await base.insert(journal).values(Array.from({ length: 50 }, () => ligne(claire)));
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(0);
+	});
+});
+
+describe('le suivi : l’appli comme auteur', () => {
+	it('le ménage de nuit et le planning ne sont pas un « Ancien agent »', async () => {
+		const { base, claire } = await jeu();
+		await base.insert(journal).values([
+			{ quand: '2026-11-18T03:30', acteur: 'nuit', action: 'effacer_agent', cibleType: 'personne', cibleId: 9999 },
+			{ quand: '2026-11-18T08:00', acteur: 'planning', action: 'alerter_sans_chef', cibleType: 'equipe', cibleId: 9999 }
+		]);
+		expect((await suiviDuCentre(base, claire, aujourdhui)).lignes.map((l) => l.qui)).toEqual(['Planning', 'Ménage de nuit']);
+	});
 });

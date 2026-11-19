@@ -39,7 +39,7 @@ export async function courrielsDeDemande(base: Base, d: DemandeACourriel, aujour
 			base
 				.select({ id: personne.id, a: personne.email })
 				.from(personne)
-				.where(and(inArray(personne.id, gestionnairesDe(base, sql`(select ${reservation.ressourceId} from ${reservation} where ${reservation.id} = ${d.id})`, aujourdhui)), joignable(sql`"personne"."id"`)))
+				.where(and(inArray(personne.id, gestionnairesDe(base, sql`(select ${reservation.ressourceId} from ${reservation} where ${reservation.id} = ${d.id})`, aujourdhui)), joignable(sql`"personne"."id"`), ne(personne.email, '')))
 		]);
 		const r = lignes[0];
 		if (!r) return [];

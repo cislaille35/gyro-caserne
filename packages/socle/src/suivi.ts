@@ -91,6 +91,8 @@ export const ACTIONS_SUIVI = Object.keys(PHRASES) as readonly string[];
 const PAGE = 25;
 // Au-delà, l'en-tête n'en dit pas plus : la lecture s'arrête là.
 export const NOUVEAUTES_MAX = 99;
+// Jamais visité : seules les dernières lignes du journal comptent (lecture bornée).
+const JAMAIS_VU = 200;
 
 // Les fiches d'engins sont journalisées « modifier_fiche » sur un type d'engin.
 const phrase = (action: string, cibleType: string, c: Cible) => (action === 'modifier_fiche' && cibleType === 'type_engin' ? nomme(c, 'a modifié la fiche de') : (PHRASES[action as keyof typeof PHRASES]?.(c) ?? action));
@@ -108,7 +110,7 @@ export const estChefOuAdjointSql = (qui: SQL | number, aujourdhui: string) =>
 
 // Les nouveautés du suivi de `qui` (la colonne « personne » d'une requête sur personne), au plus NOUVEAUTES_MAX ; nul hors chefs.
 export const nouveautesSuiviSql = (aujourdhui: string) =>
-	sql<number | null>`case when ${estChefOuAdjointSql(sql`"personne"."id"`, aujourdhui)} then (select count(*) from (select 1 from journal j where j.id > coalesce("personne"."suivi_vu", 0) and j.action in (${actions()}) and j.acteur <> 'personne:' || "personne"."id" order by j.id desc limit ${NOUVEAUTES_MAX})) end`;
+	sql<number | null>`case when ${estChefOuAdjointSql(sql`"personne"."id"`, aujourdhui)} then (select count(*) from (select 1 from journal j where j.id > coalesce("personne"."suivi_vu", (select max(id) from journal) - ${JAMAIS_VU}) and j.action in (${actions()}) and j.acteur <> 'personne:' || "personne"."id" order by j.id desc limit ${NOUVEAUTES_MAX})) end`;
 
 // Le nom de ce que vise une ligne du journal, selon sa cible ; et, pour une nomination, le rôle et l'agent (pour le lien).
 const cibleSql = sql<string | null>`case "journal"."cible_type"
@@ -173,7 +175,7 @@ function lienDe(l: { cibleType: string; cibleId: number | null; agent: number | 
 	}
 }
 
-const quiDe = (acteur: string, nom: string | null) => (acteur.startsWith('super:') ? 'Super administrateur' : acteur === 'planning' ? 'Planning' : (nom ?? 'Ancien agent'));
+const quiDe = (acteur: string, nom: string | null) => (acteur.startsWith('super:') ? 'Super administrateur' : acteur === 'planning' ? 'Planning' : acteur === 'nuit' ? 'Ménage de nuit' : (nom ?? 'Ancien agent'));
 
 // Une page du suivi, du plus récent au plus ancien (`avant` : la suite, sous cet identifiant). Une requête. Ouvrir la première page
 // marque la visite : les nouveautés de l'en-tête repartent de zéro.
@@ -195,7 +197,8 @@ export async function suiviDuCentre(base: Base, acteur: Acteur, aujourdhui: stri
 				action: journal.action,
 				cibleType: journal.cibleType,
 				cibleId: journal.cibleId,
-				auteur: sql<string | null>`(select p.prenom || ' ' || p.nom from personne p where 'personne:' || p.id = "journal"."acteur")`,
+				// Par la clé de la fiche : l'index sert.
+				auteur: sql<string | null>`(select p.prenom || ' ' || p.nom from personne p where "journal"."acteur" like 'personne:%' and p.id = cast(substr("journal"."acteur", 10) as integer))`,
 				cible: cibleSql,
 				role: roleSql,
 				agent: agentDeLAttributionSql,
