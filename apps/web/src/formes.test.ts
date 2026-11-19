@@ -70,10 +70,10 @@ describe('formes', () => {
 		for (const f of ['routes/planning/+page.svelte', 'lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte']) expect(source(f), f).not.toMatch(/^\s*\.(bascule|reponse)\b/m);
 	});
 
-	it('un bloc segmenté tient sur une ligne qui défile, sans barre visible ; le suivi ne le replie pas', () => {
-		expect(source('app.css')).toMatch(/\.segments \{[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/);
-		expect(source('app.css')).toMatch(/\.segments::-webkit-scrollbar \{\s*display: none;/);
-		expect(source('routes/suivi/+page.svelte')).not.toMatch(/flex-wrap: wrap/);
+	it('les filtres du suivi : le même motif que ceux des agents (une ligne de puces qui déborde jusqu’au bord)', () => {
+		const regle = (f: string, classe: string) => source(f).match(new RegExp(`\\n\\t\\.${classe} \\{[^}]*\\}`))?.[0];
+		for (const classe of ['puces', 'puce']) expect(regle('routes/suivi/+page.svelte', classe), classe).toBe(regle('routes/agents/+layout.svelte', classe));
+		expect(regle('routes/agents/+layout.svelte', 'puces')).toMatch(/margin: -4px -16px;[^}]*overflow-x: auto;\s*scrollbar-width: none;/);
 		expect(source('routes/suivi/+page.svelte')).toMatch(/afterNavigate\(\(\) => montrerCouranteDeCote\(filtres\)\)/);
 	});
 

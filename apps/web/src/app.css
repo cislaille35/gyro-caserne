@@ -516,7 +516,7 @@ body {
 		border-color: var(--encre);
 	}
 }
-/* Bloc de choix (vues, casquettes, réponses, filtres) : un fond, l’option choisie en encre pleine et en gras.
+/* Bloc de choix (vues, casquettes, réponses) : un fond, l’option choisie en encre pleine et en gras.
    Les options sont des liens (aria-current) ou des boutons à bascule (aria-pressed, avec la coche). */
 .segments {
 	display: flex;
@@ -526,12 +526,7 @@ body {
 	border-radius: var(--rayon-bouton);
 	background: var(--segment-fond);
 	overflow-x: auto;
-	scrollbar-width: none;
 	list-style: none;
-}
-/* Trop d'options pour l'écran : la rangée défile, sans barre ; la dernière option coupée montre qu'il y a une suite. */
-.segments::-webkit-scrollbar {
-	display: none;
 }
 .segments > li {
 	display: flex;

@@ -83,9 +83,9 @@
 
 <div class="page">
 	<EnTetePage titre="Suivi du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} />
-	<nav class="segments" aria-label="Filtrer le suivi" bind:this={filtres}>
+	<nav class="puces" aria-label="Filtrer le suivi" bind:this={filtres}>
 		{#each SUJETS as s (s.libelle)}
-			<a href={s.id ? `?sujet=${s.id}` : '/suivi'} aria-current={data.sujet === s.id ? 'page' : undefined}>{s.libelle}</a>
+			<a class="puce" href={s.id ? `?sujet=${s.id}` : '/suivi'} aria-current={data.sujet === s.id ? 'page' : undefined}>{s.libelle}</a>
 		{/each}
 	</nav>
 	{#if lignes.length === 0 && data.sujet}
@@ -116,6 +116,45 @@
 		max-width: var(--largeur-liste);
 		margin-inline: auto;
 		width: 100%;
+	}
+	/* Les filtres tiennent sur une ligne qui défile ; la marge laisse voir le contour du focus. */
+	.puces {
+		display: flex;
+		gap: var(--espace-8);
+		margin: -4px -16px;
+		padding: var(--espace-4) var(--espace-16);
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.puce {
+		flex: none;
+		min-height: var(--cible);
+		padding: 0 var(--espace-16);
+		border: 1px solid var(--trait);
+		border-radius: var(--rayon-bouton);
+		background: var(--surface);
+		color: var(--encre);
+		font: 600 var(--texte-15) var(--police);
+		white-space: nowrap;
+		cursor: pointer;
+	}
+	/* Ici des liens : centrés comme les boutons des agents. */
+	a.puce {
+		display: inline-flex;
+		align-items: center;
+		text-decoration: none;
+	}
+	@media (hover: hover) and (pointer: fine) {
+		.puce:hover {
+			border-color: var(--encre);
+		}
+	}
+	/* Choisi : fond plein et gras, pas seulement une teinte. */
+	.puce[aria-current='page'] {
+		background: var(--encre);
+		color: var(--surface);
+		border-color: var(--encre);
+		font-weight: 700;
 	}
 	.suite {
 		margin: 0;
