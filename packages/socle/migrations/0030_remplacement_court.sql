@@ -1,0 +1,1 @@
+ALTER TABLE `demande_remplacement` ADD `court` integer;

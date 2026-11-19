@@ -56,11 +56,12 @@ const heure = (moment: string) => {
 };
 const heures = (p: Periode) => (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.debut}:00Z`)) / 3_600_000;
 
-// « nuit du lundi 9 novembre », « 24 h du samedi 7 novembre », « du vendredi 6 novembre, 18 h au lundi 9 novembre, 6 h ».
+// « nuit du lundi 9 novembre », « 24 h du samedi 7 novembre », « lundi 9 novembre, de 20 h à 22 h », « du vendredi 6 novembre, 18 h au lundi 9 novembre, 6 h ».
 export function texteTranche(p: Periode): string {
 	const duree = heures(p);
 	if (duree === 24) return `24 h du ${jourEnLettres(p.debut)}`;
-	if (duree <= 14 && p.debut.slice(11, 16) >= '17:00' && p.fin.slice(0, 10) === ajouterJours(p.debut.slice(0, 10), 1)) return `nuit du ${jourEnLettres(p.debut)}`;
+	if (duree > 3 && duree <= 14 && p.debut.slice(11, 16) >= '17:00' && p.fin.slice(0, 10) === ajouterJours(p.debut.slice(0, 10), 1)) return `nuit du ${jourEnLettres(p.debut)}`;
+	if (p.debut.slice(0, 10) === p.fin.slice(0, 10)) return `${jourEnLettres(p.debut)}, de ${heure(p.debut)} à ${heure(p.fin)}`;
 	return `du ${jourEnLettres(p.debut)}, ${heure(p.debut)} au ${jourEnLettres(p.fin)}, ${heure(p.fin)}`;
 }
 

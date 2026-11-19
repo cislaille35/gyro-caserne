@@ -217,6 +217,15 @@ export function mesTranches(ctx: Contexte, id: number): { semaine: string; equip
 		.filter((s) => s.tranches.length > 0);
 }
 
+// Les tranches d'astreinte du jour : commencées ou non, qui commencent aujourd'hui ou ne sont pas finies. Pour un remplacement court.
+export function tranchesDuJour(ctx: Contexte, id: number): Periode[] {
+	const demain = `${ajouterJours(ctx.maintenant.slice(0, 10), 1)}T00:00`;
+	return astreintesDe(ctx, id)
+		.filter((s) => s.periodes.at(-1)!.fin > ctx.maintenant && s.periodes[0]!.debut < demain)
+		.flatMap((s) => tranchesDe(s.periodes, ctx.reglage))
+		.filter((t) => t.fin > ctx.maintenant && t.debut < demain);
+}
+
 export type EtatTranche = 'libre' | 'prise' | 'passee' | 'occupe';
 
 // Le parcours guidé : ses semaines d'astreinte des douze prochaines semaines, avec toutes leurs tranches, même passées ou
