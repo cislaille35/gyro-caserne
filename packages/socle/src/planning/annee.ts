@@ -402,7 +402,7 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 	const debutLecture = `${Math.min(annee, Number(aujourdhui.slice(0, 4))) - 1}-12-18`;
 	const finLecture = `${Math.max(annee, Number(aujourdhui.slice(0, 4))) + 1}-12-31`;
 	const [[annees, changees, manoeuvres, vacances, equipes, , conclues, lignesPlages, etes], affectations, gerer] = await Promise.all([
-		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), `${annee}-12-31`), requetePlagesPubliees(base, debutLecture, finLecture), requeteEtes(base)]),
+		base.batch([...lectures(base, debutLecture, finLecture), requeteConclues(base, ajouterJours(`${annee}-01-01`, -7), ajouterJours(`${annee}-12-31`, 8)), requetePlagesPubliees(base, debutLecture, finLecture), requeteEtes(base)]),
 		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		peutGerer(base, acteur, aujourdhui)
 	]);
@@ -473,7 +473,8 @@ export async function planningDe(base: Base, acteur: Acteur, annee: number, main
 		fetes: fetes(annee, semainesAnnee),
 		monEquipe: equipeLe(affectations, aujourdhui),
 		remplacements: effectifs(conclues)
-			.filter((r) => r.fin > `${annee}-01-01` && r.debut < `${annee + 1}-01-01`)
+			// Jusqu'à la fin de la dernière semaine, qui déborde sur janvier : une plage après minuit, la nuit du Nouvel An, en est.
+			.filter((r) => r.fin > `${annee}-01-01` && r.debut < semainesAnnee.at(-1)!.periodes.at(-1)!.fin)
 			.map(({ debut, fin, titulaire, remplacant, titulaireId, remplacantId }) => ({ debut, fin, titulaire, remplacant, moi: titulaireId === moi ? ('cede' as const) : remplacantId === moi ? ('prend' as const) : null })),
 		prochaine: {
 			astreinte: prochaineSemaine

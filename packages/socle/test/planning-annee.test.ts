@@ -8,7 +8,7 @@ import { chargerPlanningFictif } from '../src/planning/fictif.ts';
 import { planningDuMatin } from '../src/planning/manoeuvres.ts';
 import { repondreEvenement } from '../src/index.ts';
 import { ajouterVacances, changerSemaines, enregistrerManoeuvre, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, retirerVacances, supprimerManoeuvre } from '../src/planning/annee.ts';
-import { affectationEquipe, attribution, equipe, journal, manoeuvre, personne, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, attribution, demandeRemplacement, equipe, journal, manoeuvre, personne, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -187,6 +187,17 @@ describe('le planning vu par l’agent', () => {
 		const p = await planningDe(base, bruno, 2026, maintenant, reglage);
 		if (!p.publiee) throw new Error('attendu publié');
 		expect(p.prochaine.fete).toEqual({ fete: 'nouvel_an', date: '2027-12-31' });
+	});
+
+	it('un remplacement court après minuit, la nuit du Nouvel An, reste dans la dernière semaine de l’année', async () => {
+		const { base, chef, alice, bruno } = await publiee();
+		await publierAnnee(base, chef, 2026, maintenant);
+		const plage = { debut: '2027-01-01T00:15', fin: '2027-01-01T02:15' };
+		await base.insert(demandeRemplacement).values({ genre: 'remplacement', demandeurId: alice.id, remplacantId: bruno.id, periodes: JSON.stringify([plage]), debut: plage.debut, etat: 'conclue', creeLe: '2026-12-31T23:50', court: 1 });
+		const p = await planningDe(base, bruno, 2026, '2026-12-31T23:55', reglage);
+		if (!p.publiee) throw new Error('attendu publié');
+		expect(p.semaines.at(-1)!.periodes.some((x) => x.debut <= plage.debut && plage.debut < x.fin)).toBe(true);
+		expect(p.remplacements).toEqual([{ ...plage, titulaire: 'Alice Test', remplacant: 'Bruno Test', moi: 'prend' }]);
 	});
 
 	it('début janvier : la semaine en cours commencée fin décembre reste la prochaine astreinte', async () => {
