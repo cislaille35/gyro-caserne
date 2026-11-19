@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { preloadData } from '$app/navigation';
+	import { afterNavigate, preloadData } from '$app/navigation';
 	import type { LigneSuivi, SujetSuivi } from '@gyro-caserne/socle';
 	import { ajouterJours } from '@gyro-caserne/socle/dates';
 	import { heure } from '#lib/murs/quand.ts';
@@ -10,6 +10,7 @@
 	import ListeRangees from '#lib/ui/ListeRangees.svelte';
 	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
+	import { montrerCouranteDeCote } from '#lib/ui/zone-defilante.ts';
 
 	type Donnees = { lignes: LigneSuivi[]; suite: number | null; vu: number | null; sujet: SujetSuivi | null; aujourdhui: string };
 	let { data }: { data: Donnees } = $props();
@@ -27,19 +28,21 @@
 	let lignes = $derived(data.lignes);
 	let suite = $derived(data.suite);
 	let annonce = $state('');
+	// Au téléphone, les filtres défilent sur une ligne : le filtre choisi est ramené à l'écran.
+	let filtres = $state<HTMLElement>();
+	afterNavigate(() => montrerCouranteDeCote(filtres));
 	let enCours = $state(false);
 
-	// Une carte par jour, du plus récent au plus ancien. Le repère de la dernière visite coupe la liste : la suite du même jour
-	// continue dans une carte sans titre.
+	// Une carte par jour, du plus récent au plus ancien. Le repère de la dernière visite coupe la liste ; chaque carte garde son jour.
 	const nomDuJour = (jour: string) => (jour === data.aujourdhui ? 'Aujourd’hui' : jour === ajouterJours(data.aujourdhui, -1) ? 'Hier' : jourLong(jour));
 	const limite = $derived(data.vu === null ? -1 : lignes.findIndex((l) => l.id <= data.vu!));
 	const groupes = $derived(
-		lignes.reduce<{ jour: string; titre: string | undefined; repere: boolean; lignes: LigneSuivi[] }[]>((groupes, l, i) => {
+		lignes.reduce<{ jour: string; repere: boolean; lignes: LigneSuivi[] }[]>((groupes, l, i) => {
 			const jour = l.quand.slice(0, 10);
 			const repere = limite > 0 && i === limite;
 			const dernier = groupes.at(-1);
 			if (dernier?.jour === jour && !repere) dernier.lignes.push(l);
-			else groupes.push({ jour, titre: dernier?.jour === jour ? undefined : nomDuJour(jour), repere, lignes: [l] });
+			else groupes.push({ jour, repere, lignes: [l] });
 			return groupes;
 		}, [])
 	);
@@ -80,7 +83,7 @@
 
 <div class="page">
 	<EnTetePage titre="Suivi du centre" retour={{ href: '/caserne', libelle: 'Caserne' }} />
-	<nav class="segments filtres" aria-label="Filtrer le suivi">
+	<nav class="segments" aria-label="Filtrer le suivi" bind:this={filtres}>
 		{#each SUJETS as s (s.libelle)}
 			<a href={s.id ? `?sujet=${s.id}` : '/suivi'} aria-current={data.sujet === s.id ? 'page' : undefined}>{s.libelle}</a>
 		{/each}
@@ -92,7 +95,7 @@
 	{:else}
 		{#each groupes as g (g.lignes[0]!.id)}
 			{#if g.repere}<p class="repere">Avant votre dernière visite</p>{/if}
-			<ListeRangees titre={g.titre}>
+			<ListeRangees titre={nomDuJour(g.jour)}>
 				{#each g.lignes as l (l.id)}
 					<li id="suivi-{l.id}"><Rangee titre={`${l.qui} ${l.phrase}`} sous={sousLigne(l)} href={l.lien ?? undefined} /></li>
 				{/each}
@@ -113,9 +116,6 @@
 		max-width: var(--largeur-liste);
 		margin-inline: auto;
 		width: 100%;
-	}
-	.filtres {
-		flex-wrap: wrap;
 	}
 	.suite {
 		margin: 0;

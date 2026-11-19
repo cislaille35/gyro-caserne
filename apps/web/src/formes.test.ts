@@ -70,6 +70,13 @@ describe('formes', () => {
 		for (const f of ['routes/planning/+page.svelte', 'lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte']) expect(source(f), f).not.toMatch(/^\s*\.(bascule|reponse)\b/m);
 	});
 
+	it('un bloc segmenté tient sur une ligne qui défile, sans barre visible ; le suivi ne le replie pas', () => {
+		expect(source('app.css')).toMatch(/\.segments \{[^}]*overflow-x: auto;[^}]*scrollbar-width: none;/);
+		expect(source('app.css')).toMatch(/\.segments::-webkit-scrollbar \{\s*display: none;/);
+		expect(source('routes/suivi/+page.svelte')).not.toMatch(/flex-wrap: wrap/);
+		expect(source('routes/suivi/+page.svelte')).toMatch(/afterNavigate\(\(\) => montrerCouranteDeCote\(filtres\)\)/);
+	});
+
 	it('les cartes : sans bord fin, l’ombre de carte (sans effet) et le rayon des cartes (un bord transparent reste pour le mode contrasté)', () => {
 		const cartes: [string, string][] = [
 			['lib/ui/Carte.svelte', 'section'],

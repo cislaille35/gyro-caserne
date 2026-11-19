@@ -15,3 +15,12 @@ export function montrerCourante(zone: HTMLElement | undefined) {
 	const l = ligne.getBoundingClientRect();
 	zone.scrollTop += decalagePourVoir({ haut: z.top, bas: z.bottom }, { haut: l.top, bas: l.bottom });
 }
+
+// Pareil pour une rangée qui défile de côté (un bloc segmenté au téléphone) : l'option choisie ramenée à l'écran.
+export function montrerCouranteDeCote(zone: HTMLElement | undefined) {
+	const option = zone?.querySelector('[aria-current="page"], [aria-current="true"], [aria-pressed="true"]');
+	if (!zone || !option || zone.scrollWidth <= zone.clientWidth) return;
+	const z = zone.getBoundingClientRect();
+	const o = option.getBoundingClientRect();
+	zone.scrollLeft += decalagePourVoir({ haut: z.left, bas: z.right }, { haut: o.left, bas: o.right });
+}

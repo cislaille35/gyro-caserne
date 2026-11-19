@@ -35,7 +35,7 @@ describe('/suivi', () => {
 
 	it('les filtres en haut, en bloc segmenté, par l’adresse ; le choisi est marqué', () => {
 		const page = html({ sujet: 'demandes' });
-		expect(page).toMatch(/<nav class="segments filtres" aria-label="Filtrer le suivi">/);
+		expect(page).toMatch(/<nav class="segments" aria-label="Filtrer le suivi">/);
 		const liens = [...page.matchAll(/<a href="([^"]*)"( aria-current="page")?>([^<]+)<\/a>/g)].map((m) => [m[3], m[1], !!m[2]]);
 		expect(liens.slice(0, 6)).toEqual([
 			['Tout', '/suivi', false],
@@ -51,11 +51,13 @@ describe('/suivi', () => {
 		expect(page).not.toContain('Rien de nouveau au centre');
 	});
 
-	it('le repère de la dernière visite, entre les nouveautés et le reste ; le jour coupé n’est pas nommé deux fois', () => {
+	it('le repère de la dernière visite, entre les nouveautés et le reste ; chaque carte garde son jour', () => {
 		const lignes = [ligne({ id: 9 }), ligne({ id: 8, quand: '2026-11-18T08:00', qui: 'Rémi Leroy' }), ligne({ id: 7, quand: '2026-11-17T08:00', qui: 'Ancien agent' })];
 		const page = html({ lignes, vu: 8 });
-		expect(page).toMatch(/Aujourd’hui[\s\S]*Claire Martin[\s\S]*<p class="repere">Avant votre dernière visite<\/p>[\s\S]*Rémi Leroy[\s\S]*Hier[\s\S]*Ancien agent/);
-		expect(page.match(/Aujourd’hui/g)).toHaveLength(1);
+		// Chaque carte a son jour : celui que le repère coupe est redonné dessous.
+		expect(page).toMatch(/<h2[^>]*>Aujourd’hui<\/h2>[\s\S]*Claire Martin[\s\S]*<p class="repere">Avant votre dernière visite<\/p>\s*<section[^>]*><h2[^>]*>Aujourd’hui<\/h2>[\s\S]*Rémi Leroy[\s\S]*Hier[\s\S]*Ancien agent/);
+		expect(page.match(/<h2[^>]*>Aujourd’hui<\/h2>/g)).toHaveLength(2);
+		expect(page).not.toContain('suite');
 		// Rien de nouveau, tout est nouveau, ou jamais venu : pas de repère.
 		expect(html({ lignes, vu: 9 })).not.toContain('Avant votre dernière visite');
 		expect(html({ lignes, vu: 6 })).not.toContain('Avant votre dernière visite');
