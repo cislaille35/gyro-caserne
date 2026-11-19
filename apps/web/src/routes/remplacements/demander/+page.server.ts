@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Revenu en arrière faute de choix : on le dit (seulement si l'agent avait demandé à avancer).
 	const message = manquante && q.has('etape') ? MESSAGES[manquante] : null;
 
-	return { mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '', manqueMoi: lu.manqueMoi };
+	return { mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '', manqueMoi: lu.manqueMoi, court: lu.court };
 };
 
 const MESSAGES: Record<Etape, string> = {

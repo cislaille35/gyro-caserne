@@ -5,7 +5,7 @@ import type { VueDemande } from '@gyro-caserne/socle';
 vi.mock('$app/forms', () => ({ enhance: () => ({}) }));
 const { default: Page } = await import('./+page.svelte');
 
-const gestes = { accepter: false, refuser: false, ouvrir: false, annuler: true, desister: false, valider: false };
+const gestes = { accepter: false, refuser: false, ouvrir: false, annuler: true, desister: false, valider: false, refuserApresCoup: false };
 const bruno = { id: 2, prenom: 'Bruno', nom: 'Test' };
 const demande = (v: Partial<VueDemande> = {}) =>
 	({
@@ -27,6 +27,7 @@ const demande = (v: Partial<VueDemande> = {}) =>
 		debut: '2026-11-09T18:00',
 		fin: '2026-11-10T06:00',
 		ouverte: true,
+		court: false,
 		moi: 'demandeur',
 		manquePourMoi: [],
 		gestes,
@@ -80,5 +81,26 @@ describe('page d’une demande', () => {
 
 	it('« Demande envoyée » n’est dit qu’au demandeur', () => {
 		expect(page({ demande: demande({ moi: 'destinataire' }), envoyee: true })).not.toContain('Demande envoyée.');
+	});
+
+	it('remplacement court conclu : le refus du remplaçant, grave et à confirmer, dit ce qui arrive', () => {
+		const court = { court: true, periodes: [{ debut: '2026-11-09T20:00', fin: '2026-11-09T22:00' }], texte: 'lundi 9 novembre, de 20 h à 22 h', debut: '2026-11-09T20:00', fin: '2026-11-09T22:00' };
+		const html = page({ demande: demande({ ...court, etat: 'conclue', remplacant: bruno, manque: ['CA1'], gestes: { ...gestes, annuler: false, refuserApresCoup: true } }) });
+		expect(html).toContain('Remplacement court');
+		expect(html).toMatch(/<details class="plus[^"]*"><summary class="bouton secondaire[^"]*">Refuser ce remplaçant/);
+		expect(html).toContain('Vous restez d’astreinte lundi 9 novembre, de 20 h à 22 h. Bruno est prévenu ; la demande ne repart pas.');
+		expect(html).toMatch(/name="confirmation" value="oui"[\s\S]*?class="bouton danger[^"]*">Je confirme : refuser ce remplaçant/);
+		expect(html).toContain('Il manque CA1 au remplaçant : le chef de garde peut refuser jusqu’au début.');
+		expect(html).not.toContain('Validée par le chef');
+		// Refusé : la frise dit par qui, une seule fois.
+		const refuse = page({ demande: demande({ ...court, etat: 'annulee', remplacant: bruno, motif: 'Refusé par le demandeur', gestes: { ...gestes, annuler: false } }) });
+		expect(refuse.match(/Refusé par le demandeur/g)).toHaveLength(1);
+		expect(refuse).not.toContain('Refuser ce remplaçant');
+	});
+
+	it('remplacement court ouvert : ceux à qui une aptitude manque, le chef pourra refuser', () => {
+		const html = page({ demande: demande({ court: true }), disponibles: [{ id: 3, prenom: 'Chloé', nom: 'Test', aptitudes: false }] });
+		expect(html).toContain('Le chef de garde sera prévenu');
+		expect(html).not.toContain('À faire valider par le chef');
 	});
 });

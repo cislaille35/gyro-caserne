@@ -646,7 +646,9 @@ export const demandeRemplacement = sqliteTable(
 		trancheePar: text('tranchee_par'),
 		trancheeLe: text('tranchee_le'),
 		motif: text('motif'),
-		relanceLe: text('relance_le')
+		relanceLe: text('relance_le'),
+		// 1 : remplacement court, de 2 ou 3 h dans l'astreinte du jour (décision 0039). Vide sinon.
+		court: integer('court')
 	},
 	(t) => [
 		check('demande_remplacement_genre', checkDans('genre', GENRES_DEMANDE)),

@@ -44,6 +44,7 @@ import { actions as actionsRemplacements, load as remplacements } from './rempla
 import { load as demandeRemplacementPage } from './remplacements/[id]/+page.server';
 import { actions as actionsDemander, load as pageDemander } from './remplacements/demander/+page.server';
 import { load as pageEchangeManoeuvre } from './remplacements/manoeuvre/+page.server';
+import { load as pageCourt } from './remplacements/court/+page.server';
 import { load as reglagesAptitudes } from './reglages/aptitudes/+page.server';
 import { load as eteDeLAnnee } from './planning/ete/+layout.server';
 import { actions as actionsEte, load as pageEte } from './planning/ete/+page.server';
@@ -772,6 +773,7 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 			['demander', pageDemander, deLAgent, '/remplacements/demander'],
 			['demander, à qui ?', pageDemander, deLAgent, `/remplacements/demander?p=${encodeURIComponent(`${nuit.debut}|${nuit.fin}`)}&etape=qui`],
 			['manoeuvre', pageEchangeManoeuvre, deLAgent, '/remplacements/manoeuvre'],
+			['quelques heures', pageCourt, deLAgent, '/remplacements/court'],
 			['liste', remplacements, locals, '/remplacements'],
 			['aptitudes', reglagesAptitudes, locals, '/reglages/aptitudes']
 		] as const) {

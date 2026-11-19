@@ -25,6 +25,22 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef de garde. Sinon c'est conclu, et le chef de garde est **informé**.
 4. Conclu : le planning montre « X remplace Y » sur la période, l'agenda des deux agents suit, et les deux sont invités à **mettre à jour leur disponibilité dans l'appli du SDIS**, qui fait foi pour l'alerte.
 
+## Remplacement court (quelques heures)
+
+Pour être remplacé **2 ou 3 h** pendant son astreinte du jour, pour une raison personnelle. Exemple : Julie est d'astreinte de 18 h à 6 h et a besoin de quelqu'un de 20 h à 22 h.
+
+- « Me faire remplacer » → « Demander 2 ou 3 h » (proposé seulement le jour de l'astreinte). L'heure de début au quart d'heure, dans la liste du téléphone, puis 2 h ou 3 h. La plage tient dans une seule tranche de son astreinte du jour ; elle peut commencer alors que l'astreinte a commencé, mais pas dans le passé.
+- Toujours **ouverte à tous les disponibles**, comme une demande ouverte (ceux qui ont ses aptitudes contrôlées en tête). Pas de collègue ciblé, pas d'échange.
+- **Conclu dès qu'un collègue accepte** ; le premier l'emporte. Pas de validation avant.
+- S'il manque au remplaçant une aptitude contrôlée du demandeur, le chef de garde reçoit une **urgence** (« Marc Petit remplace Julie Martin lundi 9 novembre, de 20 h à 22 h · il lui manque CA1 ») et peut refuser. Sinon, il est simplement informé.
+- **Refuser ce remplaçant** : le demandeur, ou le chef de garde si une aptitude manque, **jusqu'au début** de la plage, avec confirmation. Le titulaire reste d'astreinte ; le remplaçant (et le demandeur, si c'est le chef) le savent par une urgence. La demande est close (« Annulée », motif « Refusé par… ») et ne repart pas d'elle-même.
+- Le chef de garde apprend aussi le refus du demandeur (en urgence s'il manquait une aptitude). Un court conclu ne s'**annule** pas : on refuse le remplaçant.
+- **Désistement** du remplaçant avant le début : le titulaire le sait par une urgence, et la demande repart vers les disponibles, comme une demande ouverte.
+- **Sans refus, le remplacement tient.** Personne ne l'a pris au début : elle expire, le titulaire est prévenu. Pas de relance la veille.
+- Le planning, la vue du chef de garde et l'agenda du téléphone montrent la seule plage : « Marc Petit remplace Julie Martin, lundi 9 novembre, de 20 h à 22 h ». La plaque d'astreinte du Planning dit « Remplacé par Marc Petit de 20 h à 22 h » (pas encore celle de l'Accueil).
+- Tant qu'il peut refuser, le chef de garde retrouve un court où une aptitude manque dans ses demandes à traiter (Accueil, cloche), jusqu'au début.
+- La nuit du passage à l'heure d'été, les débuts de 2 h à 2 h 45 (heures qui n'existent pas) ne sont pas proposés.
+
 ## Les règles
 
 - **Qui valide** : le chef de garde de l'équipe d'astreinte sur la première période, s'il n'est ni le demandeur ni le remplaçant. À défaut (pas d'autre chef dans l'équipe) : le chef de centre ou son adjoint. Une demande à valider reste comptée dans sa cloche tant qu'il n'a pas tranché.
@@ -48,4 +64,5 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 - Si c'est Paul (sans CA1) qui accepte, l'appli l'avertit ; le remplacement attend le chef de l'équipe 1. Il refuse : la demande repart, Paul ne la revoit plus.
 - Léo, JSP au statut stagiaire, n'apparaît jamais parmi les collègues libres, et ne reçoit pas la demande de Julie.
 - Marc se blesse et passe inapte temporaire : il ne reçoit plus de demandes, mais ouvre à tous sa nuit du 12 ; Bruno la prend.
+- Julie, d'astreinte ce lundi soir, demande 2 h de 20 h à 22 h. Paul (sans CA1) accepte le premier : c'est conclu, le chef de l'équipe 1 reçoit une urgence et refuse ; Julie reste d'astreinte, Paul est prévenu.
 - Julie et Bruno (équipe 2) échangent la nuit du 9 contre celle du 16. Bruno accepte : chacun tient la nuit de l'autre.

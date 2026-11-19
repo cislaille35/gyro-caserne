@@ -35,6 +35,11 @@ describe('vues du planning', () => {
 		expect(jours[5]!.reperes[0]).toMatchObject({ genre: 'ferie', texte: 'Armistice 1918' });
 	});
 
+	it('un remplacement court : sa seule plage, « de 20 h à 22 h »', () => {
+		const court = { ...d, remplacements: [{ debut: '2026-11-09T20:00', fin: '2026-11-09T22:00', titulaire: 'Alice Martin', remplacant: 'Bruno Petit', moi: 'cede' as const }] };
+		expect(reperesDe(semaine('2026-11-06'), court, 'moi').find((x) => x.genre === 'remplacement')).toEqual({ genre: 'remplacement', texte: 'Bruno Petit me remplace, lundi 9 novembre, de 20 h à 22 h', date: '2026-11-09' });
+	});
+
 	it('mes repères : seulement mes manœuvres et mes remplacements', () => {
 		const r = reperesDe(semaine('2026-11-06'), d, 'moi');
 		expect(r.map((x) => x.genre)).toEqual(['ferie', 'manoeuvre']);

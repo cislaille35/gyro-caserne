@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { periodesDeLaSemaine, feries } from '@gyro-caserne/socle';
 import centre from '$centre';
-import { bornesAstreinte, phraseAstreinte } from './astreinte.ts';
+import { bornesAstreinte, phraseAstreinte, remplacantsCourts } from './astreinte.ts';
 
 const f = new Set(feries(2026).map((x) => x.date));
 const semaine = (debut: string) => {
@@ -42,5 +42,23 @@ describe('bornes de la plaque d’astreinte', () => {
 	it('le début et la fin, courts, avec l’heure de la relève du centre', () => {
 		expect(bornesAstreinte(a('2026-11-20'))).toEqual({ debut: 'ven. 20 nov. 18 h', fin: 'ven. 27 nov. 6 h' });
 		expect(bornesAstreinte(a('2026-10-30'))).toEqual({ debut: 'ven. 30 oct. 18 h', fin: 'ven. 6 nov. 6 h' });
+	});
+});
+
+describe('remplacements courts sur la plaque', () => {
+	const a = { debut: '2026-11-06T18:00', fin: '2026-11-13T06:00' };
+	const r = (debut: string, fin: string, moi: 'cede' | 'prend' | null = 'cede') => ({ debut, fin, titulaire: 'Alice Martin', remplacant: 'Marc Petit', moi });
+	it('mes plages courtes cédées, à venir ou en cours, dans cette astreinte : « Marc Petit de 20 h à 22 h », le jour s’il n’est pas aujourd’hui', () => {
+		const liste = [
+			r('2026-11-09T20:00', '2026-11-09T22:00'),
+			r('2026-11-10T22:00', '2026-11-11T00:00'),
+			// Passée, une nuit entière, une prise à un autre, hors de la semaine : non.
+			r('2026-11-09T12:00', '2026-11-09T14:00'),
+			r('2026-11-11T18:00', '2026-11-12T06:00'),
+			r('2026-11-12T20:00', '2026-11-12T22:00', 'prend'),
+			r('2026-11-20T20:00', '2026-11-20T22:00')
+		];
+		expect(remplacantsCourts(a, liste, '2026-11-09T19:10')).toEqual(['Marc Petit de 20 h à 22 h', 'Marc Petit mardi 10 novembre, de 22 h à minuit']);
+		expect(remplacantsCourts(a, [], '2026-11-09T19:10')).toEqual([]);
 	});
 });

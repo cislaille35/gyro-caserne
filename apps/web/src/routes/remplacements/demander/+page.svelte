@@ -110,6 +110,10 @@
 		retour={{ href: '/remplacements', libelle: 'Remplacements' }}
 	/>
 
+	{#if !echange && data.court}
+		<p class="court">Seulement quelques heures aujourd’hui ? <a href="/remplacements/court">Demander 2 ou 3 h</a></p>
+	{/if}
+
 	{#if data.semaines.length === 0}
 		<Vide titre="Aucune astreinte à venir." texte="Vos semaines d’astreinte des douze prochaines semaines apparaîtront ici, dès que le planning est publié." action={{ href: '/planning', libelle: 'Voir le planning' }} />
 	{:else}
@@ -242,7 +246,8 @@
 		background: var(--statut-neutre-fond);
 	}
 	.resume a,
-	.autre a {
+	.autre a,
+	.court a {
 		color: var(--encre);
 		font-weight: 600;
 	}

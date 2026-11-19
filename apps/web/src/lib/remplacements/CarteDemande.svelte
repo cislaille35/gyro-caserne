@@ -30,10 +30,11 @@
 	<p class="quoi">{quoi}</p>
 	{#if v.moi !== 'demandeur' && v.genre === 'remplacement'}<p class="doux">Astreinte de {qui}</p>{/if}
 	{#if v.mot}<p class="mot">« {v.mot} »</p>{/if}
-	{#if v.motif && v.etat !== 'conclue'}<p class="motif">Motif : {v.motif}</p>{/if}
+	<!-- Sur la page d'un court refusé, la frise dit déjà par qui. -->
+	{#if v.motif && v.etat !== 'conclue' && (detail || !v.court)}<p class="motif">Motif : {v.motif}</p>{/if}
 	{#if reste}<p class="suite">{reste}</p>{/if}
 	{#if v.gestes.accepter && v.manquePourMoi.length > 0}
-		<p class="avertissement"><strong>Attention :</strong> il vous manque {v.manquePourMoi.join(', ')}. Si vous acceptez, le chef de garde devra valider.</p>
+		<p class="avertissement"><strong>Attention :</strong> il vous manque {v.manquePourMoi.join(', ')}. {v.court ? 'Si vous acceptez, le chef de garde en est prévenu et peut refuser jusqu’au début.' : 'Si vous acceptez, le chef de garde devra valider.'}</p>
 	{/if}
 
 	{#if Object.values(v.gestes).some(Boolean)}
@@ -76,6 +77,17 @@
 					<input type="hidden" name="id" value={v.id} />
 					<button type="submit" class="bouton secondaire">Me désister<span class="masque">{` : ${v.texte}`}</span></button>
 				</form>
+			{/if}
+			{#if v.gestes.refuserApresCoup}
+				<details class="plus">
+					<summary class="bouton secondaire">Refuser ce remplaçant<span class="masque">{` : ${v.texte}`}</span></summary>
+					<form method="POST" action="?/refuserApresCoup" use:enhance>
+						<input type="hidden" name="id" value={v.id} />
+						<input type="hidden" name="confirmation" value="oui" />
+						<p>{v.moi === 'demandeur' ? 'Vous restez d’astreinte' : `${qui} reste d’astreinte`} {v.texte}. {v.remplacant?.prenom ?? 'Le remplaçant'} est prévenu ; la demande ne repart pas.</p>
+						<button type="submit" class="bouton danger">Je confirme : refuser ce remplaçant</button>
+					</form>
+				</details>
 			{/if}
 			{#if v.gestes.annuler}
 				<form method="POST" action="?/annuler" use:enhance>

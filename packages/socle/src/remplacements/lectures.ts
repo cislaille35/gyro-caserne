@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
@@ -6,16 +6,18 @@ import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import type { EtatDemande, GenreDemande } from '../listes.ts';
 import type { Periode, Reglage } from '../planning/calendrier.ts';
 import { avisRemplacement, demandeRemplacement, destinataireRemplacement, manoeuvre, personne } from '../schema.ts';
-import { bandesDe, candidats, disponibles, EN_COURS, lireContexte, manque, periodesDe, peutRemplacer, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
+import { bandesDe, candidats, debutsCourts, disponibles, EN_COURS, lireContexte, manque, periodesDe, peutRemplacer, requeteChefs, valideurs, type Chef, type Contexte, type LigneDemande } from './contexte.ts';
 import { texteDemande } from './tranches.ts';
 
 // Ce que montrent les écrans : Pour moi, Mes demandes, À valider, l'historique, le détail d'une demande.
 
 export type Qui = { id: number; prenom: string; nom: string };
-export type Gestes = { accepter: boolean; refuser: boolean; ouvrir: boolean; annuler: boolean; desister: boolean; valider: boolean };
+export type Gestes = { accepter: boolean; refuser: boolean; ouvrir: boolean; annuler: boolean; desister: boolean; valider: boolean; refuserApresCoup: boolean };
 export type VueDemande = {
 	id: number;
 	genre: GenreDemande;
+	// Remplacement court : 2 ou 3 h, conclu dès l'acceptation.
+	court: boolean;
 	etat: EtatDemande;
 	demandeur: Qui;
 	cible: Qui | null;
@@ -68,6 +70,7 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 	return {
 		id: d.id,
 		genre: d.genre,
+		court: d.court === 1,
 		etat: d.etat,
 		demandeur: qui(d.demandeurId)!,
 		cible: qui(d.cibleId),
@@ -90,9 +93,11 @@ function vue(d: LigneDemande, moi: number, lu: Lu, chefs: Chef[], ctx: Contexte 
 			accepter: pourMoi,
 			refuser: pourMoi,
 			ouvrir: avenir && d.demandeurId === moi && d.genre === 'remplacement' && d.cibleId !== null && ['attente', 'refusee'].includes(d.etat),
-			annuler: avenir && enCours && !(d.genre === 'manoeuvre' && d.etat === 'conclue') && ((d.demandeurId === moi && ['attente', 'refusee'].includes(d.etat)) || estValideur),
+			annuler: avenir && enCours && !((d.genre === 'manoeuvre' || d.court === 1) && d.etat === 'conclue') && ((d.demandeurId === moi && ['attente', 'refusee'].includes(d.etat)) || estValideur),
 			desister: avenir && d.remplacantId === moi && d.genre !== 'manoeuvre' && ['a_valider', 'conclue'].includes(d.etat),
-			valider: avenir && estValideur && d.etat === 'a_valider'
+			valider: avenir && estValideur && d.etat === 'a_valider',
+			// Court conclu : le demandeur, ou le chef si une aptitude manque, refuse le remplaçant avant le début.
+			refuserApresCoup: avenir && d.court === 1 && d.etat === 'conclue' && (d.demandeurId === moi || (estValideur && d.manque !== null))
 		}
 	};
 }
@@ -184,25 +189,34 @@ export async function demandeVue(base: Base, acteur: Acteur, id: number, mainten
 	};
 }
 
+// À valider, ou à revoir : un court conclu à qui une aptitude manque (le chef peut refuser jusqu'au début).
+const aRevoir = or(eq(demandeRemplacement.etat, 'a_valider'), and(eq(demandeRemplacement.court, 1), eq(demandeRemplacement.etat, 'conclue'), isNotNull(demandeRemplacement.manque)));
+
 // La cloche du chef : les demandes à valider qu'il n'a pas tranchées. Une requête.
 export async function nombreRemplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<number> {
 	return (await remplacementsAValider(base, acteur, maintenant)).length;
 }
 
-// Les demandes à valider par l'acteur, pour l'accueil et la cloche. Une requête.
+// Les demandes à valider ou à revoir par l'acteur, pour l'accueil et la cloche. Une requête.
 export async function remplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<{ id: number; equipeId: number | null; texte: string }[]> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return [];
 	const [demandes, chefs, personnes] = await base.batch([
-		base
-			.select()
-			.from(demandeRemplacement)
-			.where(and(eq(demandeRemplacement.etat, 'a_valider'), gt(demandeRemplacement.debut, maintenant.slice(0, 16)))),
+		base.select().from(demandeRemplacement).where(and(aRevoir, gt(demandeRemplacement.debut, maintenant.slice(0, 16)))),
 		requeteChefs(base, aujourdhui),
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
 			.from(personne)
-			.where(inArray(personne.id, base.select({ id: demandeRemplacement.demandeurId }).from(demandeRemplacement).where(eq(demandeRemplacement.etat, 'a_valider'))))
+			.where(
+				inArray(
+					personne.id,
+					base
+						.select({ id: demandeRemplacement.demandeurId })
+						.from(demandeRemplacement)
+						.where(aRevoir)
+						.union(base.select({ id: sql<number>`${demandeRemplacement.remplacantId}` }).from(demandeRemplacement).where(aRevoir))
+				)
+			)
 	]);
 	const nom = (id: number | null) => {
 		const p = personnes.find((x) => x.id === id);
@@ -210,7 +224,14 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 	};
 	return demandes
 		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(acteur.id))
-		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}` }));
+		.map((d) => ({
+			id: d.id,
+			equipeId: d.equipeId,
+			texte:
+				d.court === 1
+					? `Remplacement court, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))} · il manque ${(JSON.parse(d.manque ?? '[]') as string[]).join(', ')} à ${nom(d.remplacantId)}`
+					: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}`
+		}));
 }
 
 // Les demandes reçues qui attendent une réponse de l'acteur (À ne pas manquer). Une requête.
@@ -251,5 +272,13 @@ export async function pourDemander(base: Base, acteur: Acteur, maintenant: strin
 	const semainesAvec = avec ? leurs.get(avec.id)! : [];
 	const siennes = semainesAvec.flatMap((s) => s.tranches).filter((t) => t.etat === 'libre' && (choix.periodesAvec ?? []).some((p) => p.debut === t.debut && p.fin === t.fin));
 	const manqueMoi = avec && siennes[0] ? manque(ctx, avec.id, moi, siennes[0].debut.slice(0, 10)) : [];
-	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec, manqueMoi };
+	return { semaines, choisies, candidats: libresPour, echangeables, avec, semainesAvec, manqueMoi, court: debutsCourts(ctx, moi).length > 0 };
+}
+
+// Le remplacement court : les débuts possibles aujourd'hui, au quart d'heure, avec la durée la plus longue qui tient (2 ou 3 h).
+export async function pourDemanderCourt(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage) {
+	exigerDateHeure(maintenant, 'Date');
+	const moi = moiDe(acteur);
+	const ctx = await lireContexte(base, maintenant, reglage);
+	return { debuts: debutsCourts(ctx, moi) };
 }

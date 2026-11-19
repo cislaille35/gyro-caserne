@@ -40,6 +40,13 @@ describe('onglet Planning', () => {
 		expect(page({ planning: { publiee: false, annee: 2026, peutPreparer: true } })).toContain('href="/planning/preparer?annee=2026"');
 	});
 
+	it('la plaque dit qui me remplace quelques heures, sans lecture de plus', () => {
+		const court = { debut: '2026-11-09T20:00', fin: '2026-11-09T22:00', titulaire: 'Alice Martin', remplacant: 'Marc Petit', moi: 'cede' };
+		const html = page({ maintenant: '2026-11-09T19:10', planning: { ...publiee, remplacements: [...publiee.remplacements, court], prochaine: { ...publiee.prochaine, astreinte: { ...publiee.prochaine.astreinte, enCours: true } } } });
+		expect(html).toMatch(/aria-label="Mon astreinte en cours"[\s\S]*?Marc Petit de 20 h à 22 h/);
+		expect(page({})).not.toContain('Marc Petit');
+	});
+
 	it('en-tête vivant et carte : compte à rebours, dates, équipe écrite, gestes', () => {
 		const html = page({});
 		expect(html).toMatch(/<h1[^>]*>Planning<\/h1>/);

@@ -3,7 +3,7 @@
 
 // Les actions des formulaires de l'appli (?/souhaiter). Liste fermée, tenue à jour par page-au-journal.test.ts.
 export const ACTIONS = new Set(
-	'abandonner accepter aimer ajouter ajuster annuler aptitude archiver attribuer changer classer code commencer commenter couper courriel creer deconnecter deconnecterPartout default deplacer deposer desister detail dissoudre effacer enregistrer envoyer epingler equipe fermerCommentaires fete fiche finir geste modifier nommer nouveauType oterAptitude ouvrir prendreConnaissance proposer proposition publier quitter reactiver reagir refuser refuserValidation regler relancer renommer repondre retirer retirerVacances revenir roulement semaines signaler souhaiter statut supprimer supprimerCommentaire terminer toutCouper toutLete toutLu urgences vacances valider voter'.split(' ')
+	'abandonner accepter aimer ajouter ajuster annuler aptitude archiver attribuer changer classer code commencer commenter couper courriel creer deconnecter deconnecterPartout default deplacer deposer desister detail dissoudre effacer enregistrer envoyer epingler equipe fermerCommentaires fete fiche finir geste modifier nommer nouveauType oterAptitude ouvrir prendreConnaissance proposer proposition publier quitter reactiver reagir refuser refuserApresCoup refuserValidation regler relancer renommer repondre retirer retirerVacances revenir roulement semaines signaler souhaiter statut supprimer supprimerCommentaire terminer toutCouper toutLete toutLu urgences vacances valider voter'.split(' ')
 );
 const METHODES = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
 

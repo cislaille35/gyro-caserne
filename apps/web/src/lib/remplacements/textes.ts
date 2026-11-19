@@ -25,6 +25,7 @@ export function titreDemande(v: VueDemande): string {
 // Ce qui reste à faire, dit en clair.
 export function suite(v: VueDemande): string | null {
 	if (v.etat === 'a_valider') return `Le chef de garde doit valider : il manque ${v.manque.join(', ')} au remplaçant.`;
+	if (v.court && v.manque.length > 0 && v.gestes.refuserApresCoup) return `Il manque ${v.manque.join(', ')} au remplaçant : le chef de garde peut refuser jusqu’au début.`;
 	if (v.etat === 'refusee' && v.moi === 'demandeur') return v.gestes.ouvrir ? 'Refusée : vous pouvez l’ouvrir à tous les disponibles.' : 'Refusée.';
 	if (v.etat === 'expiree') return 'Personne n’a été trouvé à temps : le titulaire reste responsable.';
 	return null;
@@ -44,8 +45,9 @@ export function frise(v: VueDemande): Pas[] {
 		return [...pas, v.gestes.ouvrir ? { libelle: `${par} : vous pouvez l’ouvrir à tous`, etat: 'en-cours' } : { libelle: par, etat: 'arret' }];
 	}
 	pas.push(acceptee ? { libelle: `Acceptée par ${nom(v.remplacant)}`, etat: 'fait' } : { libelle: qui && v.cible ? `En attente de ${nom(qui)}` : 'En attente d’un collègue', etat: v.etat === 'attente' ? 'en-cours' : 'a-venir' });
-	if (v.etat === 'annulee' || v.etat === 'expiree') return [...pas.filter((p) => p.etat === 'fait'), { libelle: v.etat === 'annulee' ? 'Annulée' : 'Expirée', etat: 'arret' }];
-	if (v.etat === 'a_valider' || v.manque.length > 0) pas.push({ libelle: v.etat === 'a_valider' ? 'À valider par le chef' : 'Validée par le chef', etat: v.etat === 'a_valider' ? 'en-cours' : v.etat === 'conclue' ? 'fait' : 'a-venir' });
+	// Un court refusé après coup : le motif dit par qui.
+	if (v.etat === 'annulee' || v.etat === 'expiree') return [...pas.filter((p) => p.etat === 'fait'), { libelle: v.etat === 'expiree' ? 'Expirée' : v.court && v.motif ? v.motif : 'Annulée', etat: 'arret' }];
+	if (!v.court && (v.etat === 'a_valider' || v.manque.length > 0)) pas.push({ libelle: v.etat === 'a_valider' ? 'À valider par le chef' : 'Validée par le chef', etat: v.etat === 'a_valider' ? 'en-cours' : v.etat === 'conclue' ? 'fait' : 'a-venir' });
 	pas.push({ libelle: 'Conclue', etat: v.etat === 'conclue' ? 'fait' : 'a-venir' });
 	return pas;
 }

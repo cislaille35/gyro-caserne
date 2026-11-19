@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ajouterJours, enCours, finEvenement, formatDeDate, heureDeParis, momentEvenement, veille } from '../src/dates.ts';
+import { ajouterJours, enCours, existeAParis, finEvenement, formatDeDate, heureDeParis, momentEvenement, veille } from '../src/dates.ts';
 import { rangDuJour } from '../src/planning/calendrier.ts';
 
 describe('enCours', () => {
@@ -133,5 +133,14 @@ describe('momentEvenement (sans heure de fin, un événement dure 3 h)', () => {
 		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T11:59', '2026-11-29T12:00')).toBe('enCours');
 		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T12:00', '2026-11-29T12:00')).toBe('passe');
 		expect(momentEvenement('2026-11-29T07:45', '2026-11-29T08:30', '2026-11-29T08:00')).toBe('passe');
+	});
+});
+
+describe('existeAParis', () => {
+	it('la nuit du passage à l’heure d’été, 2 h à 2 h 59 n’existent pas ; à l’heure d’hiver, 2 h existe (deux fois)', () => {
+		expect(['01:59', '02:00', '02:45', '03:00'].map((h) => existeAParis(`2027-03-28T${h}`))).toEqual([true, false, false, true]);
+		expect(existeAParis('2026-03-29T02:30')).toBe(false);
+		expect(existeAParis('2026-03-22T02:30')).toBe(true);
+		expect(existeAParis('2026-10-25T02:30')).toBe(true);
 	});
 });

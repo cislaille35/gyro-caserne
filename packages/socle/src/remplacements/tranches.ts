@@ -50,17 +50,21 @@ export function reunir(periodes: Periode[]): Periode[] {
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 export const jourEnLettres = (moment: string) => `${JOURS[rangDuJour(moment.slice(0, 10))]} ${Number(moment.slice(8, 10)) === 1 ? '1er' : Number(moment.slice(8, 10))} ${MOIS[Number(moment.slice(5, 7)) - 1]}`;
-const heure = (moment: string) => {
+export const heure = (moment: string) => {
 	const [h, m] = moment.slice(11, 16).split(':');
 	return `${Number(h)} h${m === '00' ? '' : ` ${m}`}`;
 };
+// « de 20 h à 22 h », « de 22 h à minuit ».
+export const dePlage = (p: Periode) => `de ${heure(p.debut)} à ${p.fin.slice(11, 16) === '00:00' ? 'minuit' : heure(p.fin)}`;
 const heures = (p: Periode) => (Date.parse(`${p.fin}:00Z`) - Date.parse(`${p.debut}:00Z`)) / 3_600_000;
 
-// « nuit du lundi 9 novembre », « 24 h du samedi 7 novembre », « du vendredi 6 novembre, 18 h au lundi 9 novembre, 6 h ».
+// « nuit du lundi 9 novembre », « 24 h du samedi 7 novembre », « lundi 9 novembre, de 20 h à 22 h », « du vendredi 6 novembre, 18 h au lundi 9 novembre, 6 h ».
 export function texteTranche(p: Periode): string {
 	const duree = heures(p);
 	if (duree === 24) return `24 h du ${jourEnLettres(p.debut)}`;
-	if (duree <= 14 && p.debut.slice(11, 16) >= '17:00' && p.fin.slice(0, 10) === ajouterJours(p.debut.slice(0, 10), 1)) return `nuit du ${jourEnLettres(p.debut)}`;
+	if (duree > 3 && duree <= 14 && p.debut.slice(11, 16) >= '17:00' && p.fin.slice(0, 10) === ajouterJours(p.debut.slice(0, 10), 1)) return `nuit du ${jourEnLettres(p.debut)}`;
+	// Le même jour, ou une plage courte (3 h au plus) qui passe minuit : le jour du début.
+	if (p.debut.slice(0, 10) === p.fin.slice(0, 10) || duree <= 3) return `${jourEnLettres(p.debut)}, ${dePlage(p)}`;
 	return `du ${jourEnLettres(p.debut)}, ${heure(p.debut)} au ${jourEnLettres(p.fin)}, ${heure(p.fin)}`;
 }
 

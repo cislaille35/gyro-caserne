@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { ajouterJours } from '../dates.ts';
+import { ajouterJours, existeAParis } from '../dates.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { STATUTS_AVEC_ACCES } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
@@ -215,6 +215,35 @@ export function mesTranches(ctx: Contexte, id: number): { semaine: string; equip
 				.map((t) => ({ ...t, prise: !sansEngagement(ctx, id, [t]) }))
 		}))
 		.filter((s) => s.tranches.length > 0);
+}
+
+// Les tranches d'astreinte du jour : commencées ou non, qui commencent aujourd'hui ou ne sont pas finies. Pour un remplacement court.
+export function tranchesDuJour(ctx: Contexte, id: number): Periode[] {
+	const demain = `${ajouterJours(ctx.maintenant.slice(0, 10), 1)}T00:00`;
+	return astreintesDe(ctx, id)
+		.filter((s) => s.periodes.at(-1)!.fin > ctx.maintenant && s.periodes[0]!.debut < demain)
+		.flatMap((s) => tranchesDe(s.periodes, ctx.reglage))
+		.filter((t) => t.fin > ctx.maintenant && t.debut < demain);
+}
+
+const QUART = 15 * 60_000;
+const decaler = (moment: string, ms: number) => new Date(Date.parse(`${moment}:00Z`) + ms).toISOString().slice(0, 16);
+
+// Les débuts possibles d'un remplacement court, au quart d'heure : à venir, dans une tranche du jour, libres de toute demande.
+// `max` : 3 si trois heures tiennent, sinon 2.
+export function debutsCourts(ctx: Contexte, id: number): { debut: string; max: 2 | 3 }[] {
+	const libre = (debut: string, heures: number) => sansEngagement(ctx, id, [{ debut, fin: decaler(debut, heures * 3_600_000) }]);
+	// Le premier quart d'heure qui suit maintenant.
+	const premier = new Date(Math.floor(Date.parse(`${ctx.maintenant}:00Z`) / QUART) * QUART + QUART).toISOString().slice(0, 16);
+	const debuts: { debut: string; max: 2 | 3 }[] = [];
+	for (const t of tranchesDuJour(ctx, id)) {
+		const depart = new Date(Math.ceil(Date.parse(`${t.debut}:00Z`) / QUART) * QUART).toISOString().slice(0, 16);
+		for (let d = depart > premier ? depart : premier; decaler(d, 2 * 3_600_000) <= t.fin; d = decaler(d, QUART)) {
+			if (!existeAParis(d) || !libre(d, 2)) continue;
+			debuts.push({ debut: d, max: decaler(d, 3 * 3_600_000) <= t.fin && libre(d, 3) ? 3 : 2 });
+		}
+	}
+	return debuts;
 }
 
 export type EtatTranche = 'libre' | 'prise' | 'passee' | 'occupe';
