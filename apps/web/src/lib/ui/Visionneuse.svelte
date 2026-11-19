@@ -9,6 +9,8 @@
 	let fenetre: HTMLDialogElement;
 	let cadre: HTMLDivElement;
 	let origine: HTMLElement | null = null;
+	// Déjà en train de fermer : un second appui ne doit pas reculer encore (on quitterait la page, et l'appli sur iPhone).
+	let ferme = false;
 	const photo = $derived(page.state.photo ?? null);
 
 	// Avant SvelteKit (phase de capture) : le lien ne doit pas être suivi.
@@ -20,12 +22,17 @@
 		pushState('', { photo: { src: vue.src, alt: vue.alt } });
 	};
 	$effect(() => {
-		if (photo && !fenetre.open) fenetre.showModal();
+		if (photo && !fenetre.open) {
+			ferme = false;
+			fenetre.showModal();
+		}
 		else if (!photo && fenetre.open) fenetre.close();
 	});
 	const fermer = () => {
-		if (page.state.photo) history.back();
-		else fenetre.close();
+		if (!page.state.photo) return fenetre.close();
+		if (ferme) return;
+		ferme = true;
+		history.back();
 	};
 	// Échap : on passe aussi par l'historique.
 	const annuler = (e: Event) => {
@@ -59,15 +66,15 @@
 	.visionneuse {
 		position: fixed;
 		inset: 0;
-		width: 100vw;
-		height: 100dvh;
+		width: auto;
+		height: auto;
 		max-width: none;
 		max-height: none;
 		margin: 0;
 		padding: 0;
 		border: none;
 		background: var(--fond-photo);
-		color: #ffffff;
+		color: var(--encre-photo);
 	}
 	.visionneuse:not([open]) {
 		display: none;
@@ -100,10 +107,10 @@
 		align-items: center;
 		justify-content: center;
 		padding: 0;
-		border: 1px solid color-mix(in srgb, #ffffff 40%, transparent);
+		border: 1px solid color-mix(in srgb, var(--encre-photo) 40%, transparent);
 		border-radius: var(--rayon-bouton);
-		background: color-mix(in srgb, #000000 50%, transparent);
-		color: #ffffff;
+		background: var(--voile-photo);
+		color: var(--encre-photo);
 	}
 	.fermer:focus-visible {
 		outline: 3px solid var(--entete-focus);

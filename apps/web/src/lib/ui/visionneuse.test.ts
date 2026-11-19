@@ -51,6 +51,12 @@ describe('Visionneuse', () => {
 		expect(style).toMatch(/\.fermer \{[^}]*top:[^}]*width: var\(--cible\);[^}]*height: var\(--cible\);/);
 		// L'apparition est celle des fenêtres (app.css), coupée si le mouvement est réduit : aucune autre ici.
 		expect(style).not.toMatch(/transition|animation/);
+		// Ni largeur ni hauteur d'écran : la barre de défilement de l'ordinateur rognerait « Fermer ».
+		expect(style).not.toMatch(/100vw|100dvh/);
+		// Les couleurs en jetons, jamais écrites.
+		expect(style).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+		expect(style).toMatch(/var\(--encre-photo\)/);
+		expect(style).toMatch(/var\(--voile-photo\)/);
 	});
 
 	it('posée une fois pour toute l’appli, dans la racine', () => {
@@ -61,6 +67,8 @@ describe('Visionneuse', () => {
 	it('s’ouvre et se ferme par l’historique : retour du téléphone, Échap, appui hors de la photo', () => {
 		expect(source).toMatch(/pushState\('', \{ photo:/);
 		expect(source).toMatch(/history\.back\(\)/);
+		// Deux fermetures rapprochées (double appui, Échap puis le fond) ne reculent qu'une fois : sinon on quitte la page, et l'appli sur iPhone.
+		expect(source).toMatch(/if \(ferme\) return;\s*ferme = true;\s*history\.back\(\)/);
 		expect(source).toMatch(/oncancel=/);
 		expect(source).toMatch(/showModal\(\)/);
 		// Le focus revient au lien d'origine.
