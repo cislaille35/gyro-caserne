@@ -43,7 +43,7 @@ export { calculerAnnee, equipeA, feries, fetes, numeroSemaine, periodesDeLaSemai
 export { ajouterVacances, changerSemaines, enregistrerManoeuvre, manoeuvreAPreparer, noterFete, planningDe, preparerAnnee, publierAnnee, reglerRoulement, remplacementsDeSemaine, retirerVacances, supprimerManoeuvre, type Convoques as ConvoquesManoeuvre, type DonneesManoeuvre, type EquipePlanning, type ManoeuvreVue, type PlanningAgent, type Preparation, type Vacances } from './planning/annee.ts';
 export { accepterProposition, proposerAnnee, type PropositionAnnee } from './planning/suivante.ts';
 export { agendaDe, changerLienAgenda, monLienAgenda } from './planning/agenda.ts';
-export { astreinteDe, type Astreinte } from './planning/astreinte.ts';
+export { astreinteDe, type Astreinte, type AstreinteAccueil } from './planning/astreinte.ts';
 export { manoeuvreChangee, planningDuMatin } from './planning/manoeuvres.ts';
 export { chargerEteFictif, chargerPlanningFictif } from './planning/fictif.ts';
 export { apercuPlanning, appliquerPlanning, donneesFichierPlanning, FEUILLES as FEUILLES_PLANNING, type ApercuPlanning, type DonneesFichierPlanning, type FichierPlanningLu } from './planning/fichier.ts';

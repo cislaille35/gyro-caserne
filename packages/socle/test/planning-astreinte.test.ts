@@ -5,7 +5,7 @@ import type { Acteur } from '../src/droits.ts';
 import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { astreinteDe } from '../src/planning/astreinte.ts';
-import { affectationEquipe, attribution, equipe, ete, personne, plageEte, profil, responsabilite } from '../src/schema.ts';
+import { affectationEquipe, attribution, demandeRemplacement, equipe, ete, personne, plageEte, profil, responsabilite } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -81,5 +81,28 @@ describe('astreinte de l’accueil', () => {
 		await base.insert(ete).values({ annee: 2026, debut: '2026-06-01', fin: '2026-12-31', dateLimite: '2026-05-01', publieeLe: '2026-05-02T10:00' });
 		await base.insert(plageEte).values({ debut: '2026-11-16T18:00', fin: '2026-11-17T06:00', annee: 2026, ajoutes: JSON.stringify([chef.type === 'personne' ? chef.id : 0]), retires: '[]' });
 		expect(await astreinteDe(base, chef, '2026-11-11T10:00', reglage)).toMatchObject({ debut: '2026-11-16T18:00', fin: '2026-11-17T06:00', mienne: true, enCours: false });
+	});
+
+	it('ma plage courte cédée aujourd’hui, pas encore finie : rien un autre jour, une fois finie, ni pour un remplacement long', async () => {
+		const { base, alice, chef, nouvelle } = await jeu();
+		const marc = await nouvelle('marc');
+		const moi = alice.type === 'personne' ? alice.id : 0;
+		const demande = (debut: string, fin: string, autres: Partial<typeof demandeRemplacement.$inferInsert> = {}) => ({ genre: 'remplacement' as const, demandeurId: moi, remplacantId: marc, periodes: JSON.stringify([{ debut, fin }]), debut, etat: 'conclue' as const, creeLe: '2026-11-01T10:00', court: 1, ...autres });
+		await base.insert(demandeRemplacement).values([
+			demande('2026-11-10T20:00', '2026-11-10T22:00'),
+			demande('2026-11-09T20:00', '2026-11-09T22:00'),
+			demande('2026-11-11T20:00', '2026-11-11T23:00'),
+			// Un long, une demande pas conclue, le court d'un autre (qu'Alice prend).
+			demande('2026-11-10T18:00', '2026-11-11T06:00', { court: null }),
+			demande('2026-11-10T23:00', '2026-11-11T02:00', { etat: 'attente', remplacantId: null }),
+			demande('2026-11-10T19:00', '2026-11-10T21:00', { demandeurId: marc, remplacantId: moi })
+		]);
+		expect((await astreinteDe(base, alice, '2026-11-10T14:00', reglage))!.courtsCedes).toEqual([{ debut: '2026-11-10T20:00', fin: '2026-11-10T22:00', remplacant: 'marc Test' }]);
+		expect((await astreinteDe(base, alice, '2026-11-10T22:00', reglage))!.courtsCedes).toEqual([]);
+		// Commencée la veille au soir, elle court encore après minuit.
+		await base.insert(demandeRemplacement).values(demande('2026-11-11T23:00', '2026-11-12T02:00'));
+		expect((await astreinteDe(base, alice, '2026-11-12T00:30', reglage))!.courtsCedes).toEqual([{ debut: '2026-11-11T23:00', fin: '2026-11-12T02:00', remplacant: 'marc Test' }]);
+		// Le chef n'a rien cédé : rien.
+		expect((await astreinteDe(base, chef, '2026-11-10T14:00', reglage))!.courtsCedes).toEqual([]);
 	});
 });

@@ -7,25 +7,30 @@ import { equipeLe, semainesCalculees, type EquipePlanning } from './annee.ts';
 import { semainesDe, type Periode, type Reglage, type SemaineCalculee } from './calendrier.ts';
 import { groupeDeLaSemaine, nomsDeGroupes, requeteEtes } from './groupes.ts';
 import { heuresDe, lirePlage, requetePlagesPubliees } from './plages.ts';
+import { courtsCedes, requeteCourtsCedes } from '../remplacements/effectifs.ts';
 
 export type Astreinte = { debut: string; fin: string; equipe: EquipePlanning; enCours: boolean; mienne: boolean; periodes: Periode[] };
+// À l'Accueil, en plus : mes plages courtes cédées du jour, pas encore finies (qui me remplace quelques heures).
+export type AstreinteAccueil = Astreinte & { courtsCedes: (Periode & { remplacant: string })[] };
 
 // La carte de l'Accueil : avec une équipe, sa semaine en cours ou la prochaine (cette année et la suivante, publiées) ;
 // sans équipe, l'équipe de la semaine en cours. Rien sans année publiée.
-export async function astreinteDe(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage): Promise<Astreinte | null> {
+export async function astreinteDe(base: Base, acteur: Acteur, maintenant: string, reglage: Reglage): Promise<AstreinteAccueil | null> {
 	exigerDateHeure(maintenant, 'Date');
 	const m = maintenant.slice(0, 16);
 	const annee = Number(m.slice(0, 4));
+	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	// La semaine en cours a pu commencer l'année d'avant.
-	const [annees, changees, equipes, affectations, lignesPlages, etes] = await base.batch([
+	// Dans le même batch : mes courts cédés, lus seulement pour aujourd'hui (pas d'aller-retour de plus).
+	const [annees, changees, equipes, affectations, lignesPlages, etes, lignesCourts] = await base.batch([
 		base.select().from(anneePlanning).where(and(gte(anneePlanning.annee, annee - 1), lte(anneePlanning.annee, annee + 1))),
 		base.select().from(semaineChangee).where(and(gte(semaineChangee.debut, `${annee - 1}-12-01`), lte(semaineChangee.debut, `${annee + 1}-12-31`))),
 		base.select({ id: equipe.id, nom: equipe.nom, couleur: equipe.couleur, active: equipe.active }).from(equipe).orderBy(asc(equipe.ordreRotation)),
-		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, acteur.type === 'personne' ? acteur.id : 0)),
+		base.select({ equipeId: affectationEquipe.equipeId, debut: affectationEquipe.debut, fin: affectationEquipe.fin }).from(affectationEquipe).where(eq(affectationEquipe.personneId, moi)),
 		requetePlagesPubliees(base, `${annee - 1}-12-01`, `${annee + 1}-12-31`),
-		requeteEtes(base)
+		requeteEtes(base),
+		requeteCourtsCedes(base, moi, m.slice(0, 10), ajouterJours(m.slice(0, 10), -1))
 	]);
-	const moi = acteur.type === 'personne' ? acteur.id : 0;
 	const plages = lignesPlages.map(lirePlage);
 	const fin = (s: SemaineCalculee) => s.periodes.at(-1)!.fin;
 	const avecEquipe = equipeLe(affectations, m.slice(0, 10)) !== null;
@@ -58,5 +63,5 @@ export async function astreinteDe(base: Base, acteur: Acteur, maintenant: string
 	if (!semaine) return null;
 	const trouvee = equipes.find((x) => x.id === semaine.equipeId);
 	const e = trouvee ? { id: trouvee.id, nom: groupeDeLaSemaine(etes, nomsDeGroupes(equipes), semaine) ?? trouvee.nom, couleur: trouvee.couleur } : { id: semaine.equipeId, nom: 'Équipe archivée', couleur: '#8a949e' };
-	return { debut: semaine.periodes[0]!.debut, fin: fin(semaine), equipe: e, enCours: semaine.periodes[0]!.debut <= m, mienne: aMoi, periodes: semaine.periodes };
+	return { debut: semaine.periodes[0]!.debut, fin: fin(semaine), equipe: e, enCours: semaine.periodes[0]!.debut <= m, mienne: aMoi, periodes: semaine.periodes, courtsCedes: courtsCedes(lignesCourts, m) };
 }

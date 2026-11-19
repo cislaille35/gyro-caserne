@@ -7,7 +7,7 @@
 	// À l'Accueil (`compacte`) : le grand compte à rebours, ou l'heure de la relève, et les gestes dans une bande en dessous.
 	// Au Planning : condensée, pour laisser le calendrier en haut. Les mêmes gestes au téléphone et à l'ordinateur.
 	// `priseOuverte` : la fenêtre de la relève, calculée sur le serveur.
-	// `remplacants` : qui me remplace quelques heures dans cette astreinte (Planning seulement).
+	// `remplacants` : qui me remplace quelques heures dans cette astreinte (« Marc Petit de 20 h à 22 h »).
 	let { a, maintenant, compacte = false, priseOuverte = false, remplacants = [] }: { a: Astreinte; maintenant: string; compacte?: boolean; priseOuverte?: boolean; remplacants?: string[] } = $props();
 
 	const p = $derived(phraseAstreinte(a, maintenant));
@@ -59,6 +59,7 @@
 				</div>
 				<p class="grand">{#if forme === 'releve'}<span class="masque">{'Début de l’astreinte : '}</span>{/if}{forme === 'encours' ? 'En cours' : quandRelatif(a.debut, maintenant)}</p>
 				{#if p.plage}<p class="plage">{p.plage}</p>{/if}
+				{#each remplacants as qui (qui)}<p class="plage">Remplacé par {qui}</p>{/each}
 			{/if}
 			{#if prise}
 				<a class="prise" href="/engins/prise">{@render icone(PRISE)}Faire la prise de garde{@render icone(SUITE)}</a>

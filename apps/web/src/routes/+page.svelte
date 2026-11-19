@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { arreterApres, DUREE_ACCUEIL } from '#lib/gyro/mouvement.ts';
 	import CarteAstreinte from '#lib/planning/CarteAstreinte.svelte';
+	import { remplacantsCourts } from '#lib/planning/astreinte.ts';
 	import Celebration from '#lib/animations/Celebration.svelte';
 	import { momentAnniversaire } from '#lib/animations/celebration.ts';
 	import { phraseSouhaits } from '#lib/anniversaire.ts';
@@ -125,7 +126,7 @@
 
 	{#if rangee}<Casquettes casquettes={data.casquettes} choisie={data.choisie} />{/if}
 
-	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} priseOuverte={data.priseOuverte} compacte />{/if}
+	{#if data.astreinte}<CarteAstreinte a={data.astreinte} maintenant={data.maintenant} priseOuverte={data.priseOuverte} remplacants={remplacantsCourts(data.astreinte, data.astreinte.courtsCedes.map((r) => ({ ...r, moi: 'cede' as const })), data.maintenant)} compacte />{/if}
 
 	<Installer mode="encart" />
 
