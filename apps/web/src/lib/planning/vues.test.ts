@@ -45,6 +45,9 @@ describe('vues du planning', () => {
 		const repereDu = (donnees: Donnees) => joursDeLaSemaine(semaine('2026-11-13'), donnees, 'equipes').flatMap((j) => j.reperes.filter((r) => r.genre === 'remplacement').map((r) => ({ jour: j.date, texte: r.texte })));
 		// Nuit du jeudi 19 au vendredi 20, la dernière : le vendredi n'a pas de ligne.
 		expect(repereDu(court('2026-11-20T00:15', '2026-11-20T02:15'))).toEqual([{ jour: '2026-11-19', texte: 'je remplace Alice Martin, vendredi 20 novembre, de 0 h 15 à 2 h 15' }]);
+		// Vue Année : dans sa semaine, pas dans la suivante.
+		expect(reperesDe(semaine('2026-11-13'), court('2026-11-20T00:15', '2026-11-20T02:15'), 'moi').filter((r) => r.genre === 'remplacement')).toHaveLength(1);
+		expect(reperesDe(semaine('2026-11-20'), court('2026-11-20T00:15', '2026-11-20T02:15'), 'moi').filter((r) => r.genre === 'remplacement')).toEqual([]);
 		// En milieu de semaine : sous le lundi, jour de la nuit, pas sous le mardi.
 		expect(repereDu(court('2026-11-17T01:00', '2026-11-17T03:00'))).toEqual([{ jour: '2026-11-16', texte: 'je remplace Alice Martin, mardi 17 novembre, de 1 h à 3 h' }]);
 		// À cheval sur minuit, ou jusqu'à minuit : le jour du début.
