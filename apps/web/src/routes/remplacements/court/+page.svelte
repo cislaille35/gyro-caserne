@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { heure } from '#lib/murs/quand.ts';
 	import { jourLong } from '#lib/planning/dates.ts';
 	import Bouton from '#lib/ui/Bouton.svelte';
@@ -13,7 +14,8 @@
 	const jour = $derived(data.debuts[0]?.debut.slice(0, 10) ?? '');
 	const libelle = (d: string) => (d.slice(0, 10) === jour ? heure(d) : `${heure(d)}, ${jourLong(d)}`);
 	const options = $derived(data.debuts.map((d) => ({ valeur: d.debut, libelle: libelle(d.debut) })));
-	let debut = $state(data.debuts[0]?.debut ?? '');
+	// Le premier début proposé, choisi d'office ; ensuite, celui de l'agent.
+	let debut = $state(untrack(() => data.debuts[0]?.debut ?? ''));
 	let duree = $state('2');
 	const max = $derived(data.debuts.find((d) => d.debut === debut)?.max ?? 2);
 	// Trois heures ne tiennent pas avant la fin de l'astreinte : on revient à deux.

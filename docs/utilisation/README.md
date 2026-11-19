@@ -49,6 +49,7 @@ Format d'une page :
 - [Comment demander une tenue ?](demander-une-tenue.md)
 - [Comment traiter une demande d'habillement ?](traiter-une-demande-d-habillement.md)
 - [Comment me faire remplacer ?](me-faire-remplacer.md)
+- [Comment me faire remplacer quelques heures ?](me-faire-remplacer-quelques-heures.md)
 - [Comment accepter ou refuser un remplacement ?](repondre-a-une-demande-de-remplacement.md)
 - [Comment valider un remplacement ?](valider-un-remplacement.md)
 - [Comment échanger ma place à une manœuvre ?](echanger-une-manoeuvre.md)

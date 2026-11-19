@@ -9,6 +9,7 @@ const gestes = { accepter: false, refuser: false, ouvrir: false, annuler: false,
 const demande = (v: Partial<VueDemande> = {}): VueDemande => ({
 	id: 7,
 	genre: 'remplacement',
+	court: false,
 	etat: 'attente',
 	demandeur: { id: 1, prenom: 'Alice', nom: 'Test' },
 	cible: null,
