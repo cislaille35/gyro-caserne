@@ -51,7 +51,7 @@ export { ajouterMesVacances, mesVacances, periodeParDefaut, rappelsEte, reglerEt
 export { ajusterPlage, eteAPreparer, plageAPreparer, proposerEte, publierEte } from './planning/repartition.ts';
 export { aptitudesDe, aptitudesEtListe, APTITUDES_PAR_DEFAUT, donnerAptitude, enregistrerAptitude, listerAptitudes, oterAptitude, retirerAptitude, validesLe, type Aptitude, type AptitudeAgent } from './aptitudes.ts';
 export { armement, ENGIN_CALCULE, enregistrerArmement, LIBELLES_NIVEAU, LIBELLES_POSTE, lireArmement, NIVEAUX, POSTES, postesDe, type Engin, type Niveau, type Poste, type Postes, type ReglageArmement } from './armement.ts';
-export { chevauche as chevauchePeriode, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
+export { chevauche as chevauchePeriode, dePlage, reunir, soustraire, texteDemande, texteTranche, tranchesDe } from './remplacements/tranches.ts';
 export { accepterDemande, annulerDemande, demanderRemplacement, demanderRemplacementCourt, desister, echangerPlace, manoeuvresEchangeables, ouvrirATous, proposerEchange, proposerEchangeManoeuvre, refuserApresCoup, refuserDemande, refuserValidation, valider } from './remplacements/demandes.ts';
 export { demandeVue, nombreRemplacementsAValider, pourDemander, pourDemanderCourt, remplacementsAValider, remplacementsDe, type Gestes, type Qui, type VueDemande } from './remplacements/lectures.ts';
 export { bandesDe, candidats, disponibles, lireContexte, mesTranches, tranchesDuJour, type EtatTranche } from './remplacements/contexte.ts';

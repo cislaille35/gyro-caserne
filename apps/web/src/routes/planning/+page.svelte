@@ -7,7 +7,7 @@
 	import VueAnnee from '#lib/planning/VueAnnee.svelte';
 	import VueMois from '#lib/planning/VueMois.svelte';
 	import VueSemaine from '#lib/planning/VueSemaine.svelte';
-	import { avecGroupe } from '#lib/planning/astreinte.ts';
+	import { avecGroupe, remplacantsCourts } from '#lib/planning/astreinte.ts';
 	import { jourLong, momentLong } from '#lib/planning/dates.ts';
 	import { heure } from '#lib/murs/quand.ts';
 	import { ETATS, titreDemande } from '#lib/remplacements/textes.ts';
@@ -118,7 +118,7 @@
 
 		<!-- Au-dessus du calendrier : la vue Année est longue, et les remplacements restent à portée, avec ou sans astreinte. -->
 		<div class="acces">
-			{#if carte}<CarteAstreinte a={carte} maintenant={m} />{/if}
+			{#if carte}<CarteAstreinte a={carte} maintenant={m} remplacants={carte.mienne && p.publiee ? remplacantsCourts(carte, p.remplacements, m) : []} />{/if}
 			<a class="remplacements" href="/remplacements"
 				><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={DESSINS.echanges} /></svg>Remplacements{#if aTraiter > 0}{' '}<Pastille ton="alerte">{aTraiter} à traiter</Pastille>{/if}</a
 			>

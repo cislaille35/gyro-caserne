@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { ajouterJours } from '../dates.ts';
+import { ajouterJours, existeAParis } from '../dates.ts';
 import { DonneeInvalide } from '../erreurs.ts';
 import { STATUTS_AVEC_ACCES } from '../listes.ts';
 import { lecturesAgents } from '../murs.ts';
@@ -239,7 +239,7 @@ export function debutsCourts(ctx: Contexte, id: number): { debut: string; max: 2
 	for (const t of tranchesDuJour(ctx, id)) {
 		const depart = new Date(Math.ceil(Date.parse(`${t.debut}:00Z`) / QUART) * QUART).toISOString().slice(0, 16);
 		for (let d = depart > premier ? depart : premier; decaler(d, 2 * 3_600_000) <= t.fin; d = decaler(d, QUART)) {
-			if (!libre(d, 2)) continue;
+			if (!existeAParis(d) || !libre(d, 2)) continue;
 			debuts.push({ debut: d, max: decaler(d, 3 * 3_600_000) <= t.fin && libre(d, 3) ? 3 : 2 });
 		}
 	}

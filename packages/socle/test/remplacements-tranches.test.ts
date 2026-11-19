@@ -57,7 +57,13 @@ describe('tranches', () => {
 		expect(texteTranche({ debut: '2026-11-14T06:00', fin: '2026-11-15T06:00' })).toBe('24 h du samedi 14 novembre');
 		// Une plage courte, le même jour ou à cheval sur minuit.
 		expect(texteTranche({ debut: '2026-11-16T20:00', fin: '2026-11-16T22:00' })).toBe('lundi 16 novembre, de 20 h à 22 h');
-		expect(texteTranche({ debut: '2026-11-16T23:00', fin: '2026-11-17T01:30' })).toBe('du lundi 16 novembre, 23 h au mardi 17 novembre, 1 h 30');
+		// À minuit, ou passé minuit en 3 h ou moins : le jour du début.
+		expect(texteTranche({ debut: '2026-11-16T22:00', fin: '2026-11-17T00:00' })).toBe('lundi 16 novembre, de 22 h à minuit');
+		expect(texteTranche({ debut: '2026-11-16T23:00', fin: '2026-11-17T01:30' })).toBe('lundi 16 novembre, de 23 h à 1 h 30');
+		expect(texteTranche({ debut: '2026-11-16T03:00', fin: '2026-11-16T06:00' })).toBe('lundi 16 novembre, de 3 h à 6 h');
+		// Plus de 3 h : les libellés d'avant.
+		expect(texteTranche({ debut: '2026-11-16T20:00', fin: '2026-11-17T00:00' })).toBe('nuit du lundi 16 novembre');
+		expect(texteTranche({ debut: '2026-11-16T12:00', fin: '2026-11-17T10:00' })).toBe('du lundi 16 novembre, 12 h au mardi 17 novembre, 10 h');
 		expect(texteDemande(semaine('2026-11-13').slice(0, 3))).toBe('du vendredi 13 novembre, 18 h au lundi 16 novembre, 6 h');
 		expect(texteDemande([semaine('2026-11-13')[3]!, semaine('2026-11-13')[5]!])).toBe('nuit du lundi 16 novembre et nuit du mercredi 18 novembre');
 	});

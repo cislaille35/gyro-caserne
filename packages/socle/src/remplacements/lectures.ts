@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, gt, gte, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { Base } from '../base.ts';
 import { ajouterJours, exigerDateHeure } from '../dates.ts';
 import type { Acteur } from '../droits.ts';
@@ -189,25 +189,34 @@ export async function demandeVue(base: Base, acteur: Acteur, id: number, mainten
 	};
 }
 
+// À valider, ou à revoir : un court conclu à qui une aptitude manque (le chef peut refuser jusqu'au début).
+const aRevoir = or(eq(demandeRemplacement.etat, 'a_valider'), and(eq(demandeRemplacement.court, 1), eq(demandeRemplacement.etat, 'conclue'), isNotNull(demandeRemplacement.manque)));
+
 // La cloche du chef : les demandes à valider qu'il n'a pas tranchées. Une requête.
 export async function nombreRemplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<number> {
 	return (await remplacementsAValider(base, acteur, maintenant)).length;
 }
 
-// Les demandes à valider par l'acteur, pour l'accueil et la cloche. Une requête.
+// Les demandes à valider ou à revoir par l'acteur, pour l'accueil et la cloche. Une requête.
 export async function remplacementsAValider(base: Base, acteur: Acteur, maintenant: string): Promise<{ id: number; equipeId: number | null; texte: string }[]> {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
 	if (acteur.type !== 'personne') return [];
 	const [demandes, chefs, personnes] = await base.batch([
-		base
-			.select()
-			.from(demandeRemplacement)
-			.where(and(eq(demandeRemplacement.etat, 'a_valider'), gt(demandeRemplacement.debut, maintenant.slice(0, 16)))),
+		base.select().from(demandeRemplacement).where(and(aRevoir, gt(demandeRemplacement.debut, maintenant.slice(0, 16)))),
 		requeteChefs(base, aujourdhui),
 		base
 			.select({ id: personne.id, prenom: personne.prenom, nom: personne.nom })
 			.from(personne)
-			.where(inArray(personne.id, base.select({ id: demandeRemplacement.demandeurId }).from(demandeRemplacement).where(eq(demandeRemplacement.etat, 'a_valider'))))
+			.where(
+				inArray(
+					personne.id,
+					base
+						.select({ id: demandeRemplacement.demandeurId })
+						.from(demandeRemplacement)
+						.where(aRevoir)
+						.union(base.select({ id: sql<number>`${demandeRemplacement.remplacantId}` }).from(demandeRemplacement).where(aRevoir))
+				)
+			)
 	]);
 	const nom = (id: number | null) => {
 		const p = personnes.find((x) => x.id === id);
@@ -215,7 +224,14 @@ export async function remplacementsAValider(base: Base, acteur: Acteur, maintena
 	};
 	return demandes
 		.filter((d) => valideurs(chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(acteur.id))
-		.map((d) => ({ id: d.id, equipeId: d.equipeId, texte: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}` }));
+		.map((d) => ({
+			id: d.id,
+			equipeId: d.equipeId,
+			texte:
+				d.court === 1
+					? `Remplacement court, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))} · il manque ${(JSON.parse(d.manque ?? '[]') as string[]).join(', ')} à ${nom(d.remplacantId)}`
+					: `Remplacement à valider, ${nom(d.demandeurId)}, ${texteDemande(periodesDe(d.periodes))}`
+		}));
 }
 
 // Les demandes reçues qui attendent une réponse de l'acteur (À ne pas manquer). Une requête.

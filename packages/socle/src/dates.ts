@@ -43,6 +43,15 @@ export function heureDeParis(instant: Date): string {
 	return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
 }
 
+// Une heure de Paris « AAAA-MM-JJTHH:MM » qui existe : la nuit du passage à l'heure d'été (fin mars), de 2 h à 2 h 59, non.
+// Seules les heures de 2 h en mars sont vérifiées, par Intl : le reste ne coûte rien.
+export function existeAParis(moment: string): boolean {
+	if (moment.slice(5, 7) !== '03' || moment.slice(11, 13) !== '02') return true;
+	const t = Date.parse(`${moment}:00Z`);
+	// Paris est à UTC+1 ou UTC+2 : l'heure existe si l'un des deux décalages la redonne.
+	return [1, 2].some((h) => heureDeParis(new Date(t - h * 3_600_000)) === moment.slice(0, 16));
+}
+
 // Date et heure de Paris, « AAAA-MM-JJTHH:MM » (secondes permises) ; rend la date seule.
 export function exigerDateHeure(valeur: unknown, libelle: string): string {
 	if (typeof valeur !== 'string' || !/^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(valeur)) throw new DonneeInvalide(`${libelle} invalide`);

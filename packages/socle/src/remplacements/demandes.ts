@@ -1,6 +1,6 @@
 import { and, eq, gt, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import type { Base } from '../base.ts';
-import { exigerDateHeure } from '../dates.ts';
+import { exigerDateHeure, existeAParis } from '../dates.ts';
 import { aLeDroit, type Acteur } from '../droits.ts';
 import { DonneeInvalide, RefusDroit } from '../erreurs.ts';
 import { ligneJournal } from '../journal.ts';
@@ -98,6 +98,7 @@ export async function demanderRemplacementCourt(base: Base, acteur: Acteur, d: {
 	if (d.duree !== 2 && d.duree !== 3) throw new DonneeInvalide('Durée de 2 h ou 3 h');
 	if (typeof d.debut !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:(00|15|30|45)$/.test(d.debut) || Number.isNaN(Date.parse(`${d.debut}:00Z`))) throw new DonneeInvalide('Début au quart d’heure');
 	if (d.debut <= maintenant.slice(0, 16)) throw new DonneeInvalide('Début déjà passé');
+	if (!existeAParis(d.debut)) throw new DonneeInvalide('Cette heure n’existe pas cette nuit-là (passage à l’heure d’été)');
 	const plage = { debut: d.debut, fin: new Date(Date.parse(`${d.debut}:00Z`) + d.duree * 3_600_000).toISOString().slice(0, 16) };
 	const ctx = await lireContexte(base, maintenant, reglage);
 	const tranche = tranchesDuJour(ctx, moi).find((t) => t.debut <= plage.debut && plage.debut < t.fin);

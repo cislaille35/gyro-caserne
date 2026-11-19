@@ -37,7 +37,9 @@ Pour être remplacé **2 ou 3 h** pendant son astreinte du jour, pour une raison
 - Le chef de garde apprend aussi le refus du demandeur (en urgence s'il manquait une aptitude). Un court conclu ne s'**annule** pas : on refuse le remplaçant.
 - **Désistement** du remplaçant avant le début : le titulaire le sait par une urgence, et la demande repart vers les disponibles, comme une demande ouverte.
 - **Sans refus, le remplacement tient.** Personne ne l'a pris au début : elle expire, le titulaire est prévenu. Pas de relance la veille.
-- Le planning, la vue du chef de garde et l'agenda du téléphone montrent la seule plage : « Marc Petit remplace Julie Martin, lundi 9 novembre, de 20 h à 22 h ».
+- Le planning, la vue du chef de garde et l'agenda du téléphone montrent la seule plage : « Marc Petit remplace Julie Martin, lundi 9 novembre, de 20 h à 22 h ». La plaque d'astreinte du Planning dit « Remplacé par Marc Petit de 20 h à 22 h » (pas encore celle de l'Accueil).
+- Tant qu'il peut refuser, le chef de garde retrouve un court où une aptitude manque dans ses demandes à traiter (Accueil, cloche), jusqu'au début.
+- La nuit du passage à l'heure d'été, les débuts de 2 h à 2 h 45 (heures qui n'existent pas) ne sont pas proposés.
 
 ## Les règles
 

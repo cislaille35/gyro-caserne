@@ -7,11 +7,12 @@ import { chargerJeuDeDepart } from '../src/jeu-de-depart.ts';
 import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
 import { debutsCourts, disponibles, lireContexte } from '../src/remplacements/contexte.ts';
-import { demandeVue, pourDemander } from '../src/remplacements/lectures.ts';
+import { demandeVue, nombreRemplacementsAValider, pourDemander, remplacementsAValider, remplacementsDe } from '../src/remplacements/lectures.ts';
+import { enTeteDe } from '../src/notifications.ts';
 import { accepterDemande, annulerDemande, demanderRemplacement, demanderRemplacementCourt, desister, refuserApresCoup } from '../src/remplacements/demandes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { effectifs, requeteConclues } from '../src/remplacements/effectifs.ts';
-import { abonnementPush, affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, equipe, personne, profil, responsabilite } from '../src/schema.ts';
+import { abonnementPush, affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, equipe, personne, profil, responsabilite, semaineChangee } from '../src/schema.ts';
 import { baseDeTest } from './base-de-test.ts';
 
 const reglage = centreExemple.astreinte;
@@ -271,13 +272,21 @@ describe('remplacement court : revue', () => {
 		expect((await envoisDe(n.elodie)).map((e) => e.tag)).toContain(`urgence:remplacement:${id}:refusee`);
 	});
 
-	it('le remplaçant se désiste : le titulaire le sait en urgence', async () => {
-		const { base, alice, chloe, n, avisDe, envoisDe } = await jeu();
+	it('le remplaçant se désiste : le titulaire le sait en urgence ; la demande repart vers les autres disponibles, sans lui', async () => {
+		const { base, alice, chloe, bruno, n, avisDe, envoisDe, demande } = await jeu();
 		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
 		await accepterDemande(base, chloe, id, maintenant, reglage);
 		await desister(base, chloe, id, '2026-11-09T19:30', reglage);
 		expect(await avisDe(n.alice)).toEqual(['acceptee', 'desistement']);
 		expect((await envoisDe(n.alice)).map((e) => e.tag)).toContain(`urgence:remplacement:${id}:desistement`);
+		expect(await demande(id)).toMatchObject({ etat: 'attente', remplacantId: null, court: 1 });
+		// Les autres disponibles la reçoivent de nouveau ; l'ancien remplaçant non.
+		expect(await avisDe(n.bruno)).toEqual(['recue', 'recue']);
+		expect(await avisDe(n.chef)).toEqual(['recue', 'recue']);
+		expect(await avisDe(n.chloe)).toEqual(['recue']);
+		expect((await remplacementsDe(base, chloe, '2026-11-09T19:30', reglage)).pourMoi.map((v) => v.id)).not.toContain(id);
+		expect((await remplacementsDe(base, bruno, '2026-11-09T19:30', reglage)).pourMoi.map((v) => v.id)).toContain(id);
+		await expect(accepterDemande(base, chloe, id, '2026-11-09T19:31', reglage)).rejects.toThrow(RefusDroit);
 	});
 
 	it('conclu, le chef ne l’annule pas : il refuse le remplaçant (seulement s’il manque une aptitude)', async () => {
@@ -289,5 +298,40 @@ describe('remplacement court : revue', () => {
 		// En attente, le chef peut toujours l'annuler.
 		const autre = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
 		await annulerDemande(base, elodie, autre, maintenant, reglage);
+	});
+});
+
+describe('remplacement court : suites de la revue du coordinateur', () => {
+	it('« À valider » du chef : un court conclu à qui une aptitude manque, jusqu’au début ; la cloche le compte', async () => {
+		const { base, alice, bruno, chloe, elodie, david } = await jeu();
+		const avec = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T20:00', duree: 2 }, maintenant, reglage);
+		await accepterDemande(base, bruno, avec, maintenant, reglage);
+		const sans = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
+		await accepterDemande(base, chloe, sans, maintenant, reglage);
+		expect(await remplacementsAValider(base, elodie, maintenant)).toEqual([{ id: avec, equipeId: expect.any(Number), texte: 'Remplacement court, Alice Test, lundi 9 novembre, de 20 h à 22 h · il manque CA1 à Bruno Test' }]);
+		expect(await nombreRemplacementsAValider(base, elodie, maintenant)).toBe(1);
+		expect((await enTeteDe(base, elodie, '2026-11-09', maintenant)).remplacementsAValider).toBe(1);
+		expect(await remplacementsAValider(base, david, maintenant)).toEqual([]);
+		// Commencé : plus rien à revoir.
+		expect(await remplacementsAValider(base, elodie, '2026-11-09T20:00')).toEqual([]);
+		expect((await enTeteDe(base, elodie, '2026-11-09', '2026-11-09T20:00')).remplacementsAValider).toBe(0);
+	});
+
+	it('la nuit du passage à l’heure d’été : les débuts de 2 h à 2 h 45 n’existent pas, ni proposés ni acceptés', async () => {
+		const { base, alice, n } = await jeu();
+		// L'année 2027 publiée, l'équipe d'Alice d'astreinte la semaine du vendredi 26 mars : samedi 27, 23 h 10, elle est dans la garde de 24 h.
+		const qui = { type: 'super', email: 'a@b.fr' } as const;
+		const ids = (await base.select().from(equipe).orderBy(equipe.ordreRotation)).map((e) => e.id);
+		await reglerRoulement(base, qui, 2027, ids, '2026-11-01T10:00');
+		await publierAnnee(base, qui, 2027, '2026-11-01T10:00');
+		await base.insert(semaineChangee).values({ debut: '2027-03-26', equipeId: ids[0]! });
+		const veille = '2027-03-27T23:10';
+		const ctx = await lireContexte(base, veille, reglage);
+		const debuts = debutsCourts(ctx, n.alice).map((x) => x.debut);
+		expect(debuts.length).toBeGreaterThan(0);
+		expect(debuts).toContain('2027-03-28T01:45');
+		expect(debuts).toContain('2027-03-28T03:00');
+		for (const h of ['02:00', '02:15', '02:30', '02:45']) expect(debuts).not.toContain(`2027-03-28T${h}`);
+		await expect(demanderRemplacementCourt(base, alice, { debut: '2027-03-28T02:15', duree: 2 }, veille, reglage)).rejects.toThrow(new DonneeInvalide('Cette heure n’existe pas cette nuit-là (passage à l’heure d’été)'));
 	});
 });
