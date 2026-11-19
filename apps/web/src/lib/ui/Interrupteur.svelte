@@ -46,15 +46,20 @@
 		color: var(--doux);
 		font-size: var(--texte-15);
 	}
-	/* La glissière : une piste qui se remplit à l'encre, un rond qui glisse. */
+	/* La glissière : une piste qui se remplit à l'encre, un rond qui glisse d'un bout à l'autre. */
 	input {
+		--glissiere-l: var(--espace-48);
+		--glissiere-h: calc(var(--espace-24) + var(--espace-4));
+		--glissiere-bord: 2px;
+		--glissiere-rond: var(--espace-16);
+		--glissiere-marge: var(--espace-4);
 		appearance: none;
 		flex: none;
 		position: relative;
-		width: 48px;
-		height: 28px;
+		width: var(--glissiere-l);
+		height: var(--glissiere-h);
 		margin: 0;
-		border: 2px solid var(--doux);
+		border: var(--glissiere-bord) solid var(--doux);
 		border-radius: var(--rayon-grand);
 		background: var(--surface);
 		cursor: pointer;
@@ -62,10 +67,10 @@
 	input::after {
 		content: '';
 		position: absolute;
-		top: 4px;
-		left: 4px;
-		width: 16px;
-		height: 16px;
+		top: var(--glissiere-marge);
+		left: var(--glissiere-marge);
+		width: var(--glissiere-rond);
+		height: var(--glissiere-rond);
 		border-radius: 50%;
 		background: var(--doux);
 		transition: transform var(--duree-etat) var(--courbe-sortie);
@@ -76,7 +81,7 @@
 	}
 	input:checked::after {
 		background: var(--surface);
-		transform: translateX(20px);
+		transform: translateX(calc(var(--glissiere-l) - var(--glissiere-rond) - 2 * (var(--glissiere-marge) + var(--glissiere-bord))));
 	}
 	/* En mode contrasté, la case du système. */
 	@media (forced-colors: active) {

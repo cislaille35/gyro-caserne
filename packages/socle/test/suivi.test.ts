@@ -122,7 +122,7 @@ describe('le suivi : sujet, dernière visite, trois mois', () => {
 		expect((await suiviDuCentre(base, claire, aujourdhui, { sujet: 'planning' })).lignes).toEqual([]);
 	});
 
-	it('la dernière visite est lue avant d’être marquée, sur la première page seulement', async () => {
+	it('la dernière visite est lue avant d’être marquée, sur la première page sans filtre seulement', async () => {
 		const { base, claire, remi, alice } = await jeu();
 		const ligne = { quand: '2026-11-18T10:00', acteur: `personne:${remi.id}`, action: 'changer_statut', cibleType: 'personne', cibleId: alice.id };
 		expect((await suiviDuCentre(base, claire, aujourdhui)).vu).toBeNull();
@@ -134,6 +134,13 @@ describe('le suivi : sujet, dernière visite, trois mois', () => {
 		expect(seconde.vu).toBe(premiere.lignes[0]!.id);
 		expect(seconde.lignes.filter((l) => l.id > seconde.vu!)).toHaveLength(1);
 		expect((await suiviDuCentre(base, claire, aujourdhui, { avant: 999 })).vu).toBeNull();
+		// Un filtre lit la dernière visite sans la marquer : les nouveautés des autres sujets restent.
+		await base.insert(journal).values([ligne]);
+		const vuAvant = (await base.select({ vu: personne.suiviVu }).from(personne).where(eq(personne.id, claire.id)))[0]!.vu;
+		const filtree = await suiviDuCentre(base, claire, aujourdhui, { sujet: 'reglages' });
+		expect(filtree.vu).toBe(vuAvant);
+		expect((await base.select({ vu: personne.suiviVu }).from(personne).where(eq(personne.id, claire.id)))[0]!.vu).toBe(vuAvant);
+		expect((await enTeteDe(base, claire, aujourdhui)).suivi).toBe(1);
 		expect((await suiviDuCentre(base, superAdmin, aujourdhui)).vu).toBeNull();
 	});
 

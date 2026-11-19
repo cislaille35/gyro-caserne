@@ -53,9 +53,10 @@ Chaque règle vérifiable est gardée par un test (`apps/web/src/formes.test.ts`
 - Un libellé d'action : un verbe à l'infinitif et son objet (« Signaler un manque »). Jamais « OK ». « Valider » seul seulement quand l'écran ne laisse aucun doute, la suite étant lue par les lecteurs d'écran (`.masque`).
 - Boutons et liens d'action en rectangles arrondis ; la pilule est réservée aux états (pastilles, compteurs).
 - Un choix entre quelques options : un bloc segmenté (`.segments`).
+- Des filtres d'une liste : `.filtres-defilants` et `.filtre` d'`app.css` (agents, suivi du centre), une ligne qui défile et déborde jusqu'au bord de l'écran, pour qu'un filtre coupé montre la suite.
 - Un réglage oui ou non : `Interrupteur`, une ligne pleine largeur, le libellé à gauche, la glissière à droite, sans contour de pilule ; toute la ligne se touche.
 
-**Contrôles et composants.** Ceux d'`apps/web/src/lib/ui/` d'abord : `Bouton`, `Champ`, `Choix`, `ChoixRadio`, `Interrupteur`, `ChampPhoto`, `ListeRangees`, `Rangee`, `Carte`, `Pastille`, `Visage`, `TuileDate`, `Vide`, `EnTetePage`, `Retour`, `Groupe`, `BarreActions`, `Panneau` (`lib/planning`) ; les classes d'`app.css` : `.lignes`, `.pile`, `.segments`, `.plus`, `.repli`, `.lien-secondaire`, les cases à cocher. Les dates, heures et listes gardent le sélecteur du téléphone, avec le style commun. Jamais un contrôle refait à la main dans un écran.
+**Contrôles et composants.** Ceux d'`apps/web/src/lib/ui/` d'abord : `Bouton`, `Champ`, `Choix`, `ChoixRadio`, `Interrupteur`, `ChampPhoto`, `ListeRangees`, `Rangee`, `Carte`, `Pastille`, `Visage`, `TuileDate`, `Vide`, `EnTetePage`, `Retour`, `Groupe`, `BarreActions`, `Panneau` (`lib/planning`) ; les classes d'`app.css` : `.lignes`, `.pile`, `.segments`, `.filtres-defilants` et `.filtre`, `.plus`, `.repli`, `.lien-secondaire`, les cases à cocher. Les dates, heures et listes gardent le sélecteur du téléphone, avec le style commun. Jamais un contrôle refait à la main dans un écran.
 
 **Vide.** `Vide` remplace la liste, pas l'en-tête : l'action principale reste en vue. Un titre court et ce à quoi l'écran servira. Gyro y est par défaut ; `gyro={false}` pour un vide secondaire (un onglet, un sous-groupe, une conversation à commencer). Un groupe vide se masque, sauf si l'on peut y ajouter quelque chose : alors une ligne `discret` le dit.
 

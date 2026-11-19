@@ -33,10 +33,10 @@ describe('/suivi', () => {
 		expect(html({ lignes: [ligne()] })).toMatch(/<p class="masque" role="status" aria-live="polite"><\/p>/);
 	});
 
-	it('les filtres en haut, en puces comme ceux des agents, par l’adresse ; le choisi est marqué', () => {
+	it('les filtres en haut, en ligne qui défile comme ceux des agents, par l’adresse ; le choisi est marqué', () => {
 		const page = html({ sujet: 'demandes' });
-		expect(page).toMatch(/<nav class="puces" aria-label="Filtrer le suivi">/);
-		const liens = [...page.matchAll(/<a class="puce" href="([^"]*)"( aria-current="page")?>([^<]+)<\/a>/g)].map((m) => [m[3], m[1], !!m[2]]);
+		expect(page).toMatch(/<nav class="filtres-defilants" aria-label="Filtrer le suivi">/);
+		const liens = [...page.matchAll(/<a class="filtre" href="([^"]*)"( aria-current="page")?>([^<]+)<\/a>/g)].map((m) => [m[3], m[1], !!m[2]]);
 		expect(liens.slice(0, 6)).toEqual([
 			['Tout', '/suivi', false],
 			['Planning', '?sujet=planning', false],
@@ -45,7 +45,7 @@ describe('/suivi', () => {
 			['Agents', '?sujet=agents', false],
 			['Réglages', '?sujet=reglages', false]
 		]);
-		expect(html({})).toMatch(/<a class="puce" href="\/suivi" aria-current="page">Tout<\/a>/);
+		expect(html({})).toMatch(/<a class="filtre" href="\/suivi" aria-current="page">Tout<\/a>/);
 		// Un sujet vide : les filtres restent, un vide discret.
 		expect(page).toContain('Rien dans ce sujet ces trois derniers mois.');
 		expect(page).not.toContain('Rien de nouveau au centre');

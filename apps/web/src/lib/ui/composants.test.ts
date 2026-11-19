@@ -588,5 +588,8 @@ describe('Interrupteur', () => {
 		const style = readFileSync(new URL('./Interrupteur.svelte', import.meta.url), 'utf8');
 		expect(style).toMatch(/\.interrupteur \{[^}]*display: flex;[^}]*min-height: var\(--cible\);/);
 		expect(style).not.toMatch(/\.interrupteur \{[^}]*border:/);
+		// Les mesures de la glissière viennent des jetons, pas de valeurs écrites.
+		expect(style).not.toMatch(/\b(48|28|16|4)px\b|translateX\(\d/);
+		expect(style).toMatch(/--glissiere-l: var\(--espace-48\);/);
 	});
 });

@@ -70,10 +70,16 @@ describe('formes', () => {
 		for (const f of ['routes/planning/+page.svelte', 'lib/ui/ANePasManquer.svelte', 'lib/ui/Publication.svelte']) expect(source(f), f).not.toMatch(/^\s*\.(bascule|reponse)\b/m);
 	});
 
-	it('les filtres du suivi : le même motif que ceux des agents (une ligne de puces qui déborde jusqu’au bord)', () => {
-		const regle = (f: string, classe: string) => source(f).match(new RegExp(`\\n\\t\\.${classe} \\{[^}]*\\}`))?.[0];
-		for (const classe of ['puces', 'puce']) expect(regle('routes/suivi/+page.svelte', classe), classe).toBe(regle('routes/agents/+layout.svelte', classe));
-		expect(regle('routes/agents/+layout.svelte', 'puces')).toMatch(/margin: -4px -16px;[^}]*overflow-x: auto;\s*scrollbar-width: none;/);
+	it('les filtres qui défilent : la classe commune d’app.css (agents, suivi), sans copie locale', () => {
+		const css = source('app.css');
+		expect(css).toMatch(/\n\.filtres-defilants \{[^}]*margin: -4px -16px;[^}]*overflow-x: auto;\s*scrollbar-width: none;/);
+		expect(css).toMatch(/\n\.filtre \{[^}]*display: inline-flex;[^}]*align-items: center;[^}]*text-decoration: none;/);
+		expect(css).toMatch(/@media \(hover: hover\) and \(pointer: fine\) \{\s*\.filtre:hover \{/);
+		expect(css).toMatch(/\.filtre:is\(\[aria-pressed='true'\], \[aria-current='page'\]\) \{/);
+		for (const f of ['routes/agents/+layout.svelte', 'routes/suivi/+page.svelte']) {
+			expect(source(f), f).toMatch(/class="filtres-defilants"[\s\S]*class="filtre"/);
+			expect(source(f).slice(source(f).indexOf('<style')), f).not.toMatch(/\.puces?\b/);
+		}
 		expect(source('routes/suivi/+page.svelte')).toMatch(/afterNavigate\(\(\) => montrerCouranteDeCote\(filtres\)\)/);
 	});
 
@@ -252,7 +258,7 @@ describe('direction B', () => {
 
 	it('un interrupteur passe par « Interrupteur » : aucun role="switch" ailleurs', () => {
 		expect(ecrans.filter((f) => f !== 'lib/ui/Interrupteur.svelte' && /role="switch"|role='switch'/.test(source(f)))).toEqual([]);
-		expect(style('lib/ui/Interrupteur.svelte')).toMatch(/input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
+		expect(style('lib/ui/Interrupteur.svelte')).toMatch(/input \{[^}]*border: var\(--glissiere-bord\) solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
 	});
 
 	// Le mouvement (lot 2) : des jetons, un retour à l'appui commun, des panneaux qui viennent de quelque part.

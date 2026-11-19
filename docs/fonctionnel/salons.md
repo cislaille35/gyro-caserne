@@ -76,7 +76,7 @@ Sous « Bonjour », une phrase compte ce qui attend un geste (« 2 publications 
 
 ## Anniversaires
 
-« Vie du centre » souhaite chaque jour l'anniversaire des agents dont la date de naissance est inscrite, **sans l'âge**. Chacun peut le couper dans « Mon profil » (« Afficher mon anniversaire », coché par défaut), où il peut aussi inscrire sa date de naissance.
+« Vie du centre » souhaite chaque jour l'anniversaire des agents dont la date de naissance est inscrite, **sans l'âge**. Chacun peut le couper dans « Mon profil » (« Afficher mon anniversaire », activé par défaut), où il peut aussi inscrire sa date de naissance.
 
 **« Souhaiter »** (décision [0033](../decisions/0033-souhaiter-un-anniversaire.md)) : à côté de chaque anniversaire du jour (« Aujourd'hui au centre », et sous le bandeau de Vie du centre au téléphone). Un appui, rien à écrire : l'agent fêté reçoit dans sa cloche, et sur son téléphone si les notifications sont activées, « Paul Martin vous souhaite un joyeux anniversaire 🎂 ». Le bouton devient « Souhaité ». Une fois par collègue et par anniversaire ; rien pour son propre anniversaire, ni pour le super administrateur, qui n'a pas de fiche. Rien n'est publié sur le mur.
 

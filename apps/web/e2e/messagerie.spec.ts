@@ -251,7 +251,7 @@ test('Mon profil : « Montrer quand j’ai lu les messages », décochée puis r
 	// Avant l'hydratation, un clic sur la case est défait : on attend la page prête.
 	await page.goto('/profil');
 	await page.waitForLoadState('networkidle');
-	const caseCoches = page.getByRole('checkbox', { name: 'Montrer quand j’ai lu les messages' });
+	const caseCoches = page.getByRole('switch', { name: 'Montrer quand j’ai lu les messages' });
 	await expect(caseCoches).toBeChecked();
 	await expect(caseCoches).toHaveAccessibleDescription(/vous ne voyez plus non plus celles des autres/);
 	await axe(page);
