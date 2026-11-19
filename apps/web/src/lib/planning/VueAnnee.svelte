@@ -65,7 +65,7 @@
 								</ul>
 							{/if}
 							{#if mode === 'moi' && s.mienne && aVenir(s)}
-								<a class="remplacer" href="/remplacements/demander#periode-{s.debut}">Me faire remplacer<span class="masque">{` : semaine ${s.numero}`}</span></a>
+								<a class="remplacer" href="/remplacements/demander?semaine={s.debut}">Me faire remplacer<span class="masque">{` : semaine ${s.numero}`}</span></a>
 							{/if}
 						</li>
 					{/each}

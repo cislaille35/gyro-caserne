@@ -73,16 +73,13 @@ describe('page Remplacements', () => {
 		expect(html).toMatch(/action="\?\/refuserValidation"[\s\S]*?Motif \(facultatif\)/);
 	});
 
-	it('« Me faire remplacer » est la seule action principale, dans l’en-tête ; les onglets d’abord, les échanges en liens après ; Mes demandes vides : le déroulé en 3 lignes', () => {
+	it('« Me faire remplacer » est la seule action principale, dans l’en-tête, et mène au choix ; plus de liens d’échange sous la liste ; Mes demandes vides : le déroulé en 3 lignes', () => {
 		const html = page({ onglet: 'miennes' });
 		expect(html).toMatch(/<a class="action[^"]*" href="\/remplacements\/demander">[\s\S]*?Me faire remplacer/);
-		expect(html.match(/href="\/remplacements\/demander"/g)).toHaveLength(1);
-		const onglets = html.indexOf('aria-label="Remplacements"');
-		expect(html.indexOf('Me faire remplacer')).toBeLessThan(onglets);
-		expect(html.indexOf('href="/remplacements/demander?mode=echange"')).toBeGreaterThan(onglets);
-		expect(html.indexOf('href="/remplacements/manoeuvre"')).toBeGreaterThan(onglets);
-		expect(html).toContain('Échanger avec un collègue');
-		expect(html).toContain('Échanger ma place à une manœuvre');
+		expect(html.match(/href="\/remplacements\/demander/g)).toHaveLength(1);
+		expect(html.indexOf('Me faire remplacer')).toBeLessThan(html.indexOf('aria-label="Remplacements"'));
+		expect(html).not.toContain('/remplacements/manoeuvre');
+		expect(html).not.toContain('Échanger');
 		expect(html).not.toContain('class="gestes');
 		expect(html).toContain('Comment ça marche ?');
 		expect(html.match(/<ol[^>]*>[\s\S]*?<\/ol>/)![0].match(/<li>/g)).toHaveLength(3);

@@ -142,7 +142,7 @@ describe('accueil', () => {
 			// Les mots masqués gardent leurs espaces : lus « Du ven. 20 nov. 18 h au ven. 27 nov. 6 h ».
 			expect(html.match(/<p class="dates[^"]*">([\s\S]*?)<\/p>/)![1]!.replace(/<[^>]+>/g, '')).toBe('Du ven. 20 nov. 18 h au ven. 27 nov. 6 h');
 			// Les gestes dans la bande sous la plaque.
-			expect(html).toMatch(/class="gestes[\s\S]*?href="\/remplacements\/demander\?semaine=2026-11-20"[\s\S]*?Me faire remplacer[\s\S]*?href="\/moi\/agenda"/);
+			expect(html).toMatch(/class="gestes[\s\S]*?href="\/remplacements\/demander"[\s\S]*?Me faire remplacer[\s\S]*?href="\/moi\/agenda"/);
 			expect(html).not.toContain('Voir le planning');
 			// Le bleu de Laillé : ni l'anthracite ni le blanc n'atteignent 4,5:1, le noir pur oui.
 			expect(accueil(carte({ equipe: { id: 3, nom: 'Équipe 3', couleur: '#3d7fd6' } }), '2026-11-01T10:00')).toContain('--sur-equipe: #000000; --sur-bouton: #ffffff;');

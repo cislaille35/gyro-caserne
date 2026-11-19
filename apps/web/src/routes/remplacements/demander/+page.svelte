@@ -6,6 +6,8 @@
 	import { cle, etapes, phrasePeriodes, type Etape, type Periode } from '#lib/remplacements/guide.ts';
 	import { pluriel } from '#lib/pluriel.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import ListeRangees from '#lib/ui/ListeRangees.svelte';
+	import Rangee from '#lib/ui/Rangee.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
 
 	let { data, form } = $props();
@@ -41,10 +43,10 @@
 		if (echange && e.avec) q.set('avec', String(e.avec));
 		if (echange && e.semaineAvec) q.set('semaineAvec', e.semaineAvec);
 		for (const p of e.ps ?? []) q.append('ps', cle(p));
-		return `?${q}`;
+		// Une adresse sans paramètre ouvrirait le choix : on reste dans le parcours des gardes.
+		return q.size > 0 ? `?${q}` : '?gardes';
 	}
 	const lienEtape = (id: string) => adresse({ etape: id as Etape });
-	const autreMode = $derived(echange ? `?${new URLSearchParams([...(data.semaine ? [['semaine', data.semaine.semaine]] : []), ...data.choisies.map((p) => ['p', cle(p)])])}` : adresse({}).replace('?', '?mode=echange&'));
 
 	const cible = $derived(data.pour && data.pour !== 'tous' ? data.pour : null);
 	const manque = $derived(echange ? (data.avec?.manque ?? []) : (cible?.manque ?? []));
@@ -67,10 +69,12 @@
 		return [`Vous demandez à être remplacé ${miennes}.`, `${pluriel(n, 'collègue disponible est prévenu', 'collègues disponibles sont prévenus')}.`, informe];
 	});
 	const message = $derived(form?.message ?? data.message ?? '');
+	const titre = $derived(echange ? 'Échanger avec un collègue' : 'Une ou plusieurs gardes');
+	const choix = { href: '/remplacements/demander', libelle: 'Me faire remplacer' };
 </script>
 
 <svelte:head>
-	<title>{liste[index]?.titre} · {echange ? 'Échanger avec un collègue' : 'Me faire remplacer'} · Gyro Caserne</title>
+	<title>{data.choix ? 'Me faire remplacer' : `${liste[index]?.titre} · ${titre}`} · Gyro Caserne</title>
 </svelte:head>
 
 {#snippet garder(sauf: string[])}
@@ -103,102 +107,109 @@
 	{/if}
 {/snippet}
 
-<div class="page">
-	<EnTetePage
-		titre={echange ? 'Échanger avec un collègue' : 'Me faire remplacer'}
-		phrase={echange ? 'Vous prenez une de ses périodes, il prend une des vôtres. Il doit accepter.' : 'Trois étapes : quand, à qui, et vous vérifiez avant d’envoyer.'}
-		retour={{ href: '/remplacements', libelle: 'Remplacements' }}
-	/>
+{#if data.choix}
+	<div class="page choix">
+		<EnTetePage titre="Me faire remplacer" retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+		<ListeRangees>
+			{#if data.court}<li><Rangee href="/remplacements/court" titre="Quelques heures aujourd’hui" sous="2 ou 3 h de votre astreinte du jour" /></li>{/if}
+			<li><Rangee href="/remplacements/demander?gardes" titre="Une ou plusieurs gardes" sous="Choisir la semaine, puis les jours" /></li>
+			<li><Rangee href="/remplacements/demander?mode=echange" titre="Échanger avec un collègue" sous="Sa garde contre la vôtre" /></li>
+			<li><Rangee href="/remplacements/manoeuvre" titre="Échanger ma place à une manœuvre" /></li>
+		</ListeRangees>
+	</div>
+{:else}
+	<div class="page">
+		<EnTetePage
+			{titre}
+			phrase={echange ? 'Vous prenez une de ses périodes, il prend une des vôtres. Il doit accepter.' : 'Trois étapes : quand, à qui, et vous vérifiez avant d’envoyer.'}
+			retour={choix}
+		/>
 
-	{#if !echange && data.court}
-		<p class="court">Seulement quelques heures aujourd’hui ? <a href="/remplacements/court">Demander 2 ou 3 h</a></p>
-	{/if}
+		{#if data.semaines.length === 0}
+			<Vide titre="Aucune astreinte à venir." texte="Vos semaines d’astreinte des douze prochaines semaines apparaîtront ici, dès que le planning est publié." action={{ href: '/planning', libelle: 'Voir le planning' }} />
+		{:else}
+			<Progression etapes={liste} courante={data.etape} lien={lienEtape} />
+			<p class="erreur" class:masque={!message} role="alert">{message}</p>
 
-	{#if data.semaines.length === 0}
-		<Vide titre="Aucune astreinte à venir." texte="Vos semaines d’astreinte des douze prochaines semaines apparaîtront ici, dès que le planning est publié." action={{ href: '/planning', libelle: 'Voir le planning' }} />
-	{:else}
-		<Progression etapes={liste} courante={data.etape} lien={lienEtape} />
-		<p class="erreur" class:masque={!message} role="alert">{message}</p>
+			<section class="carte" aria-labelledby="titre-etape">
+				<h2 id="titre-etape" tabindex="-1">{liste[index]?.titre}</h2>
 
-		<section class="carte" aria-labelledby="titre-etape">
-			<h2 id="titre-etape" tabindex="-1">{liste[index]?.titre}</h2>
-
-			{#if data.etape === 'quand'}
-				<p class="doux">{echange ? 'Choisissez les jours de votre astreinte que vous donnez.' : 'Choisissez la semaine, puis les jours où vous ne pouvez pas être d’astreinte.'}</p>
-				<form method="GET" class="formulaire" data-sveltekit-reset="false">
-					{@render garder(['p'])}
-					{#if data.semaine}<input type="hidden" name="semaine" value={data.semaine.semaine} />{/if}
-					<ChoixSemaine
-						semaines={data.semaines}
-						ouverte={data.semaine}
-						nom="p"
-						choisies={data.choisies}
-						maintenant={data.maintenant}
-						lienSemaine={(s) => adresse({ etape: 'quand', semaine: s, p: [] })}
-						lienRaccourci={(p) => adresse({ etape: 'quand', p })}
-						aQui="Mes"
-					/>
-					{#if data.semaine}{@render boutons('Continuer')}{/if}
-				</form>
-				<p class="autre"><a href={autreMode}>{echange ? 'Plutôt me faire remplacer ?' : 'Plutôt échanger avec un collègue ?'}</a></p>
-			{:else if data.etape === 'qui'}
-				{@render resume()}
-				<form method="GET" class="formulaire" data-sveltekit-reset="false">
-					{@render garder(['pour'])}
-					<ListeCollegues collegues={data.candidats} name="pour" choisi={data.pour === 'tous' ? 'tous' : (data.pour?.id ?? null)} recherche={data.recherche} etape="qui" tous={data.candidats.length} legende="Qui prévenir ?" />
-					{@render boutons('Continuer')}
-				</form>
-			{:else if data.etape === 'avec'}
-				{@render resume()}
-				<form method="GET" class="formulaire" data-sveltekit-reset="false">
-					{@render garder(['avec', 'ps'])}
-					<ListeCollegues collegues={data.echangeables} name="avec" choisi={data.avec?.id ?? null} recherche={data.recherche} etape="avec" legende="Avec qui échanger ?" />
-					{@render boutons('Continuer')}
-				</form>
-			{:else if data.etape === 'sienne' && data.avec}
-				{@render resume()}
-				<p class="doux">Choisissez les jours de l’astreinte de {nom(data.avec)} que vous prenez.</p>
-				<form method="GET" class="formulaire" data-sveltekit-reset="false">
-					{@render garder(['ps'])}
-					{#if data.semaineAvec}<input type="hidden" name="semaineAvec" value={data.semaineAvec.semaine} />{/if}
-					<ChoixSemaine
-						semaines={data.semainesAvec}
-						ouverte={data.semaineAvec}
-						nom="ps"
-						choisies={data.choisiesAvec}
-						maintenant={data.maintenant}
-						lienSemaine={(s) => adresse({ etape: 'sienne', semaineAvec: s, ps: [] })}
-						lienRaccourci={(ps) => adresse({ etape: 'sienne', ps })}
-						aQui="Ses"
-					/>
-					{#if data.semaineAvec}{@render boutons('Continuer')}{/if}
-				</form>
-			{:else if data.etape === 'verifier'}
-				<div class="recap">
-					{#each recap as phrase, i (i)}<p class:fort={i === 0}>{phrase}</p>{/each}
-				</div>
-				<form method="POST" class="formulaire">
-					{#if echange}<input type="hidden" name="mode" value="echange" />{/if}
-					{#each data.choisies as p (p.debut)}<input type="hidden" name="periode" value={cle(p)} />{/each}
-					{#if echange && data.avec}
-						<input type="hidden" name="avec" value={data.avec.id} />
-						{#each data.choisiesAvec as p (p.debut)}<input type="hidden" name="periodeCible" value={cle(p)} />{/each}
-					{:else}
-						<input type="hidden" name="pour" value={etat.pour ?? 'tous'} />
-					{/if}
-					{#if !personne}
-						<label for="mot" class="libelle">Un mot pour {echange || cible ? 'votre collègue' : 'vos collègues'} (facultatif)</label>
-						<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
-					{/if}
-					<div class="boutons">
-						{#if !personne}<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>{/if}
-						{#if precedente}<a class="bouton secondaire" href={lienEtape(precedente)}>Retour</a>{/if}
+				{#if data.etape === 'quand'}
+					<p class="doux">{echange ? 'Choisissez les jours de votre astreinte que vous donnez.' : 'Choisissez la semaine, puis les jours où vous ne pouvez pas être d’astreinte.'}</p>
+					<form method="GET" class="formulaire" data-sveltekit-reset="false">
+						{@render garder(['p'])}
+						{#if data.semaine}<input type="hidden" name="semaine" value={data.semaine.semaine} />{/if}
+						<ChoixSemaine
+							semaines={data.semaines}
+							ouverte={data.semaine}
+							nom="p"
+							choisies={data.choisies}
+							maintenant={data.maintenant}
+							lienSemaine={(s) => adresse({ etape: 'quand', semaine: s, p: [] })}
+							lienRaccourci={(p) => adresse({ etape: 'quand', p })}
+							aQui="Mes"
+						/>
+						{#if data.semaine}{@render boutons('Continuer')}{/if}
+					</form>
+				{:else if data.etape === 'qui'}
+					{@render resume()}
+					<form method="GET" class="formulaire" data-sveltekit-reset="false">
+						{@render garder(['pour'])}
+						<ListeCollegues collegues={data.candidats} name="pour" choisi={data.pour === 'tous' ? 'tous' : (data.pour?.id ?? null)} recherche={data.recherche} etape="qui" tous={data.candidats.length} legende="Qui prévenir ?" />
+						{@render boutons('Continuer')}
+					</form>
+				{:else if data.etape === 'avec'}
+					{@render resume()}
+					<form method="GET" class="formulaire" data-sveltekit-reset="false">
+						{@render garder(['avec', 'ps'])}
+						<ListeCollegues collegues={data.echangeables} name="avec" choisi={data.avec?.id ?? null} recherche={data.recherche} etape="avec" legende="Avec qui échanger ?" />
+						{@render boutons('Continuer')}
+					</form>
+				{:else if data.etape === 'sienne' && data.avec}
+					{@render resume()}
+					<p class="doux">Choisissez les jours de l’astreinte de {nom(data.avec)} que vous prenez.</p>
+					<form method="GET" class="formulaire" data-sveltekit-reset="false">
+						{@render garder(['ps'])}
+						{#if data.semaineAvec}<input type="hidden" name="semaineAvec" value={data.semaineAvec.semaine} />{/if}
+						<ChoixSemaine
+							semaines={data.semainesAvec}
+							ouverte={data.semaineAvec}
+							nom="ps"
+							choisies={data.choisiesAvec}
+							maintenant={data.maintenant}
+							lienSemaine={(s) => adresse({ etape: 'sienne', semaineAvec: s, ps: [] })}
+							lienRaccourci={(ps) => adresse({ etape: 'sienne', ps })}
+							aQui="Ses"
+						/>
+						{#if data.semaineAvec}{@render boutons('Continuer')}{/if}
+					</form>
+				{:else if data.etape === 'verifier'}
+					<div class="recap">
+						{#each recap as phrase, i (i)}<p class:fort={i === 0}>{phrase}</p>{/each}
 					</div>
-				</form>
-			{/if}
-		</section>
-	{/if}
-</div>
+					<form method="POST" class="formulaire">
+						{#if echange}<input type="hidden" name="mode" value="echange" />{/if}
+						{#each data.choisies as p (p.debut)}<input type="hidden" name="periode" value={cle(p)} />{/each}
+						{#if echange && data.avec}
+							<input type="hidden" name="avec" value={data.avec.id} />
+							{#each data.choisiesAvec as p (p.debut)}<input type="hidden" name="periodeCible" value={cle(p)} />{/each}
+						{:else}
+							<input type="hidden" name="pour" value={etat.pour ?? 'tous'} />
+						{/if}
+						{#if !personne}
+							<label for="mot" class="libelle">Un mot pour {echange || cible ? 'votre collègue' : 'vos collègues'} (facultatif)</label>
+							<textarea id="mot" name="mot" maxlength="200" rows="2"></textarea>
+						{/if}
+						<div class="boutons">
+							{#if !personne}<button type="submit" class="bouton principal">{echange ? 'Proposer l’échange' : 'Envoyer la demande'}</button>{/if}
+							{#if precedente}<a class="bouton secondaire" href={lienEtape(precedente)}>Retour</a>{/if}
+						</div>
+					</form>
+				{/if}
+			</section>
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.page {
@@ -206,6 +217,11 @@
 		flex-direction: column;
 		gap: var(--espace-16);
 		max-width: var(--largeur-page);
+	}
+	.choix {
+		max-width: var(--largeur-lecture);
+		margin-inline: auto;
+		width: 100%;
 	}
 	p,
 	h2 {
@@ -245,9 +261,7 @@
 		border-radius: var(--rayon-grand);
 		background: var(--statut-neutre-fond);
 	}
-	.resume a,
-	.autre a,
-	.court a {
+	.resume a {
 		color: var(--encre);
 		font-weight: 600;
 	}

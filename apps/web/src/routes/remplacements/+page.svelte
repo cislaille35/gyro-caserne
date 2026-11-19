@@ -67,10 +67,6 @@
 				{/each}
 			</ul>
 		{/if}
-		<p class="echanges">
-			<a href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
-			<a href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
-		</p>
 	{/if}
 </div>
 
@@ -95,18 +91,6 @@
 		color: var(--sur-rouge);
 		font-size: var(--texte-14);
 		text-align: center;
-	}
-	.echanges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0 var(--espace-24);
-	}
-	.echanges a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		color: var(--encre);
-		font-weight: 600;
 	}
 	.deroule {
 		display: flex;

@@ -16,11 +16,22 @@ Un agent qui ne peut pas tenir son astreinte trouve un remplaçant dans l'appli,
 
 ## La page Remplacements
 
-Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre onglets : **Pour moi**, **Mes demandes**, **À valider** (pour les chefs), **Historique**. En bas : « Échanger avec un collègue » et « Échanger ma place à une manœuvre » (aussi « Je ne peux pas : échanger ma place » sous la prochaine manœuvre du Planning).
+Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre onglets : **Pour moi**, **Mes demandes**, **À valider** (pour les chefs), **Historique**. En tête, « Me faire remplacer ».
+
+## Me faire remplacer : le choix
+
+« Me faire remplacer » (plaque d'astreinte de l'Accueil et du Planning, page Remplacements, Moi) ouvre d'abord un choix, une ligne par façon de faire :
+
+- **Quelques heures aujourd'hui** (2 ou 3 h de son astreinte du jour), seulement le jour de son astreinte, tant qu'il reste une plage libre ;
+- **Une ou plusieurs gardes** : le parcours en 3 étapes ;
+- **Échanger avec un collègue** : sa garde contre la vôtre ;
+- **Échanger ma place à une manœuvre**.
+
+Les liens précis vont droit au parcours : une semaine ou un jour de la vue Semaine, une semaine de la vue Année (parcours des gardes, semaine ouverte, jour pré-choisi), « Je ne peux pas : échanger ma place » sous la prochaine manœuvre du Planning. Chaque parcours ramène au choix par son retour « ‹ Me faire remplacer » (celui lancé depuis une manœuvre du Planning ramène au Planning).
 
 ## Le déroulé
 
-1. « Me faire remplacer » (plaque d'astreinte de l'Accueil et du Planning, la vue Semaine et chacun de ses jours, page Remplacements) ouvre un parcours en 3 étapes : **Quand ?** (une de ses semaines d'astreinte des douze à venir, puis ses jours en bande, les périodes passées ou déjà demandées visibles mais inactives), **À qui ?** (« Tout le monde », avec le nombre de prévenus, ou un collègue libre, avec l'aptitude qui lui manque), **Vérifier et envoyer** (une phrase récapitulative, un mot facultatif, « Envoyer la demande »). Si aucun collègue n'est libre, l'appli le dit et conseille de prévenir directement son chef de garde. L'échange (« Plutôt échanger avec un collègue ? ») suit le même parcours en 4 étapes (ma période, le collègue, sa période, vérifier), jusqu'à « Proposer l'échange ».
+1. « Une ou plusieurs gardes » (ou une semaine, un jour de la vue Semaine) ouvre un parcours en 3 étapes : **Quand ?** (une de ses semaines d'astreinte des douze à venir, puis ses jours en bande, les périodes passées ou déjà demandées visibles mais inactives), **À qui ?** (« Tout le monde », avec le nombre de prévenus, ou un collègue libre, avec l'aptitude qui lui manque), **Vérifier et envoyer** (une phrase récapitulative, un mot facultatif, « Envoyer la demande »). Si aucun collègue n'est libre, l'appli le dit et conseille de prévenir directement son chef de garde. L'échange (« Échanger avec un collègue ») suit le même parcours en 4 étapes (ma période, le collègue, sa période, vérifier), jusqu'à « Proposer l'échange ».
 2. Le ou les collègues reçoivent la demande (cloche, téléphone, « À ne pas manquer » de l'accueil).
 3. Un collègue accepte. S'il lui manque une aptitude **contrôlée** que le demandeur a (valable ce jour-là), l'appli le dit avant qu'il accepte, et le remplacement passe **à valider** par le chef de garde. Sinon c'est conclu, et le chef de garde est **informé**.
 4. Conclu : le planning montre « X remplace Y » sur la période, l'agenda des deux agents suit, et les deux sont invités à **mettre à jour leur disponibilité dans l'appli du SDIS**, qui fait foi pour l'alerte.
@@ -29,7 +40,7 @@ Planning → « Remplacements » (avec le nombre de demandes à traiter). Quatre
 
 Pour être remplacé **2 ou 3 h** pendant son astreinte du jour, pour une raison personnelle. Exemple : Julie est d'astreinte de 18 h à 6 h et a besoin de quelqu'un de 20 h à 22 h.
 
-- « Me faire remplacer » → « Demander 2 ou 3 h » (proposé seulement le jour de l'astreinte). L'heure de début au quart d'heure, dans la liste du téléphone, puis 2 h ou 3 h. La plage tient dans une seule tranche de son astreinte du jour ; elle peut commencer alors que l'astreinte a commencé, mais pas dans le passé.
+- « Me faire remplacer » → « Quelques heures aujourd'hui » (proposé seulement le jour de l'astreinte). L'heure de début au quart d'heure, dans la liste du téléphone, puis 2 h ou 3 h. La plage tient dans une seule tranche de son astreinte du jour ; elle peut commencer alors que l'astreinte a commencé, mais pas dans le passé.
 - Toujours **ouverte à tous les disponibles**, comme une demande ouverte (ceux qui ont ses aptitudes contrôlées en tête). Pas de collègue ciblé, pas d'échange.
 - **Conclu dès qu'un collègue accepte** ; le premier l'emporte. Pas de validation avant.
 - S'il manque au remplaçant une aptitude contrôlée du demandeur, le chef de garde reçoit une **urgence** (« Marc Petit remplace Julie Martin lundi 9 novembre, de 20 h à 22 h · il lui manque CA1 ») et peut refuser. Sinon, il est simplement informé.

@@ -73,7 +73,7 @@
 			</div>
 			{#if a.mienne}
 				<div class="gestes-plaque">
-					<a class="prise" href="/remplacements/demander?semaine={a.debut.slice(0, 10)}">{@render icone(REMPLACER)}Me faire remplacer</a>
+					<a class="prise" href="/remplacements/demander">{@render icone(REMPLACER)}Me faire remplacer</a>
 					<a class="lien" href="/moi/agenda">{@render icone(AGENDA)}Ajouter à mon agenda</a>
 				</div>
 			{/if}
@@ -82,7 +82,7 @@
 	{#if compacte}
 		<div class="gestes">
 			{#if a.mienne}
-				<a href="/remplacements/demander?semaine={a.debut.slice(0, 10)}">{@render icone(REMPLACER)}Me faire remplacer</a>
+				<a href="/remplacements/demander">{@render icone(REMPLACER)}Me faire remplacer</a>
 				{#if forme === 'rebours'}
 					<a href="/moi/agenda">{@render icone(AGENDA)}Ajouter à mon agenda</a>
 				{:else}
