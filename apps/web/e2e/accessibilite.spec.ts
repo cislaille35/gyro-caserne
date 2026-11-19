@@ -1196,7 +1196,8 @@ test.describe('cases à cocher', () => {
 		await page.goto(chemin);
 		await page.waitForLoadState('networkidle');
 		await toutOuvrir(page);
-		const cases = await page.locator('input[type="checkbox"]:visible').evaluateAll((liste) =>
+		// Les interrupteurs ont leur propre forme (Interrupteur.svelte) : vérifiés à part.
+		const cases = await page.locator('input[type="checkbox"]:not([role="switch"]):visible').evaluateAll((liste) =>
 			liste.map((c) => {
 				const style = getComputedStyle(c);
 				const ligne = (c.closest('label') ?? c).getBoundingClientRect();
@@ -1220,9 +1221,13 @@ test.describe('cases à cocher', () => {
 		await page.context().close();
 	});
 
-	test('mon profil : les mêmes cases', async ({ browser }) => {
+	test('mon profil : des interrupteurs, chacun sur une ligne de 44 px au moins', async ({ browser }) => {
 		const page = await (await browser.newContext({ storageState: ETAT_CONNECTE, colorScheme: 'dark' })).newPage();
-		await verifier(page, '/profil');
+		await page.goto('/profil');
+		await page.waitForLoadState('networkidle');
+		const lignes = await page.getByRole('switch').evaluateAll((liste) => liste.map((c) => (c.closest('label') ?? c).getBoundingClientRect().height));
+		expect(lignes).toHaveLength(3);
+		for (const h of lignes) expect(h).toBeGreaterThanOrEqual(44);
 		await page.context().close();
 	});
 });
