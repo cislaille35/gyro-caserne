@@ -10,8 +10,8 @@ const telephone = (etat: string, appareils = 0) => render(CeTelephone as any, { 
 
 describe('page Moi → Notifications', () => {
 	it('« Tout couper » : un interrupteur qui dit son état, dans un formulaire qui marche sans JavaScript', () => {
-		expect(html({})).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/toutCouper"[\s\S]*?<button[^>]*role="switch"[^>]*aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
-		expect(html({ tout: true })).toMatch(/role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"/);
+		expect(html({})).toMatch(/<form[^>]*method="POST"[^>]*action="\?\/toutCouper"[\s\S]*?<input type="checkbox" role="switch" name="oui" value="1"(?![^>]*checked)[^>]*>[\s\S]*?Enregistrer/);
+		expect(html({ tout: true })).toMatch(/action="\?\/toutCouper"[\s\S]*?role="switch" name="oui" value="1"[^>]*checked/);
 		expect(html({})).toContain('La cloche de l’appli montre toujours tout.');
 	});
 
@@ -19,9 +19,16 @@ describe('page Moi → Notifications', () => {
 		const page = html({ urgences: true });
 		expect(page).toMatch(/Urgences du centre[\s\S]*Ce téléphone[\s\S]*Tout couper/);
 		expect(page).toContain('engin indisponible');
-		expect(page).toMatch(/<form[^>]*action="\?\/urgences"[\s\S]*?role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"/);
-		expect(html({ urgences: false })).toMatch(/action="\?\/urgences"[\s\S]*?role="switch"[^>]*aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
+		expect(page).toMatch(/<form[^>]*action="\?\/urgences"[\s\S]*?Recevoir les urgences[\s\S]*?role="switch" name="oui" value="1"[^>]*checked/);
+		expect(html({ urgences: false })).toMatch(/action="\?\/urgences"[\s\S]*?role="switch" name="oui" value="1"(?![^>]*checked)[^>]*>/);
 		expect(html({})).not.toContain('Urgences du centre');
+	});
+
+	it('chaque interrupteur passe par le composant commun, sa description reliée', () => {
+		const source = readFileSync(new URL('./+page.svelte', import.meta.url), 'utf8');
+		expect(source.match(/<Interrupteur /g)).toHaveLength(3);
+		expect(source).not.toContain('role="switch"');
+		expect(html({ urgences: true })).toMatch(/aria-describedby="[^"]+-aide"/);
 	});
 
 	it('« Tout couper » coupe aussi les urgences : l’écran prévient le chef', () => {
@@ -31,8 +38,8 @@ describe('page Moi → Notifications', () => {
 	});
 
 	it('« Recevoir les demandes par e-mail » pour qui tient un rôle, coché par défaut ; pas pour les autres', () => {
-		expect(html({ courriel: true })).toMatch(/<form[^>]*action="\?\/courriel"[\s\S]*?role="switch"[^>]*aria-checked="true"[^>]*name="oui"[^>]*value="0"[\s\S]*?Recevoir les demandes par e-mail/);
-		expect(html({ courriel: false })).toMatch(/action="\?\/courriel"[\s\S]*?aria-checked="false"[^>]*name="oui"[^>]*value="1"/);
+		expect(html({ courriel: true })).toMatch(/<form[^>]*action="\?\/courriel"[\s\S]*?Recevoir les demandes par e-mail[\s\S]*?role="switch" name="oui" value="1"[^>]*checked/);
+		expect(html({ courriel: false })).toMatch(/action="\?\/courriel"[\s\S]*?role="switch" name="oui" value="1"(?![^>]*checked)[^>]*>/);
 		expect(html({})).not.toContain('Recevoir les demandes par e-mail');
 	});
 

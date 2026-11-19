@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // La nouvelle identité : boutons en rectangles arrondis, cartes arrondies, la pilule réservée aux états
-// (pastilles, compteurs, interrupteurs, marques écrites).
+// (pastilles, compteurs, marques écrites). Un interrupteur est une ligne, pas une pilule : « Interrupteur ».
 const racine = new URL('.', import.meta.url).pathname;
 const fichiers = (dossier: string): string[] =>
 	readdirSync(join(racine, dossier), { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? fichiers(join(dossier, e.name)) : e.name.endsWith('.svelte') ? [join(dossier, e.name)] : []));
@@ -44,8 +44,6 @@ const ETATS = [
 	'routes/planning/ete/+page.svelte | .compte',
 	'routes/planning/ete/+page.svelte | .etiquette',
 	'routes/nominations/+page.svelte | .titulaire',
-	"routes/moi/notifications/+page.svelte | [role='switch']",
-	'routes/moi/notifications/+page.svelte | .glissiere'
 ];
 
 describe('formes', () => {
@@ -204,8 +202,8 @@ describe('direction B', () => {
 
 	it('un seul style de champ, posé par app.css', () => {
 		expect(source('app.css')).toMatch(/:where\(textarea, select, input:not\(\[type='checkbox'\], \[type='radio'\], \[type='file'\]\)\) \{[^}]*border: 1px solid var\(--doux\);/);
-		// L'interrupteur de la vue Année est une case dessinée, pas un champ.
-		const ecrit = ecrans.filter((f) => f !== 'lib/planning/VueAnnee.svelte').filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
+		// L'interrupteur commun est une glissière dessinée, pas un champ.
+		const ecrit = ecrans.filter((f) => f !== 'lib/ui/Interrupteur.svelte').filter((f) => /(?:^|\n)\s*(?:[.\w-]+ )?(?:input|textarea|select)(?:\s|,)[^{}]*\{[^}]*border: [^;]*var\(--(?:doux|trait|encre|statut-neutre-trait)\)/.test(style(f)));
 		expect(ecrit).toEqual([]);
 		expect(style('lib/ui/FormulairePublication.svelte')).not.toMatch(/\.saisie \{[^}]*border:/);
 	});
@@ -245,8 +243,9 @@ describe('direction B', () => {
 		expect(fautifs).toEqual([]);
 	});
 
-	it('l’interrupteur de la vue Année garde sa piste : ce n’est pas un champ', () => {
-		expect(style('lib/planning/VueAnnee.svelte')).toMatch(/\.interrupteur input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
+	it('un interrupteur passe par « Interrupteur » : aucun role="switch" ailleurs', () => {
+		expect(ecrans.filter((f) => f !== 'lib/ui/Interrupteur.svelte' && /role="switch"|role='switch'/.test(source(f)))).toEqual([]);
+		expect(style('lib/ui/Interrupteur.svelte')).toMatch(/input \{[^}]*border: 2px solid var\(--doux\);[^}]*border-radius: var\(--rayon-grand\);/);
 	});
 
 	// Le mouvement (lot 2) : des jetons, un retour à l'appui commun, des panneaux qui viennent de quelque part.

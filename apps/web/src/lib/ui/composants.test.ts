@@ -25,6 +25,7 @@ import ListeRangees from './ListeRangees.svelte';
 import Rangee from './Rangee.svelte';
 import CarteDemande from '../remplacements/CarteDemande.svelte';
 import Vide from './Vide.svelte';
+import Interrupteur from './Interrupteur.svelte';
 import Recherche from './Recherche.svelte';
 import { NOMS_ICONES } from '@gyro-caserne/socle';
 import { ICONE_MAISON, ICONES_ROLES } from './icones-roles.ts';
@@ -562,5 +563,30 @@ describe('Recherche', () => {
 		expect(page).toMatch(/<input id="q" type="search" name="q" value="mar"[^>]*aria-describedby="q-aide"/);
 		expect(page).toMatch(/<p id="q-aide"[^>]*>Nom ou e-mail<\/p>/);
 		expect(page).toMatch(/<button type="submit"[^>]*name="filtre" value="partis"[\s\S]*?<svg[^>]*aria-hidden="true"[\s\S]*?>Rechercher</);
+	});
+});
+
+describe('Interrupteur', () => {
+	it('une ligne : le libellé à gauche, la case « switch » à droite, dans un seul label ; la description reliée', () => {
+		const page = net(Interrupteur, { libelle: 'Recevoir les urgences', description: 'Votre téléphone sonne, à toute heure.', nom: 'oui', coche: true });
+		expect(page).toMatch(/^<label class="interrupteur[^"]*"><span class="texte[^"]*"><span id="([^"]+)-libelle"[^>]*>Recevoir les urgences<\/span><span id="\1-aide"[^>]*>Votre téléphone sonne, à toute heure.<\/span><\/span><input type="checkbox" role="switch" name="oui" value="1"[^>]*aria-labelledby="\1-libelle" aria-describedby="\1-aide"[^>]*checked/);
+		expect(page).not.toContain('Enregistrer');
+	});
+	it('sans description ni nom : la case seule, sans aria-describedby', () => {
+		const page = net(Interrupteur, { libelle: 'Seulement mes semaines' });
+		expect(page).toContain('Seulement mes semaines');
+		expect(page).not.toContain('aria-describedby');
+		expect(page).not.toContain('name=');
+		expect(page).not.toMatch(/\bchecked\b/);
+	});
+	it('dans un formulaire (« envoyer ») : sans JavaScript, un bouton « Enregistrer » nommé envoie le choix', () => {
+		const page = net(Interrupteur, { libelle: 'Tout couper au téléphone', nom: 'oui', envoyer: true });
+		// Avec JavaScript, la bascule envoie le formulaire : le bouton n'est que dans <noscript>.
+		expect(page).toMatch(/<\/label><noscript><button type="submit" class="secondaire[^"]*">Enregistrer<span class="masque"> : Tout couper au téléphone<\/span><\/button><\/noscript>/);
+	});
+	it('la ligne fait au moins 44 px, sans contour de pilule', () => {
+		const style = readFileSync(new URL('./Interrupteur.svelte', import.meta.url), 'utf8');
+		expect(style).toMatch(/\.interrupteur \{[^}]*display: flex;[^}]*min-height: var\(--cible\);/);
+		expect(style).not.toMatch(/\.interrupteur \{[^}]*border:/);
 	});
 });

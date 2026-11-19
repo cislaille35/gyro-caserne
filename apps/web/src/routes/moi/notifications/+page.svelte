@@ -5,6 +5,7 @@
 	import { activerPush, desactiverPush, etatPush } from '#lib/push.ts';
 	import Carte from '#lib/ui/Carte.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
+	import Interrupteur from '#lib/ui/Interrupteur.svelte';
 	import CeTelephone, { type EtatTelephone } from './CeTelephone.svelte';
 
 	let { data, form } = $props();
@@ -31,6 +32,8 @@
 	}
 	const activer = () => changer(() => activerPush(data.clePublique!));
 	const desactiver = () => changer(desactiverPush);
+	// La case garde sa position après l'envoi : la page relue la confirme.
+	const garder = () => ({ update }: { update: (o: { reset: boolean }) => Promise<void> }) => update({ reset: false });
 </script>
 
 <svelte:head>
@@ -46,12 +49,8 @@
 	{#if data.urgences !== null && data.urgences !== undefined}
 		<!-- Le chef de centre et l'adjoint : en premier, ce qui sonne à toute heure. -->
 		<Carte titre="Urgences du centre">
-			<form method="POST" action="?/urgences" use:enhance class="interrupteur">
-				<p id="aide-urgences">Un engin indisponible, un remplacement sans remplaçant la veille, une équipe sans chef de garde la veille de sa relève : votre téléphone sonne, à toute heure.</p>
-				<button type="submit" role="switch" aria-checked={data.urgences ? 'true' : 'false'} name="oui" value={data.urgences ? '0' : '1'} aria-describedby="aide-urgences">
-					<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
-					<span>Recevoir les urgences</span>
-				</button>
+			<form method="POST" action="?/urgences" use:enhance={garder}>
+				<Interrupteur libelle="Recevoir les urgences" description="Un engin indisponible, un remplacement sans remplaçant la veille, une équipe sans chef de garde la veille de sa relève : votre téléphone sonne, à toute heure." nom="oui" coche={data.urgences} envoyer />
 			</form>
 		</Carte>
 	{/if}
@@ -62,24 +61,16 @@
 
 	{#if data.courriel !== null && data.courriel !== undefined}
 		<Carte titre="Par e-mail">
-			<form method="POST" action="?/courriel" use:enhance class="interrupteur">
-				<p id="aide-courriel">Une nouvelle demande adressée à vos rôles (habillement, anomalie, réservation à valider) arrive aussi dans votre boîte. La suite reste dans l’appli.</p>
-				<button type="submit" role="switch" aria-checked={data.courriel ? 'true' : 'false'} name="oui" value={data.courriel ? '0' : '1'} aria-describedby="aide-courriel">
-					<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
-					<span>Recevoir les demandes par e-mail</span>
-				</button>
+			<form method="POST" action="?/courriel" use:enhance={garder}>
+				<Interrupteur libelle="Recevoir les demandes par e-mail" description="Une nouvelle demande adressée à vos rôles (habillement, anomalie, réservation à valider) arrive aussi dans votre boîte. La suite reste dans l’appli." nom="oui" coche={data.courriel} envoyer />
 			</form>
 		</Carte>
 	{/if}
 
 	<Carte titre="Tout couper">
-		<form method="POST" action="?/toutCouper" use:enhance class="interrupteur">
-			<p id="aide-tout">Plus rien ne sonne, sur aucun appareil. La cloche de l’appli montre toujours tout.</p>
+		<form method="POST" action="?/toutCouper" use:enhance={garder}>
+			<Interrupteur libelle="Tout couper au téléphone" description="Plus rien ne sonne, sur aucun appareil. La cloche de l’appli montre toujours tout." nom="oui" coche={data.tout} envoyer />
 			{#if data.tout && data.urgences !== null && data.urgences !== undefined}<p class="avertissement">Vous ne recevrez plus les urgences du centre (engin indisponible…).</p>{/if}
-			<button type="submit" role="switch" aria-checked={data.tout ? 'true' : 'false'} name="oui" value={data.tout ? '0' : '1'} aria-describedby="aide-tout">
-				<span class="glissiere" aria-hidden="true"><span class="bouton-rond"></span></span>
-				<span>Tout couper au téléphone</span>
-			</button>
 		</form>
 	</Carte>
 
@@ -126,56 +117,10 @@
 		color: var(--statut-danger-texte);
 		font-weight: 600;
 	}
-	.interrupteur {
-		display: flex;
-		flex-direction: column;
-		gap: var(--espace-12);
-	}
-	.interrupteur p {
-		margin: 0;
-	}
 	.avertissement {
+		margin: var(--espace-8) 0 0;
 		font-weight: 600;
 		color: var(--statut-alerte-texte);
-	}
-	[role='switch'] {
-		align-self: flex-start;
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		gap: var(--espace-12);
-		padding: 0 var(--espace-16) 0 var(--espace-6);
-		border: 1px solid var(--trait);
-		border-radius: 999px;
-		background: var(--surface);
-		color: var(--encre);
-		font: 600 var(--texte-16) var(--police);
-		cursor: pointer;
-	}
-	.glissiere {
-		position: relative;
-		width: 44px;
-		height: 26px;
-		border-radius: 999px;
-		background: var(--doux);
-		transition: background var(--duree-etat) var(--courbe-sortie);
-	}
-	.bouton-rond {
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: var(--surface);
-		box-shadow: 0 1px 2px color-mix(in srgb, #000 30%, transparent);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	[aria-checked='true'] .glissiere {
-		background: var(--accent);
-	}
-	[aria-checked='true'] .bouton-rond {
-		transform: translateX(18px);
 	}
 	ul {
 		margin: 0;
@@ -215,15 +160,8 @@
 		cursor: pointer;
 	}
 	@media (hover: hover) and (pointer: fine) {
-		.reactiver:hover,
-		[role='switch']:hover {
+		.reactiver:hover {
 			border-color: var(--encre);
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.glissiere,
-		.bouton-rond {
-			transition: none;
 		}
 	}
 </style>

@@ -3,6 +3,7 @@
 	import { avecGroupe } from './astreinte.ts';
 	import { duAu, finDeSemaine, jourLong, semainesParMois } from './dates.ts';
 	import { reperesDe, resumeDuMois, SIGNES, type Donnees, type Mode } from './vues.ts';
+	import Interrupteur from '../ui/Interrupteur.svelte';
 
 	// L'année en douze mois repliés (le mois ouvert déplié), chacun résumé d'une ligne. Sert aussi la vue Équipes.
 	// L'équipe est toujours écrite, jamais la couleur seule.
@@ -32,10 +33,10 @@
 </script>
 
 <div class="annee">
-	{#if mode === 'moi'}
-		<label class="interrupteur"><input type="checkbox" role="switch" bind:checked={seules} /> Seulement mes semaines</label>
-	{/if}
 	<div class="mois pile">
+	{#if mode === 'moi'}
+		<div class="reglage"><Interrupteur libelle="Seulement mes semaines" bind:coche={seules} /></div>
+	{/if}
 	{#each mois as m (m.numero)}
 		{@const liste = seules ? m.semaines.filter((s) => s.mienne) : m.semaines}
 		<details class="repli" open={m.numero === moisOuvert}>
@@ -81,44 +82,8 @@
 		flex-direction: column;
 		gap: var(--espace-12);
 	}
-	.interrupteur {
-		align-self: flex-start;
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		gap: var(--espace-12);
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.interrupteur input {
-		appearance: none;
-		width: 44px;
-		height: 26px;
-		margin: 0;
-		border: 2px solid var(--doux);
-		border-radius: var(--rayon-grand);
-		background: var(--surface);
-		position: relative;
-		cursor: pointer;
-	}
-	.interrupteur input::after {
-		content: '';
-		position: absolute;
-		top: 3px;
-		left: 3px;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: var(--doux);
-		transition: transform var(--duree-etat) var(--courbe-sortie);
-	}
-	.interrupteur input:checked {
-		background: var(--encre);
-		border-color: var(--encre);
-	}
-	.interrupteur input:checked::after {
-		background: var(--surface);
-		transform: translateX(18px);
+	.reglage {
+		padding-inline: var(--espace-16);
 	}
 	.repli {
 		border: 1px solid transparent;
