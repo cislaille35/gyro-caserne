@@ -34,6 +34,8 @@ Pour être remplacé **2 ou 3 h** pendant son astreinte du jour, pour une raison
 - **Conclu dès qu'un collègue accepte** ; le premier l'emporte. Pas de validation avant.
 - S'il manque au remplaçant une aptitude contrôlée du demandeur, le chef de garde reçoit une **urgence** (« Marc Petit remplace Julie Martin lundi 9 novembre, de 20 h à 22 h · il lui manque CA1 ») et peut refuser. Sinon, il est simplement informé.
 - **Refuser ce remplaçant** : le demandeur, ou le chef de garde si une aptitude manque, **jusqu'au début** de la plage, avec confirmation. Le titulaire reste d'astreinte ; le remplaçant (et le demandeur, si c'est le chef) le savent par une urgence. La demande est close (« Annulée », motif « Refusé par… ») et ne repart pas d'elle-même.
+- Le chef de garde apprend aussi le refus du demandeur (en urgence s'il manquait une aptitude). Un court conclu ne s'**annule** pas : on refuse le remplaçant.
+- **Désistement** du remplaçant avant le début : le titulaire le sait par une urgence, et la demande repart vers les disponibles, comme une demande ouverte.
 - **Sans refus, le remplacement tient.** Personne ne l'a pris au début : elle expire, le titulaire est prévenu. Pas de relance la veille.
 - Le planning, la vue du chef de garde et l'agenda du téléphone montrent la seule plage : « Marc Petit remplace Julie Martin, lundi 9 novembre, de 20 h à 22 h ».
 

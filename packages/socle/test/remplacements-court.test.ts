@@ -8,7 +8,7 @@ import { publierAnnee, reglerRoulement } from '../src/planning/annee.ts';
 import { agendaDe, monLienAgenda } from '../src/planning/agenda.ts';
 import { debutsCourts, disponibles, lireContexte } from '../src/remplacements/contexte.ts';
 import { demandeVue, pourDemander } from '../src/remplacements/lectures.ts';
-import { accepterDemande, demanderRemplacement, demanderRemplacementCourt, refuserApresCoup } from '../src/remplacements/demandes.ts';
+import { accepterDemande, annulerDemande, demanderRemplacement, demanderRemplacementCourt, desister, refuserApresCoup } from '../src/remplacements/demandes.ts';
 import { remplacementsDuMoment } from '../src/remplacements/moment.ts';
 import { effectifs, requeteConclues } from '../src/remplacements/effectifs.ts';
 import { abonnementPush, affectationEquipe, aptitude, aptitudeAgent, attribution, avisRemplacement, demandeRemplacement, destinataireRemplacement, envoiPush, equipe, personne, profil, responsabilite } from '../src/schema.ts';
@@ -67,16 +67,19 @@ describe('remplacement court : demander', () => {
 	});
 
 	it('la plage tient entière dans une astreinte du jour du demandeur', async () => {
-		const { base, alice, bruno } = await jeu();
+		const { base, alice, bruno, n } = await jeu();
 		const horsAstreinte = new DonneeInvalide('La plage doit tenir dans votre astreinte du jour');
-		// Dépasse la fin, 6 h.
-		await expect(demanderRemplacementCourt(base, alice, { debut: '2026-11-10T04:00', duree: 3 }, maintenant, reglage)).rejects.toThrow(horsAstreinte);
+		// Dépasse la fin, 6 h : le message dit l'heure.
+		await expect(demanderRemplacementCourt(base, alice, { debut: '2026-11-10T04:00', duree: 3 }, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('La plage doit finir à 6 h au plus tard'));
 		// La nuit de demain n'est pas du jour.
 		await expect(demanderRemplacementCourt(base, alice, { debut: '2026-11-10T20:00', duree: 2 }, maintenant, reglage)).rejects.toThrow(horsAstreinte);
 		// Bruno n'est pas d'astreinte.
 		await expect(demanderRemplacementCourt(base, bruno, { debut: '2026-11-09T20:00', duree: 2 }, maintenant, reglage)).rejects.toThrow(horsAstreinte);
-		// À cheval sur deux tranches : le dimanche, la garde de 24 h finit à 6 h, la nuit suivante n'est pas la même tranche.
-		await expect(demanderRemplacementCourt(base, alice, { debut: '2026-11-09T05:00', duree: 2 }, '2026-11-09T04:10', reglage)).rejects.toThrow(horsAstreinte);
+		// À cheval sur deux tranches : dimanche 8, 4 h 10, les gardes de 24 h du samedi et du dimanche se suivent à 6 h.
+		const dimanche = '2026-11-08T04:10';
+		expect(debutsCourts(await lireContexte(base, dimanche, reglage), n.alice).map((x) => x.debut)).toContain('2026-11-08T06:00');
+		await expect(demanderRemplacementCourt(base, alice, { debut: '2026-11-08T05:00', duree: 2 }, dimanche, reglage)).rejects.toThrow(new DonneeInvalide('La plage doit finir à 6 h au plus tard'));
+		await demanderRemplacementCourt(base, alice, { debut: '2026-11-08T06:00', duree: 2 }, dimanche, reglage);
 	});
 
 	it('envoyée aux disponibles, comme une demande ouverte ; la même plage ne se demande pas deux fois', async () => {
@@ -235,5 +238,56 @@ describe('remplacement court : agenda du téléphone', () => {
 		// 18 h – 20 h, puis 22 h – 6 h (heure de Paris).
 		expect(deAlice).toMatch(/DTSTART:20261109T170000Z\r?\nDTEND:20261109T190000Z/);
 		expect(deAlice).toMatch(/DTSTART:20261109T210000Z\r?\nDTEND:20261110T050000Z/);
+	});
+});
+
+describe('remplacement court : revue', () => {
+	const plage = { debut: '2026-11-09T20:00', duree: 2 as const };
+
+	it('deux acceptations à la même minute : une seule l’emporte, un seul avis au demandeur', async () => {
+		const { base, alice, bruno, chloe, n, demande, avisDe } = await jeu();
+		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
+		const resultats = await Promise.allSettled([accepterDemande(base, bruno, id, maintenant, reglage), accepterDemande(base, chloe, id, maintenant, reglage)]);
+		expect(resultats.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+		expect([n.bruno, n.chloe]).toContain((await demande(id)).remplacantId);
+		expect(await avisDe(n.alice)).toEqual(['acceptee']);
+	});
+
+	it('le chef de garde demandeur : le chef de centre peut refuser le remplaçant à qui une aptitude manque', async () => {
+		const { base, elodie, chef, bruno, n, demande } = await jeu();
+		await base.insert(aptitudeAgent).values({ personneId: n.elodie, aptitudeId: (await base.select().from(aptitude).where(eq(aptitude.nom, 'CA1')))[0]!.id, obtenueLe: '2020-01-01' });
+		const id = await demanderRemplacementCourt(base, elodie, plage, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		await refuserApresCoup(base, chef, id, '2026-11-09T19:30', reglage);
+		expect(await demande(id)).toMatchObject({ etat: 'annulee', motif: 'Refusé par le chef de garde', trancheePar: `personne:${n.chef}` });
+	});
+
+	it('refusé par le demandeur : le chef de garde l’apprend aussi, en urgence s’il manquait une aptitude', async () => {
+		const { base, alice, bruno, n, avisDe, envoisDe } = await jeu();
+		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
+		await accepterDemande(base, bruno, id, maintenant, reglage);
+		await refuserApresCoup(base, alice, id, '2026-11-09T19:30', reglage);
+		expect(await avisDe(n.elodie)).toEqual(['informe', 'refusee']);
+		expect((await envoisDe(n.elodie)).map((e) => e.tag)).toContain(`urgence:remplacement:${id}:refusee`);
+	});
+
+	it('le remplaçant se désiste : le titulaire le sait en urgence', async () => {
+		const { base, alice, chloe, n, avisDe, envoisDe } = await jeu();
+		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		await desister(base, chloe, id, '2026-11-09T19:30', reglage);
+		expect(await avisDe(n.alice)).toEqual(['acceptee', 'desistement']);
+		expect((await envoisDe(n.alice)).map((e) => e.tag)).toContain(`urgence:remplacement:${id}:desistement`);
+	});
+
+	it('conclu, le chef ne l’annule pas : il refuse le remplaçant (seulement s’il manque une aptitude)', async () => {
+		const { base, alice, chloe, elodie } = await jeu();
+		const id = await demanderRemplacementCourt(base, alice, plage, maintenant, reglage);
+		await accepterDemande(base, chloe, id, maintenant, reglage);
+		await expect(annulerDemande(base, elodie, id, maintenant, reglage)).rejects.toThrow(new DonneeInvalide('Un remplacement court conclu ne s’annule pas : refusez le remplaçant'));
+		expect((await demandeVue(base, elodie, id, maintenant, reglage)).demande.gestes.annuler).toBe(false);
+		// En attente, le chef peut toujours l'annuler.
+		const autre = await demanderRemplacementCourt(base, alice, { debut: '2026-11-09T23:00', duree: 2 }, maintenant, reglage);
+		await annulerDemande(base, elodie, autre, maintenant, reglage);
 	});
 });

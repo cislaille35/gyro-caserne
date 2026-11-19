@@ -25,9 +25,9 @@ describe('Quelques heures', () => {
 		expect(html).toContain('peut refuser jusqu’au début');
 	});
 
-	it('sans astreinte du jour : le dit, et mène aux jours', () => {
+	it('aucune plage libre aujourd’hui (pas d’astreinte, déjà demandée, trop tard) : le dit, et mène aux jours', () => {
 		const html = page({ debuts: [] });
-		expect(html).toContain('Pas d’astreinte aujourd’hui.');
+		expect(html).toContain('Aucune plage de 2 h libre aujourd’hui.');
 		expect(html).toContain('href="/remplacements/demander"');
 		expect(html).not.toContain('Envoyer la demande');
 	});

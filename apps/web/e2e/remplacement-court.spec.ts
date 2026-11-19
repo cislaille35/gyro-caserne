@@ -16,7 +16,7 @@ test.describe('remplacement court', () => {
 		await connecter(page, 'alice.martin@exemple.fr');
 		await page.goto('/remplacements/court');
 		await expect(page.getByRole('heading', { level: 1, name: 'Quelques heures' })).toBeVisible();
-		test.skip(await page.getByText('Pas d’astreinte aujourd’hui.').isVisible(), 'Alice n’est pas d’astreinte aujourd’hui.');
+		test.skip(await page.getByText('Aucune plage de 2 h libre aujourd’hui.').isVisible(), 'Alice n’est pas d’astreinte aujourd’hui.');
 		await sansViolation(page);
 		await page.getByLabel('2 h').check();
 		const phrase = (await page.getByText(/^Remplacement de .* ouvert à tous les disponibles\.$/).textContent()) ?? '';

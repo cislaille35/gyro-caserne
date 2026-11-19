@@ -50,7 +50,7 @@ export function reunir(periodes: Periode[]): Periode[] {
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 export const jourEnLettres = (moment: string) => `${JOURS[rangDuJour(moment.slice(0, 10))]} ${Number(moment.slice(8, 10)) === 1 ? '1er' : Number(moment.slice(8, 10))} ${MOIS[Number(moment.slice(5, 7)) - 1]}`;
-const heure = (moment: string) => {
+export const heure = (moment: string) => {
 	const [h, m] = moment.slice(11, 16).split(':');
 	return `${Number(h)} h${m === '00' ? '' : ` ${m}`}`;
 };
