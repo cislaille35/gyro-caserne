@@ -2,6 +2,8 @@
 
 Chaque centre a sa propre copie de l'appli, sur son propre compte Cloudflare (offre gratuite), avec sa propre base. Voir la décision [0006](../decisions/0006-config-cloudflare-par-centre.md).
 
+Installer l'appli pour un centre demande l'autorisation écrite de l'auteur : voir [LICENSE](../../LICENSE) et la décision [0040](../decisions/0040-licence-proprietaire.md).
+
 Suivie de bout en bout le 12/11/2026 (répétition générale, centre jetable sur le compte de Laillé, supprimé ensuite) : les corrections de cette répétition sont intégrées ci-dessous.
 
 ## Ce qu'il faut
