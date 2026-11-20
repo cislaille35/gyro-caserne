@@ -70,7 +70,7 @@
 		<!-- Le super administrateur n'a pas de fiche : pas de « Mon profil ». -->
 		{#if data.estPersonne}
 			<li><Rangee href="/profil" titre="Mon profil" sous="Surnom, téléphone, contact d’urgence" /></li>
-			<li><Rangee href="/remplacements/demander" titre="Me faire remplacer" sous="Une nuit, une garde, un week-end ; ou un échange" /></li>
+			<li><Rangee href="/remplacements/demander" titre="Me faire remplacer" sous="Quelques heures, des gardes ou un échange" /></li>
 			<li><Rangee href="/remplacements" titre="Remplacements" sous="Mes demandes, celles pour moi, à valider" /></li>
 			<li><Rangee href="/moi/vacances" titre="Mes vacances" sous="Mes dates d’été, ou disponible tout l’été" /></li>
 			<li><Rangee href="/moi/agenda" titre="Ajouter à mon agenda" sous="Mes astreintes et manœuvres dans l’agenda du téléphone" /></li>

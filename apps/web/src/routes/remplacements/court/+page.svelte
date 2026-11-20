@@ -35,7 +35,7 @@
 	<EnTetePage titre="Quelques heures" phrase="2 ou 3 h de votre astreinte du jour. Le premier collègue qui accepte vous remplace." retour={{ href: '/remplacements/demander', libelle: 'Me faire remplacer' }} />
 
 	{#if data.debuts.length === 0}
-		<Vide titre="Aucune plage de 2 h libre aujourd’hui." texte="Quelques heures se demandent le jour de votre astreinte, au moins 2 h avant sa fin, sur des heures pas encore demandées." action={{ href: '/remplacements/demander', libelle: 'Choisir des jours' }} gyro={false} />
+		<Vide titre="Aucune plage de 2 h libre aujourd’hui." texte="Quelques heures se demandent le jour de votre astreinte, au moins 2 h avant sa fin, sur des heures pas encore demandées." action={{ href: '/remplacements/demander?gardes', libelle: 'Choisir des jours' }} gyro={false} />
 	{:else}
 		<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 		<form method="POST" class="carte">

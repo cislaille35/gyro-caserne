@@ -770,7 +770,8 @@ describe('budget de requêtes, chef de centre avec 150 agents', () => {
 		});
 		expect(demander, 'demander').toBeLessThanOrEqual(BUDGET);
 		for (const [nom, page, l, url] of [
-			['demander', pageDemander, deLAgent, '/remplacements/demander'],
+			['demander, le choix', pageDemander, deLAgent, '/remplacements/demander'],
+			['demander, des gardes', pageDemander, deLAgent, '/remplacements/demander?gardes'],
 			['demander, à qui ?', pageDemander, deLAgent, `/remplacements/demander?p=${encodeURIComponent(`${nuit.debut}|${nuit.fin}`)}&etape=qui`],
 			['manoeuvre', pageEchangeManoeuvre, deLAgent, '/remplacements/manoeuvre'],
 			['quelques heures', pageCourt, deLAgent, '/remplacements/court'],

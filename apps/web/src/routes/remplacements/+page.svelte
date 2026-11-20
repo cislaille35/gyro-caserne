@@ -2,6 +2,7 @@
 	import CarteDemande from '#lib/remplacements/CarteDemande.svelte';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Vide from '#lib/ui/Vide.svelte';
+	import { DESSINS } from '#lib/ui/icones-roles.ts';
 
 	let { data, form } = $props();
 
@@ -24,7 +25,7 @@
 		'a-valider': { titre: 'Rien à valider.', texte: 'Quand une aptitude contrôlée manque à un remplaçant de votre équipe, la demande arrive ici.' },
 		historique: { titre: 'Pas encore d’historique.', texte: 'Les demandes terminées, annulées ou expirées restent ici.' }
 	} as const;
-	const REMPLACER = 'M7 7h11l-3-3 M17 17H6l3 3';
+	const REMPLACER = DESSINS.remplacer;
 	const annonce = $derived(form?.succes ?? (data.personne ? data.fait : null) ?? '');
 </script>
 
@@ -67,10 +68,6 @@
 				{/each}
 			</ul>
 		{/if}
-		<p class="echanges">
-			<a href="/remplacements/demander?mode=echange">Échanger avec un collègue</a>
-			<a href="/remplacements/manoeuvre">Échanger ma place à une manœuvre</a>
-		</p>
 	{/if}
 </div>
 
@@ -95,18 +92,6 @@
 		color: var(--sur-rouge);
 		font-size: var(--texte-14);
 		text-align: center;
-	}
-	.echanges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0 var(--espace-24);
-	}
-	.echanges a {
-		min-height: var(--cible);
-		display: inline-flex;
-		align-items: center;
-		color: var(--encre);
-		font-weight: 600;
 	}
 	.deroule {
 		display: flex;

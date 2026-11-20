@@ -38,7 +38,7 @@
 {/snippet}
 
 <div class="page">
-	<EnTetePage titre="Échanger ma place à une manœuvre" phrase="Un collègue va à votre manœuvre, vous allez à la sienne. Il doit accepter ; votre chef de garde est prévenu." retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+	<EnTetePage titre="Échanger ma place à une manœuvre" phrase="Un collègue va à votre manœuvre, vous allez à la sienne. Il doit accepter ; votre chef de garde est prévenu." retour={data.court ? { href: '/planning', libelle: 'Planning' } : { href: '/remplacements/demander', libelle: 'Me faire remplacer' }} />
 
 	{#if data.miennes.length === 0}
 		<Vide titre="Aucune manœuvre à échanger." texte="Seules les manœuvres qui convoquent certaines équipes s’échangent, pas celles de tout le centre." action={{ href: '/planning', libelle: 'Voir le planning' }} />

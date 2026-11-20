@@ -16,6 +16,7 @@ describe('Échanger ma place à une manœuvre', () => {
 		expect(html).toContain('Votre manœuvre : <strong>« Sport + SAP », dimanche 15 novembre, 8 h 30</strong>');
 		expect(html).toMatch(/name="sienne" value="5:2"/);
 		expect(html).toContain('name="depuis" value="planning"');
+		expect(html).toMatch(/href="\/planning"[^>]*>[\s\S]*?Planning/);
 	});
 
 	it('vérifier : la phrase, puis Proposer l’échange en POST', () => {
@@ -29,5 +30,7 @@ describe('Échanger ma place à une manœuvre', () => {
 		const html = page({ court: false, mienne: null, etape: 'mienne' });
 		expect(html).toContain('Étape 1 sur 3');
 		expect(html).toMatch(/name="mienne" value="1" checked/);
+		// Le retour mène au choix de « Me faire remplacer ».
+		expect(html).toMatch(/href="\/remplacements\/demander"[^>]*>[\s\S]*?Me faire remplacer/);
 	});
 });

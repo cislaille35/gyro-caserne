@@ -37,8 +37,11 @@ test.describe('remplacements', () => {
 			await page.getByRole('link', { name: 'Me faire remplacer' }).first().click();
 			await expect(page.getByRole('heading', { level: 1, name: 'Me faire remplacer' })).toBeVisible();
 			await sansViolation(page);
-			// Étape 1 : la semaine de la carte est ouverte, mais elle peut n'avoir plus rien de libre selon le jour (férié commencé,
-			// nuit déjà demandée par le jeu de départ) : on ouvre la première semaine qui a un jour libre, puis on touche ce jour.
+			// Le choix : des gardes (quelques heures n'est proposé que le jour de l'astreinte).
+			await page.getByRole('link', { name: /^Une ou plusieurs gardes/ }).click();
+			await expect(page.getByRole('heading', { level: 1, name: 'Une ou plusieurs gardes' })).toBeVisible();
+			// Étape 1 : une semaine peut n'avoir plus rien de libre selon le jour (férié commencé, nuit déjà demandée
+			// par le jeu de départ) : on ouvre la première semaine qui a un jour libre, puis on touche ce jour.
 			await expect(page.getByText('Étape 1 sur 3')).toBeVisible();
 			await page.getByRole('list', { name: 'Mes semaines d’astreinte' }).getByRole('link', { name: /\d+ jours? libres?/ }).first().click();
 			await page.locator('input[name="p"]:not([disabled])').first().check();

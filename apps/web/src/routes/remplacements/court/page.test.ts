@@ -1,7 +1,6 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
-import Demander from '../demander/+page.svelte';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const page = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data, form } }).body;
@@ -28,7 +27,7 @@ describe('Quelques heures', () => {
 	it('aucune plage libre aujourd’hui (pas d’astreinte, déjà demandée, trop tard) : le dit, et mène aux jours', () => {
 		const html = page({ debuts: [] });
 		expect(html).toContain('Aucune plage de 2 h libre aujourd’hui.');
-		expect(html).toContain('href="/remplacements/demander"');
+		expect(html).toMatch(/<a[^>]*href="\/remplacements\/demander\?gardes"[^>]*>Choisir des jours/);
 		expect(html).not.toContain('Envoyer la demande');
 	});
 
@@ -36,12 +35,4 @@ describe('Quelques heures', () => {
 		expect(page({ debuts }, { message: 'La plage doit tenir dans votre astreinte du jour.' })).toMatch(/role="alert"[^>]*>La plage doit tenir/);
 	});
 
-	it('« Me faire remplacer » propose quelques heures, seulement le jour de l’astreinte', () => {
-		const base = { manqueMoi: [], mode: 'remplacement', maintenant: '2026-11-09T19:10', etape: 'quand', message: null, semaines: [], semaine: null, choisies: [], candidats: [], echangeables: [], pour: null, avec: null, semainesAvec: [], semaineAvec: null, choisiesAvec: [], recherche: '' };
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const demander = (data: Record<string, unknown>) => render(Demander as any, { props: { data: { ...base, ...data }, form: null } }).body;
-		expect(demander({ court: true })).toMatch(/<a[^>]*href="\/remplacements\/court"[^>]*>Demander 2 ou 3 h<\/a>/);
-		expect(demander({ court: false })).not.toContain('/remplacements/court');
-		expect(demander({ court: true, mode: 'echange' })).not.toContain('/remplacements/court');
-	});
 });

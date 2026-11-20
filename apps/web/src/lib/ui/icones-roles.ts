@@ -49,5 +49,8 @@ export const DESSINS = {
 	cloche: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20a2 2 0 0 0 4 0',
 	son: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z M15.5 9a4 4 0 0 1 0 6 M18 6.5a7.5 7.5 0 0 1 0 11',
 	sonCoupe: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z M16 9.5l5 5 M21 9.5l-5 5',
-	photo: 'M4 8h3.5l2-3h5l2 3H20v11H4z M12 16.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6'
+	photo: 'M4 8h3.5l2-3h5l2 3H20v11H4z M12 16.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+	horloge: 'M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18 M12 7v5l3 2',
+	// Les flèches d'échange de « Me faire remplacer ».
+	remplacer: 'M7 7h11l-3-3 M17 17H6l3 3'
 } as const;
