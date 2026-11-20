@@ -77,6 +77,7 @@ test('David annule une demande ouverte ; un collègue qui l’a reçue le lit de
 	await connecter(page, 'david.leroy@exemple.fr');
 	await page.goto('/planning');
 	await page.getByRole('link', { name: 'Me faire remplacer' }).first().click();
+	await page.getByRole('link', { name: /Une ou plusieurs gardes/ }).click();
 	await page.getByRole('list', { name: 'Mes semaines d’astreinte' }).getByRole('link', { name: /\d+ jours? libres?/ }).first().click();
 	await page.locator('input[name="p"]:not([disabled])').first().check();
 	await page.getByRole('button', { name: 'Continuer' }).click();
