@@ -67,4 +67,6 @@ Une description incorrecte (date de référence qui ne tombe pas le jour de pris
 
 ## Licence
 
-[MIT](LICENSE) : chaque centre peut reprendre le code librement.
+© 2026 Maxime CHABI. Code visible, utilisation soumise à autorisation écrite : voir [LICENSE](LICENSE). Contact : maxojev@yahoo.fr.
+
+Les versions jusqu'au commit `789c48a` restent sous licence MIT. Les bibliothèques tierces utilisées restent sous leur propre licence.

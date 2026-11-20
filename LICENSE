@@ -1,21 +1,65 @@
-MIT License
+Gyro Caserne — Licence propriétaire
 
-Copyright (c) 2026 CIS Laillé
+Copyright (c) 2026 Maxime CHABI. Tous droits réservés.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Auteur et titulaire des droits
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Gyro Caserne (le « Logiciel ») comprend le code source, la documentation,
+les textes, les écrans, le nom « Gyro Caserne », la mascotte Gyro et les
+éléments graphiques de ce dépôt. Maxime CHABI (l'« Auteur ») en est l'auteur
+et le seul titulaire de l'ensemble des droits de propriété intellectuelle.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Ce qui est permis sans autorisation
+
+Le code source est rendu visible publiquement à titre de transparence.
+Il est permis, sans autorisation préalable :
+- de le consulter et de le lire ;
+- de le forker sur GitHub, dans la seule mesure prévue par les conditions
+  d'utilisation de GitHub, sans aucun autre usage de la copie obtenue.
+
+3. Ce qui nécessite une autorisation écrite de l'Auteur
+
+Toute autre utilisation est interdite sans l'autorisation écrite préalable
+de l'Auteur, et notamment :
+- installer, exécuter ou déployer le Logiciel, en tout ou partie,
+  pour quelque centre, organisme ou personne que ce soit ;
+- le reproduire, le copier ou le télécharger hors de GitHub, sauf pour
+  le seul besoin de le consulter ;
+- le modifier, l'adapter, le traduire ou en créer des œuvres dérivées ;
+- le distribuer, le publier, le vendre, le louer ou le mettre à disposition
+  de tiers, gratuitement ou non, y compris sous forme de service en ligne ;
+- en réutiliser des parties dans un autre logiciel ;
+- utiliser le nom « Gyro Caserne », la mascotte Gyro ou les éléments
+  graphiques du Logiciel.
+
+Une autorisation n'est valable que si elle est écrite et signée par
+l'Auteur. Elle est personnelle, limitée à ce qu'elle prévoit et ne peut
+être transmise à un tiers.
+
+4. Contributions
+
+Toute contribution proposée au dépôt (code, texte, image, correction)
+n'est acceptée que si son auteur cède à l'Auteur les droits nécessaires
+à son intégration et à son exploitation dans le Logiciel.
+
+5. Versions antérieures
+
+Les versions publiées avant l'adoption de la présente licence, c'est-à-dire
+jusqu'au commit 789c48ac6728bbb9f6a3fdf8f6fd02ef909c1dee inclus sur la
+branche main (20 novembre 2026), ainsi que les branches publiées à cette
+date, ont été diffusées sous licence MIT. Elles restent soumises à cette
+licence. Toute version postérieure est soumise à la présente licence.
+
+6. Absence de garantie
+
+Le Logiciel est fourni « en l'état », sans garantie d'aucune sorte,
+expresse ou implicite. Dans les limites permises par la loi, l'Auteur
+ne saurait être tenu responsable d'un dommage résultant de l'utilisation
+ou de l'impossibilité d'utiliser le Logiciel.
+
+7. Droit applicable
+
+La présente licence est soumise au droit français. Tout litige relève
+des tribunaux français compétents.
+
+Pour toute demande d'autorisation : maxojev@yahoo.fr.
