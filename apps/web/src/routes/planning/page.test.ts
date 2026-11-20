@@ -55,6 +55,8 @@ describe('onglet Planning', () => {
 		expect(html.match(/Votre équipe est d’astreinte dans 5 jours/g)).toHaveLength(1);
 		expect(html).toContain('Ma prochaine astreinte');
 		expect(html).toContain('Du ven. 6 nov. 18 h au ven. 13 nov. 6 h');
+		// La plaque mène au choix ; la vue Semaine garde son raccourci vers la semaine.
+		expect(html).toContain('href="/remplacements/demander"');
 		expect(html).toContain('href="/remplacements/demander?semaine=2026-11-06"');
 		expect(html).toContain('Ajouter à mon agenda');
 	});
@@ -83,7 +85,7 @@ describe('onglet Planning', () => {
 		};
 
 		it.each(Object.entries(CALENDRIER))('vue %s : les vues, la carte et les remplacements avant le calendrier, « À venir » après', (vue, calendrier) => {
-			ordonne(page({ vue }), '<h1', 'aria-label="Vue du planning"', 'href="/remplacements/demander?semaine=2026-11-06"', 'href="/remplacements"', calendrier, 'aria-label="Années"', '>À venir');
+			ordonne(page({ vue }), '<h1', 'aria-label="Vue du planning"', 'href="/remplacements/demander"', 'href="/remplacements"', calendrier, 'aria-label="Années"', '>À venir');
 		});
 
 		it('hors astreinte, même vue Année : les remplacements restent au-dessus du calendrier', () => {
@@ -231,6 +233,12 @@ describe('onglet Planning', () => {
 
 	it('répondre sans JavaScript garde la vue', () => {
 		expect(page({ vue: 'mois', mois: 11 })).toMatch(/action="\?\/repondre&amp;annee=2026&amp;vue=mois&amp;semaine=2026-11-06&amp;mois=11"/);
+	});
+
+	it('Année : « Me faire remplacer » d’une de mes semaines va droit à cette semaine', () => {
+		const html = page({ vue: 'annee' });
+		expect(html).toMatch(/class="remplacer[^"]*" href="\/remplacements\/demander\?semaine=\d{4}-\d{2}-\d{2}"/);
+		expect(html).not.toContain('#periode-');
 	});
 
 	it('Semaine : « Me faire remplacer » sur chacun de mes jours à venir, le jour pré-choisi', () => {

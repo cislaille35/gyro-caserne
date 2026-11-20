@@ -19,8 +19,8 @@ describe('/remplacements', () => {
 	it('Alice demande depuis l’écran ; Bruno la voit « Pour moi » et l’accepte ; la page de la demande le dit', async () => {
 		const jeu = await preparer();
 		const nuit = await premiereNuit(jeu);
-		const page = await charger(demander, locaux(jeu.base, jeu.alice), '/remplacements/demander');
-		expect(page).toMatchObject({ mode: 'remplacement', etape: 'quand' });
+		const page = await charger(demander, locaux(jeu.base, jeu.alice), '/remplacements/demander?gardes');
+		expect(page).toMatchObject({ choix: false, mode: 'remplacement', etape: 'quand' });
 		expect(page.semaines.length).toBeGreaterThan(0);
 		const p = encodeURIComponent(`${nuit.debut}|${nuit.fin}`);
 		const verifier = await charger(demander, locaux(jeu.base, jeu.alice), `/remplacements/demander?p=${p}&pour=tous&etape=verifier`);
@@ -126,6 +126,16 @@ describe('/remplacements', () => {
 		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${m1}&depuis=planning&sienne=${bruno.id}:${m2}&etape=verifier`)).toMatchObject({ etape: 'verifier', sienne: { manoeuvre: { id: m2 } } });
 		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${m1}&depuis=planning&etape=verifier`)).toMatchObject({ etape: 'sienne', message: 'Choisissez la manœuvre d’un collègue.' });
 		expect(await charger(manoeuvre, locaux(jeu.base, jeu.alice), `/remplacements/manoeuvre?mienne=${tous}&depuis=planning`)).toMatchObject({ court: false, mienne: null, etape: 'mienne', message: expect.stringContaining('ne s’échange pas') });
+	});
+
+	it('sans paramètre, le choix ; tout lien précis va droit au parcours', async () => {
+		const jeu = await preparer();
+		const l = locaux(jeu.base, jeu.alice);
+		const choix = await charger(demander, l, '/remplacements/demander');
+		expect(choix).toMatchObject({ choix: true, court: expect.any(Boolean) });
+		for (const url of ['?gardes', '?semaine=2026-11-06', '?semaine=2026-11-06&jour=2026-11-09', '?mode=echange', '?p=x&etape=qui']) {
+			expect(await charger(demander, l, `/remplacements/demander${url}`), url).toMatchObject({ choix: false });
+		}
 	});
 
 	it('parcours : une semaine inconnue revient aux cartes ; changer de semaine oublie les jours choisis', async () => {

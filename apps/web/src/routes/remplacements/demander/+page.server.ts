@@ -12,6 +12,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Le parcours guidé, une page par étape ; tout l'état est dans l'adresse (marche sans JavaScript, retour possible).
 // ?mode=echange · semaine · jour (pré-sélection) · p (mes périodes) · pour (tous ou un collègue) · avec · semaineAvec · ps (ses périodes) · q · etape.
+// Sans aucun paramètre : le choix (quelques heures, des gardes, un échange) ; ?gardes ouvre le parcours des gardes.
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const acteur = exigerConnecte(locals);
 	if (acteur.type !== 'personne') redirect(303, '/remplacements');
@@ -53,7 +54,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Revenu en arrière faute de choix : on le dit (seulement si l'agent avait demandé à avancer).
 	const message = manquante && q.has('etape') ? MESSAGES[manquante] : null;
 
-	return { mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '', manqueMoi: lu.manqueMoi, court: lu.court };
+	return { choix: [...q.keys()].length === 0, mode, maintenant, etape, message, semaines: lu.semaines, semaine, choisies, candidats: lu.candidats, echangeables: lu.echangeables, pour, avec: lu.avec, semainesAvec: lu.semainesAvec, semaineAvec, choisiesAvec, recherche: q.get('q') ?? '', manqueMoi: lu.manqueMoi, court: lu.court };
 };
 
 const MESSAGES: Record<Etape, string> = {

@@ -1,6 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import Page from './+page.svelte';
+import { DESSINS, ICONES_ROLES } from '#lib/ui/icones-roles.ts';
 
 const t = (debut: string, fin: string, etat = 'libre') => ({ debut, fin, etat });
 const semaine = {
@@ -20,9 +21,42 @@ const autre = { semaine: '2026-12-04', equipeId: 1, tranches: [t('2026-12-04T18:
 const bruno = { id: 2, prenom: 'Bruno', nom: 'Martin', equipe: { nom: 'Équipe 2', couleur: '#1e6fd9' }, aptitudes: ['COD1'], manque: ['CA1'] };
 const chloe = { id: 3, prenom: 'Chloé', nom: 'Petit', equipe: { nom: 'Équipe 3', couleur: '#2f9e44' }, aptitudes: ['CA1'], manque: [] };
 const nuit = { debut: '2026-11-09T18:00', fin: '2026-11-10T06:00' };
-const base = { manqueMoi: [], mode: 'remplacement', maintenant: '2026-11-07T10:00', etape: 'quand', message: null, semaines: [semaine, autre], semaine: null, choisies: [], candidats: [], echangeables: [], pour: null, avec: null, semainesAvec: [], semaineAvec: null, choisiesAvec: [], recherche: '' };
+const base = { choix: false, court: false, manqueMoi: [], mode: 'remplacement', maintenant: '2026-11-07T10:00', etape: 'quand', message: null, semaines: [semaine, autre], semaine: null, choisies: [], candidats: [], echangeables: [], pour: null, avec: null, semainesAvec: [], semaineAvec: null, choisiesAvec: [], recherche: '' };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const page = (data: Record<string, unknown>, form: unknown = null) => render(Page as any, { props: { data: { ...base, ...data }, form } }).body;
+
+describe('Me faire remplacer : le choix', () => {
+	const choix = (court: boolean) => page({ choix: true, court });
+	const lignes = (html: string) =>
+		html
+			.replace(/<!--[\s\S]*?-->/g, '')
+			.split('<a class="rangee')
+			.slice(1)
+			.map((a) => [a.match(/href="([^"]+)"/)?.[1], a.match(/class="titre[^"]*">([^<]+)/)?.[1], a.match(/class="sous[^"]*">([^<]+)/)?.[1], a.match(/<span class="tuile[^"]*" aria-hidden="true"[\s\S]*?<path d="([^"]+)"/)?.[1]]);
+
+	it('d’astreinte aujourd’hui : quatre lignes, quelques heures en tête', () => {
+		const html = choix(true);
+		expect(html).toMatch(/<h1[^>]*>Me faire remplacer<\/h1>/);
+		expect(lignes(html)).toEqual([
+			['/remplacements/court', 'Quelques heures aujourd’hui', '2 ou 3 h de votre astreinte du jour', DESSINS.horloge],
+			['/remplacements/demander?gardes', 'Une ou plusieurs gardes', 'Choisir la semaine, puis les jours', ICONES_ROLES.calendrier],
+			['/remplacements/demander?mode=echange', 'Échanger avec un collègue', 'Sa garde contre la vôtre', DESSINS.remplacer],
+			['/remplacements/manoeuvre', 'Échanger ma place à une manœuvre', 'Votre place contre celle d’un collègue', ICONES_ROLES.casque]
+		]);
+		expect(html.match(/class="lignes/g)).toHaveLength(1);
+		// Ni étapes, ni phrase d'introduction ; les icônes, à l'encre, sont décoratives : le texte porte le sens.
+		expect(html).not.toContain('Étape');
+		expect(html).not.toContain('class="phrase');
+		expect(html.match(/<span class="tuile[^"]*" aria-hidden="true"/g)).toHaveLength(4);
+		expect(html).toMatch(/href="\/remplacements"[^>]*>[\s\S]*?Remplacements/);
+	});
+
+	it('pas d’astreinte aujourd’hui : pas de « Quelques heures »', () => {
+		const html = choix(false);
+		expect(html).not.toContain('/remplacements/court');
+		expect(lignes(html).map((l) => l[1])).toEqual(['Une ou plusieurs gardes', 'Échanger avec un collègue', 'Échanger ma place à une manœuvre']);
+	});
+});
 
 describe('Me faire remplacer : parcours guidé', () => {
 	it('étape 1 : « Étape 1 sur 3 », les semaines en cartes ; aucune bande avant le choix', () => {
@@ -31,7 +65,12 @@ describe('Me faire remplacer : parcours guidé', () => {
 		expect(html).toContain('Semaine du 6 – 13 nov.');
 		expect(html).toMatch(/href="\?semaine=2026-12-04"[^>]*data-sveltekit-reset="false"/);
 		expect(html).not.toContain('type="checkbox"');
-		expect(html).toContain('Plutôt échanger avec un collègue ?');
+		// Le parcours des gardes : son titre, ses trois étapes, le retour au choix ; plus de lien caché vers un autre parcours.
+		expect(html).toMatch(/<h1[^>]*>Une ou plusieurs gardes<\/h1>/);
+		expect(html).toContain('Trois étapes : quand, à qui');
+		expect(html).toMatch(/href="\/remplacements\/demander"[^>]*>[\s\S]*?Me faire remplacer/);
+		expect(html).not.toContain('Plutôt');
+		expect(html).not.toContain('/remplacements/court');
 	});
 
 	it('étape 1, semaine choisie : la bande de 7 jours avec la plage ; passée et déjà demandée inactives, raison écrite ; raccourcis', () => {
@@ -83,6 +122,16 @@ describe('Me faire remplacer : parcours guidé', () => {
 		expect(html).toContain('Vous proposez à Chloé Petit d’échanger : vous lui donnez la nuit du lundi 9 novembre (18 h – 6 h), Chloé vous donne la garde de 24 h du samedi 14 novembre.');
 		expect(html).toMatch(/name="periodeCible" value="2026-11-14T06:00\|2026-11-15T06:00"/);
 		expect(html).toContain('Proposer l’échange');
+		expect(html).toMatch(/<h1[^>]*>Échanger avec un collègue<\/h1>/);
+		expect(html).not.toContain('Trois étapes');
+		expect(html).not.toContain('Plutôt');
+		expect(html).toMatch(/href="\/remplacements\/demander"[^>]*>[\s\S]*?Me faire remplacer/);
+	});
+
+	it('les liens du parcours ne retombent jamais sur le choix (adresse sans paramètre)', () => {
+		const html = page({ etape: 'qui', semaine: null, choisies: [] });
+		expect(html).not.toMatch(/href="\?"/);
+		expect(html).toContain('href="?gardes"');
 	});
 
 	it('sans astreinte à venir : un vide qui mène au planning', () => {

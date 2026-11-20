@@ -2,7 +2,7 @@
 
 Le jour de votre astreinte, pour 2 ou 3 h.
 
-1. Appuyez sur « Me faire remplacer » (carte de votre astreinte, Planning ou Remplacements), puis sur « Demander 2 ou 3 h ».
+1. Appuyez sur « Me faire remplacer » (carte de votre astreinte, Remplacements ou Moi), puis sur « Quelques heures aujourd'hui ». Cette ligne n'apparaît que le jour de votre astreinte, tant qu'il reste 2 h libres.
 2. Choisissez l'heure de début, au quart d'heure, puis 2 h ou 3 h.
 3. Relisez la phrase (« Remplacement de 20 h à 22 h, ouvert à tous les disponibles »), ajoutez un mot si vous voulez, puis « Envoyer la demande ».
 
