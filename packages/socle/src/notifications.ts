@@ -13,7 +13,7 @@ import { periodeCourte } from './reservations-calcul.ts';
 import { texteDemande } from './remplacements/tranches.ts';
 import { aValiderPar } from './remplacements/compte.ts';
 import { TITRES_AVIS } from './remplacements/titres.ts';
-import type { AvisEte, AvisRemplacement } from './listes.ts';
+import type { AvisEte, AvisRemplacement, EtatDemande } from './listes.ts';
 import { abonnementPush, affectationEquipe, avisAnomalie, avisHabillement, avisNomination, avisEte, avisRemplacement, avisReservation, demandeRemplacement, comite, commentaire, conversation, coupure, ecusson, envoiPush, equipe, membreConversation, message, notification, personne, publication, reponseEvenement, reservation, ressource, souhaitAnniversaire } from './schema.ts';
 
 // Les notifications : le fil de la cloche (publications et commentaires reçus), les appareils abonnés, ce que la personne a coupé,
@@ -32,7 +32,9 @@ export type LigneHabillement = Omit<LigneAnomalie, 'type'> & { type: 'habillemen
 export type LigneNomination = Omit<LigneAnomalie, 'type'> & { type: 'nomination' };
 export type LigneEte = { id: number; type: 'ete'; quoi: AvisEte; titre: string; texte: string; url: string; creeLe: string; lue: boolean };
 export const TITRES_ETE: Record<AvisEte, string> = { rappel: 'Vos vacances d’été', repartition: 'Planning d’été', vacances_changees: 'Vacances changées', semaine: 'Planning' };
-export type LigneRemplacement = { id: number; type: 'remplacement'; demandeId: number; quoi: AvisRemplacement; titre: string; texte: string; creeLe: string; lue: boolean };
+// `issue` : une demande reçue puis tranchée sans soi (annulée, prise par un autre, expirée, refusée). La ligne compte alors pour lue.
+export type IssueAvis = 'Annulée' | 'Prise' | 'Expirée' | 'Refusée';
+export type LigneRemplacement = { id: number; type: 'remplacement'; demandeId: number; quoi: AvisRemplacement; titre: string; texte: string; issue: IssueAvis | null; creeLe: string; lue: boolean };
 export type LigneReservation = { id: number; type: 'reservation'; reservationId: number; quoi: 'acceptee' | 'refusee' | 'annulee'; ressource: string; periode: string; motif: string | null; creeLe: string; lue: boolean };
 type LigneMur = {
 	id: number;
@@ -223,9 +225,19 @@ export async function notifierMessage(base: Base, id: number, maintenant: string
 	await base.batch([mettreEnFile(base, ids, `conversation:${m.conversationId}`, donnees, maintenant)]);
 }
 
+// L'issue d'une demande reçue, pour `moi` : la même règle en JavaScript (le fil) et en SQL (les comptes).
+function issueAvis(quoi: AvisRemplacement, etat: EtatDemande, remplacantId: number | null, moi: number): IssueAvis | null {
+	if (quoi !== 'recue') return null;
+	if (etat === 'a_valider' || etat === 'conclue') return remplacantId === moi ? null : 'Prise';
+	return etat === 'annulee' ? 'Annulée' : etat === 'expiree' ? 'Expirée' : etat === 'refusee' ? 'Refusée' : null;
+}
+const avisTrancheSql = (qui: number | SQL) =>
+	sql`${avisRemplacement.quoi} = 'recue' and exists (select 1 from ${demandeRemplacement} where ${demandeRemplacement.id} = ${avisRemplacement.demandeId} and (${demandeRemplacement.etat} in ('annulee', 'expiree', 'refusee') or (${demandeRemplacement.etat} in ('a_valider', 'conclue') and ${demandeRemplacement.remplacantId} <> ${qui})))`;
+
 // Les non-lues de `qui` (un identifiant, ou la colonne d'une requête) : publications et commentaires, et les avis.
+// Un avis de demande reçue puis tranchée sans `qui` ne compte plus.
 const nonLuesSql = (qui: number | SQL) =>
-	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null) + (select count(*) from ${avisNomination} where ${avisNomination.personneId} = ${qui} and ${avisNomination.lueLe} is null) + (select count(*) from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${qui} and ${souhaitAnniversaire.lueLe} is null)`;
+	sql<number>`(select count(*) from ${notification} where ${notification.personneId} = ${qui} and ${notification.lueLe} is null) + (select count(*) from ${avisReservation} where ${avisReservation.personneId} = ${qui} and ${avisReservation.lueLe} is null) + (select count(*) from ${avisRemplacement} where ${avisRemplacement.personneId} = ${qui} and ${avisRemplacement.lueLe} is null and not (${avisTrancheSql(qui)})) + (select count(*) from ${avisEte} where ${avisEte.personneId} = ${qui} and ${avisEte.lueLe} is null) + (select count(*) from ${avisAnomalie} where ${avisAnomalie.personneId} = ${qui} and ${avisAnomalie.lueLe} is null) + (select count(*) from ${avisHabillement} where ${avisHabillement.personneId} = ${qui} and ${avisHabillement.lueLe} is null) + (select count(*) from ${avisNomination} where ${avisNomination.personneId} = ${qui} and ${avisNomination.lueLe} is null) + (select count(*) from ${souhaitAnniversaire} where ${souhaitAnniversaire.personneId} = ${qui} and ${souhaitAnniversaire.lueLe} is null)`;
 
 // Le chiffre de la cloche d'une personne (la colonne d'une requête), comme l'en-tête des pages le compose (+layout.server.ts) :
 // non lues, remplacements à valider, messages signalés pour qui modère, réservations à trancher.
@@ -253,7 +265,7 @@ const avisDe = (base: Base, moi: number) =>
 // Les avis de remplacement reçus par la personne, les plus récents d'abord.
 const avisRemplacementsDe = (base: Base, moi: number) =>
 	base
-		.select({ id: avisRemplacement.id, demandeId: avisRemplacement.demandeId, quoi: avisRemplacement.quoi, creeLe: avisRemplacement.creeLe, lueLe: avisRemplacement.lueLe, genre: demandeRemplacement.genre, periodes: demandeRemplacement.periodes, prenom: personne.prenom, nom: personne.nom })
+		.select({ id: avisRemplacement.id, demandeId: avisRemplacement.demandeId, quoi: avisRemplacement.quoi, creeLe: avisRemplacement.creeLe, lueLe: avisRemplacement.lueLe, genre: demandeRemplacement.genre, periodes: demandeRemplacement.periodes, etat: demandeRemplacement.etat, remplacantId: demandeRemplacement.remplacantId, prenom: personne.prenom, nom: personne.nom })
 		.from(avisRemplacement)
 		.innerJoin(demandeRemplacement, eq(demandeRemplacement.id, avisRemplacement.demandeId))
 		.innerJoin(personne, eq(personne.id, demandeRemplacement.demandeurId))
@@ -325,16 +337,20 @@ export async function filDeNotifications(base: Base, acteur: Acteur, maintenant:
 	const dHabillement: LigneFil[] = habillement.map((a) => ({ id: a.id, type: 'habillement', titre: a.titre, texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dAnniversaire: LigneFil[] = souhaits.map((a) => ({ id: a.id, type: 'anniversaire', auteur: { prenom: a.prenom, nom: a.nom, couleur: a.couleur }, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	const dEte: LigneFil[] = ete.map((a) => ({ id: a.id, type: 'ete', quoi: a.quoi, titre: TITRES_ETE[a.quoi], texte: a.texte, url: a.url, creeLe: a.creeLe, lue: a.lueLe !== null }));
-	const deRemplacements: LigneFil[] = remplacements.map((a) => ({
-		id: a.id,
-		type: 'remplacement',
-		demandeId: a.demandeId,
-		quoi: a.quoi,
-		titre: TITRES_AVIS[a.quoi],
-		texte: `${a.prenom} ${a.nom} · ${a.genre === 'manoeuvre' ? 'échange de manœuvre' : texteDemande(JSON.parse(a.periodes))}`,
-		creeLe: a.creeLe,
-		lue: a.lueLe !== null
-	}));
+	const deRemplacements: LigneFil[] = remplacements.map((a) => {
+		const issue = issueAvis(a.quoi, a.etat, a.remplacantId, moi);
+		return {
+			id: a.id,
+			type: 'remplacement',
+			demandeId: a.demandeId,
+			quoi: a.quoi,
+			titre: TITRES_AVIS[a.quoi],
+			texte: `${a.prenom} ${a.nom} · ${a.genre === 'manoeuvre' ? 'échange de manœuvre' : texteDemande(JSON.parse(a.periodes))}`,
+			issue,
+			creeLe: a.creeLe,
+			lue: a.lueLe !== null || issue !== null
+		};
+	});
 	const deReservations: LigneFil[] = avis.map((a) => ({ id: a.id, type: 'reservation', reservationId: a.reservationId, quoi: a.quoi, ressource: a.ressource, periode: periodeCourte(a.forme, a.debut, a.fin), motif: a.motif, creeLe: a.creeLe, lue: a.lueLe !== null }));
 	return {
 		nonLues: compte?.n ?? 0,

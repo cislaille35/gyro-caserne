@@ -158,6 +158,15 @@ export async function remplacementsDe(base: Base, acteur: Acteur, maintenant: st
 	};
 }
 
+// Ce qu'un ancien destinataire voit d'une demande tranchée : son issue et sa période. Le remplaçant n'est pas nommé.
+export type VueReduite = { id: number; issue: 'annulee' | 'prise' | 'expiree' | 'close'; demandeur: Qui | null; texte: string };
+
+function reduite(d: LigneDemande, personnes: Qui[]): VueReduite {
+	const parLeDemandeur = d.etat === 'annulee' && d.motif === null && d.trancheePar === `personne:${d.demandeurId}`;
+	const issue = parLeDemandeur ? 'annulee' : d.etat === 'expiree' ? 'expiree' : d.etat === 'a_valider' || d.etat === 'conclue' ? 'prise' : 'close';
+	return { id: d.id, issue, demandeur: parLeDemandeur ? (personnes.find((p) => p.id === d.demandeurId) ?? inconnu(d.demandeurId)) : null, texte: texteDemande(periodesDe(d.periodes)) };
+}
+
 // Le détail d'une demande, pour qui y a part. Le demandeur d'une demande ouverte voit les disponibles, ceux qui ont ses aptitudes d'abord.
 export async function demandeVue(base: Base, acteur: Acteur, id: number, maintenant: string, reglage: Reglage) {
 	const aujourdhui = exigerDateHeure(maintenant, 'Date');
@@ -175,11 +184,12 @@ export async function demandeVue(base: Base, acteur: Acteur, id: number, mainten
 	]);
 	const d = lignes[0];
 	if (!d) throw new DonneeInvalide('Demande introuvable');
-	const v = vue(d, moi, { personnes, manoeuvres, destinataires }, ctx.chefs, ctx, maintenant.slice(0, 16));
-	// Un destinataire qui n'a pas pris la demande ne la voit que tant qu'elle attend : ensuite, elle ne regarde que les intéressés.
+	// Un destinataire qui n'a pas pris la demande la voit tant qu'elle attend ; ensuite, il n'en voit que l'issue.
 	const partie = d.demandeurId === moi || d.remplacantId === moi || d.cibleId === moi || valideurs(ctx.chefs, d.equipeId, d.demandeurId, d.remplacantId).includes(moi);
-	const recue = destinataires.some((x) => x.personneId === moi && x.refuseLe === null) && d.etat === 'attente';
-	if (!partie && !recue) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous concerne pas');
+	const destinataire = destinataires.find((x) => x.personneId === moi);
+	if (!partie && destinataire && d.etat !== 'attente') return { reduite: reduite(d, personnes) };
+	if (!partie && (destinataire?.refuseLe !== null || d.etat !== 'attente')) throw new RefusDroit('DEMANDER_REMPLACEMENT', { type: 'centre' }, 'Cette demande ne vous concerne pas.');
+	const v = vue(d, moi, { personnes, manoeuvres, destinataires }, ctx.chefs, ctx, maintenant.slice(0, 16));
 	const voitDisponibles = v.moi === 'demandeur' && d.genre === 'remplacement' && d.etat === 'attente' && d.debut > maintenant.slice(0, 16);
 	return {
 		demande: v,

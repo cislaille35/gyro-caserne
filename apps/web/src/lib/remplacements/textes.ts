@@ -1,4 +1,4 @@
-import type { EtatDemande, VueDemande } from '@gyro-caserne/socle';
+import type { EtatDemande, VueDemande, VueReduite } from '@gyro-caserne/socle';
 
 // Les états, toujours écrits (jamais la couleur seule).
 export const ETATS: Record<EtatDemande, { libelle: string; ton: 'ok' | 'info' | 'alerte' | 'danger' | 'neutre' }> = {
@@ -12,6 +12,14 @@ export const ETATS: Record<EtatDemande, { libelle: string; ton: 'ok' | 'info' | 
 
 export const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
 const nom = (q: { prenom: string; nom: string } | null) => (q ? `${q.prenom} ${q.nom}`.trim() : '');
+
+// Ce qu'est devenue une demande, pour un collègue qui l'avait reçue.
+export function phraseIssue(r: VueReduite): string {
+	if (r.issue === 'annulee' && r.demandeur) return `${nom(r.demandeur)} a annulé sa demande.`;
+	if (r.issue === 'prise') return 'Un collègue a déjà pris ce remplacement.';
+	if (r.issue === 'expiree') return 'Cette demande a expiré.';
+	return 'Cette demande n’est plus ouverte.';
+}
 
 // Le titre d'une demande, vu par l'agent.
 export function titreDemande(v: VueDemande): string {

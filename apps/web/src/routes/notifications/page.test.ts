@@ -85,6 +85,13 @@ describe('page des notifications', () => {
 		expect(page).toMatch(/<a[^>]*href="\/remplacements\?onglet=a-valider"[^>]*>[\s\S]*?1 remplacement à valider/);
 	});
 
+	it('une demande reçue puis tranchée : son issue à côté du titre, par une pastille neutre, et lue', () => {
+		const page = html({ nonLues: 0, lignes: [{ id: 3, type: 'remplacement', demandeId: 8, quoi: 'recue', titre: 'Demande de remplacement', texte: 'Alice Test · nuit du lundi 9 novembre', issue: 'Annulée', creeLe: '2026-10-31T09:00', lue: true }] });
+		expect(page).toContain('href="/remplacements/8"');
+		expect(page).toMatch(/Demande de remplacement[\s\S]{0,120}<span class="pastille[^"]*"[^>]*neutre[^>]*>(<!---->)?Annulée/);
+		expect(page).not.toContain('Non lu, ');
+	});
+
 	it('un avis de l’été : vers son lien, son titre et son texte', () => {
 		const page = html({ nonLues: 1, lignes: [{ id: 4, type: 'ete', quoi: 'rappel', titre: 'Vos vacances d’été', texte: 'Donnez vos vacances d’été avant le 15/05/2027.', url: '/moi/vacances', creeLe: '2027-04-15T08:00', lue: false }] });
 		expect(page).toContain(`href="${ouvre('ete', 4, '/moi/vacances')}"`);

@@ -1,13 +1,14 @@
 <script lang="ts">
 	import CarteDemande from '#lib/remplacements/CarteDemande.svelte';
 	import Frise from '#lib/remplacements/Frise.svelte';
-	import { frise, titreDemande } from '#lib/remplacements/textes.ts';
+	import { frise, majuscule, phraseIssue, titreDemande } from '#lib/remplacements/textes.ts';
 	import EnTetePage from '#lib/ui/EnTetePage.svelte';
 	import Visage from '#lib/ui/Visage.svelte';
 	import { pluriel } from '#lib/pluriel.ts';
 
 	let { data, form } = $props();
-	const v = $derived(data.demande);
+	// Sans `reduite`, la demande est là : `v` n'est lu que dans ce cas.
+	const v = $derived(data.demande!);
 	const nom = (q: { prenom: string; nom: string }) => `${q.prenom} ${q.nom}`.trim();
 	const envoyee = $derived(data.envoyee && v.moi === 'demandeur');
 	const groupes = $derived(
@@ -22,49 +23,60 @@
 </script>
 
 <svelte:head>
-	<title>{titreDemande(v)} · Remplacements · Gyro Caserne</title>
+	<title>{data.reduite ? 'Remplacement' : titreDemande(v)} · Remplacements · Gyro Caserne</title>
 </svelte:head>
 
-<div class="page">
-	<EnTetePage titre={v.court ? 'Remplacement court' : v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
-	<p class="reussite" class:masque={!form?.succes && !envoyee} role="status">{form?.succes ?? (envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
-	<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
-
-	<section class="carte" aria-labelledby="titre-frise">
-		<h2 id="titre-frise" class="masque">Où en est la demande</h2>
-		<Frise pas={frise(v)} />
-	</section>
-
-	{#if sdis}
-		<p class="sdis"><strong>À faire :</strong> mettez à jour votre disponibilité dans l’appli du SDIS. C’est elle qui fait foi pour l’alerte.</p>
-	{/if}
-
-	<CarteDemande {v} detail={false} niveau={2} />
-
-	{#if v.moi === 'demandeur' && v.ouverte && v.etat === 'attente'}
-		<section class="disponibles" aria-labelledby="titre-disponibles">
-			<h2 id="titre-disponibles" class="rubrique">Disponibles{#if data.disponibles.length}{' '}<span class="compte">{data.disponibles.length}</span>{/if}</h2>
-			{#each groupes as g (g.titre)}
-				<section class="carte groupe" aria-label={g.titre}>
-					<h3>{g.titre} <span class="compte">{g.agents.length}</span></h3>
-					<p class="doux">{g.phrase}</p>
-					<ul role="list">
-						{#each g.agents as a (a.id)}
-							<li><Visage prenom={a.prenom} nom={a.nom} couleur={null} taille={30} /><span>{nom(a)}</span></li>
-						{/each}
-					</ul>
-				</section>
-			{:else}
-				<p class="carte">Personne n’est disponible sur ces périodes pour le moment.</p>
-			{/each}
+{#if data.reduite}
+	<!-- Une demande reçue puis tranchée sans l'agent : ce qu'elle est devenue, rien de plus. -->
+	<div class="page">
+		<EnTetePage titre="Remplacement" retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+		<section class="carte issue" aria-label="Ce qu’est devenue la demande">
+			<p class="phrase">{phraseIssue(data.reduite)}</p>
+			{#if data.reduite.texte}<p class="doux">{majuscule(data.reduite.texte)}</p>{/if}
 		</section>
-		{#if data.recue !== null}<p class="doux">Demande envoyée à {pluriel(data.recue, 'collègue')}, prévenus en même temps.</p>{/if}
-	{/if}
+	</div>
+{:else}
+	<div class="page">
+		<EnTetePage titre={v.court ? 'Remplacement court' : v.genre === 'remplacement' ? 'Remplacement' : 'Échange'} retour={{ href: '/remplacements', libelle: 'Remplacements' }} />
+		<p class="reussite" class:masque={!form?.succes && !envoyee} role="status">{form?.succes ?? (envoyee ? (v.genre === 'remplacement' ? 'Demande envoyée. Vous serez prévenu dès qu’un collègue répond.' : 'Échange proposé. Vous serez prévenu de sa réponse.') : '')}</p>
+		<p class="erreur" class:masque={!form?.message} role="alert">{form?.message ?? ''}</p>
 
-	{#if data.valideurs.length > 0 && v.genre !== 'manoeuvre'}
-		<p class="doux">{v.etat === 'a_valider' ? 'Valide' : 'Informé'} : {data.valideurs.map(nom).join(', ')}.</p>
-	{/if}
-</div>
+		<section class="carte" aria-labelledby="titre-frise">
+			<h2 id="titre-frise" class="masque">Où en est la demande</h2>
+			<Frise pas={frise(v)} />
+		</section>
+
+		{#if sdis}
+			<p class="sdis"><strong>À faire :</strong> mettez à jour votre disponibilité dans l’appli du SDIS. C’est elle qui fait foi pour l’alerte.</p>
+		{/if}
+
+		<CarteDemande {v} detail={false} niveau={2} />
+
+		{#if v.moi === 'demandeur' && v.ouverte && v.etat === 'attente'}
+			<section class="disponibles" aria-labelledby="titre-disponibles">
+				<h2 id="titre-disponibles" class="rubrique">Disponibles{#if data.disponibles.length}{' '}<span class="compte">{data.disponibles.length}</span>{/if}</h2>
+				{#each groupes as g (g.titre)}
+					<section class="carte groupe" aria-label={g.titre}>
+						<h3>{g.titre} <span class="compte">{g.agents.length}</span></h3>
+						<p class="doux">{g.phrase}</p>
+						<ul role="list">
+							{#each g.agents as a (a.id)}
+								<li><Visage prenom={a.prenom} nom={a.nom} couleur={null} taille={30} /><span>{nom(a)}</span></li>
+							{/each}
+						</ul>
+					</section>
+				{:else}
+					<p class="carte">Personne n’est disponible sur ces périodes pour le moment.</p>
+				{/each}
+			</section>
+			{#if data.recue !== null}<p class="doux">Demande envoyée à {pluriel(data.recue, 'collègue')}, prévenus en même temps.</p>{/if}
+		{/if}
+
+		{#if data.valideurs.length > 0 && v.genre !== 'manoeuvre'}
+			<p class="doux">{v.etat === 'a_valider' ? 'Valide' : 'Informé'} : {data.valideurs.map(nom).join(', ')}.</p>
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.page {
@@ -79,6 +91,14 @@
 	}
 	.doux {
 		color: var(--doux);
+	}
+	.issue {
+		display: flex;
+		flex-direction: column;
+		gap: var(--espace-4);
+	}
+	.phrase {
+		font-weight: 600;
 	}
 	.carte {
 		padding: var(--espace-16);
